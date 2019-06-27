@@ -71,6 +71,12 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
+
+	// ID of the roots watch
+	rootsWatchID = "roots"
+
+	// ID of the leaf watch
+	leafWatchID = "leaf"
 )
 
 type configSource int
@@ -202,6 +208,8 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	InterruptStartCh chan struct{}
+
 	// joinLANNotifier is called after a successful JoinLAN.
 	joinLANNotifier notifier
 
@@ -264,7 +272,7 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
-func New(c *config.RuntimeConfig) (*Agent, error) {
+func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -272,32 +280,40 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
 
-	a := &Agent{
-		config:          c,
-		checkReapAfter:  make(map[types.CheckID]time.Duration),
-		checkMonitors:   make(map[types.CheckID]*checks.CheckMonitor),
-		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
-		checkHTTPs:      make(map[types.CheckID]*checks.CheckHTTP),
-		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
-		checkGRPCs:      make(map[types.CheckID]*checks.CheckGRPC),
-		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
-		checkAliases:    make(map[types.CheckID]*checks.CheckAlias),
-		eventCh:         make(chan serf.UserEvent, 1024),
-		eventBuf:        make([]*UserEvent, 256),
-		joinLANNotifier: &systemd.Notifier{},
-		reloadCh:        make(chan chan error),
-		retryJoinCh:     make(chan error),
-		shutdownCh:      make(chan struct{}),
-		endpoints:       make(map[string]string),
-		tokens:          new(token.Store),
+	a := Agent{
+		config:           c,
+		checkReapAfter:   make(map[types.CheckID]time.Duration),
+		checkMonitors:    make(map[types.CheckID]*checks.CheckMonitor),
+		checkTTLs:        make(map[types.CheckID]*checks.CheckTTL),
+		checkHTTPs:       make(map[types.CheckID]*checks.CheckHTTP),
+		checkTCPs:        make(map[types.CheckID]*checks.CheckTCP),
+		checkGRPCs:       make(map[types.CheckID]*checks.CheckGRPC),
+		checkDockers:     make(map[types.CheckID]*checks.CheckDocker),
+		checkAliases:     make(map[types.CheckID]*checks.CheckAlias),
+		eventCh:          make(chan serf.UserEvent, 1024),
+		eventBuf:         make([]*UserEvent, 256),
+		joinLANNotifier:  &systemd.Notifier{},
+		reloadCh:         make(chan chan error),
+		retryJoinCh:      make(chan error),
+		shutdownCh:       make(chan struct{}),
+		InterruptStartCh: make(chan struct{}),
+		endpoints:        make(map[string]string),
+		tokens:           new(token.Store),
+		logger:           logger,
 	}
-	a.serviceManager = NewServiceManager(a)
+	a.serviceManager = NewServiceManager(&a)
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
 	}
 
-	return a, nil
+	// Retrieve or generate the node ID before setting up the rest of the
+	// agent, which depends on it.
+	if err := a.setupNodeID(c); err != nil {
+		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
+	}
+
+	return &a, nil
 }
 
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
@@ -347,20 +363,6 @@ func (a *Agent) Start() error {
 	defer a.stateLock.Unlock()
 
 	c := a.config
-
-	logOutput := a.LogOutput
-	if a.logger == nil {
-		if logOutput == nil {
-			logOutput = os.Stderr
-		}
-		a.logger = log.New(logOutput, "", log.LstdFlags)
-	}
-
-	// Retrieve or generate the node ID before setting up the rest of the
-	// agent, which depends on it.
-	if err := a.setupNodeID(c); err != nil {
-		return fmt.Errorf("Failed to setup node ID: %v", err)
-	}
 
 	// Warn if the node name is incompatible with DNS
 	if InvalidDnsRe.MatchString(a.config.NodeName) {
@@ -432,6 +434,21 @@ func (a *Agent) Start() error {
 	// Register the cache. We do this much later so the delegate is
 	// populated from above.
 	a.registerCache()
+
+	if a.config.AutoEncryptTLS && !a.config.ServerMode {
+		reply, err := a.setupClientAutoEncrypt()
+		if err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		rootsReq, leafReq, err := a.setupClientAutoEncryptCache(reply)
+		if err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		if err = a.setupClientAutoEncryptWatching(rootsReq, leafReq); err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
+	}
 
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
@@ -528,6 +545,158 @@ func (a *Agent) Start() error {
 	// start retry join
 	go a.retryJoinLAN()
 	go a.retryJoinWAN()
+
+	return nil
+}
+
+func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
+	client := a.delegate.(*consul.Client)
+
+	addrs := a.config.StartJoinAddrsLAN
+	disco, err := newDiscover()
+	if err != nil && len(addrs) == 0 {
+		return nil, err
+	}
+	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
+
+	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
+	if err != nil {
+		return nil, err
+	}
+
+	connectCAPems := []string{}
+	for _, ca := range reply.ConnectCARoots.Roots {
+		connectCAPems = append(connectCAPems, ca.RootCert)
+	}
+	if err := a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname); err != nil {
+		return nil, err
+	}
+	return reply, nil
+
+}
+
+func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
+	rootsReq := &structs.DCSpecificRequest{
+		Datacenter:   a.config.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
+	}
+
+	// prepolutate roots cache
+	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
+	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
+		return nil, nil, err
+	}
+
+	leafReq := &cachetype.ConnectCALeafRequest{
+		Datacenter: a.config.Datacenter,
+		Token:      a.tokens.AgentToken(),
+		Agent:      a.config.NodeName,
+	}
+
+	// prepolutate leaf cache
+	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
+	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
+		return nil, nil, err
+	}
+	return rootsReq, leafReq, nil
+}
+
+func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificRequest, leafReq *cachetype.ConnectCALeafRequest) error {
+	// setup watches
+	ch := make(chan cache.UpdateEvent, 10)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Watch for root changes
+	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, rootsReq, rootsWatchID, ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	// Watch the leaf cert
+	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, leafReq, leafWatchID, ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	// Setup actions in case the watches are firing.
+	go func() {
+		for {
+			select {
+			case <-a.shutdownCh:
+				cancel()
+				return
+			case <-ctx.Done():
+				return
+			case u := <-ch:
+				switch u.CorrelationID {
+				case rootsWatchID:
+					roots, ok := u.Result.(*structs.IndexedCARoots)
+					if !ok {
+						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
+						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						continue
+					}
+					pems := []string{}
+					for _, root := range roots.Roots {
+						pems = append(pems, root.RootCert)
+					}
+					a.tlsConfigurator.UpdateAutoEncryptCA(pems)
+				case leafWatchID:
+					leaf, ok := u.Result.(*structs.IssuedCert)
+					if !ok {
+						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
+						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						continue
+					}
+					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
+				}
+			}
+		}
+	}()
+
+	// Setup safety net in case the auto_encrypt cert doesn't get renewed
+	// in time. The agent would be stuck in that case because the watches
+	// never use the AutoEncrypt.Sign endpoint.
+	go func() {
+		for {
+
+			// Check 10sec after cert expires. The agent cache
+			// should be handling the expiration and renew before
+			// it.
+			// If there is no cert, AutoEncryptCertNotAfter returns
+			// a value in the past which immediately triggers the
+			// renew, but this case shouldn't happen because at
+			// this point, auto_encrypt was just being setup
+			// successfully.
+			interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
+			a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expiration check in %s", interval)
+			select {
+			case <-a.shutdownCh:
+				return
+			case <-time.After(interval):
+				// check auto encrypt client cert expiration
+				if a.tlsConfigurator.AutoEncryptCertExpired() {
+					a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expired.")
+					reply, err := a.setupClientAutoEncrypt()
+					if err != nil {
+						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to renew: %s", err)
+						// in case of an error, try again in one minute
+						interval = time.Minute
+						continue
+					}
+					_, _, err = a.setupClientAutoEncryptCache(reply)
+					if err != nil {
+						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to populate cache: %s", err)
+						// in case of an error, try again in one minute
+						interval = time.Minute
+						continue
+					}
+				}
+			}
+		}
+	}()
 
 	return nil
 }
@@ -1087,6 +1256,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSMinVersion = a.config.TLSMinVersion
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
+
+	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
 
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {

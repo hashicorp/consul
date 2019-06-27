@@ -591,6 +591,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		})
 	}
 
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
+
+	if autoEncryptAllowTLS {
+		connectEnabled = true
+	}
+
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
 	if c.ACLDatacenter != nil {
@@ -793,6 +800,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Checks:                                  checks,
 		ClientAddrs:                             clientAddrs,
 		ConfigEntryBootstrap:                    configEntries,
+		AutoEncryptTLS:                          autoEncryptTLS,
+		AutoEncryptAllowTLS:                     autoEncryptAllowTLS,
 		ConnectEnabled:                          connectEnabled,
 		ConnectCAProvider:                       connectCAProvider,
 		ConnectCAConfig:                         connectCAConfig,
@@ -1098,6 +1107,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
+		}
+	}
+
+	if rt.AutoEncryptAllowTLS {
+		if !rt.VerifyIncoming {
+			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, TLS must be configured in order to work properly.")
 		}
 	}
 

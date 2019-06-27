@@ -387,7 +387,11 @@ RETRY_GET:
 // entryKey returns the key for the entry in the cache. See the note
 // about the entry key format in the structure docs for Cache.
 func (c *Cache) entryKey(t string, r *RequestInfo) string {
-	return fmt.Sprintf("%s/%s/%s/%s", t, r.Datacenter, r.Token, r.Key)
+	return makeEntryKey(t, r.Datacenter, r.Token, r.Key)
+}
+
+func makeEntryKey(t, dc, token, key string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", t, dc, token, key)
 }
 
 // fetch triggers a new background fetch for the given Request. If a
@@ -743,5 +747,30 @@ func (c *Cache) Close() error {
 		// First time only, close stop chan
 		close(c.stopCh)
 	}
+	return nil
+}
+
+// Prepopulate puts something in the cache manually. This is useful when the
+// correct initial value is know and the cache shouldn't refetch the same thing
+// on startup. It is used to set the ConnectRootCA and AgentLeafCert when
+// AutoEncrypt.TLS is turned on. The cache itself cannot fetch that the first
+// time because it requires a special RPCType. Subsequent runs are fine though.
+func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
+	// Check the type that we're prepolulating
+	c.typesLock.RLock()
+	tEntry, ok := c.types[t]
+	c.typesLock.RUnlock()
+	if !ok {
+		return fmt.Errorf("unknown type in cache: %s", t)
+	}
+	key := makeEntryKey(t, dc, token, k)
+	newEntry := cacheEntry{
+		Valid: true, Value: res.Value, State: res.State, Index: res.Index,
+		FetchedAt: time.Now(), Waiter: make(chan struct{}),
+		Expiry: &cacheEntryExpiry{Key: key, TTL: tEntry.Opts.LastGetTTL},
+	}
+	c.entriesLock.Lock()
+	c.entries[key] = newEntry
+	c.entriesLock.Unlock()
 	return nil
 }

@@ -133,8 +133,8 @@ type ConnPool struct {
 	// The maximum number of open streams to keep
 	MaxStreams int
 
-	// TLS wrapper
-	TLSWrapper tlsutil.DCWrapper
+	// TLSConfigurator
+	TLSConfigurator *tlsutil.Configurator
 
 	// ForceTLS is used to enforce outgoing TLS verification
 	ForceTLS bool
@@ -198,7 +198,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int, useTLS bool) (
 	addrStr := addr.String()
 
 	// Check to see if there's a pooled connection available. This is up
-	// here since it should the the vastly more common case than the rest
+	// here since it should the vastly more common case than the rest
 	// of the code here.
 	p.Lock()
 	c := p.pool[addrStr]
@@ -266,13 +266,31 @@ type HalfCloser interface {
 	CloseWrite() error
 }
 
-// DialTimeout is used to establish a raw connection to the given server, with a
-// given connection timeout.
+// DialTimeout is used to establish a raw connection to the given server, with
+// given connection timeout. It also writes RPCTLS as the first byte.
 func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
 
+	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, useTLS || p.ForceTLS, p.TLSConfigurator.OutgoingRPCWrapper(), RPCTLS)
+}
+
+// DialTimeoutInsecure is used to establish a raw connection to the given
+// server, with given connection timeout. It also writes RPCTLSInsecure as the
+// first byte to indicate that the client cannot provide a certificate. This is
+// so far only used for AutoEncrypt.Sign.
+func (p *ConnPool) DialTimeoutInsecure(dc string, addr net.Addr, timeout time.Duration, wrapper tlsutil.DCWrapper) (net.Conn, HalfCloser, error) {
+	p.once.Do(p.init)
+
+	if wrapper == nil {
+		return nil, nil, fmt.Errorf("wrapper cannot be nil")
+	}
+
+	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, true, wrapper, RPCTLSInsecure)
+}
+
+func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout time.Duration, useTLS bool, wrapper tlsutil.DCWrapper, rpcType RPCType) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: timeout}
+	d := &net.Dialer{LocalAddr: src, Timeout: timeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -287,15 +305,15 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, 
 	}
 
 	// Check if TLS is enabled
-	if (useTLS || p.ForceTLS) && p.TLSWrapper != nil {
+	if (useTLS) && wrapper != nil {
 		// Switch the connection into TLS mode
-		if _, err := conn.Write([]byte{byte(RPCTLS)}); err != nil {
+		if _, err := conn.Write([]byte{byte(rpcType)}); err != nil {
 			conn.Close()
 			return nil, nil, err
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := p.TLSWrapper(dc, conn)
+		tlsConn, err := wrapper(dc, conn)
 		if err != nil {
 			conn.Close()
 			return nil, nil, err
@@ -402,6 +420,36 @@ START:
 
 // RPC is used to make an RPC call to a remote host
 func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+	if method == "AutoEncrypt.Sign" {
+		return p.rpcInsecure(dc, addr, method, args, reply)
+	} else {
+		return p.rpc(dc, addr, version, method, useTLS, args, reply)
+	}
+}
+
+// rpcInsecure is used to make an RPC call to a remote host.
+// It doesn't actually use any of the pooling, it is here so that it is
+// transparent for the consumer. The pool cannot be used because
+// AutoEncrypt.Sign is a one-off call and it doesn't make sense to pool that
+// connection if it is not being reused.
+func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+	var codec rpc.ClientCodec
+	conn, _, err := p.DialTimeoutInsecure(dc, addr, 1*time.Second, p.TLSConfigurator.OutgoingRPCWrapper())
+	if err != nil {
+		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
+	}
+	codec = msgpackrpc.NewClientCodec(conn)
+
+	// Make the RPC call
+	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
+	if err != nil {
+		return fmt.Errorf("rpcinsecure error making call: %v", err)
+	}
+
+	return nil
+}
+
+func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
