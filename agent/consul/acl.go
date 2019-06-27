@@ -1599,9 +1599,10 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 		return nil
 	}
 
-	// This order must match the code in applyRegister() in fsm.go since it
-	// also evaluates things in this order, and will ignore fields based on
-	// this precedence. This lets us also ignore them from an ACL perspective.
+	// This order must match the code in applyDeregister() in
+	// fsm/commands_oss.go since it also evaluates things in this order,
+	// and will ignore fields based on this precedence. This lets us also
+	// ignore them from an ACL perspective.
 	if subj.ServiceID != "" {
 		if ns == nil {
 			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
@@ -1623,9 +1624,9 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 			}
 		}
 	} else {
-		if !rule.NodeWrite(subj.Node, nil) {
-			return acl.ErrPermissionDenied
-		}
+		// Since NodeWrite is not given - otherwise the earlier check
+		// would've returned already - we can deny here.
+		return acl.ErrPermissionDenied
 	}
 
 	return nil
