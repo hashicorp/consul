@@ -68,6 +68,22 @@ Enable names under `example.org` to be resolved to in cluster DNS addresses.
 }
 ~~~
 
+With the Corefile above, the following Service will get an `A` record for `test.default.example.org` with IP address `192.168.200.123`.
+
+~~~
+apiVersion: v1
+kind: Service
+metadata:
+ name: test
+ namespace: default
+spec:
+ clusterIP: None
+ externalIPs:
+ - 192.168.200.123
+ type: ClusterIP
+~~~
+
+
 # Also See
 
 For some background see [resolve external IP address](https://github.com/kubernetes/dns/issues/242).
