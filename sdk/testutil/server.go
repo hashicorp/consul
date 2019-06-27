@@ -27,6 +27,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"runtime"
 
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -323,8 +324,14 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
-		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			return errors.Wrap(err, "failed to kill consul server")
+		if runtime.GOOS == "windows" {
+			if err := s.cmd.Process.Kill(); err != nil { 
+				return errors.Wrap(err, "failed to kill consul server")
+			}
+		} else { // interrupt is not support in windows
+			if err := s.cmd.Process.Signal(os.Interrupt); err != nil { 
+				return errors.Wrap(err, "failed to kill consul server")
+			}
 		}
 	}
 
