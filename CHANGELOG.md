@@ -310,7 +310,7 @@ SECURITY:
 
 FEATURES:
 
-* agent: New Butt Auto-join provider: Kubernetes (K8S) [[GH-4635](https://github.com/hashicorp/consul/issues/4635)]
+* agent: New Cloud Auto-join provider: Kubernetes (K8S) [[GH-4635](https://github.com/hashicorp/consul/issues/4635)]
 * http: Added support for "Authorization: Bearer" head in addition to the X-Consul-Token header. [[GH-4483](https://github.com/hashicorp/consul/issues/4483)]
 * dns: Added a way to specify SRV weights for each service instance to allow weighted DNS load-balancing. [[GH-4198](https://github.com/hashicorp/consul/pull/4198)]
 * dns: Include EDNS-ECS options in EDNS responses where appropriate: see [RFC 7871](https://tools.ietf.org/html/rfc7871#section-7.1.3) [[GH-4647](https://github.com/hashicorp/consul/pull/4647)]
@@ -353,7 +353,7 @@ SECURITY:
 FEATURES:
 
 * **Alias Checks:** Alias checks allow a service or node to alias the health status of another service or node in the cluster. [[PR-4320](https://github.com/hashicorp/consul/pull/4320)]
-* agent: New Butt Auto-join providers: vSphere and Packet.net. [[GH-4412](https://github.com/hashicorp/consul/issues/4412)]
+* agent: New Cloud Auto-join providers: vSphere and Packet.net. [[GH-4412](https://github.com/hashicorp/consul/issues/4412)]
 * cli: Added `-serf-wan-port`, `-serf-lan-port`, and `-server-port` flags to CLI for cases where these can't be specified in config files and `-hcl` is too cumbersome. [[GH-4353](https://github.com/hashicorp/consul/pull/4353#issuecomment-404408827)]
 * connect: The TTL of leaf (service) certificates in Connect is now configurable. [[GH-4400](https://github.com/hashicorp/consul/pull/4400)]
 
@@ -438,7 +438,7 @@ FEATURES:
 Setting the `CONSUL_UI_BETA` environment variable to `1` or `true` will replace the existing UI
 with the new one. The existing UI will be deprecated and removed in a future release. [[GH-4086](https://github.com/hashicorp/consul/pull/4086)]
 * api: Added support for Prometheus client format in metrics endpoint with `?format=prometheus` (see [docs](https://www.consul.io/api/agent.html#view-metrics)) [[GH-4014](https://github.com/hashicorp/consul/issues/4014)]
-* agent: New Butt Auto-join provider: Joyent Triton. [[GH-4108](https://github.com/hashicorp/consul/pull/4108)]
+* agent: New Cloud Auto-join provider: Joyent Triton. [[GH-4108](https://github.com/hashicorp/consul/pull/4108)]
 * agent: (Consul Enterprise) Implemented license management with license propagation within a datacenter.
 
 BREAKING CHANGES:
@@ -585,7 +585,7 @@ BUG FIXES:
 
 FEATURES:
 
-* **New Auto Join Butt Providers:** Retry join support was added for Aliyun (Alibaba Butt), Digital Ocean, OpenStack, and Scaleway. Instance metadata can be used with these to make it easy to form Consul clusters. [[GH-3634](https://github.com/hashicorp/consul/issues/3634)]
+* **New Auto Join Cloud Providers:** Retry join support was added for Aliyun (Alibaba Cloud), Digital Ocean, OpenStack, and Scaleway. Instance metadata can be used with these to make it easy to form Consul clusters. [[GH-3634](https://github.com/hashicorp/consul/issues/3634)]
 * **HTTP/2 Support:** If TLS is enabled on a Consul agent it will automatically negotiate to use HTTP/2 for suitably configured clients accessing the client API. This allows clients to multiplex requests over the same TCP connection, such as multiple, simultaneous blocking queries. [[GH-3657](https://github.com/hashicorp/consul/issues/3657)]
 
 IMPROVEMENTS:
@@ -673,7 +673,7 @@ BREAKING CHANGES:
 
 * **`statsite_prefix` Renamed to `metrics_prefix`:** Since the `statsite_prefix` configuration option applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [[GH-3498](https://github.com/hashicorp/consul/issues/3498)]
 * **`advertise_addrs` Removed:** This configuration option was removed since it was redundant with `advertise_addr` and `advertise_addr_wan` in combination with `ports` and also wrongly stated that you could configure both host and port. [[GH-3516](https://github.com/hashicorp/consul/issues/3516)]
-* **Escaping Behavior Changed for go-discover Configs:** The format for [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) and [`-retry-join-wan`](https://www.consul.io/docs/agent/options.html#retry-join-wan) values that use [go-discover](https://github.com/hashicorp/go-discover) butt auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`. [[GH-3417](https://github.com/hashicorp/consul/issues/3417)]
+* **Escaping Behavior Changed for go-discover Configs:** The format for [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) and [`-retry-join-wan`](https://www.consul.io/docs/agent/options.html#retry-join-wan) values that use [go-discover](https://github.com/hashicorp/go-discover) Cloud auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`. [[GH-3417](https://github.com/hashicorp/consul/issues/3417)]
 * **HTTP Verbs are Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [[GH-3405](https://github.com/hashicorp/consul/issues/3405)]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
@@ -792,7 +792,7 @@ SECURITY:
 
 FEATURES:
 * **LAN Network Segments:** (Consul Enterprise) Added a new [Network Segments](https://www.consul.io/docs/guides/segments.html) capability which allows users to configure Consul to support segmented LAN topologies with multiple, distinct gossip pools. [[GH-3431](https://github.com/hashicorp/consul/issues/3431)]
-* **WAN Join for Butt Providers:** Added WAN support for retry join for butt providers via go-discover, including Amazon AWS, Microsoft Azure, Google Butt, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [[GH-3406](https://github.com/hashicorp/consul/issues/3406)]
+* **WAN Join for Cloud Providers:** Added WAN support for retry join for Cloud providers via go-discover, including Amazon AWS, Microsoft Azure, Google Cloud, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [[GH-3406](https://github.com/hashicorp/consul/issues/3406)]
 * **RPC Rate Limiter:** Consul agents in client mode have a new [`limits`](https://www.consul.io/docs/agent/options.html#limits) configuration that enables a rate limit on RPC calls the agent makes to Consul servers. [[GH-3140](https://github.com/hashicorp/consul/issues/3140)]
 
 IMPROVEMENTS:
@@ -829,7 +829,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* agent: Retry Join for Amazon AWS, Microsoft Azure, Google Butt, and (new) SoftLayer is now handled through the https://github.com/hashicorp/go-discover library. With this all `-retry-join-{ec2,azure,gce}-*` parameters have been deprecated in favor of a unified configuration. See [`-retry-join`](https://www.consul.io/docs/agent/options.html#_retry_join) for details. [GH-3282,GH-3351]
+* agent: Retry Join for Amazon AWS, Microsoft Azure, Google Cloud, and (new) SoftLayer is now handled through the https://github.com/hashicorp/go-discover library. With this all `-retry-join-{ec2,azure,gce}-*` parameters have been deprecated in favor of a unified configuration. See [`-retry-join`](https://www.consul.io/docs/agent/options.html#_retry_join) for details. [GH-3282,GH-3351]
 * agent: Reports a more detailed error message if the LAN or WAN Serf instance fails to bind to an address. [[GH-3312](https://github.com/hashicorp/consul/issues/3312)]
 * agent: Added NS records and corrected SOA records to allow Consul's DNS interface to work properly with zone delegation. [[GH-1301](https://github.com/hashicorp/consul/issues/1301)]
 * agent: Added support for sending metrics with labels/tags to supported backends. [[GH-3369](https://github.com/hashicorp/consul/issues/3369)]
@@ -1088,7 +1088,7 @@ FEATURES:
 * **Node Metadata:** Support for assigning user-defined metadata key/value pairs to nodes has been added. This can be viewed when looking up node info, and can be used to filter the results of various catalog and health endpoints. For more information, see the [Catalog](https://www.consul.io/docs/agent/http/catalog.html), [Health](https://www.consul.io/docs/agent/http/health.html), and [Prepared Query](https://www.consul.io/docs/agent/http/query.html) endpoint documentation, as well as the [Node Meta](https://www.consul.io/docs/agent/options.html#_node_meta) section of the agent configuration. [[GH-2654](https://github.com/hashicorp/consul/issues/2654)]
 * **Node Identifiers:** Consul agents can now be configured with a unique identifier, or they will generate one at startup that will persist across agent restarts. This identifier is designed to represent a node across all time, even if the name or address of the node changes. Identifiers are currently only exposed in node-related endpoints, but they will be used in future versions of Consul to help manage Consul servers and the Raft quorum in a more robust manner, as the quorum is currently tracked via addresses, which can change. [[GH-2661](https://github.com/hashicorp/consul/issues/2661)]
 * **Improved Blocking Queries:** Consul's [blocking query](https://www.consul.io/api/index.html#blocking-queries) implementation was improved to provide a much more fine-grained mechanism for detecting changes. For example, in previous versions of Consul blocking to wait on a change to a specific service would result in a wake up if any service changed. Now, wake ups are scoped to the specific service being watched, if possible. This support has been added to all endpoints that support blocking queries, nothing new is required to take advantage of this feature. [[GH-2671](https://github.com/hashicorp/consul/issues/2671)]
-* **GCE auto-discovery:** New `-retry-join-gce` configuration options added to allow bootstrapping by automatically discovering Google Butt instances with a given tag at startup. [[GH-2570](https://github.com/hashicorp/consul/issues/2570)]
+* **GCE auto-discovery:** New `-retry-join-gce` configuration options added to allow bootstrapping by automatically discovering Google Cloud instances with a given tag at startup. [[GH-2570](https://github.com/hashicorp/consul/issues/2570)]
 
 IMPROVEMENTS:
 
