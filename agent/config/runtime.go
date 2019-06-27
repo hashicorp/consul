@@ -259,6 +259,14 @@ type RuntimeConfig struct {
 	// flag: -domain string
 	DNSDomain string
 
+	// DNSAltDomain can be set to support resolution on an additional
+	// consul domain. Should end with a dot.
+	// If left blank, only the primary domain will be used.
+	//
+	// hcl: alt_domain = string
+	// flag: -alt-domain string
+	DNSAltDomain string
+
 	// DNSEnableTruncate is used to enable setting the truncate
 	// flag for UDP DNS queries.  This allows unmodified
 	// clients to re-query the consul server using TCP

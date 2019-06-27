@@ -496,6 +496,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+	altDomain := b.stringVal(c.DNSAltDomain)
+
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
@@ -587,8 +590,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 		})
 	}
-
-	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
@@ -727,6 +728,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
+		DNSAltDomain:          altDomain,
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
@@ -963,6 +965,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		if ipaddr.IsAny(a) {
 			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
 		}
+	}
+	if !isValidAltDomain(rt.DNSAltDomain, rt.Datacenter) {
+		return fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", rt.Datacenter)
 	}
 	if rt.Bootstrap && !rt.ServerMode {
 		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
@@ -1686,6 +1691,18 @@ func isUnixAddr(a net.Addr) bool {
 	return ok
 }
 
+// isValidAltDomain returns true if the given domain is not prefixed
+// by keywords used when dispatching DNS requests
+func isValidAltDomain(domain, datacenter string) bool {
+	reAltDomain := regexp.MustCompile(
+		fmt.Sprintf(
+			"^(service|connect|node|query|addr|%s)\\.(%s\\.)?",
+			datacenter, datacenter,
+		),
+	)
+	return !reAltDomain.MatchString(domain)
+}
+
 // UIPathBuilder checks to see if there was a path set
 // If so, adds beginning and trailing slashes to UI path
 func UIPathBuilder(UIContentString string) string {
@@ -1697,5 +1714,4 @@ func UIPathBuilder(UIContentString string) string {
 
 	}
 	return "/ui/"
-
 }

@@ -192,6 +192,7 @@ type Config struct {
 	Connect                          Connect                  `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                              DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                        *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
+	DNSAltDomain                     *string                  `json:"alt_domain,omitempty" hcl:"alt_domain" mapstructure:"alt_domain"`
 	DNSRecursors                     []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
 	DataDir                          *string                  `json:"data_dir,omitempty" hcl:"data_dir" mapstructure:"data_dir"`
 	Datacenter                       *string                  `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`
