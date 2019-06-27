@@ -195,7 +195,7 @@ func (a *Autopilot) pruneDeadServers() error {
 	for _, server := range raftConfig.Servers {
 		staleRaftServers[string(server.Address)] = server
 	}
-
+	serfWAN := a.delegate.SerfWAN()
 	serfLAN := a.delegate.SerfLAN()
 	for _, member := range serfLAN.Members() {
 		server, err := a.delegate.IsServer(member)
@@ -215,6 +215,7 @@ func (a *Autopilot) pruneDeadServers() error {
 				if found && s.Suffrage == raft.Nonvoter {
 					a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", member.Name)
 					go serfLAN.RemoveFailedNode(member.Name)
+					go serfWAN.RemoveFailedNode(member.Name)
 				} else {
 					failed = append(failed, member)
 
@@ -235,7 +236,6 @@ func (a *Autopilot) pruneDeadServers() error {
 		for _, node := range failed {
 			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node.Name)
 			go serfLAN.RemoveFailedNode(node.Name)
-			serfWAN := a.delegate.SerfWAN()
 			if serfWAN != nil {
 				go serfWAN.RemoveFailedNode(fmt.Sprintf("%s.%s", node.Name, node.Tags["dc"]))
 			}
