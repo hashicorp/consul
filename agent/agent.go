@@ -549,7 +549,7 @@ func (a *Agent) Start() error {
 	return nil
 }
 
-func (a *Agent) setupClientAutoEncrypt() (*structs.SignResponse, error) {
+func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
 	client := a.delegate.(*consul.Client)
 
 	addrs := a.config.StartJoinAddrsLAN
@@ -575,7 +575,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignResponse, error) {
 
 }
 
-func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
+func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
 	rootsReq := &structs.DCSpecificRequest{
 		Datacenter:   a.config.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},

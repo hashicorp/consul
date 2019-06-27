@@ -1,6 +1,6 @@
 package structs
 
-type SignResponse struct {
+type SignedResponse struct {
 	IssuedCert           IssuedCert     `json:",omitempty"`
 	ConnectCARoots       IndexedCARoots `json:",omitempty"`
 	ManualCARoots        []string       `json:",omitempty"`

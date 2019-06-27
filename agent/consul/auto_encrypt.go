@@ -18,8 +18,8 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignResponse, string, error) {
-	errFn := func(err error) (*structs.SignResponse, string, error) {
+func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
+	errFn := func(err error) (*structs.SignedResponse, string, error) {
 		return nil, "", err
 	}
 
@@ -65,7 +65,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		Datacenter:   c.config.Datacenter,
 		CSR:          csr,
 	}
-	var reply structs.SignResponse
+	var reply structs.SignedResponse
 
 	// Retry implementation modeled after https://github.com/hashicorp/consul/pull/5228.
 	// TLDR; there is a 30s window from which a random time is picked.

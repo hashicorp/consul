@@ -17,7 +17,7 @@ type AutoEncrypt struct {
 // Sign signs a certificate for an agent.
 func (a *AutoEncrypt) Sign(
 	args *structs.CASignRequest,
-	reply *structs.SignResponse) error {
+	reply *structs.SignedResponse) error {
 	if !a.srv.config.ConnectEnabled {
 		return ErrConnectNotEnabled
 	}
