@@ -853,6 +853,15 @@ default will automatically work with some tooling.
         contents of each entry.
 
 
+* <a name="auto_encrypt"></a><a href="#auto_encrypt">`auto_encrypt`</a>
+    This object allows setting options for the AutoEncrypt feature.
+
+    The following sub-keys are available:
+
+    * <a name="tls"></a><a href="#tls">`tls`</a> makes the client request CA and certificates for encrypting RPC communication from the servers provided in `-join` or `-retry-join`. It only works if one of these provided addresses is a server `auto_encrypt.allow_tls` has to be enabled on the server in order to activate the RPC endpoint and `auto_encrypt.tls` on the client that wants to provision certificates automatically. If the `-server-port` is not the default one, it has to be provided to the clients as well. Usually this is discovered through serf, but `auto_encrypt` is happening earlier and cannot use that information. The most secure `auto_encrypt` setup is when the client is provided with the CA, `verify_server_hostname` is turned on, and when ACL are enabled and a token with `node.write` permissions. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted. Defaults to false.
+
+    * <a name="allow_tls"></a><a href="#allow_tls">`allow_tls`</a> enables connect and the endpoint that is serving the CA and the certificates for `auto_encrypt` to the clients. If disabled, the endpoint is not available and a client configured with `auto_encrypt.tls` cannot start. If enabled, the server starts to accept the manual and the connect CA for incoming connections as well as their corresponding certificates. It will always only present its manually configured CA and certificate though, which the client can verify using the CA it got from `auto_encrypt` endpoint. Defaults to false.
+
 * <a name="connect"></a><a href="#connect">`connect`</a>
     This object allows setting options for the Connect feature.
 
