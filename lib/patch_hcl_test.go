@@ -1,4 +1,4 @@
-package config
+package lib
 
 import (
 	"encoding/json"
@@ -69,7 +69,7 @@ func TestPatchSliceOfMaps(t *testing.T) {
 	for i, tt := range tests {
 		desc := fmt.Sprintf("%02d: %s -> %s skip: %v", i, tt.in, tt.out, tt.skip)
 		t.Run(desc, func(t *testing.T) {
-			out := patchSliceOfMaps(parse(tt.in), tt.skip)
+			out := PatchSliceOfMaps(parse(tt.in), tt.skip)
 			if got, want := out, parse(tt.out); !reflect.DeepEqual(got, want) {
 				t.Fatalf("\ngot  %#v\nwant %#v", got, want)
 			}

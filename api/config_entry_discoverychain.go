@@ -100,7 +100,7 @@ type ServiceResolverConfigEntry struct {
 	ModifyIndex uint64
 }
 
-func (e *ServiceResolverConfigEntry) GetKind() string        { return ServiceResolver }
+func (e *ServiceResolverConfigEntry) GetKind() string        { return e.Kind }
 func (e *ServiceResolverConfigEntry) GetName() string        { return e.Name }
 func (e *ServiceResolverConfigEntry) GetCreateIndex() uint64 { return e.CreateIndex }
 func (e *ServiceResolverConfigEntry) GetModifyIndex() uint64 { return e.ModifyIndex }

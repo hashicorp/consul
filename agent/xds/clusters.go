@@ -155,7 +155,7 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 // arbitrary proto3 json format string or an error if it's invalid.
 //
 // For now we only support embedding in JSON strings because of the hcl parsing
-// pain (see config.go comment above call to patchSliceOfMaps). Until we
+// pain (see config.go comment above call to PatchSliceOfMaps). Until we
 // refactor config parser a _lot_ user's opaque config that contains arrays will
 // be mangled. We could actually fix that up in mapstructure which knows the
 // type of the target so could resolve the slices to singletons unambiguously

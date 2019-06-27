@@ -84,15 +84,15 @@ type rawEntryListResponse struct {
 func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	switch kind {
 	case ServiceDefaults:
-		return &ServiceConfigEntry{Name: name}, nil
+		return &ServiceConfigEntry{Kind: kind, Name: name}, nil
 	case ProxyDefaults:
-		return &ProxyConfigEntry{Name: name}, nil
+		return &ProxyConfigEntry{Kind: kind, Name: name}, nil
 	case ServiceRouter:
-		return &ServiceRouterConfigEntry{Name: name}, nil
+		return &ServiceRouterConfigEntry{Kind: kind, Name: name}, nil
 	case ServiceSplitter:
-		return &ServiceSplitterConfigEntry{Name: name}, nil
+		return &ServiceSplitterConfigEntry{Kind: kind, Name: name}, nil
 	case ServiceResolver:
-		return &ServiceResolverConfigEntry{Name: name}, nil
+		return &ServiceResolverConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

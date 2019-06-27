@@ -70,7 +70,7 @@ func Parse(data string, format string) (c Config, err error) {
 	// []map[string]interface{} or are arrays of structs which
 	// encoding/json will decode to []map[string]interface{}. Therefore,
 	// we need to be able to specify exceptions for this mapping. The
-	// patchSliceOfMaps() implements that mapping. All fields of type
+	// PatchSliceOfMaps() implements that mapping. All fields of type
 	// []map[string]interface{} are mapped to map[string]interface{} if
 	// it contains at most one value. If there is more than one value it
 	// panics. To define exceptions one can specify the nested field
@@ -78,7 +78,7 @@ func Parse(data string, format string) (c Config, err error) {
 	//
 	// todo(fs): There might be an easier way to achieve the same thing
 	// todo(fs): but this approach works for now.
-	m := patchSliceOfMaps(raw, []string{
+	m := lib.PatchSliceOfMaps(raw, []string{
 		"checks",
 		"segments",
 		"service.checks",
