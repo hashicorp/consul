@@ -974,7 +974,7 @@ function ui_version {
       return 1
    fi
 
-   local ui_version="$(grep '<!-- CONSUL_VERSION: .* -->$' "$1" | sed 's/^<!-- CONSUL_VERSION: \(.*\) -->$/\1/')" || return 1
+   local ui_version="$(grep '<!-- CONSUL_VERSION: .* -->' "$1" | sed 's/<!-- CONSUL_VERSION: \(.*\) -->/\1/' | xargs)" || return 1
    echo "$ui_version"
    return 0
 }

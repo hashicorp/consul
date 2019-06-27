@@ -60,6 +60,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.Bootstrap, "bootstrap", "Sets server to bootstrap mode.")
 	add(&f.Config.BootstrapExpect, "bootstrap-expect", "Sets server to expect bootstrap mode.")
 	add(&f.Config.ClientAddr, "client", "Sets the address to bind for client access. This includes RPC, DNS, HTTP, HTTPS and gRPC (if configured).")
+	add(&f.Config.CheckOutputMaxSize, "check_output_max_size", "Sets the maximum output size for checks on this agent")
 	add(&f.ConfigFiles, "config-dir", "Path to a directory to read configuration files from. This will read every file ending in '.json' as configuration in this directory in alphabetical order. Can be specified multiple times.")
 	add(&f.ConfigFiles, "config-file", "Path to a file in JSON or HCL format with a matching file extension. Can be specified multiple times.")
 	add(&f.ConfigFormat, "config-format", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
@@ -105,6 +106,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.ServerMode, "server", "Switches agent to server mode.")
 	add(&f.Config.EnableSyslog, "syslog", "Enables logging to syslog.")
 	add(&f.Config.UI, "ui", "Enables the built-in static web UI server.")
+	add(&f.Config.UIContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
 	add(&f.Config.UIDir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
 }

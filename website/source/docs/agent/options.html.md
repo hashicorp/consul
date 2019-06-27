@@ -132,6 +132,14 @@ will exit with an error at startup.
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template
 
+* <a name="check_output_max_size"></a><a href="#check_output_max_size">`-check_output_max_size`</a> -
+  Override the default limit of 4k for maximum size of checks, this is a positive
+  value.
+  By limiting this size, it allows to put less pressure on Consul servers when
+  many checks are having a very large output in their checks.
+  In order to completely disable check output capture, it is possible to
+  use <a href="#discard_check_output">`discard_check_output`</a>.
+
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. By
   default, this is "127.0.0.1", allowing only loopback connections. In Consul
@@ -456,6 +464,8 @@ will exit with an error at startup.
 * <a name="_ui_dir"></a><a href="#_ui_dir">`-ui-dir`</a> - This flag provides the directory containing
   the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
   readable to the agent. Starting with Consul version 0.7.0 and later, the Web UI assets are included in the binary so this flag is no longer necessary; specifying only the `-ui` flag is enough to enable the Web UI. Specifying both the '-ui' and '-ui-dir' flags will result in an error.
+
+* <a name="_ui_content_path"></a><a href="#_ui_content_path">`-ui-content-path`</a> - This flag provides the option to change the path the Consul UI loads from and will be displayed in the browser. By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics, `-`, and `_` are allowed in a custom path. `/v1/` is not allowed as it would overwrite the API endpoint. 
 
 ## <a name="configuration_files"></a>Configuration Files
 
