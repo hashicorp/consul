@@ -149,6 +149,7 @@ func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
 func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 	return &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
 		ProxyID: "web-sidecar-proxy",
 		Address: "0.0.0.0",
 		Port:    9999,

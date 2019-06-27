@@ -106,6 +106,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
 	expectSnap := &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
 		ProxyID: webProxy.ID,
 		Address: webProxy.Address,
 		Port:    webProxy.Port,
