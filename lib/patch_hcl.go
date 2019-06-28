@@ -1,10 +1,10 @@
-package config
+package lib
 
 import (
 	"fmt"
 )
 
-func patchSliceOfMaps(m map[string]interface{}, skip []string) map[string]interface{} {
+func PatchSliceOfMaps(m map[string]interface{}, skip []string) map[string]interface{} {
 	return patchValue("", m, skip).(map[string]interface{})
 }
 
