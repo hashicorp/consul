@@ -5051,6 +5051,14 @@ func TestConfigDecodeBytes(t *testing.T) {
 	}
 }
 
+func parseCIDR(t *testing.T, cidr string) *net.IPNet {
+	_, x, err := net.ParseCIDR(cidr)
+	if err != nil {
+		t.Fatalf("CIDRParse: %v", err)
+	}
+	return x
+}
+
 func TestSanitize(t *testing.T) {
 	rt := RuntimeConfig{
 		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
@@ -5061,6 +5069,10 @@ func TestSanitize(t *testing.T) {
 			&net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		},
 		DNSSOA: RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
+		AllowWriteHTTPFrom: []*net.IPNet{
+			parseCIDR(t, "127.0.0.0/8"),
+			parseCIDR(t, "::1/128"),
+		},
 		HTTPAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
@@ -5395,7 +5407,10 @@ func TestSanitize(t *testing.T) {
 		"Version": "",
 		"VersionPrerelease": "",
 		"Watches": [],
-		"AllowWriteHTTPFrom": []
+		"AllowWriteHTTPFrom": [
+			"127.0.0.0/8",
+			"::1/128"
+		]
 	}`
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	if err != nil {
