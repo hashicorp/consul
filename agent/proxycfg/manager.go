@@ -168,7 +168,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 			return nil
 		}
 
-		// We are updating the proxy, close it's old state
+		// We are updating the proxy, close its old state
 		state.Close()
 	}
 

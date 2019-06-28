@@ -8,8 +8,11 @@ import (
 )
 
 type configSnapshotConnectProxy struct {
-	Leaf              *structs.IssuedCert
-	UpstreamEndpoints map[string]structs.CheckServiceNodes
+	Leaf                     *structs.IssuedCert
+	DiscoveryChain           map[string]*structs.CompiledDiscoveryChain // this is keyed by the Upstream.Identifier(), not the chain name
+	WatchedUpstreams         map[string]map[structs.DiscoveryTarget]context.CancelFunc
+	WatchedUpstreamEndpoints map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes
+	UpstreamEndpoints        map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
 }
 
 type configSnapshotMeshGateway struct {
@@ -46,6 +49,7 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
+		// TODO(rb): sanity check discovery chain things here?
 		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
 		// TODO (mesh-gateway) - what happens if all the connect services go away
@@ -65,9 +69,11 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 
 	snap := snapCopy.(*ConfigSnapshot)
 
+	// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		snap.ConnectProxy.WatchedUpstreams = nil
 	case structs.ServiceKindMeshGateway:
-		// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 		snap.MeshGateway.WatchedDatacenters = nil
 		snap.MeshGateway.WatchedServices = nil
 	}

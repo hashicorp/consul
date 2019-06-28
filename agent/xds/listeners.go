@@ -52,10 +52,23 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		return nil, err
 	}
 	for i, u := range cfgSnap.Proxy.Upstreams {
-		resources[i+1], err = s.makeUpstreamListener(&u)
+		id := u.Identifier()
+
+		var chain *structs.CompiledDiscoveryChain
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
+		}
+
+		var upstreamListener proto.Message
+		if chain == nil || chain.IsDefault() {
+			upstreamListener, err = s.makeUpstreamListener(&u, cfgSnap)
+		} else {
+			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+		}
 		if err != nil {
 			return nil, err
 		}
+		resources[i+1] = upstreamListener
 	}
 	return resources, nil
 }
@@ -226,7 +239,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		}
 		l = makeListener(PublicListenerName, addr, cfgSnap.Port)
 
-		filter, err := makeListenerFilter(cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
+		filter, err := makeListenerFilter(false, cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
 		if err != nil {
 			return nil, err
 		}
@@ -243,7 +256,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	return l, err
 }
 
-func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error) {
+func (s *Server) makeUpstreamListener(u *structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
 	cfg, err := ParseUpstreamConfig(u.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -260,11 +273,16 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream) (proto.Message, error
 		addr = "127.0.0.1"
 	}
 
-	l := makeListener(u.Identifier(), addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(cfg.Protocol, u.Identifier(), u.Identifier(), "upstream_", false)
+	upstreamID := u.Identifier()
+
+	clusterName := upstreamID
+
+	l := makeListener(upstreamID, addr, u.LocalBindPort)
+	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)
 	if err != nil {
 		return nil, err
 	}
+
 	l.FilterChains = []envoylistener.FilterChain{
 		{
 			Filters: []envoylistener.Filter{
@@ -330,14 +348,44 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 	return l, nil
 }
 
-func makeListenerFilter(protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
+func (s *Server) makeUpstreamListenerForDiscoveryChain(
+	u *structs.Upstream,
+	chain *structs.CompiledDiscoveryChain,
+	cfgSnap *proxycfg.ConfigSnapshot,
+) (proto.Message, error) {
+	// TODO(rb): make the listener escape hatch work again
+
+	addr := u.LocalBindAddress
+	if addr == "" {
+		addr = "127.0.0.1"
+	}
+
+	upstreamID := u.Identifier()
+
+	l := makeListener(upstreamID, addr, u.LocalBindPort)
+	filter, err := makeListenerFilter(true, chain.Protocol, upstreamID, "", "upstream_", false)
+	if err != nil {
+		return nil, err
+	}
+
+	l.FilterChains = []envoylistener.FilterChain{
+		{
+			Filters: []envoylistener.Filter{
+				filter,
+			},
+		},
+	}
+	return l, nil
+}
+
+func makeListenerFilter(useRDS bool, protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
 	switch protocol {
 	case "grpc":
-		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, true, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, true, true)
 	case "http2":
-		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, false, true)
 	case "http":
-		return makeHTTPFilter(filterName, cluster, statPrefix, ingress, false, false)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, false, false)
 	case "tcp":
 		fallthrough
 	default:
@@ -375,7 +423,11 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
-func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2 bool) (envoylistener.Filter, error) {
+func makeHTTPFilter(
+	useRDS bool,
+	filterName, cluster, statPrefix string,
+	ingress, grpc, http2 bool,
+) (envoylistener.Filter, error) {
 	op := envoyhttp.INGRESS
 	if !ingress {
 		op = envoyhttp.EGRESS
@@ -387,7 +439,39 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
 		CodecType:  envoyhttp.AUTO,
-		RouteSpecifier: &envoyhttp.HttpConnectionManager_RouteConfig{
+		HttpFilters: []*envoyhttp.HttpFilter{
+			&envoyhttp.HttpFilter{
+				Name: "envoy.router",
+			},
+		},
+		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
+			OperationName: op,
+			// Don't trace any requests by default unless the client application
+			// explicitly propagates trace headers that indicate this should be
+			// sampled.
+			RandomSampling: &envoytype.Percent{Value: 0.0},
+		},
+	}
+
+	if useRDS {
+		if cluster != "" {
+			return envoylistener.Filter{}, fmt.Errorf("cannot specify cluster name when using RDS")
+		}
+		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_Rds{
+			Rds: &envoyhttp.Rds{
+				RouteConfigName: filterName,
+				ConfigSource: envoycore.ConfigSource{
+					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
+						Ads: &envoycore.AggregatedConfigSource{},
+					},
+				},
+			},
+		}
+	} else {
+		if cluster == "" {
+			return envoylistener.Filter{}, fmt.Errorf("must specify cluster name when not using RDS")
+		}
+		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
 				Name: filterName,
 				VirtualHosts: []envoyroute.VirtualHost{
@@ -418,19 +502,7 @@ func makeHTTPFilter(filterName, cluster, statPrefix string, ingress, grpc, http2
 					},
 				},
 			},
-		},
-		HttpFilters: []*envoyhttp.HttpFilter{
-			&envoyhttp.HttpFilter{
-				Name: "envoy.router",
-			},
-		},
-		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
-			OperationName: op,
-			// Don't trace any requests by default unless the client application
-			// explicitly propagates trace headers that indicate this should be
-			// sampled.
-			RandomSampling: &envoytype.Percent{Value: 0.0},
-		},
+		}
 	}
 
 	if http2 {

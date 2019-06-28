@@ -212,7 +212,7 @@ func (t DiscoveryTarget) String() string {
 	if t.Namespace != "" {
 		b.WriteString(t.Namespace)
 	} else {
-		b.WriteString("default")
+		b.WriteString("<default>")
 	}
 	b.WriteRune('.')
 

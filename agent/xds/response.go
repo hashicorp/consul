@@ -57,3 +57,7 @@ func makeAddressPtr(ip string, port int) *envoycore.Address {
 func makeUint32Value(n int) *prototypes.UInt32Value {
 	return &prototypes.UInt32Value{Value: uint32(n)}
 }
+
+func makeBoolValue(n bool) *prototypes.BoolValue {
+	return &prototypes.BoolValue{Value: n}
+}
