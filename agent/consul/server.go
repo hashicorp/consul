@@ -959,7 +959,7 @@ func (s *Server) RemoveFailedNode(node string) error {
 	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
 		return err
 	}
-	// The Serf WAN pool stors members as node.datacenter
+	// The Serf WAN pool stores members as node.datacenter
 	// so the dc is appended if not present
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
 		node = node + "." + s.config.Datacenter
