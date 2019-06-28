@@ -13,7 +13,7 @@ users and developers of Consul form a mental model of how it works, this
 page documents the system architecture.
 
 -> Before describing the architecture, we recommend reading the 
-[glossary](/docs/glossary) of terms to help
+[glossary](/docs/glossary.html) of terms to help
 clarify what is being discussed.
 
 
