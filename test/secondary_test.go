@@ -2,6 +2,7 @@ package test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/coredns/coredns/plugin/test"
 
@@ -69,12 +70,16 @@ func TestSecondaryZoneTransfer(t *testing.T) {
 	m := new(dns.Msg)
 	m.SetQuestion("example.org.", dns.TypeSOA)
 
-	r, err := dns.Exchange(m, udp)
-	if err != nil {
-		t.Fatalf("Expected to receive reply, but didn't: %s", err)
+	var r *dns.Msg
+	// This is now async; we we need to wait for it to be transfered.
+	for i := 0; i < 10; i++ {
+		r, _ = dns.Exchange(m, udp)
+		if len(r.Answer) == 0 {
+			break
+		}
+		time.Sleep(100 * time.Microsecond)
 	}
-
-	if len(r.Answer) == 0 {
+	if len(r.Answer) != 0 {
 		t.Fatalf("Expected answer section")
 	}
 }

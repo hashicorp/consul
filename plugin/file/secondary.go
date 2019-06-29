@@ -51,9 +51,11 @@ Transfer:
 		return Err
 	}
 
+	z.apexMu.Lock()
 	z.Tree = z1.Tree
 	z.Apex = z1.Apex
 	*z.Expired = false
+	z.apexMu.Unlock()
 	log.Infof("Transferred: %s from %s", z.origin, tr)
 	return nil
 }

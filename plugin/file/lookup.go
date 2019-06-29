@@ -44,7 +44,9 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 	// If z is a secondary zone we might not have transferred it, meaning we have
 	// all zone context setup, except the actual record. This means (for one thing) the apex
 	// is empty and we don't have a SOA record.
+	z.apexMu.RLock()
 	soa := z.Apex.SOA
+	z.apexMu.RUnlock()
 	if soa == nil {
 		return nil, nil, nil, ServerFailure
 	}

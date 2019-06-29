@@ -80,7 +80,7 @@ func TestShouldTransfer(t *testing.T) {
 	}
 	defer s.Shutdown()
 
-	z := new(Zone)
+	z := NewZone("testzone", "test")
 	z.origin = testZone
 	z.TransferFrom = []string{addrstr}
 

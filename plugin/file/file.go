@@ -18,8 +18,8 @@ var log = clog.NewWithPlugin("file")
 type (
 	// File is the plugin that reads zone data from disk.
 	File struct {
-		Next  plugin.Handler
-		Zones Zones
+		Next plugin.Handler
+		Zones
 	}
 
 	// Zones maps zone names to a *Zone.
