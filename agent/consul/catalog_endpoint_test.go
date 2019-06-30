@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -727,7 +727,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			ServiceID:  "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,
@@ -738,7 +738,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			CheckID:    "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,

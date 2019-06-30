@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -61,12 +62,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	sn, err := tls.GenerateSerialNumber()
+	sn, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	s, pk, err := tls.GeneratePrivateKey()
+	s, pk, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		c.UI.Error(err.Error())
 	}
@@ -74,7 +75,7 @@ func (c *cmd) Run(args []string) int {
 	if c.constraint {
 		constraints = append(c.additionalConstraints, []string{c.domain, "localhost"}...)
 	}
-	ca, err := tls.GenerateCA(s, sn, c.days, constraints)
+	ca, err := tlsutil.GenerateCA(s, sn, c.days, constraints)
 	if err != nil {
 		c.UI.Error(err.Error())
 	}
