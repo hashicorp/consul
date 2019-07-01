@@ -170,7 +170,6 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				require.Equal(t, service2.Name, readService.Name)
 				require.Equal(t, service2.Protocol, readService.Protocol)
 			}
-
 		}
 
 		// delete it

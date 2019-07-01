@@ -9,15 +9,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
-func EnableAdvancedRoutingForProtocol(protocol string) bool {
-	switch protocol {
-	case "http", "http2", "grpc":
-		return true
-	default:
-		return false
-	}
-}
-
 // ServiceRouterConfigEntry defines L7 (e.g. http) routing rules for a named
 // service exposed in Connect.
 //
@@ -60,6 +51,8 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		return fmt.Errorf("config entry is nil")
 	}
 
+	// TODO(rb): trim spaces
+
 	e.Kind = ServiceRouter
 
 	// TODO(rb): anything to normalize?
@@ -74,6 +67,8 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 
 	// TODO(rb): enforce corresponding service has protocol=http
 
+	// TODO(rb): actually you can only define the HTTP section if protocol=http{,2}
+
 	// TODO(rb): validate the entire compiled chain? how?
 
 	// TODO(rb): validate more
@@ -81,6 +76,69 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 	// Technically you can have no explicit routes at all where just the
 	// catch-all is configured for you, but at that point maybe you should just
 	// delete it so it will default?
+
+	for i, route := range e.Routes {
+		if route.Match == nil || route.Match.HTTP == nil {
+			continue
+		}
+
+		pathParts := 0
+		if route.Match.HTTP.PathExact != "" {
+			pathParts++
+		}
+		if route.Match.HTTP.PathPrefix != "" {
+			pathParts++
+		}
+		if route.Match.HTTP.PathRegex != "" {
+			pathParts++
+		}
+		if pathParts > 1 {
+			return fmt.Errorf("Route[%d] should only contain at most one of PathExact, PathPrefix, or PathRegex", i)
+		}
+
+		for j, hdr := range route.Match.HTTP.Header {
+			if hdr.Name == "" {
+				return fmt.Errorf("Route[%d] Header[%d] missing required Name field", i, j)
+			}
+			hdrParts := 0
+			if hdr.Present {
+				hdrParts++
+			}
+			if hdr.Exact != "" {
+				hdrParts++
+			}
+			if hdr.Regex != "" {
+				hdrParts++
+			}
+			if hdr.Prefix != "" {
+				hdrParts++
+			}
+			if hdr.Suffix != "" {
+				hdrParts++
+			}
+			// "absent" is the bare invert=true
+			if (hdrParts == 0 && !hdr.Invert) || (hdrParts > 1) {
+				return fmt.Errorf("Route[%d] Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex (or just Invert)", i, j)
+			}
+		}
+
+		for j, qm := range route.Match.HTTP.QueryParam {
+			if qm.Name == "" {
+				return fmt.Errorf("Route[%d] QueryParam[%d] missing required Name field", i, j)
+			}
+		}
+
+		ineligibleForPrefixRewrite := false
+		if route.Match.HTTP.PathRegex != "" {
+			ineligibleForPrefixRewrite = true
+		}
+
+		if route.Destination != nil {
+			if route.Destination.PrefixRewrite != "" && ineligibleForPrefixRewrite {
+				return fmt.Errorf("Route[%d] cannot make use of PrefixRewrite without configuring either PathExact or PathPrefix", i)
+			}
+		}
+	}
 
 	return nil
 }
@@ -136,6 +194,10 @@ type ServiceRouteMatch struct {
 	// (gRPC, redis, etc) they can go here.
 }
 
+func (m *ServiceRouteMatch) IsEmpty() bool {
+	return m.HTTP == nil || m.HTTP.IsEmpty()
+}
+
 // ServiceRouteHTTPMatch is a set of http-specific match criteria.
 type ServiceRouteHTTPMatch struct {
 	PathExact  string `json:",omitempty"`
@@ -145,7 +207,17 @@ type ServiceRouteHTTPMatch struct {
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty"`
 
-	Methods []string `json:",omitempty"`
+	// TODO(rb): reenable Methods
+	// Methods []string `json:",omitempty"`
+}
+
+func (m *ServiceRouteHTTPMatch) IsEmpty() bool {
+	return m.PathExact == "" &&
+		m.PathPrefix == "" &&
+		m.PathRegex == "" &&
+		len(m.Header) == 0 &&
+		len(m.QueryParam) == 0
+	// && len(m.Methods) == 0
 }
 
 type ServiceRouteHTTPMatchHeader struct {
@@ -255,6 +327,7 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
+	// TODO(rb): trim spaces
 
 	e.Kind = ServiceSplitter
 
@@ -451,6 +524,17 @@ type ServiceResolverConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceResolverConfigEntry) SubsetExists(name string) bool {
+	if name == "" {
+		return true
+	}
+	if len(e.Subsets) == 0 {
+		return false
+	}
+	_, ok := e.Subsets[name]
+	return ok
+}
+
 func (e *ServiceResolverConfigEntry) IsDefault() bool {
 	return e.DefaultSubset == "" &&
 		len(e.Subsets) == 0 &&
@@ -475,6 +559,7 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
+	// TODO(rb): trim spaces
 
 	e.Kind = ServiceResolver
 
@@ -511,6 +596,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	if e.Redirect != nil {
 		r := e.Redirect
 
+		if len(e.Failover) > 0 {
+			return fmt.Errorf("Redirect and Failover cannot both be set")
+		}
+
+		// TODO(rb): prevent subsets and default subsets from being defined?
+
 		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Datacenter == "" {
 			return fmt.Errorf("Redirect is empty")
 		}
@@ -538,8 +629,8 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
 
-			if f.Service == "" && f.ServiceSubset == "" && len(f.Datacenters) == 0 {
-				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, or Datacenters is required", subset)
+			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 {
+				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, or Datacenters is required", subset)
 			}
 
 			if f.ServiceSubset != "" {
@@ -750,64 +841,6 @@ type DiscoveryChainConfigEntries struct {
 	Services  map[string]*ServiceConfigEntry
 }
 
-// Fixup ensures that the collection of entries make sense together. Nil maps
-// are initialized, nil values are deleted, and advanced features are disabled
-// if protocol dictates.
-func (e *DiscoveryChainConfigEntries) Fixup() {
-	if e.Services == nil {
-		e.Services = make(map[string]*ServiceConfigEntry)
-	}
-	if e.Routers == nil {
-		e.Routers = make(map[string]*ServiceRouterConfigEntry)
-	}
-	if e.Splitters == nil {
-		e.Splitters = make(map[string]*ServiceSplitterConfigEntry)
-	}
-	if e.Resolvers == nil {
-		e.Resolvers = make(map[string]*ServiceResolverConfigEntry)
-	}
-
-	for name, entry := range e.Routers {
-		if entry == nil {
-			delete(e.Routers, name)
-		} else {
-			if !e.allowAdvancedRouting(name) {
-				delete(e.Routers, name)
-			}
-		}
-	}
-	for name, entry := range e.Splitters {
-		if entry == nil {
-			delete(e.Splitters, name)
-		} else {
-			if !e.allowAdvancedRouting(name) {
-				delete(e.Splitters, name)
-			}
-		}
-	}
-	for name, entry := range e.Resolvers {
-		if entry == nil {
-			delete(e.Resolvers, name)
-		}
-	}
-	for name, entry := range e.Services {
-		if entry == nil {
-			delete(e.Services, name)
-		}
-	}
-}
-
-func (e *DiscoveryChainConfigEntries) allowAdvancedRouting(name string) bool {
-	if e.Services == nil {
-		return false
-	}
-	entry, ok := e.Services[name]
-	if !ok || entry == nil {
-		return false
-	}
-	return EnableAdvancedRoutingForProtocol(entry.Protocol)
-}
-
 func (e *DiscoveryChainConfigEntries) GetRouter(name string) *ServiceRouterConfigEntry {
 	if e.Routers != nil {
 		return e.Routers[name]
@@ -882,4 +915,17 @@ func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
 
 func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
 	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
+}
+
+type ConfigEntryGraphError struct {
+	// one of Message or Err should be set
+	Message string
+	Err     error
+}
+
+func (e *ConfigEntryGraphError) Error() string {
+	if e.Err != nil {
+		return e.Err.Error()
+	}
+	return e.Message
 }

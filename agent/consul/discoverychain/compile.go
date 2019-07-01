@@ -8,7 +8,13 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// TODO(rb): surface any specific errors that may matter during graph vetting at write-time (like mixing protocols)
+type CompileRequest struct {
+	ServiceName       string
+	CurrentNamespace  string
+	CurrentDatacenter string
+	InferDefaults     bool // TODO(rb): remove this?
+	Entries           *structs.DiscoveryChainConfigEntries
+}
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
 // raw config entries and local context.
@@ -19,13 +25,19 @@ import (
 // Omitting router and splitter entries for services not using an L7 protocol
 // (like HTTP) happens during initial fetching, but for sanity purposes a quick
 // reinforcement of that happens here, too.
-func Compile(
-	serviceName string,
-	currentNamespace string,
-	currentDatacenter string,
-	inferDefaults bool,
-	entries *structs.DiscoveryChainConfigEntries,
-) (*structs.CompiledDiscoveryChain, error) {
+//
+// May return a *structs.ConfigEntryGraphError, but that is only expected when
+// being used to validate modifications to the config entry graph. It should
+// not be expected when compiling existing entries at runtime that are already
+// valid.
+func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
+	var (
+		serviceName       = req.ServiceName
+		currentNamespace  = req.CurrentNamespace
+		currentDatacenter = req.CurrentDatacenter
+		inferDefaults     = req.InferDefaults
+		entries           = req.Entries
+	)
 	if serviceName == "" {
 		return nil, fmt.Errorf("serviceName is required")
 	}
@@ -38,10 +50,6 @@ func Compile(
 	if entries == nil {
 		return nil, fmt.Errorf("entries is required")
 	}
-
-	// This shouldn't be necessary, but do it anyway. It is the one place input
-	// mutation will occur, but only if the caller forgot  in the first place.
-	entries.Fixup()
 
 	c := &compiler{
 		serviceName:       serviceName,
@@ -85,6 +93,10 @@ type compiler struct {
 	splitterNodes      map[string]*structs.DiscoveryGraphNode
 	groupResolverNodes map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode // this is also an OUTPUT field
 
+	// usesAdvancedRoutingFeatures is set to true if config entries for routing
+	// or splitting appear in the compiled chain
+	usesAdvancedRoutingFeatures bool
+
 	// topNode is computed inside of assembleChain()
 	//
 	// This is an OUTPUT field.
@@ -113,11 +125,10 @@ type compiler struct {
 }
 
 func (c *compiler) recordServiceProtocol(serviceName string) error {
-	if serviceDefault, ok := c.entries.Services[serviceName]; ok {
+	if serviceDefault := c.entries.GetService(serviceName); serviceDefault != nil {
 		return c.recordProtocol(serviceName, serviceDefault.Protocol)
-	} else {
-		return c.recordProtocol(serviceName, "")
 	}
+	return c.recordProtocol(serviceName, "")
 }
 
 func (c *compiler) recordProtocol(fromService, protocol string) error {
@@ -130,8 +141,12 @@ func (c *compiler) recordProtocol(fromService, protocol string) error {
 	if c.protocol == "" {
 		c.protocol = protocol
 	} else if c.protocol != protocol {
-		// TODO(rb): avoid this during config entry writes instead
-		return fmt.Errorf("discovery chain %q uses inconsistent protocols; service %q has %q != %q", c.serviceName, fromService, protocol, c.protocol)
+		return &structs.ConfigEntryGraphError{
+			Message: fmt.Sprintf(
+				"discovery chain %q uses inconsistent protocols; service %q has %q which is not %q",
+				c.serviceName, fromService, protocol, c.protocol,
+			),
+		}
 	}
 
 	return nil
@@ -162,6 +177,15 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	for name, _ := range c.resolvers {
 		if _, ok := c.retainResolvers[name]; !ok {
 			delete(c.resolvers, name)
+		}
+	}
+
+	if !enableAdvancedRoutingForProtocol(c.protocol) && c.usesAdvancedRoutingFeatures {
+		return nil, &structs.ConfigEntryGraphError{
+			Message: fmt.Sprintf(
+				"discovery chain %q uses a protocol %q that does not permit advanced routing or splitting behavior",
+				c.serviceName, c.protocol,
+			),
 		}
 	}
 
@@ -252,8 +276,8 @@ func (c *compiler) assembleChain() error {
 
 	// The only router we consult is the one for the service name at the top of
 	// the chain.
-	router, ok := c.entries.Routers[c.serviceName]
-	if !ok {
+	router := c.entries.GetRouter(c.serviceName)
+	if router == nil {
 		// If no router is configured, move on down the line to the next hop of
 		// the chain.
 		node, err := c.getSplitterOrGroupResolverNode(c.newTarget(c.serviceName, "", "", ""))
@@ -270,6 +294,7 @@ func (c *compiler) assembleChain() error {
 		Name:   router.Name,
 		Routes: make([]*structs.DiscoveryRoute, 0, len(router.Routes)+1),
 	}
+	c.usesAdvancedRoutingFeatures = true
 	if err := c.recordServiceProtocol(router.Name); err != nil {
 		return err
 	}
@@ -368,8 +393,8 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 	}
 
 	// Fetch the config entry.
-	splitter, ok := c.entries.Splitters[name]
-	if !ok {
+	splitter := c.entries.GetSplitter(name)
+	if splitter == nil {
 		return nil, nil
 	}
 
@@ -413,6 +438,7 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 		compiledSplit.Node = node
 	}
 
+	c.usesAdvancedRoutingFeatures = true
 	return splitNode, nil
 }
 
@@ -439,6 +465,8 @@ RESOLVE_AGAIN:
 	}
 
 	// Handle redirects right up front.
+	//
+	// TODO(rb): What about a redirected subset reference? (web/v2, but web redirects to alt/"")
 	if resolver.Redirect != nil {
 		redirect := resolver.Redirect
 
@@ -460,15 +488,18 @@ RESOLVE_AGAIN:
 		goto RESOLVE_AGAIN
 	}
 
-	// Since we're actually building a node with it, we can keep it.
-	//
-	// TODO(rb): maybe infer this from the keyspace of the groupresolvernodes slice.
-	c.retainResolvers[target.Service] = struct{}{}
-
-	if target.Service != resolver.Name {
-		//TODO(rb): remove
-		panic("NOT POSSIBLE")
+	if target.ServiceSubset != "" && !resolver.SubsetExists(target.ServiceSubset) {
+		return nil, &structs.ConfigEntryGraphError{
+			Message: fmt.Sprintf(
+				"service %q does not have a subset named %q",
+				target.Service,
+				target.ServiceSubset,
+			),
+		}
 	}
+
+	// Since we're actually building a node with it, we can keep it.
+	c.retainResolvers[target.Service] = struct{}{}
 
 	connectTimeout := resolver.ConnectTimeout
 	if connectTimeout < 1 {
@@ -555,9 +586,6 @@ RESOLVE_AGAIN:
 					if err != nil {
 						return nil, err
 					}
-					if failoverGroupResolverNode.Type != structs.DiscoveryGraphNodeTypeGroupResolver {
-						panic("TODO(rb)(remove): '" + failoverGroupResolverNode.Type + "' is not a group-resolver node")
-					}
 					failoverTarget := failoverGroupResolverNode.GroupResolver.Target
 					df.Targets = append(df.Targets, failoverTarget)
 				}
@@ -580,4 +608,13 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+func enableAdvancedRoutingForProtocol(protocol string) bool {
+	switch protocol {
+	case "http", "http2", "grpc":
+		return true
+	default:
+		return false
+	}
 }
