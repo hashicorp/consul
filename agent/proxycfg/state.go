@@ -543,8 +543,11 @@ func (s *state) resetWatchesFromChain(
 	}
 
 	// NOTE: We will NEVER see a missing chain, because we always request it with defaulting enabled.
+	meshGatewayModes := make(map[structs.DiscoveryTarget]structs.MeshGatewayMode)
 	for _, group := range chain.GroupResolverNodes {
 		groupResolver := group.GroupResolver
+
+		meshGatewayModes[groupResolver.Target] = groupResolver.MeshGateway.Mode
 
 		if err := addTarget(groupResolver.Target); err != nil {
 			return err
@@ -611,13 +614,14 @@ func (s *state) resetWatchesFromChain(
 		ctx, cancel := context.WithCancel(s.ctx)
 
 		meshGateway := structs.MeshGatewayModeNone
-
-		// TODO(rb): thread this through the compiler
-		//
-		// // TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-		// if dc != s.source.Datacenter {
-		// 	meshGateway = u.MeshGateway.Mode
-		// }
+		if target.Datacenter != s.source.Datacenter {
+			meshGateway = meshGatewayModes[target]
+			if meshGateway == structs.MeshGatewayModeDefault {
+				meshGateway = structs.MeshGatewayModeNone
+			}
+		} else {
+			meshGateway = structs.MeshGatewayModeNone
+		}
 
 		// TODO(rb): update the health endpoint to allow returning even unhealthy endpoints
 		err = s.watchConnectProxyService(

@@ -73,6 +73,7 @@ type DiscoveryGroupResolver struct {
 	Definition     *ServiceResolverConfigEntry `json:",omitempty"`
 	Default        bool                        `json:",omitempty"`
 	ConnectTimeout time.Duration               `json:",omitempty"`
+	MeshGateway    MeshGatewayConfig           `json:",omitempty"`
 	Target         DiscoveryTarget             `json:",omitempty"`
 	Failover       *DiscoveryFailover          `json:",omitempty"`
 }
@@ -90,6 +91,7 @@ type DiscoverySplit struct {
 }
 
 // compiled form of ServiceResolverFailover
+// TODO(rb): figure out how to get mesh gateways in here
 type DiscoveryFailover struct {
 	Definition *ServiceResolverFailover `json:",omitempty"`
 	Targets    []DiscoveryTarget        `json:",omitempty"`
