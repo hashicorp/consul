@@ -188,7 +188,10 @@ func (s *Store) ConfigEntries(ws memdb.WatchSet) (uint64, []structs.ConfigEntry,
 func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string) (uint64, []structs.ConfigEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	return s.configEntriesByKindTxn(tx, ws, kind)
+}
 
+func (s *Store) configEntriesByKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind string) (uint64, []structs.ConfigEntry, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, configTableName)
 
@@ -243,17 +246,11 @@ func (s *Store) ensureConfigEntryTxn(tx *memdb.Txn, idx uint64, conf structs.Con
 	}
 	raftIndex.ModifyIndex = idx
 
-	var existingConf structs.ConfigEntry
-	if existing != nil {
-		existingConf = existing.(structs.ConfigEntry)
-	}
-
 	err = s.validateProposedConfigEntryInGraph(
 		tx,
 		idx,
 		conf.GetKind(),
 		conf.GetName(),
-		existingConf,
 		conf,
 	)
 	if err != nil {
@@ -319,17 +316,11 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string) error {
 		return nil
 	}
 
-	var existingConf structs.ConfigEntry
-	if existing != nil {
-		existingConf = existing.(structs.ConfigEntry)
-	}
-
 	err = s.validateProposedConfigEntryInGraph(
 		tx,
 		idx,
 		kind,
 		name,
-		existingConf,
 		nil,
 	)
 	if err != nil {
@@ -359,43 +350,72 @@ func (s *Store) validateProposedConfigEntryInGraph(
 	tx *memdb.Txn,
 	idx uint64,
 	kind, name string,
-	prev, next structs.ConfigEntry,
+	next structs.ConfigEntry,
 ) error {
+	validateAllChains := false
+
 	switch kind {
 	case structs.ProxyDefaults:
-		return nil // no validation
+		if name != structs.ProxyConfigGlobal {
+			return nil
+		}
+		validateAllChains = true
 	case structs.ServiceDefaults:
-		fallthrough
 	case structs.ServiceRouter:
-		fallthrough
 	case structs.ServiceSplitter:
-		fallthrough
 	case structs.ServiceResolver:
-		return s.validateProposedConfigEntryInServiceGraph(tx, idx, kind, name, prev, next)
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
+
+	return s.validateProposedConfigEntryInServiceGraph(tx, idx, kind, name, next, validateAllChains)
+}
+
+var serviceGraphKinds = []string{
+	structs.ServiceRouter,
+	structs.ServiceSplitter,
+	structs.ServiceResolver,
 }
 
 func (s *Store) validateProposedConfigEntryInServiceGraph(
 	tx *memdb.Txn,
 	idx uint64,
 	kind, name string,
-	prev, next structs.ConfigEntry,
+	next structs.ConfigEntry,
+	validateAllChains bool,
 ) error {
 	// Collect all of the chains that could be affected by this change
 	// including our own.
-	checkChains := map[string]struct{}{
-		name: struct{}{},
-	}
+	checkChains := make(map[string]struct{})
 
-	iter, err := tx.Get(configTableName, "link", name)
-	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		entry := raw.(structs.ConfigEntry)
-		checkChains[entry.GetName()] = struct{}{}
-	}
-	if err != nil {
-		return err
+	if validateAllChains {
+		// Must be proxy-defaults/global.
+
+		// Check anything that has a discovery chain entry. In the future we could
+		// somehow omit the ones that have a default protocol configured.
+
+		for _, kind := range serviceGraphKinds {
+			_, entries, err := s.configEntriesByKindTxn(tx, nil, kind)
+			if err != nil {
+				return err
+			}
+			for _, entry := range entries {
+				checkChains[entry.GetName()] = struct{}{}
+			}
+		}
+	} else {
+		// Must be a single chain.
+
+		checkChains[name] = struct{}{}
+
+		iter, err := tx.Get(configTableName, "link", name)
+		for raw := iter.Next(); raw != nil; raw = iter.Next() {
+			entry := raw.(structs.ConfigEntry)
+			checkChains[entry.GetName()] = struct{}{}
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	overrides := map[structs.ConfigEntryKindName]structs.ConfigEntry{
@@ -403,32 +423,37 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 	}
 
 	for chainName, _ := range checkChains {
-		_, speculativeEntries, err := s.readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides)
-		if err != nil {
-			return err
-		}
-		// fmt.Printf("SPEC: %s/%s chain=%q, prev=%v, next=%v, ent=%+v\n",
-		// 	kind, name,
-		// 	chainName,
-		// 	prev != nil,
-		// 	next != nil, speculativeEntries)
-
-		// TODO(rb): is this ok that we execute the compiler in the state store?
-
-		// Note we use an arbitrary namespace and datacenter as those would not
-		// currently affect the graph compilation in ways that matter here.
-		req := discoverychain.CompileRequest{
-			ServiceName:       chainName,
-			CurrentNamespace:  "default",
-			CurrentDatacenter: "dc1",
-			Entries:           speculativeEntries,
-		}
-		if _, err := discoverychain.Compile(req); err != nil {
+		if err := s.testCompileDiscoveryChain(tx, nil, chainName, overrides); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *Store) testCompileDiscoveryChain(
+	tx *memdb.Txn,
+	ws memdb.WatchSet,
+	chainName string,
+	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
+) error {
+	_, speculativeEntries, err := s.readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides)
+	if err != nil {
+		return err
+	}
+
+	// TODO(rb): is this ok that we execute the compiler in the state store?
+
+	// Note we use an arbitrary namespace and datacenter as those would not
+	// currently affect the graph compilation in ways that matter here.
+	req := discoverychain.CompileRequest{
+		ServiceName:       chainName,
+		CurrentNamespace:  "default",
+		CurrentDatacenter: "dc1",
+		Entries:           speculativeEntries,
+	}
+	_, err = discoverychain.Compile(req)
+	return err
 }
 
 // ReadDiscoveryChainConfigEntries will query for the full discovery chain for
@@ -489,11 +514,18 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		idx           uint64
 		todoSplitters = make(map[string]struct{})
 		todoResolvers = make(map[string]struct{})
 		todoDefaults  = make(map[string]struct{})
 	)
+
+	// Grab the proxy defaults if they exist.
+	idx, proxy, err := s.getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides)
+	if err != nil {
+		return 0, nil, err
+	} else if proxy != nil {
+		res.GlobalProxy = proxy
+	}
 
 	// At every step we'll need service defaults.
 	todoDefaults[serviceName] = struct{}{}
@@ -642,6 +674,30 @@ func anyKey(m map[string]struct{}) (string, bool) {
 		return k, true
 	}
 	return "", false
+}
+
+// getProxyConfigEntryTxn is a convenience method for fetching a
+// proxy-defaults kind of config entry.
+//
+// If an override is returned the index returned will be 0.
+func (s *Store) getProxyConfigEntryTxn(
+	tx *memdb.Txn,
+	ws memdb.WatchSet,
+	name string,
+	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
+) (uint64, *structs.ProxyConfigEntry, error) {
+	idx, entry, err := s.configEntryWithOverridesTxn(tx, ws, structs.ProxyDefaults, name, overrides)
+	if err != nil {
+		return 0, nil, err
+	} else if entry == nil {
+		return idx, nil, nil
+	}
+
+	proxy, ok := entry.(*structs.ProxyConfigEntry)
+	if !ok {
+		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
+	}
+	return idx, proxy, nil
 }
 
 // getServiceConfigEntryTxn is a convenience method for fetching a
