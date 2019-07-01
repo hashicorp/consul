@@ -68,10 +68,12 @@ export default function(
     close() {
       // additional readyState 3 = CLOSING
       switch (this.readyState) {
+        case 0: // CONNECTING
         case 2: // CLOSED
-          // it's already CLOSED , do nothing
+          this.readyState = 2;
           break;
         default:
+          // OPEN
           this.readyState = 3; // CLOSING
       }
       // non-standard
