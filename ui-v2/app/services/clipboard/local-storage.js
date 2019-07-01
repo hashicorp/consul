@@ -1,7 +1,7 @@
 import Service from '@ember/service';
 import { get } from '@ember/object';
 
-import Clipboard from 'npm:clipboard';
+import Clipboard from 'clipboard';
 
 class ClipboardCallback extends Clipboard {
   constructor(trigger, cb) {
