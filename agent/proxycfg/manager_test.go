@@ -114,9 +114,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Proxy:           webProxy.Proxy,
 		TaggedAddresses: make(map[string]structs.ServiceAddress),
 		Roots:           roots,
-		Leaf:            leaf,
-		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-			"db": TestUpstreamNodes(t),
+		ConnectProxy: configSnapshotConnectProxy{
+			Leaf: leaf,
+			UpstreamEndpoints: map[string]structs.CheckServiceNodes{
+				"db": TestUpstreamNodes(t),
+			},
 		},
 		Datacenter: "dc1",
 	}
@@ -163,7 +165,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	types.leaf.Set(newLeaf)
 
 	// Expect new roots in snapshot
-	expectSnap.Leaf = newLeaf
+	expectSnap.ConnectProxy.Leaf = newLeaf
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
