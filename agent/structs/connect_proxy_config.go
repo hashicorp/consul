@@ -35,6 +35,10 @@ type MeshGatewayConfig struct {
 	Mode MeshGatewayMode `json:",omitempty"`
 }
 
+func (c *MeshGatewayConfig) ToAPI() api.MeshGatewayConfig {
+	return api.MeshGatewayConfig{Mode: api.MeshGatewayMode(c.Mode)}
+}
+
 // ConnectProxyConfig describes the configuration needed for any proxy managed
 // or unmanaged. It describes a single logical service's listener and optionally
 // upstreams and sidecar-related config for a single instance. To describe a
@@ -89,6 +93,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		LocalServicePort:       c.LocalServicePort,
 		Config:                 c.Config,
 		Upstreams:              c.Upstreams.ToAPI(),
+		MeshGateway:            c.MeshGateway.ToAPI(),
 	}
 }
 
