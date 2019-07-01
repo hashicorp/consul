@@ -1,6 +1,6 @@
 import Service from '@ember/service';
 
-import Clipboard from 'npm:clipboard';
+import Clipboard from 'clipboard';
 
 export default Service.extend({
   execute: function(trigger) {
