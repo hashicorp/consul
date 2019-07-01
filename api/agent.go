@@ -131,6 +131,7 @@ type AgentServiceConnectProxyConfig struct {
 	LocalServicePort       int                    `json:",omitempty"`
 	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
 	Upstreams              []Upstream             `json:",omitempty"`
+	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -300,6 +301,7 @@ type Upstream struct {
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
+	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 }
 
 // Agent can be used to query the Agent endpoints
