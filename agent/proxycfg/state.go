@@ -22,6 +22,7 @@ const (
 	intentionsWatchID                = "intentions"
 	serviceListWatchID               = "service-list"
 	datacentersWatchID               = "datacenters"
+	serviceResolversWatchID          = "service-resolvers"
 	serviceIDPrefix                  = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix            = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval = 30 * time.Second
@@ -347,9 +348,10 @@ func (s *state) run() {
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedServices = make(map[string]context.CancelFunc)
 		snap.MeshGateway.WatchedDatacenters = make(map[string]context.CancelFunc)
-		// TODO (mesh-gateway) - maybe reuse UpstreamEndpoints?
 		snap.MeshGateway.ServiceGroups = make(map[string]structs.CheckServiceNodes)
 		snap.MeshGateway.GatewayGroups = make(map[string]structs.CheckServiceNodes)
+		// there is no need to initialize the map of service resolvers as we
+		// fully rebuild it every time we get updates
 	}
 
 	// This turns out to be really fiddly/painful by just using time.Timer.C
@@ -675,7 +677,17 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 					return err
 				}
 
-				// TODO (mesh-gateway) also should watch the resolver config for the service here
+				err = s.cache.Notify(ctx, cachetype.ConfigEntriesName, &structs.ConfigEntryQuery{
+					Datacenter:   s.source.Datacenter,
+					QueryOptions: structs.QueryOptions{Token: s.token},
+					Kind:         structs.ServiceResolver,
+				}, serviceResolversWatchID, s.ch)
+
+				if err != nil {
+					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for service-resolver config entries")
+					cancel()
+					return err
+				}
 				snap.MeshGateway.WatchedServices[svcName] = cancel
 			}
 		}
@@ -735,6 +747,19 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 				cancelFn()
 			}
 		}
+	case serviceResolversWatchID:
+		configEntries, ok := u.Result.(*structs.IndexedConfigEntries)
+		if !ok {
+			return fmt.Errorf("invalid type for services response: %T", u.Result)
+		}
+
+		resolvers := make(map[string]*structs.ServiceResolverConfigEntry)
+		for _, entry := range configEntries.Entries {
+			if resolver, ok := entry.(*structs.ServiceResolverConfigEntry); ok {
+				resolvers[resolver.Name] = resolver
+			}
+		}
+		snap.MeshGateway.ServiceResolvers = resolvers
 	default:
 		switch {
 		case strings.HasPrefix(u.CorrelationID, "connect-service:"):

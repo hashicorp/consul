@@ -84,33 +84,42 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
 func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	// TODO (mesh-gateway) will need to generate 1 cluster for each service subset as well.
+	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
+	clusters := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
 
-	// 1 cluster per remote dc + 1 cluster per local service
-	clusters := make([]proto.Message, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
-
-	var err error
-	idx := 0
 	// generate the remote dc clusters
 	for dc, _ := range cfgSnap.MeshGateway.GatewayGroups {
 		clusterName := DatacenterSNI(dc, cfgSnap)
 
-		clusters[idx], err = s.makeMeshGatewayCluster(clusterName, cfgSnap)
+		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		idx += 1
+		clusters = append(clusters, cluster)
 	}
 
 	// generate the per-service clusters
 	for svc, _ := range cfgSnap.MeshGateway.ServiceGroups {
-		clusterName := ServiceSNI(svc, "default", cfgSnap.Datacenter, cfgSnap)
+		clusterName := ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap)
 
-		clusters[idx], err = s.makeMeshGatewayCluster(clusterName, cfgSnap)
+		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		idx += 1
+		clusters = append(clusters, cluster)
+	}
+
+	// generate the service subset clusters
+	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
+		for subsetName, _ := range resolver.Subsets {
+			clusterName := ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap)
+
+			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+			clusters = append(clusters, cluster)
+		}
 	}
 
 	return clusters, nil
@@ -174,7 +183,7 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 	if upstream.Datacenter != "" {
 		dc = upstream.Datacenter
 	}
-	sni := ServiceSNI(upstream.DestinationName, ns, dc, cfgSnap)
+	sni := ServiceSNI(upstream.DestinationName, "", ns, dc, cfgSnap)
 
 	cfg, err := ParseUpstreamConfig(upstream.Config)
 	if err != nil {

@@ -183,7 +183,75 @@ func TestGatewayNodesDC2(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
-func TestGatewayServicesDC1(t testing.T) structs.CheckServiceNodes {
+func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "bar-node-1",
+				Node:       "bar-node-1",
+				Address:    "10.1.1.4",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "bar-sidecar-proxy",
+				Address: "172.16.1.6",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "bar",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "bar-node-2",
+				Node:       "bar-node-2",
+				Address:    "10.1.1.5",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "bar-sidecar-proxy",
+				Address: "172.16.1.7",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "bar",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "bar-node-3",
+				Node:       "bar-node-3",
+				Address:    "10.1.1.6",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "bar-sidecar-proxy",
+				Address: "172.16.1.8",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "2",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "bar",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+	}
+}
+
+func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -192,7 +260,19 @@ func TestGatewayServicesDC1(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.1.1.1",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeServiceProxy(t),
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.3",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -201,7 +281,69 @@ func TestGatewayServicesDC1(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.1.1.2",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeServiceProxy(t),
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.4",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "foo-node-3",
+				Node:       "foo-node-3",
+				Address:    "10.1.1.3",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.5",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "2",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "foo-node-4",
+				Node:       "foo-node-4",
+				Address:    "10.1.1.7",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.9",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "2",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo-node-4",
+					ServiceName: "foo-sidecar-proxy",
+					Name:        "proxy-alive",
+					Status:      "warning",
+				},
+			},
 		},
 	}
 }
@@ -268,7 +410,8 @@ func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 				"dc2": nil,
 			},
 			ServiceGroups: map[string]structs.CheckServiceNodes{
-				"foo": TestGatewayServicesDC1(t),
+				"foo": TestGatewayServiceGroupFooDC1(t),
+				"bar": TestGatewayServiceGroupBarDC1(t),
 			},
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),

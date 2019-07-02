@@ -233,6 +233,40 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup:  nil,
 		},
+		{
+			name:   "mesh-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
+					"bar": &structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+					"foo": &structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "foo",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
