@@ -144,14 +144,14 @@ func (s *state) initWatches() error {
 func (s *state) watchConnectProxyService(ctx context.Context, correlationId string, service string, dc string, filter string, meshGatewayMode structs.MeshGatewayMode) error {
 	switch meshGatewayMode {
 	case structs.MeshGatewayModeRemote:
-		return s.cache.Notify(s.ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+		return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
 			Datacenter:     dc,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceKind:    structs.ServiceKindMeshGateway,
 			UseServiceKind: true,
 		}, correlationId, s.ch)
 	case structs.MeshGatewayModeLocal:
-		return s.cache.Notify(s.ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+		return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceKind:    structs.ServiceKindMeshGateway,
@@ -159,7 +159,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 		}, correlationId, s.ch)
 	default:
 		// This includes both the None and Default modes on purpose
-		return s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+		return s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
 			Datacenter: dc,
 			QueryOptions: structs.QueryOptions{
 				Token:  s.token,
@@ -573,6 +573,8 @@ func (s *state) resetWatchesFromChain(
 	// We could invalidate this selectively based on a hash of the relevant
 	// resolver information, but for now just reset anything about this
 	// upstream when the chain changes in any way.
+	//
+	// TODO(rb): content hash based add/remove
 	for target, cancelFn := range snap.ConnectProxy.WatchedUpstreams[id] {
 		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: stopping watch of target %s", id, chain.ServiceName, target)
 		delete(snap.ConnectProxy.WatchedUpstreams[id], target)
