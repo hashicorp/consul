@@ -1,6 +1,7 @@
 import EmberRouter from '@ember/routing/router';
 import config from './config/environment';
 import walk from 'consul-ui/utils/routing/walk';
+import createQueryParams from 'consul-ui/utils/routing/create-query-params';
 
 const Router = EmberRouter.extend({
   location: config.locationType,
@@ -107,4 +108,5 @@ export const routes = {
     _options: { path: '/*path' },
   },
 };
+export const queryParams = createQueryParams(routes);
 export default Router.map(walk(routes));
