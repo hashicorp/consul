@@ -495,12 +495,7 @@ func (s *Store) readDiscoveryChainConfigEntriesTxn(
 	serviceName string,
 	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
 ) (uint64, *structs.DiscoveryChainConfigEntries, error) {
-	res := &structs.DiscoveryChainConfigEntries{
-		Routers:   make(map[string]*structs.ServiceRouterConfigEntry),
-		Splitters: make(map[string]*structs.ServiceSplitterConfigEntry),
-		Resolvers: make(map[string]*structs.ServiceResolverConfigEntry),
-		Services:  make(map[string]*structs.ServiceConfigEntry),
-	}
+	res := structs.NewDiscoveryChainConfigEntries()
 
 	// Note that below we always look up splitters and resolvers in pairs, even
 	// in some circumstances where both are not strictly necessary.

@@ -255,8 +255,6 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	var out []*envoy.Cluster
 	for target, node := range chain.GroupResolverNodes {
 		groupResolver := node.GroupResolver
-		// TODO(rb): failover
-		// Failover *DiscoveryFailover `json:",omitempty"` // sad path
 
 		sni := TargetSNI(target, cfgSnap)
 		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", sni)

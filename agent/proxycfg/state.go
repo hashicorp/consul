@@ -634,13 +634,24 @@ func (s *state) resetWatchesFromChain(
 			meshGateway = s.proxyCfg.MeshGateway.Mode
 		}
 
+		filterExp := subset.Filter
+		if subset.OnlyPassing {
+			if filterExp != "" {
+				// TODO (filtering) - Update to "and all Checks as chk { chk.Status == passing }"
+				//                    once the syntax is supported
+				filterExp = fmt.Sprintf("(%s) and not Checks.Status != passing", filterExp)
+			} else {
+				filterExp = "not Checks.Status != passing"
+			}
+		}
+
 		// TODO(rb): update the health endpoint to allow returning even unhealthy endpoints
 		err = s.watchConnectProxyService(
 			ctx,
 			"upstream-target:"+string(encodedTarget)+":"+id,
 			target.Service,
 			target.Datacenter,
-			subset.Filter,
+			filterExp,
 			meshGateway,
 		)
 		if err != nil {

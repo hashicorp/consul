@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"path"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -148,6 +150,52 @@ func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
 				ID:         "test2",
 				Node:       "test2",
 				Address:    "10.10.1.2",
+				Datacenter: "dc1",
+			},
+			Service: structs.TestNodeService(t),
+		},
+	}
+}
+
+func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "test1",
+				Node:       "test1",
+				Address:    "10.20.1.1",
+				Datacenter: "dc2",
+			},
+			Service: structs.TestNodeService(t),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "test2",
+				Node:       "test2",
+				Address:    "10.20.1.2",
+				Datacenter: "dc2",
+			},
+			Service: structs.TestNodeService(t),
+		},
+	}
+}
+
+func TestUpstreamNodesAlternate(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "alt-test1",
+				Node:       "alt-test1",
+				Address:    "10.20.1.1",
+				Datacenter: "dc1",
+			},
+			Service: structs.TestNodeService(t),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "alt-test2",
+				Node:       "alt-test2",
+				Address:    "10.20.1.2",
 				Datacenter: "dc1",
 			},
 			Service: structs.TestNodeService(t),
@@ -379,6 +427,181 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	}
 }
 
+// TestConfigSnapshotDiscoveryChain returns a fully populated snapshot using a discovery chain
+func TestConfigSnapshotDiscoveryChain(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "simple")
+}
+
+func TestConfigSnapshotDiscoveryChainWithFailover(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "failover")
+}
+
+func TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc")
+}
+
+func TestConfigSnapshotDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "simple", additionalEntries...)
+}
+
+func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
+	roots, leaf := TestCerts(t)
+
+	// Compile a chain.
+	var entries []structs.ConfigEntry
+	switch variation {
+	case "simple":
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+			},
+		)
+	case "failover":
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Service: "fail",
+					},
+				},
+			},
+		)
+	case "splitter-with-resolver-redirect-multidc":
+		entries = append(entries,
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db",
+				Splits: []structs.ServiceSplit{
+					{Weight: 50, Service: "db-dc1"},
+					{Weight: 50, Service: "db-dc2"},
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db-dc1",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:       "db",
+					ServiceSubset: "v1",
+					Datacenter:    "dc1",
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db-dc2",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:       "db",
+					ServiceSubset: "v2",
+					Datacenter:    "dc2",
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db",
+				Subsets: map[string]structs.ServiceResolverSubset{
+					"v1": structs.ServiceResolverSubset{
+						Filter: "Service.Meta.version == v1",
+					},
+					"v2": structs.ServiceResolverSubset{
+						Filter: "Service.Meta.version == v2",
+					},
+				},
+			},
+		)
+	default:
+		t.Fatalf("unexpected variation: %q", variation)
+		return nil
+	}
+
+	if len(additionalEntries) > 0 {
+		entries = append(entries, additionalEntries...)
+	}
+
+	dbChain := TestCompileConfigEntries(t, "db", "default", "dc1", entries...)
+
+	dbTarget := structs.DiscoveryTarget{
+		Service:    "db",
+		Namespace:  "default",
+		Datacenter: "dc1",
+	}
+	failTarget := structs.DiscoveryTarget{
+		Service:    "fail",
+		Namespace:  "default",
+		Datacenter: "dc1",
+	}
+
+	snap := &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "web-sidecar-proxy",
+		ProxyID: "web-sidecar-proxy",
+		Address: "0.0.0.0",
+		Port:    9999,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceID:   "web",
+			DestinationServiceName: "web",
+			LocalServiceAddress:    "127.0.0.1",
+			LocalServicePort:       8080,
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+			Upstreams: structs.TestUpstreams(t),
+		},
+		Roots: roots,
+		ConnectProxy: configSnapshotConnectProxy{
+			Leaf: leaf,
+			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+				"db": dbChain,
+			},
+			WatchedUpstreamEndpoints: map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+				"db": map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+					dbTarget: TestUpstreamNodes(t),
+				},
+			},
+		},
+		Datacenter: "dc1",
+	}
+
+	switch variation {
+	case "simple":
+	case "failover":
+		snap.ConnectProxy.WatchedUpstreamEndpoints["db"][failTarget] =
+			TestUpstreamNodesAlternate(t)
+	case "splitter-with-resolver-redirect-multidc":
+		dbTarget_v1_dc1 := structs.DiscoveryTarget{
+			Service:       "db",
+			ServiceSubset: "v1",
+			Namespace:     "default",
+			Datacenter:    "dc1",
+		}
+		dbTarget_v2_dc2 := structs.DiscoveryTarget{
+			Service:       "db",
+			ServiceSubset: "v2",
+			Namespace:     "default",
+			Datacenter:    "dc2",
+		}
+		snap.ConnectProxy.WatchedUpstreamEndpoints["db"] = map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+			dbTarget_v1_dc1: TestUpstreamNodes(t),
+			dbTarget_v2_dc2: TestUpstreamNodesDC2(t),
+		}
+	default:
+		t.Fatalf("unexpected variation: %q", variation)
+		return nil
+	}
+
+	return snap
+}
+
 func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
 	return &ConfigSnapshot{
@@ -421,11 +644,33 @@ func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestCompileConfigEntries(
+	t testing.T,
+	serviceName string,
+	currentNamespace string,
+	currentDatacenter string,
+	entries ...structs.ConfigEntry,
+) *structs.CompiledDiscoveryChain {
+	set := structs.NewDiscoveryChainConfigEntries()
+
+	set.AddEntries(entries...)
+
+	chain, err := discoverychain.Compile(discoverychain.CompileRequest{
+		ServiceName:       serviceName,
+		CurrentNamespace:  currentNamespace,
+		CurrentDatacenter: currentDatacenter,
+		InferDefaults:     true,
+		Entries:           set,
+	})
+	require.NoError(t, err)
+	return chain
+}
+
 // ControllableCacheType is a cache.Type that simulates a typical blocking RPC
 // but lets us control the responses and when they are delivered easily.
 type ControllableCacheType struct {
 	index uint64
-	value atomic.Value
+	value sync.Map
 	// Need a condvar to trigger all blocking requests (there might be multiple
 	// for same type due to background refresh and timing issues) when values
 	// change. Chans make it nondeterministic which one triggers or need extra
@@ -449,9 +694,9 @@ func NewControllableCacheType(t testing.T) *ControllableCacheType {
 
 // Set sets the response value to be returned from subsequent cache gets for the
 // type.
-func (ct *ControllableCacheType) Set(value interface{}) {
+func (ct *ControllableCacheType) Set(key string, value interface{}) {
 	atomic.AddUint64(&ct.index, 1)
-	ct.value.Store(value)
+	ct.value.Store(key, value)
 	ct.triggerMu.Lock()
 	ct.trigger.Broadcast()
 	ct.triggerMu.Unlock()
@@ -459,7 +704,6 @@ func (ct *ControllableCacheType) Set(value interface{}) {
 
 // Fetch implements cache.Type. It simulates blocking or non-blocking queries.
 func (ct *ControllableCacheType) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
-
 	index := atomic.LoadUint64(&ct.index)
 
 	ct.lastReq.Store(req)
@@ -475,9 +719,12 @@ func (ct *ControllableCacheType) Fetch(opts cache.FetchOptions, req cache.Reques
 		ct.triggerMu.Unlock()
 	}
 
+	info := req.CacheInfo()
+	key := path.Join(info.Key, info.Datacenter) // omit token for testing purposes
+
 	// reload index as it probably got bumped
 	index = atomic.LoadUint64(&ct.index)
-	val := ct.value.Load()
+	val, _ := ct.value.Load(key)
 
 	if err, ok := val.(error); ok {
 		return cache.FetchResult{

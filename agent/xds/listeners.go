@@ -427,6 +427,7 @@ func makeTLSInspectorListenerFilter() (envoylistener.ListenerFilter, error) {
 	return envoylistener.ListenerFilter{Name: util.TlsInspector}, nil
 }
 
+// TODO(rb): should this be dead code?
 func makeSNIFilterChainMatch(sniMatch string) (*envoylistener.FilterChainMatch, error) {
 	return &envoylistener.FilterChainMatch{
 		ServerNames: []string{sniMatch},

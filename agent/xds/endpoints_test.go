@@ -235,6 +235,39 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChain,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-chain-and-failover",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-chain-and-sliding-failover",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				chain := snap.ConnectProxy.DiscoveryChain["db"]
+
+				dbTarget := structs.DiscoveryTarget{
+					Service:    "db",
+					Namespace:  "default",
+					Datacenter: "dc1",
+				}
+				dbResolverNode := chain.GroupResolverNodes[dbTarget]
+
+				groupResolverFailover := dbResolverNode.GroupResolver.Failover
+
+				groupResolverFailover.Definition.OverprovisioningFactor = 160
+			},
+		},
+		{
+			name:   "splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
+		{
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
