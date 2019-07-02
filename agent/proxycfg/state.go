@@ -223,6 +223,11 @@ func (s *state) initWatchesConnectProxy() error {
 			dc = u.Datacenter
 		}
 
+		ns := "default"
+		if u.DestinationNamespace != "" {
+			ns = u.DestinationNamespace
+		}
+
 		switch u.DestinationType {
 		case structs.UpstreamDestTypePreparedQuery:
 			err = s.cache.Notify(s.ctx, cachetype.PreparedQueryName, &structs.PreparedQueryExecuteRequest{
@@ -234,47 +239,16 @@ func (s *state) initWatchesConnectProxy() error {
 		case structs.UpstreamDestTypeService:
 			fallthrough
 		case "": // Treat unset as the default Service type
-
-			// Determine if this should use a discovery chain.
-			//
-			// TODO(rb): reduce this list of exceptions
-			var shouldUseDiscoveryChain bool
-			if dc != s.source.Datacenter {
-				shouldUseDiscoveryChain = false
-			} else if u.DestinationNamespace != "" && u.DestinationNamespace != "default" {
-				shouldUseDiscoveryChain = false
-			} else {
-				shouldUseDiscoveryChain = true
-			}
-
-			if shouldUseDiscoveryChain {
-				// Watch for discovery chain configuration updates
-				err = s.cache.Notify(s.ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
-					Datacenter:   dc,
-					QueryOptions: structs.QueryOptions{Token: s.token},
-					Name:         u.DestinationName,
-				}, "discovery-chain:"+u.Identifier(), s.ch)
-				if err != nil {
-					return err
-				}
-			} else {
-				meshGateway := structs.MeshGatewayModeNone
-
-				// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-				if dc != s.source.Datacenter {
-					meshGateway = u.MeshGateway.Mode
-				}
-
-				if err := s.watchConnectProxyService(
-					s.ctx,
-					"upstream:"+serviceIDPrefix+u.Identifier(),
-					u.DestinationName,
-					dc,
-					"",
-					meshGateway,
-				); err != nil {
-					return err
-				}
+			// Watch for discovery chain configuration updates
+			err = s.cache.Notify(s.ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
+				EvaluateInDatacenter: dc,
+				EvaluateInNamespace:  ns,
+				Datacenter:           s.source.Datacenter,
+				QueryOptions:         structs.QueryOptions{Token: s.token},
+				Name:                 u.DestinationName,
+			}, "discovery-chain:"+u.Identifier(), s.ch)
+			if err != nil {
+				return err
 			}
 
 		default:

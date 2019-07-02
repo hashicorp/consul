@@ -332,8 +332,12 @@ func (c *ConfigEntry) ReadDiscoveryChain(args *structs.DiscoveryChainRequest, re
 	if args.Name == "" {
 		return fmt.Errorf("Must provide service name")
 	}
-
-	const currentNamespace = "default"
+	if args.EvaluateInDatacenter == "" {
+		args.EvaluateInDatacenter = c.srv.config.Datacenter
+	}
+	if args.EvaluateInNamespace == "" {
+		args.EvaluateInNamespace = "default"
+	}
 
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
@@ -347,8 +351,8 @@ func (c *ConfigEntry) ReadDiscoveryChain(args *structs.DiscoveryChainRequest, re
 			// Then we compile it into something useful.
 			chain, err := discoverychain.Compile(discoverychain.CompileRequest{
 				ServiceName:       args.Name,
-				CurrentNamespace:  currentNamespace,
-				CurrentDatacenter: c.srv.config.Datacenter,
+				CurrentNamespace:  args.EvaluateInNamespace,
+				CurrentDatacenter: args.EvaluateInDatacenter,
 				InferDefaults:     true,
 				Entries:           entries,
 			})

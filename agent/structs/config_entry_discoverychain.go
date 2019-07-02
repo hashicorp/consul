@@ -924,9 +924,11 @@ func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
 // DiscoveryChainRequest is used when requesting the discovery chain for a
 // service.
 type DiscoveryChainRequest struct {
-	Name       string
-	Datacenter string
-	// Source      QuerySource
+	Name                 string
+	EvaluateInDatacenter string
+	EvaluateInNamespace  string
+
+	Datacenter string // servicing datacenter
 
 	QueryOptions
 }
