@@ -34,6 +34,19 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "listener-bind-port",
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["bind_port"] = 8888
+			},
+		},
+		{
+			name: "listener-bind-address-port",
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["bind_address"] = "127.0.0.2"
+				snap.Proxy.Config["bind_port"] = 8888
+			},
+		},
+		{
 			name: "http-public-listener",
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"

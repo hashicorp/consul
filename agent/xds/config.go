@@ -37,6 +37,11 @@ type ProxyConfig struct {
 	// enables proxies in network namespaces to bind to a different address
 	// than the host address.
 	BindAddress string `mapstructure:"bind_address"`
+
+	// BindPort overrides the port the proxy's listener binds to. This
+	// enable proxies in network namespaces to bind to a different port
+	// than the host port being advertised.
+	BindPort int `mapstructure:"bind_port"`
 }
 
 // ParseProxyConfig returns the ProxyConfig parsed from the an opaque map. If an

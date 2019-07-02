@@ -199,6 +199,8 @@ defaults that are inherited by all services.
     metrics with `gRPC-status` trailer codes.
 - `bind_address` - Override the address Envoy's public listener binds to. By
   default Envoy will bind to the service address.
+- `bind_port` - Override the port Envoy's public listener binds to. By default
+  Envoy will bind to the service port.
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
