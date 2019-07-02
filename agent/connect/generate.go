@@ -6,30 +6,90 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
+	"strings"
+
+	//"crypto/ecdsa"
+	//"crypto/elliptic"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 )
 
-// GeneratePrivateKey generates a new Private key
-func GeneratePrivateKey() (crypto.Signer, string, error) {
-	var pk *ecdsa.PrivateKey
+func pemEncodeKey(key []byte, blockType string) (string, error) {
+	var buf bytes.Buffer
 
-	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err := pem.Encode(&buf, &pem.Block{Type: blockType, Bytes: key}); err != nil {
+		return "", fmt.Errorf("error encoding private key: %s", err)
+	}
+	return buf.String(), nil
+}
+
+func generateRSAKey(keyBits int) (crypto.Signer, string, error) {
+	var pk *rsa.PrivateKey
+
+	pk, err := rsa.GenerateKey(rand.Reader, keyBits)
 	if err != nil {
-		return nil, "", fmt.Errorf("error generating private key: %s", err)
+		return nil, "", fmt.Errorf("error generating RSA private key: %s", err)
+	}
+
+	bs := x509.MarshalPKCS1PrivateKey(pk)
+	pemBlock, err := pemEncodeKey(bs, "RSA PRIVATE KEY")
+	if err != nil {
+		return nil, "", err
+	}
+
+	return pk, pemBlock, nil
+}
+
+func generateECDSAKey(keyBits int) (crypto.Signer, string, error) {
+	var pk *ecdsa.PrivateKey
+	var curve elliptic.Curve
+
+	switch keyBits {
+	case 224:
+		curve = elliptic.P224()
+	case 256:
+		curve = elliptic.P256()
+	case 384:
+		curve = elliptic.P384()
+	case 521:
+		curve = elliptic.P521()
+	default:
+		return nil, "", fmt.Errorf("error generating ECDSA private key: unknown curve length %d", keyBits)
+	}
+
+	pk, err := ecdsa.GenerateKey(curve, rand.Reader)
+	if err != nil {
+		return nil, "", fmt.Errorf("error generating ECDSA private key: %s", err)
 	}
 
 	bs, err := x509.MarshalECPrivateKey(pk)
 	if err != nil {
-		return nil, "", fmt.Errorf("error generating private key: %s", err)
+		return nil, "", fmt.Errorf("error marshaling ECDSA private key: %s", err)
 	}
 
-	var buf bytes.Buffer
-	err = pem.Encode(&buf, &pem.Block{Type: "EC PRIVATE KEY", Bytes: bs})
+	pemBlock, err := pemEncodeKey(bs, "EC PRIVATE KEY")
 	if err != nil {
-		return nil, "", fmt.Errorf("error encoding private key: %s", err)
+		return nil, "", err
 	}
 
-	return pk, buf.String(), nil
+	return pk, pemBlock, nil
+}
+
+// GeneratePrivateKey generates a new Private key
+func GeneratePrivateKeyWithConfig(keyType string, keyBits int) (crypto.Signer, string, error) {
+	switch strings.ToLower(keyType) {
+	case "rsa":
+		return generateRSAKey(keyBits)
+	case "ecdsa":
+		return generateECDSAKey(keyBits)
+	default:
+		return nil, "", fmt.Errorf("unknown private key type requested: %s", keyType)
+	}
+}
+
+func GeneratePrivateKey() (crypto.Signer, string, error) {
+	// TODO: make configurable (e.g. "private_key_type" and "private_key_bits")
+	return GeneratePrivateKeyWithConfig("ecdsa", 256)
 }
