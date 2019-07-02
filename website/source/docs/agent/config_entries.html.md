@@ -12,7 +12,8 @@ Configuration entries can be created to provide cluster-wide defaults for
 various aspects of Consul. Every configuration entry has at least two fields:
 `Kind` and `Name`. Those two fields are used to uniquely identify a
 configuration entry. When put into configuration files, configuration entries
-can be specified as HCL or JSON objects.
+can be specified as HCL or JSON objects using either `snake_case` or `CamelCase`
+for key names.
 
 Example:
 
@@ -21,53 +22,13 @@ Kind = "<supported kind>"
 Name = "<name of entry>"
 ```
 
-The two supported `Kind` configuration entries are detailed below.
+The supported `Kind` configuration entries are:
 
-## Configuration Entry Kinds
-
-### Proxy Defaults - `proxy-defaults`
-
-Proxy defaults allow for configuring global config defaults across all services
-for Connect proxy configuration. Currently, only one global entry is supported.
-
-```hcl
-Kind = "proxy-defaults"
-Name = "global"
-Config {
-   local_connect_timeout_ms = 1000
-   handshake_timeout_ms = 10000
-}
-```
-
-* `Kind` - Must be set to `proxy-defaults`
-
-* `Name` - Must be set to `global`
-
-* `Config` - An arbitrary map of configuration values used by Connect proxies.
-  The available configurations depend on the Connect proxy you use. Any values
-  that your proxy allows can be configured globally here. To
-  explore these options please see the documentation for your chosen proxy.
-
-  * [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
-  * [Consul's Builtin Proxy](/docs/connect/proxies/built-in.html)
-
-### Service Defaults - `service-defaults`
-
-Service defaults control default global values for a service, such as its
-protocol.
-
-```hcl
-Kind = "service-defaults"
-Name = "web"
-Protocol = "http"
-```
-
-* `Kind` - Must be set to `service-defaults`
-
-* `Name` - Set to the name of the service being configured.
-
-* `Protocol` - Sets the protocol of the service. This is used by Connect proxies
-  for things like observability features.
+* [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html)
+* [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+* [`service-resolver` <sup>(beta)</sup>](/docs/agent/config-entries/service-resolver.html)
+* [`service-splitter` <sup>(beta)</sup>](/docs/agent/config-entries/service-splitter.html)
+* [`service-router` <sup>(beta)</sup>](/docs/agent/config-entries/service-router.html)
 
 ## Managing Configuration Entries
 
