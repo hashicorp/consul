@@ -45,6 +45,9 @@ func etcdParse(c *caddy.Controller) (*Etcd, error) {
 		username  string
 		password  string
 	)
+
+	etc.Upstream = upstream.New()
+
 	for c.Next() {
 		etc.Zones = c.RemainingArgs()
 		if len(etc.Zones) == 0 {
@@ -75,9 +78,8 @@ func etcdParse(c *caddy.Controller) (*Etcd, error) {
 				}
 				endpoints = args
 			case "upstream":
-				// check args != 0 and error in the future
-				c.RemainingArgs() // clear buffer
-				etc.Upstream = upstream.New()
+				// remove soon
+				c.RemainingArgs()
 			case "tls": // cert key cacertfile
 				args := c.RemainingArgs()
 				tlsConfig, err = mwtls.NewTLSConfigFromArgs(args...)

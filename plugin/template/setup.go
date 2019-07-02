@@ -74,6 +74,7 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 		templatePrefix := ""
 
 		t.answer = make([]*gotmpl.Template, 0)
+		t.upstream = upstream.New()
 
 		for c.NextBlock() {
 			switch c.Val() {
@@ -144,8 +145,8 @@ func templateParse(c *caddy.Controller) (handler Handler, err error) {
 				t.fall.SetZonesFromArgs(c.RemainingArgs())
 
 			case "upstream":
-				c.RemainingArgs() // eat remaining args
-				t.upstream = upstream.New()
+				// remove soon
+				c.RemainingArgs()
 			default:
 				return handler, c.ArgErr()
 			}

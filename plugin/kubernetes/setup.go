@@ -162,6 +162,8 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 		return nil, errors.New("non-reverse zone name must be used")
 	}
 
+	k8s.Upstream = upstream.New()
+
 	for c.NextBlock() {
 		switch c.Val() {
 		case "endpoint_pod_names":
@@ -249,8 +251,8 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 		case "fallthrough":
 			k8s.Fall.SetZonesFromArgs(c.RemainingArgs())
 		case "upstream":
+			// remove soon
 			c.RemainingArgs() // eat remaining args
-			k8s.Upstream = upstream.New()
 		case "ttl":
 			args := c.RemainingArgs()
 			if len(args) == 0 {

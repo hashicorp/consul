@@ -141,13 +141,6 @@ func TestSetupParse(t *testing.T) {
 				}`,
 			false,
 		},
-		{
-			`template ANY ANY up.stream.local {
-					answer "up.stream.local 5 IN CNAME up.river.local"
-					upstream
-				}`,
-			false,
-		},
 	}
 	for i, test := range tests {
 		c := caddy.NewTestController("dns", test.inputFileRules)

@@ -35,20 +35,6 @@ func TestSetupEtcd(t *testing.T) {
 }
 `, false, "skydns", []string{"localhost:300"}, "", "", "",
 		},
-		//test for upstream
-		{
-			`etcd {
-	endpoint localhost:300
-	upstream 8.8.8.8:53 8.8.4.4:53
-}`, false, "skydns", []string{"localhost:300"}, "", "", "",
-		},
-		//test for optional upstream address
-		{
-			`etcd {
-	endpoint localhost:300
-	upstream
-}`, false, "skydns", []string{"localhost:300"}, "", "", "",
-		},
 		// negative
 		{
 			`etcd {

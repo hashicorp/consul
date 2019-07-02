@@ -14,7 +14,7 @@ cluster.  See the [deployment](https://github.com/coredns/deployment) repository
 to deploy CoreDNS in Kubernetes](https://github.com/coredns/deployment/tree/master/kubernetes).
 
 [stubDomains and upstreamNameservers](https://kubernetes.io/blog/2017/04/configuring-private-dns-zones-upstream-nameservers-kubernetes/)
-are implemented via the *forward* plugin and kubernetes *upstream*. See the examples below.
+are implemented via the *forward* plugin. See the examples below.
 
 This plugin can only be used once per Server Block.
 
@@ -39,7 +39,6 @@ kubernetes [ZONES...] {
     labels EXPRESSION
     pods POD-MODE
     endpoint_pod_names
-    upstream
     ttl TTL
     noendpoints
     transfer to ADDRESS...
@@ -90,9 +89,6 @@ kubernetes [ZONES...] {
    follows: Use the hostname of the endpoint, or if hostname is not set, use the
    pod name of the pod targeted by the endpoint. If there is no pod targeted by
    the endpoint, use the dashed IP address form.
-* `upstream` defines the upstream resolvers used for resolving services
-  that point to external hosts (aka External Services, aka CNAMEs).  CoreDNS
-  will resolve External Services against itself.
 * `ttl` allows you to set a custom TTL for responses. The default is 5 seconds.  The minimum TTL allowed is
   0 seconds, and the maximum is capped at 3600 seconds. Setting TTL to 0 will prevent records from being cached.
 * `noendpoints` will turn off the serving of endpoint records by disabling the watch on endpoints.
@@ -121,13 +117,12 @@ Kubernetes API.
 
 Handle all queries in the `cluster.local` zone. Connect to Kubernetes in-cluster. Also handle all
 `in-addr.arpa` `PTR` requests for `10.0.0.0/17` . Verify the existence of pods when answering pod
-requests. Resolve upstream records against `10.102.3.10`. Note we show the entire server block here:
+requests.
 
 ~~~ txt
 10.0.0.0/17 cluster.local {
     kubernetes {
         pods verified
-        upstream 10.102.3.10:53
     }
 }
 ~~~
@@ -152,15 +147,12 @@ kubernetes cluster.local {
 ## stubDomains and upstreamNameservers
 
 Here we use the *forward* plugin to implement a stubDomain that forwards `example.local` to the nameserver `10.100.0.10:53`.
-The *upstream* option in the *kubernetes* plugin means that ExternalName services (CNAMEs) will be resolved using the respective proxy.
 Also configured is an upstreamNameserver `8.8.8.8:53` that will be used for resolving names that do not fall in `cluster.local`
 or `example.local`.
 
 ~~~ txt
 cluster.local:53 {
-    kubernetes cluster.local {
-        upstream
-    }
+    kubernetes cluster.local
 }
 example.local {
     forward . 10.100.0.10:53

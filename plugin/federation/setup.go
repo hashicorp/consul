@@ -47,6 +47,7 @@ func setup(c *caddy.Controller) error {
 
 func federationParse(c *caddy.Controller) (*Federation, error) {
 	fed := New()
+	fed.Upstream = upstream.New()
 
 	for c.Next() {
 		// federation [zones..]
@@ -64,8 +65,8 @@ func federationParse(c *caddy.Controller) (*Federation, error) {
 			x := c.Val()
 			switch x {
 			case "upstream":
+				// remove soon
 				c.RemainingArgs()
-				fed.Upstream = upstream.New()
 			default:
 				args := c.RemainingArgs()
 				if x := len(args); x != 1 {

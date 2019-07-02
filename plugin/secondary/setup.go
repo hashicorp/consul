@@ -78,7 +78,8 @@ func secondaryParse(c *caddy.Controller) (file.Zones, error) {
 						return file.Zones{}, e
 					}
 				case "upstream":
-					c.RemainingArgs() // eat args
+					// remove soon
+					c.RemainingArgs()
 				default:
 					return file.Zones{}, c.Errf("unknown property '%s'", c.Val())
 				}

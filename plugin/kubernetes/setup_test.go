@@ -381,21 +381,6 @@ func TestKubernetesParse(t *testing.T) {
 			podModeDisabled,
 			fall.F{Zones: []string{"ip6.arpa.", "inaddr.arpa.", "foo.com."}},
 		},
-		// Valid upstream
-		{
-			`kubernetes coredns.local {
-	upstream
-}`,
-			false,
-			"",
-			1,
-			0,
-			defaultResyncPeriod,
-			"",
-			"",
-			podModeDisabled,
-			fall.Zero,
-		},
 		// More than one Kubernetes not allowed
 		{
 			`kubernetes coredns.local

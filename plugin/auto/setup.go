@@ -100,6 +100,7 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 		for i := range a.Zones.origins {
 			a.Zones.origins[i] = plugin.Host(a.Zones.origins[i]).Normalize()
 		}
+		a.loader.upstream = upstream.New()
 
 		for c.NextBlock() {
 			switch c.Val() {
@@ -148,8 +149,8 @@ func autoParse(c *caddy.Controller) (Auto, error) {
 				a.loader.ReloadInterval = d
 
 			case "upstream":
+				// remove soon
 				c.RemainingArgs() // eat remaining args
-				a.loader.upstream = upstream.New()
 
 			case "transfer":
 				t, _, e := parse.Transfer(c, false)
