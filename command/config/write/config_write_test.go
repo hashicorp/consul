@@ -145,6 +145,9 @@ func TestParseConfigEntry(t *testing.T) {
 					"moar" = "config"
 				  }
 				}
+				mesh_gateway {
+					mode = "remote"
+				}
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -155,6 +158,9 @@ func TestParseConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
+				}
+				MeshGateway {
+					Mode = "remote"
 				}
 			`,
 			expect: &api.ProxyConfigEntry{
@@ -167,6 +173,9 @@ func TestParseConfigEntry(t *testing.T) {
 						"moar": "config",
 					},
 				},
+				MeshGateway: api.MeshGatewayConfig{
+					Mode: api.MeshGatewayModeRemote,
+				},
 			},
 		},
 		{
@@ -175,16 +184,25 @@ func TestParseConfigEntry(t *testing.T) {
 				kind = "service-defaults"
 				name = "main"
 				protocol = "http"
+				mesh_gateway {
+					mode = "remote"
+				}
 			`,
 			camel: `
 				Kind = "service-defaults"
 				Name = "main"
 				Protocol = "http"
+				MeshGateway {
+					Mode = "remote"
+				}
 			`,
 			expect: &api.ServiceConfigEntry{
 				Kind:     "service-defaults",
 				Name:     "main",
 				Protocol: "http",
+				MeshGateway: api.MeshGatewayConfig{
+					Mode: api.MeshGatewayModeRemote,
+				},
 			},
 		},
 		{
