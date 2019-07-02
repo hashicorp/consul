@@ -838,10 +838,11 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 // DiscoveryChainConfigEntries wraps just the raw cross-referenced config
 // entries. None of these are defaulted.
 type DiscoveryChainConfigEntries struct {
-	Routers   map[string]*ServiceRouterConfigEntry
-	Splitters map[string]*ServiceSplitterConfigEntry
-	Resolvers map[string]*ServiceResolverConfigEntry
-	Services  map[string]*ServiceConfigEntry
+	Routers     map[string]*ServiceRouterConfigEntry
+	Splitters   map[string]*ServiceSplitterConfigEntry
+	Resolvers   map[string]*ServiceResolverConfigEntry
+	Services    map[string]*ServiceConfigEntry
+	GlobalProxy *ProxyConfigEntry
 }
 
 func (e *DiscoveryChainConfigEntries) GetRouter(name string) *ServiceRouterConfigEntry {
@@ -913,7 +914,7 @@ func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry
 }
 
 func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
-	return e.IsChainEmpty() && len(e.Services) == 0
+	return e.IsChainEmpty() && len(e.Services) == 0 && e.GlobalProxy == nil
 }
 
 func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {

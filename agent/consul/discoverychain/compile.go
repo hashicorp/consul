@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/mitchellh/mapstructure"
 )
 
 type CompileRequest struct {
@@ -128,7 +129,20 @@ func (c *compiler) recordServiceProtocol(serviceName string) error {
 	if serviceDefault := c.entries.GetService(serviceName); serviceDefault != nil {
 		return c.recordProtocol(serviceName, serviceDefault.Protocol)
 	}
+	if c.entries.GlobalProxy != nil {
+		var cfg proxyConfig
+		// Ignore errors and fallback on defaults if it does happen.
+		_ = mapstructure.WeakDecode(c.entries.GlobalProxy.Config, &cfg)
+		if cfg.Protocol != "" {
+			return c.recordProtocol(serviceName, cfg.Protocol)
+		}
+	}
 	return c.recordProtocol(serviceName, "")
+}
+
+// proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
+type proxyConfig struct {
+	Protocol string `mapstructure:"protocol"`
 }
 
 func (c *compiler) recordProtocol(fromService, protocol string) error {
@@ -522,8 +536,9 @@ RESOLVE_AGAIN:
 	// Digest mesh gateway settings.
 	if serviceDefault := c.entries.GetService(resolver.Name); serviceDefault != nil {
 		groupResolver.MeshGateway = serviceDefault.MeshGateway
+	} else if c.entries.GlobalProxy != nil {
+		groupResolver.MeshGateway = c.entries.GlobalProxy.MeshGateway
 	}
-	// TODO(rb): thread proxy-defaults version through here as well
 
 	// Retain this target even if we may not retain the group resolver.
 	c.targets[target] = struct{}{}

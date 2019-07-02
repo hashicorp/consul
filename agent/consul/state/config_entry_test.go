@@ -225,6 +225,57 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		{
+			name: "splitter works with http protocol",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "tcp", // loses
+					},
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+			},
+			op: func(t *testing.T, s *Store) error {
+				entry := &structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "main",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Namespace: "v1"},
+						{Weight: 10, Namespace: "v2"},
+					},
+				}
+				return s.EnsureConfigEntry(0, entry)
+			},
+		},
+		{
+			name: "splitter works with http protocol (from proxy-defaults)",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+			},
+			op: func(t *testing.T, s *Store) error {
+				entry := &structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "main",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Namespace: "v1"},
+						{Weight: 10, Namespace: "v2"},
+					},
+				}
+				return s.EnsureConfigEntry(0, entry)
+			},
+		},
+		{
 			name: "router fails with tcp protocol",
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
@@ -303,6 +354,59 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
+		},
+		{
+			name: "cannot remove global default protocol after splitter created",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "main",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Namespace: "v1"},
+						{Weight: 10, Namespace: "v2"},
+					},
+				},
+			},
+			op: func(t *testing.T, s *Store) error {
+				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+			},
+			expectErr:      "does not permit advanced routing or splitting behavior",
+			expectGraphErr: true,
+		},
+		{
+			name: "can remove global default protocol after splitter created if service default overrides it",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "main",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Namespace: "v1"},
+						{Weight: 10, Namespace: "v2"},
+					},
+				},
+			},
+			op: func(t *testing.T, s *Store) error {
+				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+			},
 		},
 		{
 			name: "cannot change to tcp protocol after splitter created",

@@ -40,6 +40,7 @@ func TestCompile(t *testing.T) {
 		"router with defaults and noop split and resolver": testcase_RouterWithDefaults_WithNoopSplit_WithResolver(),
 		"route bypasses splitter":                          testcase_RouteBypassesSplit(),
 		"noop split":                                       testcase_NoopSplit_DefaultResolver(),
+		"noop split with protocol from proxy defaults":     testcase_NoopSplit_DefaultResolver_ProcotolFromProxyDefaults(),
 		"noop split with resolver":                         testcase_NoopSplit_WithResolver(),
 		"subset split":                                     testcase_SubsetSplit(),
 		"service split":                                    testcase_ServiceSplit(),
@@ -53,6 +54,7 @@ func TestCompile(t *testing.T) {
 		"noop split to resolver with default subset":       testcase_NoopSplit_WithDefaultSubset(),
 		"resolver with default subset":                     testcase_Resolve_WithDefaultSubset(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
+		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
 
 		// TODO(rb): handle this case better: "circular split":                                   testcase_CircularSplit(),
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
@@ -233,6 +235,72 @@ func testcase_RouterWithDefaults_NoSplit_WithResolver() compileTestCase {
 func testcase_RouterWithDefaults_WithNoopSplit_DefaultResolver() compileTestCase {
 	entries := newEntries()
 	setServiceProtocol(entries, "main", "http")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: "service-router",
+			Name: "main",
+		},
+	)
+	entries.AddSplitters(
+		&structs.ServiceSplitterConfigEntry{
+			Kind: "service-splitter",
+			Name: "main",
+			Splits: []structs.ServiceSplit{
+				{Weight: 100},
+			},
+		},
+	)
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "http",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeRouter,
+			Name: "main",
+			Routes: []*structs.DiscoveryRoute{
+				{
+					Definition: newDefaultServiceRoute("main"),
+					DestinationNode: &structs.DiscoveryGraphNode{
+						Type: structs.DiscoveryGraphNodeTypeSplitter,
+						Name: "main",
+						Splits: []*structs.DiscoverySplit{
+							{
+								Weight: 100,
+								Node: &structs.DiscoveryGraphNode{
+									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+									Name: "main",
+									GroupResolver: &structs.DiscoveryGroupResolver{
+										Definition:     resolver,
+										Default:        true,
+										ConnectTimeout: 5 * time.Second,
+										Target:         newTarget("main", "", "default", "dc1"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"main": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTarget("main", "", "default", "dc1"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTarget("main", "", "default", "dc1"): nil,
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_NoopSplit_DefaultResolver_ProcotolFromProxyDefaults() compileTestCase {
+	entries := newEntries()
+	setGlobalProxyProtocol(entries, "http")
 
 	entries.AddRouters(
 		&structs.ServiceRouterConfigEntry{
@@ -1165,6 +1233,49 @@ func testcase_DefaultResolver() compileTestCase {
 	return compileTestCase{entries: entries, expect: expect}
 }
 
+func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
+	entries := newEntries()
+	entries.GlobalProxy = &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "grpc",
+		},
+		MeshGateway: structs.MeshGatewayConfig{
+			Mode: structs.MeshGatewayModeRemote,
+		},
+	}
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "grpc",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+			Name: "main",
+			GroupResolver: &structs.DiscoveryGroupResolver{
+				Definition:     resolver,
+				Default:        true,
+				ConnectTimeout: 5 * time.Second,
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				},
+				Target: newTarget("main", "", "default", "dc1"),
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"main": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTarget("main", "", "default", "dc1"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTarget("main", "", "default", "dc1"): nil,
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
 func testcase_Resolve_WithDefaultSubset() compileTestCase {
 	entries := newEntries()
 	entries.AddResolvers(
@@ -1742,6 +1853,16 @@ func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.Se
 	}
 
 	return r
+}
+
+func setGlobalProxyProtocol(entries *structs.DiscoveryChainConfigEntries, protocol string) {
+	entries.GlobalProxy = &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": protocol,
+		},
+	}
 }
 
 func setServiceProtocol(entries *structs.DiscoveryChainConfigEntries, name, protocol string) {
