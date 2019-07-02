@@ -44,9 +44,15 @@ func main() {
 	var numCAs = 2
 	var services = []string{"web", "db", "cache"}
 	var outDir string
+	var keyType string = "ecdsa"
+	var keyBits int = 256
 
 	flag.StringVar(&outDir, "out-dir", "",
 		"REQUIRED: the dir to write certificates to")
+	flag.StringVar(&keyType, "key-type", "ecdsa",
+		"Type of private key to create (ecdsa, rsa)")
+	flag.IntVar(&keyBits, "key-bits", 256,
+		"Size of private key to create, in bits")
 	flag.Parse()
 
 	if outDir == "" {
@@ -57,7 +63,7 @@ func main() {
 	// Create CA certs
 	var prevCA *structs.CARoot
 	for i := 1; i <= numCAs; i++ {
-		ca := connect.TestCA(&testing.RuntimeT{}, prevCA)
+		ca := connect.TestCA(&testing.RuntimeT{}, prevCA, keyType, keyBits)
 		prefix := fmt.Sprintf("%s/ca%d-ca", outDir, i)
 		writeFile(prefix+".cert.pem", ca.RootCert)
 		writeFile(prefix+".key.pem", ca.SigningKey)

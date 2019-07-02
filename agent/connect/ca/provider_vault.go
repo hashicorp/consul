@@ -101,9 +101,15 @@ func (v *VaultProvider) GenerateRoot() error {
 		if err != nil {
 			return err
 		}
+		keyType := v.config.PrivateKeyType
+		if keyType == "ecdsa" {
+			keyType = "ec"
+		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
 			"uri_sans":    spiffeID.URI().String(),
+			"key_type":    keyType,
+			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
 			return err
@@ -171,11 +177,16 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 		}
 	}
 
+	keyType := v.config.PrivateKeyType
+	if keyType == "ecdsa" {
+		keyType = "ec"
+	}
+
 	// Generate a new intermediate CSR for the root to sign.
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
 		"common_name": "Vault CA Intermediate Authority",
-		"key_bits":    224,
-		"key_type":    "ec",
+		"key_type":    keyType,
+		"key_bits":    v.config.PrivateKeyBits,
 		"uri_sans":    spiffeID.URI().String(),
 	})
 	if err != nil {

@@ -101,7 +101,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 
 	// Make sure setting a custom private key/root cert works.
 	require := require.New(t)
-	rootCA := connect.TestCA(t, nil)
+	rootCA := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	conf := testConsulCAConfig()
 	conf.Config = map[string]interface{}{
 		"PrivateKey": rootCA.SigningKey,

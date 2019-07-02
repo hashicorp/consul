@@ -7,6 +7,8 @@
 .DS_Store
 .fseventsd
 .vagrant/
+.idea/
+.envrc
 /pkg
 Thumbs.db
 bin/

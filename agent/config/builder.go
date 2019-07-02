@@ -588,6 +588,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"leaf_cert_ttl":      "LeafCertTTL",
 			"csr_max_per_second": "CSRMaxPerSecond",
 			"csr_max_concurrent": "CSRMaxConcurrent",
+			"private_key_type":   "PrivateKeyType",
+			"private_key_bits":   "PrivateKeyBits",
 		})
 	}
 

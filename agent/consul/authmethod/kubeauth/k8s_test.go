@@ -70,7 +70,7 @@ func TestValidateLogin(t *testing.T) {
 }
 
 func TestNewValidator(t *testing.T) {
-	ca := connect.TestCA(t, nil)
+	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	type AM = *structs.ACLAuthMethod
 
