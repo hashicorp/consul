@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"testing"
 
 	"github.com/mitchellh/copystructure"
@@ -295,6 +296,9 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
 
 			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
+			sort.Slice(endpoints, func(i, j int) bool {
+				return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
+			})
 			require.NoError(err)
 			r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
 			require.NoError(err)

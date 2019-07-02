@@ -3,31 +3,6 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "local_app",
-      "type": "STATIC",
-      "connectTimeout": "1.234s",
-      "loadAssignment": {
-        "clusterName": "local_app",
-        "endpoints": [
-          {
-            "lbEndpoints": [
-              {
-                "endpoint": {
-                  "address": {
-                    "socketAddress": {
-                      "address": "127.0.0.1",
-                      "portValue": 8080
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "db",
       "type": "EDS",
       "edsClusterConfig": {
@@ -63,6 +38,31 @@
       },
       "outlierDetection": {
 
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "name": "local_app",
+      "type": "STATIC",
+      "connectTimeout": "1.234s",
+      "loadAssignment": {
+        "clusterName": "local_app",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8080
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {

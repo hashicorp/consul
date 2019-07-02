@@ -3,6 +3,22 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {
+
+          }
+        }
+      },
+      "connectTimeout": "5s",
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
@@ -20,22 +36,6 @@
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "type": "EDS",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {
-
-          }
-        }
-      },
-      "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
-    },
-    {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {

@@ -3,19 +3,6 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "mylocal",
-      "connectTimeout": "5s",
-      "hosts": [
-        {
-          "socketAddress": {
-            "address": "127.0.0.1",
-            "portValue": 8080
-          }
-        }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "db",
       "type": "EDS",
       "edsClusterConfig": {
@@ -52,6 +39,19 @@
       "outlierDetection": {
 
       }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "name": "mylocal",
+      "connectTimeout": "5s",
+      "hosts": [
+        {
+          "socketAddress": {
+            "address": "127.0.0.1",
+            "portValue": 8080
+          }
+        }
+      ]
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",

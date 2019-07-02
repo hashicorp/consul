@@ -40,7 +40,7 @@ func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token st
 // (upstreams) in the snapshot.
 func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	// TODO(rb): this sizing is a low bound.
-	clusters := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
+	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Include the "app" cluster for the public listener
 	appCluster, err := s.makeAppCluster(cfgSnap)
