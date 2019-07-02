@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/mitchellh/hashstructure"
 )
 
 // ServiceRouterConfigEntry defines L7 (e.g. http) routing rules for a named
@@ -915,6 +918,52 @@ func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
 
 func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
 	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
+}
+
+// DiscoveryChainRequest is used when requesting the discovery chain for a
+// service.
+type DiscoveryChainRequest struct {
+	Name       string
+	Datacenter string
+	// Source      QuerySource
+
+	QueryOptions
+}
+
+func (r *DiscoveryChainRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	v, err := hashstructure.Hash(struct {
+		Name string
+	}{
+		Name: r.Name,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
+// TODO(rb): either fix the compiled results, or take the derived data and stash it here in a json/msgpack-friendly way?
+type DiscoveryChainResponse struct {
+	ConfigEntries *DiscoveryChainConfigEntries `json:",omitempty"` // TODO(rb): remove these?
+	Chain         *CompiledDiscoveryChain      `json:",omitempty"`
+	QueryMeta
 }
 
 type ConfigEntryGraphError struct {

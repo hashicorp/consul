@@ -47,6 +47,42 @@ func TestManager_BasicLifecycle(t *testing.T) {
 
 	roots, leaf := TestCerts(t)
 
+	// Initialize a default group resolver for "db"
+	dbResolverEntry := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "db",
+	}
+	dbTarget := structs.DiscoveryTarget{
+		Service:    "db",
+		Namespace:  "default",
+		Datacenter: "dc1",
+	}
+	dbResolverNode := &structs.DiscoveryGraphNode{
+		Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+		Name: "db",
+		GroupResolver: &structs.DiscoveryGroupResolver{
+			Definition: dbResolverEntry,
+			Default:    true,
+			Target:     dbTarget,
+		},
+	}
+	dbChain := &structs.CompiledDiscoveryChain{
+		ServiceName: "db",
+		Namespace:   "default",
+		Datacenter:  "dc1",
+		Protocol:    "tcp",
+		Node:        dbResolverNode,
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			dbTarget: dbResolverNode,
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"db": dbResolverEntry,
+		},
+		Targets: []structs.DiscoveryTarget{
+			dbTarget,
+		},
+	}
+
 	// Setup initial values
 	types.roots.value.Store(roots)
 	types.leaf.value.Store(leaf)
@@ -55,6 +91,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		&structs.IndexedCheckServiceNodes{
 			Nodes: TestUpstreamNodes(t),
 		})
+	types.compiledChain.value.Store(
+		&structs.DiscoveryChainResponse{
+			Chain: dbChain,
+		},
+	)
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	state := local.NewState(local.Config{}, logger, &token.Store{})
@@ -116,9 +157,16 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Roots:           roots,
 		ConnectProxy: configSnapshotConnectProxy{
 			Leaf: leaf,
-			UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-				"db": TestUpstreamNodes(t),
+			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+				"db": dbChain,
 			},
+			WatchedUpstreams: nil, // Clone() clears this out
+			WatchedUpstreamEndpoints: map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+				"db": {
+					dbTarget: TestUpstreamNodes(t),
+				},
+			},
+			UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
 		},
 		Datacenter: "dc1",
 	}

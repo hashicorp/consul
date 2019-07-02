@@ -519,6 +519,12 @@ RESOLVE_AGAIN:
 	}
 	groupResolver := groupResolverNode.GroupResolver
 
+	// Digest mesh gateway settings.
+	if serviceDefault := c.entries.GetService(resolver.Name); serviceDefault != nil {
+		groupResolver.MeshGateway = serviceDefault.MeshGateway
+	}
+	// TODO(rb): thread proxy-defaults version through here as well
+
 	// Retain this target even if we may not retain the group resolver.
 	c.targets[target] = struct{}{}
 
