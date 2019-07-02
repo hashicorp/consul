@@ -33,7 +33,7 @@ type ProxyConfig struct {
 	// pooling, tracing, routing etc.
 	Protocol string `mapstructure:"protocol"`
 
-	// BindAddress overrides the address the proxy's listener binds. This
+	// BindAddress overrides the address the proxy's listener binds to. This
 	// enables proxies in network namespaces to bind to a different address
 	// than the host address.
 	BindAddress string `mapstructure:"bind_address"`
