@@ -13,11 +13,19 @@ different subsets of a single service (like during staged canary rollouts), or
 perhaps across different services (like during a v2 rewrite or other type of
 codebase migration).
 
-Service splitter config entries will be restricted to only services that define
-their protocol as http-based via a corresponding
-[`service-defaults`](/docs/agent/config-entries/service-defaults.html) config
-entry or globally via
-[`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html) .
+## Interaction with other Config Entries
+
+- Service splitter config entries are restricted to only services that define
+  their protocol as http-based via a corresponding
+  [`service-defaults`](/docs/agent/config-entries/service-defaults.html) config
+  entry or globally via
+  [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html) .
+
+- Any split destination that specifies a different `Service` field and omits
+  the `ServiceSubset` field is eligible for further splitting should a splitter
+  be configured for that other service, otherwise resolution proceeds according
+  to any configured
+  [`service-resolver`](/docs/agent/config-entries/service-resolver.html).
 
 ## Sample Config Entries
 
