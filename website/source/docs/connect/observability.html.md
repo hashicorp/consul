@@ -44,7 +44,7 @@ Find other possible metrics syncs in the [Connect Envoy documentation](/docs/con
 
 ### Service Protocol
 
-You can specify the [service protocol](/docs/agent/config_entries.html#protocol)
+You can specify the [service protocol](/docs/agent/config-entries/service-defaults.html#protocol)
 in the `service-defaults` configuration entry. You can override it in the
 [service registration](/docs/agent/services.html). By default, proxies only give
 you L4 metrics. This protocol allows proxies to handle requests at the right L7
