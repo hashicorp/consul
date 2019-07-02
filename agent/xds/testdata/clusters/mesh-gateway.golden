@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "dc2.internal.11111111-2222-3333-4444-555555555555",
+      "name": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -19,7 +19,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555",
+      "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -35,7 +35,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555",
+      "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {

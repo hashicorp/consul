@@ -2,6 +2,7 @@ package proxycfg
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -85,7 +86,7 @@ func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
 	ca := connect.TestCA(t, nil)
 	roots := &structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
-		TrustDomain:  connect.TestClusterID,
+		TrustDomain:  fmt.Sprintf("%s.consul", connect.TestClusterID),
 		Roots:        []*structs.CARoot{ca},
 	}
 	return roots, TestLeafForCA(t, ca)

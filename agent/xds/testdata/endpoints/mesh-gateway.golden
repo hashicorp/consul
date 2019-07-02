@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-      "clusterName": "dc2.internal.11111111-2222-3333-4444-555555555555",
+      "clusterName": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -37,7 +37,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-      "clusterName": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555",
+      "clusterName": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [
@@ -95,7 +95,7 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-      "clusterName": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555",
+      "clusterName": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [

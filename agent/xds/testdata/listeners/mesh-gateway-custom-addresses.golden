@@ -14,14 +14,14 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "*.dc2.internal.11111111-2222-3333-4444-555555555555"
+              "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
             {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555",
+                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_bar_dc2_tcp"
                 }
             }
@@ -61,14 +61,14 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "*.dc2.internal.11111111-2222-3333-4444-555555555555"
+              "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
             {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555",
+                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_baz_dc2_tcp"
                 }
             }
@@ -108,14 +108,14 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "*.dc2.internal.11111111-2222-3333-4444-555555555555"
+              "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
             {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555",
+                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_default_dc2_tcp"
                 }
             }
@@ -155,14 +155,14 @@
         {
           "filterChainMatch": {
             "serverNames": [
-              "*.dc2.internal.11111111-2222-3333-4444-555555555555"
+              "*.dc2.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },
           "filters": [
             {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555",
+                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "mesh_gateway_remote_foo_dc2_tcp"
                 }
             }
