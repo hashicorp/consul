@@ -212,7 +212,7 @@ a token for the service.
 }
 ```
 
-Note the Connect part of the registration with the sidecar service and token
+Note the Connect stanza of the registration with the `sidecar_service` and `token`
 options. This is what you would add to an existing service registration if you
 are not using netcat as an example.
 
