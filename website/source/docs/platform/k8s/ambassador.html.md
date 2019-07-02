@@ -50,7 +50,7 @@ kubectl apply -f https://getambassador.io/yaml/ambassador/ambassador-service.yam
 Install the Ambassador Consul Connector:
 
 ```bash
-kubectl apply -f https://getambassador.io/yaml/ambassador/pro/ambassador-consul-connector.yaml
+kubectl apply -f https://getambassador.io/yaml/consul/ambassador-consul-connector.yaml
 ```
 
 Add `TLSContext` and `Mapping` annotations to your existing services, directing 
@@ -62,39 +62,32 @@ for the [Connect sidecar]:
 apiVersion: v1
 kind: Service
 metadata:
-    name: static-service
-    annotations:
+  name: static-service
+  annotations:
     getambassador.io/config: |
-        ---
-        apiVersion: ambassador/v1
-        kind: TLSContext
-        name: ambassador-consul
-        hosts: []
-        secret: ambassador-consul-connect
-        ---
-        apiVersion: ambassador/v1
-        kind:  Mapping
-        name:  static-service_mapping
-        prefix: /echo/
-        tls: ambassador-consul
-        service: https://static-server:443
+      ---
+      apiVersion: ambassador/v1
+      kind:  Mapping
+      name:  static-service_mapping
+      prefix: /echo/
+      tls: ambassador-consul
+      service: https://static-service:443
 spec:
-    type: NodePort
-    selector:
-    app: http-echo
-    ports:
-    - port: 443
-    name: https-echo
-    targetPort: 20000            
+  type: NodePort
+  selector:
+    app: static-server
+  ports:
+  - port: 443
+    name: secure-static-service
+    targetPort: 20000
 ```
 
 Once Ambassador finishes deploying, you should have a new `LoadBalancer` service
-with a public-facing IP address. Connecting to the HTTP port on this address
+with a public-facing IP address. Connecting to `http://<ambassador loadbalancer public ip>/echo/`
 should display the output from the static service.
 
 ```bash
 kubectl describe service ambassador
-
 ```
 
 
@@ -119,31 +112,31 @@ to the `LoadBalancer` spec. Here is a complete example:
 apiVersion: v1
 kind: Service
 metadata:
-name: ambassador
-annotations: 
+  name: ambassador
+  annotations:
     getambassador.io/config: |
-    ---
-    apiVersion: ambassador/v1
-    kind: Module
-    name: tls
-    config:
-    server:
-        enabled: True
-        secret: ambassador-certs
+      ---
+      apiVersion: ambassador/v1
+      kind: Module
+      name: tls
+      config:
+        server:
+          enabled: True
+          secret: ambassador-certs
 spec:
-    type: LoadBalancer
-    externalTrafficPolicy: Local
-    ports:
-    - port: 80
-        targetPort: http
-        protocol: TCP
-        name: http
-    - port: 443
-        targetPort: https
-        protocol: TCP
-        name: https   
-    selector:
+  type: LoadBalancer
+  selector:
     service: ambassador
+  externalTrafficPolicy: Local
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: https
+    protocol: TCP
+    name: https
 ```
 
 Update the service definition by applying it with `kubectl`:

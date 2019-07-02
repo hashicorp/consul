@@ -50,6 +50,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: static-server
+  labels:
+    app: static-server
   annotations:
     "consul.hashicorp.com/connect-inject": "true"
 spec:
