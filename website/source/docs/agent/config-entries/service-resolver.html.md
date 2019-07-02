@@ -15,7 +15,6 @@ If no resolver config is defined the chain assumes 100% of traffic goes to the
 healthy instances of the default service in the current datacenter+namespace
 and discovery terminates.
 
-
 ## Sample Config Entries
 
 Create service subsets based on a version metadata and override the defaults:
@@ -71,35 +70,82 @@ name = "web"
 
 - `Name` `(string: <required>)` - Set to the name of the service being configured.
 
-- `ConnectTimeout` `(duration: 0s)` - TODO
+- `ConnectTimeout` `(duration: 0s)` - The timeout for establishing new network
+  connections to this service.
 
-- `DefaultSubset` `(string: "")` - TODO
+- `DefaultSubset` `(string: "")` - The subset to use when no explicit subset is
+  requested. If empty the unnamed subset is used.
 
-- `Subsets` `(map[string]ServiceResolverSubset)` - TODO
+- `Subsets` `(map[string]ServiceResolverSubset)` - A map of subset name to
+  subset definition for all usable named subsets of this service. The map key
+  is the name of the subset and all names must be valid DNS subdomain elements.
 
-  - `Filter` `(string: "")` - TODO
+    This may be empty, in which case only the unnamed default subset will be
+    usable.
 
-  - `OnlyPassing` `(bool: false)` - TODO
+  - `Filter` `(string: "")` - The 
+    [filter expression](/api/features/filtering.html) to be used for selecting
+    instances of the requested service. If empty all healthy instances are
+    returned.
 
-- `Redirect` `(ServiceResolverRedirect: <optional>)` - TODO
+  - `OnlyPassing` `(bool: false)` - Specifies the behavior of the resolver's
+    health check filtering. If this is set to false, the results will include
+    instances with checks in the passing as well as the warning states. If this
+    is set to true, only instances with checks in the passing state will be
+    returned.
 
-  - `Service` `(string: "")` - TODO
+- `Redirect` `(ServiceResolverRedirect: <optional>)` - When configured, all
+  attempts to resolve the service this resolver defines will be substituted for
+  the supplied redirect EXCEPT when the redirect has already been applied.
 
-  - `ServiceSubset` `(string: "")` - TODO
+    When substituting the supplied redirect into the discovery chain all other
+    fields besides `Kind`, `Name`, and `Redirect` will be ignored.
 
-  - `Namespace` `(string: "")` - TODO
+  - `Service` `(string: "")` - A service to resolve instead of the current
+    service.
 
-  - `Datacenter` `(string: "")` - TODO
+  - `ServiceSubset` `(string: "")` - A named subset of the given service to
+    resolve instead of one defined as that service's DefaultSubset If empty the
+    default subset is used.
 
-- `Failover` `(map[string]ServiceResolverFailover`) - TODO
+        If this is specified at least one of Service, Datacenter, or Namespace
+        should be configured.
 
-  - `Service` `(string: "")` - TODO
+  - `Namespace` `(string: "")` - The namespace to resolve the service from
+    instead of the current one.
 
-  - `ServiceSubset` `(string: "")` - TODO
+  - `Datacenter` `(string: "")` - The datacenter to resolve the service from
+    instead of the current one.
 
-  - `Namespace` `(string: "")` - TODO
+- `Failover` `(map[string]ServiceResolverFailover`) - Controls when and how to
+  reroute traffic to an alternate pool of service instances.
 
-  - `Datacenters` `(array<string>)` - TODO
+    The map is keyed by the service subset it applies to and the special
+    string `"*"` is a wildcard that applies to any subset not otherwise
+    specified here.
 
-  - `OverprovisioningFactor` `(int: 0)` - TODO
+    `Service`, `ServiceSubset`, `Namespace`, and `Datacenters` cannot all be
+    empty at once.
+
+  - `Service` `(string: "")` - The service to resolve instead of the default as
+    the failover group of instances during failover.
+
+  - `ServiceSubset` `(string: "")` - The named subset of the requested service
+    to resolve as the failover group of instances. If empty the default subset
+    for the requested service is used.
+
+  - `Namespace` `(string: "")` - The namespace to resolve the requested service
+    from to form the failover group of instances. If empty the current
+    namespace is used.
+
+  - `Datacenters` `(array<string>)` - A fixed list of datacenters to try during
+    failover.
+
+  - `OverprovisioningFactor` `(int: 0)` - OverprovisioningFactor is a pass
+    through for envoy's
+    [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/v1.10.0/intro/arch_overview/load_balancing/priority)
+    value.
+
+        If omitted the overprovisioning factor value will be set so high as to
+        imply binary failover (all or nothing).
 
