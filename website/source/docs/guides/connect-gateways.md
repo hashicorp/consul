@@ -35,9 +35,17 @@ starting from scratch, follow these guides to set up your datacenters, or use
 them to check that you have the proper configuration:
 
 - [Deployment Guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide)
+
 - [Securing Consul with ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls)
+
 - [Basic Federation with WAN Gossip](https://learn.hashicorp.com/consul/security-networking/datacenters)
+
 - [ACL Replication for Multiple Datacenters](https://learn.hashicorp.com/consul/day-2-operations/acl-replication)
+
+-> Following this ACL Replication guide's recommendation for the replication
+token policy  will work for this guide. The most conservative replication token
+policy that will allow intention replication would deny access to service
+prefixes and explicitly allow read access to intentions.
 
 You will also need to install [Envoy](https://www.envoyproxy.io/) alongside your
 Consul clients. Both the gateway and sidecar proxies will need to get
@@ -109,13 +117,44 @@ replicated to the secondary datacenter.
 
 Connect mesh gateways proxy requests from services in one datacenter to services
 in another, so you will need to deploy your gateways on nodes that can reach
-each other over the network. You’ll also need to [generate a
-token](https://learn.hashicorp.com/consul/security-networking/production-acls#apply-individual-tokens-to-the-services)
-for each gateway that gives it read access to the entire catalog. You’ll apply
-those tokens when you start the gateways. As we mentioned in the prerequisites,
+each other over the network. As we mentioned in the prerequisites,
 you will need to make sure that both Envoy and Consul are installed on the
 gateway nodes. You won’t want to run any services on these nodes other than
 Consul and Envoy because they necessarily will have access to the WAN.
+
+### Generate Tokens for the Gateways
+
+You’ll need to [generate a
+token](https://learn.hashicorp.com/consul/security-networking/production-acls#apply-individual-tokens-to-the-services)
+for each gateway that gives it read access to the entire catalog.
+
+Create a file named `mesh-gateway-policy.hcl` containing the following content.
+
+```
+# for doing service discovery of everything
+service_prefix "" {
+   policy = "read"
+}
+
+# For the proxy to be able to act as the registered gateway service
+service "mesh-gateway" {
+   policy = "write"
+}
+```
+
+Create the policy.
+
+```
+FILL ME IN
+```
+
+Generate a token for each gateway from the above policy.
+
+```
+FILL ME IN
+```
+
+You’ll apply those tokens when you start the gateways.
 
 ### Deploy the Gateway for your primary datacenter
 
@@ -127,23 +166,6 @@ consul connect envoy -mesh-gateway -register \
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
                      -token=<token for the primary dc gateway>
-```
-
-Next, create a [centralized configuration](LINK) file for all the sidecar
-proxies in your primary datacenter called `proxy-defaults.hcl`. This file will
-instruct the sidecar proxies to send all their inter-datacenter through the
-gateway. It should contain the following:
-
-```
-Kind = "proxy-defaults"
-Name =  "global"
-MeshGateway = "local"
-```
-
-Write the centralized configuration you just created with the following command.
-
-```
-consul config write proxy-defaults.hcl
 ```
 
 ### Repeat the Process to Deploy the Gateway for your Secondary Datacenter
@@ -158,10 +180,12 @@ consul connect envoy -mesh-gateway -register \
                      -token=<token for the secondary dc gateway>
 ```
 
-Next, create a centralized configuration file for all the sidecar proxies in
-your secondary datacenter called `proxy-defaults.hcl`. This file will instruct
-the sidecar proxies to send all their inter-datacenter through the gateway. It
-should contain the following:
+### Configure Sidecar Proxies to use Gateways
+
+Next, create a [centralized configuration](LINK) file for all the sidecar
+proxies in both datacenters called `proxy-defaults.hcl`. This file will instruct
+the sidecar proxies to send all their inter-datacenter traffic through the
+gateways. It should contain the following:
 
 ```
 Kind = "proxy-defaults"
@@ -263,14 +287,15 @@ To use web as your front end service, create a registration file called
     "connect": {
       "sidecar_service": {
         "proxy": {
-          "upstreams": [{
-             "destination_name": "netcat",
-             "local_bind_port": 8181
+          "upstreams" = [{
+            "destination_name" = "netcat"
+            "datacenter" = "primary"
+            "local_bind_port" = 8181
           }]
-
-
-
-
+        }
+      }
+    }  
+  }
 }
 ```
 
