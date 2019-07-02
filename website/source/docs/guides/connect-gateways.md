@@ -188,7 +188,7 @@ would like to connect, feel free to use those instead.
 
 ~> **Caution:** Connect takes its default intention policy from Consul’s default
 ACL policy. If you have set your default ACL policy to deny (as is recommended
-for secure operation)  and are adding Connect to already registered services,
+for secure operation) and are adding Connect to already registered services,
 those services will lose connection to each other until you set an intention
 between them to allow communication.
 
