@@ -387,6 +387,31 @@ func (c *ConfigEntryQuery) RequestDatacenter() string {
 	return c.Datacenter
 }
 
+func (r *ConfigEntryQuery) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	v, err := hashstructure.Hash([]interface{}{
+		r.Kind,
+		r.Name,
+		r.Filter,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
+}
+
 // ServiceConfigRequest is used when requesting the resolved configuration
 // for a service.
 type ServiceConfigRequest struct {
