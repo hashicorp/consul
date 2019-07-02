@@ -59,7 +59,7 @@
             }
           }
         },
-        "sni": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555"
+        "sni": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
       }
     },
     {
@@ -95,7 +95,7 @@
             }
           }
         },
-        "sni": "geo-cache.default.dc1.internal.11111111-2222-3333-4444-555555555555"
+        "sni": "geo-cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
       },
       "outlierDetection": {
 

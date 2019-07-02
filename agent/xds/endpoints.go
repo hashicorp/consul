@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+
+	bexpr "github.com/hashicorp/go-bexpr"
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
@@ -143,7 +145,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// generate the endpoints for the local service groups
 	for svc, endpoints := range cfgSnap.MeshGateway.ServiceGroups {
-		clusterName := ServiceSNI(svc, "default", cfgSnap.Datacenter, cfgSnap)
+		clusterName := ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap)
 		la := makeLoadAssignment(
 			clusterName,
 			0,
@@ -153,6 +155,51 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			cfgSnap.Datacenter,
 		)
 		resources = append(resources, la)
+	}
+
+	// generate the endpoints for the service subsets
+	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
+		for subsetName, subset := range resolver.Subsets {
+			clusterName := ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap)
+
+			endpoints := cfgSnap.MeshGateway.ServiceGroups[svc]
+
+			// locally execute the subsets filter
+			filterExp := subset.Filter
+			if subset.OnlyPassing {
+				// we could do another filter pass without bexpr but this simplifies things a bit
+				if filterExp != "" {
+					// TODO (filtering) - Update to "and all Checks as chk { chk.Status == passing }"
+					//                    once the syntax is supported
+					filterExp = fmt.Sprintf("(%s) and not Checks.Status != passing", filterExp)
+				} else {
+					filterExp = "not Checks.Status != passing"
+				}
+			}
+
+			if filterExp != "" {
+				filter, err := bexpr.CreateFilter(filterExp, nil, endpoints)
+				if err != nil {
+					return nil, err
+				}
+
+				raw, err := filter.Execute(endpoints)
+				if err != nil {
+					return nil, err
+				}
+				endpoints = raw.(structs.CheckServiceNodes)
+			}
+
+			la := makeLoadAssignment(
+				clusterName,
+				0,
+				[]structs.CheckServiceNodes{
+					endpoints,
+				},
+				cfgSnap.Datacenter,
+			)
+			resources = append(resources, la)
+		}
 	}
 
 	return resources, nil

@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -102,6 +103,27 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup:  nil,
 		},
+		{
+			name:   "mesh-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
+					"bar": &structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -190,7 +212,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "1s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
 			{
@@ -208,7 +230,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.internal.11111111-2222-3333-4444-555555555555") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 	}
 }

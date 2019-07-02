@@ -19,6 +19,7 @@ type configSnapshotMeshGateway struct {
 	WatchedServices    map[string]context.CancelFunc
 	WatchedDatacenters map[string]context.CancelFunc
 	ServiceGroups      map[string]structs.CheckServiceNodes
+	ServiceResolvers   map[string]*structs.ServiceResolverConfigEntry
 	GatewayGroups      map[string]structs.CheckServiceNodes
 }
 
