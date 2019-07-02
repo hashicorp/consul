@@ -69,12 +69,20 @@ splits = [
 
 - `Name` `(string: <required>)` - Set to the name of the service being configured.
 
-- `Splits` `(array<ServiceSplit>)` - TODO
+- `Splits` `(array<ServiceSplit>)` - Defines how much traffic to send to which
+  set of service instances during a traffic split.  The sum of weights across
+  all splits must add up to 100.
 
-  - `Weight` `(float32: 0)` - TODO
+  - `Weight` `(float32: 0)` - A value between 0 and 100 reflecting what portion
+    of traffic should be directed to this split. The smallest representable
+    weight is 1/10000 or .01%
 
-  - `Service` `(string: "")` - TODO
+  - `Service` `(string: "")` - The service to resolve instead of the default.
 
-  - `ServiceSubset` `(string: "")` - TODO
+  - `ServiceSubset` `(string: "")` - A named subset of the given service to
+    resolve instead of one defined as that service's `DefaultSubset`. If empty
+    the default subset is used.
 
-  - `Namespace` `(string: "")` - TODO
+  - `Namespace` `(string: "")` - The namespace to resolve the service from
+    instead of the current namespace. If empty the current namespace is
+    assumed.
