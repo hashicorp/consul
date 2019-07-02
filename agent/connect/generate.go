@@ -7,13 +7,10 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"strings"
-
-	//"crypto/ecdsa"
-	//"crypto/elliptic"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 )
 
 func pemEncodeKey(key []byte, blockType string) (string, error) {
