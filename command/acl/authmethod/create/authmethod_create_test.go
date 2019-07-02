@@ -163,7 +163,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-kubernetes-ca-cert' flag")
 	})
 
-	ca := connect.TestCA(t, nil)
+	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	t.Run("k8s jwt required", func(t *testing.T) {
 		args := []string{

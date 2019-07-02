@@ -1295,8 +1295,8 @@ func TestFSM_CARoots(t *testing.T) {
 	assert.Nil(err)
 
 	// Roots
-	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca2.Active = false
 
 	// Create a new request.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/connect"
 	"log"
 	"net"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	agConnect "github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 )
@@ -109,7 +109,7 @@ func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
 func TestPublicListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
-	ca := agConnect.TestCA(t, nil)
+	ca := agConnect.TestCA(t, nil, agConnect.DefaultPrivateKeyType, agConnect.DefaultPrivateKeyBits)
 	ports := freeport.GetT(t, 1)
 
 	testApp := NewTestTCPServer(t)
@@ -161,7 +161,7 @@ func TestPublicListener(t *testing.T) {
 func TestUpstreamListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
-	ca := agConnect.TestCA(t, nil)
+	ca := agConnect.TestCA(t, nil, agConnect.DefaultPrivateKeyType, agConnect.DefaultPrivateKeyBits)
 	ports := freeport.GetT(t, 1)
 
 	// Run a test server that we can dial.
