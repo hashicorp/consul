@@ -16,8 +16,9 @@ gateways for inter-datacenter communication can prevent each Connect proxy from
 needing an accessible address, and frees operators from worrying about IP
 overlap between datacenters.
 
-In this guide, you will configure Consul Connect in multiple, joined Consul
-datacenters and use gateways to facilitate inter-service traffic between them.
+In this guide, you will configure Consul Connect across multiple Consul
+datacenters and use gateways to enable inter-service traffic between them.
+
 Specifically, you will:
 
 1. Enable Connect in both datacenters
@@ -79,7 +80,7 @@ $ consul leave
 Once the server shuts down, restart it with the Consul agent command.
 
 ```
-$ consul agent -server
+$ consul agent -server -data-dir=/opt/consul/
 ```
 
 Once the server is healthy and has rejoined the other servers you can restart
@@ -99,9 +100,10 @@ connect {
 ```
 
 The `primary_datacenter` setting that was required in order to enable ACL
-replication between datacenters also specifies which datacenter will act as the
-[root CA for Connect](LINK TO MULTI-DC CONNECT DOCS) and write intentions.
-Intentions are automatically replicated to the secondary datacenter.
+replication between datacenters also specifies which datacenter will write
+intentions and act as the [root CA for Connect](LINK TO MULTI-DC CONNECT DOCS).
+Intentions, which allow or deny inter-service communication, are automatically
+replicated to the secondary datacenter.
 
 ## Deploy Gateways
 
@@ -113,8 +115,7 @@ for each gateway that gives it read access to the entire catalog. You’ll apply
 those tokens when you start the gateways. As we mentioned in the prerequisites,
 you will need to make sure that both Envoy and Consul are installed on the
 gateway nodes. You won’t want to run any services on these nodes other than
-Consul and Envoy because they need to be more accessible than the other nodes in
-your cluster, and will have access to the WAN.
+Consul and Envoy because they necessarily will have access to the WAN.
 
 ### Deploy the Gateway for your primary datacenter
 
@@ -244,11 +245,11 @@ Stop the running service by typing `ctrl + c`.
 
 ### Register a front end service in the other datacenter
 
-Now in your other datacenter, you will register a service that calls your
-backend service, with a sidecar proxy Your registration will need to list the
-backend service as your upstream. Like the backend service, you can use our
-example service, which will be called web, or append the connect stanza to an
-existing registration with some customization.
+Now in your other datacenter, you will register a service (with a sidecar proxy)
+that calls your backend service. Your registration will need to list the backend
+service as your upstream. Like the backend service, you can use our example
+service, which will be called web, or append the connect stanza to an existing
+registration with some customization.
 
 To use web as your front end service, create a registration file called
 `web.json` that contains the following snippet.
