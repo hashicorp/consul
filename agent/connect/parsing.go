@@ -116,6 +116,12 @@ func KeyId(raw interface{}) ([]byte, error) {
 
 // HexString returns a standard colon-separated hex value for the input
 // byte slice. This should be used with cert serial numbers and so on.
+// Also checks to make sure the input is not already a hex string. If so,
+// it is returned unchanged.
 func HexString(input []byte) string {
+	if len(input) >= 3 && string(input)[2] == ':' {
+		// input is already a hex string
+		return string(input)
+	}
 	return strings.Replace(fmt.Sprintf("% x", input), " ", ":", -1)
 }
