@@ -166,26 +166,52 @@ routes = [
 
         - `Invert` `(bool: false)` - Inverts the logic of the match.
 
-      - `QueryParam` `(array<ServiceRouteHTTPMatchQueryParam>)` - TODO
+      - `QueryParam` `(array<ServiceRouteHTTPMatchQueryParam>)` - A set of
+        criteria that can match on HTTP query parameters. If more than one is
+        configured all must match for the overall match to apply.
 
-        - `Name  string
-        - `Value string `json:",omitempty"`
-        - `Regex bool   `json:",omitempty"`
+        - `Name` `(string: <required>)` - The name of the query parameter to
+          match on.
 
-  - `Destination` `(ServiceRouteDestination: <optional>)` - TODO
+        - `Value` `(string: <required>)` - String to match against the query
+          parameter value.  The behavior changes with the definition of the
+          `Regex` field.
+        
+        - `Regex` `(bool: false)` - Controls how the `Value` field is used.  If
+          `Regex` is `false` then `Value` matches exactly.  If `Regex` is
+          `true` then `Value` matches as a regular expression pattern.
 
-    - `Service` `(string: "")` - TODO
+            The syntax when using the Envoy proxy is [documented
+            here](https://en.cppreference.com/w/cpp/regex/ecmascript).
 
-    - `ServiceSubset` `(string: "")` - TODO
+  - `Destination` `(ServiceRouteDestination: <optional>)` - Controls how to
+    proxy the actual matching request to a service.
 
-    - `Namespace` `(string: "")` - TODO
+    - `Service` `(string: "")` - The service to resolve instead of the default
+      service. If empty then the default service name is used.
 
-    - `PrefixRewrite` `(string: "")` - TODO
+    - `ServiceSubset` `(string: "")` - A named subset of the given service to
+      resolve instead of one defined as that service's `DefaultSubset`. If
+      empty the default subset is used.
 
-    - `RequestTimeout` `(duration: 0s)` - TODO
+    - `Namespace` `(string: "")` - The namespace to resolve the service from
+      instead of the current namespace. If empty the current namespace is
+      assumed.
 
-    - `NumRetries` `(int: 0)` - TODO
+    - `PrefixRewrite` `(string: "")` - Defines how to rewrite the http request
+      path before proxying it to its final destination.
 
-    - `RetryOnConnectFailure` `(bool: false)` - TODO
+        This requires that either `Match.HTTP.PathPrefix` or
+        `Match.HTTP.PathExact` be configured on this route.
 
-    - `RetryOnStatusCodes` `(array<int>)` - TODO
+    - `RequestTimeout` `(duration: 0s)` - The total amount of time permitted
+      for the entire downstream request (and retries) to be processed.
+
+    - `NumRetries` `(int: 0)` - The number of times to retry the request when a
+      retryable result occurs.
+
+    - `RetryOnConnectFailure` `(bool: false)` - Allows for connection failure
+      errors to trigger a retry.
+
+    - `RetryOnStatusCodes` `(array<int>)` - A flat list of http response status
+      codes that are eligible for retry.
