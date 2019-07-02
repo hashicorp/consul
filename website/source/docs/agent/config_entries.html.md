@@ -22,7 +22,7 @@ Kind = "<supported kind>"
 Name = "<name of entry>"
 ```
 
-The supported `Kind` configuration entries are:
+The supported `Kind` names for configuration entries are:
 
 * [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html)
 * [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
