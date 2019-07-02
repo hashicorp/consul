@@ -53,8 +53,9 @@ func (s *ConfigSnapshot) Valid() bool {
 		// TODO(rb): sanity check discovery chain things here?
 		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
-		// TODO (mesh-gateway) - what happens if all the connect services go away
-		return s.Roots != nil && len(s.MeshGateway.ServiceGroups) > 0
+		// Even if we have no services or datacenters we can still configure
+		// all the listeners and then populate everything else later.
+		return s.Roots != nil && len(s.Roots.Roots) > 0
 	default:
 		return false
 	}
