@@ -11,6 +11,11 @@ description: |-
 Service resolvers control which service instances should satisfy Connect
 upstream discovery requests for a given service name.
 
+If no resolver config is defined the chain assumes 100% of traffic goes to the
+healthy instances of the default service in the current datacenter+namespace
+and discovery terminates.
+
+
 ## Sample Config Entries
 
 Create service subsets based on a version metadata and override the defaults:

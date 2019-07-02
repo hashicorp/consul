@@ -8,10 +8,10 @@ description: |-
 
 # Service Splitter - `service-splitter` <sup>(beta)</sup>
 
-Service splitters control how to split incoming requests across different
-subsets of a single service (like during staged canary rollouts), or perhaps
-across different services (like during a v2 rewrite or other type of codebase
-migration).
+Service splitters control how to split incoming Connect requests across
+different subsets of a single service (like during staged canary rollouts), or
+perhaps across different services (like during a v2 rewrite or other type of
+codebase migration).
 
 Service splitter config entries will be restricted to only services that define
 their protocol as http-based via a corresponding
