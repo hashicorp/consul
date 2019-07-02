@@ -138,7 +138,13 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 
 	switch entry.GetKind() {
 	case api.ProxyDefaults:
+		translateKeysDict = map[string]string{
+			"mesh_gateway": "meshgateway",
+		}
 	case api.ServiceDefaults:
+		translateKeysDict = map[string]string{
+			"mesh_gateway": "meshgateway",
+		}
 	case api.ServiceRouter:
 		skipWhenPatching = []string{
 			"routes",
