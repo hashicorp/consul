@@ -7,6 +7,7 @@ import (
 	"testing"
 	gotmpl "text/template"
 
+	"github.com/coredns/coredns/plugin/metadata"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/test"
@@ -100,6 +101,24 @@ func TestHandler(t *testing.T) {
 		fall:   fall.Root,
 		zones:  []string{"."},
 	}
+	mdTemplate := template{
+		regex:      []*regexp.Regexp{regexp.MustCompile("(^|[.])ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$")},
+		answer:     []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse(`{{ .Meta "foo" }}-{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}`))},
+		additional: []*gotmpl.Template{gotmpl.Must(gotmpl.New("additional").Parse(`{{ .Meta "bar" }}.example. IN A 203.0.113.8`))},
+		authority:  []*gotmpl.Template{gotmpl.Must(gotmpl.New("authority").Parse(`example. IN NS {{ .Meta "bar" }}.example.com.`))},
+		qclass:     dns.ClassANY,
+		qtype:      dns.TypeANY,
+		fall:       fall.Root,
+		zones:      []string{"."},
+	}
+	mdMissingTemplate := template{
+		regex:  []*regexp.Regexp{regexp.MustCompile("(^|[.])ip-10-(?P<b>[0-9]*)-(?P<c>[0-9]*)-(?P<d>[0-9]*)[.]example[.]$")},
+		answer: []*gotmpl.Template{gotmpl.Must(gotmpl.New("answer").Parse(`{{ .Meta "foofoo" }}{{ .Name }} 60 IN A 10.{{ .Group.b }}.{{ .Group.c }}.{{ .Group.d }}`))},
+		qclass: dns.ClassANY,
+		qtype:  dns.TypeANY,
+		fall:   fall.Root,
+		zones:  []string{"."},
+	}
 
 	tests := []struct {
 		tmpl           template
@@ -110,6 +129,7 @@ func TestHandler(t *testing.T) {
 		expectedCode   int
 		expectedErr    string
 		verifyResponse func(*dns.Msg) error
+		md             map[string]string
 	}{
 		{
 			name:         "RcodeServFail",
@@ -276,6 +296,78 @@ func TestHandler(t *testing.T) {
 				return nil
 			},
 		},
+		{
+			name:   "mdMatch",
+			tmpl:   mdTemplate,
+			qclass: dns.ClassINET,
+			qtype:  dns.TypeA,
+			qname:  "ip-10-95-12-8.example.",
+			verifyResponse: func(r *dns.Msg) error {
+				if len(r.Answer) != 1 {
+					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
+				}
+				if r.Answer[0].Header().Rrtype != dns.TypeA {
+					return fmt.Errorf("expected an A record answer, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+				}
+				name := "myfoo-ip-10-95-12-8.example."
+				if r.Answer[0].Header().Name != name {
+					return fmt.Errorf("expected answer name %q, got %q", name, r.Answer[0].Header().Name)
+				}
+				if len(r.Extra) != 1 {
+					return fmt.Errorf("expected 1 extra record, got %v", len(r.Extra))
+				}
+				if r.Extra[0].Header().Rrtype != dns.TypeA {
+					return fmt.Errorf("expected an additional A record, got %v", dns.TypeToString[r.Extra[0].Header().Rrtype])
+				}
+				name = "mybar.example."
+				if r.Extra[0].Header().Name != name {
+					return fmt.Errorf("expected additional name %q, got %q", name, r.Extra[0].Header().Name)
+				}
+				if len(r.Ns) != 1 {
+					return fmt.Errorf("expected 1 authoritative record, got %v", len(r.Extra))
+				}
+				if r.Ns[0].Header().Rrtype != dns.TypeNS {
+					return fmt.Errorf("expected an authoritative NS record, got %v", dns.TypeToString[r.Extra[0].Header().Rrtype])
+				}
+				ns, ok := r.Ns[0].(*dns.NS)
+				if !ok {
+					return fmt.Errorf("expected NS record to be type NS, got %v", r.Ns[0])
+				}
+				rdata := "mybar.example.com."
+				if ns.Ns != rdata {
+					return fmt.Errorf("expected ns rdata %q, got %q", rdata, ns.Ns)
+				}
+				return nil
+			},
+			md: map[string]string{
+				"foo":    "myfoo",
+				"bar":    "mybar",
+				"foobar": "myfoobar",
+			},
+		},
+		{
+			name:   "mdMissing",
+			tmpl:   mdMissingTemplate,
+			qclass: dns.ClassINET,
+			qtype:  dns.TypeA,
+			qname:  "ip-10-95-12-8.example.",
+			verifyResponse: func(r *dns.Msg) error {
+				if len(r.Answer) != 1 {
+					return fmt.Errorf("expected 1 answer, got %v", len(r.Answer))
+				}
+				if r.Answer[0].Header().Rrtype != dns.TypeA {
+					return fmt.Errorf("expected an A record answer, got %v", dns.TypeToString[r.Answer[0].Header().Rrtype])
+				}
+				name := "ip-10-95-12-8.example."
+				if r.Answer[0].Header().Name != name {
+					return fmt.Errorf("expected answer name %q, got %q", name, r.Answer[0].Header().Name)
+				}
+				return nil
+			},
+			md: map[string]string{
+				"foo": "myfoo",
+			},
+		},
 	}
 
 	ctx := context.TODO()
@@ -294,6 +386,19 @@ func TestHandler(t *testing.T) {
 			}},
 		}
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		if tr.md != nil {
+			ctx = metadata.ContextWithMetadata(context.Background())
+
+			for k, v := range tr.md {
+				// Go requires copying to a local variable for the closure to work
+				kk := k
+				vv := v
+				metadata.SetValueFunc(ctx, kk, func() string {
+					return vv
+				})
+			}
+		}
+
 		code, err := handler.ServeDNS(ctx, rec, req)
 		if err == nil && tr.expectedErr != "" {
 			t.Errorf("Test %v expected error: %v, got nothing", tr.name, tr.expectedErr)

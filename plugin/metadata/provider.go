@@ -82,6 +82,16 @@ func Labels(ctx context.Context) []string {
 	return nil
 }
 
+// ValueFuncs returns the map[string]Func from the context, or nil if it does not exist.
+func ValueFuncs(ctx context.Context) map[string]Func {
+	if metadata := ctx.Value(key{}); metadata != nil {
+		if m, ok := metadata.(md); ok {
+			return m
+		}
+	}
+	return nil
+}
+
 // ValueFunc returns the value function of label. If none can be found nil is returned. Calling the
 // function returns the value of the label.
 func ValueFunc(ctx context.Context, label string) Func {

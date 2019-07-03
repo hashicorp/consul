@@ -48,6 +48,8 @@ Each resource record is a full-featured [Go template](https://golang.org/pkg/tex
 * `.Group` a map of the named capture groups.
 * `.Message` the complete incoming DNS message.
 * `.Question` the matched question section.
+* `.Meta` a function that takes a metadata name and returns the value, if the
+  metadata plugin is enabled. For example, `.Meta "kubernetes/client-namespace"`
 
 The output of the template must be a [RFC 1035](https://tools.ietf.org/html/rfc1035) style resource record (commonly referred to as a "zone file").
 
