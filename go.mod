@@ -31,7 +31,7 @@ require (
 	github.com/docker/go-connections v0.3.0
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/duosecurity/duo_api_golang v0.0.0-20190308151101-6c680f768e74 // indirect
-	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
+	github.com/elazarl/go-bindata-assetfs v1.0.1-0.20180223160309-38087fe4dafb
 	github.com/envoyproxy/go-control-plane v0.8.0
 	github.com/fatih/structs v0.0.0-20180123065059-ebf56d35bba7 // indirect
 	github.com/go-ldap/ldap v3.0.2+incompatible // indirect
@@ -51,6 +51,7 @@ require (
 	github.com/hashicorp/consul/api v1.1.0
 	github.com/hashicorp/consul/sdk v0.1.1
 	github.com/hashicorp/go-bexpr v0.1.0
+	github.com/hashicorp/go-bindata v3.0.8-0.20180209072458-bf7910af8997+incompatible // indirect
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
@@ -63,7 +64,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
-	github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031
+	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/golang-lru v0.5.0
 	github.com/hashicorp/hcl v0.0.0-20180906183839-65a6292f0157
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
@@ -80,6 +81,7 @@ require (
 	github.com/imdario/mergo v0.3.6
 	github.com/jefferai/jsonx v0.0.0-20160721235117-9cc31c3135ee // indirect
 	github.com/keybase/go-crypto v0.0.0-20180614160407-5114a9a81e1b // indirect
+	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/text v0.1.0
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 // indirect
@@ -88,6 +90,7 @@ require (
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v0.0.0-20160804032330-cdac8253d00f
 	github.com/mitchellh/go-testing-interface v1.0.0
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mitchellh/reflectwalk v1.0.1
@@ -106,13 +109,15 @@ require (
 	github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/objx v0.1.1 // indirect
+	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
-	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190508220229-2d0786266e9c
+	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
+	golang.org/x/tools v0.0.0-20190703191539-504de27b367a // indirect
 	google.golang.org/grpc v1.19.1
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
