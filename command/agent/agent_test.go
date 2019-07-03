@@ -80,7 +80,6 @@ func TestConfigFail(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
-	t.Parallel()
 	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
@@ -107,14 +106,14 @@ func TestRetryJoin(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a.LANMembers()), 2; got != want {
-			r.Fatalf("got %d LAN members want %d", got, want)
-		}
-	})
-	
-	retry.Run(t, func(r *retry.R) {
 		if got, want := len(a.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a.LANMembers()), 2; got != want {
+			r.Fatalf("got %d LAN members want %d", got, want)
 		}
 	})
 }
