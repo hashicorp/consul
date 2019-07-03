@@ -35,14 +35,11 @@ starting from scratch, follow these guides to set up your datacenters, or use
 them to check that you have the proper configuration:
 
 - [Deployment Guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide)
-
 - [Securing Consul with ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls)
-
 - [Basic Federation with WAN Gossip](https://learn.hashicorp.com/consul/security-networking/datacenters)
-
 - [ACL Replication for Multiple Datacenters](https://learn.hashicorp.com/consul/day-2-operations/acl-replication)
 
--> Following this ACL Replication guide's recommendation for the replication
+-> **Note:** Following this ACL Replication guide's recommendation for the replication
 token policy  will work for this guide. The most conservative replication token
 policy that will allow intention replication would deny access to service
 prefixes and explicitly allow read access to intentions.
@@ -60,7 +57,7 @@ the CLI) will automatically bootstrap as soon as a server with Connect enabled
 becomes the server cluster’s leader. You can also use [Vault as a Connect
 CA](https://www.consul.io/docs/connect/ca/vault.html).
 
-!> If you are using this guide as a production playbook, we strongly recommend
+!> **Warning:** If you are using this guide as a production playbook, we strongly recommend
 that you enable Connect in each of your datacenters by following the [Connect in
 Production
 guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-production),
@@ -71,9 +68,9 @@ which includes production security recommendations.
 Enable Connect in the primary data center and bootstrap the Connect CA by adding
 the following snippet to the server configuration for each of your servers.
 
-```
+```json
 connect {
-  enabled = true
+  "enabled": true
 }
 ```
 
@@ -101,9 +98,9 @@ enable Connect in the secondary datacenter. Add the following configuration to
 the configuration for your servers, and restart them one at a time, making sure
 to maintain quorum.
 
-```
+```json
 connect {
-  enabled = true
+  "enabled": true
 }
 ```
 
@@ -128,30 +125,44 @@ You’ll need to [generate a
 token](https://learn.hashicorp.com/consul/security-networking/production-acls#apply-individual-tokens-to-the-services)
 for each gateway that gives it read access to the entire catalog.
 
-Create a file named `mesh-gateway-policy.hcl` containing the following content.
+Create a file named `mesh-gateway-policy.json` containing the following content.
 
-```
-# for doing service discovery of everything
-service_prefix "" {
-   policy = "read"
+```json
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}  
+{
+  "service": {
+      "mesh-gateway": {
+        "policy": "write"
+      }
+    }
 }
-
-# For the proxy to be able to act as the registered gateway service
-service "mesh-gateway" {
-   policy = "write"
-}
 ```
 
-Create the policy.
+Next, create and name your new ACL policy using the file you just made.
 
-```
-FILL ME IN
+```sh
+$ consul acl policy create \
+  -name mesh-gateway \
+  -rules @mesh-gateway-policy.json
 ```
 
-Generate a token for each gateway from the above policy.
+Now, generate a token for each gateway from the new policy.
 
+```sh
+$ consul acl token create -description "mesh-gateway primary datacenter token" \
+  -policy-name mesh-gateway
 ```
-FILL ME IN
+
+```sh
+$ consul acl token create \
+  -description "mesh-gateway secondary datacenter token" \
+  -policy-name mesh-gateway
 ```
 
 You’ll apply those tokens when you start the gateways.
@@ -161,7 +172,7 @@ You’ll apply those tokens when you start the gateways.
 Register and start the gateway in your primary datacenter with the following
 command.
 
-```
+```sh
 consul connect envoy -mesh-gateway -register \
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
@@ -173,7 +184,7 @@ consul connect envoy -mesh-gateway -register \
 Repeat the above process for the secondary datacenter. Register and start the
 gateway in your secondary datacenter with the following command.
 
-```
+```sh
 consul connect envoy -mesh-gateway -register \
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
@@ -183,20 +194,22 @@ consul connect envoy -mesh-gateway -register \
 ### Configure Sidecar Proxies to use Gateways
 
 Next, create a [centralized configuration](LINK) file for all the sidecar
-proxies in both datacenters called `proxy-defaults.hcl`. This file will instruct
+proxies in both datacenters called `proxy-defaults.json`. This file will instruct
 the sidecar proxies to send all their inter-datacenter traffic through the
 gateways. It should contain the following:
 
-```
-Kind = "proxy-defaults"
-Name =  "global"
-MeshGateway = "local"
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name":  "global",
+  "MeshGateway": "local"
+}
 ```
 
 Write the centralized configuration you just created with the following command.
 
-```
-consul config write proxy-defaults.hcl
+```sh
+$ consul config write proxy-defaults.json
 ```
 
 Once this step is complete, you will have set up Consul Connect with gateways
@@ -206,7 +219,7 @@ will use Connect.
 ## Register a Service in Each Datacenter to Use Connect
 
 You can register a service to use a sidecar proxy by including a sidecar proxy
-stanza in its registration file. For this guide, you can use netcat to act as a
+stanza in its registration file. For this guide, you can use socat to act as a
 backend service and register a dummy service called web to represent the client
 service. Those names are used in our examples. If you have services that you
 would like to connect, feel free to use those instead.
@@ -221,25 +234,25 @@ between them to allow communication.
 
 In one datacenter register a backend service and add an Envoy sidecar proxy
 registration. To do this you will either create a new registration file or edit
-an existing one to include a sidecar proxy stanza. If you are using netcat as
-your backend service, you will create a new file called `netcat.json` that would
-contain the below snippet. Since you have ACLs enabled, you will have to create
-a token for the service.
+an existing one to include a sidecar proxy stanza. If you are using socat as
+your backend service, you will create a new file called `socat.json` that would
+contain the below snippet. Since you have ACLs enabled, you will have to [create
+a token for the service](LINK TO ACL GUIDE SERVICE SECTION).
 
-```
+```json
 {
   "service": {
-    "name": "netcat",
+    "name": "socat",
     "port": 8181,
-    "token": <token here>,
+    "token": "<token here>",
     "connect": {"sidecar_service": {} }
-
+  }
 }
 ```
 
-Note the Connect stanza of the registration with the `sidecar_service` and `token`
-options. This is what you would add to an existing service registration if you
-are not using netcat as an example.
+Note the Connect stanza of the registration with the `sidecar_service` and
+`token` options. This is what you would add to an existing service registration
+if you are not using socat as an example.
 
 Reload the client with the new or modified registration.
 
@@ -250,47 +263,53 @@ consul reload
 Then start Envoy specifying which service it will proxy.
 
 ```
-consul connect envoy -sidecar-for netcat
+consul connect envoy -sidecar-for socat
 ```
 
-If you are using netcat as your example, start it now by running the following
-command. netcat will run in your terminal window and echo back anything you type
-on the command line.
+If you are using socat as your example, start it now by running the following
+command.
 
 ```
-$ nc 127.0.0.1 8181
+$ socat -v tcp-l:8181,fork exec:"/bin/cat"
+```
+
+Check that the socat service is running by accessing it using netcat on the same
+node. It will echo back anything you type.
+
+```
+nc 127.0.0.1 8181
 hello
 hello
 echo
 echo
 ```
 
-Stop the running service by typing `ctrl + c`.
+Stop the running netcat service by typing `ctrl + c`.
 
 ### Register a front end service in the other datacenter
 
 Now in your other datacenter, you will register a service (with a sidecar proxy)
 that calls your backend service. Your registration will need to list the backend
-service as your upstream. Like the backend service, you can use our example
+service as your upstream. Like the backend service, you can use an example
 service, which will be called web, or append the connect stanza to an existing
 registration with some customization.
 
 To use web as your front end service, create a registration file called
 `web.json` that contains the following snippet.
 
-```
+```json
 {
   "service": {
     "name": "web",
     "port": 8080,
-    "token": <token here>,
+    "token": "<token here>",
     "connect": {
       "sidecar_service": {
         "proxy": {
-          "upstreams" = [{
-            "destination_name" = "netcat"
-            "datacenter" = "primary"
-            "local_bind_port" = 8181
+          "upstreams": [{
+            "destination_name": "socat",
+            "datacenter": "primary",
+            "local_bind_port": 8181
           }]
         }
       }
@@ -299,8 +318,8 @@ To use web as your front end service, create a registration file called
 }
 ```
 
-Note the Connect part of the registration, which specifies netcat as an
-upstream. If you are using another service as a back end, replace `netcat` with
+Note the Connect part of the registration, which specifies socat as an
+upstream. If you are using another service as a back end, replace `socat` with
 its name and the `8181` with its port.
 
 Reload the client with the new or modified registration.
@@ -319,11 +338,11 @@ consul connect envoy -sidecar-for web
 
 Now that your services both use Connect, you will need to configure intentions
 in order for them to communicate with each other. Add an intention to allow the
-front end service to access the back end service. For web and netcat the command
+front end service to access the back end service. For web and socat the command
 would look like this.
 
 ```
-consul intention create web netcat
+consul intention create web socat
 ```
 
 Consul will automatically forward intentions initiated in the in the secondary
@@ -334,8 +353,8 @@ intentions back to the secondary datacenter.
 ## Test the connection
 
 Now that you have services using Connect, verify that they can contact each
-other. If you have been using the example web and netcat services, from the node
-and datacenter where you registered the web service, start the netcat service
+other. If you have been using the example web and socat services, from the node
+and datacenter where you registered the web service, start the socat service
 and type something for it to echo.
 
 ```
