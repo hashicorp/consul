@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/fall"
 
@@ -13,14 +12,13 @@ import (
 
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
-		input                          string        // Corefile data as string
-		shouldErr                      bool          // true if test case is expected to produce an error.
-		expectedErrContent             string        // substring from the expected error. Empty for positive cases.
-		expectedZoneCount              int           // expected count of defined zones.
-		expectedNSCount                int           // expected count of namespaces.
-		expectedResyncPeriod           time.Duration // expected resync period value
-		expectedLabelSelector          string        // expected label selector value
-		expectedNamespaceLabelSelector string        // expected namespace label selector value
+		input                          string // Corefile data as string
+		shouldErr                      bool   // true if test case is expected to produce an error.
+		expectedErrContent             string // substring from the expected error. Empty for positive cases.
+		expectedZoneCount              int    // expected count of defined zones.
+		expectedNSCount                int    // expected count of namespaces.
+		expectedLabelSelector          string // expected label selector value
+		expectedNamespaceLabelSelector string // expected namespace label selector value
 		expectedPodMode                string
 		expectedFallthrough            fall.F
 	}{
@@ -31,7 +29,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -43,7 +40,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			2,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -56,7 +52,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -70,7 +65,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -84,7 +78,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			1,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -98,35 +91,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			2,
-			defaultResyncPeriod,
-			"",
-			"",
-			podModeDisabled,
-			fall.Zero,
-		},
-		{
-			`kubernetes coredns.local {
-    resyncperiod 30s
-}`,
-			false,
-			"",
-			1,
-			0,
-			30 * time.Second,
-			"",
-			"",
-			podModeDisabled,
-			fall.Zero,
-		},
-		{
-			`kubernetes coredns.local {
-    resyncperiod 15m
-}`,
-			false,
-			"",
-			1,
-			0,
-			15 * time.Minute,
 			"",
 			"",
 			podModeDisabled,
@@ -140,7 +104,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"environment=prod",
 			"",
 			podModeDisabled,
@@ -154,7 +117,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"application=nginx,environment in (production,qa,staging)",
 			"",
 			podModeDisabled,
@@ -168,7 +130,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"istio-injection=enabled",
 			podModeDisabled,
@@ -183,7 +144,6 @@ func TestKubernetesParse(t *testing.T) {
 			"Error during parsing: namespaces and namespace_labels cannot both be set",
 			-1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"istio-injection=enabled",
 			podModeDisabled,
@@ -191,7 +151,6 @@ func TestKubernetesParse(t *testing.T) {
 		},
 		{
 			`kubernetes coredns.local test.local {
-    resyncperiod 15m
 	endpoint http://localhost:8080
 	namespaces demo test
     labels environment in (production, staging, qa),application=nginx
@@ -201,7 +160,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			2,
 			2,
-			15 * time.Minute,
 			"application=nginx,environment in (production,qa,staging)",
 			"",
 			podModeDisabled,
@@ -216,7 +174,6 @@ func TestKubernetesParse(t *testing.T) {
 			"rong argument count or unexpected line ending",
 			-1,
 			-1,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -230,49 +187,6 @@ func TestKubernetesParse(t *testing.T) {
 			"rong argument count or unexpected line ending",
 			-1,
 			-1,
-			defaultResyncPeriod,
-			"",
-			"",
-			podModeDisabled,
-			fall.Zero,
-		},
-		{
-			`kubernetes coredns.local {
-    resyncperiod
-}`,
-			true,
-			"rong argument count or unexpected line ending",
-			-1,
-			0,
-			0 * time.Minute,
-			"",
-			"",
-			podModeDisabled,
-			fall.Zero,
-		},
-		{
-			`kubernetes coredns.local {
-    resyncperiod 15
-}`,
-			true,
-			"unable to parse resync duration value",
-			-1,
-			0,
-			0 * time.Second,
-			"",
-			"",
-			podModeDisabled,
-			fall.Zero,
-		},
-		{
-			`kubernetes coredns.local {
-    resyncperiod abc
-}`,
-			true,
-			"unable to parse resync duration value",
-			-1,
-			0,
-			0 * time.Second,
 			"",
 			"",
 			podModeDisabled,
@@ -286,7 +200,6 @@ func TestKubernetesParse(t *testing.T) {
 			"rong argument count or unexpected line ending",
 			-1,
 			0,
-			0 * time.Second,
 			"",
 			"",
 			podModeDisabled,
@@ -300,7 +213,6 @@ func TestKubernetesParse(t *testing.T) {
 			"unable to parse label selector",
 			-1,
 			0,
-			0 * time.Second,
 			"",
 			"",
 			podModeDisabled,
@@ -315,7 +227,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -330,7 +241,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeInsecure,
@@ -345,7 +255,6 @@ func TestKubernetesParse(t *testing.T) {
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeVerified,
@@ -360,7 +269,6 @@ func TestKubernetesParse(t *testing.T) {
 			"rong value for pods",
 			-1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeVerified,
@@ -375,7 +283,6 @@ func TestKubernetesParse(t *testing.T) {
 			"rong argument count",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -389,7 +296,6 @@ kubernetes cluster.local`,
 			"this plugin",
 			-1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -403,7 +309,6 @@ kubernetes cluster.local`,
 			"Wrong argument count or unexpected line ending after",
 			-1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -417,7 +322,6 @@ kubernetes cluster.local`,
 			"Wrong argument count or unexpected line ending after",
 			-1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -431,7 +335,6 @@ kubernetes cluster.local`,
 			"",
 			1,
 			0,
-			defaultResyncPeriod,
 			"",
 			"",
 			podModeDisabled,
@@ -478,12 +381,6 @@ kubernetes cluster.local`,
 		foundNSCount := len(k8sController.Namespaces)
 		if foundNSCount != test.expectedNSCount {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d namespaces. Instead found %d namespaces: '%v' for input '%s'", i, test.expectedNSCount, foundNSCount, k8sController.Namespaces, test.input)
-		}
-
-		//    ResyncPeriod
-		foundResyncPeriod := k8sController.opts.resyncPeriod
-		if foundResyncPeriod != test.expectedResyncPeriod {
-			t.Errorf("Test %d: Expected kubernetes controller to be initialized with resync period '%s'. Instead found period '%s' for input '%s'", i, test.expectedResyncPeriod, foundResyncPeriod, test.input)
 		}
 
 		//    Labels

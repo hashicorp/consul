@@ -80,7 +80,6 @@ type dnsControl struct {
 type dnsControlOpts struct {
 	initPodCache       bool
 	initEndpointsCache bool
-	resyncPeriod       time.Duration
 	ignoreEmptyService bool
 
 	// Label handling.
@@ -110,7 +109,6 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 			WatchFunc: serviceWatchFunc(dns.client, api.NamespaceAll, dns.selector),
 		},
 		&api.Service{},
-		opts.resyncPeriod,
 		cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
 		cache.Indexers{svcNameNamespaceIndex: svcNameNamespaceIndexFunc, svcIPIndex: svcIPIndexFunc},
 		object.ToService,
@@ -123,7 +121,6 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 				WatchFunc: podWatchFunc(dns.client, api.NamespaceAll, dns.selector),
 			},
 			&api.Pod{},
-			opts.resyncPeriod,
 			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
 			cache.Indexers{podIPIndex: podIPIndexFunc},
 			object.ToPod,
@@ -137,7 +134,6 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 				WatchFunc: endpointsWatchFunc(dns.client, api.NamespaceAll, dns.selector),
 			},
 			&api.Endpoints{},
-			opts.resyncPeriod,
 			cache.ResourceEventHandlerFuncs{AddFunc: dns.Add, UpdateFunc: dns.Update, DeleteFunc: dns.Delete},
 			cache.Indexers{epNameNamespaceIndex: epNameNamespaceIndexFunc, epIPIndex: epIPIndexFunc},
 			object.ToEndpoints)
@@ -149,7 +145,7 @@ func newdnsController(kubeClient kubernetes.Interface, opts dnsControlOpts) *dns
 			WatchFunc: namespaceWatchFunc(dns.client, dns.namespaceSelector),
 		},
 		&api.Namespace{},
-		opts.resyncPeriod,
+		defaultResyncPeriod,
 		cache.ResourceEventHandlerFuncs{})
 
 	return &dns
@@ -516,3 +512,5 @@ func (dns *dnsControl) updateModifed() {
 }
 
 var errObj = errors.New("obj was not of the correct type")
+
+const defaultResyncPeriod = 0

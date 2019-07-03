@@ -31,7 +31,6 @@ all the zones the plugin should be authoritative for.
 
 ```
 kubernetes [ZONES...] {
-    resyncperiod DURATION
     endpoint URL
     tls CERT KEY CACERT
     kubeconfig KUBECONFIG CONTEXT
@@ -47,8 +46,7 @@ kubernetes [ZONES...] {
 }
 ```
 
-* `resyncperiod` specifies the Kubernetes data API **DURATION** period. By
-  default resync is disabled (DURATION is zero).
+
 * `endpoint` specifies the **URL** for a remote k8s API endpoint.
    If omitted, it will connect to k8s in-cluster using the cluster service account.
 * `tls` **CERT** **KEY** **CACERT** are the TLS cert, key and the CA cert file names for remote k8s connection.

@@ -131,7 +131,6 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 	opts := dnsControlOpts{
 		initEndpointsCache: true,
 		ignoreEmptyService: false,
-		resyncPeriod:       defaultResyncPeriod,
 	}
 	k8s.opts = opts
 
@@ -214,16 +213,7 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 			}
 			return nil, c.ArgErr()
 		case "resyncperiod":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				rp, err := time.ParseDuration(args[0])
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse resync duration value: '%v': %v", args[0], err)
-				}
-				k8s.opts.resyncPeriod = rp
-				continue
-			}
-			return nil, c.ArgErr()
+			continue
 		case "labels":
 			args := c.RemainingArgs()
 			if len(args) > 0 {
@@ -322,5 +312,3 @@ func searchFromResolvConf() []string {
 	plugin.Zones(rc.Search).Normalize()
 	return rc.Search
 }
-
-const defaultResyncPeriod = 0

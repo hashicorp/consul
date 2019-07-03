@@ -1,14 +1,12 @@
 package object
 
 import (
-	"time"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
 
 // NewIndexerInformer is a copy of the cache.NewIndexInformer function, but allows Process to have a conversion function (ToFunc).
-func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, resyncPeriod time.Duration, h cache.ResourceEventHandler, indexers cache.Indexers, convert ToFunc) (cache.Indexer, cache.Controller) {
+func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, h cache.ResourceEventHandler, indexers cache.Indexers, convert ToFunc) (cache.Indexer, cache.Controller) {
 	clientState := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, indexers)
 
 	fifo := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, clientState)
@@ -17,7 +15,7 @@ func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, resyncPe
 		Queue:            fifo,
 		ListerWatcher:    lw,
 		ObjectType:       objType,
-		FullResyncPeriod: resyncPeriod,
+		FullResyncPeriod: defaultResyncPeriod,
 		RetryOnError:     false,
 		Process: func(obj interface{}) error {
 			for _, d := range obj.(cache.Deltas) {
@@ -49,3 +47,5 @@ func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, resyncPe
 	}
 	return clientState, cache.New(cfg)
 }
+
+const defaultResyncPeriod = 0

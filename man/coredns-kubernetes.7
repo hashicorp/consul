@@ -47,7 +47,6 @@ all the zones the plugin should be authoritative for.
 
 .nf
 kubernetes [ZONES...] {
-    resyncperiod DURATION
     endpoint URL
     tls CERT KEY CACERT
     kubeconfig KUBECONFIG CONTEXT
@@ -65,9 +64,7 @@ kubernetes [ZONES...] {
 .fi
 .RE
 
-.IP \(bu 4
-\fB\fCresyncperiod\fR specifies the Kubernetes data API \fBDURATION\fP period. By
-default resync is disabled (DURATION is zero).
+
 .IP \(bu 4
 \fB\fCendpoint\fR specifies the \fBURL\fP for a remote k8s API endpoint.
 If omitted, it will connect to k8s in-cluster using the cluster service account.
