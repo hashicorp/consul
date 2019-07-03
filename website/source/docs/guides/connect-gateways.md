@@ -17,15 +17,19 @@ needing an accessible address, and frees operators from worrying about IP
 overlap between datacenters.
 
 In this guide, you will configure Consul Connect across multiple Consul
-datacenters and use gateways to enable inter-service traffic between them.
+datacenters and use mesh gateways to enable inter-service traffic between them.
 
 Specifically, you will:
 
 1. Enable Connect in both datacenters
-1. Deploy the two gateways
+1. Deploy the two mesh gateways
 1. Register services and Connect sidecar proxies
 1. Configure intentions
 1. Test that your services can communicate with each other
+
+For the remainder of this guide we will refer to mesh gateways as "gateways".
+Anywhere in this guide where you see the word gateway, assume it is specifically
+a mesh gateway (as opposed to an API or other type of gateway).
 
 ## Prerequisites
 
@@ -57,9 +61,9 @@ the CLI) will automatically bootstrap as soon as a server with Connect enabled
 becomes the server cluster’s leader. You can also use [Vault as a Connect
 CA](https://www.consul.io/docs/connect/ca/vault.html).
 
-!> **Warning:** If you are using this guide as a production playbook, we strongly recommend
-that you enable Connect in each of your datacenters by following the [Connect in
-Production
+!> **Warning:** If you are using this guide as a production playbook, we
+strongly recommend that you enable Connect in each of your datacenters by
+following the [Connect in Production
 guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-production),
 which includes production security recommendations.
 
@@ -79,8 +83,7 @@ to maintain quorum. This will be a similar process to performing a [rolling
 restart during
 upgrades](https://www.consul.io/docs/upgrading.html#standard-upgrades).
 
-Stop the
-first server by running the following [leave
+Stop the first server by running the following [leave
 command](https://www.consul.io/docs/commands/leave.html).
 
 ```text
@@ -144,7 +147,7 @@ Create a file named `mesh-gateway-policy.json` containing the following content.
 }
 ```
 
-Next, create and name your new ACL policy using the file you just made.
+Next, create and name a new ACL policy using the file you just made.
 
 ```text
 $ consul acl policy create \
@@ -152,7 +155,7 @@ $ consul acl policy create \
   -rules @mesh-gateway-policy.json
 ```
 
-Now, generate a token for each gateway from the new policy.
+Generate a token for each gateway from the new policy.
 
 ```text
 $ consul acl token create -description "mesh-gateway primary datacenter token" \
@@ -165,7 +168,7 @@ $ consul acl token create \
   -policy-name mesh-gateway
 ```
 
-You’ll apply those tokens when you start the gateways.
+You’ll apply those tokens when you deploy the gateways.
 
 ### Deploy the Gateway for your primary datacenter
 
@@ -174,18 +177,20 @@ command.
 
 ```text
 $ consul connect envoy -mesh-gateway -register \
+                     -service-name "gateway-primary"
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
                      -token=<token for the primary dc gateway>
 ```
 
-### Repeat the Process to Deploy the Gateway for your Secondary Datacenter
+### Deploy the Gateway for your Secondary Datacenter
 
-Repeat the above process for the secondary datacenter. Register and start the
-gateway in your secondary datacenter with the following command.
+Register and start the gateway in your secondary datacenter with the following
+command.
 
 ```text
 $ consul connect envoy -mesh-gateway -register \
+                     -service-name "gateway-secondary"
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
                      -token=<token for the secondary dc gateway>
@@ -193,10 +198,12 @@ $ consul connect envoy -mesh-gateway -register \
 
 ### Configure Sidecar Proxies to use Gateways
 
-Next, create a [centralized configuration](LINK) file for all the sidecar
-proxies in both datacenters called `proxy-defaults.json`. This file will instruct
-the sidecar proxies to send all their inter-datacenter traffic through the
-gateways. It should contain the following:
+Next, create a [centralized
+configuration](https://www.consul.io/docs/agent/config_entries/proxy-defaults.html)
+file for all the sidecar proxies in both datacenters called
+`proxy-defaults.json`. This file will instruct the sidecar proxies to send all
+their inter-datacenter traffic through the gateways. It should contain the
+following:
 
 ```json
 {
@@ -227,7 +234,7 @@ would like to connect, feel free to use those instead.
 ~> **Caution:** Connect takes its default intention policy from Consul’s default
 ACL policy. If you have set your default ACL policy to deny (as is recommended
 for secure operation) and are adding Connect to already registered services,
-those services will lose connection to each other until you set an intention
+those services may lose connection to each other until you set an intention
 between them to allow communication.
 
 ### Register a back end service in one datacenter
@@ -235,9 +242,9 @@ between them to allow communication.
 In one datacenter register a backend service and add an Envoy sidecar proxy
 registration. To do this you will either create a new registration file or edit
 an existing one to include a sidecar proxy stanza. If you are using socat as
-your backend service, you will create a new file called `socat.json` that would
+your backend service, you will create a new file called `socat.json` that will
 contain the below snippet. Since you have ACLs enabled, you will have to [create
-a token for the service](LINK TO ACL GUIDE SERVICE SECTION).
+a token for the service](https://learn.hashicorp.com/consul/security-networking/production-acls#apply-individual-tokens-to-the-services).
 
 ```json
 {
@@ -266,8 +273,8 @@ Then start Envoy specifying which service it will proxy.
 $ consul connect envoy -sidecar-for socat
 ```
 
-If you are using socat as your example, start it now by running the following
-command.
+If you are using socat as your example, start it now on the port you specified
+in your registration by running the following command.
 
 ```text
 $ socat -v tcp-l:8181,fork exec:"/bin/cat"
@@ -386,7 +393,7 @@ gateways.
 
 If you are using Kubernetes you can configure Connect and deploy gateways for
 your Kubernetes cluster using the Helm chart. Learn more in the [Consul’s
-Kubernetes documentation](LINK TO DOCS)
+Kubernetes documentation](https://www.consul.io/docs/platform/k8s/helm.html)
 
 Visit the Consul documentation for a full list of configurations for [Consul
 Connect](https://www.consul.io/docs/connect/index.html), including [Gateway
