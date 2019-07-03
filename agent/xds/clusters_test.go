@@ -5,9 +5,11 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"testing"
 	"text/template"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -153,6 +155,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 
 			clusters, err := s.clustersFromSnapshot(snap, "my-token")
 			require.NoError(err)
+			sort.Slice(clusters, func(i, j int) bool {
+				return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
+			})
 			r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
 			require.NoError(err)
 
