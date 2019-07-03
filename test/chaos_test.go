@@ -6,7 +6,7 @@ import (
 	// Plug in CoreDNS, needed for AppVersion and AppName in this test.
 	_ "github.com/coredns/coredns/coremain"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 	"github.com/miekg/dns"
 )
 

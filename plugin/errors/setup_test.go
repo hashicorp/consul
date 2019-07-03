@@ -3,7 +3,7 @@ package errors
 import (
 	"testing"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestErrorsParse(t *testing.T) {

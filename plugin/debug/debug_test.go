@@ -5,7 +5,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestDebug(t *testing.T) {

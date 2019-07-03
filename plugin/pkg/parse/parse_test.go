@@ -3,7 +3,7 @@ package parse
 import (
 	"testing"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestTransfer(t *testing.T) {

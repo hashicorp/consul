@@ -7,7 +7,7 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestTLS(t *testing.T) {

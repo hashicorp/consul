@@ -7,7 +7,7 @@ import (
 
 	"github.com/coredns/coredns/plugin/pkg/fall"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

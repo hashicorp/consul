@@ -3,7 +3,7 @@ package health
 import (
 	"testing"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestSetupHealth(t *testing.T) {

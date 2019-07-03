@@ -3,7 +3,7 @@ package secondary
 import (
 	"testing"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestSecondaryParse(t *testing.T) {

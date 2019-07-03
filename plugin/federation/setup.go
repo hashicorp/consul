@@ -9,7 +9,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/miekg/dns"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func init() {

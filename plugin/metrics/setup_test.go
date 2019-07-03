@@ -3,7 +3,7 @@ package metrics
 import (
 	"testing"
 
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 func TestPrometheusParse(t *testing.T) {
