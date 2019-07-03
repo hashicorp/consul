@@ -75,21 +75,21 @@ connect {
 ```
 
 Load the new configuration by restarting each server one at a time, making sure
-to maintain quorum. Stop the first server by running the following [leave
+to maintain quorum. This will be a similar process to performing a [rolling
+restart during
+upgrades](https://www.consul.io/docs/upgrading.html#standard-upgrades).
+
+Stop the
+first server by running the following [leave
 command](https://www.consul.io/docs/commands/leave.html).
 
-```
+```text
 $ consul leave
 ```
 
-Once the server shuts down, restart it with the Consul agent command.
-
-```
-$ consul agent -server -data-dir=/opt/consul/
-```
-
-Once the server is healthy and has rejoined the other servers you can restart
-the next one.
+Once the server shuts down restart it and make sure that it is healthy and
+rejoins the other servers. Repeat this process until you've restarted all the
+servers with Connect enabled.
 
 ### Enable Connect in the secondary datacenter
 
@@ -146,7 +146,7 @@ Create a file named `mesh-gateway-policy.json` containing the following content.
 
 Next, create and name your new ACL policy using the file you just made.
 
-```sh
+```text
 $ consul acl policy create \
   -name mesh-gateway \
   -rules @mesh-gateway-policy.json
@@ -154,12 +154,12 @@ $ consul acl policy create \
 
 Now, generate a token for each gateway from the new policy.
 
-```sh
+```text
 $ consul acl token create -description "mesh-gateway primary datacenter token" \
   -policy-name mesh-gateway
 ```
 
-```sh
+```text
 $ consul acl token create \
   -description "mesh-gateway secondary datacenter token" \
   -policy-name mesh-gateway
@@ -172,8 +172,8 @@ You’ll apply those tokens when you start the gateways.
 Register and start the gateway in your primary datacenter with the following
 command.
 
-```sh
-consul connect envoy -mesh-gateway -register \
+```text
+$ consul connect envoy -mesh-gateway -register \
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
                      -token=<token for the primary dc gateway>
@@ -184,8 +184,8 @@ consul connect envoy -mesh-gateway -register \
 Repeat the above process for the secondary datacenter. Register and start the
 gateway in your secondary datacenter with the following command.
 
-```sh
-consul connect envoy -mesh-gateway -register \
+```text
+$ consul connect envoy -mesh-gateway -register \
                      -address "<your private address>" \
                      -wan-address "<your externally accessible address>"\
                      -token=<token for the secondary dc gateway>
@@ -208,7 +208,7 @@ gateways. It should contain the following:
 
 Write the centralized configuration you just created with the following command.
 
-```sh
+```text
 $ consul config write proxy-defaults.json
 ```
 
@@ -256,28 +256,28 @@ if you are not using socat as an example.
 
 Reload the client with the new or modified registration.
 
-```
-consul reload
+```text
+$ consul reload
 ```
 
 Then start Envoy specifying which service it will proxy.
 
-```
-consul connect envoy -sidecar-for socat
+```text
+$ consul connect envoy -sidecar-for socat
 ```
 
 If you are using socat as your example, start it now by running the following
 command.
 
-```
+```text
 $ socat -v tcp-l:8181,fork exec:"/bin/cat"
 ```
 
 Check that the socat service is running by accessing it using netcat on the same
 node. It will echo back anything you type.
 
-```
-nc 127.0.0.1 8181
+```text
+$ nc 127.0.0.1 8181
 hello
 hello
 echo
@@ -324,14 +324,14 @@ its name and the `8181` with its port.
 
 Reload the client with the new or modified registration.
 
-```
-consul reload
+```text
+$ consul reload
 ```
 
 Then start Envoy and specify which service it will proxy.
 
-```
-consul connect envoy -sidecar-for web
+```text
+$ consul connect envoy -sidecar-for web
 ```
 
 ## Configure Intentions to Allow Communication Between Services
@@ -341,8 +341,8 @@ in order for them to communicate with each other. Add an intention to allow the
 front end service to access the back end service. For web and socat the command
 would look like this.
 
-```
-consul intention create web socat
+```text
+$ consul intention create web socat
 ```
 
 Consul will automatically forward intentions initiated in the in the secondary
@@ -357,7 +357,7 @@ other. If you have been using the example web and socat services, from the node
 and datacenter where you registered the web service, start the socat service
 and type something for it to echo.
 
-```
+```text
 $ nc 127.0.0.1 8181
 hello
 hello
