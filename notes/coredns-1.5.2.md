@@ -10,8 +10,9 @@ author = "coredns"
 The CoreDNS team has released
 [CoreDNS-1.5.2](https://github.com/coredns/coredns/releases/tag/v1.5.2).
 
-Small bugfixes and a change to Caddy's important path.
-
+Small bugfixes and a change to Caddy's import path (mholt/caddy -> caddyserver/caddy). Doing           
+a release helps plugins deal with the change better.                                                   
+                                                                  
 # Plugins
 
 * For all plugins that use the `upstream` directive it use removed from the documentation; it's still accepted
