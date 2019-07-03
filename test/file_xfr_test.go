@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"io"
 	"strings"
 	"testing"
 	"time"
@@ -35,8 +34,7 @@ func TestLargeAXFR(t *testing.T) {
        }
 }
 `
-
-	// Start server, and send an AXFR query to the TCP port.  We set the deadline to prevent the test from hanging.
+	// Start server, and send an AXFR query to the TCP port. We set the deadline to prevent the test from hanging.
 	i, _, tcp, err := CoreDNSServerAndPorts(corefile)
 	if err != nil {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
@@ -53,11 +51,18 @@ func TestLargeAXFR(t *testing.T) {
 	co.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	err = co.WriteMsg(m)
 	if err != nil {
-		t.Fatalf("Unable to send TCP query: %s", err)
+		t.Fatalf("Unable to send AXFR/TCP query: %s", err)
 	}
 
-	nrr := 0                                             // total number of transferred RRs
-	co.SetReadDeadline(time.Now().Add(60 * time.Second)) // use a longer timeout as it involves transferring a non-trivial amount of data.
+	// Then send another query on the same connection.  We use this to confirm that multiple outstanding queries won't cause a race.
+	m.SetQuestion("0.example.com.", dns.TypeAAAA)
+	err = co.WriteMsg(m)
+	if err != nil {
+		t.Fatalf("Unable to send AAAA/TCP query: %s", err)
+	}
+
+	// The AXFR query should be responded first.
+	nrr := 0 // total number of transferred RRs
 	for {
 		resp, err := co.ReadMsg()
 		if err != nil {
@@ -82,18 +87,15 @@ func TestLargeAXFR(t *testing.T) {
 		t.Fatalf("Got an unexpected number of RRs: %d", nrr)
 	}
 
-	// At the time of the initial implementation of this test, the remaining check would fail due to the problem described in PR #2866, so we return here.
-	// Once the issue is resolved this workaround should be removed to enable the check.
-	return
-
-	// Once xfr is completed the server should close the connection, so a further read should result in an EOF error.
-	// This time we use a short timeout to make it faster in case the server doesn't behave as expected.
-	co.SetReadDeadline(time.Now().Add(time.Second))
-	_, err = co.ReadMsg()
-	if err == nil {
-		t.Fatalf("Expected failure on further read, but it succeeded")
+	// The file plugin shouldn't hijack or (yet) close the connection, so the second query should also be responded.
+	resp, err := co.ReadMsg()
+	if err != nil {
+		t.Fatalf("Expected to receive reply, but didn't: %s", err)
 	}
-	if err != io.EOF {
-		t.Fatalf("Expected EOF on further read, but got a different error: %v", err)
+	if len(resp.Answer) < 1 {
+		t.Fatalf("Expected a non-empty answer, but it was empty")
+	}
+	if resp.Answer[len(resp.Answer)-1].Header().Rrtype != dns.TypeAAAA {
+		t.Fatalf("Expected a AAAA answer, but it wasn't: type %d", resp.Answer[len(resp.Answer)-1].Header().Rrtype)
 	}
 }
