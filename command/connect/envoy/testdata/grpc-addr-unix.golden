@@ -19,13 +19,11 @@
         "connect_timeout": "1s",
         "type": "STATIC",
         "http2_protocol_options": {},
-        "hosts": [
-          {
+        "hosts": [{
             "pipe": {
               "path": "/var/run/consul.sock"
             }
-          }
-        ]
+          }]
       }
     ]
   },
