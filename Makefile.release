@@ -26,7 +26,7 @@
 # 1. Up the version in coremain/version.go
 # 2. Do a make -f Makefile.doc
 # 3. go generate
-# 4.* Send PR to get this merged.
+# 4. Send PR to get this merged.
 #
 # Then:
 #
