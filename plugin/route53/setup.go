@@ -35,21 +35,22 @@ func init() {
 }
 
 func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Route53API) error {
-	keyPairs := map[string]struct{}{}
-	keys := map[string][]string{}
-
-	// Route53 plugin attempts to find AWS credentials by using ChainCredentials.
-	// And the order of that provider chain is as follows:
-	// Static AWS keys -> Environment Variables -> Credentials file -> IAM role
-	// With that said, even though a user doesn't define any credentials in
-	// Corefile, we should still attempt to read the default credentials file,
-	// ~/.aws/credentials with the default profile.
-	sharedProvider := &credentials.SharedCredentialsProvider{}
-	var providers []credentials.Provider
-	var fall fall.F
-
-	up := upstream.New()
 	for c.Next() {
+		keyPairs := map[string]struct{}{}
+		keys := map[string][]string{}
+
+		// Route53 plugin attempts to find AWS credentials by using ChainCredentials.
+		// And the order of that provider chain is as follows:
+		// Static AWS keys -> Environment Variables -> Credentials file -> IAM role
+		// With that said, even though a user doesn't define any credentials in
+		// Corefile, we should still attempt to read the default credentials file,
+		// ~/.aws/credentials with the default profile.
+		sharedProvider := &credentials.SharedCredentialsProvider{}
+		var providers []credentials.Provider
+		var fall fall.F
+
+		up := upstream.New()
+
 		args := c.RemainingArgs()
 
 		for i := 0; i < len(args); i++ {
@@ -99,23 +100,21 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 				return c.Errf("unknown property '%s'", c.Val())
 			}
 		}
+		providers = append(providers, &credentials.EnvProvider{}, sharedProvider)
+		client := f(credentials.NewChainCredentials(providers))
+		ctx := context.Background()
+		h, err := New(ctx, client, keys, up)
+		if err != nil {
+			return c.Errf("failed to create Route53 plugin: %v", err)
+		}
+		h.Fall = fall
+		if err := h.Run(ctx); err != nil {
+			return c.Errf("failed to initialize Route53 plugin: %v", err)
+		}
+		dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
+			h.Next = next
+			return h
+		})
 	}
-	providers = append(providers, &credentials.EnvProvider{}, sharedProvider)
-
-	client := f(credentials.NewChainCredentials(providers))
-	ctx := context.Background()
-	h, err := New(ctx, client, keys, up)
-	if err != nil {
-		return c.Errf("failed to create Route53 plugin: %v", err)
-	}
-	h.Fall = fall
-	if err := h.Run(ctx); err != nil {
-		return c.Errf("failed to initialize Route53 plugin: %v", err)
-	}
-	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
-		h.Next = next
-		return h
-	})
-
 	return nil
 }
