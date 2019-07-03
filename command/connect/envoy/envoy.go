@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/go-sockaddr/template"
 
 	"github.com/mitchellh/cli"
 )
@@ -44,6 +46,7 @@ type cmd struct {
 	client *api.Client
 
 	// flags
+	meshGateway          bool
 	proxyID              string
 	sidecarFor           string
 	adminAccessLogPath   string
@@ -52,6 +55,14 @@ type cmd struct {
 	bootstrap            bool
 	disableCentralConfig bool
 	grpcAddr             string
+
+	// mesh gateway registration information
+	register           bool
+	address            string
+	wanAddress         string
+	deregAfterCritical string
+
+	meshGatewaySvcName string
 }
 
 func (c *cmd) init() {
@@ -59,6 +70,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.proxyID, "proxy-id", "",
 		"The proxy's ID on the local agent.")
+
+	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
+		"Generate the bootstrap.json but don't exec envoy")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -94,9 +108,56 @@ func (c *cmd) init() {
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
+	c.flags.BoolVar(&c.register, "register", false,
+		"Register a new Mesh Gateway service before configuring and starting Envoy")
+
+	c.flags.StringVar(&c.address, "address", "",
+		"LAN address to advertise in the Mesh Gateway service registration")
+
+	c.flags.StringVar(&c.wanAddress, "wan-address", "",
+		"WAN address to advertise in the Mesh Gateway service registration")
+
+	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
+		"Service name to use for the registration")
+
+	c.flags.StringVar(&c.deregAfterCritical, "deregister-after-critical", "6h",
+		"The amount of time the gateway services health check can be failing before being deregistered")
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
+}
+
+const (
+	DefaultMeshGatewayPort int = 443
+)
+
+func parseAddress(addrStr string) (string, int, error) {
+	if addrStr == "" {
+		// defaulting the port to 443
+		return "", DefaultMeshGatewayPort, nil
+	}
+
+	x, err := template.Parse(addrStr)
+	if err != nil {
+		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", addrStr, err)
+	}
+
+	addr, portStr, err := net.SplitHostPort(x)
+	if err != nil {
+		return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing address %q: %v", x, err)
+	}
+
+	port := DefaultMeshGatewayPort
+
+	if portStr != "" {
+		port, err = strconv.Atoi(portStr)
+		if err != nil {
+			return "", DefaultMeshGatewayPort, fmt.Errorf("Error parsing port %q: %v", portStr, err)
+		}
+	}
+
+	return addr, port, nil
 }
 
 func (c *cmd) Run(args []string) int {
@@ -136,6 +197,74 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.client = client
 
+	if c.register {
+		if !c.meshGateway {
+			c.UI.Error("Auto-Registration can only be used for mesh gateways")
+			return 1
+		}
+
+		lanAddr, lanPort, err := parseAddress(c.address)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to parse the -address parameter: %v", err))
+			return 1
+		}
+
+		taggedAddrs := make(map[string]api.ServiceAddress)
+
+		if lanAddr != "" {
+			taggedAddrs["lan"] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+		}
+
+		if c.wanAddress != "" {
+			wanAddr, wanPort, err := parseAddress(c.wanAddress)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
+				return 1
+			}
+			taggedAddrs["wan"] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+		}
+
+		tcpCheckAddr := lanAddr
+		if tcpCheckAddr == "" {
+			// fallback to localhost as the gateway has to reside in the same network namespace
+			// as the agent
+			tcpCheckAddr = "127.0.0.1"
+		}
+
+		var proxyConf *api.AgentServiceConnectProxyConfig
+
+		if lanAddr != "" {
+			proxyConf = &api.AgentServiceConnectProxyConfig{
+				Config: map[string]interface{}{
+					"envoy_mesh_gateway_no_default_bind":       true,
+					"envoy_mesh_gateway_bind_tagged_addresses": true,
+				},
+			}
+		}
+
+		svc := api.AgentServiceRegistration{
+			Kind:            api.ServiceKindMeshGateway,
+			Name:            c.meshGatewaySvcName,
+			Address:         lanAddr,
+			Port:            lanPort,
+			TaggedAddresses: taggedAddrs,
+			Proxy:           proxyConf,
+			Check: &api.AgentServiceCheck{
+				Name:                           "Mesh Gateway Listening",
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanPort),
+				Interval:                       "10s",
+				DeregisterCriticalServiceAfter: c.deregAfterCritical,
+			},
+		}
+
+		if err := client.Agent().ServiceRegister(&svc); err != nil {
+			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
+			return 1
+		}
+
+		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
+	}
+
 	// See if we need to lookup proxyID
 	if c.proxyID == "" && c.sidecarFor != "" {
 		proxyID, err := c.lookupProxyIDForSidecar()
@@ -144,9 +273,18 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.proxyID = proxyID
+	} else if c.proxyID == "" && c.meshGateway {
+		gatewaySvc, err := c.lookupGatewayProxy()
+		if err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+		c.proxyID = gatewaySvc.ID
+		c.meshGatewaySvcName = gatewaySvc.Service
 	}
+
 	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for is " +
+		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
 			"required")
 		return 1
 	}
@@ -273,6 +411,8 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	cluster := c.proxyID
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
+	} else if c.meshGateway && c.meshGatewaySvcName != "" {
+		cluster = c.meshGatewaySvcName
 	}
 
 	adminAccessLogPath := c.adminAccessLogPath
@@ -312,7 +452,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		}
 
 		if svc.Proxy == nil {
-			return nil, errors.New("service is not a Connect proxy")
+			return nil, errors.New("service is not a Connect proxy or mesh gateway")
 		}
 
 		// Parse the bootstrap config
@@ -320,8 +460,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 			return nil, fmt.Errorf("failed parsing Proxy.Config: %s", err)
 		}
 
-		// Override cluster now we know the actual service name
-		args.ProxyCluster = svc.Proxy.DestinationServiceName
+		if svc.Proxy.DestinationServiceName != "" {
+			// Override cluster now we know the actual service name
+			args.ProxyCluster = svc.Proxy.DestinationServiceName
+		}
 	}
 
 	return bsCfg.GenerateJSON(args)
@@ -329,6 +471,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 
 func (c *cmd) lookupProxyIDForSidecar() (string, error) {
 	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
+}
+
+func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
+	return proxyCmd.LookupGatewayProxy(c.client)
 }
 
 func (c *cmd) Synopsis() string {

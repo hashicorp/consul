@@ -37,6 +37,16 @@ example shows all possible fields, but note that only a few are required.
     "meta": {
       "meta": "for my service"
     },
+    "tagged_addresses": {
+      "lan": {
+        "address": "192.168.0.55",
+        "port": 8000,
+      },
+      "wan": {
+        "address": "198.18.0.23",
+        "port": 80
+      }
+    },
     "port": 8000,
     "enable_tag_override": false,
     "checks": [

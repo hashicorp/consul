@@ -47,6 +47,42 @@ func TestManager_BasicLifecycle(t *testing.T) {
 
 	roots, leaf := TestCerts(t)
 
+	// Initialize a default group resolver for "db"
+	dbResolverEntry := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "db",
+	}
+	dbTarget := structs.DiscoveryTarget{
+		Service:    "db",
+		Namespace:  "default",
+		Datacenter: "dc1",
+	}
+	dbResolverNode := &structs.DiscoveryGraphNode{
+		Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+		Name: "db",
+		GroupResolver: &structs.DiscoveryGroupResolver{
+			Definition: dbResolverEntry,
+			Default:    true,
+			Target:     dbTarget,
+		},
+	}
+	dbChain := &structs.CompiledDiscoveryChain{
+		ServiceName: "db",
+		Namespace:   "default",
+		Datacenter:  "dc1",
+		Protocol:    "tcp",
+		Node:        dbResolverNode,
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			dbTarget: dbResolverNode,
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"db": dbResolverEntry,
+		},
+		Targets: []structs.DiscoveryTarget{
+			dbTarget,
+		},
+	}
+
 	// Setup initial values
 	types.roots.value.Store(roots)
 	types.leaf.value.Store(leaf)
@@ -55,6 +91,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		&structs.IndexedCheckServiceNodes{
 			Nodes: TestUpstreamNodes(t),
 		})
+	types.compiledChain.value.Store(
+		&structs.DiscoveryChainResponse{
+			Chain: dbChain,
+		},
+	)
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	state := local.NewState(local.Config{}, logger, &token.Store{})
@@ -106,15 +147,28 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	// We should see the initial config delivered but not until after the
 	// coalesce timeout
 	expectSnap := &ConfigSnapshot{
-		ProxyID: webProxy.ID,
-		Address: webProxy.Address,
-		Port:    webProxy.Port,
-		Proxy:   webProxy.Proxy,
-		Roots:   roots,
-		Leaf:    leaf,
-		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-			"db": TestUpstreamNodes(t),
+		Kind:            structs.ServiceKindConnectProxy,
+		Service:         webProxy.Service,
+		ProxyID:         webProxy.ID,
+		Address:         webProxy.Address,
+		Port:            webProxy.Port,
+		Proxy:           webProxy.Proxy,
+		TaggedAddresses: make(map[string]structs.ServiceAddress),
+		Roots:           roots,
+		ConnectProxy: configSnapshotConnectProxy{
+			Leaf: leaf,
+			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+				"db": dbChain,
+			},
+			WatchedUpstreams: nil, // Clone() clears this out
+			WatchedUpstreamEndpoints: map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+				"db": {
+					dbTarget: TestUpstreamNodes(t),
+				},
+			},
+			UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
 		},
+		Datacenter: "dc1",
 	}
 	start := time.Now()
 	assertWatchChanRecvs(t, wCh, expectSnap)
@@ -159,7 +213,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	types.leaf.Set(newLeaf)
 
 	// Expect new roots in snapshot
-	expectSnap.Leaf = newLeaf
+	expectSnap.ConnectProxy.Leaf = newLeaf
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
@@ -215,7 +269,7 @@ func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *Confi
 		if expect == nil {
 			require.False(t, ok, "watch chan should be closed")
 		}
-	case <-time.After(50*time.Millisecond + coalesceTimeout):
+	case <-time.After(100*time.Millisecond + coalesceTimeout):
 		t.Fatal("recv timeout")
 	}
 }

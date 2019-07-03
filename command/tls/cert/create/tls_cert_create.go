@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -154,25 +155,25 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.UI.Info("==> Using " + caFile + " and " + keyFile)
 
-	signer, err := tls.ParseSigner(string(key))
+	signer, err := tlsutil.ParseSigner(string(key))
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	sn, err := tls.GenerateSerialNumber()
+	sn, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	pub, priv, err := tls.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
+	pub, priv, err := tlsutil.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	if err = tls.Verify(string(cert), pub, name); err != nil {
+	if err = tlsutil.Verify(string(cert), pub, name); err != nil {
 		c.UI.Error("==> " + err.Error())
 		return 1
 	}

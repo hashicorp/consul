@@ -78,10 +78,11 @@ type dnsConfig struct {
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
 	*dns.Server
-	agent  *Agent
-	mux    *dns.ServeMux
-	domain string
-	logger *log.Logger
+	agent     *Agent
+	mux       *dns.ServeMux
+	domain    string
+	altDomain string
+	logger    *log.Logger
 
 	// config stores the config as an atomic value (for hot-reloading). It is always of type *dnsConfig
 	config atomic.Value
@@ -92,13 +93,15 @@ type DNSServer struct {
 }
 
 func NewDNSServer(a *Agent) (*DNSServer, error) {
-	// Make sure domain is FQDN, make it case insensitive for ServeMux
+	// Make sure domains are FQDN, make them case insensitive for ServeMux
 	domain := dns.Fqdn(strings.ToLower(a.config.DNSDomain))
+	altDomain := dns.Fqdn(strings.ToLower(a.config.DNSAltDomain))
 
 	srv := &DNSServer{
-		agent:  a,
-		domain: domain,
-		logger: a.logger,
+		agent:     a,
+		domain:    domain,
+		altDomain: altDomain,
+		logger:    a.logger,
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {
@@ -183,6 +186,9 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	d.mux = dns.NewServeMux()
 	d.mux.HandleFunc("arpa.", d.handlePtr)
 	d.mux.HandleFunc(d.domain, d.handleQuery)
+	if d.altDomain != "" {
+		d.mux.HandleFunc(d.altDomain, d.handleQuery)
+	}
 	d.toggleRecursorHandlerFromConfig(cfg)
 
 	d.Server = &dns.Server{
@@ -530,7 +536,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
-	qName = strings.TrimSuffix(qName, d.domain)
+	qName = d.trimDomain(qName)
 
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
@@ -682,6 +688,20 @@ INVALID:
 	d.addSOA(cfg, resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 	return
+}
+
+func (d *DNSServer) trimDomain(query string) string {
+	longer := d.domain
+	shorter := d.altDomain
+
+	if len(shorter) > len(longer) {
+		longer, shorter = shorter, longer
+	}
+
+	if strings.HasSuffix(query, longer) {
+		return strings.TrimSuffix(query, longer)
+	}
+	return strings.TrimSuffix(query, shorter)
 }
 
 // nodeLookup is used to handle a node query
@@ -1354,8 +1374,8 @@ func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.
 		// Start with the translated address but use the service address,
 		// if specified.
 		addr := d.agent.TranslateAddress(dc, node.Node.Address, node.Node.TaggedAddresses)
-		if node.Service.Address != "" {
-			addr = node.Service.Address
+		if svcAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses); svcAddr != "" {
+			addr = svcAddr
 		}
 
 		// If the service address is a CNAME for the service we are looking
@@ -1488,7 +1508,7 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 			},
 			Priority: 1,
 			Weight:   uint16(weight),
-			Port:     uint16(node.Service.Port),
+			Port:     uint16(d.agent.TranslateServicePort(dc, node.Service.Port, node.Service.TaggedAddresses)),
 			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain),
 		}
 		resp.Answer = append(resp.Answer, srvRec)
@@ -1496,8 +1516,8 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 		// Start with the translated address but use the service address,
 		// if specified.
 		addr := d.agent.TranslateAddress(dc, node.Node.Address, node.Node.TaggedAddresses)
-		if node.Service.Address != "" {
-			addr = node.Service.Address
+		if svcAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses); svcAddr != "" {
+			addr = svcAddr
 		}
 
 		// Add the extra record
@@ -1602,10 +1622,10 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 // resolveCNAME is used to recursively resolve CNAME records
 func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel int) []dns.RR {
 	// If the CNAME record points to a Consul address, resolve it internally
-	// Convert query to lowercase because DNS is case insensitive; d.domain is
-	// already converted
+	// Convert query to lowercase because DNS is case insensitive; d.domain and
+	// d.altDomain are already converted
 
-	if strings.HasSuffix(strings.ToLower(name), "."+d.domain) {
+	if ln := strings.ToLower(name); strings.HasSuffix(ln, "."+d.domain) || strings.HasSuffix(ln, "."+d.altDomain) {
 		if maxRecursionLevel < 1 {
 			d.logger.Printf("[ERR] dns: Infinite recursion detected for %s, won't perform any CNAME resolution.", name)
 			return nil

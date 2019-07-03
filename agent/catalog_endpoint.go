@@ -74,12 +74,33 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
+	args := structs.DatacentersRequest{}
+	s.parseConsistency(resp, req, &args.QueryOptions)
+	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
-	if err := s.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-		return nil, err
+
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.CatalogDatacentersName, &args)
+		if err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
+		reply, ok := raw.(*[]string)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		defer setCacheMeta(resp, &m)
+		out = *reply
+	} else {
+		if err := s.agent.RPC("Catalog.ListDatacenters", &args, &out); err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
 	}
+
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 	return out, nil
@@ -133,20 +154,37 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
-RETRY_ONCE:
-	if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
-			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
-		return nil, err
+
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.CatalogListServicesName, &args)
+		if err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
+		reply, ok := raw.(*structs.IndexedServices)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		defer setCacheMeta(resp, &m)
+		out = *reply
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
+			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
+				[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
-		args.AllowStale = false
-		args.MaxStaleDuration = 0
-		goto RETRY_ONCE
-	}
+
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// Use empty map instead of nil
@@ -284,8 +322,8 @@ RETRY_ONCE:
 		goto RETRY_ONCE
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	if out.NodeServices != nil && out.NodeServices.Node != nil {
-		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices.Node)
+	if out.NodeServices != nil {
+		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices)
 	}
 
 	// TODO: The NodeServices object in IndexedNodeServices is a pointer to

@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -727,7 +727,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			ServiceID:  "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,
@@ -738,7 +738,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			CheckID:    "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,
@@ -1709,6 +1709,87 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	if len(out.ServiceNodes) != 0 {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+	}
+	var out structs.IndexedServiceNodes
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+
+	fooAddress := "10.1.2.3"
+	fooPort := 1111
+	fooTaggedAddresses := map[string]structs.ServiceAddress{
+		"lan": structs.ServiceAddress{
+			Address: "10.1.2.3",
+			Port:    fooPort,
+		},
+		"wan": structs.ServiceAddress{
+			Address: "198.18.1.2",
+			Port:    fooPort,
+		},
+	}
+	barAddress := "10.1.2.3"
+	barPort := 2222
+	barTaggedAddresses := map[string]structs.ServiceAddress{
+		"lan": structs.ServiceAddress{
+			Address: "10.1.2.3",
+			Port:    barPort,
+		},
+		"wan": structs.ServiceAddress{
+			Address: "198.18.2.3",
+			Port:    barPort,
+		},
+	}
+	bazAddress := "192.168.1.35"
+	bazPort := 2222
+	bazTaggedAddresses := map[string]structs.ServiceAddress{
+		"lan": structs.ServiceAddress{
+			Address: "192.168.1.35",
+			Port:    barPort,
+		},
+		"wan": structs.ServiceAddress{
+			Address: "198.18.2.4",
+			Port:    barPort,
+		},
+	}
+
+	// Just add a node
+	require.NoError(t, s1.fsm.State().EnsureNode(1, &structs.Node{Node: "node", Address: "127.0.0.1"}))
+	require.NoError(t, s1.fsm.State().EnsureService(2, "node", &structs.NodeService{ID: "foo", Service: "db", Address: fooAddress, TaggedAddresses: fooTaggedAddresses, Port: fooPort}))
+	require.NoError(t, s1.fsm.State().EnsureService(2, "node", &structs.NodeService{ID: "bar", Service: "db", Address: barAddress, TaggedAddresses: barTaggedAddresses, Port: barPort}))
+	require.NoError(t, s1.fsm.State().EnsureService(2, "node", &structs.NodeService{ID: "baz", Service: "db", Address: bazAddress, TaggedAddresses: bazTaggedAddresses, Port: bazPort}))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+	require.Len(t, out.ServiceNodes, 3)
+
+	// Try with an address that would match foo & bar
+	args.ServiceAddress = "10.1.2.3"
+	out = structs.IndexedServiceNodes{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+	require.Len(t, out.ServiceNodes, 2)
+	for _, sn := range out.ServiceNodes {
+		require.True(t, sn.ServiceID == "foo" || sn.ServiceID == "bar")
+	}
+
+	// Try with an address that would match just bar
+	args.ServiceAddress = "198.18.2.3"
+	out = structs.IndexedServiceNodes{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+	require.Len(t, out.ServiceNodes, 1)
+	require.Equal(t, "bar", out.ServiceNodes[0].ServiceID)
 }
 
 // TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat asserts the compatibility between <=v1.2.3 agents and >=v1.3.0 servers

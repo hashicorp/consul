@@ -111,8 +111,21 @@ function get_envoy_stats_flush_interval {
   echo "$output" | jq --raw-output '.configs[0].bootstrap.stats_flush_interval'
 }
 
+# snapshot_envoy_admin is meant to be used from a teardown scriptlet from the host.
+function snapshot_envoy_admin {
+  local HOSTPORT=$1
+  local ENVOY_NAME=$2
+
+  docker_wget "http://${HOSTPORT}/config_dump" -q -O - > "./workdir/envoy/${ENVOY_NAME}-config_dump.json"
+  docker_wget "http://${HOSTPORT}/clusters" -q -O - > "./workdir/envoy/${ENVOY_NAME}-clusters.out"
+}
+
 function docker_consul {
   docker run -ti --rm --network container:envoy_consul_1 consul-dev $@
+}
+
+function docker_wget {
+  docker run -ti --rm --network container:envoy_consul_1 alpine:3.9 wget $@
 }
 
 function must_match_in_statsd_logs {

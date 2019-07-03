@@ -265,6 +265,16 @@ $ curl \
       "Service": "redis",
       "Tags": ["primary"],
       "Address": "10.1.10.12",
+      "TaggedAddresses": {
+        "lan": {
+          "address": "10.1.10.12",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.1.2",
+          "port": 80
+        }
+      },
       "Meta": {
         "redis_version": "4.0"
       },
@@ -347,6 +357,9 @@ following selectors and filter operations being supported:
 | `Service.Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
 | `Service.Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
 | `Service.Service`                              | Equal, Not Equal                   |
+| `Service.TaggedAddresses`                      | In, Not In, Is Empty, Is Not Empty |
+| `Service.TaggedAddresses.<any>.Address`        | Equal, Not Equal                   |
+| `Service.TaggedAddresses.<any>.Port`           | Equal, Not Equal                   |
 | `Service.Tags`                                 | In, Not In, Is Empty, Is Not Empty |
 | `Service.Weights.Passing`                      | Equal, Not Equal                   |
 | `Service.Weights.Warning`                      | Equal, Not Equal                   |

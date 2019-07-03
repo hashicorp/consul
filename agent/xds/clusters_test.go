@@ -5,29 +5,36 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"testing"
 	"text/template"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
+	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClustersFromSnapshot(t *testing.T) {
 
 	tests := []struct {
-		name string
+		name   string
+		create func(t testinf.T) *proxycfg.ConfigSnapshot
 		// Setup is called before the test starts. It is passed the snapshot from
-		// TestConfigSnapshot and is allowed to modify it in any way to setup the
+		// create func and is allowed to modify it in any way to setup the
 		// test input.
 		setup              func(snap *proxycfg.ConfigSnapshot)
 		overrideGoldenName string
 	}{
 		{
-			name:  "defaults",
-			setup: nil, // Default snapshot
+			name:   "defaults",
+			create: proxycfg.TestConfigSnapshot,
+			setup:  nil, // Default snapshot
 		},
 		{
-			name: "custom-local-app",
+			name:   "custom-local-app",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_local_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
@@ -38,6 +45,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-local-app-typed",
+			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-local-app",
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_local_cluster_json"] =
@@ -48,7 +56,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "custom-upstream",
+			name:   "custom-upstream",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
@@ -59,6 +68,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-upstream-typed",
+			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream",
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
@@ -70,6 +80,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-upstream-ignores-tls",
+			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
@@ -82,10 +93,37 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "custom-timeouts",
+			name:   "custom-timeouts",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["local_connect_timeout_ms"] = 1234
 				snap.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
+			},
+		},
+		{
+			name:   "mesh-gateway",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup:  nil,
+		},
+		{
+			name:   "mesh-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
+					"bar": &structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.Version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.Version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
 			},
 		},
 	}
@@ -95,14 +133,18 @@ func TestClustersFromSnapshot(t *testing.T) {
 			require := require.New(t)
 
 			// Sanity check default with no overrides first
-			snap := proxycfg.TestConfigSnapshot(t)
+			snap := tt.create(t)
 
 			// We need to replace the TLS certs with deterministic ones to make golden
 			// files workable. Note we don't update these otherwise they'd change
 			// golder files for every test case and so not be any use!
-			snap.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-			snap.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
-			snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+			if snap.ConnectProxy.Leaf != nil {
+				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
+				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+			}
+			if snap.Roots != nil {
+				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+			}
 
 			if tt.setup != nil {
 				tt.setup(snap)
@@ -113,6 +155,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 
 			clusters, err := s.clustersFromSnapshot(snap, "my-token")
 			require.NoError(err)
+			sort.Slice(clusters, func(i, j int) bool {
+				return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
+			})
 			r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
 			require.NoError(err)
 
@@ -172,7 +217,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "1s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
 			{
@@ -190,7 +235,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap) + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 	}
 }

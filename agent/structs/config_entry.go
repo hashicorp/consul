@@ -16,6 +16,9 @@ import (
 const (
 	ServiceDefaults string = "service-defaults"
 	ProxyDefaults   string = "proxy-defaults"
+	ServiceRouter   string = "service-router"
+	ServiceSplitter string = "service-splitter"
+	ServiceResolver string = "service-resolver"
 
 	ProxyConfigGlobal string = "global"
 
@@ -43,9 +46,11 @@ type ConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind     string
-	Name     string
-	Protocol string
+	Kind        string
+	Name        string
+	Protocol    string
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
+
 	// TODO(banks): enable this once we have upstreams supported too. Enabling
 	// sidecars actually makes no sense and adds complications when you don't
 	// allow upstreams to be specified centrally too.
@@ -108,9 +113,10 @@ type ConnectConfiguration struct {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind   string
-	Name   string
-	Config map[string]interface{}
+	Kind        string
+	Name        string
+	Config      map[string]interface{}
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
 
 	RaftIndex
 }
@@ -228,8 +234,14 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		"connect":       "Connect",
 		"sidecar_proxy": "SidecarProxy",
 		"protocol":      "Protocol",
+		"mesh_gateway":  "MeshGateway",
+		"mode":          "Mode",
 		"Config":        "",
 	})
+
+	// TODO(rb): see if any changes are needed here for the discovery chain
+
+	// TODO(rb): maybe do an initial kind/Kind switch and do kind-specific decoding?
 
 	var entry ConfigEntry
 
@@ -340,6 +352,12 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceConfigEntry{Name: name}, nil
 	case ProxyDefaults:
 		return &ProxyConfigEntry{Name: name}, nil
+	case ServiceRouter:
+		return &ServiceRouterConfigEntry{Name: name}, nil
+	case ServiceSplitter:
+		return &ServiceSplitterConfigEntry{Name: name}, nil
+	case ServiceResolver:
+		return &ServiceResolverConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -348,6 +366,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 func ValidateConfigEntryKind(kind string) bool {
 	switch kind {
 	case ServiceDefaults, ProxyDefaults:
+		return true
+	case ServiceRouter, ServiceSplitter, ServiceResolver:
 		return true
 	default:
 		return false
@@ -365,6 +385,31 @@ type ConfigEntryQuery struct {
 
 func (c *ConfigEntryQuery) RequestDatacenter() string {
 	return c.Datacenter
+}
+
+func (r *ConfigEntryQuery) CacheInfo() cache.RequestInfo {
+	info := cache.RequestInfo{
+		Token:          r.Token,
+		Datacenter:     r.Datacenter,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
+	}
+
+	v, err := hashstructure.Hash([]interface{}{
+		r.Kind,
+		r.Name,
+		r.Filter,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request so the request is forwarded directly
+		// to the server.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
 }
 
 // ServiceConfigRequest is used when requesting the resolved configuration
@@ -416,6 +461,7 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 type ServiceConfigResponse struct {
 	ProxyConfig     map[string]interface{}
 	UpstreamConfigs map[string]map[string]interface{}
+	MeshGateway     MeshGatewayConfig `json:",omitempty"`
 	QueryMeta
 }
 
@@ -526,4 +572,13 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
+}
+
+// ConfigEntryKindName is a value type useful for maps. You can use:
+//     map[ConfigEntryKindName]Payload
+// instead of:
+//     map[string]map[string]Payload
+type ConfigEntryKindName struct {
+	Kind string
+	Name string
 }

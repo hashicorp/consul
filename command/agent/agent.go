@@ -214,7 +214,7 @@ func (c *cmd) run(args []string) int {
 
 	// Create the agent
 	c.UI.Output("Starting Consul agent...")
-	agent, err := agent.New(config)
+	agent, err := agent.New(config, c.logger)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
 		return 1
@@ -223,7 +223,66 @@ func (c *cmd) run(args []string) int {
 	agent.LogWriter = logWriter
 	agent.MemSink = memSink
 
-	if err := agent.Start(); err != nil {
+	segment := config.SegmentName
+	if config.ServerMode {
+		segment = "<all>"
+	}
+
+	c.UI.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
+	c.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
+	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
+	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+		config.SerfPortLAN, config.SerfPortWAN))
+	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
+		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+
+	// Enable log streaming
+	c.UI.Info("")
+	c.UI.Output("Log data will now stream in as it occurs:\n")
+	logGate.Flush()
+
+	// wait for signal
+	signalCh := make(chan os.Signal, 10)
+	stopCh := make(chan struct{})
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
+
+	go func() {
+		for {
+			var sig os.Signal
+			select {
+			case s := <-signalCh:
+				sig = s
+			case <-stopCh:
+				return
+			}
+
+			switch sig {
+			case syscall.SIGPIPE:
+				continue
+
+			case syscall.SIGHUP:
+				err := fmt.Errorf("cannot reload before agent started")
+				c.logger.Printf("[ERR] agent: Caught signal: %s err: %s\n", sig, err)
+
+			default:
+				c.logger.Println("[INFO] agent: Caught signal: ", sig)
+				agent.InterruptStartCh <- struct{}{}
+				return
+			}
+		}
+	}()
+
+	err = agent.Start()
+	signal.Stop(signalCh)
+	select {
+	case stopCh <- struct{}{}:
+	default:
+	}
+	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
 		return 1
 	}
@@ -249,31 +308,10 @@ func (c *cmd) run(args []string) int {
 	// Let the agent know we've finished registration
 	agent.StartSync()
 
-	segment := config.SegmentName
-	if config.ServerMode {
-		segment = "<all>"
-	}
-
 	c.UI.Output("Consul agent running!")
-	c.UI.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
-	c.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
-	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
-		config.SerfPortLAN, config.SerfPortWAN))
-	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v",
-		agent.GossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
-
-	// Enable log streaming
-	c.UI.Info("")
-	c.UI.Output("Log data will now stream in as it occurs:\n")
-	logGate.Flush()
 
 	// wait for signal
-	signalCh := make(chan os.Signal, 10)
+	signalCh = make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
 	for {

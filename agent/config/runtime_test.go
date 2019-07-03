@@ -346,6 +346,53 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-alt-domain",
+			args: []string{
+				`-alt-domain=alt`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DNSAltDomain = "alt"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-alt-domain can't be prefixed by DC",
+			args: []string{
+				`-datacenter=a`,
+				`-alt-domain=a.alt`,
+				`-data-dir=` + dataDir,
+			},
+			err: "alt_domain cannot start with {service,connect,node,query,addr,a}",
+		},
+		{
+			desc: "-alt-domain can't be prefixed by service",
+			args: []string{
+				`-alt-domain=service.alt`,
+				`-data-dir=` + dataDir,
+			},
+			err: "alt_domain cannot start with {service,connect,node,query,addr,dc1}",
+		},
+		{
+			desc: "-alt-domain can be prefixed by non-keywords",
+			args: []string{
+				`-alt-domain=mydomain.alt`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DNSAltDomain = "mydomain.alt"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-alt-domain can't be prefixed by DC",
+			args: []string{
+				`-alt-domain=dc1.alt`,
+				`-data-dir=` + dataDir,
+			},
+			err: "alt_domain cannot start with {service,connect,node,query,addr,dc1}",
+		},
+		{
 			desc: "-enable-script-checks",
 			args: []string{
 				`-enable-script-checks`,
@@ -2207,6 +2254,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
+						"tagged_addresses": {
+							"wan": {
+								"address": "198.18.3.4",
+								"port": 443
+							}
+						},
 						"enable_tag_override": true,
 						"check": {
 							"id": "x",
@@ -2223,6 +2276,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					name = "a"
 					port = 80
 					enable_tag_override = true
+					tagged_addresses = {
+						wan = {
+							address = "198.18.3.4"
+							port = 443
+						}
+					}
 					check = {
 						id = "x"
 						name = "y"
@@ -2235,8 +2294,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{
-						Name:              "a",
-						Port:              80,
+						Name: "a",
+						Port: 80,
+						TaggedAddresses: map[string]structs.ServiceAddress{
+							"wan": structs.ServiceAddress{
+								Address: "198.18.3.4",
+								Port:    443,
+							},
+						},
 						EnableTagOverride: true,
 						Checks: []*structs.CheckType{
 							&structs.CheckType{
@@ -2445,7 +2510,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 
 		{
 			// This tests that we correct added the nested paths to arrays of objects
-			// to the exceptions in patchSliceOfMaps in config.go (for single service)
+			// to the exceptions in PatchSliceOfMaps in config.go (for single service)
 			desc: "service.connectsidecar_service with checks and upstreams",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2541,7 +2606,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 		{
 			// This tests that we correct added the nested paths to arrays of objects
-			// to the exceptions in patchSliceOfMaps in config.go (for service*s*)
+			// to the exceptions in PatchSliceOfMaps in config.go (for service*s*)
 			desc: "services.connect.sidecar_service with checks and upstreams",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -3114,6 +3179,10 @@ func TestFullConfig(t *testing.T) {
 						}
 					}
 				]
+                        },
+			"auto_encrypt": {
+				"tls": true,
+				"allow_tls": true
 			},
 			"connect": {
 				"ca_provider": "consul",
@@ -3163,6 +3232,7 @@ func TestFullConfig(t *testing.T) {
 			"discard_check_output": true,
 			"discovery_max_stale": "5s",
 			"domain": "7W1xXSqd",
+			"alt_domain": "1789hsd",
 			"dns_config": {
 				"allow_stale": true,
 				"a_record_limit": 29907,
@@ -3269,6 +3339,16 @@ func TestFullConfig(t *testing.T) {
 				"name": "o1ynPkp0",
 				"meta": {
 					"mymeta": "data"
+				},
+				"tagged_addresses": {
+					"lan": {
+						"address": "2d79888a",
+						"port": 2143
+					},
+					"wan": {
+						"address": "d4db85e2",
+						"port": 6109
+					}
 				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
@@ -3484,6 +3564,17 @@ func TestFullConfig(t *testing.T) {
 							}
 						]
 					}
+				},
+				{
+					"id": "kvVqbwSE",
+					"kind": "mesh-gateway",
+					"name": "gw-primary-dc",
+					"port": 27147,
+					"proxy": {
+						"config": {
+							"1CuJHVfw" : "Kzqsa7yc"
+						}
+					}
 				}
 			],
 			"session_ttl_min": "26627s",
@@ -3689,6 +3780,10 @@ func TestFullConfig(t *testing.T) {
 					}
 				}
 			}
+			auto_encrypt = {
+				tls = true
+				allow_tls = true
+			}
 			connect {
 				ca_provider = "consul"
 				ca_config {
@@ -3741,6 +3836,7 @@ func TestFullConfig(t *testing.T) {
 			discard_check_output = true
 			discovery_max_stale = "5s"
 			domain = "7W1xXSqd"
+			alt_domain = "1789hsd"
 			dns_config {
 				allow_stale = true
 				a_record_limit = 29907
@@ -3847,6 +3943,16 @@ func TestFullConfig(t *testing.T) {
 				name = "o1ynPkp0"
 				meta = {
 					mymeta = "data"
+				}
+				tagged_addresses = {
+					lan = {
+						address = "2d79888a"
+						port = 2143
+					}
+					wan = {
+						address = "d4db85e2"
+						port = 6109
+					}
 				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
@@ -4060,6 +4166,17 @@ func TestFullConfig(t *testing.T) {
 								local_bind_address = "127.24.88.0"
 							},
 						]
+					}
+				},
+				{
+					id = "kvVqbwSE"
+					kind = "mesh-gateway"
+					name = "gw-primary-dc"
+					port = 27147
+					proxy {
+						config {
+							"1CuJHVfw" = "Kzqsa7yc"
+						}
 					}
 				}
 			]
@@ -4369,6 +4486,8 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
+		AutoEncryptTLS:          true,
+		AutoEncryptAllowTLS:     true,
 		ConnectEnabled:          true,
 		ConnectProxyBindMinPort: 2000,
 		ConnectProxyBindMaxPort: 3000,
@@ -4396,6 +4515,7 @@ func TestFullConfig(t *testing.T) {
 		DNSAllowStale:                    true,
 		DNSDisableCompression:            true,
 		DNSDomain:                        "7W1xXSqd",
+		DNSAltDomain:                     "1789hsd",
 		DNSEnableTruncate:                true,
 		DNSMaxStale:                      29685 * time.Second,
 		DNSNodeTTL:                       7084 * time.Second,
@@ -4643,8 +4763,33 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:      "dLOXpSCI",
-				Name:    "o1ynPkp0",
+				ID:   "kvVqbwSE",
+				Kind: "mesh-gateway",
+				Name: "gw-primary-dc",
+				Port: 27147,
+				Proxy: &structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"1CuJHVfw": "Kzqsa7yc",
+					},
+				},
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+			},
+			{
+				ID:   "dLOXpSCI",
+				Name: "o1ynPkp0",
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"lan": structs.ServiceAddress{
+						Address: "2d79888a",
+						Port:    2143,
+					},
+					"wan": structs.ServiceAddress{
+						Address: "d4db85e2",
+						Port:    6109,
+					},
+				},
 				Tags:    []string{"nkwshvM5", "NTDWn3ek"},
 				Address: "cOlSOhbp",
 				Token:   "msy7iWER",
@@ -5160,6 +5305,8 @@ func TestSanitize(t *testing.T) {
 		}],
 		"ClientAddrs": [],
 		"ConfigEntryBootstrap": [],
+		"AutoEncryptTLS": false,
+		"AutoEncryptAllowTLS": false,
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
@@ -5203,6 +5350,7 @@ func TestSanitize(t *testing.T) {
 		"DNSAllowStale": false,
 		"DNSDisableCompression": false,
 		"DNSDomain": "",
+		"DNSAltDomain": "",
 		"DNSEnableTruncate": false,
 		"DNSMaxStale": "0s",
 		"DNSNodeMetaTXT": false,
@@ -5338,6 +5486,7 @@ func TestSanitize(t *testing.T) {
 			"Port": 0,
 			"Proxy": null,
 			"ProxyDestination": "",
+			"TaggedAddresses": {},
 			"Tags": [],
 			"Token": "hidden",
 			"Weights": {
@@ -5617,24 +5766,26 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305},
 		TLSPreferServerCipherSuites: true,
 		EnableAgentTLSForChecks:     true,
+		AutoEncryptTLS:              true,
 	}
 	r := c.ToTLSUtilConfig()
-	require.Equal(t, c.VerifyIncoming, r.VerifyIncoming)
-	require.Equal(t, c.VerifyIncomingRPC, r.VerifyIncomingRPC)
-	require.Equal(t, c.VerifyIncomingHTTPS, r.VerifyIncomingHTTPS)
-	require.Equal(t, c.VerifyOutgoing, r.VerifyOutgoing)
-	require.Equal(t, c.VerifyServerHostname, r.VerifyServerHostname)
-	require.Equal(t, c.CAFile, r.CAFile)
-	require.Equal(t, c.CAPath, r.CAPath)
-	require.Equal(t, c.CertFile, r.CertFile)
-	require.Equal(t, c.KeyFile, r.KeyFile)
-	require.Equal(t, c.NodeName, r.NodeName)
-	require.Equal(t, c.ServerName, r.ServerName)
-	require.Equal(t, c.DNSDomain, r.Domain)
-	require.Equal(t, c.TLSMinVersion, r.TLSMinVersion)
-	require.Equal(t, c.TLSCipherSuites, r.CipherSuites)
-	require.Equal(t, c.TLSPreferServerCipherSuites, r.PreferServerCipherSuites)
-	require.Equal(t, c.EnableAgentTLSForChecks, r.EnableAgentTLSForChecks)
+	require.True(t, r.VerifyIncoming)
+	require.True(t, r.VerifyIncomingRPC)
+	require.True(t, r.VerifyIncomingHTTPS)
+	require.True(t, r.VerifyOutgoing)
+	require.True(t, r.EnableAgentTLSForChecks)
+	require.True(t, r.AutoEncryptTLS)
+	require.True(t, r.VerifyServerHostname)
+	require.True(t, r.PreferServerCipherSuites)
+	require.Equal(t, "a", r.CAFile)
+	require.Equal(t, "b", r.CAPath)
+	require.Equal(t, "c", r.CertFile)
+	require.Equal(t, "d", r.KeyFile)
+	require.Equal(t, "e", r.NodeName)
+	require.Equal(t, "f", r.ServerName)
+	require.Equal(t, "g", r.Domain)
+	require.Equal(t, "tls12", r.TLSMinVersion)
+	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}, r.CipherSuites)
 }
 
 func TestReadPath(t *testing.T) {

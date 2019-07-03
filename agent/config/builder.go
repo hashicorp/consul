@@ -496,6 +496,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+	altDomain := b.stringVal(c.DNSAltDomain)
+
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
@@ -588,7 +591,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		})
 	}
 
-	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
+
+	if autoEncryptAllowTLS {
+		connectEnabled = true
+	}
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
@@ -727,6 +735,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
+		DNSAltDomain:          altDomain,
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
@@ -791,6 +800,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Checks:                                  checks,
 		ClientAddrs:                             clientAddrs,
 		ConfigEntryBootstrap:                    configEntries,
+		AutoEncryptTLS:                          autoEncryptTLS,
+		AutoEncryptAllowTLS:                     autoEncryptAllowTLS,
 		ConnectEnabled:                          connectEnabled,
 		ConnectCAProvider:                       connectCAProvider,
 		ConnectCAConfig:                         connectCAConfig,
@@ -964,6 +975,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
 		}
 	}
+	if !isValidAltDomain(rt.DNSAltDomain, rt.Datacenter) {
+		return fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", rt.Datacenter)
+	}
 	if rt.Bootstrap && !rt.ServerMode {
 		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
 	}
@@ -1096,6 +1110,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 
+	if rt.AutoEncryptAllowTLS {
+		if !rt.VerifyIncoming {
+			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, TLS must be configured in order to work properly.")
+		}
+	}
+
 	// ----------------------------------------------------------------
 	// warnings
 	//
@@ -1196,6 +1216,26 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	}
 }
 
+func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]structs.ServiceAddress {
+	if len(v) <= 0 {
+		return nil
+	}
+
+	svcAddrs := make(map[string]structs.ServiceAddress)
+	for addrName, addrConf := range v {
+		addr := structs.ServiceAddress{}
+		if addrConf.Address != nil {
+			addr.Address = *addrConf.Address
+		}
+		if addrConf.Port != nil {
+			addr.Port = *addrConf.Port
+		}
+
+		svcAddrs[addrName] = addr
+	}
+	return svcAddrs
+}
+
 func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if v == nil {
 		return nil
@@ -1234,6 +1274,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,
 		Address:           b.stringVal(v.Address),
+		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              b.intVal(v.Port),
 		Token:             b.stringVal(v.Token),
@@ -1254,6 +1295,8 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	switch *v {
 	case string(structs.ServiceKindConnectProxy):
 		return structs.ServiceKindConnectProxy
+	case string(structs.ServiceKindMeshGateway):
+		return structs.ServiceKindMeshGateway
 	default:
 		return structs.ServiceKindTypical
 	}
@@ -1686,6 +1729,18 @@ func isUnixAddr(a net.Addr) bool {
 	return ok
 }
 
+// isValidAltDomain returns true if the given domain is not prefixed
+// by keywords used when dispatching DNS requests
+func isValidAltDomain(domain, datacenter string) bool {
+	reAltDomain := regexp.MustCompile(
+		fmt.Sprintf(
+			"^(service|connect|node|query|addr|%s)\\.(%s\\.)?",
+			datacenter, datacenter,
+		),
+	)
+	return !reAltDomain.MatchString(domain)
+}
+
 // UIPathBuilder checks to see if there was a path set
 // If so, adds beginning and trailing slashes to UI path
 func UIPathBuilder(UIContentString string) string {
@@ -1697,5 +1752,4 @@ func UIPathBuilder(UIContentString string) string {
 
 	}
 	return "/ui/"
-
 }

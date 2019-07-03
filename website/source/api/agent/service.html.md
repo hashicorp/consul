@@ -58,6 +58,16 @@ $ curl \
       "ID": "redis",
       "Service": "redis",
       "Tags": [],
+      "TaggedAddresses": {
+        "lan": {
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.0.53",
+          "port": 80
+        }
+      },
       "Meta": {
           "redis_version": "4.0"
       },
@@ -99,6 +109,9 @@ following selectors and filter operations being supported:
 | `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
 | `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
 | `Service`                              | Equal, Not Equal                   |
+| `TaggedAddresses`                      | In, Not In, Is Empty, Is Not Empty |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal                   |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                   |
 | `Tags`                                 | In, Not In, Is Empty, Is Not Empty |
 | `Weights.Passing`                      | Equal, Not Equal                   |
 | `Weights.Warning`                      | Equal, Not Equal                   |
@@ -157,6 +170,16 @@ $ curl \
     "Meta": null,
     "Port": 18080,
     "Address": "",
+    "TaggedAddresses": {
+        "lan": {
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.0.53",
+          "port": 80
+        }
+      },
     "Weights": {
         "Passing": 1,
         "Warning": 1
@@ -270,6 +293,16 @@ curl localhost:8500/v1/agent/health/service/name/web
                 "rails"
             ],
             "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
             "Meta": null,
             "Port": 80,
             "EnableTagOverride": false,
@@ -290,6 +323,16 @@ curl localhost:8500/v1/agent/health/service/name/web
                 "rails"
             ],
             "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
             "Meta": null,
             "Port": 80,
             "EnableTagOverride": false,
@@ -332,6 +375,16 @@ curl localhost:8500/v1/agent/health/service/id/web2
             "rails"
         ],
         "Address": "",
+        "TaggedAddresses": {
+          "lan": {
+            "address": "127.0.0.1",
+            "port": 8000
+          },
+          "wan": {
+            "address": "198.18.0.53",
+            "port": 80
+          }
+        },
         "Meta": null,
         "Port": 80,
         "EnableTagOverride": false,
@@ -370,6 +423,16 @@ curl localhost:8500/v1/agent/health/service/id/web1
             "rails"
         ],
         "Address": "",
+        "TaggedAddresses": {
+          "lan": {
+            "address": "127.0.0.1",
+            "port": 8000
+          },
+          "wan": {
+            "address": "198.18.0.53",
+            "port": 80
+          }
+        },
         "Meta": null,
         "Port": 80,
         "EnableTagOverride": false,
@@ -442,6 +505,10 @@ service definition keys for compatibility with the config file format.
 - `Address` `(string: "")` - Specifies the address of the service. If not
   provided, the agent's address is used as the address for the service during
   DNS queries.
+
+- `TaggedAddresses` `(map<string|object>: nil)` - Specifies a map of explicit LAN
+  and WAN addresses for the service instance. Both the address and port can be
+  specified within the map values.
 
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.

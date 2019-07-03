@@ -8,8 +8,11 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -61,15 +64,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// parse the data
-	var raw map[string]interface{}
-	err = hcl.Decode(&raw, data)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
-		return 1
-	}
-
-	entry, err := api.DecodeConfigEntry(raw)
+	entry, err := parseConfigEntry(string(data))
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
 		return 1
@@ -101,6 +96,130 @@ func (c *cmd) Run(args []string) int {
 
 	// TODO (mkeeler) should we output anything when successful
 	return 0
+}
+
+func parseConfigEntry(data string) (api.ConfigEntry, error) {
+	// parse the data
+	var raw map[string]interface{}
+	if err := hcl.Decode(&raw, data); err != nil {
+		return nil, fmt.Errorf("Failed to decode config entry input: %v", err)
+	}
+
+	return newDecodeConfigEntry(raw)
+}
+
+func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
+	var entry api.ConfigEntry
+
+	kindVal, ok := raw["Kind"]
+	if !ok {
+		kindVal, ok = raw["kind"]
+	}
+	if !ok {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
+	}
+
+	if kindStr, ok := kindVal.(string); ok {
+		newEntry, err := api.MakeConfigEntry(kindStr, "")
+		if err != nil {
+			return nil, err
+		}
+		entry = newEntry
+	} else {
+		return nil, fmt.Errorf("Kind value in payload is not a string")
+	}
+
+	var (
+		// skipWhenPatching should contain anything that legitimately contains a
+		// slice of structs when decoded.
+		skipWhenPatching  []string
+		translateKeysDict map[string]string
+	)
+
+	switch entry.GetKind() {
+	case api.ProxyDefaults:
+		translateKeysDict = map[string]string{
+			"mesh_gateway": "meshgateway",
+		}
+	case api.ServiceDefaults:
+		translateKeysDict = map[string]string{
+			"mesh_gateway": "meshgateway",
+		}
+	case api.ServiceRouter:
+		skipWhenPatching = []string{
+			"routes",
+			"Routes",
+			"routes.match.http.header",
+			"Routes.Match.HTTP.Header",
+			"routes.match.http.query_param",
+			"Routes.Match.HTTP.QueryParam",
+		}
+		translateKeysDict = map[string]string{
+			"num_retries":              "numretries",
+			"path_exact":               "pathexact",
+			"path_prefix":              "pathprefix",
+			"path_regex":               "pathregex",
+			"prefix_rewrite":           "prefixrewrite",
+			"query_param":              "queryparam",
+			"request_timeout":          "requesttimeout",
+			"retry_on_connect_failure": "retryonconnectfailure",
+			"retry_on_status_codes":    "retryonstatuscodes",
+			"service_subset":           "servicesubset",
+		}
+	case api.ServiceSplitter:
+		skipWhenPatching = []string{
+			"splits",
+			"Splits",
+		}
+		translateKeysDict = map[string]string{
+			"service_subset": "servicesubset",
+		}
+	case api.ServiceResolver:
+		translateKeysDict = map[string]string{
+			"connect_timeout":         "connecttimeout",
+			"default_subset":          "defaultsubset",
+			"only_passing":            "onlypassing",
+			"overprovisioning_factor": "overprovisioningfactor",
+			"service_subset":          "servicesubset",
+		}
+	default:
+		return nil, fmt.Errorf("kind %q should be explicitly handled here", entry.GetKind())
+	}
+
+	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
+	// to do this part first. Any config entry
+	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching)
+
+	// CamelCase is the canonical form for these, since this translation
+	// happens in the `consul config write` command and the JSON form is sent
+	// off to the server.
+	lib.TranslateKeys(raw, translateKeysDict)
+
+	var md mapstructure.Metadata
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		Metadata:         &md,
+		Result:           &entry,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decoder.Decode(raw); err != nil {
+		return nil, err
+	}
+
+	for _, k := range md.Unused {
+		err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, nil
 }
 
 func (c *cmd) Synopsis() string {

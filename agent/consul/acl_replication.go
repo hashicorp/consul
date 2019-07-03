@@ -553,3 +553,9 @@ func (s *Server) getACLReplicationStatusRunningType() (structs.ACLReplicationTyp
 	defer s.aclReplicationStatusLock.RUnlock()
 	return s.aclReplicationStatus.ReplicationType, s.aclReplicationStatus.Running
 }
+
+func (s *Server) getACLReplicationStatus() structs.ACLReplicationStatus {
+	s.aclReplicationStatusLock.RLock()
+	defer s.aclReplicationStatusLock.RUnlock()
+	return s.aclReplicationStatus
+}

@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -144,7 +145,17 @@ func testServiceNode(t *testing.T) *ServiceNode {
 		ServiceName:    "dogs",
 		ServiceTags:    []string{"prod", "v1"},
 		ServiceAddress: "127.0.0.2",
-		ServicePort:    8080,
+		ServiceTaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "127.0.0.2",
+				Port:    8080,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		ServicePort: 8080,
 		ServiceMeta: map[string]string{
 			"service": "metadata",
 		},
@@ -241,6 +252,7 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	serviceProxyDestination := sn.ServiceProxyDestination
 	serviceProxy := sn.ServiceProxy
 	serviceConnect := sn.ServiceConnect
+	serviceTaggedAddresses := sn.ServiceTaggedAddresses
 
 	n := sn.ToNodeService().ToServiceNode(node)
 	other := sn.ToNodeService().ToServiceNode(node)
@@ -275,6 +287,7 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
 	check(func() { other.ServiceProxy = ConnectProxyConfig{} }, func() { other.ServiceProxy = serviceProxy })
 	check(func() { other.ServiceConnect = ServiceConnect{} }, func() { other.ServiceConnect = serviceConnect })
+	check(func() { other.ServiceTaggedAddresses = nil }, func() { other.ServiceTaggedAddresses = serviceTaggedAddresses })
 }
 
 func TestStructs_ServiceNode_PartialClone(t *testing.T) {
@@ -321,6 +334,10 @@ func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	if reflect.DeepEqual(sn, clone) {
 		t.Fatalf("clone wasn't independent of the original for Meta")
 	}
+
+	// ensure that the tagged addresses were copied and not just a pointer to the map
+	sn.ServiceTaggedAddresses["foo"] = ServiceAddress{Address: "consul.is.awesome", Port: 443}
+	require.NotEqual(t, sn, clone)
 }
 
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
@@ -347,6 +364,65 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn.NodeMeta = map[string]string{"meta": "data"}
 	if !sn.IsSameService(sn2) || !sn2.IsSameService(sn) {
 		t.Fatalf("bad: %#v, should be the same %#v", sn2, sn)
+	}
+}
+
+func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
+	type testCase struct {
+		Modify func(*NodeService)
+		Err    string
+	}
+	cases := map[string]testCase{
+		"valid": testCase{
+			func(x *NodeService) {},
+			"",
+		},
+		"zero-port": testCase{
+			func(x *NodeService) { x.Port = 0 },
+			"Port must be non-zero",
+		},
+		"sidecar-service": testCase{
+			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
+			"cannot have a sidecar service",
+		},
+		"connect-managed-proxy": testCase{
+			func(x *NodeService) { x.Connect.Proxy = &ServiceDefinitionConnectProxy{} },
+			"Connect.Proxy configuration is invalid",
+		},
+		"proxy-destination-name": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
+			"Proxy.DestinationServiceName configuration is invalid",
+		},
+		"proxy-destination-id": testCase{
+			func(x *NodeService) { x.Proxy.DestinationServiceID = "foo" },
+			"Proxy.DestinationServiceID configuration is invalid",
+		},
+		"proxy-local-address": testCase{
+			func(x *NodeService) { x.Proxy.LocalServiceAddress = "127.0.0.1" },
+			"Proxy.LocalServiceAddress configuration is invalid",
+		},
+		"proxy-local-port": testCase{
+			func(x *NodeService) { x.Proxy.LocalServicePort = 36 },
+			"Proxy.LocalServicePort configuration is invalid",
+		},
+		"proxy-upstreams": testCase{
+			func(x *NodeService) { x.Proxy.Upstreams = []Upstream{Upstream{}} },
+			"Proxy.Upstreams configuration is invalid",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ns := TestNodeServiceMeshGateway(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			if tc.Err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			}
+		})
 	}
 }
 
@@ -472,6 +548,16 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Service: "theservice",
 		Tags:    []string{"foo", "bar"},
 		Address: "127.0.0.1",
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "127.0.0.1",
+				Port:    3456,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    1234,
+			},
+		},
 		Meta: map[string]string{
 			"meta1": "value1",
 			"meta2": "value2",
@@ -497,6 +583,16 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 		Address:           "127.0.0.1",
 		Port:              1234,
 		EnableTagOverride: true,
+		TaggedAddresses: map[string]ServiceAddress{
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    1234,
+			},
+			"lan": ServiceAddress{
+				Address: "127.0.0.1",
+				Port:    3456,
+			},
+		},
 		Meta: map[string]string{
 			// We don't care about order
 			"meta2": "value2",
@@ -559,6 +655,7 @@ func TestStructs_NodeService_IsSame(t *testing.T) {
 	if !otherServiceNode.IsSameService(otherServiceNodeCopy2) {
 		t.Fatalf("copy should be the same, but was\n %#v\nVS\n %#v", otherServiceNode, otherServiceNodeCopy2)
 	}
+	check(func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 9999} }, func() { other.TaggedAddresses["lan"] = ServiceAddress{Address: "127.0.0.1", Port: 3456} })
 }
 
 func TestStructs_HealthCheck_IsSame(t *testing.T) {
@@ -1042,6 +1139,399 @@ func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
 				info.Key = ""
 				require.Equal(t, *tc.want, info)
 			}
+		})
+	}
+}
+
+func TestNodeService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		ns   NodeService
+	}{
+		{
+			"nil",
+			NodeService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			NodeService{
+				TaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		ns := tc.ns
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(ns)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
+}
+
+func TestServiceNode_JSON_OmitServiceTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		sn   ServiceNode
+	}{
+		{
+			"nil",
+			ServiceNode{
+				ServiceTaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			ServiceNode{
+				ServiceTaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		sn := tc.sn
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(sn)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "ServiceTaggedAddresses")
+			require.NotContains(t, raw, "service_tagged_addresses")
+		})
+	}
+}
+
+func TestNode_BestAddress(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		input   Node
+		lanAddr string
+		wanAddr string
+	}
+
+	nodeAddr := "10.1.2.3"
+	nodeWANAddr := "198.18.19.20"
+
+	cases := map[string]testCase{
+		"address": testCase{
+			input: Node{
+				Address: nodeAddr,
+			},
+
+			lanAddr: nodeAddr,
+			wanAddr: nodeAddr,
+		},
+		"wan-address": testCase{
+			input: Node{
+				Address: nodeAddr,
+				TaggedAddresses: map[string]string{
+					"wan": nodeWANAddr,
+				},
+			},
+
+			lanAddr: nodeAddr,
+			wanAddr: nodeWANAddr,
+		},
+	}
+
+	for name, tc := range cases {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tc.lanAddr, tc.input.BestAddress(false))
+			require.Equal(t, tc.wanAddr, tc.input.BestAddress(true))
+		})
+	}
+}
+
+func TestNodeService_BestAddress(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		input   NodeService
+		lanAddr string
+		lanPort int
+		wanAddr string
+		wanPort int
+	}
+
+	serviceAddr := "10.2.3.4"
+	servicePort := 1234
+	serviceWANAddr := "198.19.20.21"
+	serviceWANPort := 987
+
+	cases := map[string]testCase{
+		"no-address": testCase{
+			input: NodeService{
+				Port: servicePort,
+			},
+
+			lanAddr: "",
+			lanPort: servicePort,
+			wanAddr: "",
+			wanPort: servicePort,
+		},
+		"service-address": testCase{
+			input: NodeService{
+				Address: serviceAddr,
+				Port:    servicePort,
+			},
+
+			lanAddr: serviceAddr,
+			lanPort: servicePort,
+			wanAddr: serviceAddr,
+			wanPort: servicePort,
+		},
+		"service-wan-address": testCase{
+			input: NodeService{
+				Address: serviceAddr,
+				Port:    servicePort,
+				TaggedAddresses: map[string]ServiceAddress{
+					"wan": ServiceAddress{
+						Address: serviceWANAddr,
+						Port:    serviceWANPort,
+					},
+				},
+			},
+
+			lanAddr: serviceAddr,
+			lanPort: servicePort,
+			wanAddr: serviceWANAddr,
+			wanPort: serviceWANPort,
+		},
+		"service-wan-address-default-port": testCase{
+			input: NodeService{
+				Address: serviceAddr,
+				Port:    servicePort,
+				TaggedAddresses: map[string]ServiceAddress{
+					"wan": ServiceAddress{
+						Address: serviceWANAddr,
+						Port:    0,
+					},
+				},
+			},
+
+			lanAddr: serviceAddr,
+			lanPort: servicePort,
+			wanAddr: serviceWANAddr,
+			wanPort: servicePort,
+		},
+		"service-wan-address-node-lan": testCase{
+			input: NodeService{
+				Port: servicePort,
+				TaggedAddresses: map[string]ServiceAddress{
+					"wan": ServiceAddress{
+						Address: serviceWANAddr,
+						Port:    serviceWANPort,
+					},
+				},
+			},
+
+			lanAddr: "",
+			lanPort: servicePort,
+			wanAddr: serviceWANAddr,
+			wanPort: serviceWANPort,
+		},
+	}
+
+	for name, tc := range cases {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			addr, port := tc.input.BestAddress(false)
+			require.Equal(t, tc.lanAddr, addr)
+			require.Equal(t, tc.lanPort, port)
+
+			addr, port = tc.input.BestAddress(true)
+			require.Equal(t, tc.wanAddr, addr)
+			require.Equal(t, tc.wanPort, port)
+		})
+	}
+}
+
+func TestCheckServiceNode_BestAddress(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		input   CheckServiceNode
+		lanAddr string
+		lanPort int
+		wanAddr string
+		wanPort int
+	}
+
+	nodeAddr := "10.1.2.3"
+	nodeWANAddr := "198.18.19.20"
+	serviceAddr := "10.2.3.4"
+	servicePort := 1234
+	serviceWANAddr := "198.19.20.21"
+	serviceWANPort := 987
+
+	cases := map[string]testCase{
+		"node-address": testCase{
+			input: CheckServiceNode{
+				Node: &Node{
+					Address: nodeAddr,
+				},
+				Service: &NodeService{
+					Port: servicePort,
+				},
+			},
+
+			lanAddr: nodeAddr,
+			lanPort: servicePort,
+			wanAddr: nodeAddr,
+			wanPort: servicePort,
+		},
+		"node-wan-address": testCase{
+			input: CheckServiceNode{
+				Node: &Node{
+					Address: nodeAddr,
+					TaggedAddresses: map[string]string{
+						"wan": nodeWANAddr,
+					},
+				},
+				Service: &NodeService{
+					Port: servicePort,
+				},
+			},
+
+			lanAddr: nodeAddr,
+			lanPort: servicePort,
+			wanAddr: nodeWANAddr,
+			wanPort: servicePort,
+		},
+		"service-address": testCase{
+			input: CheckServiceNode{
+				Node: &Node{
+					Address: nodeAddr,
+					// this will be ignored
+					TaggedAddresses: map[string]string{
+						"wan": nodeWANAddr,
+					},
+				},
+				Service: &NodeService{
+					Address: serviceAddr,
+					Port:    servicePort,
+				},
+			},
+
+			lanAddr: serviceAddr,
+			lanPort: servicePort,
+			wanAddr: serviceAddr,
+			wanPort: servicePort,
+		},
+		"service-wan-address": testCase{
+			input: CheckServiceNode{
+				Node: &Node{
+					Address: nodeAddr,
+					// this will be ignored
+					TaggedAddresses: map[string]string{
+						"wan": nodeWANAddr,
+					},
+				},
+				Service: &NodeService{
+					Address: serviceAddr,
+					Port:    servicePort,
+					TaggedAddresses: map[string]ServiceAddress{
+						"wan": ServiceAddress{
+							Address: serviceWANAddr,
+							Port:    serviceWANPort,
+						},
+					},
+				},
+			},
+
+			lanAddr: serviceAddr,
+			lanPort: servicePort,
+			wanAddr: serviceWANAddr,
+			wanPort: serviceWANPort,
+		},
+		"service-wan-address-default-port": testCase{
+			input: CheckServiceNode{
+				Node: &Node{
+					Address: nodeAddr,
+					// this will be ignored
+					TaggedAddresses: map[string]string{
+						"wan": nodeWANAddr,
+					},
+				},
+				Service: &NodeService{
+					Address: serviceAddr,
+					Port:    servicePort,
+					TaggedAddresses: map[string]ServiceAddress{
+						"wan": ServiceAddress{
+							Address: serviceWANAddr,
+							Port:    0,
+						},
+					},
+				},
+			},
+
+			lanAddr: serviceAddr,
+			lanPort: servicePort,
+			wanAddr: serviceWANAddr,
+			wanPort: servicePort,
+		},
+		"service-wan-address-node-lan": testCase{
+			input: CheckServiceNode{
+				Node: &Node{
+					Address: nodeAddr,
+					// this will be ignored
+					TaggedAddresses: map[string]string{
+						"wan": nodeWANAddr,
+					},
+				},
+				Service: &NodeService{
+					Port: servicePort,
+					TaggedAddresses: map[string]ServiceAddress{
+						"wan": ServiceAddress{
+							Address: serviceWANAddr,
+							Port:    serviceWANPort,
+						},
+					},
+				},
+			},
+
+			lanAddr: nodeAddr,
+			lanPort: servicePort,
+			wanAddr: serviceWANAddr,
+			wanPort: serviceWANPort,
+		},
+	}
+
+	for name, tc := range cases {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			addr, port := tc.input.BestAddress(false)
+			require.Equal(t, tc.lanAddr, addr)
+			require.Equal(t, tc.lanPort, port)
+
+			addr, port = tc.input.BestAddress(true)
+			require.Equal(t, tc.wanAddr, addr)
+			require.Equal(t, tc.wanPort, port)
 		})
 	}
 }

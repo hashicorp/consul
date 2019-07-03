@@ -1,0 +1,41 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "clusterName": "db",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "10.10.1.1",
+                    "portValue": 0
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "10.10.1.2",
+                    "portValue": 0
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+  "nonce": "00000001"
+}

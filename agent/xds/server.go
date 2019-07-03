@@ -194,7 +194,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 	handlers := map[string]*xDSType{
 		EndpointType: &xDSType{
 			typeURL:   EndpointType,
-			resources: endpointsFromSnapshot,
+			resources: s.endpointsFromSnapshot,
 			stream:    stream,
 		},
 		ClusterType: &xDSType{
@@ -235,8 +235,18 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			return err
 		}
 
-		if rule != nil && !rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, nil) {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		switch cfgSnap.Kind {
+		case structs.ServiceKindConnectProxy:
+			if rule != nil && !rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, nil) {
+				return status.Errorf(codes.PermissionDenied, "permission denied")
+			}
+		case structs.ServiceKindMeshGateway:
+			// TODO (mesh-gateway) - figure out what ACLs to check for the Gateways
+			if rule != nil && !rule.ServiceWrite(cfgSnap.Service, nil) {
+				return status.Errorf(codes.PermissionDenied, "permission denied")
+			}
+		default:
+			return status.Errorf(codes.Internal, "Invalid service kind")
 		}
 
 		// Authed OK!

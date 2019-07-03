@@ -1,6 +1,8 @@
 package proxycfg
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,11 +18,12 @@ import (
 // TestCacheTypes encapsulates all the different cache types proxycfg.State will
 // watch/request for controlling one during testing.
 type TestCacheTypes struct {
-	roots      *ControllableCacheType
-	leaf       *ControllableCacheType
-	intentions *ControllableCacheType
-	health     *ControllableCacheType
-	query      *ControllableCacheType
+	roots         *ControllableCacheType
+	leaf          *ControllableCacheType
+	intentions    *ControllableCacheType
+	health        *ControllableCacheType
+	query         *ControllableCacheType
+	compiledChain *ControllableCacheType
 }
 
 // NewTestCacheTypes creates a set of ControllableCacheTypes for all types that
@@ -28,11 +31,12 @@ type TestCacheTypes struct {
 func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 	t.Helper()
 	ct := &TestCacheTypes{
-		roots:      NewControllableCacheType(t),
-		leaf:       NewControllableCacheType(t),
-		intentions: NewControllableCacheType(t),
-		health:     NewControllableCacheType(t),
-		query:      NewControllableCacheType(t),
+		roots:         NewControllableCacheType(t),
+		leaf:          NewControllableCacheType(t),
+		intentions:    NewControllableCacheType(t),
+		health:        NewControllableCacheType(t),
+		query:         NewControllableCacheType(t),
+		compiledChain: NewControllableCacheType(t),
 	}
 	ct.query.blocking = false
 	return ct
@@ -65,6 +69,12 @@ func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 	c.RegisterType(cachetype.PreparedQueryName, types.query, &cache.RegisterOptions{
 		Refresh: false,
 	})
+	c.RegisterType(cachetype.CompiledDiscoveryChainName, types.compiledChain, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
 	return c
 }
 
@@ -76,7 +86,7 @@ func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
 	ca := connect.TestCA(t, nil)
 	roots := &structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
-		TrustDomain:  connect.TestClusterID,
+		TrustDomain:  fmt.Sprintf("%s.consul", connect.TestClusterID),
 		Roots:        []*structs.CARoot{ca},
 	}
 	return roots, TestLeafForCA(t, ca)
@@ -145,10 +155,206 @@ func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
+func TestGatewayNodesDC2(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.0.1.1",
+				Datacenter: "dc2",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.0.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "198.18.1.1", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-2",
+				Node:       "mesh-gateway",
+				Address:    "10.0.1.2",
+				Datacenter: "dc2",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.0.1.2", 8443,
+				structs.ServiceAddress{Address: "10.0.1.2", Port: 8443},
+				structs.ServiceAddress{Address: "198.18.1.2", Port: 443}),
+		},
+	}
+}
+
+func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "bar-node-1",
+				Node:       "bar-node-1",
+				Address:    "10.1.1.4",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "bar-sidecar-proxy",
+				Address: "172.16.1.6",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "bar",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "bar-node-2",
+				Node:       "bar-node-2",
+				Address:    "10.1.1.5",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "bar-sidecar-proxy",
+				Address: "172.16.1.7",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "bar",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "bar-node-3",
+				Node:       "bar-node-3",
+				Address:    "10.1.1.6",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "bar-sidecar-proxy",
+				Address: "172.16.1.8",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "2",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "bar",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+	}
+}
+
+func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "foo-node-1",
+				Node:       "foo-node-1",
+				Address:    "10.1.1.1",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.3",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "foo-node-2",
+				Node:       "foo-node-2",
+				Address:    "10.1.1.2",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.4",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "1",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "foo-node-3",
+				Node:       "foo-node-3",
+				Address:    "10.1.1.3",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.5",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "2",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "foo-node-4",
+				Node:       "foo-node-4",
+				Address:    "10.1.1.7",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "foo-sidecar-proxy",
+				Address: "172.16.1.9",
+				Port:    2222,
+				Meta: map[string]string{
+					"version": "2",
+				},
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					Upstreams:              structs.TestUpstreams(t),
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo-node-4",
+					ServiceName: "foo-sidecar-proxy",
+					Name:        "proxy-alive",
+					Status:      "warning",
+				},
+			},
+		},
+	}
+}
+
 // TestConfigSnapshot returns a fully populated snapshot
 func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 	return &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "web-sidecar-proxy",
 		ProxyID: "web-sidecar-proxy",
 		Address: "0.0.0.0",
 		Port:    9999,
@@ -163,9 +369,54 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			Upstreams: structs.TestUpstreams(t),
 		},
 		Roots: roots,
-		Leaf:  leaf,
-		UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-			"db": TestUpstreamNodes(t),
+		ConnectProxy: configSnapshotConnectProxy{
+			Leaf: leaf,
+			UpstreamEndpoints: map[string]structs.CheckServiceNodes{
+				"db": TestUpstreamNodes(t),
+			},
+		},
+		Datacenter: "dc1",
+	}
+}
+
+func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
+	roots, _ := TestCerts(t)
+	return &ConfigSnapshot{
+		Kind:    structs.ServiceKindMeshGateway,
+		Service: "mesh-gateway",
+		ProxyID: "mesh-gateway",
+		Address: "1.2.3.4",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{},
+		},
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			"lan": structs.ServiceAddress{
+				Address: "1.2.3.4",
+				Port:    8443,
+			},
+			"wan": structs.ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    443,
+			},
+		},
+		Roots:      roots,
+		Datacenter: "dc1",
+		MeshGateway: configSnapshotMeshGateway{
+			WatchedServices: map[string]context.CancelFunc{
+				"foo": nil,
+				"bar": nil,
+			},
+			WatchedDatacenters: map[string]context.CancelFunc{
+				"dc2": nil,
+			},
+			ServiceGroups: map[string]structs.CheckServiceNodes{
+				"foo": TestGatewayServiceGroupFooDC1(t),
+				"bar": TestGatewayServiceGroupBarDC1(t),
+			},
+			GatewayGroups: map[string]structs.CheckServiceNodes{
+				"dc2": TestGatewayNodesDC2(t),
+			},
 		},
 	}
 }

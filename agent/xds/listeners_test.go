@@ -6,17 +6,22 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"testing"
 	"text/template"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
+	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
 
 	tests := []struct {
-		name string
+		name   string
+		create func(t testinf.T) *proxycfg.ConfigSnapshot
 		// Setup is called before the test starts. It is passed the snapshot from
 		// TestConfigSnapshot and is allowed to modify it in any way to setup the
 		// test input.
@@ -24,8 +29,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 		overrideGoldenName string
 	}{
 		{
-			name:  "defaults",
-			setup: nil, // Default snapshot
+			name:   "defaults",
+			create: proxycfg.TestConfigSnapshot,
+			setup:  nil, // Default snapshot
 		},
 		{
 			name: "listener-bind-address",
@@ -47,19 +53,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "http-public-listener",
+			name:   "http-public-listener",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 			},
 		},
 		{
-			name: "http-upstream",
+			name:   "http-upstream",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["protocol"] = "http"
 			},
 		},
 		{
-			name: "custom-public-listener",
+			name:   "custom-public-listener",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_public_listener_json"] =
 					customListenerJSON(t, customListenerJSONOptions{
@@ -70,6 +79,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-public-listener-typed",
+			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-public-listener", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -81,6 +91,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-public-listener-ignores-tls",
+			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-public-listener", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -93,7 +104,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "custom-upstream",
+			name:   "custom-upstream",
+			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
 					customListenerJSON(t, customListenerJSONOptions{
@@ -104,6 +116,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-upstream-typed",
+			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
@@ -113,6 +126,42 @@ func TestListenersFromSnapshot(t *testing.T) {
 					})
 			},
 		},
+		{
+			name:   "mesh-gateway",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+		},
+		{
+			name:   "mesh-gateway-tagged-addresses",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config = map[string]interface{}{
+					"envoy_mesh_gateway_no_default_bind":       true,
+					"envoy_mesh_gateway_bind_tagged_addresses": true,
+				}
+			},
+		},
+		{
+			name:   "mesh-gateway-custom-addresses",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config = map[string]interface{}{
+					"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
+						"foo": structs.ServiceAddress{
+							Address: "198.17.2.3",
+							Port:    8080,
+						},
+						"bar": structs.ServiceAddress{
+							Address: "2001:db8::ff",
+							Port:    9999,
+						},
+						"baz": structs.ServiceAddress{
+							Address: "127.0.0.1",
+							Port:    8765,
+						},
+					},
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -120,14 +169,18 @@ func TestListenersFromSnapshot(t *testing.T) {
 			require := require.New(t)
 
 			// Sanity check default with no overrides first
-			snap := proxycfg.TestConfigSnapshot(t)
+			snap := tt.create(t)
 
 			// We need to replace the TLS certs with deterministic ones to make golden
 			// files workable. Note we don't update these otherwise they'd change
 			// golder files for every test case and so not be any use!
-			snap.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
-			snap.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
-			snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+			if snap.ConnectProxy.Leaf != nil {
+				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
+				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+			}
+			if snap.Roots != nil {
+				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+			}
 
 			if tt.setup != nil {
 				tt.setup(snap)
@@ -137,6 +190,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
 
 			listeners, err := s.listenersFromSnapshot(snap, "my-token")
+			sort.Slice(listeners, func(i, j int) bool {
+				return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
+			})
+
 			require.NoError(err)
 			r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
 			require.NoError(err)

@@ -1,4 +1,4 @@
-package tls
+package tlsutil
 
 import (
 	"bytes"

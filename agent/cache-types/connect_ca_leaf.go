@@ -501,12 +501,23 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, errors.New("cluster has no CA bootstrapped yet")
 	}
 
-	// Build the service ID
-	serviceID := &connect.SpiffeIDService{
-		Host:       roots.TrustDomain,
-		Datacenter: req.Datacenter,
-		Namespace:  "default",
-		Service:    req.Service,
+	// Build the cert uri
+	var id connect.CertURI
+	if req.Service != "" {
+		id = &connect.SpiffeIDService{
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+			Namespace:  "default",
+			Service:    req.Service,
+		}
+	} else if req.Agent != "" {
+		id = &connect.SpiffeIDAgent{
+			Host:       roots.TrustDomain,
+			Datacenter: req.Datacenter,
+			Agent:      req.Agent,
+		}
+	} else {
+		return result, errors.New("URI must be either service or agent")
 	}
 
 	// Create a new private key
@@ -516,7 +527,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(serviceID, pk)
+	csr, err := connect.CreateCSR(id, pk)
 	if err != nil {
 		return result, err
 	}
@@ -606,14 +617,23 @@ type ConnectCALeafRequest struct {
 	Token         string
 	Datacenter    string
 	Service       string // Service name, not ID
+	Agent         string // Agent name, not ID
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
+}
+
+func (r *ConnectCALeafRequest) Key() string {
+	if len(r.Agent) > 0 {
+		return fmt.Sprintf("agent:%s", r.Agent)
+	}
+
+	return fmt.Sprintf("service:%s", r.Service)
 }
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
 	return cache.RequestInfo{
 		Token:      r.Token,
-		Key:        r.Service,
+		Key:        r.Key(),
 		Datacenter: r.Datacenter,
 		MinIndex:   r.MinQueryIndex,
 		Timeout:    r.MaxQueryTime,

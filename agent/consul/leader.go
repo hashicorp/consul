@@ -327,7 +327,7 @@ func (s *Server) establishLeadership() error {
 
 	s.startConfigReplication()
 
-	s.startEnterpriseLeader()
+	s.startConnectLeader()
 
 	s.startCARootPruning()
 
@@ -347,7 +347,7 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConfigReplication()
 
-	s.stopEnterpriseLeader()
+	s.stopConnectLeader()
 
 	s.stopCARootPruning()
 
@@ -1084,7 +1084,7 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 		ID:                  id,
 		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
 		SerialNumber:        rootCert.SerialNumber.Uint64(),
-		SigningKeyID:        connect.HexString(rootCert.AuthorityKeyId),
+		SigningKeyID:        connect.HexString(rootCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
 		NotBefore:           rootCert.NotBefore,
 		NotAfter:            rootCert.NotAfter,
@@ -1363,6 +1363,17 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 			ID:      structs.ConsulServiceID,
 			Service: structs.ConsulServiceName,
 			Port:    parts.Port,
+			Weights: &structs.Weights{
+				Passing: 1,
+				Warning: 1,
+			},
+			Meta: map[string]string{
+				"raft_version":          strconv.Itoa(parts.RaftVersion),
+				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
+				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
+				"serf_protocol_max":     strconv.FormatUint(uint64(member.ProtocolMax), 10),
+				"version":               parts.Build.String(),
+			},
 		}
 
 		// Attempt to join the consul server

@@ -102,6 +102,12 @@ func servicesTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer:      &IndexConnectService{},
 			},
+			"kind": &memdb.IndexSchema{
+				Name:         "kind",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer:      &IndexServiceKind{},
+			},
 		},
 	}
 }
@@ -848,6 +854,9 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
+	if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.Kind), idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
 
 	return nil
 }
@@ -1147,6 +1156,13 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string) (uint64, 
 		svc := service.(*structs.ServiceNode)
 		if svc.ServiceAddress == address {
 			results = append(results, svc)
+		} else {
+			for _, addr := range svc.ServiceTaggedAddresses {
+				if addr.Address == address {
+					results = append(results, svc)
+					break
+				}
+			}
 		}
 	}
 
@@ -1323,6 +1339,16 @@ func serviceIndexName(name string) string {
 	return fmt.Sprintf("service.%s", name)
 }
 
+func serviceKindIndexName(kind structs.ServiceKind) string {
+	switch kind {
+	case structs.ServiceKindTypical:
+		// needs a special case here
+		return "service_kind.typical"
+	default:
+		return "service_kind." + string(kind)
+	}
+}
+
 // deleteServiceCASTxn is used to try doing a service delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
@@ -1447,6 +1473,9 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
+		if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.Kind), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
 	}
 	return nil
 }
@@ -1535,6 +1564,9 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		} else {
 			// Check has been modified, we trigger a index service change
 			if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
+			if err = tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
 				return fmt.Errorf("failed updating index: %s", err)
 			}
 		}
@@ -2148,14 +2180,43 @@ func (s *Store) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	return s.parseNodes(tx, ws, idx, nodes)
 }
 
-func (s *Store) ServiceDump(ws memdb.WatchSet) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	if useKind {
+		return s.serviceDumpKindTxn(tx, ws, kind)
+	} else {
+		return s.serviceDumpAllTxn(tx, ws)
+	}
+}
+
+func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, structs.CheckServiceNodes, error) {
 	// Get the table index
 	idx := maxIndexWatchTxn(tx, ws, "nodes", "services", "checks")
 
 	services, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	var results structs.ServiceNodes
+	for service := services.Next(); service != nil; service = services.Next() {
+		sn := service.(*structs.ServiceNode)
+		results = append(results, sn)
+	}
+
+	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+}
+
+func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind structs.ServiceKind) (uint64, structs.CheckServiceNodes, error) {
+	// unlike when we are dumping all services here we only need to watch the kind specific index entry for changing (or nodes, checks)
+	// updating any services, nodes or checks will bump the appropriate service kind index so there is no need to watch any of the individual
+	// entries
+	idx := maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind))
+
+	// Query the state store for the service.
+	services, err := tx.Get("services", "kind", string(kind))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}

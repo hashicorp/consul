@@ -132,8 +132,7 @@ configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaul
   available interfaces or a pod IP address.
 
     -> **Note:** Envoy versions prior to 1.10 do not export timing histograms
-    using the internal Prometheus endpoint. Consul 1.5.0 [doesn't yet support
-    Envoy 1.10](#supported-versions) although support will soon be added.
+    using the internal Prometheus endpoint.
 
 - `envoy_stats_tags` - Specifies one or more static tags that will be added to
   all metrics produced by the proxy.

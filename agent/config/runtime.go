@@ -259,6 +259,14 @@ type RuntimeConfig struct {
 	// flag: -domain string
 	DNSDomain string
 
+	// DNSAltDomain can be set to support resolution on an additional
+	// consul domain. Should end with a dot.
+	// If left blank, only the primary domain will be used.
+	//
+	// hcl: alt_domain = string
+	// flag: -alt-domain string
+	DNSAltDomain string
+
 	// DNSEnableTruncate is used to enable setting the truncate
 	// flag for UDP DNS queries.  This allows unmodified
 	// clients to re-query the consul server using TCP
@@ -510,6 +518,14 @@ type RuntimeConfig struct {
 	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
 	// If entries of the same Kind/Name exist already these will not update them.
 	ConfigEntryBootstrap []structs.ConfigEntry
+
+	// AutoEncryptTLS requires the client to acquire TLS certificates from
+	// servers.
+	AutoEncryptTLS bool
+
+	// AutoEncryptAllowTLS enables the server to respond to
+	// AutoEncrypt.Sign requests.
+	AutoEncryptAllowTLS bool
 
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
@@ -1295,7 +1311,7 @@ type RuntimeConfig struct {
 	// hcl: skip_leave_on_interrupt = (true|false)
 	SkipLeaveOnInt bool
 
-	// StartJoinLAN is a list of addresses to attempt to join -wan when the
+	// StartJoinAddrsLAN is a list of addresses to attempt to join -lan when the
 	// agent starts. If Serf is unable to communicate with any of these
 	// addresses, then the agent will error and exit.
 	//
@@ -1623,6 +1639,7 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
+		AutoEncryptTLS:           c.AutoEncryptTLS,
 	}
 }
 

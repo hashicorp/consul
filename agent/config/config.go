@@ -70,7 +70,7 @@ func Parse(data string, format string) (c Config, err error) {
 	// []map[string]interface{} or are arrays of structs which
 	// encoding/json will decode to []map[string]interface{}. Therefore,
 	// we need to be able to specify exceptions for this mapping. The
-	// patchSliceOfMaps() implements that mapping. All fields of type
+	// PatchSliceOfMaps() implements that mapping. All fields of type
 	// []map[string]interface{} are mapped to map[string]interface{} if
 	// it contains at most one value. If there is more than one value it
 	// panics. To define exceptions one can specify the nested field
@@ -78,7 +78,7 @@ func Parse(data string, format string) (c Config, err error) {
 	//
 	// todo(fs): There might be an easier way to achieve the same thing
 	// todo(fs): but this approach works for now.
-	m := patchSliceOfMaps(raw, []string{
+	m := lib.PatchSliceOfMaps(raw, []string{
 		"checks",
 		"segments",
 		"service.checks",
@@ -189,9 +189,11 @@ type Config struct {
 	Checks                           []CheckDefinition        `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
 	ClientAddr                       *string                  `json:"client_addr,omitempty" hcl:"client_addr" mapstructure:"client_addr"`
 	ConfigEntries                    ConfigEntries            `json:"config_entries,omitempty" hcl:"config_entries" mapstructure:"config_entries"`
+	AutoEncrypt                      AutoEncrypt              `json:"auto_encrypt,omitempty" hcl:"auto_encrypt" mapstructure:"auto_encrypt"`
 	Connect                          Connect                  `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 	DNS                              DNS                      `json:"dns_config,omitempty" hcl:"dns_config" mapstructure:"dns_config"`
 	DNSDomain                        *string                  `json:"domain,omitempty" hcl:"domain" mapstructure:"domain"`
+	DNSAltDomain                     *string                  `json:"alt_domain,omitempty" hcl:"alt_domain" mapstructure:"alt_domain"`
 	DNSRecursors                     []string                 `json:"recursors,omitempty" hcl:"recursors" mapstructure:"recursors"`
 	DataDir                          *string                  `json:"data_dir,omitempty" hcl:"data_dir" mapstructure:"data_dir"`
 	Datacenter                       *string                  `json:"datacenter,omitempty" hcl:"datacenter" mapstructure:"datacenter"`
@@ -362,19 +364,25 @@ type ServiceWeights struct {
 	Warning *int `json:"warning,omitempty" hcl:"warning" mapstructure:"warning"`
 }
 
+type ServiceAddress struct {
+	Address *string `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	Port    *int    `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+}
+
 type ServiceDefinition struct {
-	Kind              *string           `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
-	ID                *string           `json:"id,omitempty" hcl:"id" mapstructure:"id"`
-	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
-	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
-	Address           *string           `json:"address,omitempty" hcl:"address" mapstructure:"address"`
-	Meta              map[string]string `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
-	Port              *int              `json:"port,omitempty" hcl:"port" mapstructure:"port"`
-	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
-	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
-	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
-	Weights           *ServiceWeights   `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
-	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
+	Kind              *string                   `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
+	ID                *string                   `json:"id,omitempty" hcl:"id" mapstructure:"id"`
+	Name              *string                   `json:"name,omitempty" hcl:"name" mapstructure:"name"`
+	Tags              []string                  `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
+	Address           *string                   `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	TaggedAddresses   map[string]ServiceAddress `json:"tagged_addresses,omitempty" hcl:"tagged_addresses" mapstructure:"tagged_addresses"`
+	Meta              map[string]string         `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
+	Port              *int                      `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+	Check             *CheckDefinition          `json:"check,omitempty" hcl:"check" mapstructure:"check"`
+	Checks            []CheckDefinition         `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
+	Token             *string                   `json:"token,omitempty" hcl:"token" mapstructure:"token"`
+	Weights           *ServiceWeights           `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
+	EnableTagOverride *bool                     `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
 	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
 	ProxyDestination *string         `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
 	Proxy            *ServiceProxy   `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
@@ -501,6 +509,16 @@ type Upstream struct {
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+}
+
+// AutoEncrypt is the agent-global auto_encrypt configuration.
+type AutoEncrypt struct {
+	// TLS enables receiving certificates for clients from servers
+	TLS *bool `json:"tls,omitempty" hcl:"tls" mapstructure:"tls"`
+
+	// AllowTLS enables the RPC endpoint on the server to answer
+	// AutoEncrypt.Sign requests.
+	AllowTLS *bool `json:"allow_tls,omitempty" hcl:"allow_tls" mapstructure:"allow_tls"`
 }
 
 // Connect is the agent-global connect configuration.
