@@ -222,26 +222,35 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	// is an IP this will fail to parse as a URL with "parse 127.0.0.1:8500: first
 	// path segment in URL cannot contain colon". On the other hand we also
 	// support both http(s)://host:port and unix:///path/to/file.
-	addrPort := strings.TrimPrefix(c.grpcAddr, "http://")
-	addrPort = strings.TrimPrefix(c.grpcAddr, "https://")
+	var agentAddr, agentPort, agentSock string
+	if grpcAddr := strings.TrimPrefix(c.grpcAddr, "unix://"); grpcAddr != c.grpcAddr {
+		// Path to unix socket
+		agentSock = grpcAddr
+	} else {
+		// Parse as host:port with option http prefix
+		grpcAddr = strings.TrimPrefix(c.grpcAddr, "http://")
+		grpcAddr = strings.TrimPrefix(c.grpcAddr, "https://")
 
-	agentAddr, agentPort, err := net.SplitHostPort(addrPort)
-	if err != nil {
-		return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
-	}
-	if agentAddr == "" {
-		agentAddr = "127.0.0.1"
-	}
+		var err error
+		agentAddr, agentPort, err = net.SplitHostPort(grpcAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid Consul HTTP address: %s", err)
+		}
+		if agentAddr == "" {
+			agentAddr = "127.0.0.1"
+		}
 
-	// We use STATIC for agent which means we need to resolve DNS names like
-	// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
-	// but Envoy resolves `localhost` differently to go on macOS at least which
-	// causes paper cuts like default dev agent (which binds specifically to
-	// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
-	// can't connect.
-	agentIP, err := net.ResolveIPAddr("ip", agentAddr)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to resolve agent address: %s", err)
+		// We use STATIC for agent which means we need to resolve DNS names like
+		// `localhost` ourselves. We could use STRICT_DNS or LOGICAL_DNS with envoy
+		// but Envoy resolves `localhost` differently to go on macOS at least which
+		// causes paper cuts like default dev agent (which binds specifically to
+		// 127.0.0.1) isn't reachable since Envoy resolves localhost to `[::]` and
+		// can't connect.
+		agentIP, err := net.ResolveIPAddr("ip", agentAddr)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to resolve agent address: %s", err)
+		}
+		agentAddr = agentIP.String()
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
@@ -274,8 +283,9 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	return &BootstrapTplArgs{
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
-		AgentAddress:          agentIP.String(),
+		AgentAddress:          agentAddr,
 		AgentPort:             agentPort,
+		AgentSocket:           agentSock,
 		AgentTLS:              useTLS,
 		AgentCAFile:           httpCfg.TLSConfig.CAFile,
 		AdminAccessLogPath:    adminAccessLogPath,
