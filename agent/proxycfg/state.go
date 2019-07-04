@@ -150,6 +150,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceKind:    structs.ServiceKindMeshGateway,
 			UseServiceKind: true,
+			Source:         *s.source,
 		}, correlationId, s.ch)
 	case structs.MeshGatewayModeLocal:
 		return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
@@ -157,6 +158,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceKind:    structs.ServiceKindMeshGateway,
 			UseServiceKind: true,
+			Source:         *s.source,
 		}, correlationId, s.ch)
 	default:
 		// This includes both the None and Default modes on purpose
@@ -171,6 +173,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 			// Note that Identifier doesn't type-prefix for service any more as it's
 			// the default and makes metrics and other things much cleaner. It's
 			// simpler for us if we have the type to make things unambiguous.
+			Source: *s.source,
 		}, correlationId, s.ch)
 	}
 }
@@ -182,6 +185,7 @@ func (s *state) initWatchesConnectProxy() error {
 	err := s.cache.Notify(s.ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
+		Source:       *s.source,
 	}, rootsWatchID, s.ch)
 	if err != nil {
 		return err
@@ -230,6 +234,7 @@ func (s *state) initWatchesConnectProxy() error {
 				QueryOptions:  structs.QueryOptions{Token: s.token, MaxAge: defaultPreparedQueryPollInterval},
 				QueryIDOrName: u.DestinationName,
 				Connect:       true,
+				Source:        *s.source,
 			}, "upstream:"+u.Identifier(), s.ch)
 		case structs.UpstreamDestTypeService:
 			fallthrough
@@ -290,6 +295,7 @@ func (s *state) initWatchesMeshGateway() error {
 	err := s.cache.Notify(s.ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
+		Source:       *s.source,
 	}, rootsWatchID, s.ch)
 	if err != nil {
 		return err
@@ -299,6 +305,7 @@ func (s *state) initWatchesMeshGateway() error {
 	err = s.cache.Notify(s.ctx, cachetype.CatalogListServicesName, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
 		QueryOptions: structs.QueryOptions{Token: s.token},
+		Source:       *s.source,
 	}, serviceListWatchID, s.ch)
 
 	if err != nil {
@@ -721,6 +728,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceKind:    structs.ServiceKindMeshGateway,
 					UseServiceKind: true,
+					Source:         *s.source,
 				}, fmt.Sprintf("mesh-gateway:%s", dc), s.ch)
 
 				if err != nil {
