@@ -58,6 +58,8 @@ var Owners = []string{`
 		}
 		golist += fmt.Sprintf("%q%s", a, c)
 	}
+	// to prevent `No newline at end of file` with gofmt
+	golist += "\n"
 
 	if err := ioutil.WriteFile("plugin/chaos/zowners.go", []byte(golist), 0644); err != nil {
 		log.Fatal(err)

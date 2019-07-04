@@ -9,8 +9,8 @@ import (
 	mwtls "github.com/coredns/coredns/plugin/pkg/tls"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
-	etcdcv3 "github.com/coreos/etcd/clientv3"
 	"github.com/caddyserver/caddy"
+	etcdcv3 "github.com/coreos/etcd/clientv3"
 )
 
 var log = clog.NewWithPlugin("etcd")
