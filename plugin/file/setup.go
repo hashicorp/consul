@@ -57,6 +57,9 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 	config := dnsserver.GetConfig(c)
 
+	var openErr error
+	reload := 1 * time.Minute
+
 	for c.Next() {
 		// file db.file [zones...]
 		if !c.NextArg() {
@@ -77,22 +80,23 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 
 		reader, err := os.Open(fileName)
 		if err != nil {
-			// bail out
-			return Zones{}, err
+			openErr = err
 		}
 
 		for i := range origins {
 			origins[i] = plugin.Host(origins[i]).Normalize()
-			zone, err := Parse(reader, origins[i], fileName, 0)
-			if err == nil {
-				z[origins[i]] = zone
-			} else {
-				return Zones{}, err
+			z[origins[i]] = NewZone(origins[i], fileName)
+			if openErr == nil {
+				zone, err := Parse(reader, origins[i], fileName, 0)
+				if err == nil {
+					z[origins[i]] = zone
+				} else {
+					return Zones{}, err
+				}
 			}
 			names = append(names, origins[i])
 		}
 
-		reload := 1 * time.Minute
 		upstr := upstream.New()
 		t := []string{}
 		var e error
@@ -128,6 +132,14 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				z[origin].Upstream = upstr
 			}
 		}
+	}
+	if openErr != nil {
+		if reload == 0 {
+			// reload hasn't been set make this a fatal error
+			return Zones{}, plugin.Error("file", openErr)
+		}
+		log.Warningf("Failed to open %q: trying again in %s", openErr, reload)
+
 	}
 	return Zones{Z: z, Names: names}, nil
 }

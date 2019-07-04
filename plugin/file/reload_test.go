@@ -29,7 +29,6 @@ func TestZoneReload(t *testing.T) {
 		t.Fatalf("Failed to parse zone: %s", err)
 	}
 
-	TickTime = 500 * time.Millisecond
 	z.ReloadInterval = 500 * time.Millisecond
 	z.Reload()
 	time.Sleep(time.Second)

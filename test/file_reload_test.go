@@ -5,15 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coredns/coredns/plugin/file"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
 )
 
 func TestZoneReload(t *testing.T) {
-	file.TickTime = 1 * time.Second
-
 	name, rm, err := test.TempFile(".", exampleOrg)
 	if err != nil {
 		t.Fatalf("Failed to create zone: %s", err)

@@ -129,12 +129,15 @@ func Parse(f io.Reader, origin, fileName string, serial int64) (*Zone, error) {
 			return nil, err
 		}
 
-		if !seenSOA && serial >= 0 {
+		if !seenSOA {
 			if s, ok := rr.(*dns.SOA); ok {
-				if s.Serial == uint32(serial) { // same serial
+				seenSOA = true
+
+				// -1 is valid serial is we failed to load the file on startup.
+
+				if serial >= 0 && s.Serial == uint32(serial) { // same serial
 					return nil, &serialErr{err: "no change in SOA serial", origin: origin, zone: fileName, serial: serial}
 				}
-				seenSOA = true
 			}
 		}
 

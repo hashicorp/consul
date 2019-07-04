@@ -30,7 +30,6 @@ type Zone struct {
 	Expired      *bool
 
 	ReloadInterval time.Duration
-	LastReloaded   time.Time
 	reloadMu       sync.RWMutex
 	reloadShutdown chan bool
 	Upstream       *upstream.Upstream // Upstream for looking up external names during the resolution process.
@@ -53,7 +52,6 @@ func NewZone(name, file string) *Zone {
 		Tree:           &tree.Tree{},
 		Expired:        new(bool),
 		reloadShutdown: make(chan bool),
-		LastReloaded:   time.Now(),
 	}
 	*z.Expired = false
 	return z
