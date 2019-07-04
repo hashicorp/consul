@@ -19,7 +19,7 @@
 {{/with}}
 {{#if (eq item.Service.Kind 'connect-proxy')}}
         <span class="kind-proxy">Proxy</span>
-{{else if item.Service.Proxy.MeshGateway}}
+{{else if (eq item.Service.Kind 'mesh-gateway')}}
         <span class="kind-proxy">Mesh Gateway</span>
 {{/if}}
       </h1>

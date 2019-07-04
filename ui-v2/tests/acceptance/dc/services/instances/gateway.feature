@@ -5,6 +5,7 @@ Feature: dc / services / instances / gateway: Show Gateway Service Instance
     And 1 instance model from yaml
     ---
     - Service:
+        Kind: mesh-gateway
         Name: gateway
         ID: gateway-with-id
         TaggedAddresses:
@@ -14,17 +15,6 @@ Feature: dc / services / instances / gateway: Show Gateway Service Instance
           wan:
             Address: 92.68.0.0
             Port: 8081
-        Proxy:
-          MeshGateway: {}
-          Upstreams:
-            - DestinationType: service
-              DestinationName: service-1
-              LocalBindAddress: 127.0.0.1
-              LocalBindPort: 1111
-            - DestinationType: prepared_query
-              DestinationName: service-group
-              LocalBindAddress: 127.0.0.1
-              LocalBindPort: 1112
     ---
     When I visit the instance page for yaml
     ---
@@ -45,19 +35,3 @@ Feature: dc / services / instances / gateway: Show Gateway Service Instance
     - 127.0.0.1:8080
     - 92.68.0.0:8081
     ---
-
-    When I click upstreams on the tabs
-    And I see upstreamsIsSelected on the tabs
-    And I see 2 of the upstreams object
-    And I see name on the upstreams like yaml
-    ---
-    - service-1
-    - service-group
-    ---
-    And I see type on the upstreams like yaml
-    ---
-    - service
-    - prepared_query
-    ---
-
-
