@@ -19,6 +19,7 @@ endif
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
+MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
 ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
@@ -46,6 +47,30 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+
+TEST_MODCACHE?=1
+TEST_BUILDCACHE?=1
+
+# You can only use as many CPUs as you have allocated to docker
+ifdef TEST_DOCKER_CPUS
+TEST_DOCKER_RESOURCE_CONSTRAINTS=--cpus $(TEST_DOCKER_CPUS)
+TEST_PARALLELIZATION=-e GOMAXPROCS=$(TEST_DOCKER_CPUS)
+else
+TEST_DOCKER_RESOURCE_CONSTRAINTS=
+TEST_PARALLELIZATION=
+endif
+
+ifeq ($(TEST_MODCACHE), 1)
+TEST_MODCACHE_VOL=-v $(MAIN_GOPATH)/pkg/mod:/go/pkg/mod
+else
+TEST_MODCACHE_VOL=
+endif
+
+ifeq ($(TEST_BUILDCACHE), 1)
+TEST_BUILDCACHE_VOL=-v $(shell go env GOCACHE):/root/.caches/go-build
+else
+TEST_BUILDCACHE_VOL=
+endif
 
 DIST_TAG?=1
 DIST_BUILD?=1
@@ -210,6 +235,34 @@ test-ci: other-consul dev-build vet test-install-deps
 
 test-flake: other-consul vet test-install-deps
 	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
+
+test-docker: linux go-build-image
+	@# -ti run in the foreground showing stdout
+	@# --rm removes the container once its finished running
+	@# GO_MODCACHE_VOL - args for mapping in the go module cache
+	@# GO_BUILD_CACHE_VOL - args for mapping in the go build cache
+	@# All the env vars are so we pass through all the relevant bits of information
+	@# Needed for running the tests
+	@# We map in our local linux_amd64 bin directory as thats where the linux dep
+	@#   target dropped the binary. We could build the binary in the container too
+	@#   but that might take longer as caching gets weird
+	@# Lastly we map the source dir here to the /consul workdir
+	@echo "Running tests within a docker container"
+	@docker run -ti --rm \
+		-e 'GOTEST_FLAGS=$(GOTEST_FLAGS)' \
+		-e 'GOTEST_PKGS=$(GOTEST_PKGS)' \
+		-e 'GOTAGS=$(GOTAGS)' \
+		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
+		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
+		-e 'GIT_DESCRIBE=$(GIT_DESCRIBE)' \
+		$(TEST_PARALLELIZATION) \
+		$(TEST_DOCKER_RESOURCE_CONSTRAINTS) \
+		$(TEST_MODCACHE_VOL) \
+		$(TEST_BUILDCACHE_VOL) \
+		-v $(MAIN_GOPATH)/bin/linux_amd64/:/go/bin \
+		-v $(shell pwd):/consul \
+		$(GO_BUILD_TAG) \
+		make test-internal
 
 other-consul:
 	@echo "--> Checking for other consul instances"
