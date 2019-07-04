@@ -52,13 +52,11 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		Op:         structs.SnapshotSave,
 	}
 
-	retry.Run(t, func(r *retry.R) {
-		snap, err = SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
-			&args, bytes.NewReader([]byte("")), &reply)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-	})
+	snap, err = SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+		&args, bytes.NewReader([]byte("")), &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	defer snap.Close()
 
 	// Read back the before value.
@@ -84,7 +82,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 
 	// Set a key to an after value.
-	{
+	retry.Run(t, func(r *retry.R) {
 		args := structs.KVSRequest{
 			Datacenter: dc,
 			Op:         api.KVSet,
@@ -98,9 +96,9 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		}
 		var out bool
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-	}
+	})
 
 	// Read back the before value. We do this with a retry and stale mode so
 	// we can query the server we are working with, which might not be the
@@ -128,19 +126,21 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	})
 
 	// Restore the snapshot.
-	args = structs.SnapshotRequest{
-		Datacenter: dc,
-		Token:      token,
-		Op:         structs.SnapshotRestore,
-	}
-	fmt.Println(snap)
+	retry.Run(t, func(r *retry.R) {
+		args = structs.SnapshotRequest{
+			Datacenter: dc,
+			Token:      token,
+			Op:         structs.SnapshotRestore,
+		}
+		fmt.Println(snap)
 
-	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
-		&args, snap, &reply)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer restore.Close()
+		restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+			&args, snap, &reply)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		defer restore.Close()
+	})
 
 	// Read back the before value post-snapshot. Similar rationale here; use
 	// stale to query the server we are working with.
@@ -308,9 +308,14 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Leader(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
+		c.SerfWANConfig = nil
+
+		// Effectively disable autopilot
+		// Changes in server config leads flakiness because snapshotting
+		// fails if there are config changes outstanding
+		c.AutopilotInterval = 50 * time.Second
 
 		// Since we are doing multiple restores to the same leader,
 		// the default short time for a reconcile can cause the
@@ -320,17 +325,19 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
+		c.SerfWANConfig = nil
+		c.AutopilotInterval = 50 * time.Second
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Try to join.
 	joinLAN(t, s2, s1)
-	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Run against the leader and the follower to ensure we forward. When
 	// we changed to Raft protocol version 3, since we only have two servers,
