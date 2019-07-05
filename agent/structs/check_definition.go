@@ -37,6 +37,7 @@ type CheckDefinition struct {
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	DeregisterCriticalServiceAfter time.Duration
+	OutputMaxSize                  int
 }
 
 func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
@@ -72,6 +73,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		GRPCUseTLS:                     c.GRPCUseTLS,
 		Header:                         c.Header,
 		Method:                         c.Method,
+		OutputMaxSize:                  c.OutputMaxSize,
 		TCP:                            c.TCP,
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,

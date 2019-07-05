@@ -122,9 +122,8 @@ func (s *Server) clearSessionTimer(id string) error {
 
 // clearAllSessionTimers is used when a leader is stepping
 // down and we no longer need to track any session timers.
-func (s *Server) clearAllSessionTimers() error {
+func (s *Server) clearAllSessionTimers() {
 	s.sessionTimers.StopAll()
-	return nil
 }
 
 // sessionStats is a long running routine used to capture

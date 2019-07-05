@@ -1586,7 +1586,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-
+	checkBufSize := 100
 	health := &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "mem",
@@ -1594,7 +1594,8 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		TTL: 15 * time.Second,
+		TTL:           15 * time.Second,
+		OutputMaxSize: checkBufSize,
 	}
 
 	// Add check and update it.
@@ -1613,6 +1614,19 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
+	}
+
+	if err := a.updateTTLCheck("mem", api.HealthCritical, strings.Repeat("--bad-- ", 5*checkBufSize)); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping.
+	status = a.State.Checks()["mem"]
+	if status.Status != api.HealthCritical {
+		t.Fatalf("bad: %v", status)
+	}
+	if len(status.Output) > checkBufSize*2 {
+		t.Fatalf("bad: %v", len(status.Output))
 	}
 }
 
@@ -3856,4 +3870,21 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+}
+
+func TestAgent_consulConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_incoming = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		auto_encrypt { allow_tls = true }
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
 }

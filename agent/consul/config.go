@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -146,6 +147,9 @@ type Config struct {
 	// that are force removed, as well as intermittent unavailability during
 	// leader election.
 	ReconcileInterval time.Duration
+
+	// LogLevel is the level of the logs to write. Defaults to "INFO".
+	LogLevel string
 
 	// LogOutput is the location to write logs to. If this is not set,
 	// logs will go to stderr.
@@ -365,6 +369,9 @@ type Config struct {
 	// warning and discard the remaining updates.
 	CoordinateUpdateMaxBatches int
 
+	// CheckOutputMaxSize control the max size of output of checks
+	CheckOutputMaxSize int
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -410,17 +417,25 @@ type Config struct {
 	// ConfigEntryBootstrap contains a list of ConfigEntries to ensure are created
 	// If entries of the same Kind/Name exist already these will not update them.
 	ConfigEntryBootstrap []structs.ConfigEntry
+
+	// AutoEncryptAllowTLS is whether to enable the server responding to
+	// AutoEncrypt.Sign requests.
+	AutoEncryptAllowTLS bool
 }
 
+// ToTLSUtilConfig is only used by tests, usually the config is being passed
+// down from the agent.
 func (c *Config) ToTLSUtilConfig() tlsutil.Config {
 	return tlsutil.Config{
 		VerifyIncoming:           c.VerifyIncoming,
 		VerifyOutgoing:           c.VerifyOutgoing,
+		VerifyServerHostname:     c.VerifyServerHostname,
 		CAFile:                   c.CAFile,
 		CAPath:                   c.CAPath,
 		CertFile:                 c.CertFile,
 		KeyFile:                  c.KeyFile,
 		NodeName:                 c.NodeName,
+		Domain:                   c.Domain,
 		ServerName:               c.ServerName,
 		TLSMinVersion:            c.TLSMinVersion,
 		CipherSuites:             c.TLSCipherSuites,
@@ -498,6 +513,8 @@ func DefaultConfig() *Config {
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
+
+		CheckOutputMaxSize: checks.DefaultBufSize,
 
 		RPCRate:     rate.Inf,
 		RPCMaxBurst: 1000,

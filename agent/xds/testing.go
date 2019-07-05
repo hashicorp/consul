@@ -9,7 +9,7 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
+	envoyauth "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
 	"github.com/mitchellh/go-testing-interface"
 	"google.golang.org/grpc/metadata"
 

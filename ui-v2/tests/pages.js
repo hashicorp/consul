@@ -67,11 +67,20 @@ export default {
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(
-    policies(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
+    policies(
+      visitable,
+      deletable,
+      creatable,
+      clickable,
+      attribute,
+      collection,
+      text,
+      freetextFilter
+    )
   ),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
   roles: create(
-    roles(visitable, deletable, creatable, clickable, attribute, collection, freetextFilter)
+    roles(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
   ),
   // TODO: This needs a policyList
   role: create(role(visitable, submitable, deletable, cancelable, policySelector, tokenList)),

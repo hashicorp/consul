@@ -30,6 +30,21 @@ test('items are found by properties', function(assert) {
       Description: 'description',
       Policies: [{ Name: 'policy' }, { Name: 'policy-HIT' }],
     },
+    {
+      AccessorID: 'id',
+      Name: 'name',
+      Description: 'description',
+      Roles: [{ Name: 'role' }, { Name: 'role-HIT' }],
+    },
+    {
+      AccessorID: 'id',
+      Name: 'name',
+      Description: 'description',
+      ServiceIdentities: [
+        { ServiceName: 'service-identity' },
+        { ServiceName: 'service-identity-HIT' },
+      ],
+    },
   ].forEach(function(item) {
     const actual = filter(item, {
       s: 'hit',
@@ -51,6 +66,18 @@ test('items are not found', function(assert) {
       Description: 'description',
       Policies: [{ Name: 'policy' }, { Name: 'policy-second' }],
     },
+    {
+      AccessorID: 'id',
+      Name: 'name',
+      Description: 'description',
+      Roles: [{ Name: 'role' }, { Name: 'role-second' }],
+    },
+    {
+      AccessorID: 'id',
+      Name: 'name',
+      Description: 'description',
+      ServiceIdenitities: [{ ServiceName: 'si' }, { ServiceName: 'si-second' }],
+    },
   ].forEach(function(item) {
     const actual = filter(item, {
       s: 'hit',
@@ -58,7 +85,7 @@ test('items are not found', function(assert) {
     assert.notOk(actual);
   });
 });
-test('policies can be empty', function(assert) {
+test('arraylike things can be empty', function(assert) {
   [
     {
       AccessorID: 'id',
@@ -70,12 +97,16 @@ test('policies can be empty', function(assert) {
       Name: 'name',
       Description: 'description',
       Policies: null,
+      Roles: null,
+      ServiceIdentities: null,
     },
     {
       AccessorID: 'id',
       Name: 'name',
       Description: 'description',
       Policies: [],
+      Roles: [],
+      ServiceIdentities: [],
     },
   ].forEach(function(item) {
     const actual = filter(item, {

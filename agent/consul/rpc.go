@@ -84,7 +84,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	typ := pool.RPCType(buf[0])
 
 	// Enforce TLS if VerifyIncoming is set
-	if s.config.VerifyIncoming && !isTLS && typ != pool.RPCTLS {
+	if s.tlsConfigurator.VerifyIncomingRPC() && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSInsecure {
 		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
 		conn.Close()
 		return
@@ -100,12 +100,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
-		if s.rpcTLS == nil {
-			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
-			conn.Close()
-			return
-		}
-		conn = tls.Server(conn, s.rpcTLS)
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingRPCConfig())
 		s.handleConn(conn, true)
 
 	case pool.RPCMultiplexV2:
@@ -113,6 +108,10 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	case pool.RPCSnapshot:
 		s.handleSnapshotConn(conn)
+
+	case pool.RPCTLSInsecure:
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
+		s.handleInsecureConn(conn)
 
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
@@ -155,6 +154,28 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
+			}
+			return
+		}
+		metrics.IncrCounter([]string{"rpc", "request"}, 1)
+	}
+}
+
+// handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
+func (s *Server) handleInsecureConn(conn net.Conn) {
+	defer conn.Close()
+	rpcCodec := msgpackrpc.NewServerCodec(conn)
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+		}
+
+		if err := s.insecureRPCServer.ServeRequest(rpcCodec); err != nil {
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
+				s.logger.Printf("[ERR] consul.rpc: INSECURERPC error: %v %s", err, logConn(conn))
 				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
 			return

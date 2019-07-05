@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/debug"
@@ -2299,7 +2298,8 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 
 func TestAgent_UpdateCheck(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	maxChecksSize := 256
+	a := NewTestAgent(t, t.Name(), fmt.Sprintf("check_output_max_size=%d", maxChecksSize))
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2340,7 +2340,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	t.Run("log output limit", func(t *testing.T) {
 		args := checkUpdate{
 			Status: api.HealthPassing,
-			Output: strings.Repeat("-= bad -=", 5*checks.BufSize),
+			Output: strings.Repeat("-= bad -=", 5*maxChecksSize),
 		}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
@@ -2359,8 +2359,8 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		// rough check that the output buffer was cut down so this test
 		// isn't super brittle.
 		state := a.State.Checks()["test"]
-		if state.Status != api.HealthPassing || len(state.Output) > 2*checks.BufSize {
-			t.Fatalf("bad: %v", state)
+		if state.Status != api.HealthPassing || len(state.Output) > 2*maxChecksSize {
+			t.Fatalf("bad: %v, (len:=%d)", state, len(state.Output))
 		}
 	})
 

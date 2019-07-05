@@ -2,7 +2,7 @@
 Feature: dc / services / instances / proxy: Show Proxy Service Instance
   Scenario: A Proxy Service instance
     Given 1 datacenter model with the value "dc1"
-    And 1 service model from yaml
+    And 1 instance model from yaml
     ---
     - Service:
         Kind: connect-proxy
@@ -24,9 +24,10 @@ Feature: dc / services / instances / proxy: Show Proxy Service Instance
     ---
       dc: dc1
       service: service-0-proxy
+      node: node-0
       id: service-0-proxy-with-id
     ---
-    Then the url should be /dc1/services/service-0-proxy/service-0-proxy-with-id
+    Then the url should be /dc1/services/service-0-proxy/node-0/service-0-proxy-with-id
     And I see destination on the proxy like "service"
 
     And I see serviceChecksIsSelected on the tabs

@@ -19,7 +19,7 @@
           {{/block-slot}}
           {{#block-slot 'row'}}
             <td data-test-id="{{item.Service.ID}}">
-              <a href={{href-to 'dc.services.instance' item.Service.Service (or item.Service.ID item.Service.Service )}}>
+              <a href={{href-to 'dc.services.instance' item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service )}}>
                 <span data-test-external-source="{{service/external-source item.Service}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none')}}}></span>
                 {{ or item.Service.ID item.Service.Service }}
               </a>

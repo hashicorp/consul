@@ -3268,93 +3268,242 @@ func TestACL_vetDeregisterWithACL(t *testing.T) {
 node "node" {
   policy = "write"
 }
-service "service" {
-  policy = "write"
-}
 `, acl.SyntaxLegacy, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	nodePerms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// With that policy, the update should now be blocked for node reasons.
-	err = vetDeregisterWithACL(perms, args, nil, nil)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
+	policy, err = acl.NewPolicyFromSource("", 0, `
+	service "my-service" {
+	  policy = "write"
 	}
-
-	// Now use a permitted node name.
-	args.Node = "node"
-	if err := vetDeregisterWithACL(perms, args, nil, nil); err != nil {
+	`, acl.SyntaxLegacy, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	servicePerms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Try an unknown check.
-	args.CheckID = "check-id"
-	err = vetDeregisterWithACL(perms, args, nil, nil)
-	if err == nil || !strings.Contains(err.Error(), "Unknown check") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Now pass in a check that should be blocked.
-	nc := &structs.HealthCheck{
-		Node:        "node",
-		CheckID:     "check-id",
-		ServiceID:   "service-id",
-		ServiceName: "nope",
-	}
-	err = vetDeregisterWithACL(perms, args, nil, nc)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Change it to an allowed service, which should go through.
-	nc.ServiceName = "service"
-	if err := vetDeregisterWithACL(perms, args, nil, nc); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Switch to a node check that should be blocked.
-	args.Node = "nope"
-	nc.Node = "nope"
-	nc.ServiceID = ""
-	nc.ServiceName = ""
-	err = vetDeregisterWithACL(perms, args, nil, nc)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Switch to an allowed node check, which should go through.
-	args.Node = "node"
-	nc.Node = "node"
-	if err := vetDeregisterWithACL(perms, args, nil, nc); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Try an unknown service.
-	args.ServiceID = "service-id"
-	err = vetDeregisterWithACL(perms, args, nil, nil)
-	if err == nil || !strings.Contains(err.Error(), "Unknown service") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Now pass in a service that should be blocked.
-	ns := &structs.NodeService{
-		ID:      "service-id",
-		Service: "nope",
-	}
-	err = vetDeregisterWithACL(perms, args, ns, nil)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Change it to an allowed service, which should go through.
-	ns.Service = "service"
-	if err := vetDeregisterWithACL(perms, args, ns, nil); err != nil {
-		t.Fatalf("err: %v", err)
+	for _, args := range []struct {
+		DeregisterRequest structs.DeregisterRequest
+		Service           *structs.NodeService
+		Check             *structs.HealthCheck
+		Perms             *acl.PolicyAuthorizer
+		Expected          bool
+		Name              string
+	}{
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "nope",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "nope",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "right on service but node dergister request",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no rights on node nor service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "no rights on node but rights on service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node nor service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "no rights on node but rights on service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "nope",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node for node check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "nope",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service but no right on node for node check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "node",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "node",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service but not on node for node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "rights on service for service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "right on node for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "rights on service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "node",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "node",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service for node check",
+		},
+	} {
+		t.Run(args.Name, func(t *testing.T) {
+			err = vetDeregisterWithACL(args.Perms, &args.DeregisterRequest, args.Service, args.Check)
+			if !args.Expected {
+				if err == nil {
+					t.Errorf("expected error with %+v", args.DeregisterRequest)
+				}
+				if !acl.IsErrPermissionDenied(err) {
+					t.Errorf("expected permission denied error with %+v, instead got %+v", args.DeregisterRequest, err)
+				}
+			} else if err != nil {
+				t.Errorf("expected no error with %+v", args.DeregisterRequest)
+			}
+		})
 	}
 }
 

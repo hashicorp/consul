@@ -4,13 +4,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/go-rootcerts"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -112,6 +113,10 @@ type Config struct {
 	// the server using the same TLS configuration as the agent (CA, cert,
 	// and key).
 	EnableAgentTLSForChecks bool
+
+	// AutoEncryptTLS opts the agent into provisioning agent
+	// TLS certificates.
+	AutoEncryptTLS bool
 }
 
 // KeyPair is used to open and parse a certificate and key file
@@ -130,13 +135,31 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
+type autoEncrypt struct {
+	manualCAPems         []string
+	connectCAPems        []string
+	cert                 *tls.Certificate
+	verifyServerHostname bool
+}
+
+func (a *autoEncrypt) caPems() []string {
+	return append(a.manualCAPems, a.connectCAPems...)
+}
+
+type manual struct {
+	caPems []string
+	cert   *tls.Certificate
+}
+
 // Configurator holds a Config and is responsible for generating all the
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
 	sync.RWMutex
-	base    *Config
-	cert    *tls.Certificate
-	cas     *x509.CertPool
+	base        *Config
+	autoEncrypt *autoEncrypt
+	manual      *manual
+
+	caPool  *x509.CertPool
 	logger  *log.Logger
 	version int
 }
@@ -144,7 +167,7 @@ type Configurator struct {
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
 func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger}
+	c := &Configurator{logger: logger, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err
@@ -152,33 +175,140 @@ func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
 	return c, nil
 }
 
+// CAPems returns the currently loaded CAs in PEM format.
+func (c *Configurator) CAPems() []string {
+	c.RLock()
+	defer c.RUnlock()
+	return append(c.manual.caPems, c.autoEncrypt.caPems()...)
+}
+
+// ManualCAPems returns the currently loaded CAs in PEM format.
+func (c *Configurator) ManualCAPems() []string {
+	c.RLock()
+	defer c.RUnlock()
+	return c.manual.caPems
+}
+
 // Update updates the internal configuration which is used to generate
 // *tls.Config.
 // This function acquires a write lock because it writes the new config.
 func (c *Configurator) Update(config Config) error {
+	c.Lock()
+	// order of defers matters because log acquires a RLock()
+	defer c.log("Update")
+	defer c.Unlock()
+
 	cert, err := loadKeyPair(config.CertFile, config.KeyFile)
 	if err != nil {
 		return err
 	}
-	cas, err := loadCAs(config.CAFile, config.CAPath)
+	pems, err := loadCAs(config.CAFile, config.CAPath)
 	if err != nil {
 		return err
 	}
-
-	if err = c.check(config, cas, cert); err != nil {
+	pool, err := pool(append(pems, c.autoEncrypt.caPems()...))
+	if err != nil {
 		return err
 	}
-	c.Lock()
+	if err = c.check(config, pool, cert); err != nil {
+		return err
+	}
 	c.base = &config
-	c.cert = cert
-	c.cas = cas
+	c.manual.cert = cert
+	c.manual.caPems = pems
+	c.caPool = pool
 	c.version++
-	c.Unlock()
-	c.log("Update")
 	return nil
 }
 
-func (c *Configurator) check(config Config, cas *x509.CertPool, cert *tls.Certificate) error {
+// UpdateAutoEncryptCA updates the autoEncrypt.caPems. This is supposed to be called
+// from the server in order to be able to accept TLS connections with TLS
+// certificates.
+// Or it is being called on the client side when CA changes are detected.
+func (c *Configurator) UpdateAutoEncryptCA(connectCAPems []string) error {
+	c.Lock()
+	// order of defers matters because log acquires a RLock()
+	defer c.log("UpdateAutoEncryptCA")
+	defer c.Unlock()
+
+	pool, err := pool(append(c.manual.caPems, append(c.autoEncrypt.manualCAPems, connectCAPems...)...))
+	if err != nil {
+		c.RUnlock()
+		return err
+	}
+	if err = c.check(*c.base, pool, c.manual.cert); err != nil {
+		c.RUnlock()
+		return err
+	}
+	c.autoEncrypt.connectCAPems = connectCAPems
+	c.caPool = pool
+	c.version++
+	return nil
+}
+
+// UpdateAutoEncryptCert
+func (c *Configurator) UpdateAutoEncryptCert(pub, priv string) error {
+	// order of defers matters because log acquires a RLock()
+	defer c.log("UpdateAutoEncryptCert")
+	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
+	if err != nil {
+		return fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	c.autoEncrypt.cert = &cert
+	c.version++
+	return nil
+}
+
+// UpdateAutoEncrypt sets everything under autoEncrypt. This is being called on the
+// client when it received its cert from AutoEncrypt endpoint.
+func (c *Configurator) UpdateAutoEncrypt(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
+	// order of defers matters because log acquires a RLock()
+	defer c.log("UpdateAutoEncrypt")
+	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
+	if err != nil {
+		return fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	pool, err := pool(append(c.manual.caPems, append(manualCAPems, connectCAPems...)...))
+	if err != nil {
+		return err
+	}
+	c.autoEncrypt.manualCAPems = manualCAPems
+	c.autoEncrypt.connectCAPems = connectCAPems
+	c.autoEncrypt.cert = &cert
+	c.caPool = pool
+	c.autoEncrypt.verifyServerHostname = verifyServerHostname
+	c.version++
+	return nil
+}
+
+func (c *Configurator) Base() Config {
+	c.RLock()
+	defer c.RUnlock()
+	return *c.base
+}
+
+func pool(pems []string) (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	for _, pem := range pems {
+		if !pool.AppendCertsFromPEM([]byte(pem)) {
+			return nil, fmt.Errorf("Couldn't parse PEM %s", pem)
+		}
+	}
+	if len(pool.Subjects()) == 0 {
+		return nil, nil
+	}
+	return pool, nil
+}
+
+func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
@@ -187,25 +317,41 @@ func (c *Configurator) check(config Config, cas *x509.CertPool, cert *tls.Certif
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
-	if config.VerifyOutgoing && cas == nil {
+	if config.VerifyOutgoing && pool == nil {
 		return fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
-	if config.VerifyIncoming || config.VerifyIncomingRPC || config.VerifyIncomingHTTPS {
-		if cas == nil {
+	if config.anyVerifyIncoming() {
+		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
-		if cert == nil {
+		if cert == nil || cert.Certificate == nil {
 			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
 	return nil
 }
 
+func (c Config) anyVerifyIncoming() bool {
+	return c.baseVerifyIncoming() || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
+}
+
+func (c Config) verifyIncomingRPC() bool {
+	return c.baseVerifyIncoming() || c.VerifyIncomingRPC
+}
+
+func (c Config) verifyIncomingHTTPS() bool {
+	return c.baseVerifyIncoming() || c.VerifyIncomingHTTPS
+}
+
+func (c *Config) baseVerifyIncoming() bool {
+	return c.VerifyIncoming
+}
+
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
-		return nil, nil
+		return &tls.Certificate{}, nil
 	}
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -214,33 +360,64 @@ func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	return &cert, nil
 }
 
-func loadCAs(caFile, caPath string) (*x509.CertPool, error) {
-	if caFile != "" {
-		return rootcerts.LoadCAFile(caFile)
-	} else if caPath != "" {
-		pool, err := rootcerts.LoadCAPath(caPath)
-		if err != nil {
-			return nil, err
-		}
-		// make sure to not return an empty pool because this is not
-		// the users intention when providing a path for CAs.
-		if len(pool.Subjects()) == 0 {
-			return nil, fmt.Errorf("Error loading CA: path %q has no CAs", caPath)
-		}
-		return pool, nil
+func loadCAs(caFile, caPath string) ([]string, error) {
+	if caFile == "" && caPath == "" {
+		return nil, nil
 	}
-	return nil, nil
+
+	pems := []string{}
+
+	readFn := func(path string) error {
+		pem, err := ioutil.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("Error loading from %s: %s", path, err)
+		}
+		pems = append(pems, string(pem))
+		return nil
+	}
+
+	walkFn := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			if err := readFn(path); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if caFile != "" {
+		err := readFn(caFile)
+		if err != nil {
+			return pems, err
+		}
+	} else if caPath != "" {
+		err := filepath.Walk(caPath, walkFn)
+		if err != nil {
+			return pems, err
+		}
+		if len(pems) == 0 {
+			return pems, fmt.Errorf("Error loading from CAPath: no CAs found")
+		}
+	}
+	return pems, nil
 }
 
 // commonTLSConfig generates a *tls.Config from the base configuration the
 // Configurator has. It accepts an additional flag in case a config is needed
 // for incoming TLS connections.
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.Config {
+func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
+	// this needs to be outside of RLock because it acquires an RLock itself
+	verifyServerHostname := c.VerifyServerHostname()
+
 	c.RLock()
 	defer c.RUnlock()
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: !c.base.VerifyServerHostname,
+		InsecureSkipVerify: !verifyServerHostname,
 	}
 
 	// Set the cipher suites
@@ -250,15 +427,28 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
+	// GetCertificate is used when acting as a server and responding to
+	// client requests. Always return the manually configured cert, because
+	// on the server this is all we have. And on the client, this is the
+	// only sensitive option.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		return c.cert, nil
-	}
-	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		return c.cert, nil
+		return c.manual.cert, nil
 	}
 
-	tlsConfig.ClientCAs = c.cas
-	tlsConfig.RootCAs = c.cas
+	// GetClientCertificate is used when acting as a client and responding
+	// to a server requesting a certificate. Return the autoEncrypt certificate
+	// if possible, otherwise default to the manually provisioned one.
+	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		cert := c.autoEncrypt.cert
+		if cert == nil {
+			cert = c.manual.cert
+		}
+
+		return cert, nil
+	}
+
+	tlsConfig.ClientCAs = c.caPool
+	tlsConfig.RootCAs = c.caPool
 
 	// This is possible because TLSLookup also contains "" with golang's
 	// default (tls10). And because the initial check makes sure the
@@ -266,7 +456,7 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
-	if c.base.VerifyIncoming || additionalVerifyIncomingFlag {
+	if verifyIncoming {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
@@ -274,31 +464,63 @@ func (c *Configurator) commonTLSConfig(additionalVerifyIncomingFlag bool) *tls.C
 }
 
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) outgoingRPCTLSDisabled() bool {
+func (c *Configurator) VerifyIncomingRPC() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.cas == nil && !c.base.VerifyOutgoing
+	return c.base.verifyIncomingRPC()
 }
 
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) someValuesFromConfig() (bool, bool, string) {
+func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyServerHostname, c.base.VerifyOutgoing, c.base.Domain
+
+	// if AutoEncrypt enabled, always use TLS
+	if c.base.AutoEncryptTLS {
+		return false
+	}
+
+	// if CAs are provided or VerifyOutgoing is set, use TLS
+	if c.caPool != nil || c.base.VerifyOutgoing {
+		return false
+	}
+
+	return true
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) verifyOutgoing() bool {
+	c.RLock()
+	defer c.RUnlock()
+
+	// If AutoEncryptTLS is enabled and there is a CA, then verify
+	// outgoing.
+	if c.base.AutoEncryptTLS && c.caPool != nil {
+		return true
+	}
+
+	return c.base.VerifyOutgoing
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) domain() string {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.Domain
 }
 
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyIncomingRPC() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyIncomingRPC
+	return c.base.verifyIncomingRPC()
 }
 
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyIncomingHTTPS() bool {
 	c.RLock()
 	defer c.RUnlock()
-	return c.base.VerifyIncomingHTTPS
+	return c.base.verifyIncomingHTTPS()
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -318,12 +540,33 @@ func (c *Configurator) serverNameOrNodeName() string {
 	return c.base.NodeName
 }
 
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) VerifyServerHostname() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
+}
+
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
 	config := c.commonTLSConfig(c.verifyIncomingRPC())
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingRPCConfig(), nil
+	}
+	return config
+}
+
+// IncomingInsecureRPCConfig means that it doesn't verify incoming even thought
+// it might have been configured. This is only supposed to be used by the
+// servers for the insecure RPC server. At the time of writing only the
+// AutoEncrypt.Sign call is supported on that server. And it might be the only
+// usecase ever.
+func (c *Configurator) IncomingInsecureRPCConfig() *tls.Config {
+	c.log("IncomingInsecureRPCConfig")
+	config := c.commonTLSConfig(false)
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingInsecureRPCConfig(), nil
 	}
 	return config
 }
@@ -383,6 +626,27 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	}
 }
 
+// AutoEncryptCertNotAfter returns NotAfter from the auto_encrypt cert. In case
+// there is no cert, it will return a time in the past.
+func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
+	c.RLock()
+	tlsCert := c.autoEncrypt.cert
+	c.RUnlock()
+	if tlsCert == nil {
+		return time.Now().AddDate(0, 0, -1)
+	}
+	cert, err := x509.ParseCertificate(tlsCert.Certificate[0])
+	if err != nil {
+		return time.Now().AddDate(0, 0, -1)
+	}
+	return cert.NotAfter
+}
+
+// AutoEncryptCertExpired returns if the auto_encrypt cert is expired.
+func (c *Configurator) AutoEncryptCertExpired() bool {
+	return c.AutoEncryptCertNotAfter().Before(time.Now())
+}
+
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) log(name string) {
 	if c.logger != nil {
@@ -403,18 +667,17 @@ func (c *Configurator) log(name string) {
 // no longer supports this mode of operation, we have to do it
 // manually.
 func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error) {
-	var err error
-	var tlsConn *tls.Conn
-
 	config := c.OutgoingRPCConfig()
-	verifyServerHostname, verifyOutgoing, domain := c.someValuesFromConfig()
+	verifyServerHostname := c.VerifyServerHostname()
+	verifyOutgoing := c.verifyOutgoing()
+	domain := c.domain()
 
 	if verifyServerHostname {
 		// Strip the trailing '.' from the domain if any
 		domain = strings.TrimSuffix(domain, ".")
 		config.ServerName = "server." + dc + "." + domain
 	}
-	tlsConn = tls.Client(conn, config)
+	tlsConn := tls.Client(conn, config)
 
 	// If crypto/tls is doing verification, there's no need to do
 	// our own.
@@ -427,7 +690,8 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 		return tlsConn, nil
 	}
 
-	if err = tlsConn.Handshake(); err != nil {
+	err := tlsConn.Handshake()
+	if err != nil {
 		tlsConn.Close()
 		return nil, err
 	}

@@ -3,20 +3,19 @@
 
 package core
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import _ "github.com/gogo/protobuf/gogoproto"
-import _ "github.com/gogo/protobuf/types"
-import _ "github.com/lyft/protoc-gen-validate/validate"
+import (
+	bytes "bytes"
+	fmt "fmt"
+	io "io"
+	math "math"
+	time "time"
 
-import time "time"
-
-import bytes "bytes"
-
-import github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
-
-import io "io"
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
+	types "github.com/gogo/protobuf/types"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -34,39 +33,51 @@ const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 type ApiConfigSource_ApiType int32
 
 const (
-	// REST-JSON legacy corresponds to the v1 API.
-	ApiConfigSource_REST_LEGACY ApiConfigSource_ApiType = 0
+	// Ideally this would be 'reserved 0' but one can't reserve the default
+	// value. Instead we throw an exception if this is ever used.
+	ApiConfigSource_UNSUPPORTED_REST_LEGACY ApiConfigSource_ApiType = 0 // Deprecated: Do not use.
 	// REST-JSON v2 API. The `canonical JSON encoding
 	// <https://developers.google.com/protocol-buffers/docs/proto3#json>`_ for
 	// the v2 protos is used.
 	ApiConfigSource_REST ApiConfigSource_ApiType = 1
 	// gRPC v2 API.
 	ApiConfigSource_GRPC ApiConfigSource_ApiType = 2
+	// Using the delta xDS gRPC service, i.e. DeltaDiscovery{Request,Response}
+	// rather than Discovery{Request,Response}. Rather than sending Envoy the entire state
+	// with every update, the xDS server only sends what has changed since the last update.
+	//
+	// DELTA_GRPC is not yet entirely implemented! Initially, only CDS is available.
+	// Do not use for other xDSes. TODO(fredlas) update/remove this warning when appropriate.
+	ApiConfigSource_DELTA_GRPC ApiConfigSource_ApiType = 3
 )
 
 var ApiConfigSource_ApiType_name = map[int32]string{
-	0: "REST_LEGACY",
+	0: "UNSUPPORTED_REST_LEGACY",
 	1: "REST",
 	2: "GRPC",
+	3: "DELTA_GRPC",
 }
+
 var ApiConfigSource_ApiType_value = map[string]int32{
-	"REST_LEGACY": 0,
-	"REST":        1,
-	"GRPC":        2,
+	"UNSUPPORTED_REST_LEGACY": 0,
+	"REST":                    1,
+	"GRPC":                    2,
+	"DELTA_GRPC":              3,
 }
 
 func (x ApiConfigSource_ApiType) String() string {
 	return proto.EnumName(ApiConfigSource_ApiType_name, int32(x))
 }
+
 func (ApiConfigSource_ApiType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_config_source_4202aa29cecf9037, []int{0, 0}
+	return fileDescriptor_1ffcc55cf4c30535, []int{0, 0}
 }
 
 // API configuration source. This identifies the API type and cluster that Envoy
 // will use to fetch an xDS API.
 type ApiConfigSource struct {
 	ApiType ApiConfigSource_ApiType `protobuf:"varint,1,opt,name=api_type,json=apiType,proto3,enum=envoy.api.v2.core.ApiConfigSource_ApiType" json:"api_type,omitempty"`
-	// Cluster names should be used only with REST_LEGACY/REST. If > 1
+	// Cluster names should be used only with REST. If > 1
 	// cluster is defined, clusters will be cycled through if any kind of failure
 	// occurs.
 	//
@@ -74,24 +85,27 @@ type ApiConfigSource struct {
 	//
 	//  The cluster with name ``cluster_name`` must be statically defined and its
 	//  type must not be ``EDS``.
-	ClusterNames []string `protobuf:"bytes,2,rep,name=cluster_names,json=clusterNames" json:"cluster_names,omitempty"`
+	ClusterNames []string `protobuf:"bytes,2,rep,name=cluster_names,json=clusterNames,proto3" json:"cluster_names,omitempty"`
 	// Multiple gRPC services be provided for GRPC. If > 1 cluster is defined,
 	// services will be cycled through if any kind of failure occurs.
-	GrpcServices []*GrpcService `protobuf:"bytes,4,rep,name=grpc_services,json=grpcServices" json:"grpc_services,omitempty"`
+	GrpcServices []*GrpcService `protobuf:"bytes,4,rep,name=grpc_services,json=grpcServices,proto3" json:"grpc_services,omitempty"`
 	// For REST APIs, the delay between successive polls.
-	RefreshDelay *time.Duration `protobuf:"bytes,3,opt,name=refresh_delay,json=refreshDelay,stdduration" json:"refresh_delay,omitempty"`
+	RefreshDelay *time.Duration `protobuf:"bytes,3,opt,name=refresh_delay,json=refreshDelay,proto3,stdduration" json:"refresh_delay,omitempty"`
 	// For REST APIs, the request timeout. If not set, a default value of 1s will be used.
-	RequestTimeout       *time.Duration `protobuf:"bytes,5,opt,name=request_timeout,json=requestTimeout,stdduration" json:"request_timeout,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	RequestTimeout *time.Duration `protobuf:"bytes,5,opt,name=request_timeout,json=requestTimeout,proto3,stdduration" json:"request_timeout,omitempty"`
+	// For GRPC APIs, the rate limit settings. If present, discovery requests made by Envoy will be
+	// rate limited.
+	RateLimitSettings    *RateLimitSettings `protobuf:"bytes,6,opt,name=rate_limit_settings,json=rateLimitSettings,proto3" json:"rate_limit_settings,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
 func (m *ApiConfigSource) Reset()         { *m = ApiConfigSource{} }
 func (m *ApiConfigSource) String() string { return proto.CompactTextString(m) }
 func (*ApiConfigSource) ProtoMessage()    {}
 func (*ApiConfigSource) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_source_4202aa29cecf9037, []int{0}
+	return fileDescriptor_1ffcc55cf4c30535, []int{0}
 }
 func (m *ApiConfigSource) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -108,8 +122,8 @@ func (m *ApiConfigSource) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return b[:n], nil
 	}
 }
-func (dst *ApiConfigSource) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ApiConfigSource.Merge(dst, src)
+func (m *ApiConfigSource) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ApiConfigSource.Merge(m, src)
 }
 func (m *ApiConfigSource) XXX_Size() int {
 	return m.Size()
@@ -124,7 +138,7 @@ func (m *ApiConfigSource) GetApiType() ApiConfigSource_ApiType {
 	if m != nil {
 		return m.ApiType
 	}
-	return ApiConfigSource_REST_LEGACY
+	return ApiConfigSource_UNSUPPORTED_REST_LEGACY
 }
 
 func (m *ApiConfigSource) GetClusterNames() []string {
@@ -155,6 +169,13 @@ func (m *ApiConfigSource) GetRequestTimeout() *time.Duration {
 	return nil
 }
 
+func (m *ApiConfigSource) GetRateLimitSettings() *RateLimitSettings {
+	if m != nil {
+		return m.RateLimitSettings
+	}
+	return nil
+}
+
 // Aggregated Discovery Service (ADS) options. This is currently empty, but when
 // set in :ref:`ConfigSource <envoy_api_msg_core.ConfigSource>` can be used to
 // specify that ADS is to be used.
@@ -168,7 +189,7 @@ func (m *AggregatedConfigSource) Reset()         { *m = AggregatedConfigSource{}
 func (m *AggregatedConfigSource) String() string { return proto.CompactTextString(m) }
 func (*AggregatedConfigSource) ProtoMessage()    {}
 func (*AggregatedConfigSource) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_source_4202aa29cecf9037, []int{1}
+	return fileDescriptor_1ffcc55cf4c30535, []int{1}
 }
 func (m *AggregatedConfigSource) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -185,8 +206,8 @@ func (m *AggregatedConfigSource) XXX_Marshal(b []byte, deterministic bool) ([]by
 		return b[:n], nil
 	}
 }
-func (dst *AggregatedConfigSource) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AggregatedConfigSource.Merge(dst, src)
+func (m *AggregatedConfigSource) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AggregatedConfigSource.Merge(m, src)
 }
 func (m *AggregatedConfigSource) XXX_Size() int {
 	return m.Size()
@@ -197,9 +218,69 @@ func (m *AggregatedConfigSource) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AggregatedConfigSource proto.InternalMessageInfo
 
+// Rate Limit settings to be applied for discovery requests made by Envoy.
+type RateLimitSettings struct {
+	// Maximum number of tokens to be used for rate limiting discovery request calls. If not set, a
+	// default value of 100 will be used.
+	MaxTokens *types.UInt32Value `protobuf:"bytes,1,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
+	// Rate at which tokens will be filled per second. If not set, a default fill rate of 10 tokens
+	// per second will be used.
+	FillRate             *types.DoubleValue `protobuf:"bytes,2,opt,name=fill_rate,json=fillRate,proto3" json:"fill_rate,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
+}
+
+func (m *RateLimitSettings) Reset()         { *m = RateLimitSettings{} }
+func (m *RateLimitSettings) String() string { return proto.CompactTextString(m) }
+func (*RateLimitSettings) ProtoMessage()    {}
+func (*RateLimitSettings) Descriptor() ([]byte, []int) {
+	return fileDescriptor_1ffcc55cf4c30535, []int{2}
+}
+func (m *RateLimitSettings) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RateLimitSettings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_RateLimitSettings.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *RateLimitSettings) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RateLimitSettings.Merge(m, src)
+}
+func (m *RateLimitSettings) XXX_Size() int {
+	return m.Size()
+}
+func (m *RateLimitSettings) XXX_DiscardUnknown() {
+	xxx_messageInfo_RateLimitSettings.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RateLimitSettings proto.InternalMessageInfo
+
+func (m *RateLimitSettings) GetMaxTokens() *types.UInt32Value {
+	if m != nil {
+		return m.MaxTokens
+	}
+	return nil
+}
+
+func (m *RateLimitSettings) GetFillRate() *types.DoubleValue {
+	if m != nil {
+		return m.FillRate
+	}
+	return nil
+}
+
 // Configuration for :ref:`listeners <config_listeners>`, :ref:`clusters
-// <config_cluster_manager_cluster>`, :ref:`routes
-// <config_http_conn_man_route_table>`, :ref:`endpoints
+// <config_cluster_manager>`, :ref:`routes
+// <envoy_api_msg_RouteConfiguration>`, :ref:`endpoints
 // <arch_overview_service_discovery>` etc. may either be sourced from the
 // filesystem or from an xDS API source. Filesystem configs are watched with
 // inotify for updates.
@@ -209,16 +290,25 @@ type ConfigSource struct {
 	//	*ConfigSource_ApiConfigSource
 	//	*ConfigSource_Ads
 	ConfigSourceSpecifier isConfigSource_ConfigSourceSpecifier `protobuf_oneof:"config_source_specifier"`
-	XXX_NoUnkeyedLiteral  struct{}                             `json:"-"`
-	XXX_unrecognized      []byte                               `json:"-"`
-	XXX_sizecache         int32                                `json:"-"`
+	// Optional initialization timeout.
+	// When this timeout is specified, Envoy will wait no longer than the specified time for first
+	// config response on this xDS subscription during the :ref:`initialization process
+	// <arch_overview_initialization>`. After reaching the timeout, Envoy will move to the next
+	// initialization phase, even if the first config is not delivered yet. The timer is activated
+	// when the xDS API subscription starts, and is disarmed on first config update or on error. 0
+	// means no timeout - Envoy will wait indefinitely for the first xDS config (unless another
+	// timeout applies). Default 0.
+	InitialFetchTimeout  *types.Duration `protobuf:"bytes,4,opt,name=initial_fetch_timeout,json=initialFetchTimeout,proto3" json:"initial_fetch_timeout,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
 }
 
 func (m *ConfigSource) Reset()         { *m = ConfigSource{} }
 func (m *ConfigSource) String() string { return proto.CompactTextString(m) }
 func (*ConfigSource) ProtoMessage()    {}
 func (*ConfigSource) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_source_4202aa29cecf9037, []int{2}
+	return fileDescriptor_1ffcc55cf4c30535, []int{3}
 }
 func (m *ConfigSource) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -235,8 +325,8 @@ func (m *ConfigSource) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return b[:n], nil
 	}
 }
-func (dst *ConfigSource) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ConfigSource.Merge(dst, src)
+func (m *ConfigSource) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConfigSource.Merge(m, src)
 }
 func (m *ConfigSource) XXX_Size() int {
 	return m.Size()
@@ -258,10 +348,10 @@ type ConfigSource_Path struct {
 	Path string `protobuf:"bytes,1,opt,name=path,proto3,oneof"`
 }
 type ConfigSource_ApiConfigSource struct {
-	ApiConfigSource *ApiConfigSource `protobuf:"bytes,2,opt,name=api_config_source,json=apiConfigSource,oneof"`
+	ApiConfigSource *ApiConfigSource `protobuf:"bytes,2,opt,name=api_config_source,json=apiConfigSource,proto3,oneof"`
 }
 type ConfigSource_Ads struct {
-	Ads *AggregatedConfigSource `protobuf:"bytes,3,opt,name=ads,oneof"`
+	Ads *AggregatedConfigSource `protobuf:"bytes,3,opt,name=ads,proto3,oneof"`
 }
 
 func (*ConfigSource_Path) isConfigSource_ConfigSourceSpecifier()            {}
@@ -292,6 +382,13 @@ func (m *ConfigSource) GetApiConfigSource() *ApiConfigSource {
 func (m *ConfigSource) GetAds() *AggregatedConfigSource {
 	if x, ok := m.GetConfigSourceSpecifier().(*ConfigSource_Ads); ok {
 		return x.Ads
+	}
+	return nil
+}
+
+func (m *ConfigSource) GetInitialFetchTimeout() *types.Duration {
+	if m != nil {
+		return m.InitialFetchTimeout
 	}
 	return nil
 }
@@ -386,11 +483,66 @@ func _ConfigSource_OneofSizer(msg proto.Message) (n int) {
 }
 
 func init() {
+	proto.RegisterEnum("envoy.api.v2.core.ApiConfigSource_ApiType", ApiConfigSource_ApiType_name, ApiConfigSource_ApiType_value)
 	proto.RegisterType((*ApiConfigSource)(nil), "envoy.api.v2.core.ApiConfigSource")
 	proto.RegisterType((*AggregatedConfigSource)(nil), "envoy.api.v2.core.AggregatedConfigSource")
+	proto.RegisterType((*RateLimitSettings)(nil), "envoy.api.v2.core.RateLimitSettings")
 	proto.RegisterType((*ConfigSource)(nil), "envoy.api.v2.core.ConfigSource")
-	proto.RegisterEnum("envoy.api.v2.core.ApiConfigSource_ApiType", ApiConfigSource_ApiType_name, ApiConfigSource_ApiType_value)
 }
+
+func init() {
+	proto.RegisterFile("envoy/api/v2/core/config_source.proto", fileDescriptor_1ffcc55cf4c30535)
+}
+
+var fileDescriptor_1ffcc55cf4c30535 = []byte{
+	// 707 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0x4f, 0x4f, 0xdb, 0x48,
+	0x14, 0xcf, 0x24, 0x01, 0x92, 0x49, 0x80, 0x64, 0x60, 0x17, 0x2f, 0x5a, 0x85, 0x6c, 0x96, 0x95,
+	0xb2, 0x1c, 0x6c, 0x29, 0x1c, 0x57, 0x7b, 0xc8, 0x3f, 0x60, 0xb5, 0x94, 0xa6, 0x13, 0x53, 0xa9,
+	0xa7, 0xd1, 0xe0, 0x4c, 0xcc, 0xa8, 0x8e, 0xc7, 0x1d, 0x8f, 0x53, 0x72, 0xed, 0x27, 0xe8, 0xb1,
+	0x97, 0x5e, 0xab, 0xaa, 0x9f, 0xa0, 0xea, 0x89, 0x63, 0x8f, 0xfd, 0x06, 0xad, 0x72, 0xe3, 0x5b,
+	0x54, 0xe3, 0x98, 0x16, 0x48, 0x10, 0x3e, 0xbd, 0xf7, 0xe6, 0xfd, 0xde, 0xbc, 0xdf, 0xcf, 0xbf,
+	0x81, 0x7f, 0x31, 0x7f, 0x2c, 0x26, 0x16, 0x0d, 0xb8, 0x35, 0x6e, 0x58, 0x8e, 0x90, 0xcc, 0x72,
+	0x84, 0x3f, 0xe4, 0x2e, 0x09, 0x45, 0x24, 0x1d, 0x66, 0x06, 0x52, 0x28, 0x81, 0xca, 0x71, 0x9b,
+	0x49, 0x03, 0x6e, 0x8e, 0x1b, 0xa6, 0x6e, 0xdb, 0xde, 0x9d, 0x47, 0xba, 0x32, 0x70, 0x48, 0xc8,
+	0xe4, 0x98, 0x5f, 0x03, 0xb7, 0x2b, 0xae, 0x10, 0xae, 0xc7, 0xac, 0x38, 0x3b, 0x8b, 0x86, 0xd6,
+	0x20, 0x92, 0x54, 0x71, 0xe1, 0xdf, 0x77, 0xfe, 0x52, 0xd2, 0x20, 0x60, 0x32, 0x4c, 0xce, 0xb7,
+	0xc6, 0xd4, 0xe3, 0x03, 0xaa, 0x98, 0x75, 0x1d, 0x24, 0x07, 0x9b, 0xae, 0x70, 0x45, 0x1c, 0x5a,
+	0x3a, 0x9a, 0x55, 0x6b, 0xaf, 0xb3, 0x70, 0xbd, 0x19, 0xf0, 0x76, 0x4c, 0xa1, 0x1f, 0x33, 0x40,
+	0x4f, 0x60, 0x8e, 0x06, 0x9c, 0xa8, 0x49, 0xc0, 0x0c, 0x50, 0x05, 0xf5, 0xb5, 0xc6, 0x9e, 0x39,
+	0x47, 0xc7, 0xbc, 0x83, 0xd2, 0xb9, 0x3d, 0x09, 0x58, 0x0b, 0x7e, 0xba, 0xba, 0xcc, 0x2c, 0xbd,
+	0x02, 0xe9, 0x12, 0xc0, 0x2b, 0x74, 0x56, 0x44, 0x7f, 0xc2, 0x55, 0xc7, 0x8b, 0x42, 0xc5, 0x24,
+	0xf1, 0xe9, 0x88, 0x85, 0x46, 0xba, 0x9a, 0xa9, 0xe7, 0x71, 0x31, 0x29, 0x9e, 0xe8, 0x1a, 0x6a,
+	0xc3, 0xd5, 0x9b, 0x82, 0x84, 0x46, 0xb6, 0x9a, 0xa9, 0x17, 0x1a, 0x95, 0x05, 0x97, 0x1f, 0xca,
+	0xc0, 0xe9, 0xcf, 0xda, 0x70, 0xd1, 0xfd, 0x99, 0x84, 0xa8, 0x03, 0x57, 0x25, 0x1b, 0x4a, 0x16,
+	0x9e, 0x93, 0x01, 0xf3, 0xe8, 0xc4, 0xc8, 0x54, 0x41, 0xbd, 0xd0, 0xf8, 0xcd, 0x9c, 0xe9, 0x66,
+	0x5e, 0xeb, 0x66, 0x76, 0x12, 0x5d, 0x5b, 0xd9, 0x37, 0x5f, 0x77, 0x00, 0x2e, 0x26, 0xa8, 0x8e,
+	0x06, 0x21, 0x1b, 0xae, 0x4b, 0xf6, 0x22, 0x62, 0xa1, 0x22, 0x8a, 0x8f, 0x98, 0x88, 0x94, 0xb1,
+	0xf4, 0xd0, 0x9c, 0x92, 0x9e, 0xa3, 0xc9, 0xaf, 0x7c, 0x00, 0xd9, 0xbd, 0x74, 0x2e, 0x85, 0xd7,
+	0x92, 0x19, 0xf6, 0x6c, 0x04, 0xb2, 0xe1, 0x86, 0xa4, 0x8a, 0x11, 0x8f, 0x8f, 0xb8, 0x22, 0x21,
+	0x53, 0x8a, 0xfb, 0x6e, 0x68, 0x2c, 0xc7, 0x93, 0x77, 0x17, 0xd0, 0xc4, 0x54, 0xb1, 0x63, 0xdd,
+	0xdc, 0x4f, 0x7a, 0x71, 0x59, 0xde, 0x2d, 0xd5, 0x4e, 0xe0, 0x4a, 0xa2, 0x3d, 0xda, 0x81, 0x5b,
+	0xa7, 0x27, 0xfd, 0xd3, 0x5e, 0xef, 0x31, 0xb6, 0xbb, 0x1d, 0x82, 0xbb, 0x7d, 0x9b, 0x1c, 0x77,
+	0x0f, 0x9b, 0xed, 0x67, 0xa5, 0xd4, 0x76, 0x3a, 0x07, 0x50, 0x0e, 0x66, 0x75, 0xb1, 0x14, 0x47,
+	0x87, 0xb8, 0xd7, 0x2e, 0xa5, 0xd1, 0x1a, 0x84, 0x9d, 0xee, 0xb1, 0xdd, 0x24, 0x71, 0x9e, 0xa9,
+	0x19, 0xf0, 0xd7, 0xa6, 0xeb, 0x4a, 0xe6, 0x52, 0xc5, 0x06, 0x37, 0x7f, 0x71, 0xed, 0x2d, 0x80,
+	0xe5, 0xb9, 0x95, 0xd0, 0x3f, 0x10, 0x8e, 0xe8, 0x05, 0x51, 0xe2, 0x39, 0xf3, 0xc3, 0xd8, 0x30,
+	0x85, 0xc6, 0xef, 0x73, 0x32, 0x9d, 0xfe, 0xe7, 0xab, 0xfd, 0xc6, 0x53, 0xea, 0x45, 0x0c, 0xe7,
+	0x47, 0xf4, 0xc2, 0x8e, 0xdb, 0xd1, 0xff, 0x30, 0x3f, 0xe4, 0x9e, 0x47, 0x34, 0x2d, 0x23, 0x7d,
+	0x0f, 0xb6, 0x23, 0xa2, 0x33, 0x8f, 0xc5, 0xd8, 0x56, 0x49, 0x2b, 0x5c, 0x40, 0xf9, 0x3f, 0x52,
+	0xc9, 0x87, 0x73, 0x7a, 0x80, 0x5e, 0xab, 0xf6, 0x2e, 0x0d, 0x8b, 0xb7, 0x9c, 0xbc, 0x09, 0xb3,
+	0x01, 0x55, 0xe7, 0xf1, 0x52, 0xf9, 0xa3, 0x14, 0x8e, 0x33, 0xd4, 0x83, 0x65, 0xed, 0xef, 0x5b,
+	0xcf, 0x36, 0xb9, 0xbb, 0xf6, 0xb0, 0xd1, 0x8f, 0x52, 0x78, 0x9d, 0xde, 0x79, 0x31, 0xff, 0xc2,
+	0x0c, 0x1d, 0x84, 0x89, 0xd5, 0xfe, 0x5e, 0x34, 0x63, 0xa1, 0xa0, 0x47, 0x29, 0xac, 0x71, 0xe8,
+	0x11, 0xfc, 0x85, 0xfb, 0x5c, 0x71, 0xea, 0x91, 0x21, 0x53, 0xce, 0xf9, 0x0f, 0xcf, 0x65, 0x1f,
+	0xf0, 0x1c, 0xde, 0x48, 0x70, 0x07, 0x1a, 0x96, 0xd8, 0xac, 0x55, 0x85, 0x5b, 0xb7, 0xb8, 0x91,
+	0x30, 0x60, 0x0e, 0x1f, 0x72, 0x26, 0xd1, 0xd2, 0xc7, 0xab, 0xcb, 0x0c, 0x68, 0x1d, 0xbc, 0x9f,
+	0x56, 0xc0, 0xe7, 0x69, 0x05, 0x7c, 0x99, 0x56, 0xc0, 0xb7, 0x69, 0x05, 0xc0, 0x1d, 0x2e, 0x66,
+	0x6b, 0x07, 0x52, 0x5c, 0x4c, 0xe6, 0x19, 0xb4, 0xca, 0x37, 0x17, 0xef, 0xe9, 0x45, 0x7a, 0xe0,
+	0x6c, 0x39, 0xde, 0x68, 0xff, 0x7b, 0x00, 0x00, 0x00, 0xff, 0xff, 0xa4, 0x59, 0x6b, 0x4c, 0x15,
+	0x05, 0x00, 0x00,
+}
+
 func (this *ApiConfigSource) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -447,6 +599,9 @@ func (this *ApiConfigSource) Equal(that interface{}) bool {
 	} else if that1.RequestTimeout != nil {
 		return false
 	}
+	if !this.RateLimitSettings.Equal(that1.RateLimitSettings) {
+		return false
+	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
@@ -469,6 +624,36 @@ func (this *AggregatedConfigSource) Equal(that interface{}) bool {
 	if that1 == nil {
 		return this == nil
 	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
+		return false
+	}
+	return true
+}
+func (this *RateLimitSettings) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RateLimitSettings)
+	if !ok {
+		that2, ok := that.(RateLimitSettings)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.MaxTokens.Equal(that1.MaxTokens) {
+		return false
+	}
+	if !this.FillRate.Equal(that1.FillRate) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -502,6 +687,9 @@ func (this *ConfigSource) Equal(that interface{}) bool {
 	} else if this.ConfigSourceSpecifier == nil {
 		return false
 	} else if !this.ConfigSourceSpecifier.Equal(that1.ConfigSourceSpecifier) {
+		return false
+	}
+	if !this.InitialFetchTimeout.Equal(that1.InitialFetchTimeout) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -648,6 +836,16 @@ func (m *ApiConfigSource) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n2
 	}
+	if m.RateLimitSettings != nil {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintConfigSource(dAtA, i, uint64(m.RateLimitSettings.Size()))
+		n3, err := m.RateLimitSettings.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
@@ -675,6 +873,47 @@ func (m *AggregatedConfigSource) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *RateLimitSettings) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RateLimitSettings) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.MaxTokens != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintConfigSource(dAtA, i, uint64(m.MaxTokens.Size()))
+		n4, err := m.MaxTokens.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n4
+	}
+	if m.FillRate != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintConfigSource(dAtA, i, uint64(m.FillRate.Size()))
+		n5, err := m.FillRate.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func (m *ConfigSource) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -691,11 +930,21 @@ func (m *ConfigSource) MarshalTo(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	if m.ConfigSourceSpecifier != nil {
-		nn3, err := m.ConfigSourceSpecifier.MarshalTo(dAtA[i:])
+		nn6, err := m.ConfigSourceSpecifier.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn3
+		i += nn6
+	}
+	if m.InitialFetchTimeout != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintConfigSource(dAtA, i, uint64(m.InitialFetchTimeout.Size()))
+		n7, err := m.InitialFetchTimeout.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n7
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -717,11 +966,11 @@ func (m *ConfigSource_ApiConfigSource) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintConfigSource(dAtA, i, uint64(m.ApiConfigSource.Size()))
-		n4, err := m.ApiConfigSource.MarshalTo(dAtA[i:])
+		n8, err := m.ApiConfigSource.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n4
+		i += n8
 	}
 	return i, nil
 }
@@ -731,11 +980,11 @@ func (m *ConfigSource_Ads) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintConfigSource(dAtA, i, uint64(m.Ads.Size()))
-		n5, err := m.Ads.MarshalTo(dAtA[i:])
+		n9, err := m.Ads.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n5
+		i += n9
 	}
 	return i, nil
 }
@@ -749,6 +998,9 @@ func encodeVarintConfigSource(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *ApiConfigSource) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ApiType != 0 {
@@ -774,6 +1026,10 @@ func (m *ApiConfigSource) Size() (n int) {
 		l = github_com_gogo_protobuf_types.SizeOfStdDuration(*m.RequestTimeout)
 		n += 1 + l + sovConfigSource(uint64(l))
 	}
+	if m.RateLimitSettings != nil {
+		l = m.RateLimitSettings.Size()
+		n += 1 + l + sovConfigSource(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -781,6 +1037,9 @@ func (m *ApiConfigSource) Size() (n int) {
 }
 
 func (m *AggregatedConfigSource) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
@@ -789,11 +1048,38 @@ func (m *AggregatedConfigSource) Size() (n int) {
 	return n
 }
 
+func (m *RateLimitSettings) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.MaxTokens != nil {
+		l = m.MaxTokens.Size()
+		n += 1 + l + sovConfigSource(uint64(l))
+	}
+	if m.FillRate != nil {
+		l = m.FillRate.Size()
+		n += 1 + l + sovConfigSource(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *ConfigSource) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ConfigSourceSpecifier != nil {
 		n += m.ConfigSourceSpecifier.Size()
+	}
+	if m.InitialFetchTimeout != nil {
+		l = m.InitialFetchTimeout.Size()
+		n += 1 + l + sovConfigSource(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -802,6 +1088,9 @@ func (m *ConfigSource) Size() (n int) {
 }
 
 func (m *ConfigSource_Path) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Path)
@@ -809,6 +1098,9 @@ func (m *ConfigSource_Path) Size() (n int) {
 	return n
 }
 func (m *ConfigSource_ApiConfigSource) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ApiConfigSource != nil {
@@ -818,6 +1110,9 @@ func (m *ConfigSource_ApiConfigSource) Size() (n int) {
 	return n
 }
 func (m *ConfigSource_Ads) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Ads != nil {
@@ -855,7 +1150,7 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -883,7 +1178,7 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ApiType |= (ApiConfigSource_ApiType(b) & 0x7F) << shift
+				m.ApiType |= ApiConfigSource_ApiType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -902,7 +1197,7 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -912,6 +1207,9 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -931,7 +1229,7 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -940,6 +1238,9 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -964,7 +1265,7 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -973,6 +1274,9 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -995,7 +1299,7 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1004,6 +1308,9 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1014,6 +1321,42 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RateLimitSettings", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowConfigSource
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RateLimitSettings == nil {
+				m.RateLimitSettings = &RateLimitSettings{}
+			}
+			if err := m.RateLimitSettings.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipConfigSource(dAtA[iNdEx:])
@@ -1021,6 +1364,9 @@ func (m *ApiConfigSource) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthConfigSource
 			}
 			if (iNdEx + skippy) > l {
@@ -1051,7 +1397,7 @@ func (m *AggregatedConfigSource) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1072,6 +1418,135 @@ func (m *AggregatedConfigSource) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RateLimitSettings) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowConfigSource
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RateLimitSettings: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RateLimitSettings: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxTokens", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowConfigSource
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MaxTokens == nil {
+				m.MaxTokens = &types.UInt32Value{}
+			}
+			if err := m.MaxTokens.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FillRate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowConfigSource
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.FillRate == nil {
+				m.FillRate = &types.DoubleValue{}
+			}
+			if err := m.FillRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipConfigSource(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthConfigSource
 			}
 			if (iNdEx + skippy) > l {
@@ -1102,7 +1577,7 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1130,7 +1605,7 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1140,6 +1615,9 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1159,7 +1637,7 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1168,6 +1646,9 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1191,7 +1672,7 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1200,6 +1681,9 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthConfigSource
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1209,6 +1693,42 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 			}
 			m.ConfigSourceSpecifier = &ConfigSource_Ads{v}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitialFetchTimeout", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowConfigSource
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.InitialFetchTimeout == nil {
+				m.InitialFetchTimeout = &types.Duration{}
+			}
+			if err := m.InitialFetchTimeout.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipConfigSource(dAtA[iNdEx:])
@@ -1216,6 +1736,9 @@ func (m *ConfigSource) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthConfigSource
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthConfigSource
 			}
 			if (iNdEx + skippy) > l {
@@ -1285,8 +1808,11 @@ func skipConfigSource(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthConfigSource
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthConfigSource
 			}
 			return iNdEx, nil
@@ -1317,6 +1843,9 @@ func skipConfigSource(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthConfigSource
+				}
 			}
 			return iNdEx, nil
 		case 4:
@@ -1335,43 +1864,3 @@ var (
 	ErrInvalidLengthConfigSource = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowConfigSource   = fmt.Errorf("proto: integer overflow")
 )
-
-func init() {
-	proto.RegisterFile("envoy/api/v2/core/config_source.proto", fileDescriptor_config_source_4202aa29cecf9037)
-}
-
-var fileDescriptor_config_source_4202aa29cecf9037 = []byte{
-	// 508 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x52, 0xbd, 0x6e, 0x1a, 0x4d,
-	0x14, 0x65, 0x58, 0xf8, 0xc0, 0x03, 0x98, 0xf5, 0xca, 0xfa, 0xbc, 0x71, 0xb1, 0x41, 0x24, 0x91,
-	0x88, 0x8b, 0x5d, 0x89, 0xd4, 0x29, 0xf8, 0xb1, 0xa0, 0x88, 0x22, 0x67, 0xa1, 0x49, 0xb5, 0x1a,
-	0x2f, 0x97, 0xf1, 0x48, 0x98, 0x99, 0xcc, 0xcc, 0x22, 0xd1, 0xe6, 0x29, 0xa2, 0x3c, 0x41, 0x94,
-	0x27, 0x88, 0x52, 0xb9, 0x4c, 0x99, 0x2e, 0x65, 0x22, 0x3a, 0xbf, 0x45, 0x34, 0xbb, 0x8b, 0x62,
-	0x6c, 0x24, 0x77, 0xf7, 0x9e, 0xb9, 0xe7, 0xea, 0x9c, 0x7b, 0x06, 0xbf, 0x80, 0xe5, 0x8a, 0xaf,
-	0x03, 0x22, 0x58, 0xb0, 0xea, 0x06, 0x31, 0x97, 0x10, 0xc4, 0x7c, 0x39, 0x67, 0x34, 0x52, 0x3c,
-	0x91, 0x31, 0xf8, 0x42, 0x72, 0xcd, 0x9d, 0xa3, 0x74, 0xcc, 0x27, 0x82, 0xf9, 0xab, 0xae, 0x6f,
-	0xc6, 0x4e, 0x9f, 0x3f, 0x64, 0x52, 0x29, 0xe2, 0x48, 0x81, 0x5c, 0xb1, 0x2d, 0xf1, 0xd4, 0xa3,
-	0x9c, 0xd3, 0x05, 0x04, 0x69, 0x77, 0x99, 0xcc, 0x83, 0x59, 0x22, 0x89, 0x66, 0x7c, 0x99, 0xbf,
-	0x9f, 0xac, 0xc8, 0x82, 0xcd, 0x88, 0x86, 0x60, 0x5b, 0xe4, 0x0f, 0xc7, 0x94, 0x53, 0x9e, 0x96,
-	0x81, 0xa9, 0x32, 0xb4, 0xfd, 0xd9, 0xc2, 0xcd, 0x9e, 0x60, 0x83, 0x54, 0xe2, 0x24, 0x55, 0xe8,
-	0xbc, 0xc3, 0x55, 0x22, 0x58, 0xa4, 0xd7, 0x02, 0x5c, 0xd4, 0x42, 0x9d, 0xc3, 0xee, 0x99, 0xff,
-	0x40, 0xae, 0x7f, 0x8f, 0x65, 0xfa, 0xe9, 0x5a, 0x40, 0x1f, 0x7f, 0xbf, 0xbd, 0xb1, 0xca, 0x1f,
-	0x51, 0xd1, 0x46, 0x61, 0x85, 0x64, 0xa0, 0xf3, 0x0c, 0x37, 0xe2, 0x45, 0xa2, 0x34, 0xc8, 0x68,
-	0x49, 0xae, 0x41, 0xb9, 0xc5, 0x96, 0xd5, 0x39, 0x08, 0xeb, 0x39, 0xf8, 0xd6, 0x60, 0xce, 0x10,
-	0x37, 0x24, 0xcc, 0x25, 0xa8, 0xab, 0x68, 0x06, 0x0b, 0xb2, 0x76, 0xad, 0x16, 0xea, 0xd4, 0xba,
-	0x4f, 0xfc, 0xcc, 0xb2, 0xbf, 0xb5, 0xec, 0x0f, 0x73, 0xcb, 0xfd, 0xd2, 0xa7, 0xdf, 0x4f, 0x51,
-	0x58, 0xcf, 0x59, 0x43, 0x43, 0x72, 0x06, 0xb8, 0x71, 0xf7, 0x6c, 0xca, 0x2d, 0xb5, 0xac, 0x4e,
-	0xad, 0xeb, 0xed, 0xb1, 0x30, 0x92, 0x22, 0x9e, 0x64, 0x63, 0x61, 0x9d, 0xfe, 0x6b, 0x94, 0x33,
-	0xc5, 0x4d, 0x09, 0x1f, 0x12, 0x50, 0x3a, 0xd2, 0xec, 0x1a, 0x78, 0xa2, 0xdd, 0xf2, 0x63, 0x62,
-	0x6c, 0x23, 0xc6, 0x98, 0xaf, 0x7c, 0x45, 0xa5, 0xb3, 0x62, 0xb5, 0x10, 0x1e, 0xe6, 0x3b, 0xa6,
-	0xd9, 0x8a, 0xb6, 0x8f, 0x2b, 0xf9, 0x95, 0x9c, 0x26, 0xae, 0x85, 0xe7, 0x93, 0x69, 0xf4, 0xe6,
-	0x7c, 0xd4, 0x1b, 0xbc, 0xb7, 0x0b, 0x4e, 0x15, 0x97, 0x0c, 0x60, 0x23, 0x53, 0x8d, 0xc2, 0x8b,
-	0x81, 0x5d, 0x6c, 0xbb, 0xf8, 0xff, 0x1e, 0xa5, 0x12, 0x28, 0xd1, 0x30, 0xbb, 0x7b, 0xec, 0xf6,
-	0x2f, 0x84, 0xeb, 0x3b, 0x99, 0x1d, 0xe3, 0x92, 0x20, 0xfa, 0x2a, 0xcd, 0xeb, 0x60, 0x5c, 0x08,
-	0xd3, 0xce, 0xb9, 0xc0, 0x47, 0x26, 0xc9, 0x9d, 0x0f, 0xe8, 0x16, 0x53, 0x23, 0xed, 0xc7, 0x23,
-	0x1d, 0x17, 0xc2, 0x26, 0xb9, 0xf7, 0x37, 0x5e, 0x63, 0x8b, 0xcc, 0x54, 0x9e, 0xcc, 0xcb, 0x7d,
-	0x3b, 0xf6, 0x0a, 0x1e, 0x17, 0x42, 0xc3, 0xeb, 0xb7, 0xf0, 0xc9, 0x8e, 0x98, 0x48, 0x09, 0x88,
-	0xd9, 0x9c, 0x81, 0x74, 0xca, 0xdf, 0x6e, 0x6f, 0x2c, 0xd4, 0xb7, 0xbf, 0x6c, 0x3c, 0xf4, 0x63,
-	0xe3, 0xa1, 0x9f, 0x1b, 0x0f, 0xfd, 0xd9, 0x78, 0xe8, 0xf2, 0xbf, 0xf4, 0xd4, 0xaf, 0xfe, 0x06,
-	0x00, 0x00, 0xff, 0xff, 0xab, 0x0b, 0x66, 0x7e, 0x5a, 0x03, 0x00, 0x00,
-}

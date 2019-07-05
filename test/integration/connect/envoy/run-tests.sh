@@ -17,7 +17,7 @@ FILTER_TESTS=${FILTER_TESTS:-}
 STOP_ON_FAIL=${STOP_ON_FAIL:-}
 
 # ENVOY_VERSIONS is the list of envoy versions to run each test against
-ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.8.0 1.9.1"}
+ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.10.0 1.9.1 1.8.0"}
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -115,12 +115,12 @@ for c in ./case-*/ ; do
 
     # Start containers required
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      docker-compose up -d $REQUIRED_SERVICES
+      docker-compose up --build -d $REQUIRED_SERVICES
     fi
 
     # Execute tests
     THISRESULT=1
-    if docker-compose up --build --abort-on-container-exit --exit-code-from verify verify ; then
+    if docker-compose up --build --exit-code-from verify verify ; then
       echo "- - - - - - - - - - - - - - - - - - - - - - - -"
       echoblue -n "CASE $CASE_STR"
       echo -n ": "

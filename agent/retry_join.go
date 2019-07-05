@@ -39,6 +39,47 @@ func (a *Agent) retryJoinWAN() {
 	}
 }
 
+func newDiscover() (*discover.Discover, error) {
+	providers := make(map[string]discover.Provider)
+	for k, v := range discover.Providers {
+		providers[k] = v
+	}
+	providers["k8s"] = &discoverk8s.Provider{}
+
+	return discover.New(
+		discover.WithUserAgent(lib.UserAgent()),
+		discover.WithProviders(providers),
+	)
+}
+
+func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string, logger *log.Logger) []string {
+	addrs := []string{}
+	if disco == nil {
+		return addrs
+	}
+	for _, addr := range retryJoin {
+		switch {
+		case strings.Contains(addr, "provider="):
+			servers, err := disco.Addrs(addr, logger)
+			if err != nil {
+				if logger != nil {
+					logger.Printf("[ERR] agent: Cannot discover %s %s: %s", cluster, addr, err)
+				}
+			} else {
+				addrs = append(addrs, servers...)
+				if logger != nil {
+					logger.Printf("[INFO] agent: Discovered %s servers: %s", cluster, strings.Join(servers, " "))
+				}
+			}
+
+		default:
+			addrs = append(addrs, addr)
+		}
+	}
+
+	return addrs
+}
+
 // retryJoiner is used to handle retrying a join until it succeeds or all
 // retries are exhausted.
 type retryJoiner struct {
@@ -69,17 +110,7 @@ func (r *retryJoiner) retryJoin() error {
 		return nil
 	}
 
-	// Copy the default providers, and then add the non-default
-	providers := make(map[string]discover.Provider)
-	for k, v := range discover.Providers {
-		providers[k] = v
-	}
-	providers["k8s"] = &discoverk8s.Provider{}
-
-	disco, err := discover.New(
-		discover.WithUserAgent(lib.UserAgent()),
-		discover.WithProviders(providers),
-	)
+	disco, err := newDiscover()
 	if err != nil {
 		return err
 	}
@@ -88,34 +119,14 @@ func (r *retryJoiner) retryJoin() error {
 	r.logger.Printf("[INFO] agent: Joining %s cluster...", r.cluster)
 	attempt := 0
 	for {
-		var addrs []string
-		var err error
-
-		for _, addr := range r.addrs {
-			switch {
-			case strings.Contains(addr, "provider="):
-				servers, err := disco.Addrs(addr, r.logger)
-				if err != nil {
-					r.logger.Printf("[ERR] agent: Join %s: %s", r.cluster, err)
-				} else {
-					addrs = append(addrs, servers...)
-					r.logger.Printf("[INFO] agent: Discovered %s servers: %s", r.cluster, strings.Join(servers, " "))
-				}
-
-			default:
-				addrs = append(addrs, addr)
-			}
-		}
-
+		addrs := retryJoinAddrs(disco, r.cluster, r.addrs, r.logger)
 		if len(addrs) > 0 {
 			n, err := r.join(addrs)
 			if err == nil {
 				r.logger.Printf("[INFO] agent: Join %s completed. Synced with %d initial agents", r.cluster, n)
 				return nil
 			}
-		}
-
-		if len(addrs) == 0 {
+		} else if len(addrs) == 0 {
 			err = fmt.Errorf("No servers to join")
 		}
 

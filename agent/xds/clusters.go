@@ -66,9 +66,9 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 			addr = "127.0.0.1"
 		}
 		c = &envoy.Cluster{
-			Name:           LocalAppClusterName,
-			ConnectTimeout: time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
-			Type:           envoy.Cluster_STATIC,
+			Name:                 LocalAppClusterName,
+			ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
+			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
 			LoadAssignment: &envoy.ClusterLoadAssignment{
 				ClusterName: LocalAppClusterName,
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{
@@ -111,9 +111,9 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 
 	if c == nil {
 		c = &envoy.Cluster{
-			Name:           upstream.Identifier(),
-			ConnectTimeout: time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
-			Type:           envoy.Cluster_EDS,
+			Name:                 upstream.Identifier(),
+			ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
+			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 				EdsConfig: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{

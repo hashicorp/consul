@@ -727,7 +727,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			ServiceID:  "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,
@@ -738,7 +738,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			CheckID:    "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,

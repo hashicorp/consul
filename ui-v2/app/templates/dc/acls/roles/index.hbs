@@ -39,12 +39,12 @@
                     <td data-test-role="{{item.Name}}">
                       <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
                     </td>
-                    <td>
+                    <td data-test-description>
                       {{item.Description}}
                     </td>
                     <td>
                       {{#each item.Policies as |item|}}
-                        <strong class={{policy/typeof item}}>{{item.Name}}</strong>
+                        <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
                       {{/each}}
                     </td>
                 {{/block-slot}}

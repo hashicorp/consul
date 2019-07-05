@@ -31,6 +31,8 @@ type CertURI interface {
 var (
 	spiffeIDServiceRegexp = regexp.MustCompile(
 		`^/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$`)
+	spiffeIDAgentRegexp = regexp.MustCompile(
+		`^/agent/client/dc/([^/]+)/id/([^/]+)$`)
 )
 
 // ParseCertURIFromString attempts to parse a string representation of a
@@ -85,6 +87,27 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			Datacenter: dc,
 			Service:    service,
 		}, nil
+	} else if v := spiffeIDAgentRegexp.FindStringSubmatch(path); v != nil {
+		// Determine the values. We assume they're sane to save cycles,
+		// but if the raw path is not empty that means that something is
+		// URL encoded so we go to the slow path.
+		dc := v[1]
+		agent := v[2]
+		if input.RawPath != "" {
+			var err error
+			if dc, err = url.PathUnescape(v[1]); err != nil {
+				return nil, fmt.Errorf("Invalid datacenter: %s", err)
+			}
+			if agent, err = url.PathUnescape(v[2]); err != nil {
+				return nil, fmt.Errorf("Invalid node: %s", err)
+			}
+		}
+
+		return &SpiffeIDAgent{
+			Host:       input.Host,
+			Datacenter: dc,
+			Agent:      agent,
+		}, nil
 	}
 
 	// Test for signing ID
@@ -98,5 +121,5 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("SPIFFE ID is not in the expected format")
+	return nil, fmt.Errorf("SPIFFE ID is not in the expected format: %s", input.String())
 }

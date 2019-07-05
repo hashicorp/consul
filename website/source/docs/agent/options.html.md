@@ -132,6 +132,14 @@ will exit with an error at startup.
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template
 
+* <a name="check_output_max_size"></a><a href="#check_output_max_size">`-check_output_max_size`</a> -
+  Override the default limit of 4k for maximum size of checks, this is a positive
+  value.
+  By limiting this size, it allows to put less pressure on Consul servers when
+  many checks are having a very large output in their checks.
+  In order to completely disable check output capture, it is possible to
+  use <a href="#discard_check_output">`discard_check_output`</a>.
+
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces, including the HTTP and DNS servers. By
   default, this is "127.0.0.1", allowing only loopback connections. In Consul
@@ -212,6 +220,9 @@ will exit with an error at startup.
 * <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
+
+* <a name="_alt_domain"></a><a href="#_alt_domain">`-alt-domain`</a> - This flag allows Consul to respond to
+  DNS queries in an alternate domain, in addition to the primary domain. If unset, no alternate domain is used.
 
 * <a name="_enable_script_checks"></a><a
   href="#_enable_script_checks">`-enable-script-checks`</a> This controls
@@ -457,6 +468,8 @@ will exit with an error at startup.
   the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
   readable to the agent. Starting with Consul version 0.7.0 and later, the Web UI assets are included in the binary so this flag is no longer necessary; specifying only the `-ui` flag is enough to enable the Web UI. Specifying both the '-ui' and '-ui-dir' flags will result in an error.
 
+* <a name="_ui_content_path"></a><a href="#_ui_content_path">`-ui-content-path`</a> - This flag provides the option to change the path the Consul UI loads from and will be displayed in the browser. By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics, `-`, and `_` are allowed in a custom path. `/v1/` is not allowed as it would overwrite the API endpoint. 
+
 ## <a name="configuration_files"></a>Configuration Files
 
 In addition to the command-line options, configuration can be put into
@@ -660,7 +673,7 @@ default will automatically work with some tooling.
   or write privileges, or node read privileges, even if Consul servers aren't present to validate
   any tokens. This should only be used by operators during outages, regular ACL tokens should normally
   be used by applications. This was added in Consul 0.7.2 and is only used when
-  <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true. 
+  <a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> is set to true.
 
 *   <a name="acl_agent_token_legacy"></a><a href="#acl_agent_token_legacy">`acl_agent_token`</a> -
     **Deprecated in Consul 1.4.0. See the [`acl.tokens.agent`](#acl_tokens_agent) field instead.**
@@ -668,7 +681,7 @@ default will automatically work with some tooling.
     <a href="#acl_token">`acl_token`</a> will be used. This was added in Consul 0.7.2.
 
     This token must at least have write access to the node name it will register as in order to set any
-    of the node-level information in the catalog such as metadata, or the node's tagged addresses. 
+    of the node-level information in the catalog such as metadata, or the node's tagged addresses.
 
 * <a name="acl_enforce_version_8"></a><a href="#acl_enforce_version_8">`acl_enforce_version_8`</a> -
   **Deprecated in Consul 1.4.0**
@@ -704,7 +717,7 @@ default will automatically work with some tooling.
 
     If there's a partition or other outage affecting the authoritative datacenter, and the
     [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) is set to "extend-cache", tokens not
-    in the cache can be resolved during the outage using the replicated set of ACLs. 
+    in the cache can be resolved during the outage using the replicated set of ACLs.
 
 * <a name="acl_token_legacy"></a><a href="#acl_token_legacy">`acl_token`</a> -
   **Deprecated in Consul 1.4.0. See the [`acl.tokens.default`](#acl_tokens_default) field instead.**
@@ -790,6 +803,15 @@ default will automatically work with some tooling.
       If set to `true`, this setting will disable Autopilot's upgrade migration strategy in Consul Enterprise of waiting
       until enough newer-versioned servers have been added to the cluster before promoting any of them to voters. Defaults
       to `false`.
+
+* <a name="auto_encrypt"></a><a href="#auto_encrypt">`auto_encrypt`</a>
+    This object allows setting options for the `auto_encrypt` feature.
+
+    The following sub-keys are available:
+
+    * <a name="allow_tls"></a><a href="#allow_tls">`allow_tls`</a> (Defaults to `false`) This option enables `auto_encrypt` on the servers and allows them to automatically distribute certificates from the Connect CA to the clients. If enabled, the server can accept incoming connections from both the built-in CA and the Connect CA, as well as their certificates. Note, the server will only present the built-in CA and certificate, which the client can verify using the CA it received from `auto_encrypt` endpoint. If disabled, a client configured with `auto_encrypt.tls` will be unable to start.
+
+    * <a name="tls"></a><a href="#tls">`tls`</a> (Defaults to `false`) Allows the client to request the Connect CA and certificates from the servers, for encrypting RPC communication. The client will make the request to any servers listed in the `-join` or `-retry-join` option. This requires that every server to have `auto_encrypt.allow_tls` enabled. When both `auto_encrypt` options are used, it allows clients to receive certificates that are generated on the servers. If the `-server-port` is not the default one, it has to be provided to the client as well. Usually this is discovered through LAN gossip, but `auto_encrypt` provision happens before the information can be distributed through gossip. The most secure `auto_encrypt` setup is when the client is provided with the built-in CA, `verify_server_hostname` is turned on, and when an ACL token with `node.write` permissions is setup. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted. 
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -1387,12 +1409,12 @@ default will automatically work with some tooling.
     * <a name="sidecar_min_port"></a><a
       href="#sidecar_min_port">`sidecar_min_port`</a> - Inclusive minimum port
       number to use for automatically assigned [sidecar service
-      registrations](/docs/connect/proxies/sidecar-service.html). Default 21000.
+      registrations](/docs/connect/registration/sidecar-service.html). Default 21000.
       Set to `0` to disable automatic port assignment.
     * <a name="sidecar_max_port"></a><a
       href="#sidecar_max_port">`sidecar_max_port`</a> - Inclusive maximum port
       number to use for automatically assigned [sidecar service
-      registrations](/docs/connect/proxies/sidecar-service.html). Default 21255.
+      registrations](/docs/connect/registration/sidecar-service.html). Default 21255.
       Set to `0` to disable automatic port assignment.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
@@ -1402,7 +1424,7 @@ default will automatically work with some tooling.
   designates the datacenter which is authoritative for ACL information, intentions and is the root
   Certificate Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
   must agree on the primary datacenter. Setting it on the servers is all you need for cluster-level enforcement, but for the APIs to forward properly from the clients, it must be set on them too. In
-  Consul 0.8 and later, this also enables agent-level enforcement of ACLs. 
+  Consul 0.8 and later, this also enables agent-level enforcement of ACLs.
 
 * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
   [`-raft-protocol` command-line flag](#_raft_protocol).
@@ -1744,10 +1766,10 @@ default will automatically work with some tooling.
 ## <a id="ports-used"></a>Ports Used
 
 Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols. 
+TCP, UDP, or both protocols.
 
-Review the [required ports](/docs/install/ports.html) table for a list of 
-required ports and their default settings. 
+Review the [required ports](/docs/install/ports.html) table for a list of
+required ports and their default settings.
 
 ## <a id="reloadable-configuration"></a>Reloadable Configuration
 

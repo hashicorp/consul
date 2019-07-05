@@ -32,10 +32,13 @@ export default RepositoryService.extend({
       return service;
     });
   },
-  findInstanceBySlug: function(id, slug, dc, configuration) {
+  findInstanceBySlug: function(id, node, slug, dc, configuration) {
     return this.findBySlug(slug, dc, configuration).then(function(item) {
+      // Loop through all the service instances and pick out the one
+      // that has the same service id AND node name
+      // node names are unique per datacenter
       const i = item.Nodes.findIndex(function(item) {
-        return item.Service.ID === id;
+        return item.Service.ID === id && item.Node.Node === node;
       });
       if (i !== -1) {
         const service = item.Nodes[i].Service;

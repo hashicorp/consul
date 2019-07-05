@@ -115,6 +115,8 @@ services:
       context: .
       dockerfile: Dockerfile-bats
     tty: true
+    environment:
+     - ENVOY_VERSION
     command:
      - "--pretty"
      - "/workdir/bats"
@@ -130,6 +132,7 @@ services:
       dockerfile: Dockerfile-consul-envoy
       args:
         ENVOY_VERSION: ${ENVOY_VERSION:-1.8.0}
+    image: consul-dev-envoy:${ENVOY_VERSION:-1.8.0}
     command:
       - "consul"
       - "connect"

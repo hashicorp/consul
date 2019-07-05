@@ -19,7 +19,7 @@ export const routes = {
         _options: { path: '/:name' },
       },
       instance: {
-        _options: { path: '/:name/:id' },
+        _options: { path: '/:name/:node/:id' },
       },
     },
     // Nodes represent a consul node

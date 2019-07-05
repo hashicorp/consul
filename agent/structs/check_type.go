@@ -45,6 +45,7 @@ type CheckType struct {
 	// service, if any, to be deregistered if this check is critical for
 	// longer than this duration.
 	DeregisterCriticalServiceAfter time.Duration
+	OutputMaxSize                  int
 }
 type CheckTypes []*CheckType
 
@@ -66,6 +67,9 @@ func (c *CheckType) Validate() error {
 	}
 	if !intervalCheck && !c.IsAlias() && c.TTL <= 0 {
 		return fmt.Errorf("TTL must be > 0 for TTL checks")
+	}
+	if c.OutputMaxSize < 0 {
+		return fmt.Errorf("MaxOutputMaxSize must be positive")
 	}
 	return nil
 }

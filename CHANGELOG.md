@@ -1,13 +1,37 @@
 ## UNRELEASED
 
+## 1.5.2 (June 27, 2019)
+
+FEATURE
+
+* tls: auto_encrypt enables automatic RPC cert provisioning for consul clients [[GH-5597](https://github.com/hashicorp/consul/pull/5597)]
+
 IMPROVEMENTS
 
+* ui: allow for customization of consul UI path [[GH-5950](https://github.com/hashicorp/consul/pull/5950)]
+* acl: allow service deregistration with node write permission [[GH-5217](https://github.com/hashicorp/consul/pull/5217)]
+* agent: support for maximum size for Output of checks [[GH-5233](https://github.com/hashicorp/consul/pull/5233)]
 * agent: improve startup message when no error occurs [[GH-5896](https://github.com/hashicorp/consul/issues/5896)]
+* agent: make sure client agent rate limits apply when hitting the client interface on a server directly [[GH-5927](https://github.com/hashicorp/consul/pull/5927)]
+* agent: use stale requests when performing full sync [[GH-5873](https://github.com/hashicorp/consul/pull/5873)]
+* agent: transfer leadership when establishLeadership fails [[GH-5247](https://github.com/hashicorp/consul/pull/5247)]
+* agent: added metadata information about servers into consul service description [[GH-5455](https://github.com/hashicorp/consul/pull/5455)]
+* connect: provide -admin-access-log-path for envoy [[GH-5858](https://github.com/hashicorp/consul/pull/5858)]
+* connect: upgrade Envoy xDS protocol to support Envoy 1.10 [[GH-5872](https://github.com/hashicorp/consul/pull/5872)]
+* dns: support alt domains for dns resolution [[GH-5940](https://github.com/hashicorp/consul/pull/5940)]
+* license (enterprise): add command to reset license to builtin one
+* ui: Improve linking between sidecars and proxies and their services/service instances [[GH-5944](https://github.com/hashicorp/consul/pull/5944)]
+* ui: Add ability to search for tokens by policy, role or service identity name [[GH-5811](https://github.com/hashicorp/consul/pull/5811)]
 
 BUG FIXES:
 
 * agent: fix several data races and bugs related to node-local alias checks [[GH-5876](https://github.com/hashicorp/consul/issues/5876)]
+* api: update link to agent caching in comments [[GH-5935](https://github.com/hashicorp/consul/pull/5935)]
 * connect: fix proxy address formatting for IPv6 addresses [[GH-5460](https://github.com/hashicorp/consul/issues/5460)]
+* connect: store signingKeyId instead of authorityKeyId [[GH-6005](https://github.com/hashicorp/consul/pull/6005)]
+* ui: fix service instance linking when multiple non-unique service id's exist on multiple nodes [[GH-5933](https://github.com/hashicorp/consul/pull/5933)]
+* ui: Improve error messaging for ACL policies [[GH-5836](https://github.com/hashicorp/consul/pull/5836)]
+* txn: Fixed an issue that would allow a CAS operation on a service to work when it shouldn't have. [[GH-5971](https://github.com/hashicorp/consul/pull/5971)]
 
 ## 1.5.1 (May 22, 2019)
 
@@ -655,7 +679,7 @@ BREAKING CHANGES:
 
 * **`statsite_prefix` Renamed to `metrics_prefix`:** Since the `statsite_prefix` configuration option applied to all telemetry providers, `statsite_prefix` was renamed to [`metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix). Configuration files will need to be updated when upgrading to this version of Consul. [[GH-3498](https://github.com/hashicorp/consul/issues/3498)]
 * **`advertise_addrs` Removed:** This configuration option was removed since it was redundant with `advertise_addr` and `advertise_addr_wan` in combination with `ports` and also wrongly stated that you could configure both host and port. [[GH-3516](https://github.com/hashicorp/consul/issues/3516)]
-* **Escaping Behavior Changed for go-discover Configs:** The format for [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) and [`-retry-join-wan`](https://www.consul.io/docs/agent/options.html#retry-join-wan) values that use [go-discover](https://github.com/hashicorp/go-discover) cloud auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`. [[GH-3417](https://github.com/hashicorp/consul/issues/3417)]
+* **Escaping Behavior Changed for go-discover Configs:** The format for [`-retry-join`](https://www.consul.io/docs/agent/options.html#retry-join) and [`-retry-join-wan`](https://www.consul.io/docs/agent/options.html#retry-join-wan) values that use [go-discover](https://github.com/hashicorp/go-discover) Cloud auto joining has changed. Values in `key=val` sequences must no longer be URL encoded and can be provided as literals as long as they do not contain spaces, backslashes `\` or double quotes `"`. If values contain these characters then use double quotes as in `"some key"="some value"`. Special characters within a double quoted string can be escaped with a backslash `\`. [[GH-3417](https://github.com/hashicorp/consul/issues/3417)]
 * **HTTP Verbs are Enforced in Many HTTP APIs:** Many endpoints in the HTTP API that previously took any HTTP verb now check for specific HTTP verbs and enforce them. This may break clients relying on the old behavior. [[GH-3405](https://github.com/hashicorp/consul/issues/3405)]
 
     <details><summary>Detailed List of Updated Endpoints and Required HTTP Verbs</summary>
@@ -774,7 +798,7 @@ SECURITY:
 
 FEATURES:
 * **LAN Network Segments:** (Consul Enterprise) Added a new [Network Segments](https://www.consul.io/docs/guides/segments.html) capability which allows users to configure Consul to support segmented LAN topologies with multiple, distinct gossip pools. [[GH-3431](https://github.com/hashicorp/consul/issues/3431)]
-* **WAN Join for Cloud Providers:** Added WAN support for retry join for cloud providers via go-discover, including Amazon AWS, Microsoft Azure, Google Cloud, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [[GH-3406](https://github.com/hashicorp/consul/issues/3406)]
+* **WAN Join for Cloud Providers:** Added WAN support for retry join for Cloud providers via go-discover, including Amazon AWS, Microsoft Azure, Google Cloud, and SoftLayer. This uses the same "provider" syntax supported for `-retry-join` via the `-retry-join-wan` configuration. [[GH-3406](https://github.com/hashicorp/consul/issues/3406)]
 * **RPC Rate Limiter:** Consul agents in client mode have a new [`limits`](https://www.consul.io/docs/agent/options.html#limits) configuration that enables a rate limit on RPC calls the agent makes to Consul servers. [[GH-3140](https://github.com/hashicorp/consul/issues/3140)]
 
 IMPROVEMENTS:
