@@ -11,9 +11,10 @@ description: |-
 Consul Connect is Consul’s service mesh offering, which allows users to observe
 and secure service-to-service communication. Because Connect implements mutual
 TLS between services, it also provides users with a way to help services in
-different datacenters communicate with each other through mesh gateways. Using
-gateways for inter-datacenter communication can prevent each Connect proxy from
-needing an accessible address, and frees operators from worrying about IP
+different datacenters communicate with each other through mesh gateways by
+taking advantage of Server Name Indication (SNI). Using gateways for
+inter-datacenter communication can prevent each Connect proxy from needing an
+accessible IP address, and frees operators from worrying about IP address
 overlap between datacenters.
 
 In this guide, you will configure Consul Connect across multiple Consul
@@ -43,10 +44,10 @@ them to check that you have the proper configuration:
 - [Basic Federation with WAN Gossip](https://learn.hashicorp.com/consul/security-networking/datacenters)
 - [ACL Replication for Multiple Datacenters](https://learn.hashicorp.com/consul/day-2-operations/acl-replication)
 
--> **Note:** Following this ACL Replication guide's recommendation for the replication
-token policy  will work for this guide. The most conservative replication token
-policy that will allow intention replication would deny access to service
-prefixes and explicitly allow read access to intentions.
+-> **Note:** Following this ACL Replication guide's recommendation for the
+replication token policy  will work for this guide. The most conservative
+replication token policy that will allow intention replication would deny access
+to service prefixes and explicitly allow read access to intentions.
 
 You will also need to install [Envoy](https://www.envoyproxy.io/) alongside your
 Consul clients. Both the gateway and sidecar proxies will need to get
