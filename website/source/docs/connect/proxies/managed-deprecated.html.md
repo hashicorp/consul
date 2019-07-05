@@ -205,12 +205,6 @@ service.
 }
 ```
 
--> **Note:** Connect does not currently support cross-datacenter
-service communication. Therefore, prepared queries with Connect should
-only be used to discover services within a single datacenter. See
-[Multi-Datacenter Connect](/docs/connect/index.html#multi-datacenter) for
-more information.
-
 For full details of the additional configurable options available when using the
 built-in proxy see the [built-in proxy configuration
 reference](/docs/connect/configuration.html#built-in-proxy-options).

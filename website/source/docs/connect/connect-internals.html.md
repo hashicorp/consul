@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Connect - Architecture"
 sidebar_current: "docs-connect-internals"
 description: |-
-  This page details the internals of Consul Connect: mutual TLS, agent caching and performance, and multi-datacenter Enterprise functionality.
+  This page details the internals of Consul Connect: mutual TLS, agent caching and performance, intention and certificate authority replication.
 ---
 
 # How Connect Works
@@ -87,16 +87,44 @@ agent may begin failing and eventually crash. Cache entries do have TTLs
 associated with them and will evict their entries if they're not used. Given
 a long period of inactivity (3 days by default), the cache will empty itself.
 
-## Multi-Datacenter
+## Connections Across Datacenters
 
-Using Connect for service-to-service communications across multiple datacenters
-requires Consul Enterprise.
+Sidecar proxy's [upstream configuration](/docs/connect/registration/service-registration.html#upstream-configuration-reference)
+may specify an alternative datacenter or a prepared query that can address services
+in multiple datacenters (such as the [geo failover](https://learn.hashicorp.com/consul/developer-discovery/geo-failover) pattern).
 
-With Open Source Consul, Connect may be enabled on multiple Consul datacenters,
-but only services within the same datacenter can establish Connect-based,
-Authenticated and Authorized connections. In this version, Certificate Authority
-configurations and intentions are both local to their respective datacenters;
-they are not replicated across datacenters.
+[Intentions](/docs/connect/intentions.html) verify connections between services by
+source and destination name seamlessly across datacenters.
 
-Full multi-datacenter support for Connect is available in
-[Consul Enterprise](/docs/enterprise/connect-multi-datacenter/index.html).
+Connections can be made via [gateways](TODO) to enable when communciating across
+network topologies allowing connections between services in each datacenter
+without externally routable IPs at the service level.
+
+## Intention Replication
+
+Intention replication happens automatically but requires the
+[`primary_datacenter`](/docs/agent/options.html#primary_datacenter)
+configuration to be set to specify a datacenter that is authoritative
+for intentions. In production setups with ACLs enabled, the
+[replication token](/docs/agent/options.html#acl_tokens_replication) must also
+be set in secondary datacenter server's configuration.
+
+## Certificate Authority Federation
+
+The primary datacenter also acts as the root Certificate Authority (CA) for Connect.
+The primary datacenter generates a trust-domain UUID and obtains a root certificate
+from the configured CA provider which defaults to the built-in one.
+
+Secondary datacenters fetch the root CA public key and trust-domain ID from the
+primary and generate their own key and Certificate Signing Request (CSR) for an
+intermediate CA certificate. This CSR is signed by the root in the primary
+datacenter and the certificate is returned. The secondary datacenter can now use
+this intermediate to sign new Connect certificates in the secondary datacenter
+without WAN communication. CA keys are never replicated between datacenters.
+
+The secondary maintains watches on the root CA certificate in the primary. If the
+CA root changes for any reason such as rotation or migration to a new CA, the
+secondary automatically generates new keys and has them signed by the primary
+datacenter's new root before initiating an automatic rotation of all issued
+certificates in use throughout the secondary datacenter. This makes CA root key
+rotation fully automatic and with zero downtime across multiple datacenters.
