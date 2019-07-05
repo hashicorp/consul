@@ -107,7 +107,7 @@ Intention replication happens automatically but requires the
 configuration to be set to specify a datacenter that is authoritative
 for intentions. In production setups with ACLs enabled, the
 [replication token](/docs/agent/options.html#acl_tokens_replication) must also
-be set in secondary datacenter server's configuration.
+be set in the secondary datacenter server's configuration.
 
 ## Certificate Authority Federation
 
