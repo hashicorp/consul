@@ -624,14 +624,14 @@ func (s *state) resetWatchesFromChain(
 
 		ctx, cancel := context.WithCancel(s.ctx)
 
-		meshGateway := structs.MeshGatewayModeNone
+		meshGateway := structs.MeshGatewayModeDefault
 		if target.Datacenter != s.source.Datacenter {
 			meshGateway = meshGatewayModes[target]
-			if meshGateway == structs.MeshGatewayModeDefault {
-				meshGateway = structs.MeshGatewayModeNone
-			}
-		} else {
-			meshGateway = structs.MeshGatewayModeNone
+		}
+
+		// if the default mode
+		if meshGateway == structs.MeshGatewayModeDefault {
+			meshGateway = s.proxyCfg.MeshGateway.Mode
 		}
 
 		// TODO(rb): update the health endpoint to allow returning even unhealthy endpoints

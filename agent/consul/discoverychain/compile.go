@@ -533,11 +533,13 @@ RESOLVE_AGAIN:
 	}
 	groupResolver := groupResolverNode.GroupResolver
 
-	// Digest mesh gateway settings.
+	// Default mesh gateway settings
 	if serviceDefault := c.entries.GetService(resolver.Name); serviceDefault != nil {
 		groupResolver.MeshGateway = serviceDefault.MeshGateway
-	} else if c.entries.GlobalProxy != nil {
-		groupResolver.MeshGateway = c.entries.GlobalProxy.MeshGateway
+	}
+
+	if c.entries.GlobalProxy != nil && groupResolver.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+		groupResolver.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
 	}
 
 	// Retain this target even if we may not retain the group resolver.
