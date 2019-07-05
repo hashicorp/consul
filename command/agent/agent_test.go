@@ -2,13 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testrpc"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -83,37 +82,24 @@ func TestRetryJoin(t *testing.T) {
 	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
-	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
-
-	args := []string{
-		"-server",
-		"-bind", a.Config.BindAddr.String(),
-		"-data-dir", tmpDir,
-		"-node", "Node 11111111-1111-1111-1111-111111111111",
-		"-node-id", "11111111-1111-1111-1111-111111111111",
-		"-advertise", a.Config.BindAddr.String(),
-		"-retry-join", a.Config.SerfBindAddrLAN.String(),
-		"-retry-interval", "1s",
-		"-retry-join-wan", a.Config.SerfBindAddrWAN.String(),
-		"-retry-interval-wan", "1s",
-	}
-
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
-	go cmd.Run(args)
+	b := agent.NewTestAgent(t, t.Name(), `
+		retry_join = ["`+a.Config.SerfBindAddrLAN.String()+`"]
+		retry_join_wan = ["`+a.Config.SerfBindAddrWAN.String()+`"]
+		retry_interval = "100ms"
+	`)
+	defer b.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a.WANMembers()), 2; got != want {
-			r.Fatalf("got %d WAN members want %d", got, want)
+		if got, want := len(a.LANMembers()), 2; got != want {
+			r.Fatalf("got %d LAN members want %d", got, want)
 		}
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a.LANMembers()), 2; got != want {
-			r.Fatalf("got %d LAN members want %d", got, want)
+		if got, want := len(a.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
 }
