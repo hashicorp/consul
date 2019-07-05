@@ -39,10 +39,10 @@ datacenters with access control list (ACL) replication enabled. If you are
 starting from scratch, follow these guides to set up your datacenters, or use
 them to check that you have the proper configuration:
 
-- [Deployment Guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide)
-- [Securing Consul with ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls)
-- [Basic Federation with WAN Gossip](https://learn.hashicorp.com/consul/security-networking/datacenters)
-- [ACL Replication for Multiple Datacenters](https://learn.hashicorp.com/consul/day-2-operations/acl-replication)
+- [Deployment Guide](/consul/datacenter-deploy/deployment-guide)
+- [Securing Consul with ACLs](/consul/security-networking/production-acls)
+- [Basic Federation with WAN Gossip](/consul/security-networking/datacenters)
+- [ACL Replication for Multiple Datacenters](/consul/day-2-operations/acl-replication)
 
 -> **Note:** Following this ACL Replication guide's recommendation for the
 replication token policy  will work for this guide. The most conservative
@@ -65,7 +65,7 @@ CA](https://www.consul.io/docs/connect/ca/vault.html).
 !> **Warning:** If you are using this guide as a production playbook, we
 strongly recommend that you enable Connect in each of your datacenters by
 following the [Connect in Production
-guide](https://learn.hashicorp.com/consul/developer-segmentation/connect-production),
+guide](/consul/developer-segmentation/connect-production),
 which includes production security recommendations.
 
 ### Enable Connect in the primary datacenter
@@ -126,7 +126,7 @@ Consul and Envoy because they necessarily will have access to the WAN.
 ### Generate Tokens for the Gateways
 
 You’ll need to [generate a
-token](https://learn.hashicorp.com/consul/security-networking/production-acls#apply-individual-tokens-to-the-services)
+token](/consul/security-networking/production-acls#apply-individual-tokens-to-the-services)
 for each gateway that gives it read access to the entire catalog.
 
 Create a file named `mesh-gateway-policy.json` containing the following content.
@@ -245,7 +245,7 @@ registration. To do this you will either create a new registration file or edit
 an existing one to include a sidecar proxy stanza. If you are using socat as
 your backend service, you will create a new file called `socat.json` that will
 contain the below snippet. Since you have ACLs enabled, you will have to [create
-a token for the service](https://learn.hashicorp.com/consul/security-networking/production-acls#apply-individual-tokens-to-the-services).
+a token for the service](/consul/security-networking/production-acls#apply-individual-tokens-to-the-services).
 
 ```json
 {
