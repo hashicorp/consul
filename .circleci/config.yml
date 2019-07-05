@@ -31,13 +31,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
+          - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: go mod download
       - save_cache:
           key: consul-modcache-v1-{{ checksum "go.mod" }}
           paths:
-            - /go/pkg/mod
+          - /go/pkg/mod
       - run:
           name: check go fmt
           command: |
@@ -63,7 +63,7 @@ jobs:
       - checkout
       - restore_cache: # restore cache from dev-build job
           keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
+          - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -96,7 +96,7 @@ jobs:
       - checkout
       - restore_cache: # restore cache from dev-build job
           keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
+          - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -165,13 +165,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - consul-modcache-v1-{{ checksum "go.mod" }}
+          - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: make dev
       - save_cache:
           key: consul-modcache-v1-{{ checksum "go.mod" }}
           paths:
-            - /go/pkg/mod
+          - /go/pkg/mod
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
