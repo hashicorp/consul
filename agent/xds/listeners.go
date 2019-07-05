@@ -362,6 +362,28 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 	upstreamID := u.Identifier()
 
+	// TODO(banks): make this work properly. This is a quick fix to make
+	// Datacenter redirects work for demo.
+	//
+	// If the chain redirected to a different service or datacenter, rename the
+	// upstream so it will match the actual cluster name we are loading endpoints
+	// for.
+	// if resolver, ok := chain.Resolvers[u.DestinationName]; ok {
+	// 	if resolver.Redirect != nil {
+	// 		svc := resolver.Redirect.Service
+	// 		if svc == "" {
+	// 			svc = u.DestinationName
+	// 		}
+	// 		effectiveUpstream := &structs.Upstream{
+	// 			DestinationType:      structs.UpstreamDestTypeService,
+	// 			DestinationName:      svc,
+	// 			DestinationNamespace: resolver.Redirect.Namespace,
+	// 			Datacenter:           resolver.Redirect.Datacenter,
+	// 		}
+	// 		upstreamID = effectiveUpstream.Identifier()
+	// 	}
+	// }
+
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(true, chain.Protocol, upstreamID, "", "upstream_", false)
 	if err != nil {
