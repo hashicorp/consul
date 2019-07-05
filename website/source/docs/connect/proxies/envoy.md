@@ -197,7 +197,7 @@ defaults that are inherited by all services.
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
 - `bind_address` - Override the address Envoy's public listener binds to. By
-  default Envoy will bind to the service address.
+  default Envoy will bind to the service address or 0.0.0.0 if there is not explicit address on the service registration.
 - `bind_port` - Override the port Envoy's public listener binds to. By default
   Envoy will bind to the service port.
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
