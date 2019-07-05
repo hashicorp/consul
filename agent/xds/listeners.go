@@ -234,10 +234,23 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	if l == nil {
 		// No user config, use default listener
 		addr := cfgSnap.Address
-		if addr == "" {
+
+		// Override with bind address if one is set, otherwise default
+		// to 0.0.0.0
+		if cfg.BindAddress != "" {
+			addr = cfg.BindAddress
+		} else if addr == "" {
 			addr = "0.0.0.0"
 		}
-		l = makeListener(PublicListenerName, addr, cfgSnap.Port)
+
+		// Override with bind port if one is set, otherwise default to
+		// proxy service's address
+		port := cfgSnap.Port
+		if cfg.BindPort != 0 {
+			port = cfg.BindPort
+		}
+
+		l = makeListener(PublicListenerName, addr, port)
 
 		filter, err := makeListenerFilter(false, cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
 		if err != nil {

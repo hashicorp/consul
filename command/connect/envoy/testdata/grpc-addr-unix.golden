@@ -20,18 +20,22 @@
         "type": "STATIC",
         "http2_protocol_options": {},
         "hosts": [{
-            "socket_address": {
-              "address": "127.0.0.1",
-              "port_value": 8502
+            "pipe": {
+              "path": "/var/run/consul.sock"
             }
           }]
       }
     ]
   },
-  "stats_config": 
+  "stats_config": {
+			"stats_tags": [
 				{
-					"name": "fake_config"
-				},
+			"tag_name": "local_cluster",
+			"fixed_value": "test-proxy"
+		}
+			],
+			"use_all_default_tags": true
+		},
   "dynamic_resources": {
     "lds_config": { "ads": {} },
     "cds_config": { "ads": {} },

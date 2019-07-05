@@ -207,6 +207,21 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name: "grpc-addr-unix",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-grpc-addr", "unix:///var/run/consul.sock"},
+			Env: []string{},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentSocket:           "/var/run/consul.sock",
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
 			Name:  "access-log-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
 			Env:   []string{},
