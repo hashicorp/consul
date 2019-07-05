@@ -183,8 +183,11 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 	if upstream.Datacenter != "" {
 		dc = upstream.Datacenter
 	}
-	sni := ServiceSNI(upstream.DestinationName, "", ns, dc, cfgSnap)
 
+	sni := ServiceSNI(upstream.DestinationName, "", ns, dc, cfgSnap)
+	if upstream.DestinationType == "prepared_query" {
+		sni = QuerySNI(upstream.DestinationName, dc, cfgSnap)
+	}
 	cfg, err := ParseUpstreamConfig(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
