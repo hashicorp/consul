@@ -247,7 +247,7 @@ func TestCacheNotifyPolling(t *testing.T) {
 
 	// wait for the next batch of responses
 	events := make([]UpdateEvent, 0)
-	// 110 is needed to allow for the jitter
+	// At least 110ms is needed to allow for the jitter
 	timeout := time.After(150 * time.Millisecond)
 
 	for i := 0; i < 2; i++ {
