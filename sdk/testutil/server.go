@@ -236,7 +236,16 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 			"consul or skip this test")
 	}
 
-	tmpdir := TempDir(t, "consul")
+	prefix := "consul"
+	if t != nil {
+		// Use test name for tmpdir if available
+		prefix = strings.Replace(t.Name(), "/", "_", -1)
+	}
+	tmpdir, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create tempdir")
+	}
+
 	cfg := defaultServerConfig()
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
