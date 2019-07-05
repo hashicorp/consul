@@ -288,7 +288,7 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream, cfgSnap *proxycfg.Con
 
 	upstreamID := u.Identifier()
 
-	clusterName := upstreamID
+	clusterName := UpstreamSNI(u, "", cfgSnap)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)
@@ -375,8 +375,11 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 	upstreamID := u.Identifier()
 
+	clusterName := UpstreamSNI(u, "", cfgSnap)
+
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(true, chain.Protocol, upstreamID, "", "upstream_", false)
+
+	filter, err := makeListenerFilter(true, chain.Protocol, clusterName, "", "upstream_", false)
 	if err != nil {
 		return nil, err
 	}

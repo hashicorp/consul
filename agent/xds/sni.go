@@ -7,6 +7,13 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+func UpstreamSNI(u *structs.Upstream, subset string, cfgSnap *proxycfg.ConfigSnapshot) string {
+	if u.DestinationType == "prepared_query" {
+		return QuerySNI(u.DestinationName, u.Datacenter, cfgSnap)
+	}
+	return ServiceSNI(u.DestinationName, subset, u.DestinationNamespace, u.Datacenter, cfgSnap)
+}
+
 func DatacenterSNI(dc string, cfgSnap *proxycfg.ConfigSnapshot) string {
 	return fmt.Sprintf("%s.internal.%s", dc, cfgSnap.Roots.TrustDomain)
 }
@@ -28,6 +35,10 @@ func ServiceSNI(service string, subset string, namespace string, datacenter stri
 }
 
 func QuerySNI(service string, datacenter string, cfgSnap *proxycfg.ConfigSnapshot) string {
+	if datacenter == "" {
+		datacenter = cfgSnap.Datacenter
+	}
+
 	return fmt.Sprintf("%s.default.%s.query.%s", service, datacenter, cfgSnap.Roots.TrustDomain)
 }
 
