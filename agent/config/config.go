@@ -100,6 +100,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.sidecar_service.proxy.upstreams",
 
 		"config_entries.bootstrap",
+		"config_entries.bootstrap.Splits",
 	})
 
 	// There is a difference of representation of some fields depending on
