@@ -202,7 +202,7 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 
 	if c == nil {
 		c = &envoy.Cluster{
-			Name:                 upstream.Identifier(),
+			Name:                 sni,
 			ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
@@ -246,10 +246,11 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		// TODO(rb): failover
 		// Failover *DiscoveryFailover `json:",omitempty"` // sad path
 
-		clusterName := makeClusterName(upstreamID, target, cfgSnap.Datacenter)
+		sni := TargetSNI(target, cfgSnap)
+		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", sni)
 		c := &envoy.Cluster{
-			Name:                 clusterName,
-			AltStatName:          clusterName, // TODO(rb): change this?
+			Name:                 sni,
+			AltStatName:          sni, // TODO(rb): change this?
 			ConnectTimeout:       groupResolver.ConnectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
@@ -275,37 +276,13 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		// Enable TLS upstream with the configured client certificate.
 		c.TlsContext = &envoyauth.UpstreamTlsContext{
 			CommonTlsContext: makeCommonTLSContext(cfgSnap),
+			Sni:              sni,
 		}
 
 		out = append(out, c)
 	}
 
 	return out, nil
-}
-
-// makeClusterName returns a string representation that uniquely identifies the
-// cluster in a canonical but human readable way.
-func makeClusterName(upstreamID string, target structs.DiscoveryTarget, currentDatacenter string) string {
-	var name string
-	if target.ServiceSubset != "" {
-		name = target.Service + "/" + target.ServiceSubset
-	} else {
-		name = target.Service
-	}
-
-	if target.Namespace != "" && target.Namespace != "default" {
-		name = target.Namespace + "/" + name
-	}
-	if target.Datacenter != "" && target.Datacenter != currentDatacenter {
-		name += "?dc=" + target.Datacenter
-	}
-
-	if upstreamID == target.Service {
-		// In the common case don't stutter.
-		return name
-	}
-
-	return upstreamID + "//" + name
 }
 
 // makeClusterFromUserConfig returns the listener config decoded from an

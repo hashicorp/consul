@@ -110,10 +110,10 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 					}
 				}
 
-				clusterName := makeClusterName(id, target, cfgSnap.Datacenter)
+				sni := TargetSNI(target, cfgSnap)
 
 				la := makeLoadAssignment(
-					clusterName,
+					sni,
 					overprovisioningFactor,
 					priorityEndpoints,
 					cfgSnap.Datacenter,
