@@ -236,7 +236,7 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 		"resources": [
 			{
 				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-				"clusterName": "db",
+				"clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"endpoints": [
 					{
 						"lbEndpoints": [

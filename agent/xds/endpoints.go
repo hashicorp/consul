@@ -51,10 +51,11 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		if chain == nil {
 			// We ONLY want this branch for prepared queries.
 
+			sni := ServiceSNI(u.DestinationName, "", u.DestinationNamespace, u.Datacenter, cfgSnap)
 			endpoints, ok := cfgSnap.ConnectProxy.UpstreamEndpoints[id]
 			if ok {
 				la := makeLoadAssignment(
-					id,
+					sni,
 					0,
 					[]structs.CheckServiceNodes{endpoints},
 					cfgSnap.Datacenter,

@@ -57,7 +57,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
 		}
 
-		if chain == nil || chain.IsDefault() {
+		if chain == nil {
 			// Either old-school upstream or prepared query.
 			upstreamCluster, err := s.makeUpstreamCluster(u, cfgSnap)
 			if err != nil {
