@@ -930,9 +930,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
+
 	joinLAN(t, s4, s1)
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	testrpc.WaitForTestAgent(t, s4.RPC, "dc1")
+	testrpc.WaitForLeader(t, s4.RPC, "dc1")
 	servers[2] = s4
 
 	// While integrating #3327 it uncovered that this test was flaky. The
@@ -942,14 +942,11 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	// away the connection if it sees an EOF error, since there's no way
 	// that connection is going to work again. This made this test reliable
 	// since it will make a new connection to s4.
-
-	// Make sure the dead server is removed and we're back to 3 total peers
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantRaft(servers))
 		for _, s := range servers {
-			if n, err := s.numPeers(); n == 4 || err != nil {
-				r.Errorf("expecting < 4 peers after shutdown")
-			}
+			// Make sure the dead server is removed and we're back below 4
+			r.Check(wantPeers(s, 3))
 		}
 	})
 }
