@@ -10,12 +10,15 @@ description: |-
 
 Consul Connect is Consul’s service mesh offering, which allows users to observe
 and secure service-to-service communication. Because Connect implements mutual
-TLS between services, it also provides users with a way to help services in
-different datacenters communicate with each other through mesh gateways by
-taking advantage of Server Name Indication (SNI). Using gateways for
-inter-datacenter communication can prevent each Connect proxy from needing an
-accessible IP address, and frees operators from worrying about IP address
-overlap between datacenters.
+TLS between services, it also enabled us to build mesh gateways, which provide
+users with a way to help services in different datacenters communicate with each
+other. Mesh gateways take advantage of Server Name Indication (SNI), which is an
+extension to TLS that allows them to see the destination of inter-datacenter
+traffic without de-encrypting the message payload.
+
+Using gateways for inter-datacenter communication can prevent each Connect proxy
+from needing an accessible IP address, and frees operators from worrying about
+IP address overlap between datacenters.
 
 In this guide, you will configure Consul Connect across multiple Consul
 datacenters and use mesh gateways to enable inter-service traffic between them.
@@ -397,5 +400,5 @@ your Kubernetes cluster using the Helm chart. Learn more in the [Consul’s
 Kubernetes documentation](https://www.consul.io/docs/platform/k8s/helm.html)
 
 Visit the Consul documentation for a full list of configurations for [Consul
-Connect](https://www.consul.io/docs/connect/index.html), including [Gateway
+Connect](https://www.consul.io/docs/connect/index.html), including [mesh gateway
 configuration options](LINK).
