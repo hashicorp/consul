@@ -66,7 +66,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			clusters = append(clusters, upstreamCluster)
 
 		} else {
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, chain, cfgSnap)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
@@ -233,10 +233,19 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 }
 
 func (s *Server) makeUpstreamClustersForDiscoveryChain(
-	upstreamID string,
+	upstream structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
+
+	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
+			upstream.Identifier(), err)
+	}
+
 	if chain == nil {
 		panic("chain must be provided")
 	}
@@ -272,7 +281,17 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
 		}
-		if chain.Protocol == "http2" || chain.Protocol == "grpc" {
+
+		proto := cfg.Protocol
+		if proto == "" {
+			proto = chain.Protocol
+		}
+
+		if proto == "" {
+			proto = "tcp"
+		}
+
+		if proto == "http2" || proto == "grpc" {
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 
