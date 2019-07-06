@@ -50,6 +50,7 @@
 /docs/guides/sentinel.html                 /docs/agent/sentinel.html
 /docs/connect/proxies/sidecar-service.html /docs/connect/registration/sidecar-service.html
 /docs/enterprise/connect-multi-datacenter/index.html /docs/enterprise/index.html
+/segmentation.html /mesh.html
 
 # CLI renames
 /docs/commands/acl/acl-bootstrap.html       /docs/commands/acl/bootstrap.html
