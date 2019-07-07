@@ -103,5 +103,5 @@ and is secured using a symmetric key. See above for enabling gossip encryption.
 As of version 0.8.4, Consul supports migrating to TLS-encrypted traffic on a running cluster
 without downtime. This process assumes a starting point with no TLS settings configured, and involves
 an intermediate step in order to get to full TLS encryption. Review this step-by-step
-[guide](https://learn.hashicorp.com/consul/security-networking/agent-encryption#enable-tls-existing-cluster) to learn how. 
+[guide](https://learn.hashicorp.com/consul/security-networking/certificates) to learn how. 
 
