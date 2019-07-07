@@ -45,12 +45,29 @@ them to check that you have the proper configuration:
 - [Deployment Guide](/consul/datacenter-deploy/deployment-guide)
 - [Securing Consul with ACLs](/consul/security-networking/production-acls)
 - [Basic Federation with WAN Gossip](/consul/security-networking/datacenters)
-- [ACL Replication for Multiple Datacenters](/consul/day-2-operations/acl-replication)
 
--> **Note:** Following this ACL Replication guide's recommendation for the
-replication token policy  will work for this guide. The most conservative
-replication token policy that will allow intention replication would deny access
-to service prefixes and explicitly allow read access to intentions.
+You will also need to enable ACL replication, which you can do by following the [ACL Replication for Multiple Datacenters](/consul/day-2-operations/acl-replication) guide with the following modification.
+
+When creating the [replication token for ACL
+management](/consul/day-2-operations/acl-replication#create-the-replication-token-for-acl-management),
+it will need the following policy:
+
+```json
+{
+  "acl": "write",
+  "operator": "write",
+  "service": {
+    "" : {
+      "policy": "read"
+    }
+  }
+}
+```
+
+The replication token needs different permissions depending on what you want to
+accomplish. The above policy enables ACL policy, role, and token replication
+with `acl:write`, CA replication with `operator:write` and intention and
+configuration entry replication with `service:*:read`.
 
 You will also need to install [Envoy](https://www.envoyproxy.io/) alongside your
 Consul clients. Both the gateway and sidecar proxies will need to get
