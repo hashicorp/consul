@@ -365,8 +365,8 @@ intentions back to the secondary datacenter.
 
 Now that you have services using Connect, verify that they can contact each
 other. If you have been using the example web and socat services, from the node
-and datacenter where you registered the web service, start the socat service
-and type something for it to echo.
+and datacenter where you registered the web service, start netcat and type
+something for it to echo.
 
 ```text
 $ nc 127.0.0.1 8181
