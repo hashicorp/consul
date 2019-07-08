@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Connect - Mesh Gateways"
+page_title: "Connect - Mesh Gateways (beta)"
 sidebar_current: "docs-connect-meshgateways"
 description: |-
   A Mesh Gateway enables better routing of a Connect service's data to upstreams in other datacenters. This section details how to use Envoy and describes how you can plug in a gateway of your choice.
 ---
 
-# Mesh Gateways
+# Mesh Gateways <sup>(beta)</sup>
 
 Mesh gateways enable routing of Connect traffic between different Consul datacenters. Those datacenters
 can reside in different clouds or runtime environments where general interconnectivity between all services

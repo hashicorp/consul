@@ -217,7 +217,7 @@ definition](/docs/connect/registration/service-registration.html) or
   connections before timing out. Defaults to 5000
   (5 seconds).
 
-### Mesh Gateway Options
+### Mesh Gateway Options <sup>(beta)</sup>
 
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration.html), or defined in
