@@ -48,3 +48,13 @@ config {
 
   * [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
   * [Consul's built-in proxy](/docs/connect/proxies/built-in.html)
+
+## ACLs
+
+Configuration entries may be protected by
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+
+Reading a `proxy-defaults` config entry requires no specific privileges.
+
+Creating, updating, or deleting a `proxy-defaults` config entry requires
+`operator:write`.

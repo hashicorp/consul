@@ -88,3 +88,16 @@ splits = [
   - `Namespace` `(string: "")` - The namespace to resolve the service from
     instead of the current namespace. If empty the current namespace is
     assumed.
+
+## ACLs
+
+Discovery chain configuration entries may be protected by
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+
+Reading a `service-splitter` config entry requires `service:read` on itself.
+
+Creating, updating, or deleting a `service-splitter` config entry requires
+`service:write` on itself and `service:read` on any other service referenced by
+name in these fields:
+
+- [`Splits[].Service`](#service)

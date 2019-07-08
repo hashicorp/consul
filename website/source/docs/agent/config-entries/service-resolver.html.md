@@ -151,3 +151,18 @@ name = "web"
         If omitted the overprovisioning factor value will be set so high as to
         imply binary failover (all or nothing).
 
+## ACLs
+
+Discovery chain configuration entries may be protected by
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+
+Reading a `service-resolver` config entry requires `service:read` on itself.
+
+Creating, updating, or deleting a `service-resolver` config entry requires
+`service:write` on itself and `service:read` on any other service referenced by
+name in these fields:
+
+- [`Redirect.Service`](#service)
+
+- [`Failover[].Service`](#service-1)
+

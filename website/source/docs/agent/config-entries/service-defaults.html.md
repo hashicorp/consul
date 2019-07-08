@@ -34,3 +34,13 @@ Protocol = "http"
   [`service-router`
   <sup>(beta)</sup>](/docs/agent/config-entries/service-router.html) config
   entries for a service.
+
+## ACLs
+
+Configuration entries may be protected by
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+
+Reading a `service-defaults` config entry requires `service:read` on itself.
+
+Creating, updating, or deleting a `service-defaults` config entry requires
+`service:write` on itself.

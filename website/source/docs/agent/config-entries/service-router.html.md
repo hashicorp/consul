@@ -189,31 +189,44 @@ routes = [
   - `Destination` `(ServiceRouteDestination: <optional>)` - Controls how to
     proxy the actual matching request to a service.
 
-    - `Service` `(string: "")` - The service to resolve instead of the default
-      service. If empty then the default service name is used.
+      - `Service` `(string: "")` - The service to resolve instead of the default
+        service. If empty then the default service name is used.
 
-    - `ServiceSubset` `(string: "")` - A named subset of the given service to
-      resolve instead of one defined as that service's `DefaultSubset`. If
-      empty the default subset is used.
+      - `ServiceSubset` `(string: "")` - A named subset of the given service to
+        resolve instead of one defined as that service's `DefaultSubset`. If
+        empty the default subset is used.
 
-    - `Namespace` `(string: "")` - The namespace to resolve the service from
-      instead of the current namespace. If empty the current namespace is
-      assumed.
+      - `Namespace` `(string: "")` - The namespace to resolve the service from
+        instead of the current namespace. If empty the current namespace is
+        assumed.
 
-    - `PrefixRewrite` `(string: "")` - Defines how to rewrite the http request
-      path before proxying it to its final destination.
+      - `PrefixRewrite` `(string: "")` - Defines how to rewrite the http request
+        path before proxying it to its final destination.
 
-        This requires that either `Match.HTTP.PathPrefix` or
-        `Match.HTTP.PathExact` be configured on this route.
+            This requires that either `Match.HTTP.PathPrefix` or
+            `Match.HTTP.PathExact` be configured on this route.
 
-    - `RequestTimeout` `(duration: 0s)` - The total amount of time permitted
-      for the entire downstream request (and retries) to be processed.
+      - `RequestTimeout` `(duration: 0s)` - The total amount of time permitted
+        for the entire downstream request (and retries) to be processed.
 
-    - `NumRetries` `(int: 0)` - The number of times to retry the request when a
-      retryable result occurs.
+      - `NumRetries` `(int: 0)` - The number of times to retry the request when a
+        retryable result occurs.
 
-    - `RetryOnConnectFailure` `(bool: false)` - Allows for connection failure
-      errors to trigger a retry.
+      - `RetryOnConnectFailure` `(bool: false)` - Allows for connection failure
+        errors to trigger a retry.
 
-    - `RetryOnStatusCodes` `(array<int>)` - A flat list of http response status
-      codes that are eligible for retry.
+      - `RetryOnStatusCodes` `(array<int>)` - A flat list of http response status
+        codes that are eligible for retry.
+
+## ACLs
+
+Discovery chain configuration entries may be protected by
+[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+
+Reading a `service-router` config entry requires `service:read` on itself.
+
+Creating, updating, or deleting a `service-router` config entry requires
+`service:write` on itself and `service:read` on any other service referenced by
+name in these fields:
+
+- [`Routes[].Destination.Service`](#service)
