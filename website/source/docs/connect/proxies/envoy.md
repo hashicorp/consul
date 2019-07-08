@@ -217,6 +217,31 @@ definition](/docs/connect/registration/service-registration.html) or
   connections before timing out. Defaults to 5000
   (5 seconds).
 
+### Mesh Gateway Options
+
+These fields may also be overridden explicitly in the [proxy service
+definition](/docs/connect/registration/service-registration.html), or defined in
+the  [global `proxy-defaults` configuration
+entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
+defaults that are inherited by all services.
+
+- `connect_timeout_ms` - The number of milliseconds to allow when making upstream
+  connections before timing out. Defaults to 5000
+  (5 seconds).
+
+- `envoy_mesh_gateway_bind_tagged_addresses` - Indicates that the mesh gateway
+  services tagged addresses should be bound to listeners in addition to the
+  default listener address.
+
+- `envoy_mesh_gateway_bind_addresses` - A map of additional addresses to be bound.
+  This map's keys are the name of the listeners to be created and the values are
+  a map with two keys, address and port, that combined make the address to bind the
+  listener to. These are bound in addition to the default address.
+
+- `envoy_mesh_gateway_no_default_bind` - Prevents binding to the default address
+  of the mesh gateway service. This should be used with one of the other options
+  to configure the gateways bind addresses.
+
 ## Advanced Configuration
 
 To support more flexibility when configuring Envoy, several "lower-level" options exist
