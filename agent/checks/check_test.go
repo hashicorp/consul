@@ -328,6 +328,69 @@ func TestCheckHTTP(t *testing.T) {
 	}
 }
 
+func TestCheckHTTPTCP_BigTimeout(t *testing.T) {
+	testCases := []struct {
+		timeoutIn, intervalIn, timeoutWant time.Duration
+	}{
+		{
+			timeoutIn:   31 * time.Second,
+			intervalIn:  30 * time.Second,
+			timeoutWant: 31 * time.Second,
+		},
+		{
+			timeoutIn:   30 * time.Second,
+			intervalIn:  30 * time.Second,
+			timeoutWant: 30 * time.Second,
+		},
+		{
+			timeoutIn:   29 * time.Second,
+			intervalIn:  30 * time.Second,
+			timeoutWant: 29 * time.Second,
+		},
+		{
+			timeoutIn:   0 * time.Second,
+			intervalIn:  10 * time.Second,
+			timeoutWant: 10 * time.Second,
+		},
+		{
+			timeoutIn:   0 * time.Second,
+			intervalIn:  30 * time.Second,
+			timeoutWant: 10 * time.Second,
+		},
+		{
+			timeoutIn:   -1 * time.Second,
+			intervalIn:  10 * time.Second,
+			timeoutWant: 10 * time.Second,
+		},
+	}
+
+	for _, tc := range testCases {
+		desc := fmt.Sprintf("timeoutIn: %v, intervalIn: %v", tc.timeoutIn, tc.intervalIn)
+		t.Run(desc, func(t *testing.T) {
+			checkHTTP := &CheckHTTP{
+				Timeout:  tc.timeoutIn,
+				Interval: tc.intervalIn,
+			}
+			checkHTTP.Start()
+			defer checkHTTP.Stop()
+			if checkHTTP.httpClient.Timeout != tc.timeoutWant {
+				t.Fatalf("expected HTTP timeout to be %v, got %v", tc.timeoutWant, checkHTTP.httpClient.Timeout)
+			}
+
+			checkTCP := &CheckTCP{
+				Timeout:  tc.timeoutIn,
+				Interval: tc.intervalIn,
+			}
+			checkTCP.Start()
+			defer checkTCP.Stop()
+			if checkTCP.dialer.Timeout != tc.timeoutWant {
+				t.Fatalf("expected TCP timeout to be %v, got %v", tc.timeoutWant, checkTCP.dialer.Timeout)
+			}
+		})
+
+	}
+}
+
 func TestCheckMaxOutputSize(t *testing.T) {
 	t.Parallel()
 	timeout := 5 * time.Millisecond
