@@ -1,16 +1,14 @@
 ---
 description: |-
-  Consul is a highly available and distributed service discovery and KV
-  store designed with support for the modern data center to make distributed
-  systems and configuration easy.
+  Consul is a service networking solution to connect and secure services across
+  any runtime platform and public or private cloud
 ---
 
 <div class='consul-connect'>
 
   <section class='g-hero'>
-    <span>New Feature</span>
-    <h1>Service segmentation made easy</h1>
-    <p>Secure service-to-service communication with automatic TLS encryption and identity-based authorization</p>
+    <h1>Service Mesh made easy</h1>
+    <p>Service discovery, identity-based authorization, and L7 traffic management abstracted from application code with proxies in the service mesh pattern</p>
     <div>
       <a href="/downloads.html" class="g-btn download">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
@@ -34,7 +32,7 @@ description: |-
           </span>
           <span class='dot'></span>
           <h3>The Challenge</h3>
-          <span class='sub-heading'>Securing service-to-service communication with firewalls doesn’t scale in dynamic settings.</span>
+          <span class='sub-heading'>Network appliances, like load balancers or firewalls with manual processes, don't scale in dynamic settings to support modern applications.</span>
           <div id='segmentation-challenge-animation' class='g-animation-block'>
             <%= inline_svg 'consul-connect/svgs/segmentation-challenge.svg' %>
           </div>
@@ -43,20 +41,21 @@ description: |-
             machines and machines are frequently created and destroyed, this
             perimeter-based approach is difficult to scale as it results in
             complex network topologies and a sprawl of short-lived
-            firewall rules.</p>
+            firewall rules and proxy configuration.</p>
         </div>
         <div>
           <span class='dot'></span>
           <h3>The Solution</h3>
-          <span class='sub-heading'>Service segmentation for dynamic service authorization.</span>
+          <span class='sub-heading'>Service mesh as an automated and distributed approach to networking and security that can operate across platforms and private and public cloud</span>
           <div id='segmentation-solution-animation' class='g-animation-block'>
             <%= inline_svg 'consul-connect/svgs/segmentation-solution.svg' %>
           </div>
-          <p>Service segmentation is a new approach to secure the service itself
-            rather than relying on the network. Consul uses service policies to
-            codify which services are allowed to communicate. These policies
-            scale across datacenters and large fleets without IP-based rules or
-            networking middleware.</p>
+          <p>Service mesh is a new approach to secure the service itself
+            rather than relying on the network. Consul uses centrally
+            managed service policies and configuration to enable
+            dynamic routing and security based on sevice identity.
+            These policies scale across datacenters and large fleets
+            without IP-based rules or networking middleware.</p>
         </div>
       </div>
     </div>
@@ -67,27 +66,60 @@ description: |-
       <div class='intro'>
         <h2>Features</h2>
       </div>
+      <div class='g-text-asset reverse'>
+        <div>
+          <div>
+            <h3>Layer 7 Traffic Management</h3>
+            <p>Service-to-service communication policy at Layer 7 can be managed centrally, enabling advanced traffic management patterns such as service failover, path-based routing, and traffic shifting that can be applied across public and private clouds, platforms, and networks.</p>
+            <p>
+              <a class="learn-more" href='/docs/agent/config_entries.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div class='code-sample'>
+            <div>
+              <span></span>
+              <div class='code'><code>
+Kind = <code class="keyword">"service-splitter"</code>
+Name = <code class="keyword">"billing-api"</code>
+
+Splits = [
+    {
+        Weight        = 10
+        ServiceSubset = <code class="keyword">"v2"</code>
+    },
+    {
+        Weight        = 90
+        ServiceSubset = <code class="keyword">"v1"</code>
+    },
+]</code>
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+  </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
       <div class='g-text-asset large'>
         <div>
           <div>
-            <h3>Service Access Graph </h3>
-            <p>Define and enforce service to service communication with a simple Intentions configuration. Service based rules, instead of IP-based rules, make it easy to manage dynamic infrastructure with frequently changing machines and service locations.</p>
+            <h3>Layer 7 Observability</h3>
+            <p>Centrally managed service observability at Layer 7 including detailed metrics on all service-to-service communication such as connections, bytes transferred, retries, timeouts, open circuits, and request rates, response codes.</p>
             <p>
-              <a class="learn-more" href='/docs/connect/intentions.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+              <a class="learn-more" href='/docs/agent/config_entries.html'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
             </p>
           </div>
         </div>
         <div>
           <picture>
-            <source type="image/webp" srcset="
-              /assets/images/consul-connect/ui-intentions-list/ui-intentions-list_230.webp 230w,
-              /assets/images/consul-connect/ui-intentions-list/ui-intentions-list_844.webp 844w,
-              /assets/images/consul-connect/ui-intentions-list/ui-intentions-list_1290.webp 1290w" />
-             <source type="image/jpg" srcset="
-              /assets/images/consul-connect/ui-intentions-list/ui-intentions-list_230.jpg 230w,
-              /assets/images/consul-connect/ui-intentions-list/ui-intentions-list_844.jpg 844w,
-              /assets/images/consul-connect/ui-intentions-list/ui-intentions-list_1290.jpg 1290w" />
-              <img src='/assets/images/consul-connect/ui-intentions-list/ui-intentions-list_1290.jpg' alt='Service Access Graph'>
+              <source type="image/png" srcset="
+              /assets/images/consul-connect/mesh-observability/metrics_300.png 300w,
+              /assets/images/consul-connect/mesh-observability/metrics_976.png 976w,
+              /assets/images/consul-connect/mesh-observability/metrics_1200.png 1200w" />
+              <img src='/assets/images/consul-connect/mesh-observability/metrics_1200.png' alt='Metrics dashboard'>
+            </source>
           </picture>
         </div>
       </div>
@@ -190,6 +222,28 @@ Secure Sockets Layer
       </div>
     </div>
   </section>
+
+  <section class='g-section border-top'>
+    <div class='g-container'>
+      <div class='g-text-asset'>
+        <div>
+          <div>
+            <h3>Mesh Gateway</h3>
+            <p>Connect between different cloud regions, VPCs and between overlay and underlay networks without complex network tunnels and NAT. Mesh Gateways solve routing at TLS layer while preserving end-to-end encryption and limiting attack surface area at the edge of each network.</p>
+            <p>
+              <a class="learn-more" href='https://learn.hashicorp.com/consul'>Learn more<svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" viewBox="0 0 6 10"><g fill="none" fill-rule="evenodd" transform="translate(-6 -3)"><mask id="a" fill="#fff"><path d="M7.138 3.529a.666.666 0 1 0-.942.942l3.528 3.53-3.529 3.528a.666.666 0 1 0 .943.943l4-4a.666.666 0 0 0 0-.943l-4-4z"/></mask><g fill="#1563FF" mask="url(#a)"><path d="M0 0h16v16H0z"/></g></g></svg></a>
+            </p>
+          </div>
+        </div>
+        <div>
+          <picture>
+              <img src='/assets/images/consul-connect/mesh-gateway/gateway_1200.png' style='width:600px' alt='Mesh gateway diagram'>
+          </picture>
+        </div>
+      </div>
+    </div>
+  </section>
+
 
   <section class='g-section g-cta-section'>
     <div>
