@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* autopilot: update to also remove failed nodes from WAN gossip pool [(GH-6028](https://github.com/hashicorp/consul/pull/6028)]
+* autopilot: update to also remove failed nodes from WAN gossip pool [[GH-6028](https://github.com/hashicorp/consul/pull/6028)]
 
 ## 1.5.2 (June 27, 2019)
 
