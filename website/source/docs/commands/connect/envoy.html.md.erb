@@ -51,7 +51,35 @@ proxy configuration needed.
 
    <%= partial "docs/commands/http_api_options_client" %>
 
-#### Envoy Options
+#### Envoy Common Options
+
+ * `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration.html) ID on the
+   local agent. This must already be present on the local agent.
+
+ * `-envoy-binary` - The full path to a specific Envoy binary to exec. By
+   default the current `$PATH` is searched for `envoy`.
+
+ * `-admin-bind` - The `host:port` to bind Envoy's admin HTTP API. Default is
+   `localhost:19000`. Envoy requires that this be enabled. The host part must be
+   resolvable DNS name or IP address.
+
+ * `-bootstrap` - If present, the command will simply output the generated
+   bootstrap config to stdout in JSON protobuf form. This can be directed to a
+   file and used to start Envoy with `envoy -c bootstrap.json`.
+
+~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
+ACL token from `-token` or the environment and so should be handled as a secret.
+This token grants the identity of any service it has `service:write` permission
+for and so can be used to access any upstream service that that service is
+allowed to access by [Connect intentions](/docs/connect/intentions.html).
+
+ * `-- [pass-through options]` - Any options given after a double dash are passed
+   directly through to the `envoy` invocation. See [Envoy's
+   documentation](https://www.envoyproxy.io/docs) for more details. The command
+   always specifies `--config-file` and `--v2-config-only` and by default passes
+   `--disable-hot-restart` see [hot restart](#hot-restart).
+
+#### Envoy Sidecar Proxy Options
 
 * `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
   this proxy will represent. The target service doesn't need to exist on the
@@ -61,9 +89,13 @@ proxy configuration needed.
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
 
-* `-proxy-id` - The [proxy
-  service](/docs/connect/registration/service-registration.html) ID on the
-  local agent. This must already be present on the local agent.
+-> **Note:** If ACLs are enabled, a token granting `service:write` for the
+  _target_ service (configured in `proxy.destination_service_name`) must be
+  passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
+  This token authorizes the proxy to obtain TLS certificates representing the
+  target service.
+
+#### Envoy Mesh Gateway Options
 
 * `-mesh-gateway` - Flag to indicate that Envoy should be configured as a Mesh
   Gateway. If multiple mesh gateways are managed by the same local agent then
@@ -90,33 +122,10 @@ proxy configuration needed.
   be failing before being deregistered. This flag is used in combination with `-register`
 
 -> **Note:** If ACLs are enabled, a token granting `service:write` for the
-  _target_ service (configured in `proxy.destination_service_name`) must be
-  passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
-  This token authorizes the proxy to obtain TLS certificates representing the
-  target service.
-
- * `-envoy-binary` - The full path to a specific Envoy binary to exec. By
-   default the current `$PATH` is searched for `envoy`.
-
- * `-admin-bind` - The `host:port` to bind Envoy's admin HTTP API. Default is
-   `localhost:19000`. Envoy requires that this be enabled. The host part must be
-   resolvable DNS name or IP address.
-
- * `-bootstrap` - If present, the command will simply output the generated
-   bootstrap config to stdout in JSON protobuf form. This can be directed to a
-   file and used to start Envoy with `envoy -c bootstrap.json`.
-
-~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
-ACL token from `-token` or the environment and so should be handled as a secret.
-This token grants the identity of any service it has `service:write` permission
-for and so can be used to access any upstream service that that service is
-allowed to access by [Connect intentions](/docs/connect/intentions.html).
-
- * `-- [pass-through options]` - Any options given after a double dash are passed
-   directly through to the `envoy` invocation. See [Envoy's
-   documentation](https://www.envoyproxy.io/docs) for more details. The command
-   always specifies `--config-file` and `--v2-config-only` and by default passes
-   `--disable-hot-restart` see [hot restart](#hot-restart).
+  mesh gateway's service name must be passed using the `-token` option or
+  `CONSUL_HTTP_TOKEN` environment variable. This token authorizes the proxy
+  to obtain receive and route communications for other Connect services but
+  does not allow decrypting any of their communications.
 
 ## Examples
 
@@ -163,6 +172,7 @@ The mesh gateway Envoy process can be started with.
 $ consul connect envoy -mesh-gateway -register \
   -address '{{ GetInterfaceIP "eth0" }}:8443' \
   -wan-address '{{ GetInterfaceIP "eth1" }}:8443'
+```
 
 ## Exec Security Details
 
