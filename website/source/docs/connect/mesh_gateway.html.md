@@ -40,14 +40,130 @@ your network, this can operate in the following modes:
 * `none` - In this mode, no gateway is used and a Connect proxy makes its outbound connections directly
   to the destination services.
 
-## Configuration
+## Mesh Gateway Configuration
 
-TODO
+Mesh gateways are defined very similarly to other typical services. The one exception is that a mesh gateway
+service definition may contain a `Proxy.Config` entry just like a Connect proxy service to define opaque
+configuration parameters useful for the actual proxy software.
 
+## Connect Proxy Configuration
 
+Configuring a Connect Proxy to use gateways is as simple as setting its mode of operation. This can be done
+in several different places allowing for global to more fine grained control. If the gateway mode is configured
+in multiple locations the order of precedence is as follows
 
+1. Upstream Definition
+2. Service Instance Definition
+3. Centralized `service-defaults` configuration entry
+4. Centralized `proxy-defaults` configuration entry.
 
+### Enabling Gateways Globally
 
+The following `proxy-defaults` configuration will enable gateways for all Connect services in the `local` mode.
 
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+MeshGateway {
+   Mode = "local"
+}
+```
 
-TODO TODO TODO - What level of information should we put here?
+### Enabling Gateways Per-Service
+
+The following `service-defaults` configuration will enable gateways for all Connect services with the name "web".
+
+```hcl
+Kind = "service-defaults"
+Name = "web"
+MeshGateway {
+   Mode = "local"
+}
+```
+
+### Enabling Gateways for a Service Instance
+
+The following service definition will enable gateways for the service instance in the `remote` mode.
+
+```hcl
+service {
+   name = "web-sidecar-proxy"
+   port = 8181
+   proxy {
+      destination_service_name = "web"
+      mesh_gateway {
+         mode = "remote"
+      }
+      upstreams = [
+         {
+            destination_name = "api"
+            datacenter = "secondary"
+            local_bind_port = 10000
+         }
+      ]
+   }
+}
+```
+
+Or alternatively as a sidecar service:
+
+```hcl
+service {
+  name = "web"
+  port = 8181
+  connect {
+    sidecar_service {
+      proxy {
+        mesh_gateway {
+         mode = "remote"
+        }
+        upstreams = [
+          {
+            destination_name = "api"
+            datacenter = "secondary"
+            local_bind_port = 10000
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+### Enabling Gateways for a Proxy Upstream
+
+The following service definition will enable gateways in the `local` mode for one upstream, the `remote` mode
+for a second upstream and will disable gateways for a third upstream.
+
+```hcl
+service {
+   name = "web-sidecar-proxy"
+   port = 8181
+   proxy {
+      destination_service_name = "web"
+      upstreams = [
+         {
+            destination_name = "api"
+            local_bind_port = 10000
+            mesh_gateway {
+               mode = "remote"
+            }
+         },
+         {
+            destination_name = "db"
+            local_bind_port = 10001
+            mesh_gateway {
+               mode = "local"
+            }
+         },
+         {
+            destination_name = "logging"
+            local_bind_port = 10002
+            mesh_gateway {
+               mode = "none"
+            }
+         },
+      ]
+   }
+}
+```
