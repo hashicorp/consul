@@ -31,7 +31,7 @@ your network, the proxy's connection to the gateway can happen in one of the fol
 
 * `local` - In this mode the Connect proxy makes its outbound connection to a gateway running in the
   same datacenter. That gateway is then responsible for ensuring the data gets forwarded along to
-  gateways in the destination datacenter. This is the mode of operation depicted in the diagram towards
+  gateways in the destination datacenter. This is the mode of operation depicted in the diagram at
   the beginning of the page.
 
 * `remote` - In this mode the Connect proxy makes its outbound connection to a gateway running in the
