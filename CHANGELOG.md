@@ -6,9 +6,12 @@ FEATURES:
 * **Mesh Gateways:** Envoy can now be run as a gateway to route Connect traffic across datacenters using SNI headers, allowing connectivty across platforms and clouds and other complex network topologies. Read more in the [mesh gateway docs](TODO).
 * **Intention & CA Replication:** In order to enable connecitivty for services across datacenters, Connect intentions are now replicated and the Connect CA cross-signs from the [primary_datacenter](/docs/agent/options.html#primary_datacenter). This feature was previously part of Consul Enterprise.
 
+IMPROVEMENTS:
+* agent: Added tagged addressing to services similar to the already present Node tagged addressing [[GH-5965](https://github.com/hashicorp/consul/pull/5965)]
+
 BUG FIXES:
 
-* autopilot: update to also remove failed nodes from WAN gossip pool [(GH-6028](https://github.com/hashicorp/consul/pull/6028)]
+* autopilot: update to also remove failed nodes from WAN gossip pool [[GH-6028](https://github.com/hashicorp/consul/pull/6028)]
 
 ## 1.5.2 (June 27, 2019)
 
