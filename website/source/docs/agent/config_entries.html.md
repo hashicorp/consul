@@ -24,11 +24,11 @@ Name = "<name of entry>"
 
 The supported `Kind` names for configuration entries are:
 
-* [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html)
-* [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
-* [`service-resolver` <sup>(beta)</sup>](/docs/agent/config-entries/service-resolver.html)
-* [`service-splitter` <sup>(beta)</sup>](/docs/agent/config-entries/service-splitter.html)
 * [`service-router` <sup>(beta)</sup>](/docs/agent/config-entries/service-router.html)
+* [`service-splitter` <sup>(beta)</sup>](/docs/agent/config-entries/service-splitter.html)
+* [`service-resolver` <sup>(beta)</sup>](/docs/agent/config-entries/service-resolver.html)
+* [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+* [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults.html)
 
 ## Managing Configuration Entries
 
