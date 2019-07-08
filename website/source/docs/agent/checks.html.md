@@ -51,8 +51,8 @@ There are several different kinds of checks:
   unless the `method` field specifies a different method. Additional header
   fields can be set through the `header` field which is a map of lists of
   strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be
-  configured with a request timeout equal to the check interval, with a max of
-  10 seconds. It is possible to configure a custom HTTP check timeout value by
+  configured with a request timeout equal to 10 seconds.
+  It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
   check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support TLS. By default, a valid TLS certificate is expected.
@@ -69,10 +69,9 @@ There are several different kinds of checks:
   addresses, and the first successful connection attempt will result in a
   successful check. This type of check should be preferred over a script that
   uses `netcat` or another external process to check a simple socket operation.
-  By default, TCP checks will be configured with a request timeout equal to the
-  check interval, with a max of 10 seconds. It is possible to configure a custom
-  TCP check timeout value by specifying the `timeout` field in the check
-  definition.
+  By default, TCP checks will be configured with a request timeout of 10 seconds. 
+  It is possible to configure a custom TCP check timeout value by specifying the 
+  `timeout` field in the check definition.
 
 * <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known
   state for a given TTL.  The state of the check must be updated periodically
