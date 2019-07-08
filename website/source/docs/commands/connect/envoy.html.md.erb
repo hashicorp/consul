@@ -45,9 +45,9 @@ proxy configuration needed.
    using `unix:///path/to/socket` if the [agent is configured to
    listen](/docs/agent/options.html#addresses) that way.
 
--> **Note:** gRPC uses the same TLS
-   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
-   as well.
+  -> **Note:** gRPC uses the same TLS
+    settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
+    as well.
 
    <%= partial "docs/commands/http_api_options_client" %>
 
@@ -67,11 +67,11 @@ proxy configuration needed.
    bootstrap config to stdout in JSON protobuf form. This can be directed to a
    file and used to start Envoy with `envoy -c bootstrap.json`.
 
-~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
-ACL token from `-token` or the environment and so should be handled as a secret.
-This token grants the identity of any service it has `service:write` permission
-for and so can be used to access any upstream service that that service is
-allowed to access by [Connect intentions](/docs/connect/intentions.html).
+    ~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
+      ACL token from `-token` or the environment and so should be handled as a secret.
+      This token grants the identity of any service it has `service:write` permission
+      for and so can be used to access any upstream service that that service is
+      allowed to access by [Connect intentions](/docs/connect/intentions.html).
 
  * `-- [pass-through options]` - Any options given after a double dash are passed
    directly through to the `envoy` invocation. See [Envoy's
@@ -89,11 +89,11 @@ allowed to access by [Connect intentions](/docs/connect/intentions.html).
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
 
--> **Note:** If ACLs are enabled, a token granting `service:write` for the
-  _target_ service (configured in `proxy.destination_service_name`) must be
-  passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
-  This token authorizes the proxy to obtain TLS certificates representing the
-  target service.
+ -> **Note:** If ACLs are enabled, a token granting `service:write` for the
+    _target_ service (configured in `proxy.destination_service_name`) must be
+    passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
+    This token authorizes the proxy to obtain TLS certificates representing the
+    target service.
 
 #### Envoy Mesh Gateway Options
 
@@ -122,10 +122,10 @@ allowed to access by [Connect intentions](/docs/connect/intentions.html).
   be failing before being deregistered. This flag is used in combination with `-register`
 
 -> **Note:** If ACLs are enabled, a token granting `service:write` for the
-  mesh gateway's service name must be passed using the `-token` option or
-  `CONSUL_HTTP_TOKEN` environment variable. This token authorizes the proxy
-  to obtain receive and route communications for other Connect services but
-  does not allow decrypting any of their communications.
+   mesh gateway's service name must be passed using the `-token` option or
+   `CONSUL_HTTP_TOKEN` environment variable. This token authorizes the proxy
+   to obtain receive and route communications for other Connect services but
+   does not allow decrypting any of their communications.
 
 ## Examples
 
