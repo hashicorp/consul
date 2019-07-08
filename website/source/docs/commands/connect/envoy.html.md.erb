@@ -141,6 +141,8 @@ service {
 }
 ```
 
+### Basic Sidecar Proxy
+
 The sidecar Envoy process can be started with.
 
 ```text
@@ -151,12 +153,16 @@ This example assumes that the correct [environment variables](#api-options) are
 used to set the local agent connection information and ACL token, or that the
 agent is using all-default configuration.
 
+### Additional Envoy Arguments
+
 To pass additional arguments directly to Envoy, for example output logging
 level, you can use:
 
 ```text
 $ consul connect envoy -sidecar-for web -- -l debug
 ```
+
+### Multiple Proxy Instances
 
 To run multiple different proxy instances on the same host, you will
 need to use `-admin-bind` on all but one to ensure they don't attempt to bind to
@@ -165,6 +171,8 @@ the same port as in the following example.
 ```text
 $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
 ```
+
+### Mesh Gateways
 
 The mesh gateway Envoy process can be started with.
 
