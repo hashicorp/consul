@@ -16,9 +16,9 @@ other. Mesh gateways take advantage of Server Name Indication (SNI), which is an
 extension to TLS that allows them to see the destination of inter-datacenter
 traffic without decrypting the message payload.
 
-Using mesh gateways for inter-datacenter communication can prevent each Connect proxy
-from needing an accessible IP address, and frees operators from worrying about
-IP address overlap between datacenters.
+Using mesh gateways for inter-datacenter communication can prevent each Connect
+proxy from needing an accessible IP address, and frees operators from worrying
+about IP address overlap between datacenters.
 
 In this guide, you will configure Consul Connect across multiple Consul
 datacenters and use mesh gateways to enable inter-service traffic between them.
@@ -46,7 +46,10 @@ them to check that you have the proper configuration:
 - [Securing Consul with ACLs](/consul/security-networking/production-acls)
 - [Basic Federation with WAN Gossip](/consul/security-networking/datacenters)
 
-You will also need to enable ACL replication, which you can do by following the [ACL Replication for Multiple Datacenters](/consul/day-2-operations/acl-replication) guide with the following modification.
+You will also need to enable ACL replication, which you can do by following the
+[ACL Replication for Multiple
+Datacenters](/consul/day-2-operations/acl-replication) guide with the following
+modification.
 
 When creating the [replication token for ACL
 management](/consul/day-2-operations/acl-replication#create-the-replication-token-for-acl-management),
@@ -72,6 +75,11 @@ configuration entry replication with `service:*:read`.
 You will also need to install [Envoy](https://www.envoyproxy.io/) alongside your
 Consul clients. Both the gateway and sidecar proxies will need to get
 configuration and updates from a local Consul client.
+
+Lastly you should set [`enable_central_service_config =
+true`](https://www.consul.io/docs/agent/options.html#enable_central_service_config)
+on your Consul clients, which will allow them to centrally configrure the
+sidecar and mesh gateway proxies.
 
 ## Enable Connect in Both Datacenters
 
@@ -265,7 +273,8 @@ registration. To do this you will either create a new registration file or edit
 an existing one to include a sidecar proxy stanza. If you are using socat as
 your backend service, you will create a new file called `socat.json` that will
 contain the below snippet. Since you have ACLs enabled, you will have to [create
-a token for the service](/consul/security-networking/production-acls#apply-individual-tokens-to-the-services).
+a token for the
+service](/consul/security-networking/production-acls#apply-individual-tokens-to-the-services).
 
 ```json
 {
