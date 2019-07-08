@@ -519,7 +519,7 @@ service definition keys for compatibility with the config file format.
   typical Consul service. This value may also be "connect-proxy" for
   services that are [Connect-capable](/docs/connect/index.html)
   proxies representing another service or "mesh-gateway" for instances of
-  a [mesh gateway](TODO)
+  a [mesh gateway](/docs/connect/mesh_gateway.html)
 
 - `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
   was used for "connect-proxy" `Kind` services however the equivalent field is

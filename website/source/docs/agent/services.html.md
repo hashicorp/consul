@@ -144,7 +144,7 @@ deprecated and has been removed as of Consul 1.1.
 
 The `kind` field is used to optionally identify the service as a [Connect
 proxy](/docs/connect/proxies.html) instance with the value `connect-proxy` or
-a [Mesh Gateway](TODO) instance with the value `mesh-gateway`. For
+a [Mesh Gateway](/docs/connect/mesh_gateway.html) instance with the value `mesh-gateway`. For
 typical non-proxy instances the `kind` field must be omitted. The `proxy` field
 is also required for Connect proxy registrations and is only valid if `kind` is
 `connect-proxy`. The only required `proxy` field is `destination_service_name`.
