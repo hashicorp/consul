@@ -7,7 +7,7 @@ description: |-
   Consul Connect.
 ---
 
-## Observability
+# Observability
 
 In order to take advantage of Connect's L7 observability features you will need
 to:
