@@ -236,13 +236,13 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 * `mode` `(string: "")` - This defines the mode of operation for how
   upstreams with a remote destination datacenter get resolved.
-  `"local"` - Mesh gateway services in the local datacenter will be used
+  - `"local"` - Mesh gateway services in the local datacenter will be used
      as the next-hop destination for the upstream connection.
-  `"remote"` - Mesh gateway services in the remote/target datacenter will
+  - `"remote"` - Mesh gateway services in the remote/target datacenter will
      be used as the next-hop destination for the upstream connection.
-  `"none"` - No mesh gateway services will be used and the next-hop destination
+  - `"none"` - No mesh gateway services will be used and the next-hop destination
      for the connection will be directly to the final service(s).
-  `""` - Default mode. The default mode will be `"none"` if no other configuration
+  - `""` - Default mode. The default mode will be `"none"` if no other configuration
      enables them. The order of precedence for setting the mode is
        1. Upstream
        2. Proxy Service's `Proxy` configuration
