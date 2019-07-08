@@ -81,7 +81,8 @@ registering a proxy instance.
     "local_service_address": "127.0.0.1",
     "local_service_port": 9090,
     "config": {},
-    "upstreams": []
+    "upstreams": [],
+    "mesh_gateway": {}
   },
   "port": 8181
 }
@@ -119,6 +120,9 @@ registering a proxy instance.
    this proxy should create listeners for. The format is defined in
    [Upstream Configuration Reference](#upstream-configuration-reference).
 
+ - `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
+   for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
+
 ### Upstream Configuration Reference
 
 The following examples show all possible upstream configuration parameters.
@@ -149,7 +153,10 @@ followed by documentation for each attribute.
   "datacenter": "dc1",
   "local_bind_address": "127.0.0.1",
   "local_bind_port": 1234,
-  "config": {}
+  "config": {},
+  "mesh_gateway": {
+    "mode": "local"
+  }
 },
 ```
 
@@ -187,3 +194,57 @@ followed by documentation for each attribute.
   options available when using the built-in proxy. If using Envoy as a proxy,
   see [Envoy configuration
   reference](/docs/connect/configuration.html#envoy-options)
+* `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
+   for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
+
+
+### Mesh Gateway Configuration Reference
+
+The following examples show all possible mesh gateway configurations.
+
+Note that `snake_case` is used here as it works in both [config file and API
+registrations](/docs/agent/services.html#service-definition-parameter-case).
+
+#### Using a Local/Egress Gateway in the Local Datacenter
+
+```json
+{
+  "mode": "local"
+}
+```
+
+#### Direct to a Remote/Ingress in a Remote Dataceter
+```json
+{
+  "mode": "remote"
+}
+```
+
+#### Prevent Using a Mesh Gateway
+```json
+{
+  "mode": "none"
+}
+```
+
+#### Default Mesh Gateway Mode
+```json
+{
+  "mode": ""
+}
+```
+
+* `mode` `(string: "")` - This defines the mode of operation for how
+  upstreams from other datacenters get resolved.
+  `"local"` - Mesh gateway services in the local datacenter will be used
+     as the next-hop destination for the upstream connection.
+  `"remote"` - Mesh gateway services in the remote/target datacenter will
+     be used as the next-hop destination for the upstream connection.
+  `"none"` - No mesh gateway services will be used and the next-hop destination
+     for the connection will be directly to the final service(s).
+  `""` - Default mode. The default mode will be `"none"` if no other configuration
+     enables them. The order of precedence for setting the mode is
+       1. Upstream
+       2. Proxy Service's `Proxy` configuration
+       3. The `service-defaults` configuration for the service.
+       4. The `global` `proxy-defaults`.
