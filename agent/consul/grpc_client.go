@@ -1,9 +1,9 @@
 package consul
 
 import (
-	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -53,7 +53,7 @@ func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
 	}
 
 	host, _, _ := net.SplitHostPort(server.Addr.String())
-	addr := fmt.Sprintf("%s:%d", host, server.Port)
+	addr := net.JoinHostPort(host, strconv.Itoa(server.Port))
 
 	c.grpcConnsLock.RLock()
 	conn, ok := c.grpcConns[addr]
@@ -65,7 +65,7 @@ func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
 	c.grpcConnsLock.Lock()
 	defer c.grpcConnsLock.Unlock()
 
-	co, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithDialer(dialGRPC))
+	co, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithDialer(dialGRPC), grpc.WithDisableRetry())
 	if err != nil {
 		return nil, err
 	}
