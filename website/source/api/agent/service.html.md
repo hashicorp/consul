@@ -518,7 +518,8 @@ service definition keys for compatibility with the config file format.
 - `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
   typical Consul service. This value may also be "connect-proxy" for
   services that are [Connect-capable](/docs/connect/index.html)
-  proxies representing another service.
+  proxies representing another service or "mesh-gateway" for instances of
+  a [mesh gateway](/docs/connect/mesh_gateway.html)
 
 - `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
   was used for "connect-proxy" `Kind` services however the equivalent field is
@@ -527,8 +528,8 @@ service definition keys for compatibility with the config file format.
   entirely. It's strongly recommended to switch to using the new field.
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
-  Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
-  the [Proxy documentation](/docs/connect/registration/service-registration.html)
+  Connect proxy instance. This is only valid if `Kind == "connect-proxy"` or
+  `Kind == "mesh-gateway"`. See the [Proxy documentation](/docs/connect/registration/service-registration.html)
   for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the

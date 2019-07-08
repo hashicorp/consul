@@ -63,7 +63,10 @@ example shows all possible fields, but note that only a few are required.
       "local_service_address": "127.0.0.1",
       "local_service_port": 9090,
       "config": {},
-      "upstreams": []
+      "upstreams": [],
+      "mesh_gateway": {
+        "mode": "local"
+      }
     },
     "connect": {
       "native": false,
@@ -140,7 +143,8 @@ deprecated and has been removed as of Consul 1.1.
 ### Connect
 
 The `kind` field is used to optionally identify the service as a [Connect
-proxy](/docs/connect/proxies.html) instance with the value `connect-proxy`. For
+proxy](/docs/connect/proxies.html) instance with the value `connect-proxy` or
+a [Mesh Gateway<sup>(beta)</sup>](/docs/connect/mesh_gateway.html) instance with the value `mesh-gateway`. For
 typical non-proxy instances the `kind` field must be omitted. The `proxy` field
 is also required for Connect proxy registrations and is only valid if `kind` is
 `connect-proxy`. The only required `proxy` field is `destination_service_name`.
