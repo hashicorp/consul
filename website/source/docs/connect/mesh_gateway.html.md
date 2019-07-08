@@ -27,7 +27,7 @@ Each mesh gateway needs three things:
 ## Modes of Operation
 
 Each upstream of a Connect proxy can be configured to be routed through a mesh gateway. Depending on
-your network, this can operate in the following modes:
+your network, the proxy's connection to the gateway can happen in one of the following modes:
 
 * `local` - In this mode the Connect proxy makes its outbound connection to a gateway running in the
   same datacenter. That gateway is then responsible for ensuring the data gets forwarded along to
