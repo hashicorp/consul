@@ -235,7 +235,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 ```
 
 * `mode` `(string: "")` - This defines the mode of operation for how
-  upstreams from other datacenters get resolved.
+  upstreams with a remote destination datacenter get resolved.
   `"local"` - Mesh gateway services in the local datacenter will be used
      as the next-hop destination for the upstream connection.
   `"remote"` - Mesh gateway services in the remote/target datacenter will
