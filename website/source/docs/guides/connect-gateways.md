@@ -14,9 +14,9 @@ TLS between services, it also enabled us to build mesh gateways, which provide
 users with a way to help services in different datacenters communicate with each
 other. Mesh gateways take advantage of Server Name Indication (SNI), which is an
 extension to TLS that allows them to see the destination of inter-datacenter
-traffic without de-encrypting the message payload.
+traffic without decrypting the message payload.
 
-Using gateways for inter-datacenter communication can prevent each Connect proxy
+Using mesh gateways for inter-datacenter communication can prevent each Connect proxy
 from needing an accessible IP address, and frees operators from worrying about
 IP address overlap between datacenters.
 
@@ -56,7 +56,7 @@ it will need the following policy:
 {
   "acl": "write",
   "operator": "write",
-  "service": {
+  "service_prefix": {
     "" : {
       "policy": "read"
     }
@@ -65,7 +65,7 @@ it will need the following policy:
 ```
 
 The replication token needs different permissions depending on what you want to
-accomplish. The above policy enables ACL policy, role, and token replication
+accomplish. The above policy allows for ACL policy, role, and token replication
 with `acl:write`, CA replication with `operator:write` and intention and
 configuration entry replication with `service:*:read`.
 
