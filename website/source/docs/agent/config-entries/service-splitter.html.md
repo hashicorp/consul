@@ -13,6 +13,8 @@ requests across different subsets of a single service (like during staged
 canary rollouts), or perhaps across different services (like during a v2
 rewrite or other type of codebase migration).
 
+These control a stage of the [discovery chain](/docs/connect/discovery-chain.html).
+
 ## Interaction with other Config Entries
 
 - Service splitter config entries are restricted to only services that define

@@ -15,6 +15,8 @@ If a router is not explicitly configured or is configured with no routes then
 the system behaves as if a router were configured sending all traffic to a
 service of the same name.
 
+These control a stage of the [discovery chain](/docs/connect/discovery-chain.html).
+
 ## Interaction with other Config Entries
 
 - Service router config entries are restricted to only services that define

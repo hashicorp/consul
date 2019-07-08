@@ -15,6 +15,8 @@ If no resolver config is defined the chain assumes 100% of traffic goes to the
 healthy instances of the default service in the current datacenter+namespace
 and discovery terminates.
 
+These control a stage of the [discovery chain](/docs/connect/discovery-chain.html).
+
 ## Sample Config Entries
 
 Create service subsets based on a version metadata and override the defaults:
