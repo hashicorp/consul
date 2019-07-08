@@ -138,7 +138,7 @@ connect {
 
 The `primary_datacenter` setting that was required in order to enable ACL
 replication between datacenters also specifies which datacenter will write
-intentions and act as the [root CA for Connect](LINK TO MULTI-DC CONNECT DOCS).
+intentions and act as the [root CA for Connect](https://www.consul.io/docs/connect/connect-internals.html#connections-across-datacenters).
 Intentions, which allow or deny inter-service communication, are automatically
 replicated to the secondary datacenter.
 
@@ -427,4 +427,4 @@ Kubernetes documentation](https://www.consul.io/docs/platform/k8s/helm.html)
 
 Visit the Consul documentation for a full list of configurations for [Consul
 Connect](https://www.consul.io/docs/connect/index.html), including [mesh gateway
-configuration options](LINK).
+configuration options](https://www.consul.io/docs/connect/mesh_gateway.html).
