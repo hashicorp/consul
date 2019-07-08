@@ -123,12 +123,17 @@ type UpstreamConfig struct {
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
 }
 
+func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
+	var cfg UpstreamConfig
+	err := mapstructure.WeakDecode(m, &cfg)
+	return cfg, err
+}
+
 // ParseUpstreamConfig returns the UpstreamConfig parsed from the an opaque map.
 // If an error occurs during parsing it is returned along with the default
 // config this allows caller to choose whether and how to report the error.
 func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
-	var cfg UpstreamConfig
-	err := mapstructure.WeakDecode(m, &cfg)
+	cfg, err := ParseUpstreamConfigNoDefaults(m)
 	// Set defaults (even if error is returned)
 	if cfg.Protocol == "" {
 		cfg.Protocol = "tcp"

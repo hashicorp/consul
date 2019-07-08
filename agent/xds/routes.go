@@ -90,14 +90,14 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			next := discoveryRoute.DestinationNode
 			if next.Type == structs.DiscoveryGraphNodeTypeSplitter {
-				routeAction, err = makeRouteActionForSplitter(upstreamID, cfgSnap.Datacenter, next.Splits)
+				routeAction, err = makeRouteActionForSplitter(next.Splits, cfgSnap)
 				if err != nil {
 					return nil, err
 				}
 
 			} else if next.Type == structs.DiscoveryGraphNodeTypeGroupResolver {
 				groupResolver := next.GroupResolver
-				routeAction = makeRouteActionForSingleCluster(upstreamID, cfgSnap.Datacenter, groupResolver.Target)
+				routeAction = makeRouteActionForSingleCluster(groupResolver.Target, cfgSnap)
 
 			} else {
 				return nil, fmt.Errorf("unexpected graph node after route %q", next.Type)
@@ -110,7 +110,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := makeRouteActionForSplitter(upstreamID, cfgSnap.Datacenter, chain.Node.Splits)
+		routeAction, err := makeRouteActionForSplitter(chain.Node.Splits, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +125,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeGroupResolver:
 		groupResolver := chain.Node.GroupResolver
 
-		routeAction := makeRouteActionForSingleCluster(upstreamID, cfgSnap.Datacenter, groupResolver.Target)
+		routeAction := makeRouteActionForSingleCluster(groupResolver.Target, cfgSnap)
 
 		defaultRoute := envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
@@ -255,8 +255,8 @@ func makeDefaultRouteMatch() envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForSingleCluster(upstreamID, currentDatacenter string, target structs.DiscoveryTarget) *envoyroute.Route_Route {
-	clusterName := makeClusterName(upstreamID, target, currentDatacenter)
+func makeRouteActionForSingleCluster(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
+	clusterName := TargetSNI(target, cfgSnap)
 
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
@@ -267,7 +267,7 @@ func makeRouteActionForSingleCluster(upstreamID, currentDatacenter string, targe
 	}
 }
 
-func makeRouteActionForSplitter(upstreamID, currentDatacenter string, splits []*structs.DiscoverySplit) (*envoyroute.Route_Route, error) {
+func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, cfgSnap *proxycfg.ConfigSnapshot) (*envoyroute.Route_Route, error) {
 	clusters := make([]*envoyroute.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
 		if split.Node.Type != structs.DiscoveryGraphNodeTypeGroupResolver {
@@ -275,7 +275,7 @@ func makeRouteActionForSplitter(upstreamID, currentDatacenter string, splits []*
 		}
 		groupResolver := split.Node.GroupResolver
 		target := groupResolver.Target
-		clusterName := makeClusterName(upstreamID, target, currentDatacenter)
+		clusterName := TargetSNI(target, cfgSnap)
 
 		// TODO(rb): scale up by 100 and adjust total weight
 		cw := &envoyroute.WeightedCluster_ClusterWeight{

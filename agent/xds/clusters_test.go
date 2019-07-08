@@ -204,7 +204,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 		"db": `
 			{
 				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "db",
+				"name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"type": "EDS",
 				"edsClusterConfig": {
 					"edsConfig": {
@@ -222,7 +222,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 		"prepared_query:geo-cache": `
 			{
 				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-				"name": "prepared_query:geo-cache",
+				"name": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 				"type": "EDS",
 				"edsClusterConfig": {
 					"edsConfig": {
@@ -235,7 +235,7 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 	}
 }

@@ -288,7 +288,7 @@ func (s *Server) makeUpstreamListener(u *structs.Upstream, cfgSnap *proxycfg.Con
 
 	upstreamID := u.Identifier()
 
-	clusterName := upstreamID
+	clusterName := UpstreamSNI(u, "", cfgSnap)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)
@@ -367,6 +367,13 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) (proto.Message, error) {
 	// TODO(rb): make the listener escape hatch work again
+	cfg, err := ParseUpstreamConfigNoDefaults(u.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
+			u.Identifier(), err)
+	}
 
 	addr := u.LocalBindAddress
 	if addr == "" {
@@ -376,7 +383,17 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	upstreamID := u.Identifier()
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(true, chain.Protocol, upstreamID, "", "upstream_", false)
+
+	proto := cfg.Protocol
+	if proto == "" {
+		proto = chain.Protocol
+	}
+
+	if proto == "" {
+		proto = "tcp"
+	}
+
+	filter, err := makeListenerFilter(true, proto, upstreamID, "", "upstream_", false)
 	if err != nil {
 		return nil, err
 	}

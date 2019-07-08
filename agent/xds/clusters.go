@@ -57,7 +57,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
 		}
 
-		if chain == nil || chain.IsDefault() {
+		if chain == nil {
 			// Either old-school upstream or prepared query.
 			upstreamCluster, err := s.makeUpstreamCluster(u, cfgSnap)
 			if err != nil {
@@ -66,7 +66,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			clusters = append(clusters, upstreamCluster)
 
 		} else {
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, chain, cfgSnap)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
@@ -183,8 +183,11 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 	if upstream.Datacenter != "" {
 		dc = upstream.Datacenter
 	}
-	sni := ServiceSNI(upstream.DestinationName, "", ns, dc, cfgSnap)
 
+	sni := ServiceSNI(upstream.DestinationName, "", ns, dc, cfgSnap)
+	if upstream.DestinationType == "prepared_query" {
+		sni = QuerySNI(upstream.DestinationName, dc, cfgSnap)
+	}
 	cfg, err := ParseUpstreamConfig(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -202,7 +205,7 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 
 	if c == nil {
 		c = &envoy.Cluster{
-			Name:                 upstream.Identifier(),
+			Name:                 sni,
 			ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
@@ -230,10 +233,19 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 }
 
 func (s *Server) makeUpstreamClustersForDiscoveryChain(
-	upstreamID string,
+	upstream structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
+
+	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
+			upstream.Identifier(), err)
+	}
+
 	if chain == nil {
 		panic("chain must be provided")
 	}
@@ -246,10 +258,11 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		// TODO(rb): failover
 		// Failover *DiscoveryFailover `json:",omitempty"` // sad path
 
-		clusterName := makeClusterName(upstreamID, target, cfgSnap.Datacenter)
+		sni := TargetSNI(target, cfgSnap)
+		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", sni)
 		c := &envoy.Cluster{
-			Name:                 clusterName,
-			AltStatName:          clusterName, // TODO(rb): change this?
+			Name:                 sni,
+			AltStatName:          sni, // TODO(rb): change this?
 			ConnectTimeout:       groupResolver.ConnectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
@@ -268,44 +281,30 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
 		}
-		if chain.Protocol == "http2" || chain.Protocol == "grpc" {
+
+		proto := cfg.Protocol
+		if proto == "" {
+			proto = chain.Protocol
+		}
+
+		if proto == "" {
+			proto = "tcp"
+		}
+
+		if proto == "http2" || proto == "grpc" {
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 
 		// Enable TLS upstream with the configured client certificate.
 		c.TlsContext = &envoyauth.UpstreamTlsContext{
 			CommonTlsContext: makeCommonTLSContext(cfgSnap),
+			Sni:              sni,
 		}
 
 		out = append(out, c)
 	}
 
 	return out, nil
-}
-
-// makeClusterName returns a string representation that uniquely identifies the
-// cluster in a canonical but human readable way.
-func makeClusterName(upstreamID string, target structs.DiscoveryTarget, currentDatacenter string) string {
-	var name string
-	if target.ServiceSubset != "" {
-		name = target.Service + "/" + target.ServiceSubset
-	} else {
-		name = target.Service
-	}
-
-	if target.Namespace != "" && target.Namespace != "default" {
-		name = target.Namespace + "/" + name
-	}
-	if target.Datacenter != "" && target.Datacenter != currentDatacenter {
-		name += "?dc=" + target.Datacenter
-	}
-
-	if upstreamID == target.Service {
-		// In the common case don't stutter.
-		return name
-	}
-
-	return upstreamID + "//" + name
 }
 
 // makeClusterFromUserConfig returns the listener config decoded from an
