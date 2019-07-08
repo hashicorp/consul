@@ -3,15 +3,15 @@ layout: "docs"
 page_title: "Configuration Entry Kind: Service Splitter (beta)"
 sidebar_current: "docs-agent-cfg_entries-service_splitter"
 description: |-
-  Service splitters control how to split incoming requests across different subsets of a single service, or perhaps across different services.
+  The service-splitter config entry kind controls how to split incoming Connect requests across different subsets of a single service (like during staged canary rollouts), or perhaps across different services (like during a v2 rewrite or other type of codebase migration).
 ---
 
-# Service Splitter - `service-splitter` <sup>(beta)</sup>
+# Service Splitter <sup>(beta)</sup>
 
-Service splitters control how to split incoming Connect requests across
-different subsets of a single service (like during staged canary rollouts), or
-perhaps across different services (like during a v2 rewrite or other type of
-codebase migration).
+The `service-splitter` config entry kind controls how to split incoming Connect
+requests across different subsets of a single service (like during staged
+canary rollouts), or perhaps across different services (like during a v2
+rewrite or other type of codebase migration).
 
 ## Interaction with other Config Entries
 

@@ -3,13 +3,13 @@ layout: "docs"
 page_title: "Configuration Entry Kind: Service Resolver (beta)"
 sidebar_current: "docs-agent-cfg_entries-service_resolver"
 description: |-
-  Service resolvers control which service instances should satisfy Connect upstream discovery requests for a given service name.
+  The `service-resolver` config entry kind controls which service instances should satisfy Connect upstream discovery requests for a given service name.
 ---
 
-# Service Resolver - `service-resolver` <sup>(beta)</sup>
+# Service Resolver <sup>(beta)</sup>
 
-Service resolvers control which service instances should satisfy Connect
-upstream discovery requests for a given service name.
+The `service-resolver` config entry kind controls which service instances
+should satisfy Connect upstream discovery requests for a given service name.
 
 If no resolver config is defined the chain assumes 100% of traffic goes to the
 healthy instances of the default service in the current datacenter+namespace

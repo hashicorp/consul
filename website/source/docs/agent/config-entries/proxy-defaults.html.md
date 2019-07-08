@@ -3,13 +3,14 @@ layout: "docs"
 page_title: "Configuration Entry Kind: Proxy Defaults"
 sidebar_current: "docs-agent-cfg_entries-proxy_defaults"
 description: |-
-  Proxy defaults allow for configuring global config defaults across all services for Connect proxy configuration. Currently, only one global entry is supported.
+  The proxy-defaults config entry kind allows for configuring global config defaults across all services for Connect proxy configuration. Currently, only one global entry is supported.
 ---
 
-# Proxy Defaults - `proxy-defaults`
+# Proxy Defaults
 
-Proxy defaults allow for configuring global config defaults across all services
-for Connect proxy configuration. Currently, only one global entry is supported.
+The `proxy-defaults` config entry kind allows for configuring global config
+defaults across all services for Connect proxy configuration. Currently, only
+one global entry is supported.
 
 ## Sample Config Entries
 

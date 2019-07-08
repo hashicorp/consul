@@ -3,13 +3,13 @@ layout: "docs"
 page_title: "Configuration Entry Kind: Service Router (beta)"
 sidebar_current: "docs-agent-cfg_entries-service_router"
 description: |-
-  Service routers control Connect traffic routing and manipulation at networking layer 7 (e.g. HTTP).
+  The service-router config entry kind controls Connect traffic routing and manipulation at networking layer 7 (e.g. HTTP).
 ---
 
-# Service Router - `service-router` <sup>(beta)</sup>
+# Service Router <sup>(beta)</sup>
 
-Service routers control Connect traffic routing and manipulation at networking
-layer 7 (e.g. HTTP).
+The `service-router` config entry kind controls Connect traffic routing and
+manipulation at networking layer 7 (e.g. HTTP).
 
 If a router is not explicitly configured or is configured with no routes then
 the system behaves as if a router were configured sending all traffic to a

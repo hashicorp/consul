@@ -3,13 +3,13 @@ layout: "docs"
 page_title: "Configuration Entry Kind: Service Defaults"
 sidebar_current: "docs-agent-cfg_entries-service_defaults"
 description: |-
-  Service defaults control default global values for a service, such as its protocol.
+  The service-defaults config entry kind controls default global values for a service, such as its protocol.
 ---
 
-# Service Defaults - `service-defaults`
+# Service Defaults
 
-Service defaults control default global values for a service, such as its
-protocol.
+The `service-defaults` config entry kind controls default global values for a
+service, such as its protocol.
 
 ## Sample Config Entries
 
