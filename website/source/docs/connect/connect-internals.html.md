@@ -96,7 +96,7 @@ in multiple datacenters (such as the [geo failover](https://learn.hashicorp.com/
 [Intentions](/docs/connect/intentions.html) verify connections between services by
 source and destination name seamlessly across datacenters.
 
-Connections can be made via [gateways](TODO) to enable when communciating across
+Connections can be made via gateways to enable when communciating across
 network topologies allowing connections between services in each datacenter
 without externally routable IPs at the service level.
 
