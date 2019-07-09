@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -227,27 +228,18 @@ func (e *ProxyConfigEntry) UnmarshalBinary(data []byte) error {
 // the kind so we will not have a concrete type to decode into. In those cases we must
 // first decode into a map[string]interface{} and then call this function to decode
 // into a concrete type.
+//
+// There is an 'api' variation of this in
+// command/config/write/config_write.go:newDecodeConfigEntry
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
-	lib.TranslateKeys(raw, map[string]string{
-		"kind":          "Kind",
-		"name":          "Name",
-		"connect":       "Connect",
-		"sidecar_proxy": "SidecarProxy",
-		"protocol":      "Protocol",
-		"mesh_gateway":  "MeshGateway",
-		"mode":          "Mode",
-		"Config":        "",
-	})
-
-	// TODO(rb): see if any changes are needed here for the discovery chain
-
-	// TODO(rb): maybe do an initial kind/Kind switch and do kind-specific decoding?
-
 	var entry ConfigEntry
 
 	kindVal, ok := raw["Kind"]
 	if !ok {
-		return nil, fmt.Errorf("Payload does not contain a Kind key at the top level")
+		kindVal, ok = raw["kind"]
+	}
+	if !ok {
+		return nil, fmt.Errorf("Payload does not contain a kind/Kind key at the top level")
 	}
 
 	if kindStr, ok := kindVal.(string); ok {
@@ -260,9 +252,23 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
+	skipWhenPatching, translateKeysDict, err := ConfigEntryDecodeRulesForKind(entry.GetKind())
+	if err != nil {
+		return nil, err
+	}
+
+	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
+	// to do this part first.
+	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
+
+	lib.TranslateKeys(raw, translateKeysDict)
+
+	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
-		Result:     &entry,
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		Metadata:         &md,
+		Result:           &entry,
+		WeaklyTypedInput: true,
 	}
 
 	decoder, err := mapstructure.NewDecoder(decodeConf)
@@ -270,7 +276,75 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 
-	return entry, decoder.Decode(raw)
+	if err := decoder.Decode(raw); err != nil {
+		return nil, err
+	}
+
+	for _, k := range md.Unused {
+		switch k {
+		case "CreateIndex", "ModifyIndex":
+		default:
+			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// ConfigEntryDecodeRulesForKind returns rules for 'fixing' config entry key
+// formats by kind. This is shared between the 'structs' and 'api' variations
+// of config entries.
+func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, translateKeysDict map[string]string, err error) {
+	switch kind {
+	case ProxyDefaults:
+		return nil, map[string]string{
+			"mesh_gateway": "meshgateway",
+			"config":       "",
+		}, nil
+	case ServiceDefaults:
+		return nil, map[string]string{
+			"mesh_gateway": "meshgateway",
+		}, nil
+	case ServiceRouter:
+		return []string{
+				"routes",
+				"Routes",
+				"routes.match.http.header",
+				"Routes.Match.HTTP.Header",
+				"routes.match.http.query_param",
+				"Routes.Match.HTTP.QueryParam",
+			}, map[string]string{
+				"num_retries":              "numretries",
+				"path_exact":               "pathexact",
+				"path_prefix":              "pathprefix",
+				"path_regex":               "pathregex",
+				"prefix_rewrite":           "prefixrewrite",
+				"query_param":              "queryparam",
+				"request_timeout":          "requesttimeout",
+				"retry_on_connect_failure": "retryonconnectfailure",
+				"retry_on_status_codes":    "retryonstatuscodes",
+				"service_subset":           "servicesubset",
+			}, nil
+	case ServiceSplitter:
+		return []string{
+				"splits",
+				"Splits",
+			}, map[string]string{
+				"service_subset": "servicesubset",
+			}, nil
+	case ServiceResolver:
+		return nil, map[string]string{
+			"connect_timeout":         "connecttimeout",
+			"default_subset":          "defaultsubset",
+			"only_passing":            "onlypassing",
+			"overprovisioning_factor": "overprovisioningfactor",
+			"service_subset":          "servicesubset",
+		}, nil
+	default:
+		return nil, nil, fmt.Errorf("kind %q should be explicitly handled here", kind)
+	}
 }
 
 type ConfigEntryOp string

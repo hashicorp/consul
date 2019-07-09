@@ -2796,7 +2796,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					foo = "bar"
 				}
 			}`},
-			err: "config_entries.bootstrap[0]: Payload does not contain a Kind",
+			err: "config_entries.bootstrap[0]: Payload does not contain a kind/Kind",
 		},
 		{
 			desc: "ConfigEntry bootstrap unknown kind",
@@ -2850,12 +2850,463 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			}`},
 			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
 		},
+		{
+			desc: "ConfigEntry bootstrap proxy-defaults (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "proxy-defaults",
+							"name": "global",
+							"config": {
+								"bar": "abc",
+								"moreconfig": {
+									"moar": "config"
+								}
+							},
+							"mesh_gateway": {
+								"mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						kind = "proxy-defaults"
+						name = "global"
+						config {
+						  "bar" = "abc"
+						  "moreconfig" {
+							"moar" = "config"
+						  }
+						}
+						mesh_gateway {
+							mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"bar": "abc",
+							"moreconfig": map[string]interface{}{
+								"moar": "config",
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap proxy-defaults (camel-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"Kind": "proxy-defaults",
+							"Name": "global",
+							"Config": {
+								"bar": "abc",
+								"moreconfig": {
+									"moar": "config"
+								}
+							},
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						Kind = "proxy-defaults"
+						Name = "global"
+						Config {
+						  "bar" = "abc"
+						  "moreconfig" {
+							"moar" = "config"
+						  }
+						}
+						MeshGateway {
+							Mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"bar": "abc",
+							"moreconfig": map[string]interface{}{
+								"moar": "config",
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-defaults (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-defaults",
+							"name": "web",
+							"protocol": "http",
+							"mesh_gateway": {
+								"mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						kind = "service-defaults"
+						name = "web"
+						protocol = "http"
+						mesh_gateway {
+							mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "web",
+						Protocol: "http",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-defaults (camel-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"Kind": "service-defaults",
+							"Name": "web",
+							"Protocol": "http",
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						Kind = "service-defaults"
+						Name = "web"
+						Protocol = "http"
+						MeshGateway {
+							Mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "web",
+						Protocol: "http",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-router (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-router",
+							"name": "main",
+							"routes": [
+								{
+									"match": {
+										"http": {
+											"path_exact": "/foo",
+											"header": [
+												{
+													"name": "debug1",
+													"present": true
+												},
+												{
+													"name": "debug2",
+													"present": false,
+													"invert": true
+												},
+												{
+													"name": "debug3",
+													"exact": "1"
+												},
+												{
+													"name": "debug4",
+													"prefix": "aaa"
+												},
+												{
+													"name": "debug5",
+													"suffix": "bbb"
+												},
+												{
+													"name": "debug6",
+													"regex": "a.*z"
+												}
+											]
+										}
+									},
+									"destination": {
+									  "service"                 : "carrot",
+									  "service_subset"          : "kale",
+									  "namespace"               : "leek",
+									  "prefix_rewrite"          : "/alternate",
+									  "request_timeout"         : "99s",
+									  "num_retries"             : 12345,
+									  "retry_on_connect_failure": true,
+									  "retry_on_status_codes"   : [401, 209]
+									}
+								},
+								{
+									"match": {
+										"http": {
+											"path_prefix": "/foo",
+											"query_param": [
+												{
+													"name": "hack1"
+												},
+												{
+													"name": "hack2",
+													"value": "1"
+												},
+												{
+													"name": "hack3",
+													"value": "a.*z",
+													"regex": true
+												}
+											]
+										}
+									}
+								},
+								{
+									"match": {
+										"http": {
+											"path_regex": "/foo"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						kind = "service-router"
+						name = "main"
+						routes = [
+							{
+								match {
+									http {
+										path_exact = "/foo"
+										header = [
+											{
+												name = "debug1"
+												present = true
+											},
+											{
+												name = "debug2"
+												present = false
+												invert = true
+											},
+											{
+												name = "debug3"
+												exact = "1"
+											},
+											{
+												name = "debug4"
+												prefix = "aaa"
+											},
+											{
+												name = "debug5"
+												suffix = "bbb"
+											},
+											{
+												name = "debug6"
+												regex = "a.*z"
+											},
+										]
+									}
+								}
+								destination {
+								  service               = "carrot"
+								  service_subset         = "kale"
+								  namespace             = "leek"
+								  prefix_rewrite         = "/alternate"
+								  request_timeout        = "99s"
+								  num_retries            = 12345
+								  retry_on_connect_failure = true
+								  retry_on_status_codes    = [401, 209]
+								}
+							},
+							{
+								match {
+									http {
+										path_prefix = "/foo"
+										query_param = [
+											{
+												name = "hack1"
+											},
+											{
+												name = "hack2"
+												value = "1"
+											},
+											{
+												name = "hack3"
+												value = "a.*z"
+												regex = true
+											},
+										]
+									}
+								}
+							},
+							{
+								match {
+									http {
+										path_regex = "/foo"
+									}
+								}
+							},
+						]
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceRouterConfigEntry{
+						Kind: structs.ServiceRouter,
+						Name: "main",
+						Routes: []structs.ServiceRoute{
+							{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathExact: "/foo",
+										Header: []structs.ServiceRouteHTTPMatchHeader{
+											{
+												Name:    "debug1",
+												Present: true,
+											},
+											{
+												Name:    "debug2",
+												Present: false,
+												Invert:  true,
+											},
+											{
+												Name:  "debug3",
+												Exact: "1",
+											},
+											{
+												Name:   "debug4",
+												Prefix: "aaa",
+											},
+											{
+												Name:   "debug5",
+												Suffix: "bbb",
+											},
+											{
+												Name:  "debug6",
+												Regex: "a.*z",
+											},
+										},
+									},
+								},
+								Destination: &structs.ServiceRouteDestination{
+									Service:               "carrot",
+									ServiceSubset:         "kale",
+									Namespace:             "leek",
+									PrefixRewrite:         "/alternate",
+									RequestTimeout:        99 * time.Second,
+									NumRetries:            12345,
+									RetryOnConnectFailure: true,
+									RetryOnStatusCodes:    []uint32{401, 209},
+								},
+							},
+							{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathPrefix: "/foo",
+										QueryParam: []structs.ServiceRouteHTTPMatchQueryParam{
+											{
+												Name: "hack1",
+											},
+											{
+												Name:  "hack2",
+												Value: "1",
+											},
+											{
+												Name:  "hack3",
+												Value: "a.*z",
+												Regex: true,
+											},
+										},
+									},
+								},
+							},
+							{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathRegex: "/foo",
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
 }
 
 func testConfig(t *testing.T, tests []configTest, dataDir string) {
+	t.Helper()
 	for _, tt := range tests {
 		for pass, format := range []string{"json", "hcl"} {
 			// clean data dir before every test

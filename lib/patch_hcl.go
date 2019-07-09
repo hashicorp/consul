@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
-func PatchSliceOfMaps(m map[string]interface{}, skip []string) map[string]interface{} {
-	return patchValue("", m, skip).(map[string]interface{})
+func PatchSliceOfMaps(m map[string]interface{}, skip []string, skipTree []string) map[string]interface{} {
+	return patchValue("", m, skip, skipTree).(map[string]interface{})
 }
 
-func patchValue(name string, v interface{}, skip []string) interface{} {
+func patchValue(name string, v interface{}, skip []string, skipTree []string) interface{} {
 	// fmt.Printf("%q: %T\n", name, v)
 	switch x := v.(type) {
 	case map[string]interface{}:
@@ -21,7 +21,7 @@ func patchValue(name string, v interface{}, skip []string) interface{} {
 			if name != "" {
 				key = name + "." + k
 			}
-			mm[k] = patchValue(key, v, skip)
+			mm[k] = patchValue(key, v, skip, skipTree)
 		}
 		return mm
 
@@ -29,9 +29,12 @@ func patchValue(name string, v interface{}, skip []string) interface{} {
 		if len(x) == 0 {
 			return nil
 		}
+		if strSliceContains(name, skipTree) {
+			return x
+		}
 		if strSliceContains(name, skip) {
 			for i, y := range x {
-				x[i] = patchValue(name, y, skip)
+				x[i] = patchValue(name, y, skip, skipTree)
 			}
 			return x
 		}
@@ -41,22 +44,25 @@ func patchValue(name string, v interface{}, skip []string) interface{} {
 		if len(x) > 1 {
 			panic(fmt.Sprintf("%s: []map[string]interface{} with more than one element not supported: %s", name, v))
 		}
-		return patchValue(name, x[0], skip)
+		return patchValue(name, x[0], skip, skipTree)
 
 	case []map[string]interface{}:
 		if len(x) == 0 {
 			return nil
 		}
+		if strSliceContains(name, skipTree) {
+			return x
+		}
 		if strSliceContains(name, skip) {
 			for i, y := range x {
-				x[i] = patchValue(name, y, skip).(map[string]interface{})
+				x[i] = patchValue(name, y, skip, skipTree).(map[string]interface{})
 			}
 			return x
 		}
 		if len(x) > 1 {
 			panic(fmt.Sprintf("%s: []map[string]interface{} with more than one element not supported: %s", name, v))
 		}
-		return patchValue(name, x[0], skip)
+		return patchValue(name, x[0], skip, skipTree)
 
 	default:
 		return v

@@ -98,9 +98,8 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.sidecar_service.checks",
 		"service.connect.sidecar_service.proxy.upstreams",
 		"services.connect.sidecar_service.proxy.upstreams",
-
-		"config_entries.bootstrap",
-		"config_entries.bootstrap.Splits",
+	}, []string{
+		"config_entries.bootstrap", // completely ignore this tree (fixed elsewhere)
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -122,6 +121,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"scriptargs":                     "args",
 		"serviceid":                      "service_id",
 		"tlsskipverify":                  "tls_skip_verify",
+		"config_entries.bootstrap":       "",
 	})
 
 	var md mapstructure.Metadata
@@ -135,6 +135,7 @@ func Parse(data string, format string) (c Config, err error) {
 	if err := d.Decode(m); err != nil {
 		return Config{}, err
 	}
+
 	for _, k := range md.Unused {
 		err = multierror.Append(err, fmt.Errorf("invalid config key %s", k))
 	}
