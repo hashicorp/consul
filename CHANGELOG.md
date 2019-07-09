@@ -4,8 +4,8 @@
 
 FEATURES:
 
-* **Connect Envoy Supports L7 Routing:** Additional configuration entry types `service-router`, `service-resolver`, and `service-splitter`, allow for configuring Envoy sidecars to enable reliability and deployment patterns at L7 such as HTTP path-based routing, traffic shifting, and advanced failover capabilities. For more information see the [configuration entries](https://www.consul.io/docs/agent/config_entries.html) docs.
-* **Mesh Gateways:** Envoy can now be run as a gateway to route Connect traffic across datacenters using SNI headers, allowing connectivty across platforms and clouds and other complex network topologies. Read more in the [mesh gateway docs](TODO).
+* **Connect Envoy Supports L7 Routing:** Additional configuration entry types `service-router`, `service-resolver`, and `service-splitter`, allow for configuring Envoy sidecars to enable reliability and deployment patterns at L7 such as HTTP path-based routing, traffic shifting, and advanced failover capabilities. For more information see the [L7 traffic management](https://www.consul.io/docs/connect/l7-traffic-management.html) docs.
+* **Mesh Gateways:** Envoy can now be run as a gateway to route Connect traffic across datacenters using SNI headers, allowing connectivty across platforms and clouds and other complex network topologies. Read more in the [mesh gateway docs](https://www.consul.io/docs/connect/mesh_gateway.html).
 * **Intention & CA Replication:** In order to enable connecitivty for services across datacenters, Connect intentions are now replicated and the Connect CA cross-signs from the [primary_datacenter](/docs/agent/options.html#primary_datacenter). This feature was previously part of Consul Enterprise.
 
 IMPROVEMENTS:
