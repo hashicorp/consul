@@ -377,6 +377,176 @@ to run the sync program.
             "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
           }
         ```
+* <a name="v-meshgateway" href="#v-meshgateway">`meshGateway` <sup>(beta)</sup></a> - Values that configure Connect [Mesh Gateways](/docs/connect/mesh_gateway.html).
+
+  * <a name="v-meshgateway-enabled" href="#v-meshgateway-enabled">`enabled`</a> (`boolean: false`) - If true, gateways will be created and
+    Consul servers will be configured to support them. If setting this in an already running cluster, you'll need to
+    reload the servers.
+
+  * <a name="v-meshgateway-globalmode" href="#v-meshgateway-globalmode">`globalMode`</a> (`string: "local"`) -
+  [Globally configure](/docs/connect/mesh_gateway.html#enabling-gateways-globally) which mode the gateway should run in.
+  Can be set to either "remote", "local", "none" or "".
+  See [Modes of Operation](/docs/connect/mesh_gateway.html#modes-of-operation) for a description of each mode.
+  If set, `connectInject.centralConfig.enabled` should be set to true so that
+  the global config will actually be used.
+  If set to the empty string, no global default will be set and the gateway mode
+  will need to be set individually for each service.
+
+  * <a name="v-meshgateway-replicas" href="#v-meshgateway-replicas">`replicas`</a> (`int: 2`) -
+  How many gateway Pods to run.
+
+  * <a name="v-meshgateway-wanaddress" href="#v-meshgateway-wanaddress">`wanAddress`</a> -
+  Values that configure what gets registered as the wan address for the gateway when running the `consul connect envoy` command.
+  See the [command overview](/docs/commands/connect/envoy.html#wan-address) for more details.
+
+      * <a name="v-meshgateway-wanaddress-port" href="#v-meshgateway-wanaddress-port">`port`</a> (`int: 443`) -
+      The port that gets registered for the wan address.
+
+      * <a name="v-meshgateway-wanaddress-usenodeip" href="#v-meshgateway-wanaddress-usenodeip">`useNodeIP`</a> (`bool: true`) -
+      If true, each Gateway Pod will advertise its Node IP
+      (as provided by the Kubernetes downward API) as the wan address.
+      This is useful if node IPs are routable from other DCs.
+      `useNodeName` and `host` must be `false` and `""` respectively.
+
+      * <a name="v-meshgateway-wanaddress-usenodename" href="#v-meshgateway-wanaddress-usenodename">`useNodeName`</a> (`bool: false`) -
+      If true, each Gateway Pod will advertise its Node Name
+      (as provided by the Kubernetes downward API) as the wan address.
+      This is useful if the node names are DNS entries that are routable from other DCs.
+      `useNodeIP` and `host` must be `false` and `""` respectively.
+
+      * <a name="v-meshgateway-wanaddress-host" href="#v-meshgateway-wanaddress-host">`host`</a> (`string: """`) -
+      If non-empty, each gateway Pod will use this host as its wan address.
+      Users must ensure that this address routes to the Gateway pods,
+      for example via a load balancer IP or a DNS entry that routes to the Service
+      fronting the Deployment.
+      `meshGateway.wanAddress.port` will be used as the port for the wan address.
+      `useNodeIP` and `useNodeName` must be false.
+
+  * <a name="v-meshgateway-service" href="#v-meshgateway-service">`service`</a> -
+  Values that configure the Kubernetes `Service` for the gateway `Deployment.
+
+      * <a name="v-meshgateway-service-enabled" href="#v-meshgateway-service-enabled">`enabled`</a> (`bool: false`) -
+      Whether to create a Service or not.
+
+      * <a name="v-meshgateway-service-type" href="#v-meshgateway-service-type">`type`</a> (`string: "ClusterIP"`) -
+      Service `type`, ex. `NodePort`, `LoadBalancer`, `ClusterIP`.
+
+      * <a name="v-meshgateway-service-port" href="#v-meshgateway-service-port">`port`</a> (`int: 443`) -
+      Port that the service will expose.
+      `targetPort` will automatically be set to `meshGateway.containerPort`.
+
+      * <a name="v-meshgateway-service-nodeport" href="#v-meshgateway-service-nodeport">`nodePort`</a> (`int`) -
+      Optional [`nodePort`](https://kubernetes.io/docs/concepts/services-networking/service/#nodeport) of the `Service`. Can be used in conjunction with
+      `type: NodePort`.
+
+      * <a name="v-meshgateway-service-annotations" href="#v-meshgateway-service-annotations">`annotations`</a> (`string`) -
+      Optional YAML string for additional annotations on the Service. This should be a formatted as a multi-line string.
+
+        ```yaml
+        annotations: |
+          "sample/annotation1": "foo"
+          "sample/annotation2": "bar"
+        ```
+
+      * <a name="v-meshgateway-service-additionalspec" href="#v-meshgateway-service-additionalspec">`additionalSpec`</a> (`string`) -
+      Optional string for appending additional YAML to the Service spec. This should be a formatted as a multi-line string.
+
+        ```yaml
+        additionalSpec: |
+          clusterIP: 10.0.171.239
+        ```
+
+  * <a name="v-meshgateway-imageenvoy" href="#v-meshgateway-imageenvoy">`imageEnvoy`</a> (`string: "envoyproxy/envoy:v1.10.0"`) -
+  [Envoy](https://www.envoyproxy.io/) Docker image to use. Envoy is the proxy used for the gateway.
+
+  * <a name="v-meshgateway-hostnetwork" href="#v-meshgateway-hostnetwork">`hostNetwork`</a> (`bool: false`) -
+  If set to true, gateway Pods will run on the host network.
+
+  * <a name="v-meshgateway-dnspolicy" href="#v-meshgateway-dnspolicy">`dnsPolicy`</a> (`string`) -
+  If set, this will be the dns policy used. If `hostNetwork` is `true` then this should be set to `ClusterFirstWithHostNet`.
+
+  * <a name="v-meshgateway-consulservicename" href="#v-meshgateway-consulservicename">`consulServiceName`</a> (`string`) -
+  Override the default 'mesh-gateway' service name registered in Consul.
+  Cannot be used if `bootstrapACLs` is true since the ACL token generated
+  is only for the name 'mesh-gateway'.
+
+  * <a name="v-meshgateway-containerport" href="#v-meshgateway-containerport">`containerPort`</a> (`int: 443`) -
+  Port that the gateway will run on inside the container.
+
+  * <a name="v-meshgateway-hostport" href="#v-meshgateway-hostport">`hostPort`</a> (`int`) -
+  Optional host port for the gateway to be exposed on.
+  This can be used with `wanAddress.port` and `wanAddress.useNodeIP`
+  to expose gateways directly on the node.
+  If hostNetwork is true, this must be null or set to the same port as
+  containerPort.
+
+  * <a name="v-meshgateway-enablehealthchecks" href="#v-meshgateway-enablehealthchecks">`enableHealthChecks`</a> (`bool: true`) -
+  If there are no connect-enabled services running, then the gateway
+  will fail health checks. You may disable health checks as a temporary
+  workaround.
+
+  * <a name="v-meshgateway-resources" href="#v-meshgateway-resources">`resources`</a> (`string`) -
+  YAML resource string specifying the resources for the Pod. Defaults to:
+
+    ```yaml
+    resources: |
+      requests:
+        memory: "128Mi"
+        cpu: "250m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+    ```
+
+  * <a name="v-meshgateway-affinity" href="#v-meshgateway-affinity">`affinity`</a> (`string`) -
+  YAML string specifying the affinity for Pods.
+  By default, we set an anti affinity so that two gateway pods won't be
+  on the same node. NOTE: Gateways require that Consul client agents are
+  also running on the nodes alongside each gateway Pod.
+
+    ```yaml
+    # default affinity
+    affinity: |
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: {{ template "consul.name" . }}
+                release: "{{ .Release.Name }}"
+                component: mesh-gateway
+            topologyKey: kubernetes.io/hostname
+    ```
+
+  * <a name="v-meshgateway-tolerations" href="#v-meshgateway-tolerations">`tolerations`</a> (`string`) -
+  YAML string specifying [tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
+
+    ```yaml
+    tolerations: |
+      - key: "key"
+        operator: "Equal"
+        value: "value"
+        effect: "NoSchedule"
+    ```
+
+  * <a name="v-meshgateway-nodeselector" href="#v-meshgateway-nodeselector">`nodeSelector`</a> (`string`) -
+  YAML string specifying a [node selector](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector).
+
+    ```yaml
+    nodeSelector: |
+      disktype: ssd
+    ```
+
+  * <a name="v-meshgateway-priorityclassname" href="#v-meshgateway-priorityclassname">`priorityClassName`</a> (`string`) -
+  Specify the [priority class](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass) name.
+
+  * <a name="v-meshgateway-annotations" href="#v-meshgateway-annotations">`annotations`</a> (`string`) -
+  Optional YAML string for additional annotations on the Deployment. This should be a formatted as a multi-line string.
+
+    ```yaml
+    annotations: |
+      "sample/annotation1": "foo"
+      "sample/annotation2": "bar"
+    ```
 
 ## Using the Helm Chart to deploy Consul Enterprise
 

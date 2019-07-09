@@ -3,19 +3,19 @@ layout: "docs"
 page_title: "Mesh Gateways - Kubernetes (beta)"
 sidebar_current: "docs-platform-k8s-mesh-gateways"
 description: |-
-    How to configure Connect Mesh Gateways in Kubernetes.
+    This documentation describes how to configure Connect Mesh Gateways in Kubernetes.
 ---
 
 # Mesh Gateways on Kubernetes <sup>(beta)</sup>
 
 
 Mesh gateways enable routing of Connect traffic between different Consul datacenters.
-See [Mesh Gateways](/docs/connect/mesh_gateways.html) for more details.
+See [Mesh Gateways](/docs/connect/mesh_gateway.html) for more details.
 
 To deploy Gateways in Kubernetes, use our [consul-helm](/docs/platform/k8s/helm.html) chart.
 
 ## Usage
-There are many configuration options for gateways nested under the `meshGateway` key
+There are many configuration options for gateways nested under the [`meshGateway`](/docs/platform/k8s/helm.html#v-meshgateway) key
 of the consul-helm chart:
 
 ```yaml
@@ -70,13 +70,26 @@ in Kubernetes:
           "primary_datacenter": "dc1"
         }
     ```
-1. Connect injection and central config must be enabled. This can be set via the helm chart:
+1. If using Kubernetes, Connect injection must be enabled. This can be set via the helm chart:
 
     ```yaml
     connectInject:
       enabled: true
+    ```
+1. gRPC must be enabled. This can be set via the helm chart:
+
+    ```yaml
+    client:
+      grpc: true
+    ```
+1. If setting a global default [gateway mode](/docs/connect/mesh_gateway.html#modes-of-operation),
+   central config must be enabled for all agents so that they actually use the default mode.
+   This can be set via the helm chart:
+
+    ```yaml
+    connectInject:
       centralConfig:
-        enabled: true
+       enabled: true
     ```
 
 ## Guide to Using Mesh Gateways To Connect Two Kubernetes Clusters
@@ -113,9 +126,19 @@ Add the following config to your helm chart values for dc1.
 # dc1-values.yaml
 meshGateway:
   enabled: true
+
+  # The wan address is what remote datacenters will send their gateway
+  # traffic to.
   wanAddress:
+    # For now we're setting this to the node IP but in the next step we'll set
+    # it to our Load Balancer's IP.
     useNodeIP: true
+
+  # When there are no Connect services running, the gateway fails health checks.
+  # As a workaround we will temporarily disable them.
   enableHealthChecks: false
+
+  # Here we're configuring a LoadBalancer service to front our gateway pods.
   service:
     enabled: true
     type: LoadBalancer
@@ -157,7 +180,8 @@ NAME                               TYPE           CLUSTER-IP      EXTERNAL-IP   
 sanguine-elk-consul-mesh-gateway   LoadBalancer   10.35.254.171   32.32.32.32     443:32022/TCP   8m6s
 ```
 
-Now change the `meshGateway.wanAddress.host` key to the IP:
+Now change the `meshGateway.wanAddress.host` key to the external IP.
+This will tell remote datacenters to route gateway traffic to the load balancer.
 
 ```diff
 meshGateway:
@@ -197,6 +221,10 @@ meshGateway:
   service:
     enabled: true
     type: LoadBalancer
+
+# You should also have datacenter config:
+global:
+  datacenter: dc2
     
 # You should also have the config specified in the prerequisites.
 ```
@@ -261,6 +289,8 @@ kind: Pod
 metadata:
   name: static-server
   annotations:
+    # This annotation tells the Connect injector to inject a sidecar
+    # proxy that will transparently unencrypt Connect requests.
     "consul.hashicorp.com/connect-inject": "true"
 spec:
   containers:
@@ -291,19 +321,22 @@ kind: Pod
 metadata:
   name: static-client
   annotations:
+    # This annotation tells the Connect injector to inject a sidecar proxy.
     "consul.hashicorp.com/connect-inject": "true"
+    # This annotation configures the sidecar proxy to route localhost:1234
+    # traffic to the static-server service running in the dc2 datacenter.
     "consul.hashicorp.com/connect-service-upstreams": "static-server:1234:dc2"
 spec:
   containers:
     - name: static-client
       image: tutum/curl:latest
-      # Just spin & wait forever, we'll use `kubectl exec` to demo
+      # Just spin & wait forever, we'll use `kubectl exec` to test.
       command: [ "/bin/sh", "-c", "--" ]
       args: [ "while true; do sleep 30; done;" ]
 
 ```
 
-And apply it to dc1:
+And apply it to **dc1**:
 
 ```bash
 kubectl apply -f static-client.yaml
@@ -318,4 +351,10 @@ kubectl exec static-client -c static-client -- curl -s http://localhost:1234
 ```
 
 Now your gateways are working! Remember to use the correct annotations to
-target services in other datacenters.
+target services in other datacenters, i.e.
+
+```yaml
+annotations:
+  "consul.hashicorp.com/connect-inject": "true"
+  "consul.hashicorp.com/connect-service-upstreams": "<remote service name>:<localhost port>:<remote datacenter name>"
+```
