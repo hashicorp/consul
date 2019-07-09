@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -132,7 +131,6 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 			Token:      token,
 			Op:         structs.SnapshotRestore,
 		}
-		fmt.Println(snap)
 
 		restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 			&args, snap, &reply)
