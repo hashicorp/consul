@@ -35,6 +35,12 @@ Protocol = "http"
   <sup>(beta)</sup>](/docs/agent/config-entries/service-router.html) config
   entries for a service.
 
+- `MeshGateway` <sup>(beta)</sup> `(MeshGatewayConfig: <optional>)` - Controls the default
+  [mesh gateway configuration](/docs/connect/mesh_gateway.html#connect-proxy-configuration)
+  for this service.
+
+  - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
+
 ## ACLs
 
 Configuration entries may be protected by
