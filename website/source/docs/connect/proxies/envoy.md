@@ -95,7 +95,7 @@ the ability to control some parts of the bootstrap config via proxy
 configuration options.
 
 Users can add the following configuration items to the [global `proxy-defaults`
-configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or override them directly in the `proxy.config` field
+configuration entry](/docs/agent/config-entries/proxy-defaults.html) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
@@ -104,7 +104,7 @@ definition](/docs/connect/registration/service-registration.html) or
   StatsD listener that Envoy should deliver metrics to. For example, this may be
   `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this case
   users can configure this property once in the [global `proxy-defaults`
-configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) for convenience. Currently, TCP is not supported.
+configuration entry](/docs/agent/config-entries/proxy-defaults.html) for convenience. Currently, TCP is not supported.
 
     ~> **Note:** currently the url **must use an ip address** not a dns name due
     to the way Envoy is setup for StatsD.
@@ -115,7 +115,7 @@ configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaul
     pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
     when the Envoy instance is bootstrapped while still allowing global
     configuration of all proxies to use StatsD in the [global `proxy-defaults`
-configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults). The env variable must contain a full valid URL
+configuration entry](/docs/agent/config-entries/proxy-defaults.html). The env variable must contain a full valid URL
     value as specified above and nothing else. It is not currently possible to use
     environment variables as only part of the URL.
 
@@ -153,7 +153,7 @@ to configure appropriate proxy settings for that service's proxies and also for
 the upstream listeners of any downstream service.
 
 Users can define a service's protocol in its [`service-defaults` configuration
-entry](/docs/agent/config_entries.html#service-defaults-service-defaults). Agents with
+entry](/docs/agent/config-entries/service-defaults.html). Agents with
 [`enable_central_service_config`](/docs/agent/options.html#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
@@ -171,7 +171,7 @@ actually registered.
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration.html), or defined in
 the  [global `proxy-defaults` configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
+entry](/docs/agent/config-entries/proxy-defaults.html) to act as
 defaults that are inherited by all services.
 
 
@@ -282,7 +282,7 @@ with no `@type` field.
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
+entry](/docs/agent/config-entries/proxy-defaults.html) or
 override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
@@ -318,7 +318,7 @@ definition](/docs/connect/registration/service-registration.html) or
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
+entry](/docs/agent/config-entries/proxy-defaults.html) or
 override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
