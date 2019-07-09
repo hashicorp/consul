@@ -163,7 +163,7 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	var err error
 
 	// Retry added to avoid cases where bind addr is already in use
-	retry.Run(t, func(r *retry.R) {
+	retry.RunWith(retry.ThreeTimes(), t,  func(r *retry.R) {
 		srv, err = newServer(config)
 		if err != nil {
 			os.RemoveAll(dir)
