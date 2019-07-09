@@ -627,11 +627,15 @@ func (s *state) resetWatchesFromChain(
 		meshGateway := structs.MeshGatewayModeDefault
 		if target.Datacenter != s.source.Datacenter {
 			meshGateway = meshGatewayModes[target]
+
+			if meshGateway == structs.MeshGatewayModeDefault {
+				meshGateway = s.proxyCfg.MeshGateway.Mode
+			}
 		}
 
 		// if the default mode
 		if meshGateway == structs.MeshGatewayModeDefault {
-			meshGateway = s.proxyCfg.MeshGateway.Mode
+			meshGateway = structs.MeshGatewayModeNone
 		}
 
 		filterExp := subset.Filter
