@@ -13,9 +13,14 @@ requests across different subsets of a single service (like during staged
 canary rollouts), or perhaps across different services (like during a v2
 rewrite or other type of codebase migration).
 
-These control a stage of the [discovery chain](/docs/connect/discovery-chain.html).
+If no splitter config is defined for a service it is assumed 100% of traffic
+flows to a service with the same name and discovery continues on to the
+resolution stage.
 
 ## Interaction with other Config Entries
+
+- Service splitter config entries are a component of [L7 Traffic
+  Management](/docs/connect/l7-traffic-management.html).
 
 - Service splitter config entries are restricted to only services that define
   their protocol as http-based via a corresponding
@@ -91,7 +96,7 @@ splits = [
 
 ## ACLs
 
-Discovery chain configuration entries may be protected by
+Configuration entries may be protected by
 [ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 Reading a `service-splitter` config entry requires `service:read` on itself.

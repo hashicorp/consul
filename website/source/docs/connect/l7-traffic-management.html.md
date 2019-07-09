@@ -1,79 +1,60 @@
 ---
 layout: "docs"
-page_title: "Connect - Discovery Chain (beta)"
-sidebar_current: "docs-connect-discovery_chain"
+page_title: "Connect - L7 Traffic Management (beta)"
+sidebar_current: "docs-connect-l7_traffic_management"
 description: |-
-  A discovery chain is a series of distinct stages that a service discovery request flows through to discover and configure Connect proxy upstreams of the service type.
+  Layer 7 traffic management allows operators to divide L7 traffic between different subsets of service instances when using Connect.
 ---
 
-# Discovery Chain <sup>(beta)</sup>
+# L7 Traffic Management <sup>(beta)</sup>
 
 -> **Note:** This feature is not compatible with the 
 [built-in proxy](/docs/connect/proxies/built-in.html)
 or [native proxies](/docs/connect/native.html).
 
-A discovery chain is a series of distinct stages that a service discovery
-request flows through to discover and configure Connect proxy upstreams of the
-`service` type.
-
-![diagram of discovery chain stages](/assets/images/discovery-chain-simple.svg)
-
-Each stage of this discovery chain can be dynamically reconfigured via various
-[configuration entries](/docs/agent/config_entries.html). When a configuration
-entry is missing, that stage will fall back on reasonable default behavior.
-
-## Terminology
-
-### Service Subsets
+Layer 7 traffic management allows operators to divide L7 traffic between
+different
+[subsets](/docs/agent/config-entries/service-resolver.html#service-subsets) of
+service instances when using Connect.
 
 There are many ways you may wish to carve up a single datacenter's pool of
 services beyond simply returning all healthy instances for load balancing.
 Canary testing, A/B tests, blue/green deploys, and soft multi-tenancy
 (prod/qa/staging sharing compute resources) all require some mechanism of
 carving out portions of the Consul catalog smaller than the level of a single
-service.
-
-A service subset assigns a concrete name to a specific partitioning of the
-overall set of available service instances within a datacenter used during
-service discovery.
-
-A service subset name is useful only when composed with an actual service name,
-a specific datacenter, and namespace.
-
-All services have an unnamed default subset that will return all healthy
-instances unfiltered.
-
-Subsets are defined in
-[`service-resolver`](/docs/agent/config-entries/service-resolver.html)
-configuration entries, but are referenced by their names throughout the other
-configuration entry kinds.
+service and configuring when that subset should receive traffic.
 
 ## Stages
 
+Connect proxy upstreams are discovered using a series of stages: routing,
+splitting, and resolution. These stages represent different ways of managing L7
+traffic.
+
+![diagram showing l7 traffic discovery stages: routing to splitting to resolution](/assets/images/l7-traffic-stages.svg)
+
+Each stage of this discovery process can be dynamically reconfigured via various
+[configuration entries](/docs/agent/config_entries.html). When a configuration
+entry is missing, that stage will fall back on reasonable default behavior.
+
 ### Routing
 
--> **Note:** A service must define its protocol to be http-based to configure a router.
-
 A [`service-router`](/docs/agent/config-entries/service-router.html) config
-entry kind represents the topmost part of the discovery chain.
+entry kind is the first configurable stage.
 
-You can use this to intercept traffic using layer-7 criteria (such as path
-prefixes or http headers) and change behavior such as sending traffic to a
-different service or service subset.
+A router config entry allows for a user to intercept traffic using L7 criteria
+such as path prefixes or http headers, and change behavior such as by sending
+traffic to a different service or service subset.
 
 These config entries may only reference `service-splitter` or
 `service-resolver` entries.
 
+[Examples](/docs/agent/config-entries/service-router.html#sample-config-entries)
+can be found in the `service-router` documentation.
+
 ### Splitting
 
--> **Note:** A service must define its protocol to be http-based to configure a splitter.
-
 A [`service-splitter`](/docs/agent/config-entries/service-splitter.html) config
-entry kind represents the next hop of the discovery chain after routing.
-
-If no splitter config is defined for a service it is assumed 100% of traffic
-flows to a service with the same name as the chain and discovery continues on
-to the resolution stage.
+entry kind is the next stage after routing.
 
 A splitter config entry allows for a user to choose to split incoming requests
 across different subsets of a single service (like during staged canary
@@ -92,10 +73,13 @@ union. For instance:
 	---------------------
 	splitter[effective_B]: A_v1=25%, A_v2=25%, B=50%
 
+[Examples](/docs/agent/config-entries/service-splitter.html#sample-config-entries)
+can be found in the `service-splitter` documentation.
+
 ### Resolution
 
 A [`service-resolver`](/docs/agent/config-entries/service-resolver.html) config
-entry kind represents the next hop of the discovery chain after splitting.
+entry kind is the last stage.
 
 A resolver config entry allows for a user to define which instances of a
 service should satisfy discovery requests for the provided name.
@@ -118,10 +102,17 @@ datacenter are unhealthy.
 in `dc2`. This can be referenced in upstreams or in other config entries.
 
 If no resolver config is defined for a service it is assumed 100% of traffic
-flows to the healthy instances of a service with the same name as the chain in
-the current datacenter/namespace and discovery terminates.
+flows to the healthy instances of a service with the same name in the current
+datacenter/namespace and discovery terminates.
 
 This should feel similar in spirit to various uses of Prepared Queries, but is
 not intended to be a drop-in replacement currently.
 
 These config entries may only reference other `service-resolver` entries.
+
+[Examples](/docs/agent/config-entries/service-resolver.html#sample-config-entries)
+can be found in the `service-resolver` documentation.
+
+-> **Note:** `service-resolver` config entries kinds function at L4 (unlike
+`service-router` and `service-splitter` kinds). These can be created for
+services of any protocol such as `tcp`.

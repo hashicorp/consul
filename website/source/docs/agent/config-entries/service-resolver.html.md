@@ -15,7 +15,10 @@ If no resolver config is defined the chain assumes 100% of traffic goes to the
 healthy instances of the default service in the current datacenter+namespace
 and discovery terminates.
 
-These control a stage of the [discovery chain](/docs/connect/discovery-chain.html).
+## Interaction with other Config Entries
+
+- Service resolver config entries are a component of [L7 Traffic
+  Management](/docs/connect/l7-traffic-management.html).
 
 ## Sample Config Entries
 
@@ -100,8 +103,8 @@ name = "web"
   attempts to resolve the service this resolver defines will be substituted for
   the supplied redirect EXCEPT when the redirect has already been applied.
 
-    When substituting the supplied redirect into the discovery chain all other
-    fields besides `Kind`, `Name`, and `Redirect` will be ignored.
+    When substituting the supplied redirect into the all other fields besides
+    `Kind`, `Name`, and `Redirect` will be ignored.
 
   - `Service` `(string: "")` - A service to resolve instead of the current
     service.
@@ -151,9 +154,23 @@ name = "web"
         If omitted the overprovisioning factor value will be set so high as to
         imply binary failover (all or nothing).
 
+## Service Subsets
+
+A service subset assigns a concrete name to a specific subset of discoverable
+service instances within a datacenter, such as `"version2"` or `"canary"`.
+
+A service subset name is useful only when composed with an actual service name,
+a specific datacenter, and namespace.
+
+All services have an unnamed default subset that will return all healthy
+instances unfiltered.
+
+Subsets are defined in `service-resolver` configuration entries, but are
+referenced by their names throughout the other configuration entry kinds.
+
 ## ACLs
 
-Discovery chain configuration entries may be protected by
+Configuration entries may be protected by
 [ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 Reading a `service-resolver` config entry requires `service:read` on itself.
