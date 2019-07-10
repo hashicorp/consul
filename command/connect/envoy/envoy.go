@@ -294,6 +294,9 @@ func (c *cmd) Run(args []string) int {
 					"envoy_mesh_gateway_bind_tagged_addresses": true,
 				},
 			}
+		} else if !canBind(lanAddr) && lanAddr != "" {
+			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr))
+			return 1
 		}
 
 		svc := api.AgentServiceRegistration{
