@@ -131,7 +131,7 @@ function health_service_count_matches {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
 
-  GOT_COUNT=$(retry_default get_healthy_service_count $SERVICE_NAME)
+  GOT_COUNT=$(get_healthy_service_count $SERVICE_NAME)
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
@@ -140,7 +140,7 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
 
-  run retry_default health_service_count_matches $SERVICE_NAME $EXPECT_COUNT
+  run retry 10 2 health_service_count_matches $SERVICE_NAME $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
