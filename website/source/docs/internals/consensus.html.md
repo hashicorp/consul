@@ -11,7 +11,7 @@ description: |-
 Consul uses a [consensus protocol](https://en.wikipedia.org/wiki/Consensus_(computer_science))
 to provide [Consistency (as defined by CAP)](https://en.wikipedia.org/wiki/CAP_theorem).
 The consensus protocol is based on
-["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
+["Raft: In search of an Understandable Consensus Algorithm"](https://raft.github.io/raft.pdf).
 For a visual explanation of Raft, see [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
 
 ## Raft Protocol Overview
@@ -51,7 +51,7 @@ and managing when an entry is considered committed.
 
 Raft is a complex protocol and will not be covered here in detail (for those who
 desire a more comprehensive treatment, the full specification is available in this
-[paper](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf)).
+[paper](https://raft.github.io/raft.pdf)).
 We will, however, attempt to provide a high level description which may be useful
 for building a mental model.
 
