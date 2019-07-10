@@ -480,14 +480,14 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 
 		if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		if acls.Policy == nil {
-			t.Fatalf("Bad: %v", acls)
+			r.Fatalf("Bad: %v", acls)
 		}
 		if acls.TTL != 30*time.Second {
-			t.Fatalf("bad: %v", acls)
+			r.Fatalf("bad: %v", acls)
 		}
 	})
 
@@ -4342,9 +4342,17 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		require.NoError(t, acl.Login(&req, &resp))
 		remoteToken = &resp
 
-		// present in dc2
-		resp2, err := retrieveTestToken(codec2, "root", "dc2", remoteToken.AccessorID)
-		require.NoError(t, err)
+		var resp2 *structs.ACLTokenResponse
+		var err error
+
+		// Flaky test! Need to retry/wait until !acl.srv.UseLegacyACLs() before continuing.
+		retry.Run(t, func(r *retry.R) {
+			// present in dc2
+			resp2, err = retrieveTestToken(codec2, "root", "dc2", remoteToken.AccessorID)
+			if err != nil {
+				r.Fatalf("expected no error, got %v", err)
+			}
+		})
 		require.NotNil(t, resp2.Token)
 		require.Len(t, resp2.Token.ServiceIdentities, 1)
 		require.Equal(t, "web2", resp2.Token.ServiceIdentities[0].ServiceName)
