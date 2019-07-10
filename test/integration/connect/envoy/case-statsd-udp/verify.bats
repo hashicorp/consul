@@ -10,6 +10,10 @@ load helpers
   retry_default curl -f -s localhost:19001/stats -o /dev/null
 }
 
+@test "s2 proxy should be healthy" {
+  assert_service_has_healthy_instances s2 1
+}
+
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" == 0 ]
