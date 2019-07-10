@@ -120,6 +120,30 @@ function snapshot_envoy_admin {
   docker_wget "http://${HOSTPORT}/clusters" -q -O - > "./workdir/envoy/${ENVOY_NAME}-clusters.out"
 }
 
+function get_healthy_service_count {
+  local SERVICE_NAME=$1
+  run retry_default curl -s -f 127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?passing
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '. | length'
+}
+
+function health_service_count_matches {
+  local SERVICE_NAME=$1
+  local EXPECT_COUNT=$2
+
+  GOT_COUNT=$(retry_default get_healthy_service_count $SERVICE_NAME)
+
+  [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_service_has_healthy_instances {
+  local SERVICE_NAME=$1
+  local EXPECT_COUNT=$2
+
+  run retry_default health_service_count_matches $SERVICE_NAME $EXPECT_COUNT
+  [ "$status" -eq 0 ]
+}
+
 function docker_consul {
   docker run -ti --rm --network container:envoy_consul_1 consul-dev $@
 }

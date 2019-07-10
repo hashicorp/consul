@@ -12,11 +12,14 @@ load helpers
 
 @test "s1 proxy listener should be up and have right cert" {
   assert_proxy_presents_cert_uri localhost:21000 s1
-
 }
 
 @test "s2 proxy listener should be up and have right cert" {
   assert_proxy_presents_cert_uri localhost:21001 s2
+}
+
+@test "s2 proxy should be healthy" {
+  assert_service_has_healthy_instances s2 1
 }
 
 @test "s1 upstream should be able to connect to s2 via http2" {
