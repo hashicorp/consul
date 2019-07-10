@@ -1535,3 +1535,48 @@ func TestCheckServiceNode_BestAddress(t *testing.T) {
 		})
 	}
 }
+
+func TestNodeService_JSON_Marshal(t *testing.T) {
+	ns := &NodeService{
+		Service: "foo",
+		Proxy: ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"bind_addresses": map[string]interface{}{
+					"default": map[string]interface{}{
+						"Address": "0.0.0.0",
+						"Port":    "443",
+					},
+				},
+			},
+		},
+	}
+	buf, err := json.Marshal(ns)
+	require.NoError(t, err)
+
+	var out NodeService
+	require.NoError(t, json.Unmarshal(buf, &out))
+	require.Equal(t, *ns, out)
+}
+
+func TestServiceNode_JSON_Marshal(t *testing.T) {
+	sn := &ServiceNode{
+		Node:        "foo",
+		ServiceName: "foo",
+		ServiceProxy: ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"bind_addresses": map[string]interface{}{
+					"default": map[string]interface{}{
+						"Address": "0.0.0.0",
+						"Port":    "443",
+					},
+				},
+			},
+		},
+	}
+	buf, err := json.Marshal(sn)
+	require.NoError(t, err)
+
+	var out ServiceNode
+	require.NoError(t, json.Unmarshal(buf, &out))
+	require.Equal(t, *sn, out)
+}

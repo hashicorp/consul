@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -679,6 +680,19 @@ type ServiceNode struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (sn *ServiceNode) MarshalJSON() ([]byte, error) {
+	type typeCopy ServiceNode
+	copy := typeCopy(*sn)
+
+	proxyConfig, err := lib.MapWalk(copy.ServiceProxy.Config)
+	if err != nil {
+		return nil, err
+	}
+	copy.ServiceProxy.Config = proxyConfig
+
+	return json.Marshal(&copy)
+}
+
 // PartialClone() returns a clone of the given service node, minus the node-
 // related fields that get filled in later, Address and TaggedAddresses.
 func (s *ServiceNode) PartialClone() *ServiceNode {
@@ -865,6 +879,19 @@ type NodeService struct {
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (ns *NodeService) MarshalJSON() ([]byte, error) {
+	type typeCopy NodeService
+	copy := typeCopy(*ns)
+
+	proxyConfig, err := lib.MapWalk(copy.Proxy.Config)
+	if err != nil {
+		return nil, err
+	}
+	copy.Proxy.Config = proxyConfig
+
+	return json.Marshal(&copy)
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
