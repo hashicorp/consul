@@ -2,7 +2,6 @@ package agent
 
 import (
 	"bytes"
-	"crypto/md5"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
@@ -33,16 +31,6 @@ func encodeMsgPack(msg interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
 	return buf.Bytes(), err
-}
-
-// stringHash returns a simple md5sum for a string.
-func stringHash(s string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
-}
-
-// checkIDHash returns a simple md5sum for a types.CheckID.
-func checkIDHash(checkID types.CheckID) string {
-	return stringHash(string(checkID))
 }
 
 // setFilePermissions handles configuring ownership and permissions

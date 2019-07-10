@@ -1,10 +1,8 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -23,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -991,10 +990,12 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 		CheckID: "baz",
 		TTL:     time.Minute,
 	}
-	err := a.persistCheckState(ttl, api.HealthPassing, "yup")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	a.PersistentState.WriteCheckState(local.PersistedCheckState{
+		CheckID: ttl.CheckID,
+		Output:  "yup",
+		Status:  api.HealthPassing,
+		Expires: time.Now().Add(ttl.TTL).Unix(),
+	})
 
 	// Build and register the check definition and initial state
 	health := &structs.HealthCheck{
@@ -1005,7 +1006,7 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 	chk := &structs.CheckType{
 		TTL: time.Minute,
 	}
-	err = a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+	err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1632,15 +1633,12 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 
 func TestAgent_PersistService(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
 		server = false
 		bootstrap = false
-		data_dir = "` + dataDir + `"
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a := &TestAgent{Name: t.Name(), HCL: cfg}
 	a.Start(t)
-	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
@@ -1650,36 +1648,28 @@ func TestAgent_PersistService(t *testing.T) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
-
 	// Check is not persisted unless requested
 	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, err := os.Stat(file); err == nil {
-		t.Fatalf("should not persist")
+	select {
+	case <-a.PersistentState.ServiceWritten:
+		t.Fatal("should not have persisted the service")
+	default:
 	}
 
 	// Persists to file if requested
 	if err := a.AddService(svc, nil, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, err := os.Stat(file); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	expected, err := json.Marshal(persistedService{
-		Token:   "mytoken",
-		Service: svc,
-	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	content, err := ioutil.ReadFile(file)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !bytes.Equal(expected, content) {
-		t.Fatalf("bad: %s", string(content))
+	select {
+	case persisted := <-a.PersistentState.ServiceWritten:
+		require.Equal(t, local.PersistedService{
+			Token:   "mytoken",
+			Service: svc,
+		}, persisted)
+	default:
+		t.Fatal("should have persisted the service")
 	}
 
 	// Updates service definition on disk
@@ -1687,24 +1677,19 @@ func TestAgent_PersistService(t *testing.T) {
 	if err := a.AddService(svc, nil, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	expected, err = json.Marshal(persistedService{
-		Token:   "mytoken",
-		Service: svc,
-	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	content, err = ioutil.ReadFile(file)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !bytes.Equal(expected, content) {
-		t.Fatalf("bad: %s", string(content))
+	select {
+	case persisted := <-a.PersistentState.ServiceWritten:
+		require.Equal(t, local.PersistedService{
+			Token:   "mytoken",
+			Service: svc,
+		}, persisted)
+	default:
+		t.Fatal("should have persisted the service")
 	}
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a2 := &TestAgent{Name: t.Name(), HCL: cfg, PersistentState: a.PersistentState}
 	a2.Start(t)
 	defer a2.Shutdown()
 
@@ -1720,50 +1705,6 @@ func TestAgent_PersistService(t *testing.T) {
 	}
 }
 
-func TestAgent_persistedService_compat(t *testing.T) {
-	t.Parallel()
-	// Tests backwards compatibility of persisted services from pre-0.5.1
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-
-	svc := &structs.NodeService{
-		ID:      "redis",
-		Service: "redis",
-		Tags:    []string{"foo"},
-		Port:    8000,
-		Weights: &structs.Weights{Passing: 1, Warning: 1},
-	}
-
-	// Encode the NodeService directly. This is what previous versions
-	// would serialize to the file (without the wrapper)
-	encoded, err := json.Marshal(svc)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Write the content to the file
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
-	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Load the services
-	if err := a.loadServices(a.Config); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Ensure the service was restored
-	services := a.State.Services()
-	result, ok := services["redis"]
-	if !ok {
-		t.Fatalf("missing service")
-	}
-	require.Equal(t, svc, result)
-}
-
 func TestAgent_PurgeService(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -1776,7 +1717,6 @@ func TestAgent_PurgeService(t *testing.T) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
 	if err := a.AddService(svc, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1785,8 +1725,10 @@ func TestAgent_PurgeService(t *testing.T) {
 	if err := a.RemoveService(svc.ID, false); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if _, err := os.Stat(file); err != nil {
-		t.Fatalf("err: %s", err)
+	select {
+	case <-a.PersistentState.ServiceRemoved:
+		t.Fatal("should not have removed the service")
+	default:
 	}
 
 	// Re-add the service
@@ -1798,23 +1740,22 @@ func TestAgent_PurgeService(t *testing.T) {
 	if err := a.RemoveService(svc.ID, true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("bad: %#v", err)
+	select {
+	case <-a.PersistentState.ServiceRemoved:
+	default:
+		t.Fatal("should have removed the service")
 	}
 }
 
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a := &TestAgent{Name: t.Name(), HCL: cfg}
 	a.Start(t)
 	defer a.Shutdown()
-	defer os.RemoveAll(dataDir)
 
 	svc1 := &structs.NodeService{
 		ID:      "redis",
@@ -1838,14 +1779,16 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 			tags = ["bar"]
 			port = 9000
 		}
-	`, DataDir: dataDir}
+	`, PersistentState: a.PersistentState}
 	a2.Start(t)
 	defer a2.Shutdown()
 
-	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc1.ID))
-	if _, err := os.Stat(file); err == nil {
-		t.Fatalf("should have removed persisted service")
+	select {
+	case <-a.PersistentState.ServiceRemoved:
+	default:
+		t.Fatal("should have removed the service")
 	}
+
 	result := a2.State.Service("redis")
 	if result == nil {
 		t.Fatalf("missing service registration")
@@ -1857,15 +1800,12 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 
 func TestAgent_PersistProxy(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
 		server = false
 		bootstrap = false
-		data_dir = "` + dataDir + `"
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a := &TestAgent{Name: t.Name(), HCL: cfg}
 	a.Start(t)
-	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	require := require.New(t)
@@ -1886,53 +1826,52 @@ func TestAgent_PersistProxy(t *testing.T) {
 		Command:         []string{"/bin/sleep", "3600"},
 	}
 
-	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash("redis-proxy"))
-
 	// Proxy is not persisted unless requested
 	require.NoError(a.AddProxy(proxy, false, false, "", ConfigSourceLocal))
-	_, err := os.Stat(file)
-	require.Error(err, "proxy should not be persisted")
+	select {
+	case <-a.PersistentState.ProxyWritten:
+		t.Fatal("should not have persisted the proxy")
+	default:
+	}
 
 	// Proxy is  persisted if requested
 	require.NoError(a.AddProxy(proxy, true, false, "", ConfigSourceLocal))
-	_, err = os.Stat(file)
-	require.NoError(err, "proxy should be persisted")
-
-	content, err := ioutil.ReadFile(file)
-	require.NoError(err)
-
-	var gotProxy persistedProxy
-	require.NoError(json.Unmarshal(content, &gotProxy))
-	assert.Equal(proxy.Command, gotProxy.Proxy.Command)
-	assert.Len(gotProxy.ProxyToken, 36) // sanity check for UUID
+	select {
+	case persisted := <-a.PersistentState.ProxyWritten:
+		assert.Equal(proxy.Command, persisted.Proxy.Command)
+		assert.Len(persisted.ProxyToken, 36) // sanity check for UUID
+	default:
+		t.Fatal("should have persisted the proxy")
+	}
 
 	// Updates service definition on disk
 	proxy.Config = map[string]interface{}{
 		"foo": "bar",
 	}
 	require.NoError(a.AddProxy(proxy, true, false, "", ConfigSourceLocal))
-
-	content, err = ioutil.ReadFile(file)
-	require.NoError(err)
-
-	require.NoError(json.Unmarshal(content, &gotProxy))
-	assert.Equal(gotProxy.Proxy.Command, proxy.Command)
-	assert.Equal(gotProxy.Proxy.Config, proxy.Config)
-	assert.Len(gotProxy.ProxyToken, 36) // sanity check for UUID
+	var persistedProxy local.PersistedProxy
+	select {
+	case persisted := <-a.PersistentState.ProxyWritten:
+		assert.Equal(proxy.Command, persisted.Proxy.Command)
+		assert.Len(persisted.ProxyToken, 36) // sanity check for UUID
+		persistedProxy = persisted
+	default:
+		t.Fatal("should have persisted the proxy")
+	}
 
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a2 := &TestAgent{Name: t.Name(), HCL: cfg, PersistentState: a.PersistentState}
 	a2.Start(t)
 	defer a2.Shutdown()
 
 	restored := a2.State.Proxy("redis-proxy")
 	require.NotNil(restored)
-	assert.Equal(gotProxy.ProxyToken, restored.ProxyToken)
+	assert.Equal(persistedProxy.ProxyToken, restored.ProxyToken)
 	// Ensure the port that was auto picked at random is the same again
-	assert.Equal(gotProxy.Proxy.ProxyService.Port, restored.Proxy.ProxyService.Port)
-	assert.Equal(gotProxy.Proxy.Command, restored.Proxy.Command)
+	assert.Equal(persistedProxy.Proxy.ProxyService.Port, restored.Proxy.ProxyService.Port)
+	assert.Equal(persistedProxy.Proxy.Command, restored.Proxy.Command)
 }
 
 func TestAgent_PurgeProxy(t *testing.T) {
@@ -1959,34 +1898,35 @@ func TestAgent_PurgeProxy(t *testing.T) {
 	proxyID := "redis-proxy"
 	require.NoError(a.AddProxy(proxy, true, false, "", ConfigSourceLocal))
 
-	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash("redis-proxy"))
-
 	// Not removed
 	require.NoError(a.RemoveProxy(proxyID, false))
-	_, err := os.Stat(file)
-	require.NoError(err, "should not be removed")
+	select {
+	case <-a.PersistentState.ProxyRemoved:
+		t.Fatal("should not have removed proxy")
+	default:
+	}
 
 	// Re-add the proxy
 	require.NoError(a.AddProxy(proxy, true, false, "", ConfigSourceLocal))
 
 	// Removed
 	require.NoError(a.RemoveProxy(proxyID, true))
-	_, err = os.Stat(file)
-	require.Error(err, "should be removed")
+	select {
+	case <-a.PersistentState.ProxyRemoved:
+	default:
+		t.Fatal("should have removed proxy")
+	}
 }
 
 func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a := &TestAgent{Name: t.Name(), HCL: cfg}
 	a.Start(t)
 	defer a.Shutdown()
-	defer os.RemoveAll(dataDir)
 
 	require := require.New(t)
 
@@ -2023,13 +1963,9 @@ func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 				}
 			}
 		}
-	`, DataDir: dataDir}
+	`, PersistentState: a.PersistentState}
 	a2.Start(t)
 	defer a2.Shutdown()
-
-	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash(proxyID))
-	_, err := os.Stat(file)
-	require.NoError(err, "Config File based proxies should be persisted too")
 
 	result := a2.State.Proxy(proxyID)
 	require.NotNil(result)
@@ -2038,16 +1974,13 @@ func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 
 func TestAgent_PersistCheck(t *testing.T) {
 	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	cfg := `
-		data_dir = "` + dataDir + `"
 		server = false
 		bootstrap = false
 		enable_script_checks = true
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a := &TestAgent{Name: t.Name(), HCL: cfg}
 	a.Start(t)
-	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
 	check := &structs.HealthCheck{
@@ -2061,37 +1994,29 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Interval:   10 * time.Second,
 	}
 
-	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check.CheckID))
-
 	// Not persisted if not requested
 	if err := a.AddCheck(check, chkType, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, err := os.Stat(file); err == nil {
-		t.Fatalf("should not persist")
+	select {
+	case <-a.PersistentState.CheckWritten:
+		t.Fatal("should not have written check")
+	default:
 	}
 
 	// Should persist if requested
 	if err := a.AddCheck(check, chkType, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, err := os.Stat(file); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	expected, err := json.Marshal(persistedCheck{
-		Check:   check,
-		ChkType: chkType,
-		Token:   "mytoken",
-	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	content, err := ioutil.ReadFile(file)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !bytes.Equal(expected, content) {
-		t.Fatalf("bad: %s != %s", string(content), expected)
+	select {
+	case persisted := <-a.PersistentState.CheckWritten:
+		require.Equal(t, local.PersistedCheck{
+			Check:   check,
+			ChkType: chkType,
+			Token:   "mytoken",
+		}, persisted)
+	default:
+		t.Fatal("should have written check")
 	}
 
 	// Updates the check definition on disk
@@ -2099,25 +2024,20 @@ func TestAgent_PersistCheck(t *testing.T) {
 	if err := a.AddCheck(check, chkType, true, "mytoken", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	expected, err = json.Marshal(persistedCheck{
-		Check:   check,
-		ChkType: chkType,
-		Token:   "mytoken",
-	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	content, err = ioutil.ReadFile(file)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !bytes.Equal(expected, content) {
-		t.Fatalf("bad: %s", string(content))
+	select {
+	case persisted := <-a.PersistentState.CheckWritten:
+		require.Equal(t, local.PersistedCheck{
+			Check:   check,
+			ChkType: chkType,
+			Token:   "mytoken",
+		}, persisted)
+	default:
+		t.Fatal("should have written check")
 	}
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg, DataDir: dataDir}
+	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg, PersistentState: a.PersistentState}
 	a2.Start(t)
 	defer a2.Shutdown()
 
@@ -2153,7 +2073,6 @@ func TestAgent_PurgeCheck(t *testing.T) {
 		Status:  api.HealthPassing,
 	}
 
-	file := filepath.Join(a.Config.DataDir, checksDir, checkIDHash(check.CheckID))
 	if err := a.AddCheck(check, nil, true, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2162,32 +2081,34 @@ func TestAgent_PurgeCheck(t *testing.T) {
 	if err := a.RemoveCheck(check.CheckID, false); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if _, err := os.Stat(file); err != nil {
-		t.Fatalf("err: %s", err)
+	select {
+	case <-a.PersistentState.CheckRemoved:
+		t.Fatal("should not have removed check")
+	default:
 	}
 
 	// Removed
 	if err := a.RemoveCheck(check.CheckID, true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("bad: %#v", err)
+	select {
+	case <-a.PersistentState.CheckRemoved:
+	default:
+		t.Fatal("should have removed check")
 	}
 }
 
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	t.Parallel()
 	nodeID := NodeID()
-	dataDir := testutil.TempDir(t, "agent")
-	a := NewTestAgent(t, t.Name(), `
-	    node_id = "`+nodeID+`"
-	    node_name = "Node `+nodeID+`"
-		data_dir = "`+dataDir+`"
-		server = false
-		bootstrap = false
-		enable_script_checks = true
-	`)
-	defer os.RemoveAll(dataDir)
+	cfg := `
+	node_id = "` + nodeID + `"
+	node_name = "Node ` + nodeID + `"
+	server = false
+	bootstrap = false
+	enable_script_checks = true
+`
+	a := NewTestAgent(t, t.Name(), cfg)
 	defer a.Shutdown()
 
 	check1 := &structs.HealthCheck{
@@ -2204,13 +2125,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	a.Shutdown()
 
 	// Start again with the check registered in config
-	a2 := NewTestAgent(t, t.Name()+"-a2", `
-	    node_id = "`+nodeID+`"
-	    node_name = "Node `+nodeID+`"
-		data_dir = "`+dataDir+`"
-		server = false
-		bootstrap = false
-		enable_script_checks = true
+	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg + `
 		check = {
 			id = "mem"
 			name = "memory check"
@@ -2218,13 +2133,16 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 			args = ["/bin/check-redis.py"]
 			interval = "30s"
 		}
-	`)
+	`, PersistentState: a.PersistentState}
+	a2.Start(t)
 	defer a2.Shutdown()
 
-	file := filepath.Join(dataDir, checksDir, checkIDHash(check1.CheckID))
-	if _, err := os.Stat(file); err == nil {
-		t.Fatalf("should have removed persisted check")
+	select {
+	case <-a.PersistentState.CheckRemoved:
+	default:
+		t.Fatal("should have removed check")
 	}
+
 	result := a2.State.Check("mem")
 	if result == nil {
 		t.Fatalf("missing check registration")
@@ -2985,88 +2903,6 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 	}
 }
 
-func TestAgent_loadChecks_checkFails(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-
-	// Persist a health check with an invalid service ID
-	check := &structs.HealthCheck{
-		Node:      a.Config.NodeName,
-		CheckID:   "service:redis",
-		Name:      "redischeck",
-		Status:    api.HealthPassing,
-		ServiceID: "nope",
-	}
-	if err := a.persistCheck(check, nil); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check to make sure the check was persisted
-	checkHash := checkIDHash(check.CheckID)
-	checkPath := filepath.Join(a.Config.DataDir, checksDir, checkHash)
-	if _, err := os.Stat(checkPath); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Try loading the checks from the persisted files
-	if err := a.loadChecks(a.Config); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Ensure the erroneous check was purged
-	if _, err := os.Stat(checkPath); err == nil {
-		t.Fatalf("should have purged check")
-	}
-}
-
-func TestAgent_persistCheckState(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-
-	// Create the TTL check to persist
-	check := &checks.CheckTTL{
-		CheckID: "check1",
-		TTL:     10 * time.Minute,
-	}
-
-	// Persist some check state for the check
-	err := a.persistCheckState(check, api.HealthCritical, "nope")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check the persisted file exists and has the content
-	file := filepath.Join(a.Config.DataDir, checkStateDir, stringHash("check1"))
-	buf, err := ioutil.ReadFile(file)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Decode the state
-	var p persistedCheckState
-	if err := json.Unmarshal(buf, &p); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check the fields
-	if p.CheckID != "check1" {
-		t.Fatalf("bad: %#v", p)
-	}
-	if p.Output != "nope" {
-		t.Fatalf("bad: %#v", p)
-	}
-	if p.Status != api.HealthCritical {
-		t.Fatalf("bad: %#v", p)
-	}
-
-	// Check the expiration time was set
-	if p.Expires < time.Now().Unix() {
-		t.Fatalf("bad: %#v", p)
-	}
-}
-
 func TestAgent_loadCheckState(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -3078,11 +2914,12 @@ func TestAgent_loadCheckState(t *testing.T) {
 		TTL:     0,
 	}
 
-	// Persist the check state
-	err := a.persistCheckState(check, api.HealthPassing, "yup")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	a.PersistentState.WriteCheckState(local.PersistedCheckState{
+		CheckID: check.CheckID,
+		Status:  api.HealthPassing,
+		Output:  "yup",
+		Expires: time.Now().Unix(),
+	})
 
 	// Try to load the state
 	health := &structs.HealthCheck{
@@ -3101,18 +2938,20 @@ func TestAgent_loadCheckState(t *testing.T) {
 		t.Fatalf("bad: %#v", health)
 	}
 
-	// Should have purged the state
-	file := filepath.Join(a.Config.DataDir, checksDir, stringHash("check1"))
-	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("should have purged state")
+	select {
+	case <-a.PersistentState.CheckStateRemoved:
+	default:
+		t.Fatal("should have removed check")
 	}
 
 	// Set a TTL which will not expire before we check it
 	check.TTL = time.Minute
-	err = a.persistCheckState(check, api.HealthPassing, "yup")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	a.PersistentState.WriteCheckState(local.PersistedCheckState{
+		CheckID: check.CheckID,
+		Status:  api.HealthPassing,
+		Output:  "yup",
+		Expires: time.Now().Add(check.TTL).Unix(),
+	})
 
 	// Try to load
 	if err := a.loadCheckState(health); err != nil {
@@ -3125,38 +2964,6 @@ func TestAgent_loadCheckState(t *testing.T) {
 	}
 	if health.Output != "yup" {
 		t.Fatalf("bad: %#v", health)
-	}
-}
-
-func TestAgent_purgeCheckState(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-
-	// No error if the state does not exist
-	if err := a.purgeCheckState("check1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Persist some state to the data dir
-	check := &checks.CheckTTL{
-		CheckID: "check1",
-		TTL:     time.Minute,
-	}
-	err := a.persistCheckState(check, api.HealthPassing, "yup")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Purge the check state
-	if err := a.purgeCheckState("check1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Removed the file
-	file := filepath.Join(a.Config.DataDir, checkStateDir, stringHash("check1"))
-	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("should have removed file")
 	}
 }
 

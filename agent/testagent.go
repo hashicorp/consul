@@ -21,11 +21,13 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -86,6 +88,9 @@ type TestAgent struct {
 	// srv is a reference to the first started HTTP endpoint.
 	// It is valid after Start().
 	srv *HTTPServer
+
+	// PersistentState allows testing the emulated state
+	PersistentState *TestPersistentState
 
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
@@ -159,6 +164,10 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
+		if a.PersistentState == nil {
+			a.PersistentState = newTestPersistentState()
+		}
+		agent.PersistentState = a.PersistentState
 
 		// we need the err var in the next exit condition
 		if err := agent.Start(); err == nil {
@@ -232,17 +241,13 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 // Shutdown stops the agent and removes the data directory if it is
 // managed by the test agent.
 func (a *TestAgent) Shutdown() error {
-	/* Removed this because it was breaking persistence tests where we would
-	persist a service and load it through a new agent with the same data-dir.
-	Not sure if we still need this for other things, everywhere we manually make
-	a data dir we already do 'defer os.RemoveAll()'
+	// shutdown agent before endpoints
 	defer func() {
 		if a.DataDir != "" {
 			os.RemoveAll(a.DataDir)
 		}
-	}()*/
+	}()
 
-	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
 	return a.Agent.ShutdownAgent()
 }
@@ -414,4 +419,140 @@ func TestACLConfigNew() string {
 			}
 		}
 	`
+}
+
+type TestPersistentState struct {
+	ServiceWritten    chan local.PersistedService
+	CheckWritten      chan local.PersistedCheck
+	ProxyWritten      chan local.PersistedProxy
+	CheckStateWritten chan local.PersistedCheckState
+	ServiceRemoved    chan string
+	CheckRemoved      chan types.CheckID
+	ProxyRemoved      chan string
+	CheckStateRemoved chan types.CheckID
+
+	store map[string]interface{}
+}
+
+func newTestPersistentState() *TestPersistentState {
+	return &TestPersistentState{
+		ServiceWritten:    make(chan local.PersistedService, 1),
+		CheckWritten:      make(chan local.PersistedCheck, 1),
+		ProxyWritten:      make(chan local.PersistedProxy, 1),
+		CheckStateWritten: make(chan local.PersistedCheckState, 1),
+		ServiceRemoved:    make(chan string, 1),
+		CheckRemoved:      make(chan types.CheckID, 1),
+		ProxyRemoved:      make(chan string, 1),
+		CheckStateRemoved: make(chan types.CheckID, 1),
+		store:             make(map[string]interface{}),
+	}
+}
+
+func (s *TestPersistentState) WriteService(def local.PersistedService) {
+	s.store[fmt.Sprintf("service_%s", def.Service.ID)] = def
+	select {
+	case s.ServiceWritten <- def:
+	default:
+	}
+}
+
+func (s *TestPersistentState) RemoveService(id string) {
+	delete(s.store, fmt.Sprintf("service_%s", id))
+	select {
+	case s.ServiceRemoved <- id:
+	default:
+	}
+}
+
+func (s *TestPersistentState) WriteCheck(def local.PersistedCheck) {
+	s.store[fmt.Sprintf("check_%s", def.Check.CheckID)] = def
+	select {
+	case s.CheckWritten <- def:
+	default:
+	}
+}
+
+func (s *TestPersistentState) RemoveCheck(id types.CheckID) {
+	delete(s.store, fmt.Sprintf("check_%s", id))
+	select {
+	case s.CheckRemoved <- id:
+	default:
+	}
+}
+
+func (s *TestPersistentState) WriteCheckState(def local.PersistedCheckState) {
+	s.store[fmt.Sprintf("checkstate_%s", def.CheckID)] = def
+	select {
+	case s.CheckStateWritten <- def:
+	default:
+	}
+}
+
+func (s *TestPersistentState) RemoveCheckState(id types.CheckID) {
+	delete(s.store, fmt.Sprintf("checkstate_%s", id))
+	select {
+	case s.CheckStateRemoved <- id:
+	default:
+	}
+}
+
+func (s *TestPersistentState) WriteProxy(def local.PersistedProxy) {
+	s.store[fmt.Sprintf("proxy_%s", def.Proxy.ProxyService.ID)] = def
+	select {
+	case s.ProxyWritten <- def:
+	default:
+	}
+}
+
+func (s *TestPersistentState) RemoveProxy(id string) {
+	delete(s.store, fmt.Sprintf("proxy_%s", id))
+	select {
+	case s.ProxyRemoved <- id:
+	default:
+	}
+}
+
+func (s *TestPersistentState) LoadCheckState(id types.CheckID) (*local.PersistedCheckState, error) {
+	v, ok := s.store[fmt.Sprintf("checkstate_%s", id)].(local.PersistedCheckState)
+	if ok {
+		return &v, nil
+	}
+	return nil, nil
+}
+
+func (s *TestPersistentState) LoadServices() ([]local.PersistedService, error) {
+	res := []local.PersistedService{}
+	for _, v := range s.store {
+		s, ok := v.(local.PersistedService)
+		if ok {
+			res = append(res, s)
+		}
+	}
+	return res, nil
+}
+
+func (s *TestPersistentState) LoadChecks() ([]local.PersistedCheck, error) {
+	res := []local.PersistedCheck{}
+	for _, v := range s.store {
+		s, ok := v.(local.PersistedCheck)
+		if ok {
+			res = append(res, s)
+		}
+	}
+	return res, nil
+
+}
+
+func (s *TestPersistentState) LoadProxies() ([]local.PersistedProxy, error) {
+	res := []local.PersistedProxy{}
+	for _, v := range s.store {
+		s, ok := v.(local.PersistedProxy)
+		if ok {
+			res = append(res, s)
+		}
+	}
+	return res, nil
+}
+
+func (s *TestPersistentState) WaitSync() {
 }

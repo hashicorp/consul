@@ -39,7 +39,6 @@ import (
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -53,16 +52,6 @@ import (
 )
 
 const (
-	// Path to save agent service definitions
-	servicesDir = "services"
-
-	// Path to save agent proxy definitions
-	proxyDir = "proxies"
-
-	// Path to save local agent checks
-	checksDir     = "checks"
-	checkStateDir = "checks/state"
-
 	// Name of the file tokens will be persisted within
 	tokensPath = "acl-tokens.json"
 
@@ -114,6 +103,21 @@ type notifier interface {
 	Notify(string) error
 }
 
+type persistentState interface {
+	WriteService(def local.PersistedService)
+	RemoveService(id string)
+	WriteCheck(def local.PersistedCheck)
+	RemoveCheck(id types.CheckID)
+	WriteCheckState(def local.PersistedCheckState)
+	RemoveCheckState(id types.CheckID)
+	WriteProxy(def local.PersistedProxy)
+	RemoveProxy(id string)
+	LoadCheckState(id types.CheckID) (*local.PersistedCheckState, error)
+	LoadServices() ([]local.PersistedService, error)
+	LoadChecks() ([]local.PersistedCheck, error)
+	LoadProxies() ([]local.PersistedProxy, error)
+}
+
 // The agent is the long running process that is run on every machine.
 // It exposes an RPC interface that is used by the CLI to control the
 // agent. The agent runs the query interfaces like HTTP, DNS, and RPC.
@@ -146,6 +150,9 @@ type Agent struct {
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	State *local.State
+
+	// PersistentState stores the agent state on disk
+	PersistentState persistentState
 
 	// sync manages the synchronization of the local
 	// and the remote state.
@@ -300,6 +307,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
 		logger:           logger,
+		PersistentState:  local.NewPersistentState(logger, c.DataDir),
 	}
 	a.serviceManager = NewServiceManager(&a)
 
@@ -1982,104 +1990,6 @@ func (a *Agent) reapServices() {
 
 }
 
-// persistedService is used to wrap a service definition and bundle it
-// with an ACL token so we can restore both at a later agent start.
-type persistedService struct {
-	Token   string
-	Service *structs.NodeService
-}
-
-// persistService saves a service definition to a JSON file in the data dir
-func (a *Agent) persistService(service *structs.NodeService) error {
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
-
-	wrapped := persistedService{
-		Token:   a.State.ServiceToken(service.ID),
-		Service: service,
-	}
-	encoded, err := json.Marshal(wrapped)
-	if err != nil {
-		return err
-	}
-
-	return file.WriteAtomic(svcPath, encoded)
-}
-
-// purgeService removes a persisted service definition file from the data dir
-func (a *Agent) purgeService(serviceID string) error {
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(serviceID))
-	if _, err := os.Stat(svcPath); err == nil {
-		return os.Remove(svcPath)
-	}
-	return nil
-}
-
-// persistedProxy is used to wrap a proxy definition and bundle it with an Proxy
-// token so we can continue to authenticate the running proxy after a restart.
-type persistedProxy struct {
-	ProxyToken string
-	Proxy      *structs.ConnectManagedProxy
-
-	// Set to true when the proxy information originated from the agents configuration
-	// as opposed to API registration.
-	FromFile bool
-}
-
-// persistProxy saves a proxy definition to a JSON file in the data dir
-func (a *Agent) persistProxy(proxy *local.ManagedProxy, FromFile bool) error {
-	proxyPath := filepath.Join(a.config.DataDir, proxyDir,
-		stringHash(proxy.Proxy.ProxyService.ID))
-
-	wrapped := persistedProxy{
-		ProxyToken: proxy.ProxyToken,
-		Proxy:      proxy.Proxy,
-		FromFile:   FromFile,
-	}
-	encoded, err := json.Marshal(wrapped)
-	if err != nil {
-		return err
-	}
-
-	return file.WriteAtomic(proxyPath, encoded)
-}
-
-// purgeProxy removes a persisted proxy definition file from the data dir
-func (a *Agent) purgeProxy(proxyID string) error {
-	proxyPath := filepath.Join(a.config.DataDir, proxyDir, stringHash(proxyID))
-	if _, err := os.Stat(proxyPath); err == nil {
-		return os.Remove(proxyPath)
-	}
-	return nil
-}
-
-// persistCheck saves a check definition to the local agent's state directory
-func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckType) error {
-	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(check.CheckID))
-
-	// Create the persisted check
-	wrapped := persistedCheck{
-		Check:   check,
-		ChkType: chkType,
-		Token:   a.State.CheckToken(check.CheckID),
-	}
-
-	encoded, err := json.Marshal(wrapped)
-	if err != nil {
-		return err
-	}
-
-	return file.WriteAtomic(checkPath, encoded)
-}
-
-// purgeCheck removes a persisted check definition file from the data dir
-func (a *Agent) purgeCheck(checkID types.CheckID) error {
-	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(checkID))
-	if _, err := os.Stat(checkPath); err == nil {
-		return os.Remove(checkPath)
-	}
-	return nil
-}
-
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
@@ -2175,20 +2085,20 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 		}
 
 		if persist && a.config.DataDir != "" {
-			if err := a.persistCheck(checks[i], chkTypes[i]); err != nil {
-				a.cleanupRegistration(cleanupServices, cleanupChecks)
-				return err
-
-			}
+			a.PersistentState.WriteCheck(local.PersistedCheck{
+				Check:   checks[i],
+				ChkType: chkTypes[i],
+				Token:   a.State.CheckToken(checks[i].CheckID),
+			})
 		}
 	}
 
 	// Persist the service to a file
 	if persist && a.config.DataDir != "" {
-		if err := a.persistService(service); err != nil {
-			a.cleanupRegistration(cleanupServices, cleanupChecks)
-			return err
-		}
+		a.PersistentState.WriteService(local.PersistedService{
+			Service: service,
+			Token:   a.State.ServiceToken(service.ID),
+		})
 	}
 
 	return nil
@@ -2249,9 +2159,7 @@ func (a *Agent) cleanupRegistration(serviceIDs []string, checksIDs []types.Check
 		if err := a.State.RemoveService(s); err != nil {
 			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to remove service %s: %s", s, err)
 		}
-		if err := a.purgeService(s); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge service %s file: %s", s, err)
-		}
+		a.PersistentState.RemoveService(s)
 	}
 
 	for _, c := range checksIDs {
@@ -2259,9 +2167,7 @@ func (a *Agent) cleanupRegistration(serviceIDs []string, checksIDs []types.Check
 		if err := a.State.RemoveCheck(c); err != nil {
 			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to remove check %s: %s", c, err)
 		}
-		if err := a.purgeCheck(c); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge check %s file: %s", c, err)
-		}
+		a.PersistentState.RemoveCheck(c)
 	}
 }
 
@@ -2314,9 +2220,7 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 
 	// Remove the service from the data dir
 	if persist {
-		if err := a.purgeService(serviceID); err != nil {
-			return err
-		}
+		a.PersistentState.RemoveService(serviceID)
 	}
 
 	// Deregister any associated health checks
@@ -2389,7 +2293,11 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 
 	// Persist the check
 	if persist && a.config.DataDir != "" {
-		return a.persistCheck(check, chkType)
+		a.PersistentState.WriteCheck(local.PersistedCheck{
+			Check:   check,
+			ChkType: chkType,
+			Token:   a.State.CheckToken(check.CheckID),
+		})
 	}
 
 	return nil
@@ -2661,12 +2569,8 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 	a.State.RemoveCheck(checkID)
 
 	if persist {
-		if err := a.purgeCheck(checkID); err != nil {
-			return err
-		}
-		if err := a.purgeCheckState(checkID); err != nil {
-			return err
-		}
+		a.PersistentState.RemoveCheck(checkID)
+		a.PersistentState.RemoveCheckState(checkID)
 	}
 	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
@@ -2689,7 +2593,7 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 // definitions from disk; new proxies must leave it blank to get a new token
 // assigned. We need to restore from disk to enable to continue authenticating
 // running proxies that already had that credential injected.
-func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, FromFile bool,
+func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, fromFile bool,
 	restoredProxyToken string, source configSource) error {
 	// Lookup the target service token in state if there is one.
 	token := a.State.ServiceToken(proxy.TargetServiceID)
@@ -2744,7 +2648,11 @@ func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, From
 
 	// Persist the proxy
 	if persist && a.config.DataDir != "" {
-		return a.persistProxy(proxyState, FromFile)
+		a.PersistentState.WriteProxy(local.PersistedProxy{
+			ProxyToken: proxyState.ProxyToken,
+			Proxy:      proxyState.Proxy,
+			FromFile:   fromFile,
+		})
 	}
 	return nil
 }
@@ -2935,7 +2843,7 @@ func (a *Agent) removeProxyLocked(proxyID string, persist bool) error {
 	}
 
 	if persist && a.config.DataDir != "" {
-		return a.purgeProxy(proxyID)
+		a.PersistentState.RemoveProxy(proxyID)
 	}
 
 	return nil
@@ -3071,93 +2979,37 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 
 	// Persist the state so the TTL check can come up in a good state after
 	// an agent restart, especially with long TTL values.
-	if err := a.persistCheckState(check, status, outputTruncated); err != nil {
-		return fmt.Errorf("failed persisting state for check %q: %s", checkID, err)
-	}
-
-	return nil
-}
-
-// persistCheckState is used to record the check status into the data dir.
-// This allows the state to be restored on a later agent start. Currently
-// only useful for TTL based checks.
-func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string) error {
-	// Create the persisted state
-	state := persistedCheckState{
-		CheckID: check.CheckID,
+	a.PersistentState.WriteCheckState(local.PersistedCheckState{
+		CheckID: checkID,
+		Output:  outputTruncated,
 		Status:  status,
-		Output:  output,
 		Expires: time.Now().Add(check.TTL).Unix(),
-	}
-
-	// Encode the state
-	buf, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-
-	// Create the state dir if it doesn't exist
-	dir := filepath.Join(a.config.DataDir, checkStateDir)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("failed creating check state dir %q: %s", dir, err)
-	}
-
-	// Write the state to the file
-	file := filepath.Join(dir, checkIDHash(check.CheckID))
-
-	// Create temp file in same dir, to make more likely atomic
-	tempFile := file + ".tmp"
-
-	// persistCheckState is called frequently, so don't use writeFileAtomic to avoid calling fsync here
-	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
-		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
-	}
-	if err := os.Rename(tempFile, file); err != nil {
-		return fmt.Errorf("failed to rename temp file from %q to %q: %s", tempFile, file, err)
-	}
+	})
 
 	return nil
 }
 
 // loadCheckState is used to restore the persisted state of a check.
 func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
-	// Try to read the persisted state for this check
-	file := filepath.Join(a.config.DataDir, checkStateDir, checkIDHash(check.CheckID))
-	buf, err := ioutil.ReadFile(file)
+	state, err := a.PersistentState.LoadCheckState(check.CheckID)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("failed reading file %q: %s", file, err)
+		return err
 	}
-
-	// Decode the state data
-	var p persistedCheckState
-	if err := json.Unmarshal(buf, &p); err != nil {
-		a.logger.Printf("[ERR] agent: failed decoding check state: %s", err)
-		return a.purgeCheckState(check.CheckID)
+	if state == nil {
+		return nil
 	}
 
 	// Check if the state has expired
-	if time.Now().Unix() >= p.Expires {
+	if time.Now().Unix() >= state.Expires {
 		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", check.CheckID)
-		return a.purgeCheckState(check.CheckID)
+		a.PersistentState.RemoveCheckState(check.CheckID)
+		return nil
 	}
 
 	// Restore the fields from the state
-	check.Output = p.Output
-	check.Status = p.Status
+	check.Output = state.Output
+	check.Status = state.Status
 	return nil
-}
-
-// purgeCheckState is used to purge the state of a check from the data dir
-func (a *Agent) purgeCheckState(checkID types.CheckID) error {
-	file := filepath.Join(a.config.DataDir, checkStateDir, checkIDHash(checkID))
-	err := os.Remove(file)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	return err
 }
 
 func (a *Agent) GossipEncrypted() bool {
@@ -3268,63 +3120,20 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		}
 	}
 
-	// Load any persisted services
-	svcDir := filepath.Join(a.config.DataDir, servicesDir)
-	files, err := ioutil.ReadDir(svcDir)
+	persistedServices, err := a.PersistentState.LoadServices()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("Failed reading services dir %q: %s", svcDir, err)
+		return err
 	}
-	for _, fi := range files {
-		// Skip all dirs
-		if fi.IsDir() {
-			continue
-		}
 
-		// Skip all partially written temporary files
-		if strings.HasSuffix(fi.Name(), "tmp") {
-			a.logger.Printf("[WARN] agent: Ignoring temporary service file %v", fi.Name())
-			continue
-		}
-
-		// Open the file for reading
-		file := filepath.Join(svcDir, fi.Name())
-		fh, err := os.Open(file)
-		if err != nil {
-			return fmt.Errorf("failed opening service file %q: %s", file, err)
-		}
-
-		// Read the contents into a buffer
-		buf, err := ioutil.ReadAll(fh)
-		fh.Close()
-		if err != nil {
-			return fmt.Errorf("failed reading service file %q: %s", file, err)
-		}
-
-		// Try decoding the service definition
-		var p persistedService
-		if err := json.Unmarshal(buf, &p); err != nil {
-			// Backwards-compatibility for pre-0.5.1 persisted services
-			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				a.logger.Printf("[ERR] agent: Failed decoding service file %q: %s", file, err)
-				continue
-			}
-		}
+	for _, p := range persistedServices {
 		serviceID := p.Service.ID
-
 		if a.State.Service(serviceID) != nil {
 			// Purge previously persisted service. This allows config to be
 			// preferred over services persisted from the API.
-			a.logger.Printf("[DEBUG] agent: service %q exists, not restoring from %q",
-				serviceID, file)
-			if err := a.purgeService(serviceID); err != nil {
-				return fmt.Errorf("failed purging service %q: %s", serviceID, err)
-			}
+			a.logger.Printf("[DEBUG] agent: service %q exists, not restoring", serviceID)
+			a.PersistentState.RemoveService(serviceID)
 		} else {
-			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
-				serviceID, file)
+			a.logger.Printf("[DEBUG] agent: restored service definition %q", serviceID)
 			if err := a.addServiceLocked(p.Service, nil, false, p.Token, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
@@ -3356,51 +3165,19 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 		}
 	}
 
-	// Load any persisted checks
-	checkDir := filepath.Join(a.config.DataDir, checksDir)
-	files, err := ioutil.ReadDir(checkDir)
+	persistedChecks, err := a.PersistentState.LoadChecks()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("Failed reading checks dir %q: %s", checkDir, err)
+		return err
 	}
-	for _, fi := range files {
-		// Ignore dirs - we only care about the check definition files
-		if fi.IsDir() {
-			continue
-		}
 
-		// Open the file for reading
-		file := filepath.Join(checkDir, fi.Name())
-		fh, err := os.Open(file)
-		if err != nil {
-			return fmt.Errorf("Failed opening check file %q: %s", file, err)
-		}
-
-		// Read the contents into a buffer
-		buf, err := ioutil.ReadAll(fh)
-		fh.Close()
-		if err != nil {
-			return fmt.Errorf("failed reading check file %q: %s", file, err)
-		}
-
-		// Decode the check
-		var p persistedCheck
-		if err := json.Unmarshal(buf, &p); err != nil {
-			a.logger.Printf("[ERR] agent: Failed decoding check file %q: %s", file, err)
-			continue
-		}
+	for _, p := range persistedChecks {
 		checkID := p.Check.CheckID
 
 		if a.State.Check(checkID) != nil {
 			// Purge previously persisted check. This allows config to be
 			// preferred over persisted checks from the API.
-			a.logger.Printf("[DEBUG] agent: check %q exists, not restoring from %q",
-				checkID, file)
-			if err := a.purgeCheck(checkID); err != nil {
-				return fmt.Errorf("Failed purging check %q: %s", checkID, err)
-			}
+			a.logger.Printf("[DEBUG] agent: check %q exists, not restoring", checkID)
+			a.PersistentState.RemoveCheck(checkID)
 		} else {
 			// Default check to critical to avoid placing potentially unhealthy
 			// services into the active pool
@@ -3410,12 +3187,9 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 				// Purge the check if it is unable to be restored.
 				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
 					checkID, err)
-				if err := a.purgeCheck(checkID); err != nil {
-					return fmt.Errorf("Failed purging check %q: %s", checkID, err)
-				}
+				a.PersistentState.RemoveCheck(checkID)
 			}
-			a.logger.Printf("[DEBUG] agent: restored health check %q from %q",
-				p.Check.CheckID, file)
+			a.logger.Printf("[DEBUG] agent: restored health check %q", p.Check.CheckID)
 		}
 	}
 
@@ -3432,63 +3206,14 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
-// loadPersistedProxies will load connect proxy definitions from their
-// persisted state on disk and return a slice of them
-//
-// This does not add them to the local
-func (a *Agent) loadPersistedProxies() (map[string]persistedProxy, error) {
-	persistedProxies := make(map[string]persistedProxy)
-
-	proxyDir := filepath.Join(a.config.DataDir, proxyDir)
-	files, err := ioutil.ReadDir(proxyDir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("Failed reading proxies dir %q: %s", proxyDir, err)
-		}
-	}
-
-	for _, fi := range files {
-		// Skip all dirs
-		if fi.IsDir() {
-			continue
-		}
-
-		// Skip all partially written temporary files
-		if strings.HasSuffix(fi.Name(), "tmp") {
-			return nil, fmt.Errorf("Ignoring temporary proxy file %v", fi.Name())
-		}
-
-		// Open the file for reading
-		file := filepath.Join(proxyDir, fi.Name())
-		fh, err := os.Open(file)
-		if err != nil {
-			return nil, fmt.Errorf("failed opening proxy file %q: %s", file, err)
-		}
-
-		// Read the contents into a buffer
-		buf, err := ioutil.ReadAll(fh)
-		fh.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed reading proxy file %q: %s", file, err)
-		}
-
-		// Try decoding the proxy definition
-		var p persistedProxy
-		if err := json.Unmarshal(buf, &p); err != nil {
-			return nil, fmt.Errorf("Failed decoding proxy file %q: %s", file, err)
-		}
-		svcID := p.Proxy.TargetServiceID
-
-		persistedProxies[svcID] = p
-	}
-
-	return persistedProxies, nil
-}
-
 // loadProxies will load connect proxy definitions from configuration and
 // persisted definitions on disk, and load them into the local agent.
 func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
-	persistedProxies, persistenceErr := a.loadPersistedProxies()
+	persistedProxies, persistenceErr := a.PersistentState.LoadProxies()
+	persistedProxiesMap := map[string]local.PersistedProxy{}
+	for _, p := range persistedProxies {
+		persistedProxiesMap[p.Proxy.TargetServiceID] = p
+	}
 
 	for _, svc := range conf.Services {
 		if svc.Connect != nil {
@@ -3500,7 +3225,7 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 				continue
 			}
 			restoredToken := ""
-			if persisted, ok := persistedProxies[proxy.TargetServiceID]; ok {
+			if persisted, ok := persistedProxiesMap[proxy.TargetServiceID]; ok {
 				restoredToken = persisted.ProxyToken
 			}
 
@@ -3515,9 +3240,7 @@ func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
 		if persisted.FromFile && a.State.Proxy(proxyID) == nil {
 			// Purge proxies that were configured previously but are no longer in the config
 			a.logger.Printf("[DEBUG] agent: purging stale persisted proxy %q", proxyID)
-			if err := a.purgeProxy(proxyID); err != nil {
-				return fmt.Errorf("failed purging proxy %q: %v", proxyID, err)
-			}
+			a.PersistentState.RemoveProxy(proxyID)
 		} else if !persisted.FromFile {
 			if a.State.Proxy(proxyID) == nil {
 				a.logger.Printf("[DEBUG] agent: restored proxy definition %q", proxyID)

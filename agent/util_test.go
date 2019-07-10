@@ -14,16 +14,6 @@ import (
 	"github.com/pascaldekloe/goe/verify"
 )
 
-func TestStringHash(t *testing.T) {
-	t.Parallel()
-	in := "hello world"
-	expected := "5eb63bbbe01eeed093cb22bb8f5acdc3"
-
-	if out := stringHash(in); out != expected {
-		t.Fatalf("bad: %s", out)
-	}
-}
-
 func TestSetFilePermissions(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" {
