@@ -880,6 +880,8 @@ func (s *Server) Leave() error {
 		}
 	}
 
+	s.raft.Leave()
+
 	// Leave the WAN pool
 	if s.serfWAN != nil {
 		if err := s.serfWAN.Leave(); err != nil {
