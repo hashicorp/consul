@@ -4339,20 +4339,14 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		require.NoError(t, acl.Login(&req, &resp))
+		require.NoError(t, acl2.Login(&req, &resp))
 		remoteToken = &resp
 
-		var resp2 *structs.ACLTokenResponse
-		var err error
-
-		// Flaky test! Need to retry/wait until !acl.srv.UseLegacyACLs() before continuing.
-		retry.Run(t, func(r *retry.R) {
-			// present in dc2
-			resp2, err = retrieveTestToken(codec2, "root", "dc2", remoteToken.AccessorID)
-			if err != nil {
-				r.Fatalf("expected no error, got %v", err)
-			}
-		})
+		// present in dc2
+		resp2, err := retrieveTestToken(codec2, "root", "dc2", remoteToken.AccessorID)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 		require.NotNil(t, resp2.Token)
 		require.Len(t, resp2.Token.ServiceIdentities, 1)
 		require.Equal(t, "web2", resp2.Token.ServiceIdentities[0].ServiceName)
