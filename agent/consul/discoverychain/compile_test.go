@@ -23,10 +23,13 @@ func TestCompile_NoEntries_NoInferDefaults(t *testing.T) {
 }
 
 type compileTestCase struct {
-	entries        *structs.DiscoveryChainConfigEntries
-	expect         *structs.CompiledDiscoveryChain // the GroupResolverNodes map should have nil values
-	expectErr      string
-	expectGraphErr bool
+	entries *structs.DiscoveryChainConfigEntries
+	// expect: the GroupResolverNodes map should have nil values
+	expect *structs.CompiledDiscoveryChain
+	// expectIsDefault tests behavior of CompiledDiscoveryChain.IsDefault()
+	expectIsDefault bool
+	expectErr       string
+	expectGraphErr  bool
 }
 
 func TestCompile(t *testing.T) {
@@ -40,7 +43,7 @@ func TestCompile(t *testing.T) {
 		"router with defaults and noop split and resolver": testcase_RouterWithDefaults_WithNoopSplit_WithResolver(),
 		"route bypasses splitter":                          testcase_RouteBypassesSplit(),
 		"noop split":                                       testcase_NoopSplit_DefaultResolver(),
-		"noop split with protocol from proxy defaults":     testcase_NoopSplit_DefaultResolver_ProcotolFromProxyDefaults(),
+		"noop split with protocol from proxy defaults":     testcase_NoopSplit_DefaultResolver_ProtocolFromProxyDefaults(),
 		"noop split with resolver":                         testcase_NoopSplit_WithResolver(),
 		"subset split":                                     testcase_SubsetSplit(),
 		"service split":                                    testcase_ServiceSplit(),
@@ -55,6 +58,7 @@ func TestCompile(t *testing.T) {
 		"resolver with default subset":                     testcase_Resolve_WithDefaultSubset(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
+		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
 
 		// TODO(rb): handle this case better: "circular split":                                   testcase_CircularSplit(),
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
@@ -125,6 +129,12 @@ func TestCompile(t *testing.T) {
 				}
 
 				require.Equal(t, tc.expect, res)
+
+				if tc.expectIsDefault {
+					require.True(t, res.IsDefault())
+				} else {
+					require.False(t, res.IsDefault())
+				}
 			}
 		})
 	}
@@ -298,7 +308,7 @@ func testcase_RouterWithDefaults_WithNoopSplit_DefaultResolver() compileTestCase
 	return compileTestCase{entries: entries, expect: expect}
 }
 
-func testcase_NoopSplit_DefaultResolver_ProcotolFromProxyDefaults() compileTestCase {
+func testcase_NoopSplit_DefaultResolver_ProtocolFromProxyDefaults() compileTestCase {
 	entries := newEntries()
 	setGlobalProxyProtocol(entries, "http")
 
@@ -1230,7 +1240,7 @@ func testcase_DefaultResolver() compileTestCase {
 			newTarget("main", "", "default", "dc1"): nil,
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
 }
 
 func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
@@ -1273,7 +1283,47 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 			newTarget("main", "", "default", "dc1"): nil,
 		},
 	}
-	return compileTestCase{entries: entries, expect: expect}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
+}
+
+func testcase_RedirectToDefaultResolverIsNotDefaultChain() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+			},
+		},
+	)
+
+	resolver := newDefaultServiceResolver("other")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "tcp",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+			Name: "other",
+			GroupResolver: &structs.DiscoveryGroupResolver{
+				Definition:     resolver,
+				Default:        true,
+				ConnectTimeout: 5 * time.Second,
+				Target:         newTarget("other", "", "default", "dc1"),
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"other": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTarget("other", "", "default", "dc1"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTarget("other", "", "default", "dc1"): nil,
+		},
+	}
+
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: false /*being explicit here because this is the whole point of this test*/}
 }
 
 func testcase_Resolve_WithDefaultSubset() compileTestCase {
