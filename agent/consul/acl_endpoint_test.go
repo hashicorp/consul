@@ -4344,9 +4344,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 
 		// present in dc2
 		resp2, err := retrieveTestToken(codec2, "root", "dc2", remoteToken.AccessorID)
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		require.NoError(t, err)
 		require.NotNil(t, resp2.Token)
 		require.Len(t, resp2.Token.ServiceIdentities, 1)
 		require.Equal(t, "web2", resp2.Token.ServiceIdentities[0].ServiceName)
