@@ -139,7 +139,6 @@ function health_upstream_endpoint_count_matches {
   local EXPECT_COUNT=$3
 
   GOT_COUNT=$(get_healthy_upstream_endpoint_count $HOSTPORT $CLUSTER_NAME)
-  echo "# health_upstream_endpoint_count_matches : GOT '${GOT_COUNT}' for $HOSTPORT $CLUSTER_NAME" >&3
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
