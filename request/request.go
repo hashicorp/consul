@@ -226,22 +226,17 @@ func (r *Request) SizeAndDo(m *dns.Msg) bool {
 
 // Scrub scrubs the reply message so that it will fit the client's buffer. It will first
 // check if the reply fits without compression and then *with* compression.
-// Scrub will then use binary search to find a save cut off point in the additional section.
-// If even *without* the additional section the reply still doesn't fit we
-// repeat this process for the answer section. If we scrub the answer section
-// we set the TC bit on the reply; indicating the client should retry over TCP.
 // Note, the TC bit will be set regardless of protocol, even TCP message will
 // get the bit, the client should then retry with pigeons.
 func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
-	size := r.Size()
+	reply.Truncate(r.Size())
 
-	reply.Compress = false
-	rl := reply.Len()
-	if size >= rl {
-		if r.Proto() != "udp" {
-			return reply
-		}
+	if reply.Compress {
+		return reply
+	}
 
+	if r.Proto() == "udp" {
+		rl := reply.Len()
 		// Last ditch attempt to avoid fragmentation, if the size is bigger than the v4/v6 UDP fragmentation
 		// limit and sent via UDP compress it (in the hope we go under that limit). Limits taken from NSD:
 		//
@@ -254,91 +249,8 @@ func (r *Request) Scrub(reply *dns.Msg) *dns.Msg {
 		if rl > 1220 && r.Family() == 2 {
 			reply.Compress = true
 		}
-
-		return reply
 	}
 
-	reply.Compress = true
-	rl = reply.Len()
-	if size >= rl {
-		return reply
-	}
-
-	// Account for the OPT record that gets added in SizeAndDo(), subtract that length.
-	re := len(reply.Extra)
-	if r.Req.IsEdns0() != nil {
-		size -= optLen
-		// re can never be 0 because we have an OPT RR.
-		re--
-	}
-
-	l, m := 0, 0
-	origExtra := reply.Extra
-	for l <= re {
-		m = (l + re) / 2
-		reply.Extra = origExtra[:m]
-		rl = reply.Len()
-		if rl < size {
-			l = m + 1
-			continue
-		}
-		if rl > size {
-			re = m - 1
-			continue
-		}
-		if rl == size {
-			break
-		}
-	}
-
-	// The binary search only breaks on an exact match, which will be
-	// pretty rare. Normally, the loop will exit when l > re, meaning that
-	// in the previous iteration either:
-	// rl < size: no need to do anything.
-	// rl > size: the final size is too large, and if m > 0, the preceding
-	// iteration the size was too small. Select that preceding size.
-	if rl > size && m > 0 {
-		reply.Extra = origExtra[:m-1]
-		rl = reply.Len()
-	}
-
-	if rl <= size {
-		return reply
-	}
-
-	ra := len(reply.Answer)
-	l, m = 0, 0
-	origAnswer := reply.Answer
-	for l <= ra {
-		m = (l + ra) / 2
-		reply.Answer = origAnswer[:m]
-		rl = reply.Len()
-		if rl < size {
-			l = m + 1
-			continue
-		}
-		if rl > size {
-			ra = m - 1
-			continue
-		}
-		if rl == size {
-			break
-		}
-	}
-
-	// The binary search only breaks on an exact match, which will be
-	// pretty rare. Normally, the loop will exit when l > ra, meaning that
-	// in the previous iteration either:
-	// rl < size: no need to do anything.
-	// rl > size: the final size is too large, and if m > 0, the preceding
-	// iteration the size was too small. Select that preceding size.
-	if rl > size && m > 0 {
-		reply.Answer = origAnswer[:m-1]
-		// No need to recalc length, as we don't use it. We set truncated anyway. Doing
-		// this extra m-1 step does make it fit in the client's buffer however.
-	}
-
-	reply.Truncated = true
 	return reply
 }
 
@@ -460,5 +372,3 @@ func (r *Request) Match(reply *dns.Msg) bool {
 
 	return true
 }
-
-const optLen = 12 // OPT record length.
