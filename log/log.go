@@ -2,43 +2,57 @@ package log
 
 import (
 	"errors"
+	"io"
 	"log"
+	"os"
 )
-
-// Funcf function definition.
-type Funcf func(string, ...interface{})
-
-// Funcln function definition.
-type Funcln func(...interface{})
 
 var (
-	printf = func(format string, v ...interface{}) {
-		log.Printf(format, v...)
-	}
-	println = func(v ...interface{}) {
-		log.Println(v...)
-	}
+	logger Logger = &stdLogger{}
 )
 
-// Setup allows for setting up custom loggers.
-func Setup(p Funcf, pln Funcln) error {
-	if p == nil {
-		return errors.New("printf log function is nil")
+// Logger interface for providing a custom logger.
+type Logger interface {
+	Printf(format string, v ...interface{})
+	Println(v ...interface{})
+	Writer() io.Writer
+}
+
+// Setup allows for setting up a custom logger.
+func Setup(l Logger) error {
+	if l == nil {
+		return errors.New("logger is nil")
 	}
-	if pln == nil {
-		return errors.New("println log function is nil")
-	}
-	printf = p
-	println = pln
+	logger = l
 	return nil
 }
 
 // Printf provides log print capabilities.
 func Printf(format string, v ...interface{}) {
-	printf(format, v...)
+	logger.Printf(format, v...)
 }
 
 // Println provides log print capabilities.
 func Println(v ...interface{}) {
-	println(v...)
+	logger.Println(v...)
+}
+
+// Writer returns the log writer.
+func Writer() io.Writer {
+	return logger.Writer()
+}
+
+type stdLogger struct {
+}
+
+func (stdLogger) Printf(format string, v ...interface{}) {
+	log.Printf(format, v...)
+}
+
+func (stdLogger) Println(v ...interface{}) {
+	log.Println(v...)
+}
+
+func (stdLogger) Writer() io.Writer {
+	return os.Stdout
 }
