@@ -117,7 +117,39 @@ function snapshot_envoy_admin {
   local ENVOY_NAME=$2
 
   docker_wget "http://${HOSTPORT}/config_dump" -q -O - > "./workdir/envoy/${ENVOY_NAME}-config_dump.json"
-  docker_wget "http://${HOSTPORT}/clusters" -q -O - > "./workdir/envoy/${ENVOY_NAME}-clusters.out"
+  docker_wget "http://${HOSTPORT}/clusters?format=json" -q -O - > "./workdir/envoy/${ENVOY_NAME}-clusters.json"
+}
+
+function get_healthy_upstream_endpoint_count {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run retry_default curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}.default.dc1.internal.\"))
+| .host_statuses[].health_status
+| select(.eds_health_status == \"HEALTHY\")
+| length"
+}
+
+function health_upstream_endpoint_count_matches {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local EXPECT_COUNT=$3
+
+  GOT_COUNT=$(get_healthy_upstream_endpoint_count $HOSTPORT $CLUSTER_NAME)
+  echo "# health_upstream_endpoint_count_matches : GOT '${GOT_COUNT}' for $HOSTPORT $CLUSTER_NAME" >&3
+
+  [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_upstream_has_healthy_endpoints {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local EXPECT_COUNT=$3
+  run retry 30 1 health_upstream_endpoint_count_matches $HOSTPORT $CLUSTER_NAME $EXPECT_COUNT
+  [ "$status" -eq 0 ]
 }
 
 function get_healthy_service_count {
@@ -140,7 +172,7 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
 
-  run retry 30 2 health_service_count_matches $SERVICE_NAME $EXPECT_COUNT
+  run retry 30 1 health_service_count_matches $SERVICE_NAME $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
