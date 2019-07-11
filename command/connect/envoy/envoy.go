@@ -175,13 +175,13 @@ func canBind(addr string) bool {
 		return false
 	}
 
-	if_addrs, err := net.InterfaceAddrs()
+	ifAddrs, err := net.InterfaceAddrs()
 
 	if err != nil {
 		return false
 	}
 
-	for _, addr := range if_addrs {
+	for _, addr := range ifAddrs {
 		if addr.String() == ip.String() {
 			return true
 		}
