@@ -1,8 +1,11 @@
 services {
   name = "s2"
   port = 8181
+
   connect {
     sidecar_service {
+      port = 21001
+
       proxy {
         config {
           # We need to override this because both proxies run in same network

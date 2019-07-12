@@ -74,6 +74,38 @@ services:
      - "disabled"
     network_mode: service:consul
 
+  s2-v1:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s2-v1"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8182"
+     - "-grpc-port"
+     - ":8178"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul
+
+  s2-v2:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s2-v2"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8183"
+     - "-grpc-port"
+     - ":8177"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul
+
   s3:
     depends_on:
       - consul
@@ -86,6 +118,38 @@ services:
      - ":8282"
      - "-grpc-port"
      - ":8279"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul
+
+  s3-v1:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s3-v1"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8283"
+     - "-grpc-port"
+     - ":8278"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul
+
+  s3-v2:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s3-v2"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8284"
+     - "-grpc-port"
+     - ":8277"
      - "-redirect-port"
      - "disabled"
     network_mode: service:consul
@@ -132,6 +196,48 @@ services:
       - *workdir-volume
     network_mode: service:consul
 
+  s2-v1-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s2-v1-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  s2-v2-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s2-v2-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
   s3-sidecar-proxy:
     depends_on:
       - consul
@@ -140,6 +246,48 @@ services:
      - "envoy"
      - "-c"
      - "/workdir/envoy/s3-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  s3-v1-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s3-v1-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  s3-v2-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s3-v2-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -168,6 +316,7 @@ services:
     volumes:
       - *workdir-volume
     network_mode: service:consul
+    pid: host
 
   s1-sidecar-proxy-consul-exec:
     depends_on:
