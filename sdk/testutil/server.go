@@ -345,8 +345,11 @@ func (s *TestServer) Stop() error {
 // but will likely return before a leader is elected.
 func (s *TestServer) waitForAPI() error {
 	var failed bool
-	timer := retry.TwoSeconds()
 
+	// This retry replicates the logic of retry.Run to allow for nested retries.
+	// By returning an error we can wrap TestServer creation with retry.Run
+	// in makeClientWithConfig.
+	timer := retry.TwoSeconds()
 	deadline := time.Now().Add(timer.Timeout)
 	for !time.Now().After(deadline) {
 		time.Sleep(timer.Wait)
