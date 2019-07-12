@@ -61,7 +61,6 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 	if config.Logger == nil {
 		config.Logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
 	limiter := rate.NewLimiter(rate.Limit(config.Rate), config.Burst)
 
 	maxWait := config.MaxRetryWait
@@ -77,8 +76,6 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 	return &Replicator{
 		name:      config.Name,
 		running:   false,
-		cancel:    cancel,
-		ctx:       ctx,
 		limiter:   limiter,
 		waiter:    waiter,
 		replicate: config.ReplicateFn,
@@ -93,6 +90,8 @@ func (r *Replicator) Start() {
 	if r.running {
 		return
 	}
+
+	r.ctx, r.cancel = context.WithCancel(context.Background())
 
 	go r.run()
 

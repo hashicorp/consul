@@ -380,7 +380,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		_, policy, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
 		require.NoError(r, err)
-		require.NotNil(t, policy)
+		require.NotNil(r, policy)
 	})
 
 	// add some local tokens to the secondary DC

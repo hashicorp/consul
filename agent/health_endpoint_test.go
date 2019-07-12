@@ -892,11 +892,12 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		},
 	}
 
-	testrpc.WaitForLeader(t, a.RPC, dc)
-	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+	})
 
 	t.Run("bc_no_query_value", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/health/service/consul?passing", nil)

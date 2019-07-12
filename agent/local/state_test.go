@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,9 +164,9 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-	verify.Values(t, "node id", id, a.Config.NodeID)
-	verify.Values(t, "tagged addrs", addrs, a.Config.TaggedAddresses)
-	verify.Values(t, "node meta", meta, a.Config.NodeMeta)
+	assert.Equal(t, a.Config.NodeID, id)
+	assert.Equal(t, a.Config.TaggedAddresses, addrs)
+	assert.Equal(t, a.Config.NodeMeta, meta)
 
 	// We should have 6 services (consul included)
 	if len(services.NodeServices.Services) != 6 {
@@ -593,46 +592,44 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	}
 	var services structs.IndexedNodeServices
 
-	if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// All the services should match
-	for id, serv := range services.NodeServices.Services {
-		serv.CreateIndex, serv.ModifyIndex = 0, 0
-		switch id {
-		case "svc_id1":
-			// tags should be modified but not the port
-			got := serv
-			want := &structs.NodeService{
-				ID:                "svc_id1",
-				Service:           "svc1",
-				Tags:              []string{"tag1_mod"},
-				Port:              6100,
-				EnableTagOverride: true,
-				Weights: &structs.Weights{
-					Passing: 1,
-					Warning: 1,
-				},
-			}
-			if !verify.Values(t, "", got, want) {
-				t.FailNow()
-			}
-		case "svc_id2":
-			got, want := serv, srv2
-			if !verify.Values(t, "", got, want) {
-				t.FailNow()
-			}
-		case structs.ConsulServiceID:
-			// ignore
-		default:
-			t.Fatalf("unexpected service: %v", id)
+	retry.Run(t, func(r *retry.R) {
+		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
+			r.Fatalf("err: %v", err)
 		}
-	}
 
-	if err := servicesInSync(a.State, 2); err != nil {
-		t.Fatal(err)
-	}
+		// All the services should match
+		for id, serv := range services.NodeServices.Services {
+			serv.CreateIndex, serv.ModifyIndex = 0, 0
+			switch id {
+			case "svc_id1":
+				// tags should be modified but not the port
+				got := serv
+				want := &structs.NodeService{
+					ID:                "svc_id1",
+					Service:           "svc1",
+					Tags:              []string{"tag1_mod"},
+					Port:              6100,
+					EnableTagOverride: true,
+					Weights: &structs.Weights{
+						Passing: 1,
+						Warning: 1,
+					},
+				}
+				assert.Equal(r, want, got)
+			case "svc_id2":
+				got, want := serv, srv2
+				assert.Equal(r, want, got)
+			case structs.ConsulServiceID:
+				// ignore
+			default:
+				r.Fatalf("unexpected service: %v", id)
+			}
+		}
+
+		if err := servicesInSync(a.State, 2); err != nil {
+			r.Fatal(err)
+		}
+	})
 }
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
@@ -1060,9 +1057,9 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
 		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-		verify.Values(t, "node id", id, a.Config.NodeID)
-		verify.Values(t, "tagged addrs", addrs, a.Config.TaggedAddresses)
-		verify.Values(t, "node meta", meta, a.Config.NodeMeta)
+		assert.Equal(t, a.Config.NodeID, id)
+		assert.Equal(t, a.Config.TaggedAddresses, addrs)
+		assert.Equal(t, a.Config.NodeMeta, meta)
 	}
 
 	// Remove one of the checks
