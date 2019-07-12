@@ -370,13 +370,13 @@ to run the sync program.
       This value is a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration
       for the configured proxy.
 
-        ```yaml
-        # proxyDefaults values are formatted as a multi-line string:
-        proxyDefaults: |
-          {
-            "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
-          }
-        ```
+            ```yaml
+            # proxyDefaults values are formatted as a multi-line string:
+            proxyDefaults: |
+              {
+                "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
+              }
+            ```
 * <a name="v-meshgateway" href="#v-meshgateway">`meshGateway` <sup>(beta)</sup></a> - Values that configure Connect [Mesh Gateways](/docs/connect/mesh_gateway.html).
 
   * <a name="v-meshgateway-enabled" href="#v-meshgateway-enabled">`enabled`</a> (`boolean: false`) - If true, mesh gateways will be enabled on the Consul servers, registered with Consul according to the nested parameters below, and started by Kubernetes. 
@@ -442,19 +442,19 @@ to run the sync program.
       * <a name="v-meshgateway-service-annotations" href="#v-meshgateway-service-annotations">`annotations`</a> (`string`) -
       Optional YAML string for additional annotations on the Service. This should be a formatted as a multi-line string.
 
-        ```yaml
-        annotations: |
-          "sample/annotation1": "foo"
-          "sample/annotation2": "bar"
-        ```
+            ```yaml
+            annotations: |
+              "sample/annotation1": "foo"
+              "sample/annotation2": "bar"
+            ```
 
       * <a name="v-meshgateway-service-additionalspec" href="#v-meshgateway-service-additionalspec">`additionalSpec`</a> (`string`) -
       Optional string for appending additional YAML to the Service spec. This should be a formatted as a multi-line string.
 
-        ```yaml
-        additionalSpec: |
-          clusterIP: 10.0.171.239
-        ```
+            ```yaml
+            additionalSpec: |
+              clusterIP: 10.0.171.239
+            ```
 
   * <a name="v-meshgateway-imageenvoy" href="#v-meshgateway-imageenvoy">`imageEnvoy`</a> (`string: "envoyproxy/envoy:v1.10.0"`) -
   [Envoy](https://www.envoyproxy.io/) Docker image to use. Envoy is the proxy used for the gateway.
@@ -488,15 +488,15 @@ to run the sync program.
   * <a name="v-meshgateway-resources" href="#v-meshgateway-resources">`resources`</a> (`string`) -
   YAML resource string specifying the resources for the Pod. Defaults to:
 
-    ```yaml
-    resources: |
-      requests:
-        memory: "128Mi"
-        cpu: "250m"
-      limits:
-        memory: "256Mi"
-        cpu: "500m"
-    ```
+        ```yaml
+        resources: |
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ```
 
   * <a name="v-meshgateway-affinity" href="#v-meshgateway-affinity">`affinity`</a> (`string`) -
   YAML string specifying the affinity for Pods.
@@ -504,37 +504,37 @@ to run the sync program.
   on the same node. NOTE: Gateways require that Consul client agents are
   also running on the nodes alongside each gateway Pod.
 
-    ```yaml
-    # default affinity
-    affinity: |
-      podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app: {{ template "consul.name" . }}
-                release: "{{ .Release.Name }}"
-                component: mesh-gateway
-            topologyKey: kubernetes.io/hostname
-    ```
+        ```yaml
+        # default affinity
+        affinity: |
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchLabels:
+                    app: {{ template "consul.name" . }}
+                    release: "{{ .Release.Name }}"
+                    component: mesh-gateway
+                topologyKey: kubernetes.io/hostname
+        ```
 
   * <a name="v-meshgateway-tolerations" href="#v-meshgateway-tolerations">`tolerations`</a> (`string`) -
   YAML string specifying [tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
 
-    ```yaml
-    tolerations: |
-      - key: "key"
-        operator: "Equal"
-        value: "value"
-        effect: "NoSchedule"
-    ```
+        ```yaml
+        tolerations: |
+          - key: "key"
+            operator: "Equal"
+            value: "value"
+            effect: "NoSchedule"
+        ```
 
   * <a name="v-meshgateway-nodeselector" href="#v-meshgateway-nodeselector">`nodeSelector`</a> (`string`) -
   YAML string specifying a [node selector](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector).
 
-    ```yaml
-    nodeSelector: |
-      disktype: ssd
-    ```
+        ```yaml
+        nodeSelector: |
+          disktype: ssd
+        ```
 
   * <a name="v-meshgateway-priorityclassname" href="#v-meshgateway-priorityclassname">`priorityClassName`</a> (`string`) -
   Specify the [priority class](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass) name.
@@ -542,11 +542,11 @@ to run the sync program.
   * <a name="v-meshgateway-annotations" href="#v-meshgateway-annotations">`annotations`</a> (`string`) -
   Optional YAML string for additional annotations on the Deployment. This should be a formatted as a multi-line string.
 
-    ```yaml
-    annotations: |
-      "sample/annotation1": "foo"
-      "sample/annotation2": "bar"
-    ```
+        ```yaml
+        annotations: |
+          "sample/annotation1": "foo"
+          "sample/annotation2": "bar"
+        ```
 
 ## Using the Helm Chart to deploy Consul Enterprise
 
@@ -615,7 +615,7 @@ consul-server-2                            10.60.2.197:8301  alive   server  1.4
 
 The below values.yaml can be used to set up a single server Consul cluster with a LoadBalancer to allow external access to the UI and API.
 
-```
+```yaml
 global:
   enabled: true
   image: "consul:1.4.2"
@@ -645,7 +645,7 @@ The below values.yaml can be used to set up a three server Consul Enterprise clu
 
 Note, this would require a secret that contains the enterprise license key.
 
-```
+```yaml
 global:
   enabled: true
   domain: consul
