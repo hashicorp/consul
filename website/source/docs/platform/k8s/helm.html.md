@@ -107,7 +107,7 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-server-storageclass" href="#v-server-storageclass">`storageClass`</a> (`string: null`) - The StorageClass to use for the servers' StatefulSet storage. It must be able to be dynamically provisioned if you want the storage to be automatically created. For example, to use [Local](https://kubernetes.io/docs/concepts/storage/storage-classes/#local) storage classes, the PersistentVolumeClaims would need to be manually created. A `null` value will use the Kubernetes cluster's default StorageClass. If a default StorageClass does not exist, you will need to create one.
 
-  * <a name="v-server-connect" href="#v-server-connect">`connect`</a> (`boolean: true`) - This will enable/disable [Connect](/docs/connect/index.html). Setting this to true _will not_ automatically secure pod communication, this setting will only enable usage of the feature. Consul will automatically initialize a new CA and set of certificates. Additional Connect settings can be configured by setting the `server.extraConfig` value.
+  * <a name="v-server-connect" href="#v-server-connect">`connect`</a> (`boolean: true`) - This will enable/disable [Connect](/docs/connect/index.html). Setting this to true _will not_ automatically secure Pod communication, this setting will only enable usage of the feature. Consul will automatically initialize a new CA and set of certificates. Additional Connect settings can be configured by setting the `server.extraConfig` value.
 
   * <a name="v-server-resources" href="#v-server-resources">`resources`</a> (`string: null`) - The resource requests (CPU, memory, etc.) for each of the server agents. This should be a multi-line string mapping directly to a Kubernetes [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods won't request any specific amount of resources. **Setting this is highly recommended.**
 
@@ -172,7 +172,7 @@ and consider if they're appropriate for your deployment.
              load: false        
         ```
 
-  * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
+  * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single Pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
 
         ```yaml
         # Recommended default server affinity:
@@ -364,7 +364,7 @@ to run the sync program.
       If defined, this value will be used as the default protocol type for all services registered with the central configuration.
       This can be overridden by using the
       [protocol annotation](/docs/platform/k8s/connect.html#consul-hashicorp-com-connect-service-protocol)
-      directly on any pod spec.
+      directly on any Pod spec.
 
       - <a name="v-connectinject-centralconfig-proxydefaults" href="#v-connectinject-centralconfig-proxydefaults">`proxyDefaults`</a> (`string: "{}"`) -
       This value is a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration
@@ -410,16 +410,16 @@ to run the sync program.
 
       * <a name="v-meshgateway-wanaddress-usenodename" href="#v-meshgateway-wanaddress-usenodename">`useNodeName`</a> (`bool: false`) -
       If true, each Gateway Pod will advertise its Node Name
-      (as provided by the Kubernetes downward API) as the wan address.
+      (as provided by the Kubernetes downward API) as the WAN address.
       This is useful if the node names are DNS entries that are routable from other DCs.
      If you use the node name, then `useNodeIP` and `host` must be `false` and `""` respectively.
 
       * <a name="v-meshgateway-wanaddress-host" href="#v-meshgateway-wanaddress-host">`host`</a> (`string: """`) -
-      If non-empty, each gateway Pod will use this host as its wan address.
+      If non-empty, each gateway Pod will use this host as its WAN address.
       Users must ensure that this address routes to the Gateway Pods,
       for example via a load balancer IP or a DNS entry that routes to the Service
       fronting the Deployment.
-      `meshGateway.wanAddress.port` will be used as the port for the wan address.
+      `meshGateway.wanAddress.port` will be used as the port for the WAN address.
       If you specify a host, then `useNodeIP` and `useNodeName` must be false.
 
   * <a name="v-meshgateway-service" href="#v-meshgateway-service">`service`</a> -
