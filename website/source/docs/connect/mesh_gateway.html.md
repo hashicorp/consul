@@ -29,6 +29,7 @@ Mesh gateways also require that your Consul datacenters are configured correctly
 - You'll need to use Consul version 1.6.0-beta1.
 - Consul [Connect](/docs/agent/options.html#connect) must be enabled in both datacenters.
 - Each of your [datacenters](/docs/agent/options.html#datacenter) must have a unique name. 
+- Your datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
 - The [primary datacenter](/docs/agent/options.html#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for all datacenters to trust requests from each other.
 - [gRPC](/docs/agent/options.html#grpc_port) must be enabled. 
 - If you want to [enable gateways globally](/docs/connect/mesh_gateway.html#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options.html#enable_central_service_config). 
