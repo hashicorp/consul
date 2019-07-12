@@ -15,6 +15,11 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
+type CacheNotifier interface {
+	Notify(ctx context.Context, t string, r cache.Request,
+		correlationID string, ch chan<- cache.UpdateEvent) error
+}
+
 const (
 	coalesceTimeout                  = 200 * time.Millisecond
 	rootsWatchID                     = "roots"
@@ -35,7 +40,7 @@ type state struct {
 	// logger, source and cache are required to be set before calling Watch.
 	logger *log.Logger
 	source *structs.QuerySource
-	cache  *cache.Cache
+	cache  CacheNotifier
 
 	// ctx and cancel store the context created during initWatches call
 	ctx    context.Context
@@ -328,14 +333,8 @@ func (s *state) initWatchesMeshGateway() error {
 	return err
 }
 
-func (s *state) run() {
-	// Close the channel we return from Watch when we stop so consumers can stop
-	// watching and clean up their goroutines. It's important we do this here and
-	// not in Close since this routine sends on this chan and so might panic if it
-	// gets closed from another goroutine.
-	defer close(s.snapCh)
-
-	snap := ConfigSnapshot{
+func (s *state) initialConfigSnapshot() ConfigSnapshot {
+	return ConfigSnapshot{
 		Kind:            s.kind,
 		Service:         s.service,
 		ProxyID:         s.proxyID,
@@ -345,6 +344,16 @@ func (s *state) run() {
 		Proxy:           s.proxyCfg,
 		Datacenter:      s.source.Datacenter,
 	}
+}
+
+func (s *state) run() {
+	// Close the channel we return from Watch when we stop so consumers can stop
+	// watching and clean up their goroutines. It's important we do this here and
+	// not in Close since this routine sends on this chan and so might panic if it
+	// gets closed from another goroutine.
+	defer close(s.snapCh)
+
+	snap := s.initialConfigSnapshot()
 
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
