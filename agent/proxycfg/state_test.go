@@ -305,7 +305,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"inital-gateway": testCase{
+		"initial-gateway": testCase{
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindMeshGateway,
 				ID:      "mesh-gateway",
@@ -324,7 +324,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"initial-proxy": testCase{
+		"connect-proxy": testCase{
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
 				ID:      "web-sidecar-proxy",
