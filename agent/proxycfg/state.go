@@ -334,7 +334,7 @@ func (s *state) initWatchesMeshGateway() error {
 }
 
 func (s *state) initialConfigSnapshot() ConfigSnapshot {
-	return ConfigSnapshot{
+	snap := ConfigSnapshot{
 		Kind:            s.kind,
 		Service:         s.service,
 		ProxyID:         s.proxyID,
@@ -344,16 +344,6 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		Proxy:           s.proxyCfg,
 		Datacenter:      s.source.Datacenter,
 	}
-}
-
-func (s *state) run() {
-	// Close the channel we return from Watch when we stop so consumers can stop
-	// watching and clean up their goroutines. It's important we do this here and
-	// not in Close since this routine sends on this chan and so might panic if it
-	// gets closed from another goroutine.
-	defer close(s.snapCh)
-
-	snap := s.initialConfigSnapshot()
 
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
@@ -369,6 +359,18 @@ func (s *state) run() {
 		// there is no need to initialize the map of service resolvers as we
 		// fully rebuild it every time we get updates
 	}
+
+	return snap
+}
+
+func (s *state) run() {
+	// Close the channel we return from Watch when we stop so consumers can stop
+	// watching and clean up their goroutines. It's important we do this here and
+	// not in Close since this routine sends on this chan and so might panic if it
+	// gets closed from another goroutine.
+	defer close(s.snapCh)
+
+	snap := s.initialConfigSnapshot()
 
 	// This turns out to be really fiddly/painful by just using time.Timer.C
 	// directly in the code below since you can't detect when a timer is stopped

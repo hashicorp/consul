@@ -161,6 +161,7 @@ func (cn *testCacheNotifier) sendNotification(t testing.TB, correlationId string
 }
 
 func (cn *testCacheNotifier) verifyWatch(t testing.TB, correlationId string) (string, cache.Request) {
+	// t.Logf("Watches: %+v", cn.notifiers)
 	req := cn.getNotifierRequest(t, correlationId)
 	require.NotNil(t, req.ch)
 	return req.cacheType, req.request
@@ -370,6 +371,17 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								Mode: structs.MeshGatewayModeNone,
 							},
 						},
+						structs.Upstream{
+							DestinationType: structs.UpstreamDestTypeService,
+							DestinationName: "api-dc2",
+							LocalBindPort:   10006,
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
+						},
+					},
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeLocal,
 					},
 				},
 			},
@@ -385,6 +397,38 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						"upstream:" + serviceIDPrefix + "api-failover-remote?dc=dc2": genVerifyGatewayWatch("dc2"),
 						"upstream:" + serviceIDPrefix + "api-failover-local?dc=dc2":  genVerifyGatewayWatch("dc1"),
 						"upstream:" + serviceIDPrefix + "api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
+						"discovery-chain:api-dc2":                                    genVerifyDiscoveryChainWatch("api-dc2", "dc1"),
+					},
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: "discovery-chain:api",
+							Result: &structs.DiscoveryChainResponse{
+								Chain: TestCompileConfigEntries(t, "api", "default", "dc1"),
+							},
+							Err: nil,
+						},
+						cache.UpdateEvent{
+							CorrelationID: "discovery-chain:api",
+							Result: &structs.DiscoveryChainResponse{
+								Chain: TestCompileConfigEntries(t, "api-dc2", "default", "dc1",
+									&structs.ServiceResolverConfigEntry{
+										Kind: structs.ServiceResolver,
+										Name: "api-dc2",
+										Redirect: &structs.ServiceResolverRedirect{
+											Service:    "api",
+											Datacenter: "dc2",
+										},
+									},
+								),
+							},
+							Err: nil,
+						},
+					},
+				},
+				verificationStage{
+					requiredWatches: map[string]verifyWatchRequest{
+						"upstream-target:api,,,dc1:api": genVerifyServiceWatch("api", "", "dc1", true),
+						"upstream-target:api,,,dc2:api": genVerifyGatewayWatch("dc1"),
 					},
 				},
 			},
@@ -428,9 +472,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			//--------------------------------------------------------------------
 
 			for idx, stage := range tc.stages {
-				t.Run(fmt.Sprintf("stage-%d", idx), func(t *testing.T) {
+				require.True(t, t.Run(fmt.Sprintf("stage-%d", idx), func(t *testing.T) {
 					for correlationId, verifier := range stage.requiredWatches {
-						t.Run(correlationId, func(t *testing.T) {
+						require.True(t, t.Run(correlationId, func(t *testing.T) {
 							// verify that the watch was initiated
 							cacheType, request := cn.verifyWatch(t, correlationId)
 
@@ -438,22 +482,22 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							if verifier != nil {
 								verifier(t, cacheType, request)
 							}
-						})
+						}))
 					}
 
 					// the state is not currently executing the run method in a goroutine
 					// therefore we just tell it about the updates
 					for eveIdx, event := range stage.events {
-						t.Run(fmt.Sprintf("update-%d", eveIdx), func(t *testing.T) {
+						require.True(t, t.Run(fmt.Sprintf("update-%d", eveIdx), func(t *testing.T) {
 							require.NoError(t, state.handleUpdate(event, &snap))
-						})
+						}))
 					}
 
 					// verify the snapshot
 					if stage.verifySnapshot != nil {
 						stage.verifySnapshot(t, &snap)
 					}
-				})
+				}))
 			}
 		})
 	}
