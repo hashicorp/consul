@@ -36,10 +36,5 @@ func (s *HTTPServer) InternalDiscoveryChain(resp http.ResponseWriter, req *http.
 		return nil, nil
 	}
 
-	// wipe before replying
-	// out.Chain.GroupResolverNodes = nil
-	// out.Chain.Resolvers = nil
-	// out.Chain.Targets = nil
-
 	return out.Chain, nil
 }
