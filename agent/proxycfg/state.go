@@ -15,6 +15,11 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
+type CacheNotifier interface {
+	Notify(ctx context.Context, t string, r cache.Request,
+		correlationID string, ch chan<- cache.UpdateEvent) error
+}
+
 const (
 	coalesceTimeout                  = 200 * time.Millisecond
 	rootsWatchID                     = "roots"
@@ -35,7 +40,7 @@ type state struct {
 	// logger, source and cache are required to be set before calling Watch.
 	logger *log.Logger
 	source *structs.QuerySource
-	cache  *cache.Cache
+	cache  CacheNotifier
 
 	// ctx and cancel store the context created during initWatches call
 	ctx    context.Context
@@ -328,13 +333,7 @@ func (s *state) initWatchesMeshGateway() error {
 	return err
 }
 
-func (s *state) run() {
-	// Close the channel we return from Watch when we stop so consumers can stop
-	// watching and clean up their goroutines. It's important we do this here and
-	// not in Close since this routine sends on this chan and so might panic if it
-	// gets closed from another goroutine.
-	defer close(s.snapCh)
-
+func (s *state) initialConfigSnapshot() ConfigSnapshot {
 	snap := ConfigSnapshot{
 		Kind:            s.kind,
 		Service:         s.service,
@@ -360,6 +359,18 @@ func (s *state) run() {
 		// there is no need to initialize the map of service resolvers as we
 		// fully rebuild it every time we get updates
 	}
+
+	return snap
+}
+
+func (s *state) run() {
+	// Close the channel we return from Watch when we stop so consumers can stop
+	// watching and clean up their goroutines. It's important we do this here and
+	// not in Close since this routine sends on this chan and so might panic if it
+	// gets closed from another goroutine.
+	defer close(s.snapCh)
+
+	snap := s.initialConfigSnapshot()
 
 	// This turns out to be really fiddly/painful by just using time.Timer.C
 	// directly in the code below since you can't detect when a timer is stopped
@@ -627,11 +638,15 @@ func (s *state) resetWatchesFromChain(
 		meshGateway := structs.MeshGatewayModeDefault
 		if target.Datacenter != s.source.Datacenter {
 			meshGateway = meshGatewayModes[target]
+
+			if meshGateway == structs.MeshGatewayModeDefault {
+				meshGateway = s.proxyCfg.MeshGateway.Mode
+			}
 		}
 
 		// if the default mode
 		if meshGateway == structs.MeshGatewayModeDefault {
-			meshGateway = s.proxyCfg.MeshGateway.Mode
+			meshGateway = structs.MeshGatewayModeNone
 		}
 
 		filterExp := subset.Filter

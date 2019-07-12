@@ -24,12 +24,18 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
+				MeshGateway: MeshGatewayConfig{
+					Mode: MeshGatewayModeLocal,
+				},
 				Upstreams: Upstreams{
 					{
 						DestinationType: UpstreamDestTypeService,
 						DestinationName: "foo",
 						Datacenter:      "dc1",
 						LocalBindPort:   1234,
+						MeshGateway: MeshGatewayConfig{
+							Mode: MeshGatewayModeLocal,
+						},
 					},
 					{
 						DestinationType:  UpstreamDestTypePreparedQuery,
@@ -48,12 +54,18 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},
+				MeshGateway: api.MeshGatewayConfig{
+					Mode: api.MeshGatewayModeLocal,
+				},
 				Upstreams: []api.Upstream{
 					{
 						DestinationType: UpstreamDestTypeService,
 						DestinationName: "foo",
 						Datacenter:      "dc1",
 						LocalBindPort:   1234,
+						MeshGateway: api.MeshGatewayConfig{
+							Mode: api.MeshGatewayModeLocal,
+						},
 					},
 					{
 						DestinationType:  UpstreamDestTypePreparedQuery,

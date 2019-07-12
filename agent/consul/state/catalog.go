@@ -691,6 +691,9 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
+		if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
 	}
 
 	// Do the delete in a separate loop so we don't trash the iterator.
@@ -1421,6 +1424,10 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	}
 
 	svc := service.(*structs.ServiceNode)
+	if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
 	if remainingService, err := tx.First("services", "service", svc.ServiceName); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
@@ -1867,6 +1874,16 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 		// When no service is linked to this service, update all services of node
 		if existing.ServiceID != "" {
 			if err = tx.Insert("index", &IndexEntry{serviceIndexName(existing.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
+
+			svcRaw, err := tx.First("services", "id", existing.Node, existing.ServiceID)
+			if err != nil {
+				return fmt.Errorf("failed retrieving service from state store: %v", err)
+			}
+
+			svc := svcRaw.(*structs.ServiceNode)
+			if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
 				return fmt.Errorf("failed updating index: %s", err)
 			}
 		} else {
