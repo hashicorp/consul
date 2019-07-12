@@ -119,7 +119,7 @@ func (c *cmd) init() {
 		"WAN address to advertise in the Mesh Gateway service registration")
 
 	c.flags.Var((*flags.FlagMapValue)(&c.bindAddresses), "bind-address", "Bind "+
-		"addresses to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
+		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
 		"pairs. This flag may be specified multiple times to add multiple bind addresses.")
 
 	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
