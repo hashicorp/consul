@@ -393,18 +393,18 @@ to run the sync program.
   will need to be set individually for each service.
 
   * <a name="v-meshgateway-replicas" href="#v-meshgateway-replicas">`replicas`</a> (`int: 2`) -
-  How many gateway Pods to run.
+  How many gateway pods to run.
 
   * <a name="v-meshgateway-wanaddress" href="#v-meshgateway-wanaddress">`wanAddress`</a> -
-  Values that configure what gets registered as the wan address for the gateway when running the `consul connect envoy` command.
+  The nested values define the WAN address registration that the `consul connect envoy` command will use to configure the mesh gateway.
   See the [command overview](/docs/commands/connect/envoy.html#wan-address) for more details.
 
       * <a name="v-meshgateway-wanaddress-port" href="#v-meshgateway-wanaddress-port">`port`</a> (`int: 443`) -
-      The port that gets registered for the wan address.
+      The port that gets registered for the WAN address.
 
       * <a name="v-meshgateway-wanaddress-usenodeip" href="#v-meshgateway-wanaddress-usenodeip">`useNodeIP`</a> (`bool: true`) -
       If true, each Gateway Pod will advertise its Node IP
-      (as provided by the Kubernetes downward API) as the wan address.
+      (as provided by the Kubernetes downward API) as the WAN address.
       This is useful if node IPs are routable from other DCs.
       `useNodeName` and `host` must be `false` and `""` respectively.
 
