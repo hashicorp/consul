@@ -24,14 +24,14 @@ Each mesh gateway needs three things:
 2. General network connectivity to all services within its local Consul datacenter.
 3. General network connectivity to all mesh gateways within remote Consul datacenters.
 
-Mesh gateways also requre that your Consul datacenters are configured correctly:
+Mesh gateways also require that your Consul datacenters are configured correctly:
 
-- You'll need to use Consul version 1.6.0beta1.
-- Consul [Connect](http://localhost:4567/docs/agent/options.html#connect) must be enabled in both datacenters.
+- You'll need to use Consul version 1.6.0-beta1.
+- Consul [Connect](/docs/agent/options.html#connect) must be enabled in both datacenters.
 - Each of your [datacenters](/docs/agent/options.html#datacenter) must have a unique name. 
-- The [primary datacenter](/docs/agent/options.html#primary_datacenter) must be set to the same value in both datacenters.
-- [gRPC](http://localhost:4567/docs/agent/options.html#grpc_port) must be enabled. 
-- If you want to set the default gateway mode you must enable [centralized configuration](/docs/agent/options.html#config_entries). 
+- The [primary datacenter](/docs/agent/options.html#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for all datacenters to trust requests from each other.
+- [gRPC](/docs/agent/options.html#grpc_port) must be enabled. 
+- If you want to [enable gateways globally](/docs/connect/mesh_gateway.html#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options.html#enable_central_service_config). 
 
 ## Modes of Operation
 
