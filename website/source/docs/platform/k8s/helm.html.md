@@ -426,7 +426,7 @@ to run the sync program.
   The nested values configure the Kubernetes `Service` for the gateway `Deployment`.
 
       * <a name="v-meshgateway-service-enabled" href="#v-meshgateway-service-enabled">`enabled`</a> (`bool: false`) -
-      Whether to create a Service or not.
+      Whether to create a Service or not. If the gateway Pods will be exposed using their host ports then this is not necessary.
 
       * <a name="v-meshgateway-service-type" href="#v-meshgateway-service-type">`type`</a> (`string: "ClusterIP"`) -
       Service `type`, ex. `NodePort`, `LoadBalancer`, `ClusterIP`.
