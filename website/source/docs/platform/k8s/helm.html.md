@@ -379,8 +379,8 @@ to run the sync program.
         ```
 * <a name="v-meshgateway" href="#v-meshgateway">`meshGateway` <sup>(beta)</sup></a> - Values that configure Connect [Mesh Gateways](/docs/connect/mesh_gateway.html).
 
-  * <a name="v-meshgateway-enabled" href="#v-meshgateway-enabled">`enabled`</a> (`boolean: false`) - If true, gateways will be created and
-    Consul servers will be configured to support them. If setting this in an already running cluster, you'll need to
+  * <a name="v-meshgateway-enabled" href="#v-meshgateway-enabled">`enabled`</a> (`boolean: false`) - If true, mesh gateways will be enabled on the Consul servers, registered with Consul according to the nested parameters below, and started by Kubernetes. 
+    If setting this in an already running cluster, you'll need to
     reload the servers.
 
   * <a name="v-meshgateway-globalmode" href="#v-meshgateway-globalmode">`globalMode`</a> (`string: "local"`) -
@@ -393,7 +393,7 @@ to run the sync program.
   will need to be set individually for each service.
 
   * <a name="v-meshgateway-replicas" href="#v-meshgateway-replicas">`replicas`</a> (`int: 2`) -
-  How many gateway pods to run.
+  How many gateway Pods to run.
 
   * <a name="v-meshgateway-wanaddress" href="#v-meshgateway-wanaddress">`wanAddress`</a> -
   The nested values define the WAN address registration that the `consul connect envoy` command will use to configure the mesh gateway.
@@ -406,24 +406,24 @@ to run the sync program.
       If true, each Gateway Pod will advertise its Node IP
       (as provided by the Kubernetes downward API) as the WAN address.
       This is useful if node IPs are routable from other DCs.
-      `useNodeName` and `host` must be `false` and `""` respectively.
+    If you use the node IP, then `useNodeName` and `host` must be `false` and `""` respectively.
 
       * <a name="v-meshgateway-wanaddress-usenodename" href="#v-meshgateway-wanaddress-usenodename">`useNodeName`</a> (`bool: false`) -
       If true, each Gateway Pod will advertise its Node Name
       (as provided by the Kubernetes downward API) as the wan address.
       This is useful if the node names are DNS entries that are routable from other DCs.
-      `useNodeIP` and `host` must be `false` and `""` respectively.
+     If you use the node name, then `useNodeIP` and `host` must be `false` and `""` respectively.
 
       * <a name="v-meshgateway-wanaddress-host" href="#v-meshgateway-wanaddress-host">`host`</a> (`string: """`) -
       If non-empty, each gateway Pod will use this host as its wan address.
-      Users must ensure that this address routes to the Gateway pods,
+      Users must ensure that this address routes to the Gateway Pods,
       for example via a load balancer IP or a DNS entry that routes to the Service
       fronting the Deployment.
       `meshGateway.wanAddress.port` will be used as the port for the wan address.
-      `useNodeIP` and `useNodeName` must be false.
+      If you specify a host, then `useNodeIP` and `useNodeName` must be false.
 
   * <a name="v-meshgateway-service" href="#v-meshgateway-service">`service`</a> -
-  Values that configure the Kubernetes `Service` for the gateway `Deployment.
+  The nested values configure the Kubernetes `Service` for the gateway `Deployment`.
 
       * <a name="v-meshgateway-service-enabled" href="#v-meshgateway-service-enabled">`enabled`</a> (`bool: false`) -
       Whether to create a Service or not.
