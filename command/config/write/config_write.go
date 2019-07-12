@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
@@ -108,6 +109,8 @@ func parseConfigEntry(data string) (api.ConfigEntry, error) {
 	return newDecodeConfigEntry(raw)
 }
 
+// There is a 'structs' variation of this in
+// agent/structs/config_entry.go:DecodeConfigEntry
 func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 	var entry api.ConfigEntry
 
@@ -129,66 +132,14 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
-	var (
-		// skipWhenPatching should contain anything that legitimately contains a
-		// slice of structs when decoded.
-		skipWhenPatching  []string
-		translateKeysDict map[string]string
-	)
-
-	switch entry.GetKind() {
-	case api.ProxyDefaults:
-		translateKeysDict = map[string]string{
-			"mesh_gateway": "meshgateway",
-		}
-	case api.ServiceDefaults:
-		translateKeysDict = map[string]string{
-			"mesh_gateway": "meshgateway",
-		}
-	case api.ServiceRouter:
-		skipWhenPatching = []string{
-			"routes",
-			"Routes",
-			"routes.match.http.header",
-			"Routes.Match.HTTP.Header",
-			"routes.match.http.query_param",
-			"Routes.Match.HTTP.QueryParam",
-		}
-		translateKeysDict = map[string]string{
-			"num_retries":              "numretries",
-			"path_exact":               "pathexact",
-			"path_prefix":              "pathprefix",
-			"path_regex":               "pathregex",
-			"prefix_rewrite":           "prefixrewrite",
-			"query_param":              "queryparam",
-			"request_timeout":          "requesttimeout",
-			"retry_on_connect_failure": "retryonconnectfailure",
-			"retry_on_status_codes":    "retryonstatuscodes",
-			"service_subset":           "servicesubset",
-		}
-	case api.ServiceSplitter:
-		skipWhenPatching = []string{
-			"splits",
-			"Splits",
-		}
-		translateKeysDict = map[string]string{
-			"service_subset": "servicesubset",
-		}
-	case api.ServiceResolver:
-		translateKeysDict = map[string]string{
-			"connect_timeout":         "connecttimeout",
-			"default_subset":          "defaultsubset",
-			"only_passing":            "onlypassing",
-			"overprovisioning_factor": "overprovisioningfactor",
-			"service_subset":          "servicesubset",
-		}
-	default:
-		return nil, fmt.Errorf("kind %q should be explicitly handled here", entry.GetKind())
+	skipWhenPatching, translateKeysDict, err := structs.ConfigEntryDecodeRulesForKind(entry.GetKind())
+	if err != nil {
+		return nil, err
 	}
 
 	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
-	// to do this part first. Any config entry
-	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching)
+	// to do this part first.
+	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
 
 	// CamelCase is the canonical form for these, since this translation
 	// happens in the `consul config write` command and the JSON form is sent

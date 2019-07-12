@@ -17,8 +17,9 @@ func parse(s string) map[string]interface{} {
 
 func TestPatchSliceOfMaps(t *testing.T) {
 	tests := []struct {
-		in, out string
-		skip    []string
+		in, out  string
+		skip     []string
+		skipTree []string
 	}{
 		{
 			in:  `{"a":{"b":"c"}}`,
@@ -64,12 +65,56 @@ func TestPatchSliceOfMaps(t *testing.T) {
 			}`,
 			skip: []string{"services", "services.checks"},
 		},
+		{
+			// inspired by the 'config_entries.bootstrap.*' structure for configs
+			in: `
+			{
+				"a": [
+					{
+						"b": [
+							{
+								"c": "val1",
+								"d": {
+									"foo": "bar"
+								},
+								"e": [
+									{
+										"super": "duper"
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+			`,
+			out: `
+			{
+				"a": {
+					"b": [
+						{
+							"c": "val1",
+							"d": {
+								"foo": "bar"
+							},
+							"e": [
+								{
+									"super": "duper"
+								}
+							]
+						}
+					]
+				}
+			}
+			`,
+			skipTree: []string{"a.b"},
+		},
 	}
 
 	for i, tt := range tests {
 		desc := fmt.Sprintf("%02d: %s -> %s skip: %v", i, tt.in, tt.out, tt.skip)
 		t.Run(desc, func(t *testing.T) {
-			out := PatchSliceOfMaps(parse(tt.in), tt.skip)
+			out := PatchSliceOfMaps(parse(tt.in), tt.skip, tt.skipTree)
 			if got, want := out, parse(tt.out); !reflect.DeepEqual(got, want) {
 				t.Fatalf("\ngot  %#v\nwant %#v", got, want)
 			}

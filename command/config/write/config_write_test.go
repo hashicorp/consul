@@ -106,7 +106,10 @@ func TestConfigWrite(t *testing.T) {
 	})
 }
 
+// TestParseConfigEntry is the 'api' mirror image of
+// agent/structs/config_entry_test.go:TestDecodeConfigEntry
 func TestParseConfigEntry(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name      string
 		camel     string
