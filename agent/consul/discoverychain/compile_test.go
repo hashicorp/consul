@@ -129,12 +129,7 @@ func TestCompile(t *testing.T) {
 				}
 
 				require.Equal(t, tc.expect, res)
-
-				if tc.expectIsDefault {
-					require.True(t, res.IsDefault())
-				} else {
-					require.False(t, res.IsDefault())
-				}
+				require.Equal(t, tc.expectIsDefault, res.IsDefault())
 			}
 		})
 	}
