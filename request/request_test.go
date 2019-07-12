@@ -98,8 +98,8 @@ func TestRequestScrubExtra(t *testing.T) {
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
-	if reply.Truncated {
-		t.Errorf("Want scrub to not set truncated bit")
+	if !reply.Truncated {
+		t.Errorf("Want scrub to set truncated bit")
 	}
 }
 
@@ -120,8 +120,8 @@ func TestRequestScrubExtraEdns0(t *testing.T) {
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
-	if reply.Truncated {
-		t.Errorf("Want scrub to not set truncated bit")
+	if !reply.Truncated {
+		t.Errorf("Want scrub to set truncated bit")
 	}
 }
 
@@ -146,8 +146,8 @@ func TestRequestScrubExtraRegression(t *testing.T) {
 	if want, got := req.Size(), reply.Len(); want < got {
 		t.Errorf("Want scrub to reduce message length below %d bytes, got %d bytes", want, got)
 	}
-	if reply.Truncated {
-		t.Errorf("Want scrub to not set truncated bit")
+	if !reply.Truncated {
+		t.Errorf("Want scrub to set truncated bit")
 	}
 }
 
