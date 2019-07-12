@@ -22,6 +22,10 @@ load helpers
   assert_service_has_healthy_instances s2 1
 }
 
+@test "s1 upstream should have healthy endpoints for s2" {
+  assert_upstream_has_healthy_endpoints 127.0.0.1:19000 s2 1
+}
+
 @test "s1 upstream should be able to connect to s2 via http2" {
   # We use grpc here because it's the easiest way to test http2. The server
   # needs to support h2c since the proxy doesn't talk TLS to the local app.

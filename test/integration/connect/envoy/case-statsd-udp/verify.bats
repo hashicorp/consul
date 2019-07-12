@@ -14,6 +14,10 @@ load helpers
   assert_service_has_healthy_instances s2 1
 }
 
+@test "s1 upstream should have healthy endpoints for s2" {
+  assert_upstream_has_healthy_endpoints 127.0.0.1:19000 s2 1
+}
+
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" == 0 ]
