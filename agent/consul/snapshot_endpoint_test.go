@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"io"
 	"os"
 	"strings"
 	"testing"
@@ -41,17 +40,13 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 
 	// Take a snapshot.
-	var reply structs.SnapshotResponse
-	var snap io.ReadCloser
-	var err error
-
 	args := structs.SnapshotRequest{
 		Datacenter: dc,
 		Token:      token,
 		Op:         structs.SnapshotSave,
 	}
-
-	snap, err = SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+	var reply structs.SnapshotResponse
+	snap, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
 		&args, bytes.NewReader([]byte("")), &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -81,7 +76,7 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	}
 
 	// Set a key to an after value.
-	retry.Run(t, func(r *retry.R) {
+	{
 		args := structs.KVSRequest{
 			Datacenter: dc,
 			Op:         api.KVSet,
@@ -95,9 +90,9 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 		}
 		var out bool
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &args, &out); err != nil {
-			r.Fatalf("err: %v", err)
+			t.Fatalf("err: %v", err)
 		}
-	})
+	}
 
 	// Read back the before value. We do this with a retry and stale mode so
 	// we can query the server we are working with, which might not be the
@@ -125,20 +120,13 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 	})
 
 	// Restore the snapshot.
-	retry.Run(t, func(r *retry.R) {
-		args = structs.SnapshotRequest{
-			Datacenter: dc,
-			Token:      token,
-			Op:         structs.SnapshotRestore,
-		}
-
-		restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
-			&args, snap, &reply)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		defer restore.Close()
-	})
+	args.Op = structs.SnapshotRestore
+	restore, err := SnapshotRPC(s.connPool, s.config.Datacenter, s.config.RPCAddr, false,
+		&args, snap, &reply)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer restore.Close()
 
 	// Read back the before value post-snapshot. Similar rationale here; use
 	// stale to query the server we are working with.
