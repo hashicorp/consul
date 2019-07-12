@@ -53,6 +53,7 @@ func makeClientWithConfig(
 	if cb1 != nil {
 		cb1(conf)
 	}
+
 	// Create server
 	var server *testutil.TestServer
 	var err error

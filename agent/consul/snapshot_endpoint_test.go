@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 // verifySnapshot is a helper that does a snapshot and restore.
@@ -294,9 +294,14 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Leader(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
+		c.SerfWANConfig = nil
+
+		// Effectively disable autopilot
+		// Changes in server config leads flakiness because snapshotting
+		// fails if there are config changes outstanding
+		c.AutopilotInterval = 50 * time.Second
 
 		// Since we are doing multiple restores to the same leader,
 		// the default short time for a reconcile can cause the
@@ -306,17 +311,19 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
+		c.SerfWANConfig = nil
+		c.AutopilotInterval = 50 * time.Second
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Try to join.
 	joinLAN(t, s2, s1)
-	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	// Run against the leader and the follower to ensure we forward. When
 	// we changed to Raft protocol version 3, since we only have two servers,

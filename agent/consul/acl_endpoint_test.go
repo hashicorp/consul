@@ -668,7 +668,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 	t.Run("expired tokens are filtered", func(t *testing.T) {
 		// insert a token that will expire
 		token, err := upsertTestToken(codec, "root", "dc1", func(t *structs.ACLToken) {
-			t.ExpirationTTL = 20 * time.Millisecond
+			t.ExpirationTTL = 200 * time.Millisecond
 		})
 		require.NoError(t, err)
 
@@ -686,8 +686,6 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 			require.Equal(t, token, resp.Token)
 		})
 
-		time.Sleep(50 * time.Millisecond)
-
 		t.Run("not returned when expired", func(t *testing.T) {
 			req := structs.ACLTokenGetRequest{
 				Datacenter:   "dc1",
@@ -698,8 +696,10 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 			resp := structs.ACLTokenResponse{}
 
-			require.NoError(t, acl.TokenRead(&req, &resp))
-			require.Nil(t, resp.Token)
+			retry.Run(t, func(r *retry.R) {
+				require.NoError(r, acl.TokenRead(&req, &resp))
+				require.Nil(r, resp.Token)
+			})
 		})
 	})
 
