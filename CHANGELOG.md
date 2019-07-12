@@ -1,5 +1,16 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* connect: added a new `-bind-address` cli option for envoy to create a mapping of the desired bind addresses to use instead of the default rules or tagged addresses [[GH-6107](https://github.com/hashicorp/consul/pull/6107)]
+
+BUG FIXES:
+
+* connect: fix bug in service-resolver redirects if the destination uses a default resolver [[GH-6122](https://github.com/hashicorp/consul/pull/6122)]
+* connect: resolve issue where `MeshGatewayConfig` could be returned empty [[GH-6093](https://github.com/hashicorp/consul/pull/6093)]
+* connect: ensure local dc connections do not use the gateway [[GH-6085](https://github.com/hashicorp/consul/issues/6085)]
+* agent: fix an issue that could cause a panic while transferring leadership due to replication [[GH-6104](https://github.com/hashicorp/consul/issues/6104)]
+
 ## 1.6.0-beta1 (July 08, 2019)
 
 FEATURES:
