@@ -12,22 +12,6 @@ config {
 ' | docker_consul config write -
 
 echo '
-kind = "service-defaults"
-name = "s1"
-protocol = "http"
-' | docker_consul config write -
-echo '
-kind = "service-defaults"
-name = "s2"
-protocol = "http"
-' | docker_consul config write -
-echo '
-kind = "service-defaults"
-name = "s3"
-protocol = "http"
-' | docker_consul config write -
-
-echo '
 kind = "service-resolver"
 name = "s2"
 redirect {
