@@ -133,7 +133,7 @@ function get_healthy_upstream_endpoint_count {
 | length"
 }
 
-function health_upstream_endpoint_count_matches {
+function assert_upstream_has_healthy_endpoints_once {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   local EXPECT_COUNT=$3
@@ -147,7 +147,7 @@ function assert_upstream_has_healthy_endpoints {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   local EXPECT_COUNT=$3
-  run retry 30 1 health_upstream_endpoint_count_matches $HOSTPORT $CLUSTER_NAME $EXPECT_COUNT
+  run retry 30 1 assert_upstream_has_healthy_endpoints_once $HOSTPORT $CLUSTER_NAME $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
@@ -158,7 +158,7 @@ function get_healthy_service_count {
   echo "$output" | jq --raw-output '. | length'
 }
 
-function health_service_count_matches {
+function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
 
@@ -171,7 +171,7 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
 
-  run retry 30 1 health_service_count_matches $SERVICE_NAME $EXPECT_COUNT
+  run retry 30 1 assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
