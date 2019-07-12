@@ -40,11 +40,18 @@ type CompiledDiscoveryChain struct {
 	Targets   []DiscoveryTarget                      `json:",omitempty"`
 }
 
+// IsDefault returns true if the compiled chain represents no routing, no
+// splitting, and only the default resolution.  We have to be careful here to
+// avoid returning "yep this is default" when the only resolver action being
+// applied is redirection to another resolver that is default, so we double
+// check the resolver matches the requested resolver.
 func (c *CompiledDiscoveryChain) IsDefault() bool {
 	if c.Node == nil {
 		return true
 	}
-	return c.Node.Type == DiscoveryGraphNodeTypeGroupResolver && c.Node.GroupResolver.Default
+	return c.Node.Name == c.ServiceName &&
+		c.Node.Type == DiscoveryGraphNodeTypeGroupResolver &&
+		c.Node.GroupResolver.Default
 }
 
 const (

@@ -253,3 +253,18 @@ function gen_envoy_bootstrap {
     return $status
   fi
 }
+
+function get_upstream_fortio_name {
+  run retry_default curl -v -s -f localhost:5000/debug?env=dump
+  [ "$status" == 0 ]
+  echo "$output" | grep -E "^FORTIO_NAME="
+}
+
+function assert_expected_fortio_name {
+  local EXPECT_NAME=$1
+
+  GOT=$(get_upstream_fortio_name)
+  echo "GOT $GOT"
+
+  [ "$GOT" == "FORTIO_NAME=${EXPECT_NAME}" ]
+}

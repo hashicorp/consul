@@ -46,24 +46,48 @@ services:
     depends_on:
       - consul
     image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s1"
     command:
      - "server"
      - "-http-port"
      - ":8080"
      - "-grpc-port"
      - ":8079"
+     - "-redirect-port"
+     - "disabled"
     network_mode: service:consul
 
   s2:
     depends_on:
       - consul
     image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s2"
     command:
      - "server"
      - "-http-port"
      - ":8181"
      - "-grpc-port"
      - ":8179"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul
+
+  s3:
+    depends_on:
+      - consul
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s3"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8282"
+     - "-grpc-port"
+     - ":8279"
+     - "-redirect-port"
+     - "disabled"
     network_mode: service:consul
 
   s1-sidecar-proxy:
@@ -95,6 +119,27 @@ services:
      - "envoy"
      - "-c"
      - "/workdir/envoy/s2-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul
+
+  s3-sidecar-proxy:
+    depends_on:
+      - consul
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/envoy/s3-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
