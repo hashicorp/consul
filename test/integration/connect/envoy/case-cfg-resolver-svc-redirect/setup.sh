@@ -2,23 +2,6 @@
 
 set -euo pipefail
 
-# manually setup config entries
-echo '
-kind = "proxy-defaults"
-name = "global"
-config {
-  protocol = "http"
-}
-' | docker_consul config write -
-
-echo '
-kind = "service-resolver"
-name = "s2"
-redirect {
-  service = "s3"
-}
-' | docker_consul config write -
-
 # retry because resolving the central config might race
 retry_default gen_envoy_bootstrap s1 19000
 retry_default gen_envoy_bootstrap s2 19001

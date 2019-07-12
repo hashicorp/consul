@@ -176,7 +176,7 @@ function assert_service_has_healthy_instances {
 }
 
 function docker_consul {
-  docker run -i --rm --network container:envoy_consul_1 consul-dev $@
+  docker run -ti --rm --network container:envoy_consul_1 consul-dev $@
 }
 
 function docker_wget {
