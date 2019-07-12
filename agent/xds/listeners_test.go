@@ -130,6 +130,61 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChain,
+			setup:  nil,
+		},
+		{
+			name: "connect-proxy-with-http-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "http",
+						},
+					},
+				)
+			},
+			setup: nil,
+		},
+		{
+			name: "connect-proxy-with-http2-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "http2",
+						},
+					},
+				)
+			},
+			setup: nil,
+		},
+		{
+			name: "connect-proxy-with-grpc-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+						},
+					},
+				)
+			},
+			setup: nil,
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 		},

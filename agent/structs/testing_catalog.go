@@ -34,6 +34,7 @@ func TestNodeService(t testing.T) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: "web",
+		Port:    8080,
 	}
 }
 

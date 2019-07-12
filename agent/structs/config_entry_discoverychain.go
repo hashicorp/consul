@@ -99,6 +99,8 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 			return fmt.Errorf("Route[%d] should only contain at most one of PathExact, PathPrefix, or PathRegex", i)
 		}
 
+		// TODO(rb): do some validation of PathExact and PathPrefix
+
 		for j, hdr := range route.Match.HTTP.Header {
 			if hdr.Name == "" {
 				return fmt.Errorf("Route[%d] Header[%d] missing required Name field", i, j)
@@ -282,6 +284,10 @@ type ServiceRouteDestination struct {
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any sane proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty"`
+}
+
+func (d *ServiceRouteDestination) HasRetryFeatures() bool {
+	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0
 }
 
 // ServiceSplitterConfigEntry defines how incoming requests are split across
@@ -845,6 +851,15 @@ type DiscoveryChainConfigEntries struct {
 	GlobalProxy *ProxyConfigEntry
 }
 
+func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
+	return &DiscoveryChainConfigEntries{
+		Routers:   make(map[string]*ServiceRouterConfigEntry),
+		Splitters: make(map[string]*ServiceSplitterConfigEntry),
+		Resolvers: make(map[string]*ServiceResolverConfigEntry),
+		Services:  make(map[string]*ServiceConfigEntry),
+	}
+}
+
 func (e *DiscoveryChainConfigEntries) GetRouter(name string) *ServiceRouterConfigEntry {
 	if e.Routers != nil {
 		return e.Routers[name]
@@ -910,6 +925,30 @@ func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry
 	}
 	for _, entry := range entries {
 		e.Services[entry.Name] = entry
+	}
+}
+
+// AddEntries adds generic configs. Convenience function for testing. Panics on
+// operator error.
+func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
+	for _, entry := range entries {
+		switch entry.GetKind() {
+		case ServiceRouter:
+			e.AddRouters(entry.(*ServiceRouterConfigEntry))
+		case ServiceSplitter:
+			e.AddSplitters(entry.(*ServiceSplitterConfigEntry))
+		case ServiceResolver:
+			e.AddResolvers(entry.(*ServiceResolverConfigEntry))
+		case ServiceDefaults:
+			e.AddServices(entry.(*ServiceConfigEntry))
+		case ProxyDefaults:
+			if entry.GetName() != ProxyConfigGlobal {
+				panic("the only supported proxy-defaults name is '" + ProxyConfigGlobal + "'")
+			}
+			e.GlobalProxy = entry.(*ProxyConfigEntry)
+		default:
+			panic("unhandled config entry kind: " + entry.GetKind())
+		}
 	}
 }
 

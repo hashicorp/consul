@@ -32,8 +32,40 @@
               "loadBalancingWeight": 1
             }
           ]
+        },
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "10.20.1.1",
+                    "portValue": 8080
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "10.20.1.2",
+                    "portValue": 8080
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ],
+          "priority": 1
         }
-      ]
+      ],
+      "policy": {
+        "overprovisioningFactor": 100000
+      }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",

@@ -79,10 +79,6 @@ func makeUpstreamRouteForDiscoveryChain(
 		for _, discoveryRoute := range chain.Node.Routes {
 			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute, chain.Protocol)
 
-			// TODO(rb): handle PrefixRewrite
-			// TODO(rb): handle RequestTimeout
-			// TODO(rb): handle Retries
-
 			var (
 				routeAction *envoyroute.Route_Route
 				err         error
@@ -101,6 +97,41 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			} else {
 				return nil, fmt.Errorf("unexpected graph node after route %q", next.Type)
+			}
+
+			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
+
+			destination := discoveryRoute.Definition.Destination
+			if destination != nil {
+				if destination.PrefixRewrite != "" {
+					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
+				}
+
+				if destination.RequestTimeout > 0 {
+					routeAction.Route.Timeout = &destination.RequestTimeout
+				}
+
+				if destination.HasRetryFeatures() {
+					retryPolicy := &envoyroute.RetryPolicy{}
+					if destination.NumRetries > 0 {
+						retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
+					}
+
+					// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
+					if destination.RetryOnConnectFailure {
+						retryPolicy.RetryOn = "connect-failure"
+					}
+					if len(destination.RetryOnStatusCodes) > 0 {
+						if retryPolicy.RetryOn != "" {
+							retryPolicy.RetryOn = ",retriable-status-codes"
+						} else {
+							retryPolicy.RetryOn = "retriable-status-codes"
+						}
+						retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
+					}
+
+					routeAction.Route.RetryPolicy = retryPolicy
+				}
 			}
 
 			routes = append(routes, envoyroute.Route{
@@ -171,13 +202,21 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 
 	switch {
 	case match.HTTP.PathExact != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Path{Path: "/"}
+		em.PathSpecifier = &envoyroute.RouteMatch_Path{
+			Path: match.HTTP.PathExact,
+		}
 	case match.HTTP.PathPrefix != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{Prefix: "/"}
+		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
+			Prefix: match.HTTP.PathPrefix,
+		}
 	case match.HTTP.PathRegex != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Regex{Regex: "/"}
+		em.PathSpecifier = &envoyroute.RouteMatch_Regex{
+			Regex: match.HTTP.PathRegex,
+		}
 	default:
-		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{Prefix: "/"}
+		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
+			Prefix: "/",
+		}
 	}
 
 	if len(match.HTTP.Header) > 0 {
@@ -277,9 +316,10 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, cfgSnap *proxy
 		target := groupResolver.Target
 		clusterName := TargetSNI(target, cfgSnap)
 
-		// TODO(rb): scale up by 100 and adjust total weight
+		// The smallest representable weight is 1/10000 or .01% but envoy
+		// deals with integers so scale everything up by 100x.
 		cw := &envoyroute.WeightedCluster_ClusterWeight{
-			Weight: makeUint32Value(int(split.Weight)),
+			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
 
@@ -291,7 +331,7 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, cfgSnap *proxy
 			ClusterSpecifier: &envoyroute.RouteAction_WeightedClusters{
 				WeightedClusters: &envoyroute.WeightedCluster{
 					Clusters:    clusters,
-					TotalWeight: makeUint32Value(100),
+					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
 			},
 		},
