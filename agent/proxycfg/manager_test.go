@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -62,7 +63,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		Datacenter:    "dc1",
 	}
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
-		return TestCompileConfigEntries(t, "db", "default", "dc1",
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1",
 			&structs.ServiceResolverConfigEntry{
 				Kind: structs.ServiceResolver,
 				Name: "db",
@@ -70,7 +71,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		)
 	}
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
-		return TestCompileConfigEntries(t, "db", "default", "dc1",
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1",
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
 				Name: structs.ProxyConfigGlobal,
