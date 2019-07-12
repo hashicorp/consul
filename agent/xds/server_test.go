@@ -245,7 +245,7 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 									"address": {
 										"socketAddress": {
 											"address": "10.10.1.1",
-											"portValue": 0
+											"portValue": 8080
 										}
 									}
 								},
@@ -257,7 +257,7 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 									"address": {
 										"socketAddress": {
 											"address": "10.10.1.2",
-											"portValue": 0
+											"portValue": 8080
 										}
 									}
 								},
