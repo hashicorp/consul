@@ -427,11 +427,11 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.NotEqual(t, len(checks), 0)
-		require.Equal(t, checks[0].Node.Datacenter, "dc1")
-		require.Contains(t, checks[0].Node.TaggedAddresses, "wan")
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, len(checks), 0)
+		require.Equal(r, checks[0].Node.Datacenter, "dc1")
+		require.Contains(r, checks[0].Node.TaggedAddresses, "wan")
 	})
 }
 
