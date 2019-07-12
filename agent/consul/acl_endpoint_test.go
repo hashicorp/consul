@@ -480,14 +480,14 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 
 		if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		if acls.Policy == nil {
-			t.Fatalf("Bad: %v", acls)
+			r.Fatalf("Bad: %v", acls)
 		}
 		if acls.TTL != 30*time.Second {
-			t.Fatalf("bad: %v", acls)
+			r.Fatalf("bad: %v", acls)
 		}
 	})
 
@@ -4339,7 +4339,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		require.NoError(t, acl.Login(&req, &resp))
+		require.NoError(t, acl2.Login(&req, &resp))
 		remoteToken = &resp
 
 		// present in dc2
