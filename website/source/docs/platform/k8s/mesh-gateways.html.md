@@ -52,10 +52,10 @@ in Kubernetes:
       datacenter: dc2 # use dc1 in your other datacenter.
     ``` 
     
-1. The Consul datacenters are joined. This will require that each Consul server agent
-   is accessible from each datacenter's server agents and that the servers are
-   configured to join with the other datacenter. See our [Multiple Datacenters Guide](https://learn.hashicorp.com/consul/security-networking/datacenters).
-1. The `primary_datacenter` setting is set to a single datacenter. This is required
+1. The Consul datacenters are joined. This will require that all of the Consul server agents
+   in both datacenters have access to each other, and that they are
+   configured to join with the other datacenter. See our [Basic Datacenter Federation Guide](https://learn.hashicorp.com/consul/security-networking/datacenters) to learn how to join servers in different datacenters to each other with WAN gossip.
+1. The `primary_datacenter` setting is set to the same value in both Consul datacenters. This is required
    for Connect requests to work across datacenters. This can be set via the helm chart:
    
     ```yaml
@@ -106,11 +106,11 @@ Since Gateways are still in Beta, you'll need a specific consul-helm version.
 
 ```sh
 # Clone the chart repo
-git clone https://github.com/hashicorp/consul-helm.git
-cd consul-helm
+$ git clone https://github.com/hashicorp/consul-helm.git
+$ cd consul-helm
 
 # Checkout the v0.9.0-beta1 release.
-git checkout v0.9.0-beta1
+$ git checkout v0.9.0-beta1
 
 #  You should see:
 #  Note: checking out 'v0.9.0-beta1'.
@@ -119,7 +119,7 @@ git checkout v0.9.0-beta1
 #  ...
 ```
 
-### Step 2 - Configure Your First DC
+### Step 2 - Configure Your First Datacenter
 Add the following config to your helm chart values for dc1.
 
 ```yaml
@@ -127,7 +127,7 @@ Add the following config to your helm chart values for dc1.
 meshGateway:
   enabled: true
 
-  # The wan address is what remote datacenters will send their gateway
+  # Remote gateways will send traffic destined for this datacenter to the WAN address.
   # traffic to.
   wanAddress:
     # For now we're setting this to the node IP but in the next step we'll set
@@ -150,10 +150,10 @@ And then upgrade your chart:
 
 ```bash
 # Get your chart name.
-helm list
+$ helm list
 
 # Then upgrade it.
-helm upgrade <your release name> . -f dc1-values.yaml
+$ helm upgrade <your release name> . -f dc1-values.yaml
 ```
 
 You should see the gateway pods starting:
@@ -198,8 +198,8 @@ Upgrade your helm release again:
 helm upgrade <your release name> . -f dc1-values.yaml
 ```
 
-### Step 4 - Configure Your Second DC
-Now we're ready to start Consul in our second DC (`dc2`).
+### Step 4 - Configure Your Second Datacenter
+Now we're ready to start Consul in our second datacenter (`dc2`).
 
 Change your `kubectl` context:
 
@@ -230,6 +230,7 @@ global:
 ```
 
 And then upgrade your chart:
+
 ```bash
 helm upgrade <your release name> . -f dc2-values.yaml
 ```
@@ -267,7 +268,7 @@ Upgrade your helm release again:
 helm upgrade <your release name> . -f dc2-values.yaml
 ```
 
-### Step 6 - Ensure each datacenter can access the Load Balancers
+### Step 6 - Ensure Each Datacenter Can Access the Load Balancers
 Ensure that every Pod in dc1 can make requests to the load balancer IP from dc2
 and vice versa.
 
@@ -279,6 +280,7 @@ curl: (35) Unknown SSL protocol error in connection to 32.32.32.32:443
 ```
 
 ### Step 7 - Test it out
+
 In dc2 we're going to deploy a simple service that echos back `hello world`.
 
 Create a file `static-server.yaml`:
