@@ -44,11 +44,10 @@ func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	for _, rule := range rw.Rules {
 		switch result := rule.Rewrite(ctx, state); result {
 		case RewriteDone:
-			if !validName(state.Req.Question[0].Name) {
-				x := state.Req.Question[0].Name
-				log.Errorf("Invalid name after rewrite: %s", x)
+			if _, ok := dns.IsDomainName(state.Req.Question[0].Name); !ok {
+				err := fmt.Errorf("invalid name after rewrite: %s", state.Req.Question[0].Name)
 				state.Req.Question[0] = wr.originalQuestion
-				return dns.RcodeServerFailure, fmt.Errorf("invalid name after rewrite: %s", x)
+				return dns.RcodeServerFailure, err
 			}
 			respRule := rule.GetResponseRule()
 			if respRule.Active {
