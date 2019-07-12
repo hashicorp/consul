@@ -1,9 +1,11 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 )
 
 type MeshGatewayMode string
@@ -79,6 +81,19 @@ type ConnectProxyConfig struct {
 
 	// MeshGateway defines the mesh gateway configuration for this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+}
+
+func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
+	type typeCopy ConnectProxyConfig
+	copy := typeCopy(*c)
+
+	proxyConfig, err := lib.MapWalk(copy.Config)
+	if err != nil {
+		return nil, err
+	}
+	copy.Config = proxyConfig
+
+	return json.Marshal(&copy)
 }
 
 // ToAPI returns the api struct with the same fields. We have duplicates to

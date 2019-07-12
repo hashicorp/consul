@@ -61,6 +61,7 @@ type cmd struct {
 	address            string
 	wanAddress         string
 	deregAfterCritical string
+	bindAddresses      map[string]string
 
 	meshGatewaySvcName string
 }
@@ -117,6 +118,10 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.wanAddress, "wan-address", "",
 		"WAN address to advertise in the Mesh Gateway service registration")
 
+	c.flags.Var((*flags.FlagMapValue)(&c.bindAddresses), "bind-address", "Bind "+
+		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
+		"pairs. This flag may be specified multiple times to add multiple bind addresses.")
+
 	c.flags.StringVar(&c.meshGatewaySvcName, "service", "mesh-gateway",
 		"Service name to use for the registration")
 
@@ -158,6 +163,31 @@ func parseAddress(addrStr string) (string, int, error) {
 	}
 
 	return addr, port, nil
+}
+
+func canBind(addr string) bool {
+	if addr == "" {
+		return false
+	}
+
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return false
+	}
+
+	ifAddrs, err := net.InterfaceAddrs()
+
+	if err != nil {
+		return false
+	}
+
+	for _, addr := range ifAddrs {
+		if addr.String() == ip.String() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *cmd) Run(args []string) int {
@@ -215,8 +245,10 @@ func (c *cmd) Run(args []string) int {
 			taggedAddrs["lan"] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
 		}
 
+		wanAddr := ""
+		wanPort := lanPort
 		if c.wanAddress != "" {
-			wanAddr, wanPort, err := parseAddress(c.wanAddress)
+			wanAddr, wanPort, err = parseAddress(c.wanAddress)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
 				return 1
@@ -233,13 +265,38 @@ func (c *cmd) Run(args []string) int {
 
 		var proxyConf *api.AgentServiceConnectProxyConfig
 
-		if lanAddr != "" {
+		if len(c.bindAddresses) > 0 {
+			// override all default binding rules and just bind to the user-supplied addresses
+			bindAddresses := make(map[string]api.ServiceAddress)
+
+			for addrName, addrStr := range c.bindAddresses {
+				addr, port, err := parseAddress(addrStr)
+				if err != nil {
+					c.UI.Error(fmt.Sprintf("Failed to parse the bind address: %s=%s: %v", addrName, addrStr, err))
+					return 1
+				}
+
+				bindAddresses[addrName] = api.ServiceAddress{Address: addr, Port: port}
+			}
+
+			proxyConf = &api.AgentServiceConnectProxyConfig{
+				Config: map[string]interface{}{
+					"envoy_mesh_gateway_no_default_bind": true,
+					"envoy_mesh_gateway_bind_addresses":  bindAddresses,
+				},
+			}
+		} else if canBind(lanAddr) && canBind(wanAddr) {
+			// when both addresses are bindable then we bind to the tagged addresses
+			// for creating the envoy listeners
 			proxyConf = &api.AgentServiceConnectProxyConfig{
 				Config: map[string]interface{}{
 					"envoy_mesh_gateway_no_default_bind":       true,
 					"envoy_mesh_gateway_bind_tagged_addresses": true,
 				},
 			}
+		} else if !canBind(lanAddr) && lanAddr != "" {
+			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr))
+			return 1
 		}
 
 		svc := api.AgentServiceRegistration{
