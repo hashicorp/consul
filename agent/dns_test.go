@@ -109,6 +109,21 @@ func TestRecursorAddr(t *testing.T) {
 	if addr != "8.8.8.8:53" {
 		t.Fatalf("bad: %v", addr)
 	}
+	addr, err = recursorAddr("2001:4860:4860::8888")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if addr != "[2001:4860:4860::8888]:53" {
+		t.Fatalf("bad: %v", addr)
+	}
+	addr, err = recursorAddr("1.2.3.4::53")
+	if err == nil || !strings.Contains(err.Error(), "too many colons in address") {
+		t.Fatalf("err: %v", err)
+	}
+	addr, err = recursorAddr("2001:4860:4860::8888:::53")
+	if err == nil || !strings.Contains(err.Error(), "too many colons in address") {
+		t.Fatalf("err: %v", err)
+	}
 }
 
 func TestEncodeKVasRFC1464(t *testing.T) {
