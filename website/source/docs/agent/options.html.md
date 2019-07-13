@@ -555,19 +555,19 @@ default will automatically work with some tooling.
      Time-To-Live caching of ACL policies. By default, this is 30 seconds. This setting has a
      major performance impact: reducing it will cause more frequent refreshes while increasing
      it reduces the number of refreshes. However, because the caches are not actively invalidated,
-     ACL policy may be stale up to the TTL value.
+     ACL policy may be stale up to the TTL value. This value needs to have the units as per the golang <a href="https://golang.org/pkg/time/#ParseDuration">time.ParseDuration</a> function, an example of 20 seconds would be "20s".
 
      * <a name="acl_role_ttl"></a><a href="#acl_role_ttl">`role_ttl`</a> - Used to control
      Time-To-Live caching of ACL roles. By default, this is 30 seconds. This setting has a
      major performance impact: reducing it will cause more frequent refreshes while increasing
      it reduces the number of refreshes. However, because the caches are not actively invalidated,
-     ACL role may be stale up to the TTL value.
+     ACL role may be stale up to the TTL value. This value needs to have the units as per the golang <a href="https://golang.org/pkg/time/#ParseDuration">time.ParseDuration</a> function, an example of 20 seconds would be "20s".
 
      * <a name="acl_token_ttl"></a><a href="#acl_token_ttl">`token_ttl`</a> - Used to control
      Time-To-Live caching of ACL tokens. By default, this is 30 seconds. This setting has a
      major performance impact: reducing it will cause more frequent refreshes while increasing
      it reduces the number of refreshes. However, because the caches are not actively invalidated,
-     ACL token may be stale up to the TTL value.
+     ACL token may be stale up to the TTL value. This value needs to have the units as per the golang <a href="https://golang.org/pkg/time/#ParseDuration">time.ParseDuration</a> function, an example of 20 seconds would be "20s".
 
      * <a name="acl_down_policy"></a><a href="#acl_down_policy">`down_policy`</a> - Either
      "allow", "deny", "extend-cache" or "async-cache"; "extend-cache" is the default. In the case that a
