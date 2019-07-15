@@ -39,8 +39,12 @@
     ]
   },
   "resolutions": {
-    "jquery": "^3.4.0",
-    "handlebars": "^4.1.2"
+    "handlebars": "^4.1.2",
+    "lodash": "^4.17.13",
+    "lodash.template": "^4.5.0",
+    "lodash.mergewith": "^4.6.2",
+    "lodash.defaultsdeep": "^4.6.1",
+    "jquery": "^3.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
