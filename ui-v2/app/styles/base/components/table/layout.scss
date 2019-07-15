@@ -27,10 +27,14 @@
   display: block;
 }
 %table td:not(.actions),
+%table td:not(.actions) > *:only-child {
+  overflow-x: hidden;
+}
 %table td:not(.actions) > * {
   white-space: nowrap;
+}
+%table td:not(.actions) > *:only-child {
   text-overflow: ellipsis;
-  overflow-x: hidden;
 }
 %table td {
   height: 50px;
