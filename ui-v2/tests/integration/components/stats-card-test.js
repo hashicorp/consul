@@ -9,26 +9,27 @@ test('it renders', function(assert) {
   // Set any properties with this.set('myProperty', 'value');
   // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{stats-card}}`);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
-
   // Template block usage:
   this.render(hbs`
     {{#stats-card}}
-      template block text
+      {{#block-slot 'icon'}}icon{{/block-slot}}
+      {{#block-slot 'mini-stat'}}mini-stat{{/block-slot}}
+      {{#block-slot 'header'}}header{{/block-slot}}
+      {{#block-slot 'body'}}body{{/block-slot}}
     {{/stats-card}}
   `);
-
-  assert.equal(
+  ['icon', 'mini-stat', 'header'].forEach(item => {
+    assert.ok(
+      this.$('header')
+        .text()
+        .trim()
+        .indexOf(item) !== -1
+    );
+  });
+  assert.ok(
     this.$()
       .text()
-      .trim(),
-    'template block text'
+      .trim()
+      .indexOf('body') !== -1
   );
 });
