@@ -14,9 +14,6 @@ import (
 func TestCompiledDiscoveryChain(t *testing.T) {
 	rpc := TestRPC(t)
 	typ := &CompiledDiscoveryChain{RPC: rpc}
-	// reqReal, ok := req.(*structs.DiscoveryChainRequest)
-	// var reply structs.DiscoveryChainResponse
-	// if err := c.RPC.RPC("ConfigEntry.ReadDiscoveryChain", reqReal, &reply); err != nil {
 
 	// just do the default chain
 	entries := structs.NewDiscoveryChainConfigEntries()
