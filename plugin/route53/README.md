@@ -49,7 +49,7 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
 
 ## Examples
 
-Enable route53 with implicit AWS credentials and and resolve CNAMEs via 10.0.0.1:
+Enable route53 with implicit AWS credentials and resolve CNAMEs via 10.0.0.1:
 
 ~~~ txt
 . {
