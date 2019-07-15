@@ -12,6 +12,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/route53/route53iface"
@@ -100,7 +102,9 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 				return c.Errf("unknown property '%s'", c.Val())
 			}
 		}
-		providers = append(providers, &credentials.EnvProvider{}, sharedProvider)
+		providers = append(providers, &credentials.EnvProvider{}, sharedProvider, &ec2rolecreds.EC2RoleProvider{
+			Client: ec2metadata.New(session.New(&aws.Config{})),
+		})
 		client := f(credentials.NewChainCredentials(providers))
 		ctx := context.Background()
 		h, err := New(ctx, client, keys, up)
