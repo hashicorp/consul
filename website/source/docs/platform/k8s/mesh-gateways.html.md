@@ -32,64 +32,7 @@ through to the correct services running in Kubernetes.
 Since gateways need to be accessed from other datacenters they will need to be exposed. The
 recommended way to do this is via a load balancer.
 
-### Prequisites
-The following conditions must be satisfied for gateways to work between Consul datacenters
-in Kubernetes:
-
-1. Both clusters are running Consul **v1.6.0-beta1** since gateways are a beta feature.
-    This can be set via the helm chart:
-    
-    ```yaml
-    global:
-      image: consul:1.6.0-beta1
-    ```
-1. Each cluster has a unique datacenter name, ex. `dc1` and `dc2`.
-    This can be set via the helm chart:
-    
-    ```yaml
-    global:
-      datacenter: dc2 # use dc1 in your other datacenter.
-    ``` 
-    
-1. The Consul datacenters are joined. This will require that all of the Consul server agents
-   in both datacenters have access to each other, and that they are
-   configured to join with the other datacenter. See our [Basic Datacenter Federation Guide](https://learn.hashicorp.com/consul/security-networking/datacenters) to learn how to join servers in different datacenters to each other with WAN gossip.
-1. The `primary_datacenter` setting is set to the same value in both Consul datacenters. This is required
-   for Connect requests to work across datacenters. This can be set via the helm chart:
-   
-    ```yaml
-    client:
-      extraConfig: |
-        {
-          "primary_datacenter": "dc1"
-        }
-    server:
-      extraConfig: |
-        {
-          "primary_datacenter": "dc1"
-        }
-    ```
-1. If using Kubernetes, Connect injection must be enabled. This can be set via the helm chart:
-
-    ```yaml
-    connectInject:
-      enabled: true
-    ```
-1. gRPC must be enabled. This can be set via the helm chart:
-
-    ```yaml
-    client:
-      grpc: true
-    ```
-1. If setting a global default [gateway mode](/docs/connect/mesh_gateway.html#modes-of-operation),
-   central config must be enabled for all agents so that they actually use the default mode.
-   This can be set via the helm chart:
-
-    ```yaml
-    connectInject:
-      centralConfig:
-       enabled: true
-    ```
+For information on the general architecture of mesh gateways see [Mesh Gateways](/docs/connect/mesh_gateway.html).
 
 ## Guide to Using Mesh Gateways To Connect Two Kubernetes Clusters
 This guide shows how to configure the consul-helm chart to set up gateways
@@ -97,8 +40,7 @@ that route Connect traffic between two Kubernetes clusters each running their
 own Consul datacenter.
 
 ### Prequisites
-The prerequisites [specified above](/docs/platform/k8s/mesh-gateways.html#prequisites)
-must be met.
+The prerequisites listed in the [main gateway docs](/docs/connect/mesh_gateway.html#prerequisites) must be met.
 
 ### Step 1 - Get v0.9.0-beta1
 Since Gateways are still in Beta, you'll need a specific consul-helm version.
