@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
@@ -403,14 +404,14 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						cache.UpdateEvent{
 							CorrelationID: "discovery-chain:api",
 							Result: &structs.DiscoveryChainResponse{
-								Chain: TestCompileConfigEntries(t, "api", "default", "dc1"),
+								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1"),
 							},
 							Err: nil,
 						},
 						cache.UpdateEvent{
 							CorrelationID: "discovery-chain:api",
 							Result: &structs.DiscoveryChainResponse{
-								Chain: TestCompileConfigEntries(t, "api-dc2", "default", "dc1",
+								Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "dc1",
 									&structs.ServiceResolverConfigEntry{
 										Kind: structs.ServiceResolver,
 										Name: "api-dc2",

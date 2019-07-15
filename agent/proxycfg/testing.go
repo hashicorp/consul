@@ -528,7 +528,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		entries = append(entries, additionalEntries...)
 	}
 
-	dbChain := TestCompileConfigEntries(t, "db", "default", "dc1", entries...)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", entries...)
 
 	dbTarget := structs.DiscoveryTarget{
 		Service:    "db",
@@ -642,28 +642,6 @@ func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 			},
 		},
 	}
-}
-
-func TestCompileConfigEntries(
-	t testing.T,
-	serviceName string,
-	currentNamespace string,
-	currentDatacenter string,
-	entries ...structs.ConfigEntry,
-) *structs.CompiledDiscoveryChain {
-	set := structs.NewDiscoveryChainConfigEntries()
-
-	set.AddEntries(entries...)
-
-	chain, err := discoverychain.Compile(discoverychain.CompileRequest{
-		ServiceName:       serviceName,
-		CurrentNamespace:  currentNamespace,
-		CurrentDatacenter: currentDatacenter,
-		InferDefaults:     true,
-		Entries:           set,
-	})
-	require.NoError(t, err)
-	return chain
 }
 
 // ControllableCacheType is a cache.Type that simulates a typical blocking RPC
