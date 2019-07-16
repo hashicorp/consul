@@ -186,13 +186,6 @@ func makeUpstreamRouteForDiscoveryChain(
 }
 
 func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, protocol string) envoyroute.RouteMatch {
-	switch protocol {
-	case "http", "http2":
-		// The only match stanza is HTTP.
-	default:
-		return makeDefaultRouteMatch()
-	}
-
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()

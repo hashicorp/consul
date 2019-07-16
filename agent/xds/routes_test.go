@@ -80,6 +80,32 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			setup: nil,
 		},
 		{
+			name: "connect-proxy-with-grpc-router",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+						},
+					},
+					&structs.ServiceRouterConfigEntry{
+						Kind: structs.ServiceRouter,
+						Name: "db",
+						Routes: []structs.ServiceRoute{
+							{
+								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+									PathExact: "/fgrpc.PingServer/Ping",
+								}),
+								Destination: toService("prefix"),
+							},
+						},
+					},
+				)
+			},
+		},
+		{
 			name: "connect-proxy-with-chain-and-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
