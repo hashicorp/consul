@@ -457,7 +457,7 @@ func (a *Agent) Start() error {
 	if err := a.loadProxies(c); err != nil {
 		return err
 	}
-	if err := a.loadChecks(c); err != nil {
+	if err := a.loadChecks(c, nil); err != nil {
 		return err
 	}
 	if err := a.loadMetadata(c); err != nil {
@@ -2109,10 +2109,10 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 	a.PauseSync()
 	defer a.ResumeSync()
 
-	// Take a snapshot of the current state of checks (if any), and
-	// restore them before resuming anti-entropy.
+	// Take a snapshot of the current state of checks (if any), and when adding
+	// a check that already existed carry over the state before resuming
+	// anti-entropy.
 	snap := a.snapshotCheckState()
-	defer a.restoreCheckState(snap)
 
 	var checks []*structs.HealthCheck
 
@@ -2141,6 +2141,13 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
+		}
+
+		// Restore the fields from the snapshot.
+		prev, ok := snap[check.CheckID]
+		if ok {
+			check.Output = prev.Output
+			check.Status = prev.Status
 		}
 
 		checks = append(checks, check)
@@ -3346,10 +3353,20 @@ func (a *Agent) unloadServices() error {
 
 // loadChecks loads check definitions and/or persisted check definitions from
 // disk and re-registers them with the local agent.
-func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
+func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[types.CheckID]*structs.HealthCheck) error {
 	// Register the checks from config
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
+
+		// Restore the fields from the snapshot.
+		if snap != nil {
+			prev, ok := snap[health.CheckID]
+			if ok {
+				health.Output = prev.Output
+				health.Status = prev.Status
+			}
+		}
+
 		chkType := check.CheckType()
 		if err := a.addCheckLocked(health, chkType, false, check.Token, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
@@ -3405,6 +3422,15 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 			// Default check to critical to avoid placing potentially unhealthy
 			// services into the active pool
 			p.Check.Status = api.HealthCritical
+
+			// Restore the fields from the snapshot.
+			if snap != nil {
+				prev, ok := snap[p.Check.CheckID]
+				if ok {
+					p.Check.Output = prev.Output
+					p.Check.Status = prev.Status
+				}
+			}
 
 			if err := a.addCheckLocked(p.Check, p.ChkType, false, p.Token, ConfigSourceLocal); err != nil {
 				// Purge the check if it is unable to be restored.
@@ -3634,15 +3660,6 @@ func (a *Agent) snapshotCheckState() map[types.CheckID]*structs.HealthCheck {
 	return a.State.Checks()
 }
 
-// restoreCheckState is used to reset the health state based on a snapshot.
-// This is done after we finish the reload to avoid any unnecessary flaps
-// in health state and potential session invalidations.
-func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
-	for id, check := range snap {
-		a.State.UpdateCheck(id, check.Status, check.Output)
-	}
-}
-
 // loadMetadata loads node metadata fields from the agent config and
 // updates them on the local agent.
 func (a *Agent) loadMetadata(conf *config.RuntimeConfig) error {
@@ -3765,9 +3782,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 
-	// Snapshot the current state, and restore it afterwards
+	// Snapshot the current state, and use that to initialize the checks when
+	// they are recreated.
 	snap := a.snapshotCheckState()
-	defer a.restoreCheckState(snap)
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
@@ -3798,7 +3815,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	if err := a.loadProxies(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading proxies: %s", err)
 	}
-	if err := a.loadChecks(newCfg); err != nil {
+	if err := a.loadChecks(newCfg, snap); err != nil {
 		return fmt.Errorf("Failed reloading checks: %s", err)
 	}
 	if err := a.loadMetadata(newCfg); err != nil {
