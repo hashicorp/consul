@@ -1,0 +1,9 @@
+{{yield}}
+<div class="stats-card">
+  <header>
+    {{#yield-slot 'mini-stat'}}{{yield}}{{/yield-slot}}
+    {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
+    {{#yield-slot 'icon'}}{{yield}}{{/yield-slot}}
+  </header>
+  {{#yield-slot 'body'}}{{yield}}{{/yield-slot}}
+</div>

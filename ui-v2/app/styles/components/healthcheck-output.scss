@@ -1,35 +1,41 @@
 @import './healthcheck-output/index';
-@import './icons/index';
 .healthcheck-output {
   @extend %healthcheck-output;
 }
-%healthcheck-output.passing {
-  @extend %with-passing;
+%healthcheck-output::before {
+  @extend %as-pseudo;
+  position: absolute;
+  width: 32px;
+  height: 32px;
 }
-%healthcheck-output.warning {
-  @extend %with-warning;
+%healthcheck-output.passing::before {
+  @extend %with-check-circle-fill-color-icon;
 }
-%healthcheck-output.critical {
-  @extend %with-critical;
+%healthcheck-output.warning::before {
+  @extend %with-alert-triangle-color-icon;
+}
+%healthcheck-output.critical::before {
+  @extend %with-cancel-square-fill-color-icon;
 }
 @media #{$--lt-spacious-healthcheck-output} {
   .healthcheck-output button.copy-btn {
-    margin-top: -11px;
-    margin-right: -18px;
+    margin-top: -2px;
+    margin-right: -10px;
     padding: 0;
+    min-width: 20px !important;
     width: 20px;
     visibility: hidden;
   }
   %healthcheck-output {
-    padding-left: 30px;
-    padding-top: 10px;
+    padding-left: 40px;
+    padding-top: 12px;
     padding-bottom: 15px;
     padding-right: 13px;
   }
   %healthcheck-output::before {
-    width: 15px !important;
-    height: 15px !important;
     left: 9px;
-    top: 13px !important;
+    top: 13px;
+    width: 24px;
+    height: 24px;
   }
 }
