@@ -20,11 +20,6 @@
 %modal-window > header {
   border-bottom-width: 1px;
 }
-%modal-window.warning > header {
-  /*TODO: warning isn't being used anywhere right now, but we should have modals */
-  /* with class="warning" so we can add an icon */
-  //text-indent: 20px;
-}
 
 %modal-window > header [for='modal_close'] {
   @extend %bg-icon;
