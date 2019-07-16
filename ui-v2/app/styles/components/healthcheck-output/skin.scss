@@ -27,9 +27,3 @@
   @extend %frame-red-500;
   color: $gray-900;
 }
-%healthcheck-output.passing::before {
-  background-color: $color-success !important;
-}
-%healthcheck-output.critical::before {
-  background-color: $color-danger !important;
-}
