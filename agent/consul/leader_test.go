@@ -68,13 +68,15 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Server should be registered
-	_, node, err := state.GetNode(s1.config.NodeName)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if node == nil {
-		t.Fatalf("server not registered")
-	}
+	retry.Run(t, func(r *retry.R) {
+		_, node, err := state.GetNode(s1.config.NodeName)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if node == nil {
+			r.Fatalf("server not registered")
+		}
+	})
 
 	// Service should be registered
 	_, services, err := state.NodeServices(nil, s1.config.NodeName)
