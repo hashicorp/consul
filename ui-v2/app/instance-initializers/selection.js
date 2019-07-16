@@ -5,7 +5,8 @@ const isSelecting = function(win = window) {
   const selection = win.getSelection();
   let selecting = false;
   try {
-    selecting = 'isCollapsed' in selection && !selection.isCollapsed;
+    selecting =
+      'isCollapsed' in selection && !selection.isCollapsed && selection.toString().length > 1;
   } catch (e) {
     // passthrough
   }
