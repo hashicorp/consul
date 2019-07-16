@@ -2,21 +2,20 @@
 %notice {
   margin-bottom: 1em;
 }
-/* These need replacing with new icons */
-%notice-success {
-  @extend %with-passing;
+%notice-success::before {
+  @extend %with-check-circle-fill-color-icon;
 }
-%notice-info {
-  @extend %with-passing; /* needs a better info button*/
+%notice-info::before {
+  @extend %with-info-circle-fill-color-icon;
 }
-%notice-highlight {
-  @extend %with-star;
+%notice-highlight::before {
+  @extend %with-star-icon;
 }
-%notice-warning {
-  @extend %with-warning;
+%notice-warning::before {
+  @extend %with-alert-triangle-color-icon;
 }
-%notice-error {
-  @extend %with-critical;
+%notice-error::before {
+  @extend %with-cancel-square-fill-color-icon;
 }
 /**/
 .notice.warning {
