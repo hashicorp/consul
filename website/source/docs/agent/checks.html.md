@@ -42,10 +42,11 @@ There are several different kinds of checks:
   blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
   for more details.
 
-* HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
-  every 30 seconds) to the specified URL. The status of the service depends on
-  the HTTP response code: any `2xx` code is considered passing, a `429 Too Many
-  Requests` is a warning, and anything else is a failure. This type of check
+* HTTP + Interval - These checks make an HTTP `GET` request to the specified URL,
+  waiting the specified Interval amount of time (eg. 30 seconds) between requests.
+  The status of the service depends on the HTTP response code: any `2xx` code is 
+  considered passing, a `429 Too ManyRequests` is a warning, and anything else is
+  a failure. This type of check
   should be preferred over a script that uses `curl` or another external process
   to check a simple HTTP operation. By default, HTTP checks are `GET` requests
   unless the `method` field specifies a different method. Additional header
@@ -59,8 +60,9 @@ There are several different kinds of checks:
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
 
-* TCP + Interval - These checks make a TCP connection attempt every Interval
-  (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname
+* TCP + Interval - These checks make a TCP connection attempt to the specified 
+  IP/hostname and port, waiting Interval amount of time (e.g. 30 seconds) 
+  between attempts. If no hostname
   is specified, it defaults to "localhost". The status of the service depends on
   whether the connection attempt is successful (ie - the port is currently
   accepting connections). If the connection is accepted, the status is
@@ -106,8 +108,9 @@ There are several different kinds of checks:
 
 * gRPC + Interval - These checks are intended for applications that support the standard
   [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-  The state of the check will be updated at the given interval by probing the configured
-  endpoint. By default, gRPC checks will be configured with a default timeout of 10 seconds.
+  The state of the check will be updated by probing the configured endpoint, waiting Interval
+  amount of time (eg. 30 seconds) between probes. By default, gRPC checks will be configured 
+  with a default timeout of 10 seconds.
   It is possible to configure a custom timeout value by specifying the `timeout` field in
   the check definition. gRPC checks will default to not using TLS, but TLS can be enabled by
   setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid

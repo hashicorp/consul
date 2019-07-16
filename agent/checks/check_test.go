@@ -358,8 +358,23 @@ func TestCheckHTTPTCP_BigTimeout(t *testing.T) {
 			timeoutWant: 10 * time.Second,
 		},
 		{
+			timeoutIn:   10 * time.Second,
+			intervalIn:  30 * time.Second,
+			timeoutWant: 10 * time.Second,
+		},
+		{
+			timeoutIn:   9 * time.Second,
+			intervalIn:  30 * time.Second,
+			timeoutWant: 9 * time.Second,
+		},
+		{
 			timeoutIn:   -1 * time.Second,
 			intervalIn:  10 * time.Second,
+			timeoutWant: 10 * time.Second,
+		},
+		{
+			timeoutIn:   0 * time.Second,
+			intervalIn:  5 * time.Second,
 			timeoutWant: 10 * time.Second,
 		},
 	}
