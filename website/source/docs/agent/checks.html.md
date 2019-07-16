@@ -43,7 +43,7 @@ There are several different kinds of checks:
   for more details.
 
 * HTTP + Interval - These checks make an HTTP `GET` request to the specified URL,
-  waiting the specified Interval amount of time (eg. 30 seconds) between requests.
+  waiting the specified `interval` amount of time between requests (eg. 30 seconds).
   The status of the service depends on the HTTP response code: any `2xx` code is 
   considered passing, a `429 Too ManyRequests` is a warning, and anything else is
   a failure. This type of check
@@ -61,8 +61,8 @@ There are several different kinds of checks:
   field to `true` in the check definition.
 
 * TCP + Interval - These checks make a TCP connection attempt to the specified 
-  IP/hostname and port, waiting Interval amount of time (e.g. 30 seconds) 
-  between attempts. If no hostname
+  IP/hostname and port, waiting `interval` amount of time between attempts 
+  (e.g. 30 seconds). If no hostname
   is specified, it defaults to "localhost". The status of the service depends on
   whether the connection attempt is successful (ie - the port is currently
   accepting connections). If the connection is accepted, the status is
@@ -108,8 +108,8 @@ There are several different kinds of checks:
 
 * gRPC + Interval - These checks are intended for applications that support the standard
   [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-  The state of the check will be updated by probing the configured endpoint, waiting Interval
-  amount of time (eg. 30 seconds) between probes. By default, gRPC checks will be configured 
+  The state of the check will be updated by probing the configured endpoint, waiting `interval`
+  amount of time between probes (eg. 30 seconds). By default, gRPC checks will be configured 
   with a default timeout of 10 seconds.
   It is possible to configure a custom timeout value by specifying the `timeout` field in
   the check definition. gRPC checks will default to not using TLS, but TLS can be enabled by
