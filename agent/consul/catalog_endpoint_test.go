@@ -1049,7 +1049,7 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		found := false

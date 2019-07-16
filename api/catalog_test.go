@@ -342,10 +342,10 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Service("foo", "bar", nil)
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.Len(t, services, 1)
-		require.Equal(t, services[0].ServiceID, "foo1")
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].ServiceID, "foo1")
 	})
 }
 
@@ -380,23 +380,23 @@ func TestAPI_CatalogService_MultipleTags(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar"}, nil)
 
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
 
 		// Should be 2 services with the `bar` tag
-		require.Len(t, services, 2)
+		require.Len(r, services, 2)
 	})
 
 	// Test searching with two tags (one result)
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.ServiceMultipleTags("foo", []string{"bar", "v2"}, nil)
 
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
 
 		// Should be exactly 1 service, named "foo2"
-		require.Len(t, services, 1)
-		require.Equal(t, services[0].ServiceID, "foo2")
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].ServiceID, "foo2")
 	})
 }
 
