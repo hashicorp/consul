@@ -64,6 +64,9 @@ module.exports = function(environment) {
       }
       return 'oss';
     })(),
+    CONSUL_HOME_URL: 'https://www.consul.io',
+    CONSUL_LEARN_URL: 'https://learn.hashicorp.com/consul',
+    CONSUL_API_URL: 'https://www.consul.io/api',
     CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2019',
