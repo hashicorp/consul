@@ -20,10 +20,6 @@
 %modal-window > header {
   border-bottom-width: 1px;
 }
-%modal-window.warning > header {
-  @extend %with-warning;
-  text-indent: 20px;
-}
 
 %modal-window > header [for='modal_close'] {
   @extend %bg-icon;
