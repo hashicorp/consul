@@ -26,20 +26,24 @@ type Logger struct {
 // ServeDNS implements the plugin.Handler interface.
 func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
+	name := state.Name()
 	for _, rule := range l.Rules {
-		if !plugin.Name(rule.NameScope).Matches(state.Name()) {
+		if !plugin.Name(rule.NameScope).Matches(name) {
 			continue
 		}
 
 		rrw := dnstest.NewRecorder(w)
 		rc, err := plugin.NextOrFailure(l.Name(), l.Next, ctx, rrw, r)
 
-		tpe, _ := response.Typify(rrw.Msg, time.Now().UTC())
-		class := response.Classify(tpe)
 		// If we don't set up a class in config, the default "all" will be added
 		// and we shouldn't have an empty rule.Class.
 		_, ok := rule.Class[response.All]
-		_, ok1 := rule.Class[class]
+		var ok1 bool
+		if !ok {
+			tpe, _ := response.Typify(rrw.Msg, time.Now().UTC())
+			class := response.Classify(tpe)
+			_, ok1 = rule.Class[class]
+		}
 		if ok || ok1 {
 			logstr := l.repl.Replace(ctx, state, rrw, rule.Format)
 			clog.Infof(logstr)
