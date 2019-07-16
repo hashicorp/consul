@@ -453,11 +453,7 @@ workflows:
   version: 2
   build-distros:
     jobs:
-      - lint-consul-retry:
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only run link checker on non forks
+      - lint-consul-retry
       - go-fmt-and-vet:
           requires:
             - lint-consul-retry
