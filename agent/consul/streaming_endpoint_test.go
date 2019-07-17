@@ -112,7 +112,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 					strings.Contains(err.Error(), "context canceled") {
 					break
 				}
-				t.Fatal(err)
+				t.Log(err)
 			}
 			eventCh <- event
 		}

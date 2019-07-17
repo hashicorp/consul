@@ -82,6 +82,7 @@ func TestRegistrationEvents(t *testing.T) {
 				Id:      string(nodeID),
 				Address: "1.2.3.4",
 				Service: "api",
+				Port:    8080,
 				Checks: []*stream.HealthCheck{
 					{
 						Name:    "node check",
@@ -106,6 +107,7 @@ func TestRegistrationEvents(t *testing.T) {
 				Id:      string(nodeID),
 				Address: "1.2.3.4",
 				Service: "redis",
+				Port:    8080,
 				Checks: []*stream.HealthCheck{
 					{
 						Name:    "node check",
@@ -134,7 +136,7 @@ func TestRegistrationEvents(t *testing.T) {
 	// Check the output for all the services on node1.
 	{
 		tx := s.db.Txn(false)
-		events, err := s.RegistrationEvents(tx, "node1", "")
+		events, err := s.RegistrationEvents(tx, 2, "node1", "")
 		require.NoError(err)
 		require.Equal(expected, events)
 		tx.Abort()
@@ -170,7 +172,7 @@ func TestRegistrationEvents(t *testing.T) {
 	expected[1].Index = 3
 	{
 		tx := s.db.Txn(false)
-		events, err := s.RegistrationEvents(tx, "node1", "")
+		events, err := s.RegistrationEvents(tx, 3, "node1", "")
 		require.NoError(err)
 		require.Equal(expected, events)
 		tx.Abort()

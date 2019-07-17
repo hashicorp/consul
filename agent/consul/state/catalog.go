@@ -278,7 +278,7 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 	if req.Service != nil {
 		service = req.Service.Service
 	}
-	events, err := s.RegistrationEvents(tx, req.Node, service)
+	events, err := s.RegistrationEvents(tx, idx, req.Node, service)
 	if err != nil {
 		return err
 	}

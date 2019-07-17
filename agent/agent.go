@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/stream"
+
 	"google.golang.org/grpc"
 
 	metrics "github.com/armon/go-metrics"
@@ -100,6 +102,7 @@ type delegate interface {
 	RemoveFailedNode(node string) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
+	GRPCConn() (*grpc.ClientConn, error)
 	ACLsEnabled() bool
 	UseLegacyACLs() bool
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
@@ -261,6 +264,9 @@ type Agent struct {
 	// grpcServer is the server instance used currently to serve xDS API for
 	// Envoy.
 	grpcServer *grpc.Server
+
+	// streamClient is the client to use for streaming gRPC endpoints.
+	streamClient stream.ConsulClient
 
 	// tlsConfigurator is the central instance to provide a *tls.Config
 	// based on the current consul configuration.
@@ -430,6 +436,14 @@ func (a *Agent) Start() error {
 	// and that should be hidden in the state syncer implementation.
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
+
+	// Set up the gRPC client for the cache.
+	conn, err := a.delegate.GRPCConn()
+	if err != nil {
+		return err
+	}
+
+	a.streamClient = stream.NewConsulClient(conn)
 
 	// Register the cache. We do this much later so the delegate is
 	// populated from above.
@@ -3904,14 +3918,14 @@ func (a *Agent) registerCache() {
 		RefreshTimeout: 10 * time.Minute,
 	})
 
-	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
-		RPC: a,
-	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	a.cache.RegisterType(cachetype.StreamingHealthServicesName,
+		cachetype.NewStreamingHealthServices(a.streamClient),
+		&cache.RegisterOptions{
+			// Maintain a blocking query, retry dropped connections quickly
+			Refresh:        true,
+			RefreshTimer:   0 * time.Second,
+			RefreshTimeout: 10 * time.Minute,
+		})
 
 	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{
 		RPC: a,
@@ -3932,8 +3946,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{
 		RPC: a,
 	}, &cache.RegisterOptions{
-		// Maintain a blocking query, retry dropped connections quickly
-		Refresh:        true,
+		Refresh:        false,
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})

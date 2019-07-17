@@ -163,8 +163,8 @@ type Server struct {
 	tokens *token.Store
 
 	// Connection pool to other consul servers
-	connPool   *pool.ConnPool
-	grpcClient *GRPCClient
+	connPool *pool.ConnPool
+	grpcConn *grpc.ClientConn
 
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
@@ -826,6 +826,15 @@ func (s *Server) setupGRPC() error {
 
 	go srv.Serve(lis)
 	s.GRPCListener = lis
+
+	// Set up a local gRPC connection.
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithDialer(dialGRPC), grpc.WithDisableRetry())
+	if err != nil {
+		return err
+	}
+
+	s.grpcConn = conn
+
 	return nil
 }
 
@@ -1190,6 +1199,11 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 		}
 	}
 	return nil
+}
+
+// GRPCConn returns a gRPC connection to a server.
+func (s *Server) GRPCConn() (*grpc.ClientConn, error) {
+	return s.grpcConn, nil
 }
 
 // RegisterEndpoint is used to substitute an endpoint for testing.
