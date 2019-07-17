@@ -470,8 +470,8 @@ workflows:
             - dev-build
           filters:
             branches:
-              only:
-                - /^bug\/flaky-test-.*$/ # only run go tests on bug/flaky-test-* for now since we are fixing tests
+              ignore:
+                - /^pull\/.*$/ # only run link checker on non forks
       - go-test-api: *go-test
       - dev-upload-s3:
           requires:
