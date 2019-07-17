@@ -123,6 +123,38 @@
             {
               "match": {
                 "prefix": "/",
+                "headers": [
+                  {
+                    "name": ":method",
+                    "regexMatch": "GET|PUT"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "just-methods.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "headers": [
+                  {
+                    "name": "x-debug",
+                    "exactMatch": "exact"
+                  },
+                  {
+                    "name": ":method",
+                    "regexMatch": "GET|PUT"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "hdr-exact-with-method.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
                 "queryParameters": [
                   {
                     "name": "secretparam1",

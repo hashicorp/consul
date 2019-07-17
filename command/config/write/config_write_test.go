@@ -262,6 +262,7 @@ func TestParseConfigEntry(t *testing.T) {
 						match {
 							http {
 								path_prefix = "/foo"
+								methods = [ "GET", "DELETE" ]
 								query_param = [
 									{
 										name = "hack1"
@@ -340,6 +341,7 @@ func TestParseConfigEntry(t *testing.T) {
 						Match {
 							HTTP {
 								PathPrefix = "/foo"
+								Methods = [ "GET", "DELETE" ]
 								QueryParam = [
 									{
 										Name = "hack1"
@@ -418,6 +420,7 @@ func TestParseConfigEntry(t *testing.T) {
 						Match: &api.ServiceRouteMatch{
 							HTTP: &api.ServiceRouteHTTPMatch{
 								PathPrefix: "/foo",
+								Methods:    []string{"GET", "DELETE"},
 								QueryParam: []api.ServiceRouteHTTPMatchQueryParam{
 									{
 										Name:    "hack1",

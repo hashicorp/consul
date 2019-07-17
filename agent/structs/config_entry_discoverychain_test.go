@@ -1099,6 +1099,28 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			}),
 			validateErr: "cannot make use of PrefixRewrite without configuring either PathExact or PathPrefix",
 		},
+		////////////////
+		{
+			name: "route with method matches",
+			entry: makerouter(routeMatch(httpMatch(&ServiceRouteHTTPMatch{
+				Methods: []string{
+					"get", "POST", "dElEtE",
+				},
+			}))),
+			check: func(t *testing.T, entry *ServiceRouterConfigEntry) {
+				m := entry.Routes[0].Match.HTTP.Methods
+				require.Equal(t, []string{"GET", "POST", "DELETE"}, m)
+			},
+		},
+		{
+			name: "route with method matches repeated",
+			entry: makerouter(routeMatch(httpMatch(&ServiceRouteHTTPMatch{
+				Methods: []string{
+					"GET", "DELETE", "get",
+				},
+			}))),
+			validateErr: "Methods contains \"GET\" more than once",
+		},
 	}
 
 	for _, tc := range cases {
