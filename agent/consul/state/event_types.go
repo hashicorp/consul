@@ -23,9 +23,7 @@ func (s *Store) ServiceHealthSnapshot(ctx context.Context, eventCh chan stream.E
 
 // RegistrationEvents returns stream.Events that correspond to a catalog
 // register operation.
-func (s *Store) RegistrationEvents(tx *memdb.Txn, node, service string) ([]stream.Event, error) {
-	idx := maxIndexTxn(tx, "nodes", "services")
-
+func (s *Store) RegistrationEvents(tx *memdb.Txn, idx uint64, node, service string) ([]stream.Event, error) {
 	_, services, err := s.nodeServicesTxn(tx, nil, node, service, false)
 	if err != nil {
 		return nil, err
@@ -59,6 +57,7 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 		if n.Service != nil {
 			event.Key = n.Service.Service
 			event.ServiceHealth.Service = n.Service.Service
+			event.ServiceHealth.Port = int32(n.Service.Port)
 		}
 		for _, check := range n.Checks {
 			event.ServiceHealth.Checks = append(event.ServiceHealth.Checks, &stream.HealthCheck{
