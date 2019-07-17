@@ -187,7 +187,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	defer setMeta(resp, &out.QueryMeta)
 
 	if args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(cachetype.HealthServicesName, &args)
+		raw, m, err := s.agent.cache.Get(cachetype.StreamingHealthServicesName, &args)
 		if err != nil {
 			return nil, err
 		}

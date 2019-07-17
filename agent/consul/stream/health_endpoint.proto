@@ -20,6 +20,7 @@ message Event {
     string key = 2;
     uint64 index = 3;
     ServiceHealthUpdate serviceHealth = 4;
+    bool endOfSnapshot = 5;
 }
 
 enum CatalogOp {
