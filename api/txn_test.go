@@ -1,19 +1,18 @@
 package api
 
 import (
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-uuid"
 
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_ClientTxn(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -24,7 +23,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 
 	// Set up a test service and health check.
 	nodeID, err := uuid.GenerateUUID()
-	require.NoError(err)
+	require.NoError(t, err)
 
 	catalog := c.Catalog()
 	reg := &CatalogRegistration{
@@ -59,11 +58,11 @@ func TestAPI_ClientTxn(t *testing.T) {
 		},
 	}
 	_, err = catalog.Register(reg, nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	node, _, err := catalog.Node("foo", nil)
-	require.NoError(err)
-	require.Equal(nodeID, node.Node.ID)
+	require.NoError(t, err)
+	require.Equal(t, nodeID, node.Node.ID)
 
 	// Make a session.
 	id, _, err := session.CreateNoChecks(nil, nil)
@@ -218,58 +217,60 @@ func TestAPI_ClientTxn(t *testing.T) {
 			},
 		},
 	}
-	verify.Values(t, "", ret.Results, expected)
+	require.Equal(t, ret.Results, expected)
 
-	// Run a read-only transaction.
-	ops = TxnOps{
-		&TxnOp{
-			KV: &KVTxnOp{
-				Verb: KVGet,
-				Key:  key,
-			},
-		},
-		&TxnOp{
-			Node: &NodeTxnOp{
-				Verb: NodeGet,
-				Node: Node{ID: s.Config.NodeID, Node: s.Config.NodeName},
-			},
-		},
-	}
-	ok, ret, _, err = txn.Txn(ops, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	} else if !ok {
-		t.Fatalf("transaction failure")
-	}
-
-	expected = TxnResults{
-		&TxnResult{
-			KV: &KVPair{
-				Key:         key,
-				Session:     id,
-				Value:       []byte("test"),
-				LockIndex:   1,
-				CreateIndex: ret.Results[0].KV.CreateIndex,
-				ModifyIndex: ret.Results[0].KV.ModifyIndex,
-			},
-		},
-		&TxnResult{
-			Node: &Node{
-				ID:         s.Config.NodeID,
-				Node:       s.Config.NodeName,
-				Address:    "127.0.0.1",
-				Datacenter: "dc1",
-				TaggedAddresses: map[string]string{
-					"lan": s.Config.Bind,
-					"wan": s.Config.Bind,
+	retry.Run(t, func(r *retry.R) {
+		// Run a read-only transaction.
+		ops = TxnOps{
+			&TxnOp{
+				KV: &KVTxnOp{
+					Verb: KVGet,
+					Key:  key,
 				},
-				Meta:        map[string]string{"consul-network-segment": ""},
-				CreateIndex: ret.Results[1].Node.CreateIndex,
-				ModifyIndex: ret.Results[1].Node.ModifyIndex,
 			},
-		},
-	}
-	verify.Values(t, "", ret.Results, expected)
+			&TxnOp{
+				Node: &NodeTxnOp{
+					Verb: NodeGet,
+					Node: Node{ID: s.Config.NodeID, Node: s.Config.NodeName},
+				},
+			},
+		}
+		ok, ret, _, err = txn.Txn(ops, nil)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		} else if !ok {
+			r.Fatalf("transaction failure")
+		}
+
+		expected = TxnResults{
+			&TxnResult{
+				KV: &KVPair{
+					Key:         key,
+					Session:     id,
+					Value:       []byte("test"),
+					LockIndex:   1,
+					CreateIndex: ret.Results[0].KV.CreateIndex,
+					ModifyIndex: ret.Results[0].KV.ModifyIndex,
+				},
+			},
+			&TxnResult{
+				Node: &Node{
+					ID:         s.Config.NodeID,
+					Node:       s.Config.NodeName,
+					Address:    "127.0.0.1",
+					Datacenter: "dc1",
+					TaggedAddresses: map[string]string{
+						"lan": s.Config.Bind,
+						"wan": s.Config.Bind,
+					},
+					Meta:        map[string]string{"consul-network-segment": ""},
+					CreateIndex: ret.Results[1].Node.CreateIndex,
+					ModifyIndex: ret.Results[1].Node.ModifyIndex,
+				},
+			},
+		}
+		require.Equal(r, ret.Results, expected)
+	})
 
 	// Sanity check using the regular GET API.
 	kv := c.KV()
