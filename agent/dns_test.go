@@ -4331,6 +4331,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 }
 
 func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                string
 		aRecordLimit        int
@@ -4398,6 +4399,7 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 		}
 		// No limits but the size of records for SRV records, since not subject to randomization issues
 		t.Run("SRV lookup limitARecord", func(t *testing.T) {
+			t.Parallel()
 			err := checkDNSService(t, test.expectedSRVResults, test.aRecordLimit, dns.TypeSRV, test.numNodesTotal, test.udpSize, test.udpAnswerLimit)
 			if err != nil {
 				t.Fatalf("Expected service SRV lookup %s to pass: %v", test.name, err)
