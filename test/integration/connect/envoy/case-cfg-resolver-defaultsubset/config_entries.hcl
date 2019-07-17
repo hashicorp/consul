@@ -6,7 +6,7 @@ config_entries {
     name = "global"
 
     config {
-      "protocol" = "http"
+      protocol = "http"
     }
   }
 
