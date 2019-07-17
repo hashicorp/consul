@@ -3,8 +3,10 @@ package structs
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -54,11 +56,7 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		return fmt.Errorf("config entry is nil")
 	}
 
-	// TODO(rb): trim spaces
-
 	e.Kind = ServiceRouter
-
-	// TODO(rb): anything to normalize?
 
 	return nil
 }
@@ -68,78 +66,70 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 		return fmt.Errorf("Name is required")
 	}
 
-	// TODO(rb): enforce corresponding service has protocol=http
-
-	// TODO(rb): actually you can only define the HTTP section if protocol=http{,2}
-
-	// TODO(rb): validate the entire compiled chain? how?
-
-	// TODO(rb): validate more
-
 	// Technically you can have no explicit routes at all where just the
 	// catch-all is configured for you, but at that point maybe you should just
 	// delete it so it will default?
 
 	for i, route := range e.Routes {
-		if route.Match == nil || route.Match.HTTP == nil {
-			continue
-		}
+		eligibleForPrefixRewrite := false
+		if route.Match != nil && route.Match.HTTP != nil {
+			pathParts := 0
+			if route.Match.HTTP.PathExact != "" {
+				eligibleForPrefixRewrite = true
+				pathParts++
+				if !strings.HasPrefix(route.Match.HTTP.PathExact, "/") {
+					return fmt.Errorf("Route[%d] PathExact doesn't start with '/': %q", i, route.Match.HTTP.PathExact)
+				}
+			}
+			if route.Match.HTTP.PathPrefix != "" {
+				eligibleForPrefixRewrite = true
+				pathParts++
+				if !strings.HasPrefix(route.Match.HTTP.PathPrefix, "/") {
+					return fmt.Errorf("Route[%d] PathPrefix doesn't start with '/': %q", i, route.Match.HTTP.PathPrefix)
+				}
+			}
+			if route.Match.HTTP.PathRegex != "" {
+				pathParts++
+			}
+			if pathParts > 1 {
+				return fmt.Errorf("Route[%d] should only contain at most one of PathExact, PathPrefix, or PathRegex", i)
+			}
 
-		pathParts := 0
-		if route.Match.HTTP.PathExact != "" {
-			pathParts++
-		}
-		if route.Match.HTTP.PathPrefix != "" {
-			pathParts++
-		}
-		if route.Match.HTTP.PathRegex != "" {
-			pathParts++
-		}
-		if pathParts > 1 {
-			return fmt.Errorf("Route[%d] should only contain at most one of PathExact, PathPrefix, or PathRegex", i)
-		}
+			for j, hdr := range route.Match.HTTP.Header {
+				if hdr.Name == "" {
+					return fmt.Errorf("Route[%d] Header[%d] missing required Name field", i, j)
+				}
+				hdrParts := 0
+				if hdr.Present {
+					hdrParts++
+				}
+				if hdr.Exact != "" {
+					hdrParts++
+				}
+				if hdr.Regex != "" {
+					hdrParts++
+				}
+				if hdr.Prefix != "" {
+					hdrParts++
+				}
+				if hdr.Suffix != "" {
+					hdrParts++
+				}
+				// "absent" is the bare invert=true
+				if (hdrParts == 0 && !hdr.Invert) || (hdrParts > 1) {
+					return fmt.Errorf("Route[%d] Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex (or just Invert)", i, j)
+				}
+			}
 
-		// TODO(rb): do some validation of PathExact and PathPrefix
-
-		for j, hdr := range route.Match.HTTP.Header {
-			if hdr.Name == "" {
-				return fmt.Errorf("Route[%d] Header[%d] missing required Name field", i, j)
+			for j, qm := range route.Match.HTTP.QueryParam {
+				if qm.Name == "" {
+					return fmt.Errorf("Route[%d] QueryParam[%d] missing required Name field", i, j)
+				}
 			}
-			hdrParts := 0
-			if hdr.Present {
-				hdrParts++
-			}
-			if hdr.Exact != "" {
-				hdrParts++
-			}
-			if hdr.Regex != "" {
-				hdrParts++
-			}
-			if hdr.Prefix != "" {
-				hdrParts++
-			}
-			if hdr.Suffix != "" {
-				hdrParts++
-			}
-			// "absent" is the bare invert=true
-			if (hdrParts == 0 && !hdr.Invert) || (hdrParts > 1) {
-				return fmt.Errorf("Route[%d] Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex (or just Invert)", i, j)
-			}
-		}
-
-		for j, qm := range route.Match.HTTP.QueryParam {
-			if qm.Name == "" {
-				return fmt.Errorf("Route[%d] QueryParam[%d] missing required Name field", i, j)
-			}
-		}
-
-		ineligibleForPrefixRewrite := false
-		if route.Match.HTTP.PathRegex != "" {
-			ineligibleForPrefixRewrite = true
 		}
 
 		if route.Destination != nil {
-			if route.Destination.PrefixRewrite != "" && ineligibleForPrefixRewrite {
+			if route.Destination.PrefixRewrite != "" && !eligibleForPrefixRewrite {
 				return fmt.Errorf("Route[%d] cannot make use of PrefixRewrite without configuring either PathExact or PathPrefix", i)
 			}
 		}
@@ -174,6 +164,10 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []string {
 		if route.Destination != nil && route.Destination.Service != "" {
 			found[route.Destination.Service] = struct{}{}
 		}
+	}
+
+	if len(found) == 0 {
+		return nil
 	}
 
 	out := make([]string, 0, len(found))
@@ -336,7 +330,6 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
-	// TODO(rb): trim spaces
 
 	e.Kind = ServiceSplitter
 
@@ -398,10 +391,6 @@ func (e *ServiceSplitterConfigEntry) Validate() error {
 		return fmt.Errorf("the sum of all split weights must be 100, not %f", float32(sumScaled)/100)
 	}
 
-	// TODO(rb): enforce corresponding service has protocol=http
-
-	// TODO(rb): validate the entire compiled chain? how?
-
 	return nil
 }
 
@@ -436,6 +425,10 @@ func (e *ServiceSplitterConfigEntry) ListRelatedServices() []string {
 		if split.Service != "" {
 			found[split.Service] = struct{}{}
 		}
+	}
+
+	if len(found) == 0 {
+		return nil
 	}
 
 	out := make([]string, 0, len(found))
@@ -568,11 +561,8 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
-	// TODO(rb): trim spaces
 
 	e.Kind = ServiceResolver
-
-	// TODO(rb): anything to normalize?
 
 	return nil
 }
@@ -586,6 +576,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		for name, _ := range e.Subsets {
 			if name == "" {
 				return fmt.Errorf("Subset defined with empty name")
+			}
+			if err := validateServiceSubset(name); err != nil {
+				return fmt.Errorf("Subset %q is invalid: %v", name, err)
 			}
 		}
 	}
@@ -623,12 +616,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				return fmt.Errorf("Redirect.Namespace defined without Redirect.Service")
 			}
 		} else if r.Service == e.Name {
-			// TODO(rb): prevent self loops?
 			if r.ServiceSubset != "" && !isSubset(r.ServiceSubset) {
 				return fmt.Errorf("Redirect.ServiceSubset %q is not a valid subset of %q", r.ServiceSubset, r.Service)
 			}
-		} else {
-			// TODO(rb): handle validating subsets for other services
 		}
 	}
 
@@ -647,16 +637,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 					if !isSubset(f.ServiceSubset) {
 						return fmt.Errorf("Bad Failover[%q].ServiceSubset %q is not a valid subset of %q", subset, f.ServiceSubset, f.Service)
 					}
-				} else {
-					// TODO(rb): handle validating subsets for other services
 				}
 			}
 
 			if f.OverprovisioningFactor < 0 {
 				return fmt.Errorf("Bad Failover[%q].OverprovisioningFactor '%d', must be >= 0", subset, f.OverprovisioningFactor)
 			}
-
-			// TODO(rb): more extensive validation will require graph traversal
 
 			for _, dc := range f.Datacenters {
 				if dc == "" {
@@ -669,10 +655,6 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	if e.ConnectTimeout < 0 {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
 	}
-
-	// TODO(rb): validate the entire compiled chain? how?
-
-	// TODO(rb): validate more
 
 	return nil
 }
@@ -708,6 +690,10 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []string {
 				found[failover.Service] = struct{}{}
 			}
 		}
+	}
+
+	if len(found) == 0 {
+		return nil
 	}
 
 	out := make([]string, 0, len(found))
@@ -1017,4 +1003,22 @@ func (e *ConfigEntryGraphError) Error() string {
 		return e.Err.Error()
 	}
 	return e.Message
+}
+
+var (
+	validServiceSubset     = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+	serviceSubsetMaxLength = 63
+)
+
+// validateServiceSubset checks if the provided name can be used as an service
+// subset. Because these are used in SNI headers they must a DNS label per
+// RFC-1035/RFC-1123.
+func validateServiceSubset(subset string) error {
+	if subset == "" || len(subset) > serviceSubsetMaxLength {
+		return fmt.Errorf("must be non-empty and 63 characters or fewer")
+	}
+	if !validServiceSubset.MatchString(subset) {
+		return fmt.Errorf("must be 63 characters or fewer, begin or end with lower case alphanumeric characters, and contain lower case alphanumeric characters or '-' in between")
+	}
+	return nil
 }
