@@ -3359,12 +3359,9 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[types.CheckID]*s
 		health := check.HealthCheck(conf.NodeName)
 
 		// Restore the fields from the snapshot.
-		if snap != nil {
-			prev, ok := snap[health.CheckID]
-			if ok {
-				health.Output = prev.Output
-				health.Status = prev.Status
-			}
+		if prev, ok := snap[health.CheckID]; ok {
+			health.Output = prev.Output
+			health.Status = prev.Status
 		}
 
 		chkType := check.CheckType()
@@ -3424,12 +3421,9 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[types.CheckID]*s
 			p.Check.Status = api.HealthCritical
 
 			// Restore the fields from the snapshot.
-			if snap != nil {
-				prev, ok := snap[p.Check.CheckID]
-				if ok {
-					p.Check.Output = prev.Output
-					p.Check.Status = prev.Status
-				}
+			if prev, ok := snap[p.Check.CheckID]; ok {
+				p.Check.Output = prev.Output
+				p.Check.Status = prev.Status
 			}
 
 			if err := a.addCheckLocked(p.Check, p.ChkType, false, p.Token, ConfigSourceLocal); err != nil {

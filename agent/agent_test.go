@@ -512,6 +512,9 @@ func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
 	// rely upon alias checks to do that work for us.  We add enough services
 	// that probabilistically one of them is going to end up properly in the
 	// critical section.
+	//
+	// The first number I picked here (10) surprisingly failed every time prior
+	// to PR #6144 solving the underlying problem.
 	const numServices = 10
 
 	services := make([]*structs.ServiceDefinition, numServices)
