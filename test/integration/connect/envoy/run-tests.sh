@@ -55,12 +55,15 @@ function cleanup {
     echo "     command: $CMD"
   fi
 
-  docker-compose down
+  docker-compose down -v --remove-orphans
 }
 trap cleanup EXIT
 # Magic to capture commands and statuses so we can show them when we exit due to
 # set -e This is useful for debugging setup.sh failures.
 trap 'PREV_CMD=$THIS_CMD; THIS_CMD=$BASH_COMMAND' DEBUG
+
+# Cleanup from any previous unclean runs.
+docker-compose down -v --remove-orphans
 
 # Start the volume container
 docker-compose up -d workdir
@@ -100,6 +103,7 @@ for c in ./case-*/ ; do
     docker cp workdir/. envoy_workdir_1:/workdir
 
     # Start consul now as setup script needs it up
+    docker-compose rm -s -v -f consul || true
     docker-compose up -d consul
 
     # Copy all the test files
@@ -115,8 +119,12 @@ for c in ./case-*/ ; do
 
     # Start containers required
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
+      docker-compose rm -s -v -f $REQUIRED_SERVICES || true
       docker-compose up --build -d $REQUIRED_SERVICES
     fi
+
+    # Nuke any previous case's verify container.
+    docker-compose rm -s -v -f verify || true
 
     # Execute tests
     THISRESULT=1
@@ -151,7 +159,7 @@ for c in ./case-*/ ; do
           docker-compose logs --no-color $cont 2>&1 > workdir/logs/$c/$ENVOY_VERSION/$cont.log
         done
       fi
-      docker-compose stop $REQUIRED_SERVICES
+      docker-compose rm -s -v -f $REQUIRED_SERVICES || true
     fi
 
     if [ $RESULT -eq 0 ] && [ ! -z "$STOP_ON_FAIL" ] ; then
