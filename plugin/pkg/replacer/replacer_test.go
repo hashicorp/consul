@@ -2,6 +2,8 @@ package replacer
 
 import (
 	"context"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/metadata"
@@ -11,6 +13,9 @@ import (
 
 	"github.com/miekg/dns"
 )
+
+// This is the default format used by the log package
+const CommonLogFormat = `{remote}:{port} - {>id} "{type} {class} {name} {proto} {size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {duration}`
 
 func TestReplacer(t *testing.T) {
 	w := dnstest.NewRecorder(&test.ResponseWriter{})
@@ -29,6 +34,178 @@ func TestReplacer(t *testing.T) {
 	}
 	if x := replacer.Replace(context.TODO(), state, nil, "{size}"); x != "29" {
 		t.Errorf("Expected size to be 29, got %q", x)
+	}
+}
+
+func TestParseFormat(t *testing.T) {
+	type formatTest struct {
+		Format   string
+		Expected replacer
+	}
+	tests := []formatTest{
+		{
+			Format:   "",
+			Expected: replacer{},
+		},
+		{
+			Format: "A",
+			Expected: replacer{
+				{"A", typeLiteral},
+			},
+		},
+		{
+			Format: "A {A}",
+			Expected: replacer{
+				{"A {A}", typeLiteral},
+			},
+		},
+		{
+			Format: "{{remote}}",
+			Expected: replacer{
+				{"{", typeLiteral},
+				{"{remote}", typeLabel},
+				{"}", typeLiteral},
+			},
+		},
+		{
+			Format: "{ A {remote} A }",
+			Expected: replacer{
+				{"{ A ", typeLiteral},
+				{"{remote}", typeLabel},
+				{" A }", typeLiteral},
+			},
+		},
+		{
+			Format: "{remote}}",
+			Expected: replacer{
+				{"{remote}", typeLabel},
+				{"}", typeLiteral},
+			},
+		},
+		{
+			Format: "{{remote}",
+			Expected: replacer{
+				{"{", typeLiteral},
+				{"{remote}", typeLabel},
+			},
+		},
+		{
+			Format: `Foo } {remote}`,
+			Expected: replacer{
+				// we don't do any optimizations to join adjacent literals
+				{"Foo }", typeLiteral},
+				{" ", typeLiteral},
+				{"{remote}", typeLabel},
+			},
+		},
+		{
+			Format: `{ Foo`,
+			Expected: replacer{
+				{"{ Foo", typeLiteral},
+			},
+		},
+		{
+			Format: `} Foo`,
+			Expected: replacer{
+				{"}", typeLiteral},
+				{" Foo", typeLiteral},
+			},
+		},
+		{
+			Format: "A { {remote} {type} {/meta1} } B",
+			Expected: replacer{
+				{"A { ", typeLiteral},
+				{"{remote}", typeLabel},
+				{" ", typeLiteral},
+				{"{type}", typeLabel},
+				{" ", typeLiteral},
+				{"meta1", typeMetadata},
+				{" }", typeLiteral},
+				{" B", typeLiteral},
+			},
+		},
+		{
+			Format: `LOG {remote}:{port} - {>id} "{type} {class} {name} {proto} ` +
+				`{size} {>do} {>bufsize}" {rcode} {>rflags} {rsize} {/meta1}-{/meta2} ` +
+				`{duration} END OF LINE`,
+			Expected: replacer{
+				{"LOG ", typeLiteral},
+				{"{remote}", typeLabel},
+				{":", typeLiteral},
+				{"{port}", typeLabel},
+				{" - ", typeLiteral},
+				{"{>id}", typeLabel},
+				{` "`, typeLiteral},
+				{"{type}", typeLabel},
+				{" ", typeLiteral},
+				{"{class}", typeLabel},
+				{" ", typeLiteral},
+				{"{name}", typeLabel},
+				{" ", typeLiteral},
+				{"{proto}", typeLabel},
+				{" ", typeLiteral},
+				{"{size}", typeLabel},
+				{" ", typeLiteral},
+				{"{>do}", typeLabel},
+				{" ", typeLiteral},
+				{"{>bufsize}", typeLabel},
+				{`" `, typeLiteral},
+				{"{rcode}", typeLabel},
+				{" ", typeLiteral},
+				{"{>rflags}", typeLabel},
+				{" ", typeLiteral},
+				{"{rsize}", typeLabel},
+				{" ", typeLiteral},
+				{"meta1", typeMetadata},
+				{"-", typeLiteral},
+				{"meta2", typeMetadata},
+				{" ", typeLiteral},
+				{"{duration}", typeLabel},
+				{" END OF LINE", typeLiteral},
+			},
+		},
+	}
+	for i, x := range tests {
+		r := parseFormat(x.Format)
+		if !reflect.DeepEqual(r, x.Expected) {
+			t.Errorf("%d: Expected:\n\t%+v\nGot:\n\t%+v", i, x.Expected, r)
+		}
+	}
+}
+
+func TestParseFormatNodes(t *testing.T) {
+	// If we parse the format successfully the result of joining all the
+	// segments should match the original format.
+	formats := []string{
+		"",
+		"msg",
+		"{remote}",
+		"{remote}",
+		"{{remote}",
+		"{{remote}}",
+		"{{remote}} A",
+		CommonLogFormat,
+		CommonLogFormat + " FOO} {BAR}",
+		"A " + CommonLogFormat + " FOO} {BAR}",
+		"A " + CommonLogFormat + " {/meta}",
+	}
+	join := func(r replacer) string {
+		a := make([]string, len(r))
+		for i, n := range r {
+			if n.typ == typeMetadata {
+				a[i] = "{/" + n.value + "}"
+			} else {
+				a[i] = n.value
+			}
+		}
+		return strings.Join(a, "")
+	}
+	for _, format := range formats {
+		r := parseFormat(format)
+		s := join(r)
+		if s != format {
+			t.Errorf("Expected format to be: '%s' got: '%s'", format, s)
+		}
 	}
 }
 
@@ -68,7 +245,7 @@ func TestLabels(t *testing.T) {
 		t.Fatalf("Expect %d labels, got %d", len(expect), len(labels))
 	}
 
-	for _, lbl := range labels {
+	for lbl := range labels {
 		repl := replacer.Replace(ctx, state, w, lbl)
 		if lbl == "{duration}" {
 			if repl[len(repl)-1] != 's' {
@@ -95,6 +272,34 @@ func BenchmarkReplacer(b *testing.B) {
 	replacer := New()
 	for i := 0; i < b.N; i++ {
 		replacer.Replace(context.TODO(), state, nil, "{type} {name} {size}")
+	}
+}
+
+func BenchmarkReplacer_CommonLogFormat(b *testing.B) {
+
+	w := dnstest.NewRecorder(&test.ResponseWriter{})
+	r := new(dns.Msg)
+	r.SetQuestion("example.org.", dns.TypeHINFO)
+	r.Id = 1053
+	r.AuthenticatedData = true
+	r.CheckingDisabled = true
+	r.MsgHdr.AuthenticatedData = true
+	w.WriteMsg(r)
+	state := request.Request{W: w, Req: r}
+
+	replacer := New()
+	ctxt := context.TODO()
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		replacer.Replace(ctxt, state, w, CommonLogFormat)
+	}
+}
+
+func BenchmarkParseFormat(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		parseFormat(CommonLogFormat)
 	}
 }
 
