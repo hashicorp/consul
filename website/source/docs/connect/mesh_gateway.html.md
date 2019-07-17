@@ -24,6 +24,16 @@ Each mesh gateway needs three things:
 2. General network connectivity to all services within its local Consul datacenter.
 3. General network connectivity to all mesh gateways within remote Consul datacenters.
 
+Mesh gateways also require that your Consul datacenters are configured correctly:
+
+- You'll need to use Consul version 1.6.0.
+- Consul [Connect](/docs/agent/options.html#connect) must be enabled in both datacenters.
+- Each of your [datacenters](/docs/agent/options.html#datacenter) must have a unique name. 
+- Your datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
+- The [primary datacenter](/docs/agent/options.html#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
+- [gRPC](/docs/agent/options.html#grpc_port) must be enabled. 
+- If you want to [enable gateways globally](/docs/connect/mesh_gateway.html#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options.html#enable_central_service_config). 
+
 ## Modes of Operation
 
 Each upstream of a Connect proxy can be configured to be routed through a mesh gateway. Depending on
