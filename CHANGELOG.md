@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+FEATURES:
+
+* xds: allow http match criteria to be applied to routes on services using grpc protocols [[GH-6149](https://github.com/hashicorp/consul/issues/6149)]
+
 IMPROVEMENTS:
 
 * agent: health checks: change long timeout behavior to use to user-configured `timeout` value [[GH-6094](https://github.com/hashicorp/consul/pull/6094)]
