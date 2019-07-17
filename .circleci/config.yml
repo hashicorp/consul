@@ -23,6 +23,14 @@ references:
     S3_ARTIFACT_BUCKET:  consul-dev-artifacts
 
 jobs:
+  # lint consul tests
+  lint-consul-retry:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+
   # Runs go fmt and go vet
   go-fmt-and-vet:
     docker:
@@ -562,7 +570,10 @@ workflows:
                 - release/1-6
   build-distros:
     jobs:
-      - go-fmt-and-vet
+      - lint-consul-retry
+      - go-fmt-and-vet:
+          requires:
+            - lint-consul-retry
       - build-386: &require-go-fmt-vet
           requires:
             - go-fmt-and-vet

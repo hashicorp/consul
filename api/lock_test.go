@@ -109,10 +109,10 @@ func TestAPI_LockForceInvalidate(t *testing.T) {
 		// Should work
 		leaderCh, err := lock.Lock(nil)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if leaderCh == nil {
-			t.Fatalf("not leader")
+			r.Fatalf("not leader")
 		}
 		defer lock.Unlock()
 
@@ -127,7 +127,7 @@ func TestAPI_LockForceInvalidate(t *testing.T) {
 		select {
 		case <-leaderCh:
 		case <-time.After(time.Second):
-			t.Fatalf("should not be leader")
+			r.Fatalf("should not be leader")
 		}
 	})
 }
