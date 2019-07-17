@@ -26,7 +26,7 @@ Each mesh gateway needs three things:
 
 Mesh gateways also require that your Consul datacenters are configured correctly:
 
-- You'll need to use Consul version 1.6.0-beta1.
+- You'll need to use Consul version 1.6.0.
 - Consul [Connect](/docs/agent/options.html#connect) must be enabled in both datacenters.
 - Each of your [datacenters](/docs/agent/options.html#datacenter) must have a unique name. 
 - Your datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
