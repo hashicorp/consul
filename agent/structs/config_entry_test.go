@@ -171,15 +171,15 @@ func TestDecodeConfigEntry(t *testing.T) {
 								query_param = [
 									{
 										name = "hack1"
+										present = true
 									},
 									{
 										name = "hack2"
-										value = "1"
+										exact = "1"
 									},
 									{
 										name = "hack3"
-										value = "a.*z"
-										regex = true
+										regex = "a.*z"
 									},
 								]
 							}
@@ -249,15 +249,15 @@ func TestDecodeConfigEntry(t *testing.T) {
 								QueryParam = [
 									{
 										Name = "hack1"
+										Present = true
 									},
 									{
 										Name = "hack2"
-										Value = "1"
+										Exact = "1"
 									},
 									{
 										Name = "hack3"
-										Value = "a.*z"
-										Regex = true
+										Regex = "a.*z"
 									},
 								]
 							}
@@ -326,16 +326,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 								PathPrefix: "/foo",
 								QueryParam: []ServiceRouteHTTPMatchQueryParam{
 									{
-										Name: "hack1",
+										Name:    "hack1",
+										Present: true,
 									},
 									{
 										Name:  "hack2",
-										Value: "1",
+										Exact: "1",
 									},
 									{
 										Name:  "hack3",
-										Value: "a.*z",
-										Regex: true,
+										Regex: "a.*z",
 									},
 								},
 							},

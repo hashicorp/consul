@@ -3121,16 +3121,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 											"path_prefix": "/foo",
 											"query_param": [
 												{
-													"name": "hack1"
+													"name": "hack1",
+													"present": true
 												},
 												{
 													"name": "hack2",
-													"value": "1"
+													"exact": "1"
 												},
 												{
 													"name": "hack3",
-													"value": "a.*z",
-													"regex": true
+													"regex": "a.*z"
 												}
 											]
 										}
@@ -3205,15 +3205,15 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 										query_param = [
 											{
 												name = "hack1"
+												present = true
 											},
 											{
 												name = "hack2"
-												value = "1"
+												exact = "1"
 											},
 											{
 												name = "hack3"
-												value = "a.*z"
-												regex = true
+												regex = "a.*z"
 											},
 										]
 									}
@@ -3286,16 +3286,16 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 										PathPrefix: "/foo",
 										QueryParam: []structs.ServiceRouteHTTPMatchQueryParam{
 											{
-												Name: "hack1",
+												Name:    "hack1",
+												Present: true,
 											},
 											{
 												Name:  "hack2",
-												Value: "1",
+												Exact: "1",
 											},
 											{
 												Name:  "hack3",
-												Value: "a.*z",
-												Regex: true,
+												Regex: "a.*z",
 											},
 										},
 									},

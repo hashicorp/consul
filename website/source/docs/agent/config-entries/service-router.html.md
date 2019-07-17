@@ -84,7 +84,7 @@ routes = [
         query_param = [
           {
             name  = "x-debug"
-            value = "1"
+            exact = "1"
           },
         ]
       }
@@ -176,16 +176,22 @@ routes = [
         - `Name` `(string: <required>)` - The name of the query parameter to
           match on.
 
-        - `Value` `(string: <required>)` - String to match against the query
-          parameter value.  The behavior changes with the definition of the
-          `Regex` field.
-        
-        - `Regex` `(bool: false)` - Controls how the `Value` field is used.  If
-          `Regex` is `false` then `Value` matches exactly.  If `Regex` is
-          `true` then `Value` matches as a regular expression pattern.
+        - `Present` `(bool: false)` - Match if the query parameter with the given name
+          is present with any value.
 
-            The syntax when using the Envoy proxy is [documented
-            here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+            At most only one of `Exact`, `Regex`, or `Present` may be configured.
+
+        - `Exact` `(string: "")` - Match if the query parameter with the given
+          name is this value.
+
+            At most only one of `Exact`, `Regex`, or `Present` may be configured.
+        
+        - `Regex` `(string: "")` - Match if the query parameter with the given
+          name matches this pattern.
+
+            The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+
+            At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
   - `Destination` `(ServiceRouteDestination: <optional>)` - Controls how to
     proxy the actual matching request to a service.

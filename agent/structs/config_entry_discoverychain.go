@@ -124,6 +124,20 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 				if qm.Name == "" {
 					return fmt.Errorf("Route[%d] QueryParam[%d] missing required Name field", i, j)
 				}
+
+				qmParts := 0
+				if qm.Present {
+					qmParts++
+				}
+				if qm.Exact != "" {
+					qmParts++
+				}
+				if qm.Regex != "" {
+					qmParts++
+				}
+				if qmParts != 1 {
+					return fmt.Errorf("Route[%d] QueryParam[%d] should only contain one of Present, Exact, or Regex", i, j)
+				}
 			}
 		}
 
@@ -229,9 +243,10 @@ type ServiceRouteHTTPMatchHeader struct {
 }
 
 type ServiceRouteHTTPMatchQueryParam struct {
-	Name  string
-	Value string `json:",omitempty"`
-	Regex bool   `json:",omitempty"`
+	Name    string
+	Present bool   `json:",omitempty"`
+	Exact   string `json:",omitempty"`
+	Regex   string `json:",omitempty"`
 }
 
 // ServiceRouteDestination describes how to proxy the actual matching request

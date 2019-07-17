@@ -192,18 +192,24 @@ func TestRoutesFromSnapshot(t *testing.T) {
 							},
 							{
 								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-									Name:  "secretparam",
-									Value: "exact",
+									Name:  "secretparam1",
+									Exact: "exact",
 								}),
 								Destination: toService("prm-exact"),
 							},
 							{
 								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
-									Name:  "secretparam",
-									Value: "regex",
-									Regex: true,
+									Name:  "secretparam2",
+									Regex: "regex",
 								}),
 								Destination: toService("prm-regex"),
+							},
+							{
+								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
+									Name:    "secretparam3",
+									Present: true,
+								}),
+								Destination: toService("prm-present"),
 							},
 							{
 								Match:       nil,
