@@ -15,7 +15,7 @@ The route53 plugin can be used when coredns is deployed on AWS or elsewhere.
 
 ~~~ txt
 route53 [ZONE:HOSTED_ZONE_ID...] {
-    [aws_access_key AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
+    aws_access_key [AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
     credentials PROFILE [FILENAME]
     fallthrough [ZONES...]
 }
@@ -41,11 +41,12 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
 *   **FILENAME** AWS credentials filename. Defaults to `~/.aws/credentials` are used.
 
 *   `fallthrough` If zone matches and no record can be generated, pass request to the next plugin.
-    If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin is
+    If **ZONES** is omitted, then fallthrough happens for all zones for which the plugin is
     authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then
     only queries for those zones will be subject to fallthrough.
 
-*   **ZONES** zones it should be authoritative for. If empty, the zones from the configuration block
+*   **ZONES** zones it should be authoritative for. If empty, the zones from the configuration
+    block.
 
 ## Examples
 
