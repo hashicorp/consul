@@ -53,7 +53,7 @@ load helpers
 # Note: when failover is configured the cluster is named for the original
 # service not any destination related to failover.
 @test "s1 upstream should have healthy endpoints for s2 and s3 together" {
-  assert_upstream_has_healthy_endpoints 127.0.0.1:19000 s2 2
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2 HEALTHY 2
 }
 
 @test "s1 upstream should be able to connect to s2 via upstream s2 to start" {
@@ -64,8 +64,9 @@ load helpers
   kill_envoy s2
 }
 
-@test "s1 upstream should have only healthy endpoints for s3-v1 now" {
-  assert_upstream_has_healthy_endpoints 127.0.0.1:19000 s2 1
+@test "s1 upstream should have healthy endpoints for s3-v1 and unhealthy endpoints for s2" {
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2 HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2 UNHEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s3-v1 now" {

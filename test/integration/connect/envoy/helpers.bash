@@ -124,9 +124,10 @@ function snapshot_envoy_admin {
   docker_wget "http://${HOSTPORT}/clusters?format=json" -q -O - > "./workdir/envoy/${ENVOY_NAME}-clusters.json"
 }
 
-function get_healthy_upstream_endpoint_count {
+function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
+  local HEALTH_STATUS=$3
   run retry_default curl -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
   # echo "$output" >&3
@@ -134,25 +135,27 @@ function get_healthy_upstream_endpoint_count {
 .cluster_statuses[]
 | select(.name|startswith(\"${CLUSTER_NAME}.default.dc1.internal.\"))
 | [.host_statuses[].health_status.eds_health_status]
-| [select(.[] == \"HEALTHY\")]
+| [select(.[] == \"${HEALTH_STATUS}\")]
 | length"
 }
 
-function assert_upstream_has_healthy_endpoints_once {
+function assert_upstream_has_endpoints_in_status_once {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
-  local EXPECT_COUNT=$3
+  local HEALTH_STATUS=$3
+  local EXPECT_COUNT=$4
 
-  GOT_COUNT=$(get_healthy_upstream_endpoint_count $HOSTPORT $CLUSTER_NAME)
+  GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
 
-function assert_upstream_has_healthy_endpoints {
+function assert_upstream_has_endpoints_in_status {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
-  local EXPECT_COUNT=$3
-  run retry_long assert_upstream_has_healthy_endpoints_once $HOSTPORT $CLUSTER_NAME $EXPECT_COUNT
+  local HEALTH_STATUS=$3
+  local EXPECT_COUNT=$4
+  run retry_long assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 

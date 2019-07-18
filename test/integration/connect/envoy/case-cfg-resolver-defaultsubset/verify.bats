@@ -39,7 +39,7 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for v2.s2" {
-  assert_upstream_has_healthy_endpoints 127.0.0.1:19000 v2.s2 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 v2.s2 HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2-v2 via upstream s2" {
