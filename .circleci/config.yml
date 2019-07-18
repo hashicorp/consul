@@ -77,11 +77,6 @@ jobs:
       - run: mkdir -p $TEST_RESULTS_DIR
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
-      # Use CircleCI test splitting by classname. Since there are no classes in go,
-      # we fake it by taking everything after github.com/hashicorp/consul/ and setting
-      # it as the classname.
-
-      # This loop writes go test results to <reportname>.xml per go package
       - run: |
           PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname)
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
@@ -106,11 +101,6 @@ jobs:
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
-      # Use CircleCI test splitting by classname. Since there are no classes in go,
-      # we fake it by taking everything after github.com/hashicorp/consul/ and setting
-      # it as the classname.
-
-      # This loop writes go test results to <reportname>.xml per go package
       - run:
           working_directory: api
           command: |
