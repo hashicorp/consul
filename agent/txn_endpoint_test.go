@@ -2,15 +2,18 @@ package agent
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/raft"
 	"github.com/pascaldekloe/goe/verify"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -35,13 +38,12 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	}
 }
 
-/*
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-
-	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+	testIt := func(agent *TestAgent, pass bool) {
+		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
+		value = base64.StdEncoding.EncodeToString([]byte(value))
+		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
  [
      {
          "KV": {
@@ -51,24 +53,40 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
          }
      }
  ]
- `, strings.Repeat("bad", 2*maxKVSize))))
-	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
-	resp := httptest.NewRecorder()
-	if _, err := a.srv.Txn(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
+ `, value)))
+		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
+		resp := httptest.NewRecorder()
+		if _, err := agent.srv.Txn(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 413 && !pass {
+			t.Fatalf("expected 413, got %d", resp.Code)
+		}
+		if resp.Code != 200 && pass {
+			t.Fatalf("expected 200, got %d", resp.Code)
+		}
 	}
-	if resp.Code != 413 {
-		t.Fatalf("expected 413, got %d", resp.Code)
-	}
+
+	t.Run("toobig", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "")
+		testIt(a, false)
+		a.Shutdown()
+	})
+
+	t.Run("allowed", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "")
+		testIt(a, false)
+		a.Shutdown()
+	})
 }
 
 func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
 
-	value := strings.Repeat("X", maxKVSize/2)
-	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+	testIt := func(agent *TestAgent, pass bool) {
+		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
+		value = base64.StdEncoding.EncodeToString([]byte(value))
+		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
  [
      {
          "KV": {
@@ -93,14 +111,30 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
      }
  ]
  `, value, value, value)))
-	req, _ := http.NewRequest("PUT", "/v1/txn", buf)
-	resp := httptest.NewRecorder()
-	if _, err := a.srv.Txn(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
+		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
+		resp := httptest.NewRecorder()
+		if _, err := agent.srv.Txn(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 413 && !pass {
+			t.Fatalf("expected 413, got %d", resp.Code)
+		}
+		if resp.Code != 200 && pass {
+			t.Fatalf("expected 200, got %d", resp.Code)
+		}
 	}
-	if resp.Code != 413 {
-		t.Fatalf("expected 413, got %d", resp.Code)
-	}
+
+	t.Run("toobig", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "")
+		testIt(a, false)
+		a.Shutdown()
+	})
+
+	t.Run("allowed", func(t *testing.T) {
+		a := NewTestAgent(t, t.Name(), "limits = { kv_max_value_size = 123456789 }")
+		testIt(a, true)
+		a.Shutdown()
+	})
 }
 
 func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
@@ -129,7 +163,6 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 		t.Fatalf("expected 413, got %d", resp.Code)
 	}
 }
-*/
 
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
 	t.Parallel()
