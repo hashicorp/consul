@@ -57,7 +57,9 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 				la := makeLoadAssignment(
 					sni,
 					0,
-					[]structs.CheckServiceNodes{endpoints},
+					[]loadAssignmentEndpointGroup{
+						{Endpoints: endpoints},
+					},
 					cfgSnap.Datacenter,
 				)
 				resources = append(resources, la)
@@ -68,7 +70,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 			chainEndpointMap, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
 			if !ok {
-				continue // TODO(rb): whaaaa?
+				continue // skip the upstream (should not happen)
 			}
 
 			for target, node := range chain.GroupResolverNodes {
@@ -77,18 +79,23 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 				endpoints, ok := chainEndpointMap[target]
 				if !ok {
-					continue // TODO(rb): whaaaa?
+					continue // skip the cluster (should not happen)
 				}
 
 				var (
-					priorityEndpoints      []structs.CheckServiceNodes
+					endpointGroups         []loadAssignmentEndpointGroup
 					overprovisioningFactor int
 				)
 
-				if failover != nil && len(failover.Targets) > 0 {
-					priorityEndpoints = make([]structs.CheckServiceNodes, 0, len(failover.Targets)+1)
+				primaryGroup := loadAssignmentEndpointGroup{
+					Endpoints:   endpoints,
+					OnlyPassing: chain.SubsetDefinitionForTarget(target).OnlyPassing,
+				}
 
-					priorityEndpoints = append(priorityEndpoints, endpoints)
+				if failover != nil && len(failover.Targets) > 0 {
+					endpointGroups = make([]loadAssignmentEndpointGroup, 0, len(failover.Targets)+1)
+
+					endpointGroups = append(endpointGroups, primaryGroup)
 
 					if failover.Definition.OverprovisioningFactor > 0 {
 						overprovisioningFactor = failover.Definition.OverprovisioningFactor
@@ -101,14 +108,17 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 					for _, failTarget := range failover.Targets {
 						failEndpoints, ok := chainEndpointMap[failTarget]
-						if ok {
-							priorityEndpoints = append(priorityEndpoints, failEndpoints)
+						if !ok {
+							continue // skip the failover target (should not happen)
 						}
+
+						endpointGroups = append(endpointGroups, loadAssignmentEndpointGroup{
+							Endpoints:   failEndpoints,
+							OnlyPassing: chain.SubsetDefinitionForTarget(failTarget).OnlyPassing,
+						})
 					}
 				} else {
-					priorityEndpoints = []structs.CheckServiceNodes{
-						endpoints,
-					}
+					endpointGroups = append(endpointGroups, primaryGroup)
 				}
 
 				sni := TargetSNI(target, cfgSnap)
@@ -116,7 +126,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 				la := makeLoadAssignment(
 					sni,
 					overprovisioningFactor,
-					priorityEndpoints,
+					endpointGroups,
 					cfgSnap.Datacenter,
 				)
 				resources = append(resources, la)
@@ -136,8 +146,8 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		la := makeLoadAssignment(
 			clusterName,
 			0,
-			[]structs.CheckServiceNodes{
-				endpoints,
+			[]loadAssignmentEndpointGroup{
+				{Endpoints: endpoints},
 			},
 			cfgSnap.Datacenter,
 		)
@@ -150,8 +160,8 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		la := makeLoadAssignment(
 			clusterName,
 			0,
-			[]structs.CheckServiceNodes{
-				endpoints,
+			[]loadAssignmentEndpointGroup{
+				{Endpoints: endpoints},
 			},
 			cfgSnap.Datacenter,
 		)
@@ -166,20 +176,8 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			endpoints := cfgSnap.MeshGateway.ServiceGroups[svc]
 
 			// locally execute the subsets filter
-			filterExp := subset.Filter
-			if subset.OnlyPassing {
-				// we could do another filter pass without bexpr but this simplifies things a bit
-				if filterExp != "" {
-					// TODO (filtering) - Update to "and all Checks as chk { chk.Status == passing }"
-					//                    once the syntax is supported
-					filterExp = fmt.Sprintf("(%s) and not Checks.Status != passing", filterExp)
-				} else {
-					filterExp = "not Checks.Status != passing"
-				}
-			}
-
-			if filterExp != "" {
-				filter, err := bexpr.CreateFilter(filterExp, nil, endpoints)
+			if subset.Filter != "" {
+				filter, err := bexpr.CreateFilter(subset.Filter, nil, endpoints)
 				if err != nil {
 					return nil, err
 				}
@@ -194,8 +192,11 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			la := makeLoadAssignment(
 				clusterName,
 				0,
-				[]structs.CheckServiceNodes{
-					endpoints,
+				[]loadAssignmentEndpointGroup{
+					{
+						Endpoints:   endpoints,
+						OnlyPassing: subset.OnlyPassing,
+					},
 				},
 				cfgSnap.Datacenter,
 			)
@@ -216,15 +217,20 @@ func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 	}
 }
 
+type loadAssignmentEndpointGroup struct {
+	Endpoints   structs.CheckServiceNodes
+	OnlyPassing bool
+}
+
 func makeLoadAssignment(
 	clusterName string,
 	overprovisioningFactor int,
-	priorityEndpoints []structs.CheckServiceNodes,
+	endpointGroups []loadAssignmentEndpointGroup,
 	localDatacenter string,
 ) *envoy.ClusterLoadAssignment {
 	cla := &envoy.ClusterLoadAssignment{
 		ClusterName: clusterName,
-		Endpoints:   make([]envoyendpoint.LocalityLbEndpoints, 0, len(priorityEndpoints)),
+		Endpoints:   make([]envoyendpoint.LocalityLbEndpoints, 0, len(endpointGroups)),
 	}
 	if overprovisioningFactor > 0 {
 		cla.Policy = &envoy.ClusterLoadAssignment_Policy{
@@ -232,7 +238,8 @@ func makeLoadAssignment(
 		}
 	}
 
-	for priority, endpoints := range priorityEndpoints {
+	for priority, endpointGroup := range endpointGroups {
+		endpoints := endpointGroup.Endpoints
 		es := make([]envoyendpoint.LbEndpoint, 0, len(endpoints))
 
 		for _, ep := range endpoints {
@@ -246,8 +253,9 @@ func makeLoadAssignment(
 
 			for _, chk := range ep.Checks {
 				if chk.Status == api.HealthCritical {
-					// This can't actually happen now because health always filters critical
-					// but in the future it may not so set this correctly!
+					healthStatus = envoycore.HealthStatus_UNHEALTHY
+				}
+				if endpointGroup.OnlyPassing && chk.Status != api.HealthPassing {
 					healthStatus = envoycore.HealthStatus_UNHEALTHY
 				}
 				if chk.Status == api.HealthWarning && ep.Service.Weights != nil {

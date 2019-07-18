@@ -32,7 +32,7 @@ type CompiledDiscoveryChain struct {
 	// GroupResolverNodes respresents all unique service instance groups that
 	// need to be represented. For envoy these render as Clusters.
 	//
-	// Omitted from JSON because DiscoveryTarget is not a encoding.TextMarshaler.
+	// Omitted from JSON because these already show up under the Node field.
 	GroupResolverNodes map[DiscoveryTarget]*DiscoveryGraphNode `json:"-"`
 
 	// TODO(rb): not sure if these two fields are actually necessary but I'll know when I get into xDS
@@ -52,6 +52,22 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 	return c.Node.Name == c.ServiceName &&
 		c.Node.Type == DiscoveryGraphNodeTypeGroupResolver &&
 		c.Node.GroupResolver.Default
+}
+
+// SubsetDefinitionForTarget is a convenience function to fetch the subset
+// definition for the service subset defined by the provided target. If the
+// subset is not defined an empty definition is returned.
+func (c *CompiledDiscoveryChain) SubsetDefinitionForTarget(t DiscoveryTarget) ServiceResolverSubset {
+	if t.ServiceSubset == "" {
+		return ServiceResolverSubset{}
+	}
+
+	resolver, ok := c.Resolvers[t.Service]
+	if !ok {
+		return ServiceResolverSubset{}
+	}
+
+	return resolver.Subsets[t.ServiceSubset]
 }
 
 const (

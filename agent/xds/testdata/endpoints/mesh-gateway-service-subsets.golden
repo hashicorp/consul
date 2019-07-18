@@ -246,6 +246,18 @@
               },
               "healthStatus": "HEALTHY",
               "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.9",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "UNHEALTHY",
+              "loadBalancingWeight": 1
             }
           ]
         }

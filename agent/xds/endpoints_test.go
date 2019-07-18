@@ -94,18 +94,19 @@ func Test_makeLoadAssignment(t *testing.T) {
 	testWarningCheckServiceNodes[0].Checks[0].Status = "warning"
 	testWarningCheckServiceNodes[1].Checks[0].Status = "warning"
 
+	// TODO(rb): test onlypassing
 	tests := []struct {
 		name                   string
 		clusterName            string
 		overprovisioningFactor int
-		endpoints              []structs.CheckServiceNodes
+		endpoints              []loadAssignmentEndpointGroup
 		want                   *envoy.ClusterLoadAssignment
 	}{
 		{
 			name:        "no instances",
 			clusterName: "service:test",
-			endpoints: []structs.CheckServiceNodes{
-				{},
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: nil},
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
@@ -117,8 +118,8 @@ func Test_makeLoadAssignment(t *testing.T) {
 		{
 			name:        "instances, no weights",
 			clusterName: "service:test",
-			endpoints: []structs.CheckServiceNodes{
-				testCheckServiceNodes,
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: testCheckServiceNodes},
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
@@ -147,8 +148,8 @@ func Test_makeLoadAssignment(t *testing.T) {
 		{
 			name:        "instances, healthy weights",
 			clusterName: "service:test",
-			endpoints: []structs.CheckServiceNodes{
-				testWeightedCheckServiceNodes,
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: testWeightedCheckServiceNodes},
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
@@ -177,8 +178,8 @@ func Test_makeLoadAssignment(t *testing.T) {
 		{
 			name:        "instances, warning weights",
 			clusterName: "service:test",
-			endpoints: []structs.CheckServiceNodes{
-				testWarningCheckServiceNodes,
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: testWarningCheckServiceNodes},
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
@@ -207,7 +208,12 @@ func Test_makeLoadAssignment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeLoadAssignment(tt.clusterName, tt.overprovisioningFactor, tt.endpoints, "dc1")
+			got := makeLoadAssignment(
+				tt.clusterName,
+				tt.overprovisioningFactor,
+				tt.endpoints,
+				"dc1",
+			)
 			require.Equal(t, tt.want, got)
 		})
 	}
