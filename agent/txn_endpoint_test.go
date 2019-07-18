@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -36,6 +35,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	}
 }
 
+/*
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -129,6 +129,7 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 		t.Fatalf("expected 413, got %d", resp.Code)
 	}
 }
+*/
 
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
 	t.Parallel()

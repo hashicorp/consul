@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	raftMiddleware "github.com/hashicorp/go-raft-middleware"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
@@ -173,7 +174,7 @@ type Server struct {
 
 	// fsm is the state machine used with Raft to provide
 	// strong consistency.
-	fsm *fsm.FSM
+	fsm fsm.StateRetrievableFSM
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
@@ -566,9 +567,12 @@ func (s *Server) setupRaft() error {
 
 	// Create the FSM.
 	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput)
+	underlying, err := fsm.New(s.tombstoneGC, s.config.LogOutput)
 	if err != nil {
 		return err
+	}
+	s.fsm = &fsm.StateRetrievableChunkingFSM{
+		ChunkingFSM: raftMiddleware.NewChunkingFSM(underlying),
 	}
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
@@ -680,10 +684,15 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput)
+			var err error
+			tmpUnderlying, err := fsm.New(s.tombstoneGC, s.config.LogOutput)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}
+			tmpFsm := &fsm.StateRetrievableChunkingFSM{
+				ChunkingFSM: raftMiddleware.NewChunkingFSM(tmpUnderlying),
+			}
+
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)

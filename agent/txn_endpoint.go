@@ -123,17 +123,19 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// byte arrays so we can assign right over.
 	var opsRPC structs.TxnOps
 	var writes int
-	var netKVSize int
+	//var netKVSize int
 	for _, in := range ops {
 		switch {
 		case in.KV != nil:
-			size := len(in.KV.Value)
-			if size > maxKVSize {
-				resp.WriteHeader(http.StatusRequestEntityTooLarge)
-				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, maxKVSize)
-				return nil, 0, false
-			}
-			netKVSize += size
+			/*
+				size := len(in.KV.Value)
+				if size > maxKVSize {
+					resp.WriteHeader(http.StatusRequestEntityTooLarge)
+					fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, maxKVSize)
+					return nil, 0, false
+				}
+				netKVSize += size
+			*/
 
 			verb := api.KVOp(in.KV.Verb)
 			if isWrite(verb) {
@@ -273,13 +275,15 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	}
 
 	// Enforce an overall size limit to help prevent abuse.
-	if netKVSize > maxKVSize {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Cumulative size of key data is too large (%d > %d bytes)",
-			netKVSize, maxKVSize)
+	/*
+		if netKVSize > maxKVSize {
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
+			fmt.Fprintf(resp, "Cumulative size of key data is too large (%d > %d bytes)",
+				netKVSize, maxKVSize)
 
-		return nil, 0, false
-	}
+			return nil, 0, false
+		}
+	*/
 
 	return opsRPC, writes, true
 }

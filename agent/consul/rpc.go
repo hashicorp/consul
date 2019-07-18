@@ -15,8 +15,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
+	raftMiddleware "github.com/hashicorp/go-raft-middleware"
 	"github.com/hashicorp/memberlist"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 )
 
@@ -366,7 +368,15 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
 	}
 
-	future := s.raft.Apply(buf, enqueueLimit)
+	var future raft.ApplyFuture
+	switch {
+	case len(buf) <= raft.SuggestedMaxDataSize:
+		future = s.raft.Apply(buf, enqueueLimit)
+	default:
+		s.logger.Print("[WARN] consul: Using chunking raft application")
+		future = raftMiddleware.ChunkingApply(buf, enqueueLimit, s.raft.ApplyWithLog)
+	}
+
 	if err := future.Error(); err != nil {
 		return nil, err
 	}

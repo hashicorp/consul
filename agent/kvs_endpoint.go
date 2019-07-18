@@ -10,13 +10,14 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/raft"
 )
 
 const (
 	// maxKVSize is used to limit the maximum payload length
 	// of a KV entry. If it exceeds this amount, the client is
 	// likely abusing the KV store.
-	maxKVSize = 512 * 1024
+	maxKVSize = raft.SuggestedMaxDataSize
 )
 
 func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -182,11 +183,13 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	}
 
 	// Check the content-length
-	if req.ContentLength > maxKVSize {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Value exceeds %d byte limit", maxKVSize)
-		return nil, nil
-	}
+	/*
+		if req.ContentLength > maxKVSize {
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
+			fmt.Fprintf(resp, "Value exceeds %d byte limit", maxKVSize)
+			return nil, nil
+		}
+	*/
 
 	// Copy the value
 	buf := bytes.NewBuffer(nil)
