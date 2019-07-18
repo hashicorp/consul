@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
-	raftMiddleware "github.com/hashicorp/go-raft-middleware"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
@@ -374,7 +374,7 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		future = s.raft.Apply(buf, enqueueLimit)
 	default:
 		s.logger.Print("[WARN] consul: Using chunking raft application")
-		future = raftMiddleware.ChunkingApply(buf, enqueueLimit, s.raft.ApplyWithLog)
+		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyWithLog)
 	}
 
 	if err := future.Error(); err != nil {

@@ -39,7 +39,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20180617115710-e06f8c1bcd78 // indirect
 	github.com/gogo/googleapis v1.1.0
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.3.1
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
@@ -57,6 +57,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
 	github.com/hashicorp/go-raft-middleware v0.0.0-20190718015933-15ebaf08c4df
+	github.com/hashicorp/go-raftchunking v0.0.0-20190718144113-5bbb6056071b // indirect
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
@@ -68,7 +69,7 @@ require (
 	github.com/hashicorp/mdns v1.0.1 // indirect
 	github.com/hashicorp/memberlist v0.1.4
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.1.1-0.20190718015810-409e6ad03a3f
+	github.com/hashicorp/raft v1.1.1-0.20190718143117-ce431a9ba3f4
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.8.2
 	github.com/hashicorp/vault v0.10.3

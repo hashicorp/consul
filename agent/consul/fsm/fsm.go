@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
-	raftMiddleware "github.com/hashicorp/go-raft-middleware"
 	"github.com/hashicorp/raft"
 )
 
@@ -39,21 +38,6 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 		panic(fmt.Errorf("Message %d is already registered", msg))
 	}
 	commands[msg] = fn
-}
-
-// This is a raft.FSM that also has a State() function
-type StateRetrievableFSM interface {
-	raft.FSM
-	State() *state.Store
-}
-
-// This wraps raftMiddleware.ChunkingFSM to satisfy StateRetrievableFSM
-type StateRetrievableChunkingFSM struct {
-	*raftMiddleware.ChunkingFSM
-}
-
-func (w *StateRetrievableChunkingFSM) State() *state.Store {
-	return w.ChunkingFSM.Underlying().(*FSM).State()
 }
 
 // FSM implements a finite state machine that is used
