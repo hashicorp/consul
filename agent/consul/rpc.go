@@ -380,7 +380,6 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	case len(buf) <= raft.SuggestedMaxDataSize:
 		future = s.raft.Apply(buf, enqueueLimit)
 	default:
-		s.logger.Print("[WARN] consul: Using chunking raft application")
 		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyWithLog)
 	}
 
