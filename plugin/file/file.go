@@ -119,7 +119,6 @@ func (s *serialErr) Error() string {
 // If serial >= 0 it will reload the zone, if the SOA hasn't changed
 // it returns an error indicating nothing was read.
 func Parse(f io.Reader, origin, fileName string, serial int64) (*Zone, error) {
-
 	zp := dns.NewZoneParser(f, dns.Fqdn(origin), fileName)
 	zp.SetIncludeAllowed(true)
 	z := NewZone(origin, fileName)

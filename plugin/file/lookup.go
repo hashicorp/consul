@@ -106,14 +106,14 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 		}
 
 		// If we see DNAME records, we should return those.
-		if dnamerrs := elem.Types(dns.TypeDNAME); dnamerrs != nil {
+		if dnamerrs := elem.Type(dns.TypeDNAME); dnamerrs != nil {
 			// Only one DNAME is allowed per name. We just pick the first one to synthesize from.
 			dname := dnamerrs[0]
 			if cname := synthesizeCNAME(state.Name(), dname.(*dns.DNAME)); cname != nil {
 				answer, ns, extra, rcode := z.additionalProcessing(ctx, state, elem, []dns.RR{cname})
 
 				if do {
-					sigs := elem.Types(dns.TypeRRSIG)
+					sigs := elem.Type(dns.TypeRRSIG)
 					sigs = signatureForSubType(sigs, dns.TypeDNAME)
 					dnamerrs = append(dnamerrs, sigs...)
 				}
@@ -130,7 +130,7 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 		}
 
 		// If we see NS records, it means the name as been delegated, and we should return the delegation.
-		if nsrrs := elem.Types(dns.TypeNS); nsrrs != nil {
+		if nsrrs := elem.Type(dns.TypeNS); nsrrs != nil {
 
 			// If the query is specifically for DS and the qname matches the delegated name, we should
 			// return the DS in the answer section and leave the rest empty, i.e. just continue the loop
@@ -160,11 +160,11 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 	// Found entire name.
 	if found && shot {
 
-		if rrs := elem.Types(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
+		if rrs := elem.Type(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
 			return z.additionalProcessing(ctx, state, elem, rrs)
 		}
 
-		rrs := elem.Types(qtype, qname)
+		rrs := elem.Type(qtype)
 
 		// NODATA
 		if len(rrs) == 0 {
@@ -181,7 +181,7 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 		additional := additionalProcessing(z, rrs, do)
 
 		if do {
-			sigs := elem.Types(dns.TypeRRSIG)
+			sigs := elem.Type(dns.TypeRRSIG)
 			sigs = signatureForSubType(sigs, qtype)
 			rrs = append(rrs, sigs...)
 		}
@@ -196,11 +196,11 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 	if wildElem != nil {
 		auth := z.ns(do)
 
-		if rrs := wildElem.Types(dns.TypeCNAME, qname); len(rrs) > 0 {
+		if rrs := wildElem.TypeForWildcard(dns.TypeCNAME, qname); len(rrs) > 0 {
 			return z.additionalProcessing(ctx, state, wildElem, rrs)
 		}
 
-		rrs := wildElem.Types(qtype, qname)
+		rrs := wildElem.TypeForWildcard(qtype, qname)
 
 		// NODATA response.
 		if len(rrs) == 0 {
@@ -219,7 +219,7 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 				auth = append(auth, nsec...)
 			}
 
-			sigs := wildElem.Types(dns.TypeRRSIG, qname)
+			sigs := wildElem.TypeForWildcard(dns.TypeRRSIG, qname)
 			sigs = signatureForSubType(sigs, qtype)
 			rrs = append(rrs, sigs...)
 
@@ -272,9 +272,9 @@ Out:
 
 // Return type tp from e and add signatures (if they exists) and do is true.
 func (z *Zone) typeFromElem(elem *tree.Elem, tp uint16, do bool) []dns.RR {
-	rrs := elem.Types(tp)
+	rrs := elem.Type(tp)
 	if do {
-		sigs := elem.Types(dns.TypeRRSIG)
+		sigs := elem.Type(dns.TypeRRSIG)
 		sigs = signatureForSubType(sigs, tp)
 		if len(sigs) > 0 {
 			rrs = append(rrs, sigs...)
@@ -306,7 +306,7 @@ func (z *Zone) additionalProcessing(ctx context.Context, state request.Request, 
 	do := state.Do()
 
 	if do {
-		sigs := elem.Types(dns.TypeRRSIG)
+		sigs := elem.Type(dns.TypeRRSIG)
 		sigs = signatureForSubType(sigs, dns.TypeCNAME)
 		if len(sigs) > 0 {
 			rrs = append(rrs, sigs...)
@@ -323,12 +323,12 @@ func (z *Zone) additionalProcessing(ctx context.Context, state request.Request, 
 	i := 0
 
 Redo:
-	cname := elem.Types(dns.TypeCNAME)
+	cname := elem.Type(dns.TypeCNAME)
 	if len(cname) > 0 {
 		rrs = append(rrs, cname...)
 
 		if do {
-			sigs := elem.Types(dns.TypeRRSIG)
+			sigs := elem.Type(dns.TypeRRSIG)
 			sigs = signatureForSubType(sigs, dns.TypeCNAME)
 			if len(sigs) > 0 {
 				rrs = append(rrs, sigs...)
@@ -354,7 +354,7 @@ Redo:
 		rrs = append(rrs, targets...)
 
 		if do {
-			sigs := elem.Types(dns.TypeRRSIG)
+			sigs := elem.Type(dns.TypeRRSIG)
 			sigs = signatureForSubType(sigs, qtype)
 			if len(sigs) > 0 {
 				rrs = append(rrs, sigs...)
@@ -416,9 +416,9 @@ func (z *Zone) searchGlue(name string, do bool) []dns.RR {
 
 	// A
 	if elem, found := z.Tree.Search(name); found {
-		glue = append(glue, elem.Types(dns.TypeA)...)
+		glue = append(glue, elem.Type(dns.TypeA)...)
 		if do {
-			sigs := elem.Types(dns.TypeRRSIG)
+			sigs := elem.Type(dns.TypeRRSIG)
 			sigs = signatureForSubType(sigs, dns.TypeA)
 			glue = append(glue, sigs...)
 		}
@@ -426,9 +426,9 @@ func (z *Zone) searchGlue(name string, do bool) []dns.RR {
 
 	// AAAA
 	if elem, found := z.Tree.Search(name); found {
-		glue = append(glue, elem.Types(dns.TypeAAAA)...)
+		glue = append(glue, elem.Type(dns.TypeAAAA)...)
 		if do {
-			sigs := elem.Types(dns.TypeRRSIG)
+			sigs := elem.Type(dns.TypeRRSIG)
 			sigs = signatureForSubType(sigs, dns.TypeAAAA)
 			glue = append(glue, sigs...)
 		}
@@ -456,9 +456,9 @@ func additionalProcessing(z *Zone, answer []dns.RR, do bool) (extra []dns.RR) {
 			continue
 		}
 
-		sigs := elem.Types(dns.TypeRRSIG)
+		sigs := elem.Type(dns.TypeRRSIG)
 		for _, addr := range []uint16{dns.TypeA, dns.TypeAAAA} {
-			if a := elem.Types(addr); a != nil {
+			if a := elem.Type(addr); a != nil {
 				extra = append(extra, a...)
 				if do {
 					sig := signatureForSubType(sigs, addr)
