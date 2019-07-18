@@ -1091,6 +1091,12 @@ func (l *State) deleteService(key structs.ServiceID) error {
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown service"):
 		delete(l.services, key)
+		// service deregister also deletes associated checks
+		for _, c := range l.checks {
+			if c.Deleted && c.Check.ServiceID == key.ID {
+				l.pruneCheck(c.Check.CompoundCheckID())
+			}
+		}
 		l.logger.Printf("[INFO] agent: Deregistered service %q", key.ID)
 		return nil
 
@@ -1125,11 +1131,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown check"):
-		c := l.checks[key]
-		if c != nil && c.DeferCheck != nil {
-			c.DeferCheck.Stop()
-		}
-		delete(l.checks, key)
+		l.pruneCheck(key)
 		l.logger.Printf("[INFO] agent: Deregistered check %q", key.String())
 		return nil
 
@@ -1145,6 +1147,14 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		l.logger.Printf("[WARN] agent: Deregistering check %q failed. %s", key.String(), err)
 		return err
 	}
+}
+
+func (l *State) pruneCheck(id structs.CheckID) {
+	c := l.checks[id]
+	if c != nil && c.DeferCheck != nil {
+		c.DeferCheck.Stop()
+	}
+	delete(l.checks, id)
 }
 
 // syncService is used to sync a service to the server
