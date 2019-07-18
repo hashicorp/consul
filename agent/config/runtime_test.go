@@ -3253,7 +3253,8 @@ func TestFullConfig(t *testing.T) {
 			"leave_on_terminate": true,
 			"limits": {
 				"rpc_rate": 12029.43,
-				"rpc_max_burst": 44848
+				"rpc_max_burst": 44848,
+				"kv_max_value_size": 1234567800000000
 			},
 			"log_level": "k1zo9Spt",
 			"node_id": "AsUIlw99",
@@ -3837,6 +3838,7 @@ func TestFullConfig(t *testing.T) {
 			limits {
 				rpc_rate = 12029.43
 				rpc_max_burst = 44848
+				kv_max_value_size = 1234567800000000
 			}
 			log_level = "k1zo9Spt"
 			node_id = "AsUIlw99"
@@ -4501,6 +4503,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPSAddrs:                       []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPSPort:                        15127,
 		KeyFile:                          "IEkkwgIA",
+		KVMaxValueSize:                   1234567800000000,
 		LeaveDrainTime:                   8265 * time.Second,
 		LeaveOnTerm:                      true,
 		LogLevel:                         "k1zo9Spt",
@@ -5153,6 +5156,7 @@ func TestSanitize(t *testing.T) {
 				OutputMaxSize: checks.DefaultBufSize,
 			},
 		},
+		KVMaxValueSize: 1234567800000000,
 	}
 
 	rtJSON := `{
@@ -5318,6 +5322,7 @@ func TestSanitize(t *testing.T) {
 		"HTTPSAddrs": [],
 		"HTTPSPort": 0,
 		"KeyFile": "hidden",
+		"KVMaxValueSize": 1234567800000000,
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,
 		"LogLevel": "",
