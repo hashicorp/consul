@@ -715,7 +715,7 @@ func TestConnectRootsWatch(t *testing.T) {
 			return // ignore
 		}
 		v, ok := raw.(*api.CARootList)
-		if !ok || v == nil {
+		if !ok || v == nil || len(v.Roots) == 0 {
 			return // ignore
 		}
 		// Only 1 CA is the bootstrapped state (i.e. first response). Ignore this

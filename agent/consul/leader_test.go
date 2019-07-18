@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 )
@@ -68,13 +68,15 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Server should be registered
-	_, node, err := state.GetNode(s1.config.NodeName)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if node == nil {
-		t.Fatalf("server not registered")
-	}
+	retry.Run(t, func(r *retry.R) {
+		_, node, err := state.GetNode(s1.config.NodeName)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if node == nil {
+			r.Fatalf("server not registered")
+		}
+	})
 
 	// Service should be registered
 	_, services, err := state.NodeServices(nil, s1.config.NodeName)
@@ -756,20 +758,20 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	// Make sure there's a tombstone.
 	state := s1.fsm.State()
-	func() {
+	retry.Run(t, func(r *retry.R) {
 		snap := state.Snapshot()
 		defer snap.Close()
 		stones, err := snap.Tombstones()
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			r.Fatalf("err: %s", err)
 		}
 		if stones.Next() == nil {
-			t.Fatalf("missing tombstones")
+			r.Fatalf("missing tombstones")
 		}
 		if stones.Next() != nil {
-			t.Fatalf("unexpected extra tombstones")
+			r.Fatalf("unexpected extra tombstones")
 		}
-	}()
+	})
 
 	// Check that the new leader has a pending GC expiration by
 	// watching for the tombstone to get removed.
@@ -930,9 +932,9 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
+
 	joinLAN(t, s4, s1)
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	testrpc.WaitForTestAgent(t, s4.RPC, "dc1")
+	testrpc.WaitForLeader(t, s4.RPC, "dc1")
 	servers[2] = s4
 
 	// While integrating #3327 it uncovered that this test was flaky. The
@@ -942,11 +944,10 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	// away the connection if it sees an EOF error, since there's no way
 	// that connection is going to work again. This made this test reliable
 	// since it will make a new connection to s4.
-
-	// Make sure the dead server is removed and we're back to 3 total peers
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantRaft(servers))
 		for _, s := range servers {
+			// Make sure the dead server is removed and we're back below 4
 			r.Check(wantPeers(s, 3))
 		}
 	})

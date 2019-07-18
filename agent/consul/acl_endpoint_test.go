@@ -480,14 +480,14 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 
 		if err := msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &getR, &acls); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		if acls.Policy == nil {
-			t.Fatalf("Bad: %v", acls)
+			r.Fatalf("Bad: %v", acls)
 		}
 		if acls.TTL != 30*time.Second {
-			t.Fatalf("bad: %v", acls)
+			r.Fatalf("bad: %v", acls)
 		}
 	})
 
@@ -668,7 +668,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 	t.Run("expired tokens are filtered", func(t *testing.T) {
 		// insert a token that will expire
 		token, err := upsertTestToken(codec, "root", "dc1", func(t *structs.ACLToken) {
-			t.ExpirationTTL = 20 * time.Millisecond
+			t.ExpirationTTL = 200 * time.Millisecond
 		})
 		require.NoError(t, err)
 
@@ -686,8 +686,6 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 			require.Equal(t, token, resp.Token)
 		})
 
-		time.Sleep(50 * time.Millisecond)
-
 		t.Run("not returned when expired", func(t *testing.T) {
 			req := structs.ACLTokenGetRequest{
 				Datacenter:   "dc1",
@@ -698,8 +696,10 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 			resp := structs.ACLTokenResponse{}
 
-			require.NoError(t, acl.TokenRead(&req, &resp))
-			require.Nil(t, resp.Token)
+			retry.Run(t, func(r *retry.R) {
+				require.NoError(r, acl.TokenRead(&req, &resp))
+				require.Nil(r, resp.Token)
+			})
 		})
 	})
 
@@ -4339,7 +4339,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		require.NoError(t, acl.Login(&req, &resp))
+		require.NoError(t, acl2.Login(&req, &resp))
 		remoteToken = &resp
 
 		// present in dc2

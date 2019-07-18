@@ -84,17 +84,17 @@ func TestCoordinate_Nodes(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		// Check that coordinates are empty before registering a node
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
+			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 
 		if len(coordinates) != 0 {
-			t.Fatalf("coordinates should be empty, received: %v", coordinates)
+			r.Fatalf("coordinates should be empty, received: %v", coordinates)
 		}
 	})
 
@@ -141,17 +141,17 @@ func TestCoordinate_Nodes(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
+			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 2 ||
 			coordinates[0].Node != "bar" ||
 			coordinates[1].Node != "foo" {
-			t.Fatalf("expected: bar, foo recieved: %v", coordinates)
+			r.Fatalf("expected: bar, foo recieved: %v", coordinates)
 		}
 	})
 	// Filter on a nonexistent node segment
@@ -160,15 +160,15 @@ func TestCoordinate_Nodes(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
+			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 0 {
-			t.Fatalf("coordinates should be empty, received: %v", coordinates)
+			r.Fatalf("coordinates should be empty, received: %v", coordinates)
 		}
 	})
 	// Filter on a real node segment
@@ -177,15 +177,15 @@ func TestCoordinate_Nodes(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
+			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 1 || coordinates[0].Node != "foo" {
-			t.Fatalf("expected: foo received: %v", coordinates)
+			r.Fatalf("expected: foo received: %v", coordinates)
 		}
 	})
 	// Make sure the empty filter works
@@ -194,15 +194,15 @@ func TestCoordinate_Nodes(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
-			t.Fatalf("expected: structs.Coordinates, received: %+v", obj)
+			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
 		}
 		if len(coordinates) != 1 || coordinates[0].Node != "bar" {
-			t.Fatalf("expected: bar received: %v", coordinates)
+			r.Fatalf("expected: bar received: %v", coordinates)
 		}
 	})
 }

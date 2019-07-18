@@ -500,6 +500,62 @@ func TestAgent_AddService(t *testing.T) {
 	}
 }
 
+func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		node_name = "node1"
+	`)
+	defer a.Shutdown()
+
+	// It's tricky to get an UpdateCheck call to be timed properly so it lands
+	// right in the middle of an addServiceInternal call so we cheat a bit and
+	// rely upon alias checks to do that work for us.  We add enough services
+	// that probabilistically one of them is going to end up properly in the
+	// critical section.
+	//
+	// The first number I picked here (10) surprisingly failed every time prior
+	// to PR #6144 solving the underlying problem.
+	const numServices = 10
+
+	services := make([]*structs.ServiceDefinition, numServices)
+	checkIDs := make([]types.CheckID, numServices)
+	for i := 0; i < numServices; i++ {
+		name := fmt.Sprintf("web-%d", i)
+
+		services[i] = &structs.ServiceDefinition{
+			ID:   name,
+			Name: name,
+			Port: 8080 + i,
+			Checks: []*structs.CheckType{
+				&structs.CheckType{
+					Name:         "alias-for-fake-service",
+					AliasService: "fake",
+				},
+			},
+		}
+
+		checkIDs[i] = types.CheckID("service:" + name)
+	}
+
+	// Add all of the services quickly as you might do from config file snippets.
+	for _, service := range services {
+		ns := service.NodeService()
+
+		chkTypes, err := service.CheckTypes()
+		require.NoError(t, err)
+
+		require.NoError(t, a.AddService(ns, chkTypes, false, service.Token, ConfigSourceLocal))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		gotChecks := a.State.Checks()
+		for id, check := range gotChecks {
+			require.Equal(r, "passing", check.Status, "check %q is wrong", id)
+			require.Equal(r, "No checks found.", check.Output, "check %q is wrong", id)
+		}
+	})
+}
+
 func TestAgent_AddServiceNoExec(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), `
@@ -2965,13 +3021,10 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Reload the checks
-	if err := a.loadChecks(a.Config); err != nil {
+	// Reload the checks and restore the snapshot.
+	if err := a.loadChecks(a.Config, snap); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Restore the state
-	a.restoreCheckState(snap)
 
 	// Search for the check
 	out, ok := a.State.Checks()[check1.CheckID]
@@ -3010,7 +3063,7 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 	}
 
 	// Try loading the checks from the persisted files
-	if err := a.loadChecks(a.Config); err != nil {
+	if err := a.loadChecks(a.Config, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

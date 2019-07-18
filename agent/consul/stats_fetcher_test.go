@@ -13,7 +13,6 @@ import (
 )
 
 func TestStatsFetcher(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -53,18 +52,18 @@ func TestStatsFetcher(t *testing.T) {
 			defer cancel()
 			stats := s1.statsFetcher.Fetch(ctx, s1.LANMembers())
 			if len(stats) != 3 {
-				t.Fatalf("bad: %#v", stats)
+				r.Fatalf("bad: %#v", stats)
 			}
 			for id, stat := range stats {
 				switch types.NodeID(id) {
 				case s1.config.NodeID, s2.config.NodeID, s3.config.NodeID:
 					// OK
 				default:
-					t.Fatalf("bad: %s", id)
+					r.Fatalf("bad: %s", id)
 				}
 
 				if stat == nil || stat.LastTerm == 0 {
-					t.Fatalf("bad: %#v", stat)
+					r.Fatalf("bad: %#v", stat)
 				}
 			}
 		})
@@ -81,20 +80,20 @@ func TestStatsFetcher(t *testing.T) {
 			defer cancel()
 			stats := s1.statsFetcher.Fetch(ctx, s1.LANMembers())
 			if len(stats) != 2 {
-				t.Fatalf("bad: %#v", stats)
+				r.Fatalf("bad: %#v", stats)
 			}
 			for id, stat := range stats {
 				switch types.NodeID(id) {
 				case s1.config.NodeID, s2.config.NodeID:
 					// OK
 				case s3.config.NodeID:
-					t.Fatalf("bad")
+					r.Fatalf("bad")
 				default:
-					t.Fatalf("bad: %s", id)
+					r.Fatalf("bad: %s", id)
 				}
 
 				if stat == nil || stat.LastTerm == 0 {
-					t.Fatalf("bad: %#v", stat)
+					r.Fatalf("bad: %#v", stat)
 				}
 			}
 		})

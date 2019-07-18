@@ -158,10 +158,18 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	if cb != nil {
 		cb(config)
 	}
-	srv, err := newServer(config)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+
+	var srv *Server
+	var err error
+
+	// Retry added to avoid cases where bind addr is already in use
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		srv, err = newServer(config)
+		if err != nil {
+			os.RemoveAll(dir)
+			r.Fatalf("err: %v", err)
+		}
+	})
 	return dir, srv
 }
 
@@ -686,15 +694,41 @@ func TestServer_Expect(t *testing.T) {
 		r.Check(wantPeers(s3, 3))
 	})
 
-	// Make sure a leader is elected, grab the current term and then add in
-	// the fourth server.
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	termBefore := s1.raft.Stats()["last_log_term"]
+	// Join the fourth node.
 	joinLAN(t, s4, s1)
 
 	// Wait for the new server to see itself added to the cluster.
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantRaft([]*Server{s1, s2, s3, s4}))
+	})
+}
+
+// Should not trigger bootstrap and new election when s3 joins, since cluster exists
+func TestServer_AvoidReBootstrap(t *testing.T) {
+	dir1, s1 := testServerDCExpect(t, "dc1", 2)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCExpect(t, "dc1", 0)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCExpect(t, "dc1", 2)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Join the first two servers
+	joinLAN(t, s2, s1)
+
+	// Make sure a leader is elected, grab the current term and then add in
+	// the third server.
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	termBefore := s1.raft.Stats()["last_log_term"]
+	joinLAN(t, s3, s1)
+
+	// Wait for the new server to see itself added to the cluster.
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2, s3}))
 	})
 
 	// Make sure there's still a leader and that the term didn't change,
@@ -708,53 +742,41 @@ func TestServer_Expect(t *testing.T) {
 
 func TestServer_Expect_NonVoters(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 3)
+	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 2)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerDCExpectNonVoter(t, "dc1", 3)
+	dir2, s2 := testServerDCExpect(t, "dc1", 2)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerDCExpect(t, "dc1", 3)
+	dir3, s3 := testServerDCExpect(t, "dc1", 2)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
-	dir4, s4 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir4)
-	defer s4.Shutdown()
-
-	dir5, s5 := testServerDCExpect(t, "dc1", 3)
-	defer os.RemoveAll(dir5)
-	defer s5.Shutdown()
-
-	// Join the first three servers.
+	// Join the first two servers.
 	joinLAN(t, s2, s1)
-	joinLAN(t, s3, s1)
 
 	// Should have no peers yet since the bootstrap didn't occur.
 	retry.Run(t, func(r *retry.R) {
 		r.Check(wantPeers(s1, 0))
 		r.Check(wantPeers(s2, 0))
-		r.Check(wantPeers(s3, 0))
 	})
 
-	// Join the fourth node.
-	joinLAN(t, s4, s1)
-	joinLAN(t, s5, s1)
+	// Join the third node.
+	joinLAN(t, s3, s1)
 
 	// Now we have three servers so we should bootstrap.
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantPeers(s1, 3))
-		r.Check(wantPeers(s2, 3))
-		r.Check(wantPeers(s3, 3))
-		r.Check(wantPeers(s4, 3))
+		r.Check(wantPeers(s1, 2))
+		r.Check(wantPeers(s2, 2))
+		r.Check(wantPeers(s3, 2))
 	})
 
 	// Make sure a leader is elected
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {
-		r.Check(wantRaft([]*Server{s1, s2, s3, s4, s5}))
+		r.Check(wantRaft([]*Server{s1, s2, s3}))
 	})
 }
 

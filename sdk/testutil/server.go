@@ -236,7 +236,16 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 			"consul or skip this test")
 	}
 
-	tmpdir := TempDir(t, "consul")
+	prefix := "consul"
+	if t != nil {
+		// Use test name for tmpdir if available
+		prefix = strings.Replace(t.Name(), "/", "_", -1)
+	}
+	tmpdir, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create tempdir")
+	}
+
 	cfg := defaultServerConfig()
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
@@ -245,13 +254,14 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
 	log.Printf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
-		defer os.RemoveAll(tmpdir)
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
 
@@ -271,6 +281,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
 
@@ -300,15 +311,11 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	// Wait for the server to be ready
-	if cfg.Bootstrap {
-		err = server.waitForLeader()
-	} else {
-		err = server.waitForAPI()
+	if err := server.waitForAPI(); err != nil {
+		server.Stop()
+		return nil, err
 	}
-	if err != nil {
-		defer server.Stop()
-		return nil, errors.Wrap(err, "failed waiting for server to start")
-	}
+
 	return server, nil
 }
 
@@ -333,51 +340,49 @@ func (s *TestServer) Stop() error {
 	return s.cmd.Wait()
 }
 
-type failer struct {
-	failed bool
-}
-
-func (f *failer) Log(args ...interface{}) { fmt.Println(args...) }
-func (f *failer) FailNow()                { f.failed = true }
-
 // waitForAPI waits for only the agent HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
 func (s *TestServer) waitForAPI() error {
-	f := &failer{}
-	retry.Run(f, func(r *retry.R) {
+	var failed bool
+
+	// This retry replicates the logic of retry.Run to allow for nested retries.
+	// By returning an error we can wrap TestServer creation with retry.Run
+	// in makeClientWithConfig.
+	timer := retry.TwoSeconds()
+	deadline := time.Now().Add(timer.Timeout)
+	for !time.Now().After(deadline) {
+		time.Sleep(timer.Wait)
+
 		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
 		if err != nil {
-			r.Fatal(err)
+			failed = true
+			continue
 		}
-		defer resp.Body.Close()
-		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK response", err)
+		resp.Body.Close()
+
+		if err = s.requireOK(resp); err != nil {
+			failed = true
+			continue
 		}
-	})
-	if f.failed {
-		return errors.New("failed waiting for API")
+		failed = false
+	}
+	if failed {
+		return fmt.Errorf("api unavailable")
 	}
 	return nil
 }
 
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
-// 1 or more to be observed to confirm leader election is done.
-// It then waits to ensure the anti-entropy sync has completed.
-func (s *TestServer) waitForLeader() error {
-	f := &failer{}
-	timer := &retry.Timer{
-		Timeout: s.Config.ReadyTimeout,
-		Wait:    250 * time.Millisecond,
-	}
-	var index int64
-	retry.RunWith(timer, f, func(r *retry.R) {
+// 2 or more to be observed to confirm leader election is done.
+func (s *TestServer) WaitForLeader(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
+		url := s.url("/v1/catalog/nodes")
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
-			r.Fatal("failed http get", err)
+			r.Fatalf("failed http get '%s': %v", url, err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
@@ -388,35 +393,14 @@ func (s *TestServer) waitForLeader() error {
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
 			r.Fatalf("Consul leader status: %#v", leader)
 		}
-		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
+		index, err := strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
 		if err != nil {
 			r.Fatal("bad consul index", err)
 		}
-		if index == 0 {
-			r.Fatal("consul index is 0")
-		}
-
-		// Watch for the anti-entropy sync to finish.
-		var v []map[string]interface{}
-		dec := json.NewDecoder(resp.Body)
-		if err := dec.Decode(&v); err != nil {
-			r.Fatal(err)
-		}
-		if len(v) < 1 {
-			r.Fatal("No nodes")
-		}
-		taggedAddresses, ok := v[0]["TaggedAddresses"].(map[string]interface{})
-		if !ok {
-			r.Fatal("Missing tagged addresses")
-		}
-		if _, ok := taggedAddresses["lan"]; !ok {
-			r.Fatal("No lan tagged addresses")
+		if index < 2 {
+			r.Fatal("consul index should be at least 2")
 		}
 	})
-	if f.failed {
-		return errors.New("failed waiting for leader")
-	}
-	return nil
 }
 
 // WaitForSerfCheck ensures we have a node with serfHealth check registered
