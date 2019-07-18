@@ -840,7 +840,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GRPCPort:                                grpcPort,
 		GRPCAddrs:                               grpcAddrs,
 		KeyFile:                                 b.stringVal(c.KeyFile),
-		KVMaxValueSize:                          b.int64Val(c.Limits.KVMaxValueSize),
+		KVMaxValueSize:                          b.uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:                          b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                             leaveOnTerm,
 		LogLevel:                                b.stringVal(c.LogLevel),
@@ -1398,15 +1398,15 @@ func (b *Builder) intVal(v *int) int {
 	return b.intValWithDefault(v, 0)
 }
 
-func (b *Builder) int64ValWithDefault(v *int64, defaultVal int64) int64 {
+func (b *Builder) uint64ValWithDefault(v *uint64, defaultVal uint64) uint64 {
 	if v == nil {
 		return defaultVal
 	}
 	return *v
 }
 
-func (b *Builder) int64Val(v *int64) int64 {
-	return b.int64ValWithDefault(v, 0)
+func (b *Builder) uint64Val(v *uint64) uint64 {
+	return b.uint64ValWithDefault(v, 0)
 }
 
 func (b *Builder) portVal(name string, v *int) int {

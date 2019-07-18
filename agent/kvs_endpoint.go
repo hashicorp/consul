@@ -175,7 +175,7 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	}
 
 	// Check the content-length
-	if req.ContentLength > s.agent.config.KVMaxValueSize {
+	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
 		resp.WriteHeader(http.StatusRequestEntityTooLarge)
 		fmt.Fprintf(resp, "Value exceeds %d byte limit", s.agent.config.KVMaxValueSize)
 		return nil, nil
