@@ -2,6 +2,7 @@ package file
 
 import (
 	"testing"
+	"time"
 
 	"github.com/coredns/coredns/plugin/test"
 
@@ -87,6 +88,38 @@ func TestFileParse(t *testing.T) {
 					t.Fatalf("Test %d expected %v for %d th zone, got %v", i, name, j, actualZones.Names[j])
 				}
 			}
+		}
+	}
+}
+
+func TestParseReload(t *testing.T) {
+	name, rm, err := test.TempFile(".", dbMiekNL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rm()
+
+	tests := []struct {
+		input  string
+		reload time.Duration
+	}{
+		{
+			`file ` + name + ` example.org.`,
+			1 * time.Minute,
+		},
+		{
+			`file ` + name + ` example.org. {
+			reload 5s
+			}`,
+			5 * time.Second,
+		},
+	}
+
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.input)
+		z, _ := fileParse(c)
+		if x := z.Z["example.org."].ReloadInterval; x != test.reload {
+			t.Errorf("Test %d expected reload to be %s, but got %s", i, test.reload, x)
 		}
 	}
 }

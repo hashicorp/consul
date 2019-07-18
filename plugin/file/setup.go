@@ -97,7 +97,6 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 			names = append(names, origins[i])
 		}
 
-		upstr := upstream.New()
 		t := []string{}
 		var e error
 
@@ -128,11 +127,15 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				if t != nil {
 					z[origin].TransferTo = append(z[origin].TransferTo, t...)
 				}
-				z[origin].ReloadInterval = reload
-				z[origin].Upstream = upstr
 			}
 		}
 	}
+
+	for origin := range z {
+		z[origin].ReloadInterval = reload
+		z[origin].Upstream = upstream.New()
+	}
+
 	if openErr != nil {
 		if reload == 0 {
 			// reload hasn't been set make this a fatal error
