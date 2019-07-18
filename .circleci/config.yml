@@ -84,7 +84,7 @@ jobs:
       # This loop writes go test results to <reportname>.xml per go package
       - run: |
           PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname)
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
 
       - store_test_results:
           path: /tmp/test-results
