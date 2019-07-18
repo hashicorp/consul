@@ -104,5 +104,4 @@ As of version 0.8.4, Consul supports migrating to TLS-encrypted traffic on a run
 without downtime. This process assumes a starting point with no TLS settings configured and involves
 an intermediate step in order to get to full TLS encryption. Review the
 [Securing RPC Communication with TLS Encryption guide](https://learn.hashicorp.com/consul/security-networking/certificates) for the step-by-step process to configure TLS on a new or existing cluster. Note the call outs there for existing cluster configuration. 
-an existing cluster. 
 
