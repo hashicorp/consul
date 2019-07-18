@@ -56,7 +56,7 @@ require (
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	google.golang.org/genproto v0.0.0-20190701230453-710ae3a149df // indirect
 	google.golang.org/grpc v1.22.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.15.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.16.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0-20190313235455-40a48860b5ab
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
