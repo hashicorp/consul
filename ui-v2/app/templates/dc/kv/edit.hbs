@@ -27,7 +27,7 @@
         {{/if}}
         {{partial 'dc/kv/form'}}
         {{#if session}}
-            <div data-test-session>
+        <div data-test-session={{session.ID}}>
                 <h2><a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a></h2>
                 <dl>
                     <dt>Name</dt>
