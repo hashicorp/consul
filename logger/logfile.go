@@ -99,7 +99,7 @@ func (l *LogFile) pruneFiles() error {
 	if l.MaxLogArchives == -1 {
 		return nil
 	}
-	fileNamePattern := l.getFileNamePattern()
+	pattern := l.fileNamePattern()
 	//get all the files that match the log file pattern
 	globExpression := filepath.Join(l.logPath, fmt.Sprintf(fileNamePattern, "*"))
 	var matches []string
