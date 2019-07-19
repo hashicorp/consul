@@ -50,7 +50,7 @@ type LogFile struct {
 	acquire sync.Mutex
 }
 
-func (l *LogFile) getFileNamePattern() string {
+func (l *LogFile) fileNamePattern() string {
 	// Extract the file extension
 	fileExt := filepath.Ext(l.fileName)
 	// If we have no file extension we append .log
