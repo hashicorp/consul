@@ -130,7 +130,7 @@ func TestLogFile_deleteArchives(t *testing.T) {
 		}
 		contents := string(bytes)
 
-		if contents != "[INFO] Second File" && contents != "[INFO] Third File" {
+		if contents == "[INFO] Hello World" {
 			t.Errorf("Should have deleted the eldest log file")
 			return
 		}
