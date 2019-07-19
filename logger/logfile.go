@@ -58,7 +58,7 @@ func (l *LogFile) fileNamePattern() string {
 		fileExt = ".log"
 	}
 	// Remove the file extension from the filename
-	fileNameWithoutExtension := strings.TrimSuffix(l.fileName, fileExt)
+	return strings.TrimSuffix(l.fileName, fileExt) + "-%s" + fileExt
 	return fileNameWithoutExtension + "-%s" + fileExt
 }
 
