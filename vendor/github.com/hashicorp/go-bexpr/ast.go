@@ -57,6 +57,8 @@ const (
 	MatchNotIn
 	MatchIsEmpty
 	MatchIsNotEmpty
+	MatchMatches
+	MatchNotMatches
 )
 
 func (op MatchOperator) String() string {
@@ -73,6 +75,10 @@ func (op MatchOperator) String() string {
 		return "Is Empty"
 	case MatchIsNotEmpty:
 		return "Is Not Empty"
+	case MatchMatches:
+		return "Matches"
+	case MatchNotMatches:
+		return "Not Matches"
 	default:
 		return "UNKNOWN"
 	}

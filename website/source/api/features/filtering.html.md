@@ -78,11 +78,15 @@ those endpoints.
 <Selector> is empty
 <Selector> is not empty
 
-// Contains checks
+// Contains checks or Substring Matching
 <Value> in <Selector>
 <Value> not in <Selector>
 <Selector> contains <Value>
 <Selector> not contains <Value>
+
+// Regular Expression Matching
+<Selector> matches <Value>
+<Selector> not matches <Value>
 ```
 
 ### Selectors

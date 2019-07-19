@@ -27,11 +27,31 @@ type fieldConfigTest struct {
 	expected bexpr.FieldConfigurations
 }
 
+// ----------------------------------------------------------------------------
+//
+// The following are not explicitly tested as they are supporting structures
+// nested within the other API responses
+//
+// ----------------------------------------------------------------------------
+
+var expectedFieldConfigServiceAddress bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Address": &bexpr.FieldConfiguration{
+		StructFieldName:     "Address",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Port": &bexpr.FieldConfiguration{
+		StructFieldName:     "Port",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+}
+
 var expectedFieldConfigMeshGatewayConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"Mode": &bexpr.FieldConfiguration{
 		StructFieldName:     "Mode",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 }
 
@@ -39,27 +59,27 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 	"DestinationType": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationType",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"DestinationNamespace": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationNamespace",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"DestinationName": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationName",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Datacenter": &bexpr.FieldConfiguration{
 		StructFieldName:     "Datacenter",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"LocalBindAddress": &bexpr.FieldConfiguration{
 		StructFieldName:     "LocalBindAddress",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"LocalBindPort": &bexpr.FieldConfiguration{
 		StructFieldName:     "LocalBindPort",
@@ -76,17 +96,17 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 	"DestinationServiceName": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationServiceName",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"DestinationServiceID": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationServiceID",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"LocalServiceAddress": &bexpr.FieldConfiguration{
 		StructFieldName:     "LocalServiceAddress",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"LocalServicePort": &bexpr.FieldConfiguration{
 		StructFieldName:     "LocalServicePort",
@@ -128,31 +148,43 @@ var expectedFieldConfigWeights bexpr.FieldConfigurations = bexpr.FieldConfigurat
 var expectedFieldConfigMapStringValue bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	bexpr.FieldNameAny: &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 }
 
-// these are not all in a table because some of them reference each other
+var expectedFieldConfigMapStringServiceAddress bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	bexpr.FieldNameAny: &bexpr.FieldConfiguration{
+		SubFields: expectedFieldConfigServiceAddress,
+	},
+}
+
+// ----------------------------------------------------------------------------
+//
+// The following structures are within the test table as they are structures
+// that will be sent back at the top level of API responses
+//
+// ----------------------------------------------------------------------------
+
 var expectedFieldConfigNode bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"ID": &bexpr.FieldConfiguration{
 		StructFieldName:     "ID",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Node": &bexpr.FieldConfiguration{
 		StructFieldName:     "Node",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Address": &bexpr.FieldConfiguration{
 		StructFieldName:     "Address",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Datacenter": &bexpr.FieldConfiguration{
 		StructFieldName:     "Datacenter",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"TaggedAddresses": &bexpr.FieldConfiguration{
 		StructFieldName:     "TaggedAddresses",
@@ -161,7 +193,7 @@ var expectedFieldConfigNode bexpr.FieldConfigurations = bexpr.FieldConfiguration
 		SubFields: bexpr.FieldConfigurations{
 			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
 				CoerceFn:            bexpr.CoerceString,
-				SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+				SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 			},
 		},
 	},
@@ -172,22 +204,9 @@ var expectedFieldConfigNode bexpr.FieldConfigurations = bexpr.FieldConfiguration
 		SubFields: bexpr.FieldConfigurations{
 			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
 				CoerceFn:            bexpr.CoerceString,
-				SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+				SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 			},
 		},
-	},
-}
-
-var expectedFieldConfigMapStringServiceAddress bexpr.FieldConfigurations = bexpr.FieldConfigurations{
-	"Address": &bexpr.FieldConfiguration{
-		StructFieldName:     "Address",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-	},
-	"Port": &bexpr.FieldConfiguration{
-		StructFieldName:     "Port",
-		CoerceFn:            bexpr.CoerceInt,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
 }
 
@@ -195,17 +214,17 @@ var expectedFieldConfigNodeService bexpr.FieldConfigurations = bexpr.FieldConfig
 	"Kind": &bexpr.FieldConfiguration{
 		StructFieldName:     "Kind",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"ID": &bexpr.FieldConfiguration{
 		StructFieldName:     "ID",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Service": &bexpr.FieldConfiguration{
 		StructFieldName:     "Service",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Tags": &bexpr.FieldConfiguration{
 		StructFieldName:     "Tags",
@@ -215,17 +234,13 @@ var expectedFieldConfigNodeService bexpr.FieldConfigurations = bexpr.FieldConfig
 	"Address": &bexpr.FieldConfiguration{
 		StructFieldName:     "Address",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"TaggedAddresses": &bexpr.FieldConfiguration{
 		StructFieldName:     "TaggedAddresses",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
-		SubFields: bexpr.FieldConfigurations{
-			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
-				SubFields: expectedFieldConfigMapStringServiceAddress,
-			},
-		},
+		SubFields:           expectedFieldConfigMapStringServiceAddress,
 	},
 	"Meta": &bexpr.FieldConfiguration{
 		StructFieldName:     "Meta",
@@ -261,22 +276,22 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 	"ID": &bexpr.FieldConfiguration{
 		StructFieldName:     "ID",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Node": &bexpr.FieldConfiguration{
 		StructFieldName:     "Node",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Address": &bexpr.FieldConfiguration{
 		StructFieldName:     "Address",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Datacenter": &bexpr.FieldConfiguration{
 		StructFieldName:     "Datacenter",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"TaggedAddresses": &bexpr.FieldConfiguration{
 		StructFieldName:     "TaggedAddresses",
@@ -293,17 +308,17 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 	"ServiceKind": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceKind",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"ServiceID": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceID",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"ServiceName": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceName",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"ServiceTags": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceTags",
@@ -313,17 +328,13 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 	"ServiceAddress": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceAddress",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"ServiceTaggedAddresses": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceTaggedAddresses",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
-		SubFields: bexpr.FieldConfigurations{
-			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
-				SubFields: expectedFieldConfigMapStringServiceAddress,
-			},
-		},
+		SubFields:           expectedFieldConfigMapStringServiceAddress,
 	},
 	"ServiceMeta": &bexpr.FieldConfiguration{
 		StructFieldName:     "ServiceMeta",
@@ -358,42 +369,42 @@ var expectedFieldConfigServiceNode bexpr.FieldConfigurations = bexpr.FieldConfig
 var expectedFieldConfigHealthCheck bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"Node": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "Node",
 	},
 	"CheckId": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "CheckId",
 	},
 	"Name": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "Name",
 	},
 	"Status": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "Status",
 	},
 	"Notes": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "Notes",
 	},
 	"Output": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "Output",
 	},
 	"ServiceID": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "ServiceID",
 	},
 	"ServiceName": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "ServiceName",
 	},
 	"ServiceTags": &bexpr.FieldConfiguration{
@@ -423,39 +434,29 @@ var expectedFieldConfigNodeInfo bexpr.FieldConfigurations = bexpr.FieldConfigura
 	"ID": &bexpr.FieldConfiguration{
 		StructFieldName:     "ID",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Node": &bexpr.FieldConfiguration{
 		StructFieldName:     "Node",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"Address": &bexpr.FieldConfiguration{
 		StructFieldName:     "Address",
 		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 	"TaggedAddresses": &bexpr.FieldConfiguration{
 		StructFieldName:     "TaggedAddresses",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
-		SubFields: bexpr.FieldConfigurations{
-			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
-				CoerceFn:            bexpr.CoerceString,
-				SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-			},
-		},
+		SubFields:           expectedFieldConfigMapStringValue,
 	},
 	"Meta": &bexpr.FieldConfiguration{
 		StructFieldName:     "Meta",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
-		SubFields: bexpr.FieldConfigurations{
-			bexpr.FieldNameAny: &bexpr.FieldConfiguration{
-				CoerceFn:            bexpr.CoerceString,
-				SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-			},
-		},
+		SubFields:           expectedFieldConfigMapStringValue,
 	},
 	"Services": &bexpr.FieldConfiguration{
 		StructFieldName:     "Services",
