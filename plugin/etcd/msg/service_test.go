@@ -128,6 +128,7 @@ func BenchmarkNewSRV(b *testing.B) {
 	s := &Service{Host: "www,example.org", Port: 8080}
 	for n := 0; n < b.N; n++ {
 		srv := s.NewSRV("www.example.org.", 16)
+		// this assignment makes sure s.NewSRV doesn't get optimized out
 		srv = srv
 	}
 }
