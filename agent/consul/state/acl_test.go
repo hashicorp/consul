@@ -2728,7 +2728,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLStateStore(t)
 
-		// deletion of non-existant roles is not an error
+		// deletion of non-existent roles is not an error
 		require.NoError(t, s.ACLRoleDeleteByName(3, "not-found"))
 		require.NoError(t, s.ACLRoleDeleteByID(3, testRoleID_A))
 	})
@@ -3021,7 +3021,7 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLStateStore(t)
 
-		// deletion of non-existant methods is not an error
+		// deletion of non-existent methods is not an error
 		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "not-found"))
 	})
 }
@@ -3453,7 +3453,7 @@ func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLStateStore(t)
 
-		// deletion of non-existant rules is not an error
+		// deletion of non-existent rules is not an error
 		require.NoError(t, s.ACLBindingRuleDeleteByID(3, "ed3ce1b8-3a16-4e2f-b82e-f92e3b92410d"))
 	})
 }
