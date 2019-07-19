@@ -88,7 +88,7 @@ func (l *LogFile) rotate() error {
 	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
 		if err := l.purgeArchivesIfNeeded(); err != nil {
-			fmt.Printf("E! Unable to purge old log file archives: %s", err.Error())
+			return err
 		}
 		return l.openNew()
 	}
