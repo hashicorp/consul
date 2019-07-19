@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -727,7 +727,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			ServiceID:  "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,
@@ -738,7 +738,7 @@ service "service" {
 	err = msgpackrpc.CallWithCodec(codec, "Catalog.Deregister",
 		&structs.DeregisterRequest{
 			Datacenter: "dc1",
-			Node:       "node",
+			Node:       "nope",
 			CheckID:    "nope",
 			WriteRequest: structs.WriteRequest{
 				Token: id,
@@ -1046,26 +1046,28 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 		QueryOptions: structs.QueryOptions{AllowStale: true},
 	}
 	var out structs.IndexedNodes
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	found := false
-	for _, n := range out.Nodes {
-		if n.Node == "foo" {
-			found = true
+	retry.Run(t, func(r *retry.R) {
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out); err != nil {
+			r.Fatalf("err: %v", err)
 		}
-	}
-	if !found {
-		t.Fatalf("failed to find foo in %#v", out.Nodes)
-	}
 
-	if out.QueryMeta.LastContact == 0 {
-		t.Fatalf("should have a last contact time")
-	}
-	if !out.QueryMeta.KnownLeader {
-		t.Fatalf("should have known leader")
-	}
+		found := false
+		for _, n := range out.Nodes {
+			if n.Node == "foo" {
+				found = true
+			}
+		}
+		if !found {
+			r.Fatalf("failed to find foo in %#v", out.Nodes)
+		}
+		if out.QueryMeta.LastContact == 0 {
+			r.Fatalf("should have a last contact time")
+		}
+		if !out.QueryMeta.KnownLeader {
+			r.Fatalf("should have known leader")
+		}
+	})
 }
 
 func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
@@ -1621,18 +1623,19 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	waitForLeader(s1, s2)
 
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	// Should find the services
-	if len(out.Services) != 1 {
-		t.Fatalf("bad: %#v", out.Services)
-	}
-
-	if !out.KnownLeader {
-		t.Fatalf("should have a leader: %v", out)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		// Should find the services
+		if len(out.Services) != 1 {
+			r.Fatalf("bad: %#v", out.Services)
+		}
+		if !out.KnownLeader {
+			r.Fatalf("should have a leader: %v", out)
+		}
+	})
 
 	s1.Leave()
 	s1.Shutdown()

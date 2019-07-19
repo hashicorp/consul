@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
@@ -495,6 +498,62 @@ func TestAgent_AddService(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		node_name = "node1"
+	`)
+	defer a.Shutdown()
+
+	// It's tricky to get an UpdateCheck call to be timed properly so it lands
+	// right in the middle of an addServiceInternal call so we cheat a bit and
+	// rely upon alias checks to do that work for us.  We add enough services
+	// that probabilistically one of them is going to end up properly in the
+	// critical section.
+	//
+	// The first number I picked here (10) surprisingly failed every time prior
+	// to PR #6144 solving the underlying problem.
+	const numServices = 10
+
+	services := make([]*structs.ServiceDefinition, numServices)
+	checkIDs := make([]types.CheckID, numServices)
+	for i := 0; i < numServices; i++ {
+		name := fmt.Sprintf("web-%d", i)
+
+		services[i] = &structs.ServiceDefinition{
+			ID:   name,
+			Name: name,
+			Port: 8080 + i,
+			Checks: []*structs.CheckType{
+				&structs.CheckType{
+					Name:         "alias-for-fake-service",
+					AliasService: "fake",
+				},
+			},
+		}
+
+		checkIDs[i] = types.CheckID("service:" + name)
+	}
+
+	// Add all of the services quickly as you might do from config file snippets.
+	for _, service := range services {
+		ns := service.NodeService()
+
+		chkTypes, err := service.CheckTypes()
+		require.NoError(t, err)
+
+		require.NoError(t, a.AddService(ns, chkTypes, false, service.Token, ConfigSourceLocal))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		gotChecks := a.State.Checks()
+		for id, check := range gotChecks {
+			require.Equal(r, "passing", check.Status, "check %q is wrong", id)
+			require.Equal(r, "No checks found.", check.Output, "check %q is wrong", id)
+		}
+	})
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -1125,6 +1184,184 @@ func TestAgent_AddCheck_GRPC(t *testing.T) {
 	}
 }
 
+func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
+	// t.Parallel() don't even think about making this parallel
+
+	// This test is very contrived and tests for the absence of race conditions
+	// related to the implementation of alias checks. As such it is slow,
+	// serial, full of sleeps and retries, and not generally a great test to
+	// run all of the time.
+	//
+	// That said it made it incredibly easy to root out various race conditions
+	// quite successfully.
+	//
+	// The original set of races was between:
+	//
+	//   - agent startup reloading Services and Checks from disk
+	//   - API requests to also re-register those same Services and Checks
+	//   - the goroutines for the as-yet-to-be-stopped CheckAlias goroutines
+
+	if os.Getenv("SLOWTEST") != "1" {
+		t.Skip("skipping slow test; set SLOWTEST=1 to run")
+		return
+	}
+
+	// We do this so that the agent logs and the informational messages from
+	// the test itself are interwoven properly.
+	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
+		a.logger.Printf("[INFO] testharness: "+format, args...)
+	}
+
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	cfg := `
+		server = false
+		bootstrap = false
+	    enable_central_service_config = false
+		data_dir = "` + dataDir + `"
+	`
+	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
+	a.LogOutput = testutil.TestWriter(t)
+	a.Start(t)
+	defer os.RemoveAll(dataDir)
+	defer a.Shutdown()
+
+	testCtx, testCancel := context.WithCancel(context.Background())
+	defer testCancel()
+
+	testHTTPServer := launchHTTPCheckServer(t, testCtx)
+	defer testHTTPServer.Close()
+
+	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
+		// add one persistent service with a simple check
+		require.NoError(t, a.AddService(
+			&structs.NodeService{
+				ID:      "ping",
+				Service: "ping",
+				Port:    8000,
+			},
+			[]*structs.CheckType{
+				&structs.CheckType{
+					HTTP:     testHTTPServer.URL,
+					Method:   "GET",
+					Interval: 5 * time.Second,
+					Timeout:  1 * time.Second,
+				},
+			},
+			true, "", ConfigSourceLocal,
+		))
+
+		// add one persistent sidecar service with an alias check in the manner
+		// of how sidecar_service would add it
+		require.NoError(t, a.AddService(
+			&structs.NodeService{
+				ID:      "ping-sidecar-proxy",
+				Service: "ping-sidecar-proxy",
+				Port:    9000,
+			},
+			[]*structs.CheckType{
+				&structs.CheckType{
+					Name:         "Connect Sidecar Aliasing ping",
+					AliasService: "ping",
+				},
+			},
+			true, "", ConfigSourceLocal,
+		))
+	}
+
+	retryUntilCheckState := func(t *testing.T, a *TestAgent, checkID string, expectedStatus string) {
+		t.Helper()
+		retry.Run(t, func(r *retry.R) {
+			chk := a.State.CheckState(types.CheckID(checkID))
+			if chk == nil {
+				r.Fatalf("check=%q is completely missing", checkID)
+			}
+			if chk.Check.Status != expectedStatus {
+				logf(t, a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Check.Status)
+				r.Fatalf("check=%q expected status %q but got %q", checkID, expectedStatus, chk.Check.Status)
+			}
+			logf(t, a, "check %q has reached desired status %q", checkID, expectedStatus)
+		})
+	}
+
+	registerServicesAndChecks(t, a)
+
+	time.Sleep(1 * time.Second)
+
+	retryUntilCheckState(t, a, "service:ping", api.HealthPassing)
+	retryUntilCheckState(t, a, "service:ping-sidecar-proxy", api.HealthPassing)
+
+	logf(t, a, "==== POWERING DOWN ORIGINAL ====")
+
+	require.NoError(t, a.Shutdown())
+
+	time.Sleep(1 * time.Second)
+
+	futureHCL := cfg + `
+node_id = "` + string(a.Config.NodeID) + `"
+node_name = "` + a.Config.NodeName + `"
+	`
+
+	restartOnce := func(idx int, t *testing.T) {
+		t.Helper()
+
+		// Reload and retain former NodeID and data directory.
+		a2 := &TestAgent{Name: t.Name(), HCL: futureHCL, DataDir: dataDir}
+		a2.LogOutput = testutil.TestWriter(t)
+		a2.Start(t)
+		defer a2.Shutdown()
+		a = nil
+
+		// reregister during standup; we use an adjustable timing to try and force a race
+		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
+		time.Sleep(sleepDur)
+		logf(t, a2, "re-registering checks and services after a delay of %v", sleepDur)
+		for i := 0; i < 20; i++ { // RACE RACE RACE!
+			registerServicesAndChecks(t, a2)
+			time.Sleep(50 * time.Millisecond)
+		}
+
+		time.Sleep(1 * time.Second)
+
+		retryUntilCheckState(t, a2, "service:ping", api.HealthPassing)
+
+		logf(t, a2, "giving the alias check a chance to notice...")
+		time.Sleep(5 * time.Second)
+
+		retryUntilCheckState(t, a2, "service:ping-sidecar-proxy", api.HealthPassing)
+	}
+
+	for i := 0; i < 20; i++ {
+		name := "restart-" + strconv.Itoa(i)
+		ok := t.Run(name, func(t *testing.T) {
+			restartOnce(i, t)
+		})
+		require.True(t, ok, name+" failed")
+	}
+}
+
+func launchHTTPCheckServer(t *testing.T, ctx context.Context) *httptest.Server {
+	ports := freeport.GetT(t, 1)
+	port := ports[0]
+
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+
+	var lc net.ListenConfig
+	listener, err := lc.Listen(ctx, "tcp", addr)
+	require.NoError(t, err)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK\n"))
+	})
+
+	srv := &httptest.Server{
+		Listener: listener,
+		Config:   &http.Server{Handler: handler},
+	}
+	srv.Start()
+	return srv
+}
+
 func TestAgent_AddCheck_Alias(t *testing.T) {
 	t.Parallel()
 
@@ -1405,7 +1642,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-
+	checkBufSize := 100
 	health := &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "mem",
@@ -1413,7 +1650,8 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 		Status:  api.HealthCritical,
 	}
 	chk := &structs.CheckType{
-		TTL: 15 * time.Second,
+		TTL:           15 * time.Second,
+		OutputMaxSize: checkBufSize,
 	}
 
 	// Add check and update it.
@@ -1432,6 +1670,19 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 	}
 	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
+	}
+
+	if err := a.updateTTLCheck("mem", api.HealthCritical, strings.Repeat("--bad-- ", 5*checkBufSize)); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping.
+	status = a.State.Checks()["mem"]
+	if status.Status != api.HealthCritical {
+		t.Fatalf("bad: %v", status)
+	}
+	if len(status.Output) > checkBufSize*2 {
+		t.Fatalf("bad: %v", len(status.Output))
 	}
 }
 
@@ -2770,13 +3021,10 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Reload the checks
-	if err := a.loadChecks(a.Config); err != nil {
+	// Reload the checks and restore the snapshot.
+	if err := a.loadChecks(a.Config, snap); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Restore the state
-	a.restoreCheckState(snap)
 
 	// Search for the check
 	out, ok := a.State.Checks()[check1.CheckID]
@@ -2815,7 +3063,7 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 	}
 
 	// Try loading the checks from the persisted files
-	if err := a.loadChecks(a.Config); err != nil {
+	if err := a.loadChecks(a.Config, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3675,4 +3923,21 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
+}
+
+func TestAgent_consulConfig(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+	defer os.RemoveAll(dataDir)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		verify_incoming = true
+		ca_file = "../test/ca/root.cer"
+		cert_file = "../test/key/ourdomain.cer"
+		key_file = "../test/key/ourdomain.key"
+		auto_encrypt { allow_tls = true }
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
 }

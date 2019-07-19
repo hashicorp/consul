@@ -59,7 +59,7 @@ export default RepositoryService.extend({
           const id = JSON.stringify([dc, key]);
           const record = get(this, 'store').peekRecord(this.getModelName(), id);
           if (record) {
-            record.destroyRecord();
+            record.unloadRecord();
           }
         }
         throw e;

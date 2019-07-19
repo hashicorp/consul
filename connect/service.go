@@ -306,7 +306,7 @@ func (s *Service) Ready() bool {
 	return s.tlsCfg.Ready()
 }
 
-// ReadyWait returns a chan that is closed when the the Service becomes ready
+// ReadyWait returns a chan that is closed when the Service becomes ready
 // for use for the first time. Note that if the Service is ready when it is
 // called it returns a nil chan. Ready means that it has root and leaf
 // certificates configured which we assume are valid. The service may

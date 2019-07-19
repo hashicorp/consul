@@ -104,7 +104,7 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 
 func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
-	a, err := New(c)
+	a, err := New(c, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -126,14 +126,15 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
 		hclDataDir = `data_dir = "` + d + `"`
 	}
-	id := NodeID()
 
+	var id string
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
 			randomPortsSource(a.UseTLS),
 			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 		)
+		id = string(a.Config.NodeID)
 
 		// write the keyring
 		if a.Key != "" {
@@ -146,16 +147,17 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 			writeKey(a.Key, SerfWANKeyring)
 		}
 
-		agent, err := New(a.Config)
-		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
-
 		logOutput := a.LogOutput
 		if logOutput == nil {
 			logOutput = os.Stderr
 		}
+		agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+		agent, err := New(a.Config, agentLogger)
+		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
+
 		agent.LogOutput = logOutput
 		agent.LogWriter = a.LogWriter
-		agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 		// we need the err var in the next exit condition

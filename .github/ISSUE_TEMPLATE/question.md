@@ -8,6 +8,4 @@ Issues on GitHub are intended to be related to bugs or feature requests, so we r
 
 - Frequently asked questions: https://www.consul.io/docs/faq.html
 - Consul Guides: https://www.consul.io/docs/guides/index.html
-
-
-Any other questions can be sent to the Consul mailing list: https://www.consul.io/community.html
+- Any other questions can be sent to the Consul section of the [HashiCorp forum]: (https://discuss.hashicorp.com/c/consul)

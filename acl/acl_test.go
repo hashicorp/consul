@@ -1704,6 +1704,89 @@ func TestACL(t *testing.T) {
 				{name: "WriteAllowed", check: checkAllowACLWrite},
 			},
 		},
+		{
+			name:          "KeyWritePrefixDefaultDeny",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				&Policy{
+					KeyPrefixes: []*KeyPolicy{
+						&KeyPolicy{
+							Prefix: "fo",
+							Policy: PolicyRead,
+						},
+						&KeyPolicy{
+							Prefix: "foo/",
+							Policy: PolicyWrite,
+						},
+						&KeyPolicy{
+							Prefix: "bar/",
+							Policy: PolicyWrite,
+						},
+						&KeyPolicy{
+							Prefix: "baz/",
+							Policy: PolicyWrite,
+						},
+						&KeyPolicy{
+							Prefix: "test/",
+							Policy: PolicyWrite,
+						},
+					},
+					Keys: []*KeyPolicy{
+						&KeyPolicy{
+							Prefix: "foo/bar",
+							Policy: PolicyWrite,
+						},
+						&KeyPolicy{
+							Prefix: "bar/baz",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				// Ensure we deny access if the best match key_prefix rule does not grant
+				// write access (disregards both the default policy and any other rules with
+				// segments that may fall within the given kv prefix)
+				{name: "DeniedTopLevelPrefix", prefix: "foo", check: checkDenyKeyWritePrefix},
+				// Allow recursive KV writes when we have a prefix rule that allows it and no
+				// other rules with segments that fall within the requested kv prefix to be written.
+				{name: "AllowedTopLevelPrefix", prefix: "baz/", check: checkAllowKeyWritePrefix},
+				// Ensure we allow recursive KV writes when we have a prefix rule that would allow it
+				// and all other rules with segments prefixed by the kv prefix to be written also allow
+				// write access.
+				{name: "AllowedPrefixWithNestedWrite", prefix: "foo/", check: checkAllowKeyWritePrefix},
+				// Ensure that we deny recursive KV writes when they would be allowed for a prefix but
+				// denied by either an exact match rule or prefix match rule for a segment prefixed by
+				// the kv prefix being checked against.
+				{name: "DenyPrefixWithNestedRead", prefix: "bar/", check: checkDenyKeyWritePrefix},
+				// Ensure that the default deny policy is used when there is no key_prefix rule
+				// for the given kv segment regardless of any rules that would grant write access
+				// to segments prefixed by the kv prefix being checked against.
+				{name: "DenyNoPrefixMatch", prefix: "te", check: checkDenyKeyWritePrefix},
+			},
+		},
+		{
+			name:          "KeyWritePrefixDefaultAllow",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				&Policy{
+					Keys: []*KeyPolicy{
+						&KeyPolicy{
+							Prefix: "foo/bar",
+							Policy: PolicyRead,
+						},
+					},
+				},
+			},
+			checks: []aclCheck{
+				// Ensure that we deny a key prefix write when a rule for a key within our prefix
+				// doesn't allow writing and the default policy is to allow
+				{name: "KeyWritePrefixDenied", prefix: "foo", check: checkDenyKeyWritePrefix},
+				// Ensure that the default allow policy is used when there is no prefix rule
+				// and there are no other rules regarding keys within that prefix to be written.
+				{name: "KeyWritePrefixAllowed", prefix: "bar", check: checkAllowKeyWritePrefix},
+			},
+		},
 	}
 
 	for _, tcase := range tests {

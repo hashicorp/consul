@@ -13,11 +13,6 @@ Sessions act as a binding layer between nodes, health checks, and key/value data
 They are designed to provide granular locking and are heavily inspired by
 [The Chubby Lock Service for Loosely-Coupled Distributed Systems](http://research.google.com/archive/chubby.html).
 
-~> **Advanced Topic!** This page covers technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Session Design
 
 A session in Consul represents a contract that has very specific semantics.
@@ -144,7 +139,7 @@ the goal of Consul to protect against misbehaving clients.
 
 The primitives provided by sessions and the locking mechanisms of the KV
 store can be used to build client-side leader election algorithms.
-These are covered in more detail in the [Leader Election guide](/docs/guides/leader-election.html).
+These are covered in more detail in the [Leader Election guide](https://learn.hashicorp.com/consul/developer-configuration/elections).
 
 ## Prepared Query Integration
 

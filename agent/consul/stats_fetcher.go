@@ -107,6 +107,10 @@ func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[str
 		case <-ctx.Done():
 			f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
 				workItem.server.Name, ctx.Err())
+
+			f.inflightLock.Lock()
+			delete(f.inflight, workItem.server.ID)
+			f.inflightLock.Unlock()
 		}
 	}
 	return replies

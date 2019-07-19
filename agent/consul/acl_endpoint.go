@@ -602,7 +602,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	// Don't check expiration times here as it doesn't really matter.
-	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID); err == nil && token != nil {
+	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID); err == nil && updatedToken != nil {
 		*reply = *updatedToken
 	} else {
 		return fmt.Errorf("Failed to retrieve the token after insertion")

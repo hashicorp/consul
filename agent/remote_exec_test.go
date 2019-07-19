@@ -157,7 +157,9 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 		t.Fatalf("err: %v", err)
 	}
 	key := "_rexec/" + event.Session + "/job"
-	setKV(t, a.Agent, key, buf, token)
+	if err := setKV(a.Agent, key, buf, token); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	var out remoteExecSpec
 	if shouldSucceed != a.remoteExecGetSpec(event, &out) {
@@ -243,26 +245,26 @@ func testRemoteExecWrites(t *testing.T, hcl string, token string, shouldSucceed 
 	}
 
 	key := "_rexec/" + event.Session + "/" + a.Config.NodeName + "/ack"
-	d := getKV(t, a.Agent, key, token)
-	if d == nil || d.Session != event.Session {
+	d, err := getKV(a.Agent, key, token)
+	if d == nil || d.Session != event.Session || err != nil {
 		t.Fatalf("bad ack: %#v", d)
 	}
 
 	key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/out/00000"
-	d = getKV(t, a.Agent, key, token)
-	if d == nil || d.Session != event.Session || !bytes.Equal(d.Value, output) {
+	d, err = getKV(a.Agent, key, token)
+	if d == nil || d.Session != event.Session || !bytes.Equal(d.Value, output) || err != nil {
 		t.Fatalf("bad output: %#v", d)
 	}
 
 	key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/out/0000a"
-	d = getKV(t, a.Agent, key, token)
-	if d == nil || d.Session != event.Session || !bytes.Equal(d.Value, output) {
+	d, err = getKV(a.Agent, key, token)
+	if d == nil || d.Session != event.Session || !bytes.Equal(d.Value, output) || err != nil {
 		t.Fatalf("bad output: %#v", d)
 	}
 
 	key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/exit"
-	d = getKV(t, a.Agent, key, token)
-	if d == nil || d.Session != event.Session || string(d.Value) != "1" {
+	d, err = getKV(a.Agent, key, token)
+	if d == nil || d.Session != event.Session || string(d.Value) != "1" || err != nil {
 		t.Fatalf("bad output: %#v", d)
 	}
 }
@@ -284,14 +286,16 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 		}
 		buf, err := json.Marshal(spec)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		key := "_rexec/" + event.Session + "/job"
-		setKV(t, a.Agent, key, buf, "")
+		if err := setKV(a.Agent, key, buf, ""); err != nil {
+			r.Fatalf("err: %v", err)
+		}
 
 		buf, err = json.Marshal(event)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		msg := &UserEvent{
 			ID:      generateUUID(),
@@ -303,24 +307,24 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 
 		// Verify we have an ack
 		key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/ack"
-		d := getKV(t, a.Agent, key, "")
-		if d == nil || d.Session != event.Session {
-			t.Fatalf("bad ack: %#v", d)
+		d, err := getKV(a.Agent, key, "")
+		if d == nil || d.Session != event.Session || err != nil {
+			r.Fatalf("bad ack: %#v", d)
 		}
 
 		// Verify we have output
 		key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/out/00000"
-		d = getKV(t, a.Agent, key, "")
+		d, err = getKV(a.Agent, key, "")
 		if d == nil || d.Session != event.Session ||
-			!bytes.Contains(d.Value, []byte(expectedSubstring)) {
-			t.Fatalf("bad output: %#v", d)
+			!bytes.Contains(d.Value, []byte(expectedSubstring)) || err != nil {
+			r.Fatalf("bad output: %#v", d)
 		}
 
 		// Verify we have an exit code
 		key = "_rexec/" + event.Session + "/" + a.Config.NodeName + "/exit"
-		d = getKV(t, a.Agent, key, "")
-		if d == nil || d.Session != event.Session || string(d.Value) != expectedReturnCode {
-			t.Fatalf("bad output: %#v", d)
+		d, err = getKV(a.Agent, key, "")
+		if d == nil || d.Session != event.Session || string(d.Value) != expectedReturnCode || err != nil {
+			r.Fatalf("bad output: %#v", d)
 		}
 	})
 }
@@ -371,7 +375,7 @@ func destroySession(t *testing.T, a *Agent, session string, token string) {
 	}
 }
 
-func setKV(t *testing.T, a *Agent, key string, val []byte, token string) {
+func setKV(a *Agent, key string, val []byte, token string) error {
 	write := structs.KVSRequest{
 		Datacenter: a.config.Datacenter,
 		Op:         api.KVSet,
@@ -385,11 +389,12 @@ func setKV(t *testing.T, a *Agent, key string, val []byte, token string) {
 	}
 	var success bool
 	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
-		t.Fatalf("err: %v", err)
+		return err
 	}
+	return nil
 }
 
-func getKV(t *testing.T, a *Agent, key string, token string) *structs.DirEntry {
+func getKV(a *Agent, key string, token string) (*structs.DirEntry, error) {
 	req := structs.KeyRequest{
 		Datacenter: a.config.Datacenter,
 		Key:        key,
@@ -399,10 +404,10 @@ func getKV(t *testing.T, a *Agent, key string, token string) *structs.DirEntry {
 	}
 	var out structs.IndexedDirEntries
 	if err := a.RPC("KVS.Get", &req, &out); err != nil {
-		t.Fatalf("err: %v", err)
+		return nil, err
 	}
 	if len(out.Entries) > 0 {
-		return out.Entries[0]
+		return out.Entries[0], nil
 	}
-	return nil
+	return nil, nil
 }

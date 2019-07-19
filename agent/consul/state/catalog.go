@@ -369,7 +369,24 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 	for nodeIt := enodes.Next(); nodeIt != nil; nodeIt = enodes.Next() {
 		enode := nodeIt.(*structs.Node)
 		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
-			if !(enode.ID == "" && allowClashWithoutID) {
+			// Look up the existing node's Serf health check to see if it's failed.
+			// If it is, the node can be renamed.
+			enodeCheck, err := tx.First("checks", "id", enode.Node, string(structs.SerfCheckID))
+			if err != nil {
+				return fmt.Errorf("Cannot get status of node %s: %s", enode.Node, err)
+			}
+
+			// Get the node health. If there's no Serf health check, we consider it safe to rename
+			// the node as it's likely an external node registration not managed by Consul.
+			var nodeHealthy bool
+			if enodeCheck != nil {
+				enodeSerfCheck, ok := enodeCheck.(*structs.HealthCheck)
+				if ok {
+					nodeHealthy = enodeSerfCheck.Status != api.HealthCritical
+				}
+			}
+
+			if !(enode.ID == "" && allowClashWithoutID) && nodeHealthy {
 				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
 			}
 		}
@@ -768,7 +785,7 @@ func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc 
 	if svc.ModifyIndex != 0 && existing == nil {
 		return false, nil
 	}
-	e, ok := existing.(*structs.Node)
+	e, ok := existing.(*structs.ServiceNode)
 	if ok && svc.ModifyIndex != 0 && svc.ModifyIndex != e.ModifyIndex {
 		return false, nil
 	}

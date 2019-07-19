@@ -89,12 +89,14 @@ func TestExecCommand_CrossDC(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if got, want := len(a1.WANMembers()), 2; got != want {
-		t.Fatalf("got %d WAN members on a1 want %d", got, want)
-	}
-	if got, want := len(a2.WANMembers()), 2; got != want {
-		t.Fatalf("got %d WAN members on a2 want %d", got, want)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members on a1 want %d", got, want)
+		}
+		if got, want := len(a2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members on a2 want %d", got, want)
+		}
+	})
 
 	ui := cli.NewMockUi()
 	c := New(ui, nil)

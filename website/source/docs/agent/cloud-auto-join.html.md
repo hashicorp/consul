@@ -114,7 +114,7 @@ Use these configuration parameters when using tags:
 - `tag_name` - the name of the tag to auto-join on.
 - `tag_value` - the value of the tag to auto-join on.
 
-Use these configuration parameters when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
+Use these configuration parameters (instead of `tag_name` and `tag_value`) when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
 
 - `resource_group` - the name of the resource group to filter on.
 - `vm_scale_set` - the name of the virtual machine scale set to filter on.
@@ -319,7 +319,7 @@ $ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=
 
 ### Packet
 
-This returns the first private IP address (or the IP addresso of `address type`) of all servers with the given `project` and `auth_token`.
+This returns the first private IP address (or the IP address of `address type`) of all servers with the given `project` and `auth_token`.
 
 ```sh
 $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=... address_type=..."

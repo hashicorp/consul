@@ -5541,6 +5541,164 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	}
 }
 
+func TestDNS_AltDomains_Service(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		alt_domain = "test-domain."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "test-node",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	questions := []string{
+		"db.service.consul.",
+		"db.service.test-domain.",
+		"db.service.dc1.consul.",
+		"db.service.dc1.test-domain.",
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != "test-node.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+
+		aRec, ok := in.Extra[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != "test-node.node.dc1.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+}
+
+func TestDNS_AltDomains_SOA(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		node_name = "test-node"
+		alt_domain = "test-domain."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	questions := []string{
+		"test-node.node.consul.",
+		"test-node.node.test-domain.",
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSOA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		soaRec, ok := in.Answer[0].(*dns.SOA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		if got, want := soaRec.Hdr.Name, "consul."; got != want {
+			t.Fatalf("SOA name invalid, got %q want %q", got, want)
+		}
+		if got, want := soaRec.Ns, "ns.consul."; got != want {
+			t.Fatalf("SOA ns invalid, got %q want %q", got, want)
+		}
+	}
+}
+
+func TestDNS_AltDomains_Overlap(t *testing.T) {
+	// this tests the domain matching logic in DNSServer when encountering more
+	// than one potential match (i.e. ambiguous match)
+	// it should select the longer matching domain when dispatching
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), `
+		node_name = "test-node"
+		alt_domain = "test.consul."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	questions := []string{
+		"test-node.node.consul.",
+		"test-node.node.test.consul.",
+		"test-node.node.dc1.consul.",
+		"test-node.node.dc1.test.consul.",
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("failed to resolve ambiguous alt domain %q: %#v", question, in)
+		}
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		if got, want := aRec.A.To4().String(), "127.0.0.1"; got != want {
+			t.Fatalf("A ip invalid, got %v want %v", got, want)
+		}
+	}
+}
+
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), `

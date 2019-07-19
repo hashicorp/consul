@@ -6,10 +6,10 @@ description: |-
   Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
+
+-> **1.3.0 and earlier:** This document only applies in Consul versions 1.3.0 and before. If you are using version 1.4.0 or later please use the updated documentation [here](/docs/acl/acl-system.html)
+
 # ACL System in Legacy Mode
-
--> **1.3.0 and earlier:** This guide only applies in Consul versions 1.3.0 and before. If you are using the 1.4.0 or later please use the updated guide [here](/docs/acl/acl-system.html)
-
 
 ~> **Alert: Deprecation Notice**
 The ACL system described here was Consul's original ACL implementation. In Consul 1.4.0
@@ -26,7 +26,7 @@ ACL system in Consul 1.3.0 and older.
 # New ACL System Differences
 
 The [ACL System documentation](/docs/acl/acl-system.html) and [legacy ACL
-guide](/docs/acl/acl-legacy.html) describes the new and old systems in
+documentation](/docs/acl/acl-legacy.html) describes the new and old systems in
 detail. Below is a summary of the changes that need to be considered when
 migrating legacy tokens to the new system.
 
@@ -820,7 +820,7 @@ EOF
 }
 ```
 
-For more detailed documentation, see the [Consul Sentinel Guide](/docs/guides/sentinel.html).
+For more detailed information, see the [Consul Sentinel documentation](/docs/agent/sentinel.html).
 
 #### Keyring Rules
 

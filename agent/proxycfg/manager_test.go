@@ -215,7 +215,7 @@ func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *Confi
 		if expect == nil {
 			require.False(t, ok, "watch chan should be closed")
 		}
-	case <-time.After(50*time.Millisecond + coalesceTimeout):
+	case <-time.After(100*time.Millisecond + coalesceTimeout):
 		t.Fatal("recv timeout")
 	}
 }

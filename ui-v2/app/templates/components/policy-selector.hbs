@@ -12,7 +12,7 @@
       </label>
       {{!TODO: potentially call trigger something else}}
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
-      {{#modal-dialog data-test-policy-form name="new-policy-toggle"}}
+      {{#modal-dialog data-test-policy-form onopen=(action 'open') name="new-policy-toggle"}}
         {{#block-slot 'header'}}
           <h2>New Policy</h2>
         {{/block-slot}}

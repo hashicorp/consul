@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -14,10 +13,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -31,9 +32,12 @@ import (
 	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -206,12 +210,24 @@ type Server struct {
 	// Enterprise user-defined areas.
 	router *router.Router
 
+	// rpcLimiter is used to rate limit the total number of RPCs initiated
+	// from an agent.
+	rpcLimiter atomic.Value
+
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
 	rpcServer *rpc.Server
 
-	// rpcTLS is the TLS config for incoming TLS requests
-	rpcTLS *tls.Config
+	// insecureRPCServer is a RPC server that is configure with
+	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
+	// to request client certificates. At this point a client doesn't have
+	// a client cert and thus cannot present it. This is the only RPC
+	// Endpoint that is available at the time of writing.
+	insecureRPCServer *rpc.Server
+
+	// tlsConfigurator holds the agent configuration relevant to TLS and
+	// configures everything related to it.
+	tlsConfigurator *tlsutil.Configurator
 
 	// serfLAN is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
@@ -325,33 +341,34 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	shutdownCh := make(chan struct{})
 
 	connPool := &pool.ConnPool{
-		SrcAddr:    config.RPCSrcAddr,
-		LogOutput:  config.LogOutput,
-		MaxTime:    serverRPCCache,
-		MaxStreams: serverMaxStreams,
-		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
-		ForceTLS:   config.VerifyOutgoing,
+		SrcAddr:         config.RPCSrcAddr,
+		LogOutput:       config.LogOutput,
+		MaxTime:         serverRPCCache,
+		MaxStreams:      serverMaxStreams,
+		TLSConfigurator: tlsConfigurator,
+		ForceTLS:        config.VerifyOutgoing,
 	}
 
 	// Create server.
 	s := &Server{
-		config:           config,
-		tokens:           tokens,
-		connPool:         connPool,
-		eventChLAN:       make(chan serf.Event, serfEventChSize),
-		eventChWAN:       make(chan serf.Event, serfEventChSize),
-		logger:           logger,
-		leaveCh:          make(chan struct{}),
-		reconcileCh:      make(chan serf.Member, reconcileChSize),
-		router:           router.NewRouter(logger, config.Datacenter),
-		rpcServer:        rpc.NewServer(),
-		rpcTLS:           tlsConfigurator.IncomingRPCConfig(),
-		reassertLeaderCh: make(chan chan error),
-		segmentLAN:       make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:    NewSessionTimers(),
-		tombstoneGC:      gc,
-		serverLookup:     NewServerLookup(),
-		shutdownCh:       shutdownCh,
+		config:            config,
+		tokens:            tokens,
+		connPool:          connPool,
+		eventChLAN:        make(chan serf.Event, serfEventChSize),
+		eventChWAN:        make(chan serf.Event, serfEventChSize),
+		logger:            logger,
+		leaveCh:           make(chan struct{}),
+		reconcileCh:       make(chan serf.Member, reconcileChSize),
+		router:            router.NewRouter(logger, config.Datacenter),
+		rpcServer:         rpc.NewServer(),
+		insecureRPCServer: rpc.NewServer(),
+		tlsConfigurator:   tlsConfigurator,
+		reassertLeaderCh:  make(chan chan error),
+		segmentLAN:        make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:     NewSessionTimers(),
+		tombstoneGC:       gc,
+		serverLookup:      NewServerLookup(),
+		shutdownCh:        shutdownCh,
 	}
 
 	// Initialize enterprise specific server functionality
@@ -359,6 +376,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		s.Shutdown()
 		return nil, err
 	}
+
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
 		Name:        "Config Entry",
@@ -393,7 +412,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the RPC layer.
-	if err := s.setupRPC(tlsConfigurator.OutgoingRPCWrapper()); err != nil {
+	if err := s.setupRPC(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -409,6 +428,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
+	}
+
+	if s.config.ConnectEnabled && s.config.AutoEncryptAllowTLS {
+		go s.trackAutoEncryptCARoots()
 	}
 
 	// Serf and dynamic bind ports
@@ -503,6 +526,33 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	return s, nil
 }
 
+func (s *Server) trackAutoEncryptCARoots() {
+	for {
+		select {
+		case <-s.shutdownCh:
+			s.logger.Printf("[DEBUG] agent: shutting down trackAutoEncryptCARoots because shutdown")
+			return
+		default:
+		}
+		ws := memdb.NewWatchSet()
+		state := s.fsm.State()
+		ws.Add(state.AbandonCh())
+		_, cas, err := state.CARoots(ws)
+		if err != nil {
+			s.logger.Printf("[DEBUG] agent: Failed to watch AutoEncrypt CARoot: %v", err)
+			return
+		}
+		caPems := []string{}
+		for _, ca := range cas {
+			caPems = append(caPems, ca.RootCert)
+		}
+		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
+			s.logger.Printf("[DEBUG] agent: Failed to update AutoEncrypt CAPems: %v", err)
+		}
+		ws.Watch(nil)
+	}
+}
+
 // setupRaft is used to setup and initialize Raft
 func (s *Server) setupRaft() error {
 	// If we have an unclean exit then attempt to close the Raft store.
@@ -540,7 +590,13 @@ func (s *Server) setupRaft() error {
 
 	// Make sure we set the LogOutput.
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
-	s.config.RaftConfig.Logger = s.logger
+	raftLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "raft",
+		Level:      hclog.LevelFromString(s.config.LogLevel),
+		Output:     s.config.LogOutput,
+		TimeFormat: `2006/01/02 15:04:05`,
+	})
+	s.config.RaftConfig.Logger = raftLogger
 
 	// Versions of the Raft protocol below 3 require the LocalID to match the network
 	// address of the transport.
@@ -689,10 +745,15 @@ func registerEndpoint(fn factory) {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
+func (s *Server) setupRPC() error {
 	for _, fn := range endpoints {
 		s.rpcServer.Register(fn(s))
 	}
+
+	// Only register AutoEncrypt on the insecure RPC server. Insecure only
+	// means that verify incoming is turned off even though it might have
+	// been configured.
+	s.insecureRPCServer.Register(&AutoEncrypt{srv: s})
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -715,7 +776,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
-	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
+	wrapper := tlsutil.SpecificDC(s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
 
 	// Define a callback for determining whether to wrap a connection with TLS
 	tlsFunc := func(address raft.ServerAddress) bool {
@@ -943,6 +1004,11 @@ func (s *Server) RemoveFailedNode(node string) error {
 	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
 		return err
 	}
+	// The Serf WAN pool stores members as node.datacenter
+	// so the dc is appended if not present
+	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
+		node = node + "." + s.config.Datacenter
+	}
 	if s.serfWAN != nil {
 		if err := s.serfWAN.RemoveFailedNode(node); err != nil {
 			return err
@@ -1028,6 +1094,19 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		args:   args,
 		reply:  reply,
 	}
+
+	// Enforce the RPC limit.
+	//
+	// "client" metric path because the internal client API is calling to the
+	// internal server API. It's odd that the same request directed to a server is
+	// recorded differently. On the other hand this possibly masks the different
+	// between regular client requests that traverse the network and these which
+	// don't (unless forwarded). This still seems most sane.
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
 	if err := s.rpcServer.ServeRequest(codec); err != nil {
 		return err
 	}
@@ -1038,6 +1117,19 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 // input and writing to the streaming output depending on the operation.
 func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer,
 	replyFn structs.SnapshotReplyFn) error {
+
+	// Enforce the RPC limit.
+	//
+	// "client" metric path because the internal client API is calling to the
+	// internal server API. It's odd that the same request directed to a server is
+	// recorded differently. On the other hand this possibly masks the different
+	// between regular client requests that traverse the network and these which
+	// don't (unless forwarded). This still seems most sane.
+	metrics.IncrCounter([]string{"client", "rpc"}, 1)
+	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
 
 	// Perform the operation.
 	var reply structs.SnapshotResponse
@@ -1141,6 +1233,8 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader
 		// this will error if we lose leadership while bootstrapping here.

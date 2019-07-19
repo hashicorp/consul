@@ -17,7 +17,7 @@ FILTER_TESTS=${FILTER_TESTS:-}
 STOP_ON_FAIL=${STOP_ON_FAIL:-}
 
 # ENVOY_VERSIONS is the list of envoy versions to run each test against
-ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.8.0 1.9.1"}
+ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.10.0 1.9.1 1.8.0"}
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -83,7 +83,10 @@ for c in ./case-*/ ; do
 
     # Wipe state
     docker-compose up wipe-volumes
-    rm -rf workdir/*
+    # Note, we use explicit set of dirs so we don't delete .gitignore. Also,
+    # don't wipe logs between runs as they are already split and we need them to
+    # upload as artifacts later.
+    rm -rf workdir/{consul,envoy,bats,statsd}
     mkdir -p workdir/{consul,envoy,bats,statsd,logs}
 
     # Reload consul config from defaults
@@ -96,12 +99,7 @@ for c in ./case-*/ ; do
     # can't use shared volumes)
     docker cp workdir/. envoy_workdir_1:/workdir
 
-    # Restart Consul. We don't just reload because some configs under test don't
-    # work with reload and because you can get different effects from running
-    # tests in isolation which always have fresh Consul vs in the full suite.
-    # It's pretty quick to start and stop so this is better isolation.
-    echo "(Re)starting Consul"
-    docker-compose stop consul
+    # Start consul now as setup script needs it up
     docker-compose up -d consul
 
     # Copy all the test files
@@ -117,12 +115,12 @@ for c in ./case-*/ ; do
 
     # Start containers required
     if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      docker-compose up -d $REQUIRED_SERVICES
+      docker-compose up --build -d $REQUIRED_SERVICES
     fi
 
     # Execute tests
     THISRESULT=1
-    if docker-compose up --build --abort-on-container-exit --exit-code-from verify verify ; then
+    if docker-compose up --build --exit-code-from verify verify ; then
       echo "- - - - - - - - - - - - - - - - - - - - - - - -"
       echoblue -n "CASE $CASE_STR"
       echo -n ": "
@@ -139,6 +137,8 @@ for c in ./case-*/ ; do
     fi
     echo "================================================"
 
+    # Hack consul into the list of containers to stop and dump logs for.
+    REQUIRED_SERVICES="$REQUIRED_SERVICES consul"
 
     # Teardown
     if [ -f "${c}teardown.sh" ] ; then

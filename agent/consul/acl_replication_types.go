@@ -90,7 +90,7 @@ func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 	return nil
@@ -119,7 +119,7 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 
@@ -202,7 +202,7 @@ func (r *aclPolicyReplicator) DeleteLocalBatch(srv *Server, batch []string) erro
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 	return nil

@@ -12,3 +12,8 @@ load helpers
 @test "s1 proxy listener should be up and have right cert" {
   assert_proxy_presents_cert_uri localhost:21000 s1
 }
+
+@test "s1 proxy is running correct version" {
+  assert_envoy_version 19000
+}
+

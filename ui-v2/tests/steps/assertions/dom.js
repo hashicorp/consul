@@ -1,4 +1,4 @@
-export default function(scenario, assert, pauseUntil, find, currentURL) {
+export default function(scenario, assert, pauseUntil, find, currentURL, clipboard) {
   scenario
     .then('pause until I see the text "$text" in "$selector"', function(text, selector) {
       return pauseUntil(function(resolve) {
@@ -16,6 +16,13 @@ export default function(scenario, assert, pauseUntil, find, currentURL) {
       assert.ok(
         find(selector).textContent.indexOf(text) !== -1,
         `Expected to see "${text}" in "${selector}"`
+      );
+    })
+    .then(['I copied "$text"'], function(text) {
+      const copied = clipboard();
+      assert.ok(
+        copied.indexOf(text) !== -1,
+        `Expected to see "${text}" in the clipboard, was "${copied}"`
       );
     })
     .then(['I see the exact text "$text" in "$selector"'], function(text, selector) {

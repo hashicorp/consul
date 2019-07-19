@@ -28,11 +28,6 @@ This means Consul communication is protected against eavesdropping, tampering,
 and spoofing. This makes it possible to run Consul over untrusted networks such
 as EC2 and other shared hosting providers.
 
-~> **Advanced Topic!** This page covers the technical details of
-the security model of Consul. You don't need to know these details to
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Secure Configuration
 
 The Consul threat model is only applicable if Consul is running in a secure
@@ -74,7 +69,7 @@ non-default options that potentially present additional security risks.
   be `false` otherwise, even with ACLs configured, script checks present a
   remote code execution threat.
   [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks)
-  provides a secure alterative if the HTTP API must be exposed and is available
+  provides a secure alternative if the HTTP API must be exposed and is available
   from 1.3.0 on. This feature was also back-ported to patch releases 0.9.4,
   1.1.1, and 1.2.4 [as described here](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations).
 
@@ -88,7 +83,7 @@ non-default options that potentially present additional security risks.
 * **Verify Server Hostname Used Alone.** From version 0.5.1 to 1.4.0 we documented that
   `verify_server_hostname` being `true` _implied_ `verify_outgoing` however due
   to a bug this was not the case so setting _only_ `verify_server_hostname`
-  results in plaintext communciation between client and server. See
+  results in plaintext communication between client and server. See
   [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
   for more details. This is fixed in 1.4.1.
 

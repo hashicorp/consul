@@ -31,7 +31,7 @@ Use the _sc_ command to create a service named **Consul**, that will load config
 [documentation](/docs/agent/options.html#configuration-files) to learn more about configuration options.
 
 ```text
-sc.exe create "Consul" binPath= "<path to the Consul.exe> -config-dir <path to configuration directory>" start= auto
+sc.exe create "Consul" binPath= "<path to the Consul.exe> agent -config-dir <path to configuration directory>" start= auto
 [SC] CreateService SUCCESS 
 ```
    

@@ -255,7 +255,7 @@ are not truncated.
 By default, all DNS results served by Consul set a 0 TTL value. This disables
 caching of DNS results. However, there are many situations in which caching is
 desirable for performance and scalability. This is discussed more in the guide
-for [DNS Caching](/docs/guides/dns-cache.html).
+for [DNS caching](https://learn.hashicorp.com/consul/security-networking/dns-caching).
 
 ## WAN Address Translation
 

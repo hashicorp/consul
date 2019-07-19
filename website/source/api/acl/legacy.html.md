@@ -14,7 +14,7 @@ the new ACL [Token](/api/acl/tokens.html) and [Policy](/api/acl/policies.html) A
 
 The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul.
 
-For more information about ACLs, please see the [ACL Guide](/docs/guides/acl-legacy.html).
+For more information about ACLs, please see the [ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
 
 ## Create ACL Token
 
@@ -45,7 +45,7 @@ The table below shows this endpoint's support for
   are: `client` and `management`.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL token. The format of the
-  `Rules` property is documented in the [ACL Guide](/docs/guides/acl-legacy.html).
+  `Rules` property is detailed in the [ACL Rule documentation](/docs/acl/acl-rules.html).
 
 ### Sample Payload
 

@@ -60,31 +60,29 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 		return makeClusterFromUserConfig(cfg.LocalClusterJSON)
 	}
 
-	if c == nil {
-		addr := cfgSnap.Proxy.LocalServiceAddress
-		if addr == "" {
-			addr = "127.0.0.1"
-		}
-		c = &envoy.Cluster{
-			Name:           LocalAppClusterName,
-			ConnectTimeout: time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
-			Type:           envoy.Cluster_STATIC,
-			LoadAssignment: &envoy.ClusterLoadAssignment{
-				ClusterName: LocalAppClusterName,
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{
-					{
-						LbEndpoints: []envoyendpoint.LbEndpoint{
-							makeEndpoint(LocalAppClusterName,
-								addr,
-								cfgSnap.Proxy.LocalServicePort),
-						},
+	addr := cfgSnap.Proxy.LocalServiceAddress
+	if addr == "" {
+		addr = "127.0.0.1"
+	}
+	c = &envoy.Cluster{
+		Name:                 LocalAppClusterName,
+		ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
+		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
+		LoadAssignment: &envoy.ClusterLoadAssignment{
+			ClusterName: LocalAppClusterName,
+			Endpoints: []envoyendpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []envoyendpoint.LbEndpoint{
+						makeEndpoint(LocalAppClusterName,
+							addr,
+							cfgSnap.Proxy.LocalServicePort),
 					},
 				},
 			},
-		}
-		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
-			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
-		}
+		},
+	}
+	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+		c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
 	return c, err
@@ -111,9 +109,9 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 
 	if c == nil {
 		c = &envoy.Cluster{
-			Name:           upstream.Identifier(),
-			ConnectTimeout: time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
-			Type:           envoy.Cluster_EDS,
+			Name:                 upstream.Identifier(),
+			ConnectTimeout:       time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond,
+			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 				EdsConfig: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{

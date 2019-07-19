@@ -185,7 +185,7 @@ At this point, every agent that has a token can once
 again read and write information to Consul, but only for node-related actions.
 Actions for individual services are not yet allowed.
 
-~> Note: If you are bootstrapping ACLs on and existing datacenter, remember to
+~> Note: If you are bootstrapping ACLs on an existing datacenter, remember to
 update the default policy to `default_policy = deny` and initiate another
 rolling restart. After applying the token. 
   

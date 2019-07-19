@@ -16,7 +16,7 @@ service. This is particularly useful in combination with Consul's
 [DNS Interface](/docs/agent/dns.html) as it allows for much richer queries than
 would be possible given the limited entry points exposed by DNS.
 
-See the [Geo Failover Guide](/docs/guides/geo-failover.html) for details and
+See the [Geo Failover Guide](https://learn.hashicorp.com/consul/developer-discovery/geo-failover) for details and
 examples for using prepared queries to implement geo failover for services.
 
 See the [prepared query rules](/docs/agent/acl-rules.html#prepared-query-rules)

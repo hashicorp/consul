@@ -57,7 +57,7 @@ The table below shows this endpoint's support for
   86400s). If provided, the session is invalidated if it is not renewed before
   the TTL expires. The lowest practical TTL should be used to keep the number of
   managed sessions low. When locks are forcibly expired, such as when following
-  the [leader election pattern](/docs/guides/leader-election.html) in an application,
+  the [leader election pattern](https://learn.hashicorp.com/consul/developer-configuration/elections) in an application,
   sessions may not be reaped for up to double this TTL, so long TTL
   values (> 1 hour) should be avoided.
 
@@ -130,7 +130,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    --request PUT
+    --request PUT \
     http://127.0.0.1:8500/v1/session/destroy/adf4238a-882b-9ddc-4a9d-5b6758e4159e
 ```
 

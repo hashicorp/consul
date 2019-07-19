@@ -140,8 +140,13 @@ type IssuedCert struct {
 
 	// Service is the name of the service for which the cert was issued.
 	// ServiceURI is the cert URI value.
-	Service    string
-	ServiceURI string
+	Service    string `json:",omitempty"`
+	ServiceURI string `json:",omitempty"`
+
+	// Agent is the name of the node for which the cert was issued.
+	// AgentURI is the cert URI value.
+	Agent    string `json:",omitempty"`
+	AgentURI string `json:",omitempty"`
 
 	// ValidAfter and ValidBefore are the validity periods for the
 	// certificate.

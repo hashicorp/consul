@@ -71,6 +71,12 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
+
+	// ID of the roots watch
+	rootsWatchID = "roots"
+
+	// ID of the leaf watch
+	leafWatchID = "leaf"
 )
 
 type configSource int
@@ -202,6 +208,8 @@ type Agent struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
+	InterruptStartCh chan struct{}
+
 	// joinLANNotifier is called after a successful JoinLAN.
 	joinLANNotifier notifier
 
@@ -264,7 +272,7 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
-func New(c *config.RuntimeConfig) (*Agent, error) {
+func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -272,32 +280,40 @@ func New(c *config.RuntimeConfig) (*Agent, error) {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
 
-	a := &Agent{
-		config:          c,
-		checkReapAfter:  make(map[types.CheckID]time.Duration),
-		checkMonitors:   make(map[types.CheckID]*checks.CheckMonitor),
-		checkTTLs:       make(map[types.CheckID]*checks.CheckTTL),
-		checkHTTPs:      make(map[types.CheckID]*checks.CheckHTTP),
-		checkTCPs:       make(map[types.CheckID]*checks.CheckTCP),
-		checkGRPCs:      make(map[types.CheckID]*checks.CheckGRPC),
-		checkDockers:    make(map[types.CheckID]*checks.CheckDocker),
-		checkAliases:    make(map[types.CheckID]*checks.CheckAlias),
-		eventCh:         make(chan serf.UserEvent, 1024),
-		eventBuf:        make([]*UserEvent, 256),
-		joinLANNotifier: &systemd.Notifier{},
-		reloadCh:        make(chan chan error),
-		retryJoinCh:     make(chan error),
-		shutdownCh:      make(chan struct{}),
-		endpoints:       make(map[string]string),
-		tokens:          new(token.Store),
+	a := Agent{
+		config:           c,
+		checkReapAfter:   make(map[types.CheckID]time.Duration),
+		checkMonitors:    make(map[types.CheckID]*checks.CheckMonitor),
+		checkTTLs:        make(map[types.CheckID]*checks.CheckTTL),
+		checkHTTPs:       make(map[types.CheckID]*checks.CheckHTTP),
+		checkTCPs:        make(map[types.CheckID]*checks.CheckTCP),
+		checkGRPCs:       make(map[types.CheckID]*checks.CheckGRPC),
+		checkDockers:     make(map[types.CheckID]*checks.CheckDocker),
+		checkAliases:     make(map[types.CheckID]*checks.CheckAlias),
+		eventCh:          make(chan serf.UserEvent, 1024),
+		eventBuf:         make([]*UserEvent, 256),
+		joinLANNotifier:  &systemd.Notifier{},
+		reloadCh:         make(chan chan error),
+		retryJoinCh:      make(chan error),
+		shutdownCh:       make(chan struct{}),
+		InterruptStartCh: make(chan struct{}),
+		endpoints:        make(map[string]string),
+		tokens:           new(token.Store),
+		logger:           logger,
 	}
-	a.serviceManager = NewServiceManager(a)
+	a.serviceManager = NewServiceManager(&a)
 
 	if err := a.initializeACLs(); err != nil {
 		return nil, err
 	}
 
-	return a, nil
+	// Retrieve or generate the node ID before setting up the rest of the
+	// agent, which depends on it.
+	if err := a.setupNodeID(c); err != nil {
+		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
+	}
+
+	return &a, nil
 }
 
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
@@ -347,20 +363,6 @@ func (a *Agent) Start() error {
 	defer a.stateLock.Unlock()
 
 	c := a.config
-
-	logOutput := a.LogOutput
-	if a.logger == nil {
-		if logOutput == nil {
-			logOutput = os.Stderr
-		}
-		a.logger = log.New(logOutput, "", log.LstdFlags)
-	}
-
-	// Retrieve or generate the node ID before setting up the rest of the
-	// agent, which depends on it.
-	if err := a.setupNodeID(c); err != nil {
-		return fmt.Errorf("Failed to setup node ID: %v", err)
-	}
 
 	// Warn if the node name is incompatible with DNS
 	if InvalidDnsRe.MatchString(a.config.NodeName) {
@@ -433,6 +435,21 @@ func (a *Agent) Start() error {
 	// populated from above.
 	a.registerCache()
 
+	if a.config.AutoEncryptTLS && !a.config.ServerMode {
+		reply, err := a.setupClientAutoEncrypt()
+		if err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		rootsReq, leafReq, err := a.setupClientAutoEncryptCache(reply)
+		if err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		if err = a.setupClientAutoEncryptWatching(rootsReq, leafReq); err != nil {
+			return fmt.Errorf("AutoEncrypt failed: %s", err)
+		}
+		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
+	}
+
 	// Load checks/services/metadata.
 	if err := a.loadServices(c); err != nil {
 		return err
@@ -440,7 +457,7 @@ func (a *Agent) Start() error {
 	if err := a.loadProxies(c); err != nil {
 		return err
 	}
-	if err := a.loadChecks(c); err != nil {
+	if err := a.loadChecks(c, nil); err != nil {
 		return err
 	}
 	if err := a.loadMetadata(c); err != nil {
@@ -528,6 +545,158 @@ func (a *Agent) Start() error {
 	// start retry join
 	go a.retryJoinLAN()
 	go a.retryJoinWAN()
+
+	return nil
+}
+
+func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
+	client := a.delegate.(*consul.Client)
+
+	addrs := a.config.StartJoinAddrsLAN
+	disco, err := newDiscover()
+	if err != nil && len(addrs) == 0 {
+		return nil, err
+	}
+	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
+
+	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
+	if err != nil {
+		return nil, err
+	}
+
+	connectCAPems := []string{}
+	for _, ca := range reply.ConnectCARoots.Roots {
+		connectCAPems = append(connectCAPems, ca.RootCert)
+	}
+	if err := a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname); err != nil {
+		return nil, err
+	}
+	return reply, nil
+
+}
+
+func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
+	rootsReq := &structs.DCSpecificRequest{
+		Datacenter:   a.config.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
+	}
+
+	// prepolutate roots cache
+	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
+	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
+		return nil, nil, err
+	}
+
+	leafReq := &cachetype.ConnectCALeafRequest{
+		Datacenter: a.config.Datacenter,
+		Token:      a.tokens.AgentToken(),
+		Agent:      a.config.NodeName,
+	}
+
+	// prepolutate leaf cache
+	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
+	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
+		return nil, nil, err
+	}
+	return rootsReq, leafReq, nil
+}
+
+func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificRequest, leafReq *cachetype.ConnectCALeafRequest) error {
+	// setup watches
+	ch := make(chan cache.UpdateEvent, 10)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Watch for root changes
+	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, rootsReq, rootsWatchID, ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	// Watch the leaf cert
+	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, leafReq, leafWatchID, ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	// Setup actions in case the watches are firing.
+	go func() {
+		for {
+			select {
+			case <-a.shutdownCh:
+				cancel()
+				return
+			case <-ctx.Done():
+				return
+			case u := <-ch:
+				switch u.CorrelationID {
+				case rootsWatchID:
+					roots, ok := u.Result.(*structs.IndexedCARoots)
+					if !ok {
+						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
+						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						continue
+					}
+					pems := []string{}
+					for _, root := range roots.Roots {
+						pems = append(pems, root.RootCert)
+					}
+					a.tlsConfigurator.UpdateAutoEncryptCA(pems)
+				case leafWatchID:
+					leaf, ok := u.Result.(*structs.IssuedCert)
+					if !ok {
+						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
+						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						continue
+					}
+					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
+				}
+			}
+		}
+	}()
+
+	// Setup safety net in case the auto_encrypt cert doesn't get renewed
+	// in time. The agent would be stuck in that case because the watches
+	// never use the AutoEncrypt.Sign endpoint.
+	go func() {
+		for {
+
+			// Check 10sec after cert expires. The agent cache
+			// should be handling the expiration and renew before
+			// it.
+			// If there is no cert, AutoEncryptCertNotAfter returns
+			// a value in the past which immediately triggers the
+			// renew, but this case shouldn't happen because at
+			// this point, auto_encrypt was just being setup
+			// successfully.
+			interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
+			a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expiration check in %s", interval)
+			select {
+			case <-a.shutdownCh:
+				return
+			case <-time.After(interval):
+				// check auto encrypt client cert expiration
+				if a.tlsConfigurator.AutoEncryptCertExpired() {
+					a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expired.")
+					reply, err := a.setupClientAutoEncrypt()
+					if err != nil {
+						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to renew: %s", err)
+						// in case of an error, try again in one minute
+						interval = time.Minute
+						continue
+					}
+					_, _, err = a.setupClientAutoEncryptCache(reply)
+					if err != nil {
+						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to populate cache: %s", err)
+						// in case of an error, try again in one minute
+						interval = time.Minute
+						continue
+					}
+				}
+			}
+		}
+	}()
 
 	return nil
 }
@@ -915,6 +1084,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
 	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
 	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
+	base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
 
 	base.RaftConfig.HeartbeatTimeout = a.config.ConsulRaftHeartbeatTimeout
 	base.RaftConfig.LeaderLeaseTimeout = a.config.ConsulRaftLeaderLeaseTimeout
@@ -970,6 +1140,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
+	}
+	if a.config.CheckOutputMaxSize > 0 {
+		base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
 	}
 	if a.config.RejoinAfterLeave {
 		base.RejoinAfterLeave = true
@@ -1084,6 +1257,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
 
+	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
+
 	// Copy the Connect CA bootstrap config
 	if a.config.ConnectEnabled {
 		base.ConnectEnabled = true
@@ -1131,6 +1306,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	// Setup the loggers
+	base.LogLevel = a.config.LogLevel
 	base.LogOutput = a.LogOutput
 
 	// This will set up the LAN keyring, as well as the WAN and any segments
@@ -1581,11 +1757,15 @@ func (a *Agent) ShutdownCh() <-chan struct{} {
 func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
 	a.logger.Printf("[INFO] agent: (LAN) joining: %v", addrs)
 	n, err = a.delegate.JoinLAN(addrs)
-	a.logger.Printf("[INFO] agent: (LAN) joined: %d Err: %v", n, err)
-	if err == nil && a.joinLANNotifier != nil {
-		if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
-			a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
+	if err == nil {
+		a.logger.Printf("[INFO] agent: (LAN) joined: %d", n)
+		if a.joinLANNotifier != nil {
+			if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
+				a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
+			}
 		}
+	} else {
+		a.logger.Printf("[WARN] agent: (LAN) couldn't join: %d Err: %v", n, err)
 	}
 	return
 }
@@ -1598,7 +1778,11 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 	} else {
 		err = fmt.Errorf("Must be a server to join WAN cluster")
 	}
-	a.logger.Printf("[INFO] agent: (WAN) joined: %d Err: %v", n, err)
+	if err == nil {
+		a.logger.Printf("[INFO] agent: (WAN) joined: %d", n)
+	} else {
+		a.logger.Printf("[WARN] agent: (WAN) couldn't join: %d Err: %v", n, err)
+	}
 	return
 }
 
@@ -1925,10 +2109,10 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 	a.PauseSync()
 	defer a.ResumeSync()
 
-	// Take a snapshot of the current state of checks (if any), and
-	// restore them before resuming anti-entropy.
+	// Take a snapshot of the current state of checks (if any), and when adding
+	// a check that already existed carry over the state before resuming
+	// anti-entropy.
 	snap := a.snapshotCheckState()
-	defer a.restoreCheckState(snap)
 
 	var checks []*structs.HealthCheck
 
@@ -1957,6 +2141,13 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
+		}
+
+		// Restore the fields from the snapshot.
+		prev, ok := snap[check.CheckID]
+		if ok {
+			check.Output = prev.Output
+			check.Status = prev.Status
 		}
 
 		checks = append(checks, check)
@@ -2239,6 +2430,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 	// Check if already registered
 	if chkType != nil {
+		maxOutputSize := a.config.CheckOutputMaxSize
+		if maxOutputSize == 0 {
+			maxOutputSize = checks.DefaultBufSize
+		}
+		if chkType.OutputMaxSize > 0 && maxOutputSize > chkType.OutputMaxSize {
+			maxOutputSize = chkType.OutputMaxSize
+		}
 		switch {
 
 		case chkType.IsTTL():
@@ -2248,10 +2446,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			ttl := &checks.CheckTTL{
-				Notify:  a.State,
-				CheckID: check.CheckID,
-				TTL:     chkType.TTL,
-				Logger:  a.logger,
+				Notify:        a.State,
+				CheckID:       check.CheckID,
+				TTL:           chkType.TTL,
+				Logger:        a.logger,
+				OutputMaxSize: maxOutputSize,
 			}
 
 			// Restore persisted state, if any
@@ -2285,6 +2484,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:        chkType.Interval,
 				Timeout:         chkType.Timeout,
 				Logger:          a.logger,
+				OutputMaxSize:   maxOutputSize,
 				TLSClientConfig: tlsClientConfig,
 			}
 			http.Start()
@@ -2352,7 +2552,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if a.dockerClient == nil {
-				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), checks.BufSize)
+				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), int64(maxOutputSize))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
 					return err
@@ -2387,14 +2587,14 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, checks.MinInterval)
 				chkType.Interval = checks.MinInterval
 			}
-
 			monitor := &checks.CheckMonitor{
-				Notify:     a.State,
-				CheckID:    check.CheckID,
-				ScriptArgs: chkType.ScriptArgs,
-				Interval:   chkType.Interval,
-				Timeout:    chkType.Timeout,
-				Logger:     a.logger,
+				Notify:        a.State,
+				CheckID:       check.CheckID,
+				ScriptArgs:    chkType.ScriptArgs,
+				Interval:      chkType.Interval,
+				Timeout:       chkType.Timeout,
+				Logger:        a.logger,
+				OutputMaxSize: maxOutputSize,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
@@ -2529,11 +2729,14 @@ func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, From
 	chkAddr := a.resolveProxyCheckAddress(proxyCfg)
 	chkTypes := []*structs.CheckType{}
 	if chkAddr != "" {
+		bindPort, ok := proxyCfg["bind_port"].(int)
+		if !ok {
+			return fmt.Errorf("Cannot convert bind_port=%v to an int for creating TCP Check for address %s", proxyCfg["bind_port"], chkAddr)
+		}
 		chkTypes = []*structs.CheckType{
 			&structs.CheckType{
-				Name: "Connect Proxy Listening",
-				TCP: fmt.Sprintf("%s:%d", chkAddr,
-					proxyCfg["bind_port"]),
+				Name:     "Connect Proxy Listening",
+				TCP:      ipaddr.FormatAddressPort(chkAddr, bindPort),
 				Interval: 10 * time.Second,
 			},
 		}
@@ -2866,7 +3069,7 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 	}
 
 	// Set the status through CheckTTL to reset the TTL.
-	check.SetStatus(status, output)
+	outputTruncated := check.SetStatus(status, output)
 
 	// We don't write any files in dev mode so bail here.
 	if a.config.DataDir == "" {
@@ -2875,7 +3078,7 @@ func (a *Agent) updateTTLCheck(checkID types.CheckID, status, output string) err
 
 	// Persist the state so the TTL check can come up in a good state after
 	// an agent restart, especially with long TTL values.
-	if err := a.persistCheckState(check, status, output); err != nil {
+	if err := a.persistCheckState(check, status, outputTruncated); err != nil {
 		return fmt.Errorf("failed persisting state for check %q: %s", checkID, err)
 	}
 
@@ -3150,10 +3353,17 @@ func (a *Agent) unloadServices() error {
 
 // loadChecks loads check definitions and/or persisted check definitions from
 // disk and re-registers them with the local agent.
-func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
+func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[types.CheckID]*structs.HealthCheck) error {
 	// Register the checks from config
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
+
+		// Restore the fields from the snapshot.
+		if prev, ok := snap[health.CheckID]; ok {
+			health.Output = prev.Output
+			health.Status = prev.Status
+		}
+
 		chkType := check.CheckType()
 		if err := a.addCheckLocked(health, chkType, false, check.Token, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
@@ -3209,6 +3419,12 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 			// Default check to critical to avoid placing potentially unhealthy
 			// services into the active pool
 			p.Check.Status = api.HealthCritical
+
+			// Restore the fields from the snapshot.
+			if prev, ok := snap[p.Check.CheckID]; ok {
+				p.Check.Output = prev.Output
+				p.Check.Status = prev.Status
+			}
 
 			if err := a.addCheckLocked(p.Check, p.ChkType, false, p.Token, ConfigSourceLocal); err != nil {
 				// Purge the check if it is unable to be restored.
@@ -3438,15 +3654,6 @@ func (a *Agent) snapshotCheckState() map[types.CheckID]*structs.HealthCheck {
 	return a.State.Checks()
 }
 
-// restoreCheckState is used to reset the health state based on a snapshot.
-// This is done after we finish the reload to avoid any unnecessary flaps
-// in health state and potential session invalidations.
-func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
-	for id, check := range snap {
-		a.State.UpdateCheck(id, check.Status, check.Output)
-	}
-}
-
 // loadMetadata loads node metadata fields from the agent config and
 // updates them on the local agent.
 func (a *Agent) loadMetadata(conf *config.RuntimeConfig) error {
@@ -3569,9 +3776,9 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 
-	// Snapshot the current state, and restore it afterwards
+	// Snapshot the current state, and use that to initialize the checks when
+	// they are recreated.
 	snap := a.snapshotCheckState()
-	defer a.restoreCheckState(snap)
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
@@ -3602,7 +3809,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	if err := a.loadProxies(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading proxies: %s", err)
 	}
-	if err := a.loadChecks(newCfg); err != nil {
+	if err := a.loadChecks(newCfg, snap); err != nil {
 		return fmt.Errorf("Failed reloading checks: %s", err)
 	}
 	if err := a.loadMetadata(newCfg); err != nil {

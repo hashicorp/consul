@@ -47,7 +47,7 @@
               <td>
                 {{if item.Local 'local' 'global' }}
               </td>
-              <td>
+              <td data-test-description>
                 {{default item.Description item.Name}}
               </td>
               <td colspan={{if (not-eq item.AccessorID token.AccessorID) '2' }}>
@@ -55,7 +55,7 @@
                   Legacy tokens have embedded rules.
 {{ else }}
                   {{#each (append item.Policies item.Roles) as |item|}}
-                    <strong class={{policy/typeof item}}>{{item.Name}}</strong>
+                    <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
                   {{/each}}
 {{/if}}
               </td>

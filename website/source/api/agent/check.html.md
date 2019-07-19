@@ -183,6 +183,12 @@ The table below shows this endpoint's support for
   case of a Script, HTTP, TCP, or gRPC check. Can be specified in the form of "10s"
   or "5m" (i.e., 10 seconds or 5 minutes, respectively).
 
+- `OutputMaxSize` `(positive int: 4096)` - Allow to put a maximum size of text
+  for the given check. This value must be greater than 0, by default, the value
+  is 4k.
+  The value can be further limited for all checks of a given agent using the
+  `check_output_max_size` flag in the agent.
+
 - `TLSSkipVerify` `(bool: false)` - Specifies if the certificate for an HTTPS
   check should not be verified.
 

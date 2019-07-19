@@ -410,10 +410,6 @@ func (s *ConnectCA) Sign(
 	if err != nil {
 		return err
 	}
-	serviceID, ok := spiffeID.(*connect.SpiffeIDService)
-	if !ok {
-		return fmt.Errorf("SPIFFE ID in CSR must be a service ID")
-	}
 
 	provider, caRoot := s.srv.getCAProvider()
 	if provider == nil {
@@ -427,9 +423,17 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 	signingID := connect.SpiffeIDSigningForCluster(config)
-	if !signingID.CanSign(serviceID) {
-		return fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
-			"we are %s", serviceID.Host, signingID.Host())
+	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
+	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
+	if !isService && !isAgent {
+		return fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
+	}
+
+	if isService {
+		if !signingID.CanSign(spiffeID) {
+			return fmt.Errorf("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", serviceID.Host, signingID.Host())
+		}
 	}
 
 	// Verify that the ACL token provided has permission to act as this service
@@ -437,15 +441,21 @@ func (s *ConnectCA) Sign(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
-		return acl.ErrPermissionDenied
-	}
+	if isService {
+		if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
+			return acl.ErrPermissionDenied
+		}
 
-	// Verify that the DC in the service URI matches us. We might relax this
-	// requirement later but being restrictive for now is safer.
-	if serviceID.Datacenter != s.srv.config.Datacenter {
-		return fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
-			"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
+		// Verify that the DC in the service URI matches us. We might relax this
+		// requirement later but being restrictive for now is safer.
+		if serviceID.Datacenter != s.srv.config.Datacenter {
+			return fmt.Errorf("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
+		}
+	} else if isAgent {
+		if rule != nil && !rule.NodeWrite(agentID.Agent, nil) {
+			return acl.ErrPermissionDenied
+		}
 	}
 
 	commonCfg, err := config.GetCommonConfig()
@@ -529,14 +539,19 @@ func (s *ConnectCA) Sign(
 	*reply = structs.IssuedCert{
 		SerialNumber: connect.HexString(cert.SerialNumber.Bytes()),
 		CertPEM:      pem,
-		Service:      serviceID.Service,
-		ServiceURI:   cert.URIs[0].String(),
 		ValidAfter:   cert.NotBefore,
 		ValidBefore:  cert.NotAfter,
 		RaftIndex: structs.RaftIndex{
 			ModifyIndex: modIdx,
 			CreateIndex: modIdx,
 		},
+	}
+	if isService {
+		reply.Service = serviceID.Service
+		reply.ServiceURI = cert.URIs[0].String()
+	} else if isAgent {
+		reply.Agent = agentID.Agent
+		reply.AgentURI = cert.URIs[0].String()
 	}
 
 	return nil

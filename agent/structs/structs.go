@@ -958,6 +958,7 @@ type HealthCheckDefinition struct {
 	Method                         string              `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
+	OutputMaxSize                  uint                `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
 	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
 }
@@ -966,11 +967,13 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	type Alias HealthCheckDefinition
 	exported := &struct {
 		Interval                       string `json:",omitempty"`
+		OutputMaxSize                  uint   `json:",omitempty"`
 		Timeout                        string `json:",omitempty"`
 		DeregisterCriticalServiceAfter string `json:",omitempty"`
 		*Alias
 	}{
 		Interval:                       d.Interval.String(),
+		OutputMaxSize:                  d.OutputMaxSize,
 		Timeout:                        d.Timeout.String(),
 		DeregisterCriticalServiceAfter: d.DeregisterCriticalServiceAfter.String(),
 		Alias:                          (*Alias)(d),
@@ -1041,7 +1044,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 	return true
 }
 
-// Clone returns a distinct clone of the HealthCheck.
+// Clone returns a distinct clone of the HealthCheck. Note that the
+// "ServiceTags" and "Definition.Header" field are not deep copied.
 func (c *HealthCheck) Clone() *HealthCheck {
 	clone := new(HealthCheck)
 	*clone = *c

@@ -352,10 +352,10 @@ func TestAPI_HealthService_SingleTag(t *testing.T) {
 	defer agent.ServiceDeregister("foo1")
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.Service("foo", "bar", true, nil)
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.Len(t, services, 1)
-		require.Equal(t, services[0].Service.ID, "foo1")
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].Service.ID, "foo1")
 	})
 }
 func TestAPI_HealthService_MultipleTags(t *testing.T) {
@@ -397,19 +397,19 @@ func TestAPI_HealthService_MultipleTags(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar"}, true, nil)
 
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.Len(t, services, 2)
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.Len(r, services, 2)
 	})
 
 	// Test searching with two tags (one result)
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := health.ServiceMultipleTags("foo", []string{"bar", "v2"}, true, nil)
 
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.Len(t, services, 1)
-		require.Equal(t, services[0].Service.ID, "foo2")
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.Len(r, services, 1)
+		require.Equal(r, services[0].Service.ID, "foo2")
 	})
 }
 
@@ -421,15 +421,17 @@ func TestAPI_HealthService_NodeMetaFilter(t *testing.T) {
 	})
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	health := c.Health()
 	retry.Run(t, func(r *retry.R) {
 		// consul service should always exist...
 		checks, meta, err := health.Service("consul", "", true, &QueryOptions{NodeMeta: meta})
-		require.NoError(t, err)
-		require.NotEqual(t, meta.LastIndex, 0)
-		require.NotEqual(t, len(checks), 0)
-		require.Equal(t, checks[0].Node.Datacenter, "dc1")
-		require.Contains(t, checks[0].Node.TaggedAddresses, "wan")
+		require.NoError(r, err)
+		require.NotEqual(r, meta.LastIndex, 0)
+		require.NotEqual(r, len(checks), 0)
+		require.Equal(r, checks[0].Node.Datacenter, "dc1")
+		require.Contains(r, checks[0].Node.TaggedAddresses, "wan")
 	})
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/ipaddr"
 )
 
 // Resolver is the interface implemented by a service discovery mechanism to get
@@ -156,7 +157,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 		Service:    service,
 	}
 
-	return fmt.Sprintf("%s:%d", addr, port), certURI, nil
+	return ipaddr.FormatAddressPort(addr, port), certURI, nil
 }
 
 func (cr *ConsulResolver) queryOptions(ctx context.Context) *api.QueryOptions {

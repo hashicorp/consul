@@ -62,7 +62,7 @@ The table below shows this endpoint's support for
   metadata). Specifying this implies `recurse`. This is specified as part of the
   URL as a query parameter.
 
-- `separator` `(string: '/')` - Specifies the string to use as a separator
+- `separator` `(string: '')` - Specifies the string to use as a separator
   for recursive key lookups. This option is only used when paired with the `keys` 
   parameter to limit the prefix of keys returned,  only up to the given separator. 
   This is specified as part of the URL as a query parameter.
@@ -194,7 +194,7 @@ The table below shows this endpoint's support for
   session has locked the key.**
 
     For an example of how to use the lock feature, see the [Leader Election Guide]
-    (/docs/guides/leader-election.html).
+    (https://learn.hashicorp.com/consul/developer-configuration/elections).
 
 - `release` `(string: "")` - Supply a session ID to use in a release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This
