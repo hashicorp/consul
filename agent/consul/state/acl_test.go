@@ -3824,11 +3824,11 @@ func stripIrrelevantTokenFields(token *structs.ACLToken) *structs.ACLToken {
 	// When comparing the tokens disregard the policy link names.  This
 	// data is not cleanly updated in a variety of scenarios and should not
 	// be relied upon.
-	for i, _ := range tokenCopy.Policies {
+	for i := range tokenCopy.Policies {
 		tokenCopy.Policies[i].Name = ""
 	}
 	// Also do the same for Role links.
-	for i, _ := range tokenCopy.Roles {
+	for i := range tokenCopy.Roles {
 		tokenCopy.Roles[i].Name = ""
 	}
 	// The raft indexes won't match either because the requester will not

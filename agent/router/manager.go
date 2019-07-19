@@ -342,8 +342,6 @@ func (m *Manager) RebalanceServers() {
 		// continue to use the existing connection until the next
 		// rebalance occurs.
 	}
-
-	return
 }
 
 // reconcileServerList returns true when the first server in serverList

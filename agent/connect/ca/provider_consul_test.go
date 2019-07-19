@@ -178,7 +178,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 		require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
 
 		// Ensure the cert is valid now and expires within the correct limit.
-		require.True(parsed.NotAfter.Sub(time.Now()) < 3*24*time.Hour)
+		require.True(time.Until(parsed.NotAfter) < 3*24*time.Hour)
 		require.True(parsed.NotBefore.Before(time.Now()))
 	}
 

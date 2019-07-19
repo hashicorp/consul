@@ -151,7 +151,7 @@ RETRY_ONCE:
 
 	// Use empty map instead of nil
 	if out.Services == nil {
-		out.Services = make(structs.Services, 0)
+		out.Services = make(structs.Services)
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
