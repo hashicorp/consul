@@ -23,10 +23,10 @@ func TestLogFile_timeRotation(t *testing.T) {
 	defer os.Remove(tempDir)
 	filt := LevelFilter()
 	logFile := LogFile{
-		logFilter:      filt,
-		fileName:       testFileName,
-		logPath:        tempDir,
-		duration:       testDuration,
+		logFilter: filt,
+		fileName:  testFileName,
+		logPath:   tempDir,
+		duration:  testDuration,
 	}
 	logFile.Write([]byte("Hello World"))
 	time.Sleep(2 * time.Second)
@@ -58,11 +58,11 @@ func TestLogFile_byteRotation(t *testing.T) {
 	filt := LevelFilter()
 	filt.MinLevel = logutils.LogLevel("INFO")
 	logFile := LogFile{
-		logFilter:      filt,
-		fileName:       testFileName,
-		logPath:        tempDir,
-		MaxBytes:       testBytes,
-		duration:       24 * time.Hour,
+		logFilter: filt,
+		fileName:  testFileName,
+		logPath:   tempDir,
+		MaxBytes:  testBytes,
+		duration:  24 * time.Hour,
 	}
 	logFile.Write([]byte("Hello World"))
 	logFile.Write([]byte("Second File"))
@@ -79,11 +79,11 @@ func TestLogFile_logLevelFiltering(t *testing.T) {
 	defer os.Remove(tempDir)
 	filt := LevelFilter()
 	logFile := LogFile{
-		logFilter:      filt,
-		fileName:       testFileName,
-		logPath:        tempDir,
-		MaxBytes:       testBytes,
-		duration:       testDuration,
+		logFilter: filt,
+		fileName:  testFileName,
+		logPath:   tempDir,
+		MaxBytes:  testBytes,
+		duration:  testDuration,
 	}
 	logFile.Write([]byte("[INFO] This is an info message"))
 	logFile.Write([]byte("[DEBUG] This is a debug message"))
@@ -101,12 +101,12 @@ func TestLogFile_deleteArchives(t *testing.T) {
 	filt := LevelFilter()
 	filt.MinLevel = logutils.LogLevel("INFO")
 	logFile := LogFile{
-		logFilter:      filt,
-		fileName:       testFileName,
-		logPath:        tempDir,
-		MaxBytes:       testBytes,
-		duration:       24 * time.Hour,
-		MaxFiles: 1,
+		logFilter: filt,
+		fileName:  testFileName,
+		logPath:   tempDir,
+		MaxBytes:  testBytes,
+		duration:  24 * time.Hour,
+		MaxFiles:  1,
 	}
 	logFile.Write([]byte("[INFO] Hello World"))
 	logFile.Write([]byte("[INFO] Second File"))
@@ -141,12 +141,12 @@ func TestLogFile_deleteArchivesDisabled(t *testing.T) {
 	filt := LevelFilter()
 	filt.MinLevel = logutils.LogLevel("INFO")
 	logFile := LogFile{
-		logFilter:      filt,
-		fileName:       testFileName,
-		logPath:        tempDir,
-		MaxBytes:       testBytes,
-		duration:       24 * time.Hour,
-		MaxFiles: 0,
+		logFilter: filt,
+		fileName:  testFileName,
+		logPath:   tempDir,
+		MaxBytes:  testBytes,
+		duration:  24 * time.Hour,
+		MaxFiles:  0,
 	}
 	logFile.Write([]byte("[INFO] Hello World"))
 	logFile.Write([]byte("[INFO] Second File"))

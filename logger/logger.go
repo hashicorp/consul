@@ -127,12 +127,12 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 			logRotateBytes = config.LogRotateBytes
 		}
 		logFile := &LogFile{
-			logFilter:      logFilter,
-			fileName:       fileName,
-			logPath:        dir,
-			duration:       logRotateDuration,
-			MaxBytes:       logRotateBytes,
-			MaxFiles: 		config.LogRotateMaxFiles,
+			logFilter: logFilter,
+			fileName:  fileName,
+			logPath:   dir,
+			duration:  logRotateDuration,
+			MaxBytes:  logRotateBytes,
+			MaxFiles:  config.LogRotateMaxFiles,
 		}
 		writers = append(writers, logFile)
 	}
