@@ -12,7 +12,7 @@ A Connect-aware proxy enables unmodified applications to use Connect. A
 per-service proxy sidecar transparently handles inbound and outbound service
 connections, automatically wrapping and verifying TLS connections. Consul
 includes its own built-in L4 proxy and has first class support for Envoy. You
-can chose other proxies to plug in as well. This section describes how to
+can choose other proxies to plug in as well. This section describes how to
 configure Envoy or the built-in proxy using Connect, and how to integrate the
 proxy of your choice.
 
