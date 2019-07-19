@@ -56,7 +56,7 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
-	github.com/hashicorp/go-raftchunking v0.0.0-20190718145632-f069134b6835
+	github.com/hashicorp/go-raftchunking v0.0.0-20190719132636-c7f2572e37de
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
@@ -68,7 +68,7 @@ require (
 	github.com/hashicorp/mdns v1.0.1 // indirect
 	github.com/hashicorp/memberlist v0.1.4
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.1.1-0.20190718143117-ce431a9ba3f4
+	github.com/hashicorp/raft v1.1.1-0.20190718211913-6bad9b85d8fb
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.8.2
 	github.com/hashicorp/vault v0.10.3
