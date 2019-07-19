@@ -165,7 +165,7 @@ func TestKVPutCommand_Base64(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(data.Value, []byte(expected)) {
+	if !bytes.Equal(data.Value, expected) {
 		t.Errorf("bad: %#v, %s", data.Value, data.Value)
 	}
 }
