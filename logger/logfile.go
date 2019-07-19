@@ -95,7 +95,7 @@ func (l *LogFile) rotate() error {
 	return nil
 }
 
-func (l *LogFile) purgeArchivesIfNeeded() error {
+func (l *LogFile) pruneFiles() error {
 	if l.MaxLogArchives == -1 {
 		return nil
 	}
