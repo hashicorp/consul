@@ -14,6 +14,10 @@ import (
 	"github.com/armon/go-metrics"
 )
 
+const (
+	SuggestedMaxDataSize = 512 * 1024
+)
+
 var (
 	// ErrLeader is returned when an operation can't be completed on a
 	// leader node.
@@ -175,9 +179,12 @@ type Raft struct {
 
 // BootstrapCluster initializes a server's storage with the given cluster
 // configuration. This should only be called at the beginning of time for the
-// cluster, and you absolutely must make sure that you call it with the same
-// configuration on all the Voter servers. There is no need to bootstrap
-// Nonvoter and Staging servers.
+// cluster with an identical configuration listing all Voter servers. There is
+// no need to bootstrap Nonvoter and Staging servers.
+//
+// A cluster can only be bootstrapped once from a single participating Voter
+// server. Any further attempts to bootstrap will return an error that can be
+// safely ignored.
 //
 // One sane approach is to bootstrap a single server with a configuration
 // listing just itself as a Voter, then invoke AddVoter() on it to add other
@@ -257,13 +264,59 @@ func BootstrapCluster(conf *Config, logs LogStore, stable StableStore,
 // the usual APIs in order to bring the cluster back into a known state.
 func RecoverCluster(conf *Config, fsm FSM, logs LogStore, stable StableStore,
 	snaps SnapshotStore, trans Transport, configuration Configuration) error {
+	var err error
+	var lastSnapIndex, lastTerm, lastLogIndex uint64
+	// check error conditions for misconfigured or unreadable configuration and state
+	if err = validateState(conf, logs, stable, snaps, configuration); err != nil {
+		return err
+	}
+
+	// The snapshot information is the best known end point for the data
+	// until we play back the Raft log entries.
+	// Attempt to restore any snapshots we find, newest to oldest.
+	lastSnapIndex, lastTerm, err = restoreSnapshots(snaps, fsm)
+	if err != nil {
+		return err
+	}
+
+	// Apply any Raft log entries past the snapshot.
+	lastSnapIndex, lastTerm, lastLogIndex, err = applyLogs(logs, fsm)
+	if err != nil {
+		return err
+	}
+
+	// Take new snapshot
+	if err = commitSnapshot(conf, logs, snaps, fsm, configuration, trans, lastSnapIndex, lastTerm); err != nil {
+		return err
+	}
+
+	// Compact the log so that we don't get bad interference from any
+	// configuration change log entries that might be there.
+	var firstLogIndex uint64
+	firstLogIndex, err = logs.FirstIndex()
+	if err != nil {
+		return fmt.Errorf("failed to get first log index: %v", err)
+	}
+	if err = logs.DeleteRange(firstLogIndex, lastLogIndex); err != nil {
+		return fmt.Errorf("log compaction failed: %v", err)
+	}
+
+	return nil
+}
+
+// validateState anticipates a couple of different error conditions
+// for recovering the Raft cluster.
+func validateState(conf *Config, logs LogStore, stable StableStore,
+	snaps SnapshotStore, configuration Configuration) error {
+	var err error
+	var hasState bool
 	// Validate the Raft server config.
-	if err := ValidateConfig(conf); err != nil {
+	if err = ValidateConfig(conf); err != nil {
 		return err
 	}
 
 	// Sanity check the Raft peer configuration.
-	if err := checkConfiguration(configuration); err != nil {
+	if err = checkConfiguration(configuration); err != nil {
 		return err
 	}
 
@@ -272,57 +325,64 @@ func RecoverCluster(conf *Config, fsm FSM, logs LogStore, stable StableStore,
 	// expect data to be there and it's not. By refusing, we force them
 	// to show intent to start a cluster fresh by explicitly doing a
 	// bootstrap, rather than quietly fire up a fresh cluster here.
-	hasState, err := HasExistingState(logs, stable, snaps)
+	hasState, err = HasExistingState(logs, stable, snaps)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing state: %v", err)
 	}
 	if !hasState {
 		return fmt.Errorf("refused to recover cluster with no initial state, this is probably an operator error")
 	}
+	return nil
+}
 
-	// Attempt to restore any snapshots we find, newest to oldest.
-	var snapshotIndex uint64
-	var snapshotTerm uint64
-	snapshots, err := snaps.List()
+// restoreSnapshots attempts to restore each snapshot
+func restoreSnapshots(snaps SnapshotStore, fsm FSM) (index, term uint64, err error) {
+	var snapshots []*SnapshotMeta
+	snapshots, err = snaps.List()
+
 	if err != nil {
-		return fmt.Errorf("failed to list snapshots: %v", err)
+		return 0, 0, fmt.Errorf("failed to list snapshots: %v", err)
 	}
+
 	for _, snapshot := range snapshots {
-		_, source, err := snaps.Open(snapshot.ID)
+		var source io.ReadCloser
+
+		_, source, err = snaps.Open(snapshot.ID)
 		if err != nil {
 			// Skip this one and try the next. We will detect if we
 			// couldn't open any snapshots.
 			continue
 		}
-		defer source.Close()
 
-		if err := fsm.Restore(source); err != nil {
+		err = fsm.Restore(source)
+		// Close the source after the restore has completed
+		source.Close()
+		if err != nil {
 			// Same here, skip and try the next one.
 			continue
 		}
-
-		snapshotIndex = snapshot.Index
-		snapshotTerm = snapshot.Term
+		index, term = snapshot.Index, snapshot.Term
 		break
 	}
-	if len(snapshots) > 0 && (snapshotIndex == 0 || snapshotTerm == 0) {
-		return fmt.Errorf("failed to restore any of the available snapshots")
+
+	if len(snapshots) > 0 && (index == 0 || term == 0) {
+		err = fmt.Errorf("failed to restore any of the available snapshots")
+		return index, term, err
 	}
+	return index, term, nil
+}
 
-	// The snapshot information is the best known end point for the data
-	// until we play back the Raft log entries.
-	lastIndex := snapshotIndex
-	lastTerm := snapshotTerm
-
+// Applies log entries that exist past the snapshot point
+func applyLogs(logs LogStore, fsm FSM) (lastIndex, lastTerm, lastLogIndex uint64, err error) {
 	// Apply any Raft log entries past the snapshot.
-	lastLogIndex, err := logs.LastIndex()
+	lastLogIndex, err = logs.LastIndex()
 	if err != nil {
-		return fmt.Errorf("failed to find last log: %v", err)
+		err = fmt.Errorf("failed to find last log: %v", err)
 	}
-	for index := snapshotIndex + 1; index <= lastLogIndex; index++ {
+	for index := lastIndex + 1; index <= lastLogIndex; index++ {
 		var entry Log
-		if err := logs.GetLog(index, &entry); err != nil {
-			return fmt.Errorf("failed to get log at index %d: %v", index, err)
+		if err = logs.GetLog(index, &entry); err != nil {
+			err = fmt.Errorf("failed to get log at index %d: %v", index, err)
 		}
 		if entry.Type == LogCommand {
 			_ = fsm.Apply(&entry)
@@ -330,35 +390,29 @@ func RecoverCluster(conf *Config, fsm FSM, logs LogStore, stable StableStore,
 		lastIndex = entry.Index
 		lastTerm = entry.Term
 	}
+	return lastIndex, lastTerm, lastLogIndex, nil
+}
 
-	// Create a new snapshot, placing the configuration in as if it was
-	// committed at index 1.
-	snapshot, err := fsm.Snapshot()
+func commitSnapshot(conf *Config, log LogStore, snaps SnapshotStore, fsm FSM, configuration Configuration, trans Transport,
+	lastIndex, lastTerm uint64) error {
+	var err error
+	var snapshot FSMSnapshot
+	snapshot, err = fsm.Snapshot()
 	if err != nil {
 		return fmt.Errorf("failed to snapshot FSM: %v", err)
 	}
 	version := getSnapshotVersion(conf.ProtocolVersion)
-	sink, err := snaps.Create(version, lastIndex, lastTerm, configuration, 1, trans)
+	var sink SnapshotSink
+	sink, err = snaps.Create(version, lastIndex, lastTerm, configuration, 1, trans)
 	if err != nil {
 		return fmt.Errorf("failed to create snapshot: %v", err)
 	}
-	if err := snapshot.Persist(sink); err != nil {
+	if err = snapshot.Persist(sink); err != nil {
 		return fmt.Errorf("failed to persist snapshot: %v", err)
 	}
-	if err := sink.Close(); err != nil {
+	if err = sink.Close(); err != nil {
 		return fmt.Errorf("failed to finalize snapshot: %v", err)
 	}
-
-	// Compact the log so that we don't get bad interference from any
-	// configuration change log entries that might be there.
-	firstLogIndex, err := logs.FirstIndex()
-	if err != nil {
-		return fmt.Errorf("failed to get first log index: %v", err)
-	}
-	if err := logs.DeleteRange(firstLogIndex, lastLogIndex); err != nil {
-		return fmt.Errorf("log compaction failed: %v", err)
-	}
-
 	return nil
 }
 
@@ -545,9 +599,11 @@ func (r *Raft) restoreSnapshot() error {
 			r.logger.Error(fmt.Sprintf("Failed to open snapshot %v: %v", snapshot.ID, err))
 			continue
 		}
-		defer source.Close()
 
-		if err := r.fsm.Restore(source); err != nil {
+		err = r.fsm.Restore(source)
+		// Close the source after the restore has completed
+		source.Close()
+		if err != nil {
 			r.logger.Error(fmt.Sprintf("Failed to restore snapshot %v: %v", snapshot.ID, err))
 			continue
 		}
@@ -588,10 +644,17 @@ func (r *Raft) restoreSnapshot() error {
 
 // BootstrapCluster is equivalent to non-member BootstrapCluster but can be
 // called on an un-bootstrapped Raft instance after it has been created. This
-// should only be called at the beginning of time for the cluster, and you
-// absolutely must make sure that you call it with the same configuration on all
-// the Voter servers. There is no need to bootstrap Nonvoter and Staging
-// servers.
+// should only be called at the beginning of time for the cluster with an
+// identical configuration listing all Voter servers. There is no need to
+// bootstrap Nonvoter and Staging servers.
+//
+// A cluster can only be bootstrapped once from a single participating Voter
+// server. Any further attempts to bootstrap will return an error that can be
+// safely ignored.
+//
+// One sane approach is to bootstrap a single server with a configuration
+// listing just itself as a Voter, then invoke AddVoter() on it to add other
+// servers to the cluster.
 func (r *Raft) BootstrapCluster(configuration Configuration) Future {
 	bootstrapReq := &bootstrapFuture{}
 	bootstrapReq.init()
@@ -621,6 +684,15 @@ func (r *Raft) Leader() ServerAddress {
 // will fail.
 func (r *Raft) Apply(cmd []byte, timeout time.Duration) ApplyFuture {
 	metrics.IncrCounter([]string{"raft", "apply"}, 1)
+
+	return r.ApplyWithLog(Log{Data: cmd}, timeout)
+}
+
+// ApplyWithLog performs Apply but allows specifying extra Log parameters.
+// Currently this is limited to Data and Extensions.
+func (r *Raft) ApplyWithLog(log Log, timeout time.Duration) ApplyFuture {
+	metrics.IncrCounter([]string{"raft", "apply_with_log"}, 1)
+
 	var timer <-chan time.Time
 	if timeout > 0 {
 		timer = time.After(timeout)
@@ -629,8 +701,9 @@ func (r *Raft) Apply(cmd []byte, timeout time.Duration) ApplyFuture {
 	// Create a log future, no index or term yet
 	logFuture := &logFuture{
 		log: Log{
-			Type: LogCommand,
-			Data: cmd,
+			Type:       LogCommand,
+			Data:       log.Data,
+			Extensions: log.Extensions,
 		},
 	}
 	logFuture.init()
@@ -934,7 +1007,7 @@ func (r *Raft) LastContact() time.Time {
 // "last_snapshot_index", "last_snapshot_term",
 // "latest_configuration", "last_contact", and "num_peers".
 //
-// The value of "state" is a numeric constant representing one of 
+// The value of "state" is a numeric constant representing one of
 // the possible leadership states the node is in at any given time.
 // the possible states are: "Follower", "Candidate", "Leader", "Shutdown".
 //
