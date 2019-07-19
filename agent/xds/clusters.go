@@ -60,31 +60,29 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 		return makeClusterFromUserConfig(cfg.LocalClusterJSON)
 	}
 
-	if c == nil {
-		addr := cfgSnap.Proxy.LocalServiceAddress
-		if addr == "" {
-			addr = "127.0.0.1"
-		}
-		c = &envoy.Cluster{
-			Name:                 LocalAppClusterName,
-			ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
-			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
-			LoadAssignment: &envoy.ClusterLoadAssignment{
-				ClusterName: LocalAppClusterName,
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{
-					{
-						LbEndpoints: []envoyendpoint.LbEndpoint{
-							makeEndpoint(LocalAppClusterName,
-								addr,
-								cfgSnap.Proxy.LocalServicePort),
-						},
+	addr := cfgSnap.Proxy.LocalServiceAddress
+	if addr == "" {
+		addr = "127.0.0.1"
+	}
+	c = &envoy.Cluster{
+		Name:                 LocalAppClusterName,
+		ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
+		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
+		LoadAssignment: &envoy.ClusterLoadAssignment{
+			ClusterName: LocalAppClusterName,
+			Endpoints: []envoyendpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []envoyendpoint.LbEndpoint{
+						makeEndpoint(LocalAppClusterName,
+							addr,
+							cfgSnap.Proxy.LocalServicePort),
 					},
 				},
 			},
-		}
-		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
-			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
-		}
+		},
+	}
+	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+		c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
 	return c, err

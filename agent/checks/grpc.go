@@ -67,7 +67,7 @@ func (probe *GrpcHealthProbe) Check() error {
 	if err != nil {
 		return err
 	}
-	if response == nil || (response != nil && response.Status != hv1.HealthCheckResponse_SERVING) {
+	if response == nil || response.Status != hv1.HealthCheckResponse_SERVING {
 		return ErrGRPCUnhealthy
 	}
 
