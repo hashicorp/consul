@@ -43,7 +43,7 @@ type LogFile struct {
 	//BytesWritten is the number of bytes written in the current log file
 	BytesWritten int64
 
-	// Max past archived log files to keep
+	// Max rotated files to keep before removing them.
 	MaxLogArchives int
 
 	//acquire is the mutex utilized to ensure we have no concurrency issues
