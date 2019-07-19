@@ -107,7 +107,7 @@ func (l *LogFile) purgeArchivesIfNeeded() error {
 	if matches, err = filepath.Glob(globExpression); err != nil {
 		return err
 	}
-	//if there are more archives than the configured maximum, then purge
+	// Prune if there are more files stored than the configured max
 	if len(matches) > l.MaxLogArchives {
 		//sort files alphanumerically to delete old files first
 		sort.Strings(matches)
