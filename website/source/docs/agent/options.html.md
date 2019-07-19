@@ -247,7 +247,7 @@ will exit with an error at startup.
 
 * <a name="_log_rotate_duration"></a><a href="#_log_rotate_duration">`-log-rotate-duration`</a> - to specify the maximum duration a log should be written to before it needs to be rotated. Must be a duration value such as 30s. Defaults to 24h.
 
-* <a name="_log_rotate_max_archives"></a><a href="#_log_rotate_max_archives">`-log-rotate-max-archives`</a> - to specify the maximum number of older log file archives to keep. Defaults 0 (no archives are kept). Use -1 to keep all archives.
+* <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). To keep no log file archives use a negative number (e.g.: -1).
 
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be

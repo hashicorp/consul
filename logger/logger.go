@@ -32,8 +32,8 @@ type Config struct {
 	//LogRotateBytes is the user specified byte limit to rotate logs
 	LogRotateBytes int
 
-	//LogRotateMaxArchives is the maximum number of past archived log files to keep
-	LogRotateMaxArchives int
+	//LogRotateMaxFiles is the maximum number of past archived log files to keep
+	LogRotateMaxFiles int
 }
 
 const (
@@ -132,7 +132,7 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 			logPath:        dir,
 			duration:       logRotateDuration,
 			MaxBytes:       logRotateBytes,
-			MaxLogArchives: config.LogRotateMaxArchives,
+			MaxFiles: 		config.LogRotateMaxFiles,
 		}
 		writers = append(writers, logFile)
 	}

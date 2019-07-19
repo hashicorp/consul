@@ -194,7 +194,7 @@ func (c *cmd) run(args []string) int {
 		LogFilePath:          config.LogFile,
 		LogRotateDuration:    config.LogRotateDuration,
 		LogRotateBytes:       config.LogRotateBytes,
-		LogRotateMaxArchives: config.LogRotateMaxArchives,
+		LogRotateMaxFiles:    config.LogRotateMaxFiles,
 	}
 	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
 	if !ok {

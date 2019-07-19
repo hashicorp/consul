@@ -27,7 +27,6 @@ func TestLogFile_timeRotation(t *testing.T) {
 		fileName:       testFileName,
 		logPath:        tempDir,
 		duration:       testDuration,
-		MaxLogArchives: -1,
 	}
 	logFile.Write([]byte("Hello World"))
 	time.Sleep(2 * time.Second)
@@ -64,7 +63,6 @@ func TestLogFile_byteRotation(t *testing.T) {
 		logPath:        tempDir,
 		MaxBytes:       testBytes,
 		duration:       24 * time.Hour,
-		MaxLogArchives: -1,
 	}
 	logFile.Write([]byte("Hello World"))
 	logFile.Write([]byte("Second File"))
@@ -86,7 +84,6 @@ func TestLogFile_logLevelFiltering(t *testing.T) {
 		logPath:        tempDir,
 		MaxBytes:       testBytes,
 		duration:       testDuration,
-		MaxLogArchives: -1,
 	}
 	logFile.Write([]byte("[INFO] This is an info message"))
 	logFile.Write([]byte("[DEBUG] This is a debug message"))
@@ -109,7 +106,7 @@ func TestLogFile_deleteArchives(t *testing.T) {
 		logPath:        tempDir,
 		MaxBytes:       testBytes,
 		duration:       24 * time.Hour,
-		MaxLogArchives: 1,
+		MaxFiles: 1,
 	}
 	logFile.Write([]byte("[INFO] Hello World"))
 	logFile.Write([]byte("[INFO] Second File"))
@@ -149,7 +146,7 @@ func TestLogFile_deleteArchivesDisabled(t *testing.T) {
 		logPath:        tempDir,
 		MaxBytes:       testBytes,
 		duration:       24 * time.Hour,
-		MaxLogArchives: -1,
+		MaxFiles: 0,
 	}
 	logFile.Write([]byte("[INFO] Hello World"))
 	logFile.Write([]byte("[INFO] Second File"))

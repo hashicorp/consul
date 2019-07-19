@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -44,7 +43,7 @@ type LogFile struct {
 	BytesWritten int64
 
 	// Max rotated files to keep before removing them.
-	MaxLogArchives int
+	MaxFiles int
 
 	//acquire is the mutex utilized to ensure we have no concurrency issues
 	acquire sync.Mutex
@@ -59,11 +58,10 @@ func (l *LogFile) fileNamePattern() string {
 	}
 	// Remove the file extension from the filename
 	return strings.TrimSuffix(l.fileName, fileExt) + "-%s" + fileExt
-	return fileNameWithoutExtension + "-%s" + fileExt
 }
 
 func (l *LogFile) openNew() error {
-	fileNamePattern := l.getFileNamePattern()
+	fileNamePattern := l.fileNamePattern()
 	// New file name has the format : filename-timestamp.extension
 	createTime := now()
 	newfileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
@@ -87,7 +85,7 @@ func (l *LogFile) rotate() error {
 	// Rotate if we hit the byte file limit or the time limit
 	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
-		if err := l.purgeArchivesIfNeeded(); err != nil {
+		if err := l.pruneFiles(); err != nil {
 			return err
 		}
 		return l.openNew()
@@ -96,25 +94,21 @@ func (l *LogFile) rotate() error {
 }
 
 func (l *LogFile) pruneFiles() error {
-	if l.MaxLogArchives == -1 {
+	if l.MaxFiles == 0 {
 		return nil
 	}
 	pattern := l.fileNamePattern()
 	//get all the files that match the log file pattern
-	globExpression := filepath.Join(l.logPath, fmt.Sprintf(fileNamePattern, "*"))
-	var matches []string
-	var err error
-	if matches, err = filepath.Glob(globExpression); err != nil {
+	globExpression := filepath.Join(l.logPath, fmt.Sprintf(pattern, "*"))
+	matches, err := filepath.Glob(globExpression)
+	if err != nil {
 		return err
 	}
 	// Prune if there are more files stored than the configured max
-	if len(matches) > l.MaxLogArchives {
-		//sort files alphanumerically to delete old files first
-		sort.Strings(matches)
-		for _, filename := range matches[:len(matches)-l.MaxLogArchives] {
-			if err = os.Remove(filename); err != nil {
-				return err
-			}
+	stale := len(matches) - l.MaxFiles
+	for i := 0; i < stale; i++ {
+		if err := os.Remove(matches[i]); err != nil {
+			return err
 		}
 	}
 	return nil
