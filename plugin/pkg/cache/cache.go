@@ -76,12 +76,15 @@ func newShard(size int) *shard { return &shard{items: make(map[uint64]interface{
 
 // Add adds element indexed by key into the cache. Any existing element is overwritten
 func (s *shard) Add(key uint64, el interface{}) {
-	l := s.Len()
-	if l+1 > s.size {
-		s.Evict()
-	}
-
 	s.Lock()
+	if len(s.items) >= s.size {
+		if _, ok := s.items[key]; !ok {
+			for k := range s.items {
+				delete(s.items, k)
+				break
+			}
+		}
+	}
 	s.items[key] = el
 	s.Unlock()
 }
@@ -95,24 +98,12 @@ func (s *shard) Remove(key uint64) {
 
 // Evict removes a random element from the cache.
 func (s *shard) Evict() {
-	hasKey := false
-	var key uint64
-
-	s.RLock()
+	s.Lock()
 	for k := range s.items {
-		key = k
-		hasKey = true
+		delete(s.items, k)
 		break
 	}
-	s.RUnlock()
-
-	if !hasKey {
-		// empty cache
-		return
-	}
-
-	// If this item is gone between the RUnlock and Lock race we don't care.
-	s.Remove(key)
+	s.Unlock()
 }
 
 // Get looks up the element indexed under key.
