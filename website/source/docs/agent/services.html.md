@@ -249,7 +249,7 @@ Multiple services definitions can be provided at once using the plural
         {
           "args": ["/bin/check_redis", "-p", "6000"],
           "interval": "5s",
-          "ttl": "20s"
+          "timeout": "20s"
         }
       ]
     },
@@ -266,11 +266,49 @@ Multiple services definitions can be provided at once using the plural
         {
           "args": ["/bin/check_redis", "-p", "7000"],
           "interval": "30s",
-          "ttl": "60s"
+          "timeout": "60s"
         }
       ]
     },
     ...
+  ]
+}
+```
+
+In HCL you can specify the plural `services` key (although not `service`) multiple times:
+
+```hcl
+services {
+  id = "red0"
+  name = "redis"
+  tags = [
+    "primary"
+  ]
+  address = ""
+  port = 6000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "6000"]
+      interval = "5s"
+      timeout = "20s"
+    }
+  ]
+}
+services {
+  id = "red1"
+  name = "redis"
+  tags = [
+    "delayed",
+    "secondary"
+  ]
+  address = ""
+  port = 7000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "7000"]
+      interval = "30s"
+      timeout = "60s"
+    }
   ]
 }
 ```
