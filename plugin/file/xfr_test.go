@@ -3,6 +3,7 @@ package file
 import (
 	"fmt"
 	"strings"
+	"testing"
 )
 
 func ExampleZone_All() {
@@ -31,4 +32,12 @@ func ExampleZone_All() {
 	// xfr_test.go:15: archive.miek.nl.	1800	IN	CNAME	a.miek.nl.
 	// xfr_test.go:15: a.miek.nl.	1800	IN	A	139.162.196.78
 	// xfr_test.go:15: a.miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735
+}
+
+func TestAllNewZone(t *testing.T) {
+	zone := NewZone("example.org.", "stdin")
+	records := zone.All()
+	if len(records) != 0 {
+		t.Errorf("Expected %d records in empty zone, got %d", 0, len(records))
+	}
 }

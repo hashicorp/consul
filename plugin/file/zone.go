@@ -173,15 +173,21 @@ func (z *Zone) All() []dns.RR {
 		records = append(records, a.All()...)
 	}
 
+	// Either the entire Apex is filled or none it, this isn't enforced here though.
 	if len(z.Apex.SIGNS) > 0 {
 		records = append(z.Apex.SIGNS, records...)
 	}
-	records = append(z.Apex.NS, records...)
+	if len(z.Apex.NS) > 0 {
+		records = append(z.Apex.NS, records...)
+	}
 
 	if len(z.Apex.SIGSOA) > 0 {
 		records = append(z.Apex.SIGSOA, records...)
 	}
-	return append([]dns.RR{z.Apex.SOA}, records...)
+	if z.Apex.SOA != nil {
+		return append([]dns.RR{z.Apex.SOA}, records...)
+	}
+	return records
 }
 
 // NameFromRight returns the labels from the right, staring with the
