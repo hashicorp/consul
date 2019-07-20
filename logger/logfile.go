@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -41,11 +42,14 @@ type LogFile struct {
 	//BytesWritten is the number of bytes written in the current log file
 	BytesWritten int64
 
+	// Max rotated files to keep before removing them.
+	MaxFiles int
+
 	//acquire is the mutex utilized to ensure we have no concurrency issues
 	acquire sync.Mutex
 }
 
-func (l *LogFile) openNew() error {
+func (l *LogFile) fileNamePattern() string {
 	// Extract the file extension
 	fileExt := filepath.Ext(l.fileName)
 	// If we have no file extension we append .log
@@ -53,16 +57,21 @@ func (l *LogFile) openNew() error {
 		fileExt = ".log"
 	}
 	// Remove the file extension from the filename
-	fileName := strings.TrimSuffix(l.fileName, fileExt)
+	return strings.TrimSuffix(l.fileName, fileExt) + "-%s" + fileExt
+}
+
+func (l *LogFile) openNew() error {
+	fileNamePattern := l.fileNamePattern()
 	// New file name has the format : filename-timestamp.extension
 	createTime := now()
-	newfileName := fileName + "-" + strconv.FormatInt(createTime.UnixNano(), 10) + fileExt
+	newfileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
 	newfilePath := filepath.Join(l.logPath, newfileName)
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
 	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
 	if err != nil {
 		return err
 	}
+
 	l.FileInfo = filePointer
 	// New file, new bytes tracker, new creation time :)
 	l.LastCreated = createTime
@@ -76,7 +85,31 @@ func (l *LogFile) rotate() error {
 	// Rotate if we hit the byte file limit or the time limit
 	if (l.BytesWritten >= int64(l.MaxBytes) && (l.MaxBytes > 0)) || timeElapsed >= l.duration {
 		l.FileInfo.Close()
+		if err := l.pruneFiles(); err != nil {
+			return err
+		}
 		return l.openNew()
+	}
+	return nil
+}
+
+func (l *LogFile) pruneFiles() error {
+	if l.MaxFiles == 0 {
+		return nil
+	}
+	pattern := l.fileNamePattern()
+	//get all the files that match the log file pattern
+	globExpression := filepath.Join(l.logPath, fmt.Sprintf(pattern, "*"))
+	matches, err := filepath.Glob(globExpression)
+	if err != nil {
+		return err
+	}
+	// Prune if there are more files stored than the configured max
+	stale := len(matches) - l.MaxFiles
+	for i := 0; i < stale; i++ {
+		if err := os.Remove(matches[i]); err != nil {
+			return err
+		}
 	}
 	return nil
 }

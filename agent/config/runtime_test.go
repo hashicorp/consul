@@ -515,6 +515,19 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-log-rotate-max-files",
+			args: []string{
+				`-log-rotate-max-files=2`,
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{ "log_rotate_max_files": 2 }`},
+			hcl:  []string{`log_rotate_max_files = 2`},
+			patch: func(rt *RuntimeConfig) {
+				rt.LogRotateMaxFiles = 2
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "-node",
 			args: []string{
 				`-node=a`,
@@ -5860,6 +5873,7 @@ func TestSanitize(t *testing.T) {
 		"LogFile": "",
 		"LogRotateBytes": 0,
 		"LogRotateDuration": "0s",
+		"LogRotateMaxFiles": 0,
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",
@@ -6237,92 +6251,6 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	require.Equal(t, "g", r.Domain)
 	require.Equal(t, "tls12", r.TLSMinVersion)
 	require.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}, r.CipherSuites)
-}
-
-func TestReadPath(t *testing.T) {
-	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
-
-	tt := []struct {
-		name   string
-		pre    func()
-		args   []string
-		expect int
-	}{
-		{
-			name: "dir skip non json or hcl if config-format not set",
-			pre: func() {
-				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
-				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
-			},
-			args: []string{
-				`-config-dir`, filepath.Join(dataDir, "conf.d"),
-			},
-			expect: 1,
-		},
-		{
-			name: "dir read non json or hcl if config-format set",
-			pre: func() {
-				writeFile(filepath.Join(dataDir, "conf.d/conf.json"), []byte(`{}`))
-				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
-			},
-			args: []string{
-				`-config-dir`, filepath.Join(dataDir, "conf.d"),
-				`-config-format`, "json",
-			},
-			expect: 2,
-		},
-		{
-			name: "file skip non json or hcl if config-format not set",
-			pre: func() {
-				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
-			},
-			args: []string{
-				`-config-file`, filepath.Join(dataDir, "conf.d"),
-			},
-			expect: 0,
-		},
-		{
-			name: "file read non json or hcl if config-format set",
-			pre: func() {
-				writeFile(filepath.Join(dataDir, "conf.d/conf.foobar"), []byte(`{}`))
-			},
-			args: []string{
-				`-config-file`, filepath.Join(dataDir, "conf.d"),
-				`-config-format`, "json",
-			},
-			expect: 1,
-		},
-	}
-
-	for _, tc := range tt {
-		cleanDir(dataDir)
-
-		t.Run(tc.name, func(t *testing.T) {
-			flags := Flags{}
-			fs := flag.NewFlagSet("", flag.ContinueOnError)
-			AddFlags(fs, &flags)
-			err := fs.Parse(tc.args)
-			if err != nil {
-				t.Fatalf("ParseFlags failed: %s", err)
-			}
-			flags.Args = fs.Args()
-
-			// write cfg files
-			tc.pre()
-
-			// Then create a builder with the flags.
-			b, err := NewBuilder(flags)
-			if err != nil {
-				t.Fatal("NewBuilder", err)
-			}
-
-			got := len(b.Sources)
-			if tc.expect != got {
-				t.Fatalf("expected %d sources, got %d", tc.expect, got)
-			}
-		})
-	}
 }
 
 func Test_UIPathBuilder(t *testing.T) {
