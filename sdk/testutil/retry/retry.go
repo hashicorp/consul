@@ -110,7 +110,7 @@ func dedup(a []string) string {
 			delete(m, s)
 		}
 	}
-	return string(b.Bytes())
+	return b.String()
 }
 
 func run(r Retryer, t Failer, f func(r *R)) {

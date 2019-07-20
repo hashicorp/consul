@@ -820,7 +820,6 @@ func TestServer_BadExpect(t *testing.T) {
 type fakeGlobalResp struct{}
 
 func (r *fakeGlobalResp) Add(interface{}) {
-	return
 }
 
 func (r *fakeGlobalResp) New() interface{} {
