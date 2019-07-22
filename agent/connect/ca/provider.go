@@ -2,6 +2,7 @@ package ca
 
 import (
 	"crypto/x509"
+	"time"
 )
 
 //go:generate mockery -name Provider -inpkg
@@ -68,6 +69,14 @@ type Provider interface {
 	// Issuer related fields changed as necessary. The resulting certificate is
 	// returned as a PEM formatted string.
 	CrossSignCA(*x509.Certificate) (string, error)
+
+	// SupportsCrossSigning indicates whether the provider supports cross-signing
+	// other CA certs via CrossSignCA().
+	SupportsCrossSigning() bool
+
+	// MinLifetime returns the minimum TTL allowed by the provider for certificates
+	// it issues.
+	MinLifetime() time.Duration
 
 	// Cleanup performs any necessary cleanup that should happen when the provider
 	// is shut down permanently, such as removing a temporary PKI backend in Vault

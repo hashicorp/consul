@@ -3,6 +3,7 @@ package connect
 import (
 	"bytes"
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -13,10 +14,21 @@ import (
 
 // CreateCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
-func CreateCSR(uri CertURI, privateKey crypto.Signer, extensions ...pkix.Extension) (string, error) {
+func CreateCSR(commonName string, uri CertURI, privateKey crypto.Signer,
+	extensions ...pkix.Extension) (string, error) {
+
+	signAlgo := x509.SHA256WithRSA
+	_, ok := privateKey.(*ecdsa.PrivateKey)
+	if ok {
+		signAlgo = x509.ECDSAWithSHA256
+	}
+
 	template := &x509.CertificateRequest{
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
 		URIs:               []*url.URL{uri.URI()},
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
+		SignatureAlgorithm: signAlgo,
 		ExtraExtensions:    extensions,
 	}
 
@@ -43,7 +55,7 @@ func CreateCACSR(uri CertURI, privateKey crypto.Signer) (string, error) {
 		return "", err
 	}
 
-	return CreateCSR(uri, privateKey, ext)
+	return CreateCSR("Consul CA", uri, privateKey, ext)
 }
 
 // CreateCAExtension creates a pkix.Extension for the x509 Basic Constraints
