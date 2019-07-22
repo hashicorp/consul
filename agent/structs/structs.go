@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"reflect"
 	"regexp"
 	"sort"
@@ -947,6 +948,39 @@ func (s *NodeService) Validate() error {
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
 				"A Proxy cannot also be Connect Native, only typical services"))
+		}
+
+		// ensure we don't have multiple upstreams for the same service
+		var (
+			upstreamKeys = make(map[UpstreamKey]struct{})
+			bindAddrs    = make(map[string]struct{})
+		)
+		for _, u := range s.Proxy.Upstreams {
+			if err := u.Validate(); err != nil {
+				result = multierror.Append(result, err)
+				continue
+			}
+
+			uk := u.ToKey()
+			if _, ok := upstreamKeys[uk]; ok {
+				result = multierror.Append(result, fmt.Errorf(
+					"upstreams cannot contain duplicates of %s", uk))
+				continue
+			}
+			upstreamKeys[uk] = struct{}{}
+
+			addr := u.LocalBindAddress
+			if addr == "" {
+				addr = "127.0.0.1"
+			}
+			addr = net.JoinHostPort(addr, fmt.Sprintf("%d", u.LocalBindPort))
+
+			if _, ok := bindAddrs[addr]; ok {
+				result = multierror.Append(result, fmt.Errorf(
+					"upstreams cannot contain duplicates by local bind address and port; %q is specified twice", addr))
+				continue
+			}
+			bindAddrs[addr] = struct{}{}
 		}
 	}
 
