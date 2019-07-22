@@ -167,8 +167,8 @@ github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uP
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116 h1:Y4V/yReWjQo/Ngyc0w6C3EKXKincp4YgvXeo8lI4LrI=
 github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
-github.com/hashicorp/go-raftchunking v0.0.0-20190719144039-758b08209e94 h1:ObtIoY8IHDINFthU76/J79ZvpsegdkqMxfoPiz5tW7o=
-github.com/hashicorp/go-raftchunking v0.0.0-20190719144039-758b08209e94/go.mod h1:9IAy0fuvzPScS2GqRCsRhDwrmmRcGiZHC0EKSpQRrk0=
+github.com/hashicorp/go-raftchunking v0.0.0-20190722150955-a5774da47e6e h1:cwjgfF2tRzfpGXS+sIdGSq8tQo8Zjwakvq6kMcEifpI=
+github.com/hashicorp/go-raftchunking v0.0.0-20190722150955-a5774da47e6e/go.mod h1:gjvnPBjZ7yydFYq3AaKGlrwW8p7BEIeV1OljPYpJzto=
 github.com/hashicorp/go-retryablehttp v0.5.3 h1:QlWt0KvWT0lq8MFppF9tsJGF+ynG7ztc2KIPhzRGk7s=
 github.com/hashicorp/go-retryablehttp v0.5.3/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-rootcerts v1.0.0 h1:Rqb66Oo1X/eSV1x66xbDccZjhJigjg0+e82kpwzSwCI=
@@ -203,8 +203,8 @@ github.com/hashicorp/memberlist v0.1.4 h1:gkyML/r71w3FL8gUi74Vk76avkj/9lYAY9lvg0
 github.com/hashicorp/memberlist v0.1.4/go.mod h1:ajVTdAv/9Im8oMAAj5G31PhhMCZJV2pPBoIllUwCN7I=
 github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69 h1:lc3c72qGlIMDqQpQH82Y4vaglRMMFdJbziYWriR4UcE=
 github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69/go.mod h1:/z+jUGRBlwVpUZfjute9jWaF6/HuhjuFQuL1YXzVD1Q=
-github.com/hashicorp/raft v1.1.1-0.20190719143524-115a892631ae h1:PilBAhdQz4vNWHDlY4jC4pwPtuTs26XLLR2KSrIVt88=
-github.com/hashicorp/raft v1.1.1-0.20190719143524-115a892631ae/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=
+github.com/hashicorp/raft v1.1.1-0.20190722150907-447155de1bd3 h1:/VZgMcVsZOKyA5SeKHjARffb/5qd6ZX5TEB0i+FuL3M=
+github.com/hashicorp/raft v1.1.1-0.20190722150907-447155de1bd3/go.mod h1:vPAJM8Asw6u8LxC3eJCUZmRP/E4QmUGE1R7g7k8sG/8=
 github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea h1:xykPFhrBAS2J0VBzVa5e80b5ZtYuNQtgXjN40qBZlD4=
 github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea/go.mod h1:pNv7Wc3ycL6F5oOWn+tPGo2gWD4a5X+yp/ntwdKLjRk=
 github.com/hashicorp/serf v0.8.2 h1:YZ7UKsJv+hKjqGVUUbtE3HNj79Eln2oQ75tniF6iPt0=

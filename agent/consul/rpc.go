@@ -380,7 +380,7 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	case len(buf) <= raft.SuggestedMaxDataSize:
 		future = s.raft.Apply(buf, enqueueLimit)
 	default:
-		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyWithLog)
+		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyLog)
 	}
 
 	if err := future.Error(); err != nil {
