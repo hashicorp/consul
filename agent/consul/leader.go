@@ -1020,6 +1020,21 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		return err
 	}
 
+	interPEM, err := provider.GenerateIntermediate()
+	if err != nil {
+		return fmt.Errorf("error getting intermediate cert: %v", err)
+	}
+
+	interCA, err := parseCAIntermediate(interPEM, conf.Provider, conf.ClusterID)
+	if err != nil {
+		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+
+	if interCA.ID != rootCA.ID {
+		//rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+		rootCA.SigningKeyID = interCA.SigningKeyID
+	}
+
 	commonConfig, err := conf.GetCommonConfig()
 	if err != nil {
 		return err
@@ -1100,6 +1115,29 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 	}, nil
 }
 
+// parseCAIntermediate returns a filled-in structs.CAIntermediate from a raw PEM value.
+func parseCAIntermediate(pemValue, provider, clusterID string) (*structs.CAIntermediate, error) {
+	id, err := connect.CalculateCertFingerprint(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing intermediate fingerprint: %v", err)
+	}
+	cert, err := connect.ParseCert(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+	return &structs.CAIntermediate{
+		ID:                  id,
+		Name:                fmt.Sprintf("%s CA Intermediate Cert", strings.Title(provider)),
+		SerialNumber:        cert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.HexString(cert.SubjectKeyId),
+		ExternalTrustDomain: clusterID,
+		NotBefore:           cert.NotBefore,
+		NotAfter:            cert.NotAfter,
+		IntermediateCert:    pemValue,
+		Active:              true,
+	}, nil
+}
+
 // createProvider returns a connect CA provider from the given config.
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
 	switch conf.Provider {
@@ -1107,6 +1145,8 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
 	case structs.VaultCAProvider:
 		return &ca.VaultProvider{}, nil
+	case structs.AWSCAProvider:
+		return &ca.AWSProvider{}, nil
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
