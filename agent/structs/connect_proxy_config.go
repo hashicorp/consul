@@ -37,6 +37,21 @@ type MeshGatewayConfig struct {
 	Mode MeshGatewayMode `json:",omitempty"`
 }
 
+func ValidateMeshGatewayMode(mode string) (MeshGatewayMode, error) {
+	switch MeshGatewayMode(mode) {
+	case MeshGatewayModeNone:
+		return MeshGatewayModeNone, nil
+	case MeshGatewayModeDefault:
+		return MeshGatewayModeDefault, nil
+	case MeshGatewayModeLocal:
+		return MeshGatewayModeLocal, nil
+	case MeshGatewayModeRemote:
+		return MeshGatewayModeRemote, nil
+	default:
+		return MeshGatewayModeDefault, fmt.Errorf("Invalid Mesh Gateway Mode: %q", mode)
+	}
+}
+
 func (c *MeshGatewayConfig) ToAPI() api.MeshGatewayConfig {
 	return api.MeshGatewayConfig{Mode: api.MeshGatewayMode(c.Mode)}
 }
