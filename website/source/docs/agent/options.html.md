@@ -1455,7 +1455,7 @@ to the old fragment -->
   a cluster, consider reducing write throughput or the amount of data stored on
   Consul as it is likely under a load it is not designed to handle. The default
   value is 10000 which is suitable for all normal workloads. Added in Consul
-  1.5.4.
+  1.5.3.
 
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
