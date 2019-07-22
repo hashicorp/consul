@@ -437,28 +437,26 @@ jobs:
 
 workflows:
   version: 2
-  build-distros:
+  go-tests:
     jobs:
       - lint-consul-retry
-      - go-fmt-and-vet:
+      - go-fmt-and-vet
+      - dev-build:
           requires:
             - lint-consul-retry
-      - build-386: &require-go-fmt-vet
-          requires:
             - go-fmt-and-vet
-      - build-amd64: *require-go-fmt-vet
-      - build-arm-arm64: *require-go-fmt-vet
-  test-integrations:
-    jobs:
-      - dev-build
       - go-test: &go-test
           requires:
             - dev-build
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only run go tests on non forks
       - go-test-api: *go-test
+  build-distros:
+    jobs:
+      - build-386
+      - build-amd64
+      - build-arm-arm64
+  test-integrations:
+    jobs:
+      - dev-build
       - dev-upload-s3:
           requires:
             - dev-build
