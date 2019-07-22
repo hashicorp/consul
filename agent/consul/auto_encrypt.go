@@ -58,7 +58,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	csr, err := connect.CreateCSR("Consul RPC", id, pk)
 	if err != nil {
 		return errFn(err)
 	}
