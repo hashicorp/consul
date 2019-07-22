@@ -84,6 +84,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.LogFile, "log-file", "Path to the file the logs get written to")
 	add(&f.Config.LogRotateBytes, "log-rotate-bytes", "Maximum number of bytes that should be written to a log file")
 	add(&f.Config.LogRotateDuration, "log-rotate-duration", "Time after which log rotation needs to be performed")
+	add(&f.Config.LogRotateMaxFiles, "log-rotate-max-files", "Maximum number of log file archives to keep")
 	add(&f.Config.NodeName, "node", "Name of this node. Must be unique in the cluster.")
 	add(&f.Config.NodeID, "node-id", "A unique ID for this node across space and time. Defaults to a randomly-generated ID that persists in the data-dir.")
 	add(&f.Config.NodeMeta, "node-meta", "An arbitrary metadata key/value pair for this node, of the format `key:value`. Can be specified multiple times.")

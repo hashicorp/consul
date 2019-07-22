@@ -847,6 +847,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		LogFile:                                 b.stringVal(c.LogFile),
 		LogRotateBytes:                          b.intVal(c.LogRotateBytes),
 		LogRotateDuration:                       b.durationVal("log_rotate_duration", c.LogRotateDuration),
+		LogRotateMaxFiles:                       b.intVal(c.LogRotateMaxFiles),
 		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                                c.NodeMeta,
 		NodeName:                                b.nodeName(c.NodeName),

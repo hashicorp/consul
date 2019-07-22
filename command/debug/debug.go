@@ -302,7 +302,7 @@ func (c *cmd) captureStatic() error {
 	var errors error
 
 	// Collect the named outputs here
-	outputs := make(map[string]interface{}, 0)
+	outputs := make(map[string]interface{})
 
 	// Capture host information
 	if c.configuredTarget("host") {

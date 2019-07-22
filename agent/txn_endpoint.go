@@ -135,7 +135,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 			}
 			netKVSize += uint64(size)
 
-			verb := api.KVOp(in.KV.Verb)
+			verb := in.KV.Verb
 			if isWrite(verb) {
 				writes++
 			}

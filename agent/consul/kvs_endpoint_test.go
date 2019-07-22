@@ -596,11 +596,7 @@ key "zip" {
 		t.Fatalf("err: %v", err)
 	}
 
-	actualKeys = []string{}
-
-	for _, key := range keyList.Keys {
-		actualKeys = append(actualKeys, key)
-	}
+	actualKeys = keyList.Keys
 
 	verify.Values(t, "", actualKeys, expectedKeys)
 

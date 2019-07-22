@@ -60,7 +60,7 @@ func TestUiIndex(t *testing.T) {
 	// Verify the body
 	out := bytes.NewBuffer(nil)
 	io.Copy(out, resp.Body)
-	if string(out.Bytes()) != "test" {
+	if out.String() != "test" {
 		t.Fatalf("bad: %s", out.Bytes())
 	}
 }

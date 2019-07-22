@@ -90,7 +90,7 @@ func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 	return nil
@@ -119,7 +119,7 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 
@@ -202,7 +202,7 @@ func (r *aclPolicyReplicator) DeleteLocalBatch(srv *Server, batch []string) erro
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok && err != nil {
+	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 	return nil
@@ -316,7 +316,7 @@ func (r *aclRoleReplicator) FetchUpdated(srv *Server, updates []string) (int, er
 				delete(keep, role.ID)
 			}
 			missing := make([]string, 0, len(keep))
-			for id, _ := range keep {
+			for id := range keep {
 				missing = append(missing, id)
 			}
 			return 0, fmt.Errorf("role replication trying to replicated uncached roles with IDs: %v", missing)

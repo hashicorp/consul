@@ -293,7 +293,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	mux.HandleFunc("/", s.Index)
 	for pattern, fn := range endpoints {
 		thisFn := fn
-		methods, _ := allowedMethods[pattern]
+		methods := allowedMethods[pattern]
 		bound := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 			return thisFn(s, resp, req)
 		}
