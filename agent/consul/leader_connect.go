@@ -505,6 +505,7 @@ func (s *Server) datacentersMeetMinVersion(minVersion *version.Version) (bool, e
 
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.PrimaryDatacenter,
+		QueryOptions: structs.QueryOptions{Token: s.tokens.ReplicationToken()},
 	}
 	var reply autopilot.OperatorHealthReply
 	if err := s.forwardDC("Operator.ServerHealth", s.config.PrimaryDatacenter, &args, &reply); err != nil {
