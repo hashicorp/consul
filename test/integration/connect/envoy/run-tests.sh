@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eEuo pipefail
 
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
@@ -36,31 +36,35 @@ source helpers.bash
 RESULT=1
 CLEANED_UP=0
 
-PREV_CMD=""
-THIS_CMD=""
-
 function cleanup {
   local STATUS="$?"
-  local CMD="$THIS_CMD"
 
   if [ "$CLEANED_UP" != 0 ] ; then
     return
   fi
   CLEANED_UP=1
 
-  if [ $STATUS -ne 0 ] ; then
-    # We failed due to set -e catching an error, output some useful info about
-    # that error.
-    echo "ERR: command exited with $STATUS"
-    echo "     command: $CMD"
+  if [ "$STATUS" -ne 0 ]
+  then
+    capture_logs
   fi
 
   docker-compose down -v --remove-orphans
 }
 trap cleanup EXIT
-# Magic to capture commands and statuses so we can show them when we exit due to
-# set -e This is useful for debugging setup.sh failures.
-trap 'PREV_CMD=$THIS_CMD; THIS_CMD=$BASH_COMMAND' DEBUG
+
+function command_error {
+  echo "ERR: command exited with status $1"
+  echo "     command:   $2"
+  echo "     line:      $3"
+  echo "     function:  $4"
+  echo "     called at: $5"
+  # printf '%s\n' "${FUNCNAME[@]}"
+  # printf '%s\n' "${BASH_SOURCE[@]}"
+  # printf '%s\n' "${BASH_LINENO[@]}"
+}
+
+trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
 # Cleanup from any previous unclean runs.
 docker-compose down -v --remove-orphans
@@ -68,101 +72,258 @@ docker-compose down -v --remove-orphans
 # Start the volume container
 docker-compose up -d workdir
 
+function init_workdir {
+  local DC="$1"
+
+  if test -z "$DC"
+  then
+    DC=primary
+  fi
+
+  # Note, we use explicit set of dirs so we don't delete .gitignore. Also,
+  # don't wipe logs between runs as they are already split and we need them to
+  # upload as artifacts later.
+  rm -rf workdir/${DC}
+  mkdir -p workdir/${DC}/{consul,envoy,bats,statsd}
+
+  # Reload consul config from defaults
+  cp consul-base-cfg/* workdir/${DC}/consul/
+
+  # Add any overrides if there are any (no op if not)
+  find ${CASE_DIR} -name '*.hcl' -maxdepth 1 -type f -exec cp -f {} workdir/${DC}/consul \;
+
+  # Copy all the test files
+  find ${CASE_DIR} -name '*.bats' -maxdepth 1 -type f -exec cp -f {} workdir/${DC}/bats \;
+  # Copy DC specific bats
+  cp helpers.bash workdir/${DC}/bats
+
+  # Add any DC overrides
+  if test -d "${CASE_DIR}/${DC}"
+  then
+    find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
+    find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
+  fi
+
+  return 0
+}
+
+function start_consul {
+  local DC=${1:-primary}
+
+  # Start consul now as setup script needs it up
+  docker-compose rm -s -v -f consul-${DC} || true
+  docker-compose up -d consul-${DC}
+}
+
+function pre_service_setup {
+  local DC=${1:-primary}
+
+  # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
+  if [ -f "${CASE_DIR}${DC}/setup.sh" ]
+  then
+    source ${CASE_DIR}${DC}/setup.sh
+  else
+    source ${CASE_DIR}setup.sh
+  fi
+}
+
+function start_services {
+  # Push the state to the shared docker volume (note this is because CircleCI
+  # can't use shared volumes)
+  docker cp workdir/. envoy_workdir_1:/workdir
+
+  # Start containers required
+  if [ ! -z "$REQUIRED_SERVICES" ] ; then
+    docker-compose rm -s -v -f $REQUIRED_SERVICES || true
+    docker-compose up --build -d $REQUIRED_SERVICES
+  fi
+
+  return 0
+}
+
+function verify {
+  local DC=$1
+  if test -z "$DC"
+  then
+    DC=primary
+  fi
+
+  # Execute tests
+  res=0
+
+  echo "- - - - - - - - - - - - - - - - - - - - - - - -"
+  echoblue -n "CASE $CASE_STR"
+  echo -n ": "
+
+  # Nuke any previous case's verify container.
+  docker-compose rm -s -v -f verify-${DC} || true
+
+  if docker-compose up --abort-on-container-exit --exit-code-from verify-${DC} verify-${DC} ; then
+    echogreen "✓ PASS"
+  else
+    echored "⨯ FAIL"
+    res=1
+  fi
+  echo "================================================"
+
+  return $res
+}
+
+function capture_logs {
+  echo "Capturing Logs for $CASE_STR"
+  mkdir -p "$LOG_DIR"
+  services="$REQUIRED_SERVICES consul-primary"
+  if is_set $REQUIRE_SECONDARY
+  then
+    services="$services consul-secondary"
+  fi
+
+  if [ -f "${CASE_DIR}capture.sh" ]
+  then
+    echo "Executing ${CASE_DIR}capture.sh"
+    source ${CASE_DIR}capture.sh || true
+  fi
+
+
+  for cont in $services
+  do
+    echo "Capturing log for $cont"
+    docker-compose logs --no-color "$cont" 2>&1 > "${LOG_DIR}/${cont}.log"
+  done
+}
+
+function stop_services {
+
+  # Teardown
+  if [ -f "${CASE_DIR}teardown.sh" ] ; then
+    source "${CASE_DIR}teardown.sh"
+  fi
+  docker-compose rm -s -v -f $REQUIRED_SERVICES || true
+}
+
+function initVars {
+  source "defaults.sh"
+  if [ -f "${CASE_DIR}vars.sh" ] ; then
+    source "${CASE_DIR}vars.sh"
+  fi
+}
+
+function runTest {
+  initVars
+
+  # Initialize the workdir
+  init_workdir primary
+
+  if is_set $REQUIRE_SECONDARY
+  then
+    init_workdir secondary
+  fi
+
+  # Wipe state
+  docker-compose up wipe-volumes
+
+  # Push the state to the shared docker volume (note this is because CircleCI
+  # can't use shared volumes)
+  docker cp workdir/. envoy_workdir_1:/workdir
+
+  start_consul primary
+  if [ $? -ne 0 ]
+  then
+    capture_logs
+    return 1
+  fi
+
+  if is_set $REQUIRE_SECONDARY
+  then
+    start_consul secondary
+    if [ $? -ne 0 ]
+    then
+      capture_logs
+      return 1
+    fi
+  fi
+
+  pre_service_setup primary
+  if [ $? -ne 0 ]
+  then
+    capture_logs
+    return 1
+  fi
+
+  if is_set $REQUIRE_SECONDARY
+  then
+    pre_service_setup secondary
+    if [ $? -ne 0 ]
+    then
+      capture_logs
+      return 1
+    fi
+  fi
+
+  start_services
+  if [ $? -ne 0 ]
+  then
+    capture_logs
+    return 1
+  fi
+
+  # Run the verify container and report on the output
+  verify primary
+  TESTRESULT=$?
+
+  if is_set $REQUIRE_SECONDARY && test "$TESTRESULT" -eq 0
+  then
+    verify secondary
+    SECONDARYRESULT=$?
+
+    if [ "$SECONDARYRESULT" -ne 0 ]
+    then
+      TESTRESULT=$SECONDARYRESULT
+    fi
+  fi
+
+  if [ "$TESTRESULT" -ne 0 ]
+  then
+    capture_logs
+  fi
+
+  stop_services primary
+
+  if is_set $REQUIRE_SECONDARY
+  then
+    stop_services secondary
+  fi
+
+
+  return $TESTRESULT
+}
+
+
+RESULT=0
+
 for c in ./case-*/ ; do
   for ev in $ENVOY_VERSIONS ; do
-    CASE_NAME=$( basename $c | cut -c6- )
-    CASE_ENVOY_VERSION="envoy $ev"
-    CASE_STR="$CASE_NAME, $CASE_ENVOY_VERSION"
+    export CASE_DIR="${c}"
+    export CASE_NAME=$( basename $c | cut -c6- )
+    export CASE_ENVOY_VERSION="envoy $ev"
+    export CASE_STR="$CASE_NAME, $CASE_ENVOY_VERSION"
+    export ENVOY_VERSION="${ev}"
+    export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
     echo "================================================"
     echoblue "CASE $CASE_STR"
     echo "- - - - - - - - - - - - - - - - - - - - - - - -"
-
-    export ENVOY_VERSION=$ev
 
     if [ ! -z "$FILTER_TESTS" ] && echo "$CASE_STR" | grep -v "$FILTER_TESTS" > /dev/null ; then
       echo "   SKIPPED: doesn't match FILTER_TESTS=$FILTER_TESTS"
       continue 1
     fi
 
-    # Wipe state
-    docker-compose up wipe-volumes
-    # Note, we use explicit set of dirs so we don't delete .gitignore. Also,
-    # don't wipe logs between runs as they are already split and we need them to
-    # upload as artifacts later.
-    rm -rf workdir/{consul,envoy,bats,statsd}
-    mkdir -p workdir/{consul,envoy,bats,statsd,logs}
-
-    # Reload consul config from defaults
-    cp consul-base-cfg/* workdir/consul
-
-    # Add any overrides if there are any (no op if not)
-    cp -f ${c}*.hcl workdir/consul 2>/dev/null || :
-
-    # Push the state to the shared docker volume (note this is because CircleCI
-    # can't use shared volumes)
-    docker cp workdir/. envoy_workdir_1:/workdir
-
-    # Start consul now as setup script needs it up
-    docker-compose rm -s -v -f consul || true
-    docker-compose up -d consul
-
-    # Copy all the test files
-    cp ${c}*.bats workdir/bats
-    cp helpers.bash workdir/bats
-
-    # Run test case setup (e.g. generating Envoy bootstrap, starting containers)
-    source ${c}setup.sh
-
-    # Push the state to the shared docker volume (note this is because CircleCI
-    # can't use shared volumes)
-    docker cp workdir/. envoy_workdir_1:/workdir
-
-    # Start containers required
-    if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      docker-compose rm -s -v -f $REQUIRED_SERVICES || true
-      docker-compose up --build -d $REQUIRED_SERVICES
+    if ! runTest
+    then
+      RESULT=1
     fi
 
-    # Nuke any previous case's verify container.
-    docker-compose rm -s -v -f verify || true
-
-    # Execute tests
-    THISRESULT=1
-    if docker-compose up --build --exit-code-from verify verify ; then
-      echo "- - - - - - - - - - - - - - - - - - - - - - - -"
-      echoblue -n "CASE $CASE_STR"
-      echo -n ": "
-      echogreen "✓ PASS"
-    else
-      echo "- - - - - - - - - - - - - - - - - - - - - - - -"
-      echoblue -n "CASE $CASE_STR"
-      echo -n ": "
-      echored "⨯ FAIL"
-      if [ $RESULT -eq 1 ] ; then
-        RESULT=0
-      fi
-      THISRESULT=0
-    fi
-    echo "================================================"
-
-    # Hack consul into the list of containers to stop and dump logs for.
-    REQUIRED_SERVICES="$REQUIRED_SERVICES consul"
-
-    # Teardown
-    if [ -f "${c}teardown.sh" ] ; then
-      source "${c}teardown.sh"
-    fi
-    if [ ! -z "$REQUIRED_SERVICES" ] ; then
-      if [[ "$THISRESULT" == 0 ]] ; then
-        mkdir -p workdir/logs/$c/$ENVOY_VERSION
-        for cont in $REQUIRED_SERVICES; do
-          docker-compose logs --no-color $cont 2>&1 > workdir/logs/$c/$ENVOY_VERSION/$cont.log
-        done
-      fi
-      docker-compose rm -s -v -f $REQUIRED_SERVICES || true
-    fi
-
-    if [ $RESULT -eq 0 ] && [ ! -z "$STOP_ON_FAIL" ] ; then
+    if [ $RESULT -ne 0 ] && [ ! -z "$STOP_ON_FAIL" ] ; then
       echo "  => STOPPING because STOP_ON_FAIL set"
       break 2
     fi
@@ -171,7 +332,7 @@ done
 
 cleanup
 
-if [ $RESULT -eq 1 ] ; then
+if [ $RESULT -eq 0 ] ; then
   echogreen "✓ PASS"
 else
   echored "⨯ FAIL"

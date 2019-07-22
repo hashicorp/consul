@@ -15,7 +15,7 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2 HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2" {
@@ -25,7 +25,7 @@ load helpers
 }
 
 @test "s1 proxy should be sending metrics to statsd" {
-  run retry_default must_match_in_statsd_logs '^envoy\.'
+  run retry_default must_match_in_statsd_logs '^envoy\.' primary
 
   echo "OUTPUT: $output"
 
