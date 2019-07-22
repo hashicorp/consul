@@ -377,7 +377,7 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 
 	var future raft.ApplyFuture
 	switch {
-	case len(buf) <= raft.SuggestedMaxDataSize:
+	case len(buf) <= raft.SuggestedMaxDataSize || t != structs.KVSRequestType:
 		future = s.raft.Apply(buf, enqueueLimit)
 	default:
 		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyLog)
