@@ -62,6 +62,9 @@ func TestAWSProvider_Configure(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.Equal(conf.Config["AccessKeyId"], provider.config.AccessKeyId)
 	r.Equal(conf.Config["SecretAccessKey"], provider.config.SecretAccessKey)
@@ -73,6 +76,10 @@ func TestAWSProvider_ConfigureBadKeyAlgorithm(t *testing.T) {
 
 	r := require.New(t)
 	conf := makeConfig()
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
+
 	conf.Config["KeyAlgorithm"] = "foo"
 	provider := &AWSProvider{}
 	r.Error(provider.Configure(conf.ClusterID, true, conf.Config))
@@ -83,6 +90,10 @@ func TestAWSProvider_ConfigureBadSigningAlgorithm(t *testing.T) {
 
 	r := require.New(t)
 	conf := makeConfig()
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
+
 	conf.Config["SigningAlgorithm"] = "foo"
 	provider := &AWSProvider{}
 	r.Error(provider.Configure(conf.ClusterID, true, conf.Config))
@@ -93,6 +104,10 @@ func TestAWSProvider_ConfigureBadSleepTime(t *testing.T) {
 
 	r := require.New(t)
 	conf := makeConfig()
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
+
 	conf.Config["SleepTime"] = "-5s"
 	provider := &AWSProvider{}
 	r.Error(provider.Configure(conf.ClusterID, true, conf.Config))
@@ -107,6 +122,10 @@ func TestAWSProvider_ConfigureBadLeafTTL(t *testing.T) {
 
 	r := require.New(t)
 	conf := makeConfig()
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
+
 	conf.Config["LeafCertTTL"] = "-72h"
 	provider := &AWSProvider{}
 	r.Error(provider.Configure(conf.ClusterID, true, conf.Config))
@@ -118,6 +137,9 @@ func TestAWSProvider_GenerateRoot(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 	r.NotEmpty(provider.rootPCA.arn)
@@ -141,6 +163,9 @@ func TestAWSProvider_GenerateRootNotRoot(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	provider.isRoot = false
 	r.Error(provider.GenerateRoot())
@@ -152,6 +177,9 @@ func TestAWSProvider_Sign(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 
@@ -190,6 +218,9 @@ func TestAWSProvider_GenerateIntermediateCSR(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 
@@ -213,6 +244,9 @@ func TestAWSProvider_ActiveRoot(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 
@@ -235,6 +269,9 @@ func TestAWSProvider_GenerateIntermediate(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 
@@ -259,6 +296,9 @@ func TestAWSProvider_ActiveIntermediate(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 
@@ -283,6 +323,9 @@ func TestAWSProvider_SignIntermediate(t *testing.T) {
 	r := require.New(t)
 	conf := makeConfig()
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 
@@ -303,6 +346,9 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 	conf := makeConfig()
 	conf.Config["DeleteOnExit"] = true
 	provider := makeProvider(r, conf)
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+		t.Skip("skipping test due to missing AWS credentials")
+	}
 
 	r.NoError(provider.GenerateRoot())
 	_, err := provider.GenerateIntermediate()
