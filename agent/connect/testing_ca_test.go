@@ -18,10 +18,10 @@ func init() {
 	goodParams = []KeyConfig{
 		{keyType: "rsa", keyBits: 2048},
 		{keyType: "rsa", keyBits: 4096},
-		{keyType: "ecdsa", keyBits: 224},
-		{keyType: "ecdsa", keyBits: 256},
-		{keyType: "ecdsa", keyBits: 384},
-		{keyType: "ecdsa", keyBits: 521},
+		{keyType: "ec", keyBits: 224},
+		{keyType: "ec", keyBits: 256},
+		{keyType: "ec", keyBits: 384},
+		{keyType: "ec", keyBits: 521},
 	}
 
 	_, err := exec.LookPath("openssl")

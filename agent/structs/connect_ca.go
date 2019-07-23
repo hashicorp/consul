@@ -300,7 +300,7 @@ func (c CommonCAProviderConfig) Validate() error {
 	}
 
 	switch c.PrivateKeyType {
-	case "ecdsa":
+	case "ec":
 		if c.PrivateKeyBits != 224 && c.PrivateKeyBits != 256 && c.PrivateKeyBits != 384 && c.PrivateKeyBits != 521 {
 			return fmt.Errorf("ECDSA key length must be one of (224, 256, 384, 521) bits")
 		}

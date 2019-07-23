@@ -44,13 +44,13 @@ func main() {
 	var numCAs = 2
 	var services = []string{"web", "db", "cache"}
 	var outDir string
-	var keyType string = "ecdsa"
+	var keyType string = "ec"
 	var keyBits int = 256
 
 	flag.StringVar(&outDir, "out-dir", "",
 		"REQUIRED: the dir to write certificates to")
-	flag.StringVar(&keyType, "key-type", "ecdsa",
-		"Type of private key to create (ecdsa, rsa)")
+	flag.StringVar(&keyType, "key-type", "ec",
+		"Type of private key to create (ec, rsa)")
 	flag.IntVar(&keyBits, "key-bits", 256,
 		"Size of private key to create, in bits")
 	flag.Parse()

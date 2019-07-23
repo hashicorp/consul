@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DefaultPrivateKeyType = "ecdsa"
+	DefaultPrivateKeyType = "ec"
 	DefaultPrivateKeyBits = 256
 )
 
@@ -84,7 +84,7 @@ func GeneratePrivateKeyWithConfig(keyType string, keyBits int) (crypto.Signer, s
 	switch strings.ToLower(keyType) {
 	case "rsa":
 		return generateRSAKey(keyBits)
-	case "ecdsa":
+	case "ec":
 		return generateECDSAKey(keyBits)
 	default:
 		return nil, "", fmt.Errorf("unknown private key type requested: %s", keyType)

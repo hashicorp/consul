@@ -23,18 +23,19 @@ func init() {
 	goodParams = []KeyConfig{
 		{keyType: "rsa", keyBits: 2048},
 		{keyType: "rsa", keyBits: 4096},
-		{keyType: "ecdsa", keyBits: 224},
-		{keyType: "ecdsa", keyBits: 256},
-		{keyType: "ecdsa", keyBits: 384},
-		{keyType: "ecdsa", keyBits: 521},
+		{keyType: "ec", keyBits: 224},
+		{keyType: "ec", keyBits: 256},
+		{keyType: "ec", keyBits: 384},
+		{keyType: "ec", keyBits: 521},
 	}
 	badParams = []KeyConfig{
 		{keyType: "rsa", keyBits: 0},
 		{keyType: "rsa", keyBits: 1024},
 		{keyType: "rsa", keyBits: 24601},
-		{keyType: "ecdsa", keyBits: 0},
-		{keyType: "ecdsa", keyBits: 512},
-		{keyType: "ecdsa", keyBits: 321},
+		{keyType: "ec", keyBits: 0},
+		{keyType: "ec", keyBits: 512},
+		{keyType: "ec", keyBits: 321},
+		{keyType: "ecdsa", keyBits: 256}, // test for "ecdsa" instead of "ec"
 		{keyType: "aes", keyBits: 128},
 	}
 }
@@ -64,7 +65,7 @@ func testGenerateRSAKey(t *testing.T, bits int) {
 
 func testGenerateECDSAKey(t *testing.T, bits int) {
 	r := require.New(t)
-	_, pemBlock, err := GeneratePrivateKeyWithConfig("ecdsa", bits)
+	_, pemBlock, err := GeneratePrivateKeyWithConfig("ec", bits)
 	r.NoError(err)
 	r.Contains(pemBlock, "EC PRIVATE KEY")
 
@@ -85,7 +86,7 @@ func TestGenerateKeys(t *testing.T) {
 				switch params.keyType {
 				case "rsa":
 					testGenerateRSAKey(t, params.keyBits)
-				case "ecdsa":
+				case "ec":
 					testGenerateECDSAKey(t, params.keyBits)
 				default:
 					t.Fatalf("unkown key type: %s", params.keyType)
