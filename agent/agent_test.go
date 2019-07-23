@@ -2290,8 +2290,8 @@ func TestAgent_Service_Reap(t *testing.T) {
 	}
 	chkTypes := []*structs.CheckType{
 		&structs.CheckType{
-			Status: api.HealthPassing,
-			TTL:    25 * time.Millisecond,
+			Status:                         api.HealthPassing,
+			TTL:                            25 * time.Millisecond,
 			DeregisterCriticalServiceAfter: 200 * time.Millisecond,
 		},
 	}
@@ -3178,4 +3178,13 @@ func TestAgent_SetupProxyManager(t *testing.T) {
 	a, err = New(c)
 	require.NoError(t, err)
 	require.NoError(t, a.setupProxyManager())
+}
+func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
+	t.Parallel()
+	hcl := `
+		raft_trailing_logs = 812345
+	`
+	a := NewTestAgent(t.Name(), hcl)
+	defer a.Shutdown()
+	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }

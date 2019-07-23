@@ -863,6 +863,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.RaftSnapshotInterval != 0 {
 		base.RaftConfig.SnapshotInterval = a.config.RaftSnapshotInterval
 	}
+	if a.config.RaftTrailingLogs != 0 {
+		base.RaftConfig.TrailingLogs = uint64(a.config.RaftTrailingLogs)
+	}
 	if a.config.ACLMasterToken != "" {
 		base.ACLMasterToken = a.config.ACLMasterToken
 	}

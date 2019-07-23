@@ -833,6 +833,22 @@ type RuntimeConfig struct {
 	// hcl: raft_snapshot_threshold = int
 	RaftSnapshotInterval time.Duration
 
+	// RaftTrailingLogs sets the number of log entries that will be left in the
+	// log store after a snapshot. This must be large enough that a follower can
+	// transfer and restore an entire snapshot of the state before this many new
+	// entries have been appended. In vast majority of cases the default is plenty
+	// but if there is a sustained high write throughput coupled with a huge
+	// multi-gigabyte snapshot setting this higher may be necessary to allow
+	// followers time to reload from snapshot without becoming unhealthy. If it's
+	// too low then followers are unable to ever recover from a restart and will
+	// enter a loop of constantly downloading full snapshots and never catching
+	// up. If you need to change this you should reconsider your usage of Consul
+	// as it is not designed to store multiple-gigabyte data sets with high write
+	// throughput. Defaults to 10000.
+	//
+	// hcl: raft_trailing_logs = int
+	RaftTrailingLogs int
+
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to
 	// control the time it takes to reap failed nodes from the cluster.

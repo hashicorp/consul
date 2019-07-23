@@ -367,21 +367,6 @@ will exit with an error at startup.
   [Raft Protocol Version Compatibility](/docs/upgrade-specific.html#raft-protocol-version-compatibility)
   for more details.
 
-* <a name="_raft_snapshot_threshold"></a><a href="#_raft_snapshot_threshold">`-raft-snapshot-threshold`</a> - This controls the
-  minimum number of raft commit entries between snapshots that are saved to disk. This is a low-level parameter that should
-  rarely need to be changed. Very busy clusters experiencing excessive disk IO may increase this value to reduce disk IO, and minimize
-  the chances of all servers taking snapshots at the same time. Increasing this trades off disk IO for disk space since the log will
-  grow much larger and the space in the raft.db file can't be reclaimed till the next snapshot. Servers may take longer to recover from
-  crashes or failover if this is increased significantly as more logs will need to be replayed. In Consul 1.1.0 and later this
-  defaults to 16384, and in prior versions it was set to 8192.
-
-* <a name="_raft_snapshot_interval"></a><a href="#_raft_snapshot_interval">`-raft-snapshot-interval`</a> - This controls how often servers
-  check if they need to save a snapshot to disk. his is a low-level parameter that should rarely need to be changed. Very busy clusters
-  experiencing excessive disk IO may increase this value to reduce disk IO, and minimize the chances of all servers taking snapshots at the same time.
-  Increasing this trades off disk IO for disk space since the log will grow much larger and the space in the raft.db file can't be reclaimed
-  till the next snapshot. Servers may take longer to recover from crashes or failover if this is increased significantly as more logs
-  will need to be replayed. In Consul 1.1.0 and later this defaults to `30s`, and in prior versions it was set to `5s`.
-
 * <a name="_recursor"></a><a href="#_recursor">`-recursor`</a> - Specifies the address of an upstream DNS
   server. This option may be provided multiple times, and is functionally
   equivalent to the [`recursors` configuration option](#recursors).
@@ -1129,11 +1114,46 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="raft_protocol"></a><a href="#raft_protocol">`raft_protocol`</a> Equivalent to the
   [`-raft-protocol` command-line flag](#_raft_protocol).
 
-* <a name="raft_snapshot_threshold"></a><a href="#raft_snapshot_threshold">`raft_snapshot_threshold`</a> Equivalent to the
-  [`-raft-snapshot-threshold` command-line flag](#_raft_snapshot_threshold).
+<!-- Note the extra _ anchors are here because we used to erroneously list these as
+command line flags even though they are not actually defined as valid flags and can 
+only be set in config file. Duplicating the anchor preserves any existing external links 
+to the old fragment -->
+* <a name="raft_snapshot_threshold"></a><a name="_raft_snapshot_threshold"></a>
+  <a href="#raft_snapshot_threshold">`raft_snapshot_threshold`</a> This controls
+  the minimum number of raft commit entries between snapshots that are saved to
+  disk. This is a low-level parameter that should rarely need to be changed.
+  Very busy clusters experiencing excessive disk IO may increase this value to
+  reduce disk IO, and minimize the chances of all servers taking snapshots at
+  the same time. Increasing this trades off disk IO for disk space since the log
+  will grow much larger and the space in the raft.db file can't be reclaimed
+  till the next snapshot. Servers may take longer to recover from crashes or
+  failover if this is increased significantly as more logs will need to be
+  replayed. In Consul 1.1.0 and later this defaults to 16384, and in prior
+  versions it was set to 8192.
 
-* <a name="raft_snapshot_interval"></a><a href="#raft_snapshot_interval">`raft_snapshot_interval`</a> Equivalent to the
-  [`-raft-snapshot-interval` command-line flag](#_raft_snapshot_interval).
+* <a name="raft_snapshot_interval"></a><a name="_raft_snapshot_interval"></a> <a
+  href="#raft_snapshot_interval">`raft_snapshot_interval`</a> This controls how
+  often servers check if they need to save a snapshot to disk. his is a
+  low-level parameter that should rarely need to be changed. Very busy clusters
+  experiencing excessive disk IO may increase this value to reduce disk IO, and
+  minimize the chances of all servers taking snapshots at the same time.
+  Increasing this trades off disk IO for disk space since the log will grow much
+  larger and the space in th e raft.db file can't be reclaimed till the next
+  snapshot. Servers may take longer to recover from crashes or failover if this
+  is increased significantly as more logs will need to be replayed. In Consul
+  1.1.0 and later this defaults to `30s`, and in prior versions it was set to
+  `5s`.
+
+* <a name="raft_trailing_logs"></a><a
+  href="#raft_trailing_logs">`raft_trailing_logs`</a> - This controls how many
+  log entries are left in the log store on disk after a snapshot is made. This
+  should only be adjusted when followers cannot catch up to the leader due to a
+  very large snapshot size that and high write throughput causing log truncation
+  before an snapshot can be fully installed. If you need to use this to recover
+  a cluster, consider reducing write throughput or the amount of data stored on
+  Consul as it is likely under a load it is not designed to handle. The default
+  value is 10000 which is suitable for all normal workloads. Added in Consul
+  1.5.3.
 
 * <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
