@@ -358,5 +358,5 @@ func TestCAConfigSet(t testing.T, a TestAgentRPC,
 // takes two additional arguments to override the default private key type and size.
 func TestCAConfigSetWithKeyType(t testing.T, a TestAgentRPC,
 	ca *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
-		return testCAConfigSet(t, a, ca, keyType, keyBits)
+	return testCAConfigSet(t, a, ca, keyType, keyBits)
 }
