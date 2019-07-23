@@ -154,16 +154,17 @@ func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *S
 }
 
 func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
-	dir, config := testServerConfig(t)
-	if cb != nil {
-		cb(config)
-	}
-
+	var dir string
 	var srv *Server
 	var err error
 
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		dir, config := testServerConfig(t)
+		if cb != nil {
+			cb(config)
+		}
+
 		srv, err = newServer(config)
 		if err != nil {
 			os.RemoveAll(dir)
@@ -183,10 +184,6 @@ func newServer(c *Config) (*Server, error) {
 			oldNotify()
 		}
 	}
-	// Restore old notify to guard against re-closing `up` on a retry
-	defer func() {
-		c.NotifyListen = oldNotify
-	}()
 
 	// start server
 	w := c.LogOutput
