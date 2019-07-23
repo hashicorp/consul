@@ -3,8 +3,6 @@ services {
   port = 8282
 
   connect {
-    sidecar_service {
-      port = 21002
-    }
+    sidecar_service {}
   }
 }

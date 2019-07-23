@@ -1,15 +1,11 @@
 services {
   name = "s2"
   port = 8181
-
   connect {
     sidecar_service {
-      port = 21001
-
       proxy {
         config {
           protocol = "http"
-
           envoy_tracing_json = <<EOF
 {
   "http": {
@@ -22,7 +18,6 @@ services {
   }
 }
 EOF
-
           envoy_extra_static_clusters_json = <<EOF2
 {
   "name": "zipkin",

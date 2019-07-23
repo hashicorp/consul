@@ -8,8 +8,6 @@ services {
   }
 
   connect {
-    sidecar_service {
-      port = 21012
-    }
+    sidecar_service {}
   }
 }

@@ -10,15 +10,15 @@ load helpers
   retry_default curl -f -s localhost:19001/stats -o /dev/null
 }
 
-@test "s3 proxy admin is up on :19002" {
+@test "s3-v1 proxy admin is up on :19002" {
   retry_default curl -f -s localhost:19002/stats -o /dev/null
 }
 
-@test "s3-v1 proxy admin is up on :19003" {
+@test "s3-v2 proxy admin is up on :19003" {
   retry_default curl -f -s localhost:19003/stats -o /dev/null
 }
 
-@test "s3-v2 proxy admin is up on :19004" {
+@test "s3 proxy admin is up on :19004" {
   retry_default curl -f -s localhost:19004/stats -o /dev/null
 }
 
@@ -30,16 +30,16 @@ load helpers
   assert_proxy_presents_cert_uri localhost:21001 s2
 }
 
-@test "s3 proxy listener should be up and have right cert" {
+@test "s3-v1 proxy listener should be up and have right cert" {
   assert_proxy_presents_cert_uri localhost:21002 s3
 }
 
-@test "s3-v1 proxy listener should be up and have right cert" {
-  assert_proxy_presents_cert_uri localhost:21012 s3
+@test "s3-v2 proxy listener should be up and have right cert" {
+  assert_proxy_presents_cert_uri localhost:21002 s3
 }
 
-@test "s3-v2 proxy listener should be up and have right cert" {
-  assert_proxy_presents_cert_uri localhost:21022 s3
+@test "s3 proxy listener should be up and have right cert" {
+  assert_proxy_presents_cert_uri localhost:21003 s3
 }
 
 @test "s3 proxies should be healthy" {
