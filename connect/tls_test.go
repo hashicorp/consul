@@ -79,10 +79,11 @@ func testCertPEMBlock(t *testing.T, pemValue string) []byte {
 
 func TestClientSideVerifier(t *testing.T) {
 	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, ca1)
 
 	webCA1PEM, _ := connect.TestLeaf(t, "web", ca1)
 	webCA2PEM, _ := connect.TestLeaf(t, "web", ca2)
+
 
 	webCA1 := testCertPEMBlock(t, webCA1PEM)
 	xcCA2 := testCertPEMBlock(t, ca2.SigningCert)
@@ -135,7 +136,7 @@ func TestClientSideVerifier(t *testing.T) {
 
 func TestServerSideVerifier(t *testing.T) {
 	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, ca1)
 
 	webCA1PEM, _ := connect.TestLeaf(t, "web", ca1)
 	webCA2PEM, _ := connect.TestLeaf(t, "web", ca2)
