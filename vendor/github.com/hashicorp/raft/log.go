@@ -61,7 +61,7 @@ type Log struct {
 	// upgraded, but a leader changeover during this process could lead to
 	// trouble, so gating extension behavior via some flag in the client
 	// program is also a good idea.
-	Extensions []byte `codec:omitempty`
+	Extensions []byte
 }
 
 // LogStore is used to provide an interface for storing

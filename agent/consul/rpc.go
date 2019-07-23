@@ -208,7 +208,7 @@ func canRetry(args interface{}, err error) bool {
 	// If we were chunking and the term changed, resubmit against the new
 	// leader
 	intErr, ok := args.(error)
-	if ok && intErr == raftchunking.ErrTermMismatch {
+	if ok && strings.Contains(intErr.Error(), raftchunking.ErrTermMismatch.Error()) {
 		return true
 	}
 
