@@ -115,9 +115,8 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 				if hdr.Suffix != "" {
 					hdrParts++
 				}
-				// "absent" is the bare invert=true
-				if (hdrParts == 0 && !hdr.Invert) || (hdrParts > 1) {
-					return fmt.Errorf("Route[%d] Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex (or just Invert)", i, j)
+				if hdrParts != 1 {
+					return fmt.Errorf("Route[%d] Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex", i, j)
 				}
 			}
 

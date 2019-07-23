@@ -883,9 +883,9 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 		{
 			name: "route with header not present",
 			entry: makerouter(routeMatch(httpMatchHeader(ServiceRouteHTTPMatchHeader{
-				Name:   "foo",
-				Invert: true,
-				//Present: false,
+				Name:    "foo",
+				Present: true,
+				Invert:  true,
 			}))),
 		},
 		{

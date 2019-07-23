@@ -240,12 +240,6 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PresentMatch{
 					PresentMatch: true,
 				}
-			case hdr.Invert: // THIS HAS TO BE LAST
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PresentMatch{
-					// We set this to the misleading value of 'true' here
-					// because we'll generically invert it next.
-					PresentMatch: true,
-				}
 			default:
 				continue // skip this impossible situation
 			}

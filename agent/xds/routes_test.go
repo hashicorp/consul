@@ -156,8 +156,9 @@ func TestRoutesFromSnapshot(t *testing.T) {
 							},
 							{
 								Match: httpMatchHeader(structs.ServiceRouteHTTPMatchHeader{
-									Name:   "x-debug",
-									Invert: true,
+									Name:    "x-debug",
+									Present: true,
+									Invert:  true,
 								}),
 								Destination: toService("hdr-not-present"),
 							},
