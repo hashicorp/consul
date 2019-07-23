@@ -1,7 +1,12 @@
 package structs
 
 import (
+	"flag"
 	"fmt"
+	"os"
+	"sort"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -10,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const dumpFieldConfig bool = false
+var dumpFieldConfig = flag.Bool("dump-field-config", false, "generate field config dump file")
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -538,18 +543,93 @@ func validateFieldConfigurations(t *testing.T, expected, actual bexpr.FieldConfi
 	require.True(t, validateFieldConfigurationsRecurse(t, expected, actual, ""))
 }
 
+type fieldDumper struct {
+	fp   *os.File
+	lock sync.Mutex
+}
+
+func newFieldDumper(t *testing.T, path string) *fieldDumper {
+	fp, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0660)
+	require.NoError(t, err)
+
+	return &fieldDumper{fp: fp}
+}
+
+func (d *fieldDumper) Close() {
+	d.fp.Close()
+}
+
+func (d *fieldDumper) DumpFields(name string, fields bexpr.FieldConfigurations) {
+	if d == nil {
+		return
+	}
+
+	selectorOps := make([][2]string, 0, 10)
+	// need at least 8 chars wide for "Selector"
+	maxSelectorLen := 8
+	// need at least 20 chars wid for "Supported Operaitons"
+	maxOpsLen := 20
+
+	fields.Walk(func(path bexpr.FieldPath, conf *bexpr.FieldConfiguration) bool {
+		if len(conf.SupportedOperations) < 1 {
+			return true
+		}
+
+		selector := path.String()
+		var ops []string
+		for _, op := range conf.SupportedOperations {
+			ops = append(ops, op.String())
+		}
+
+		opString := strings.Join(ops, ", ")
+		selLen := len(selector)
+		opsLen := len(opString)
+
+		if selLen > maxSelectorLen {
+			maxSelectorLen = selLen
+		}
+		if opsLen > maxOpsLen {
+			maxOpsLen = opsLen
+		}
+
+		selectorOps = append(selectorOps, [2]string{selector, opString})
+		return true
+	})
+
+	sort.Slice(selectorOps, func(i, j int) bool {
+		return selectorOps[i][0] < selectorOps[j][0]
+	})
+
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
+	// this will print the header and the string form of the fields
+	fmt.Fprintf(d.fp, "===== %s =====\n%s\n\n", name, fields)
+
+	fmt.Fprintf(d.fp, "| %-[1]*[2]s | %-[3]*[4]s |\n", maxSelectorLen, "Selector", maxOpsLen, "Supported Operations")
+	fmt.Fprintf(d.fp, "| %s | %s |\n", strings.Repeat("-", maxSelectorLen), strings.Repeat("-", maxOpsLen))
+	for _, selOp := range selectorOps {
+		fmt.Fprintf(d.fp, "| %-[1]*[2]s | %-[3]*[4]s |\n", maxSelectorLen, selOp[0], maxOpsLen, selOp[1])
+	}
+	fmt.Fprintf(d.fp, "\n")
+}
+
 func TestStructs_FilterFieldConfigurations(t *testing.T) {
 	t.Parallel()
+
+	var d *fieldDumper
+	if *dumpFieldConfig {
+		d = newFieldDumper(t, "filter_fields.txt")
+		defer d.Close()
+	}
+
 	for name, tcase := range fieldConfigTests {
 		// capture these values in the closure
 		name := name
 		tcase := tcase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 			fields, err := bexpr.GenerateFieldConfigurations(tcase.dataType)
-			if dumpFieldConfig {
-				fmt.Printf("===== %s =====\n%s\n", name, fields)
-			}
+			d.DumpFields(name, fields)
 			require.NoError(t, err)
 			validateFieldConfigurations(t, tcase.expected, fields)
 		})

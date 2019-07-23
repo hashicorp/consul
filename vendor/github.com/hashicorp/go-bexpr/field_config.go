@@ -15,6 +15,22 @@ type FieldName string
 // Used to represent an arbitrary field name
 const FieldNameAny FieldName = ""
 
+type FieldPath []FieldName
+
+func (path FieldPath) String() string {
+	var parts []string
+
+	for _, part := range path {
+		if part == FieldNameAny {
+			parts = append(parts, "<any>")
+		} else {
+			parts = append(parts, string(part))
+		}
+	}
+
+	return strings.Join(parts, ".")
+}
+
 // The FieldConfiguration struct represents how boolean expression
 // validation and preparation should work for the given field. A field
 // in this case is a single element of a selector.
@@ -311,4 +327,26 @@ func (configs FieldConfigurations) String() string {
 	var builder strings.Builder
 	configs.stringInternal(&builder, 0, "")
 	return builder.String()
+}
+
+type FieldConfigurationWalkFn func(path FieldPath, config *FieldConfiguration) bool
+
+func (configs FieldConfigurations) walk(path FieldPath, walkFn FieldConfigurationWalkFn) bool {
+	for fieldName, fieldConfig := range configs {
+		newPath := append(path, fieldName)
+
+		if !walkFn(newPath, fieldConfig) {
+			return false
+		}
+
+		if !fieldConfig.SubFields.walk(newPath, walkFn) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (configs FieldConfigurations) Walk(walkFn FieldConfigurationWalkFn) bool {
+	return configs.walk(nil, walkFn)
 }
