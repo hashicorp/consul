@@ -88,17 +88,17 @@ $ curl \
 The filter will be executed against each health check in the results list with
 the following selectors and filter operations being supported:
 
-| Selector      | Supported Operations               |
-| ------------- | ---------------------------------- |
-| `CheckID`     | Equal, Not Equal                   |
-| `Name`        | Equal, Not Equal                   |
-| `Node`        | Equal, Not Equal                   |
-| `Notes`       | Equal, Not Equal                   |
-| `Output`      | Equal, Not Equal                   |
-| `ServiceID`   | Equal, Not Equal                   |
-| `ServiceName` | Equal, Not Equal                   |
-| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
-| `Status`      | Equal, Not Equal                   |
+| Selector      | Supported Operations                               |
+| ------------- | -------------------------------------------------- |
+| `CheckID`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Name`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Notes`       | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Output`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceID`   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceName` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty                 |
+| `Status`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
 ## List Checks for Service
 
@@ -172,17 +172,17 @@ The filter will be executed against each health check in the results list with
 the following selectors and filter operations being supported:
 
 
-| Selector      | Supported Operations               |
-| ------------- | ---------------------------------- |
-| `CheckID`     | Equal, Not Equal                   |
-| `Name`        | Equal, Not Equal                   |
-| `Node`        | Equal, Not Equal                   |
-| `Notes`       | Equal, Not Equal                   |
-| `Output`      | Equal, Not Equal                   |
-| `ServiceID`   | Equal, Not Equal                   |
-| `ServiceName` | Equal, Not Equal                   |
-| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
-| `Status`      | Equal, Not Equal                   |
+| Selector      | Supported Operations                               |
+| ------------- | -------------------------------------------------- |
+| `CheckID`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Name`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Notes`       | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Output`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceID`   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceName` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty                 |
+| `Status`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
 ## List Nodes for Service
 
@@ -317,52 +317,54 @@ $ curl \
 The filter will be executed against each entry in the top level results list with the
 following selectors and filter operations being supported:
 
-| Selector                                       | Supported Operations               |
-| ---------------------------------------------- | ---------------------------------- |
-| `Checks`                                       | Is Empty, Is Not Empty             |
-| `Checks.CheckID`                               | Equal, Not Equal                   |
-| `Checks.Name`                                  | Equal, Not Equal                   |
-| `Checks.Node`                                  | Equal, Not Equal                   |
-| `Checks.Notes`                                 | Equal, Not Equal                   |
-| `Checks.Output`                                | Equal, Not Equal                   |
-| `Checks.ServiceID`                             | Equal, Not Equal                   |
-| `Checks.ServiceName`                           | Equal, Not Equal                   |
-| `Checks.ServiceTags`                           | In, Not In, Is Empty, Is Not Empty |
-| `Checks.Status`                                | Equal, Not Equal                   |
-| `Node.Address`                                 | Equal, Not Equal                   |
-| `Node.Datacenter`                              | Equal, Not Equal                   |
-| `Node.ID`                                      | Equal, Not Equal                   |
-| `Node.Meta`                                    | In, Not In, Is Empty, Is Not Empty |
-| `Node.Meta.<any>`                              | Equal, Not Equal                   |
-| `Node.Node`                                    | Equal, Not Equal                   |
-| `Node.TaggedAddresses`                         | In, Not In, Is Empty, Is Not Empty |
-| `Node.TaggedAddresses.<any>`                   | Equal, Not Equal                   |
-| `Service.Address`                              | Equal, Not Equal                   |
-| `Service.Connect.Native`                       | Equal, Not Equal                   |
-| `Service.EnableTagOverride`                    | Equal, Not Equal                   |
-| `Service.ID`                                   | Equal, Not Equal                   |
-| `Service.Kind`                                 | Equal, Not Equal                   |
-| `Service.Meta`                                 | In, Not In, Is Empty, Is Not Empty |
-| `Service.Meta.<any>`                           | Equal, Not Equal                   |
-| `Service.Port`                                 | Equal, Not Equal                   |
-| `Service.Proxy.DestinationServiceID`           | Equal, Not Equal                   |
-| `Service.Proxy.DestinationServiceName`         | Equal, Not Equal                   |
-| `Service.Proxy.LocalServiceAddress`            | Equal, Not Equal                   |
-| `Service.Proxy.LocalServicePort`               | Equal, Not Equal                   |
-| `Service.Proxy.Upstreams`                      | Is Empty, Is Not Empty             |
-| `Service.Proxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
-| `Service.Proxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
-| `Service.Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
-| `Service.Proxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
-| `Service.Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
-| `Service.Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
-| `Service.Service`                              | Equal, Not Equal                   |
-| `Service.TaggedAddresses`                      | In, Not In, Is Empty, Is Not Empty |
-| `Service.TaggedAddresses.<any>.Address`        | Equal, Not Equal                   |
-| `Service.TaggedAddresses.<any>.Port`           | Equal, Not Equal                   |
-| `Service.Tags`                                 | In, Not In, Is Empty, Is Not Empty |
-| `Service.Weights.Passing`                      | Equal, Not Equal                   |
-| `Service.Weights.Warning`                      | Equal, Not Equal                   |
+| Selector                                       | Supported Operations                               |
+| ---------------------------------------------- | -------------------------------------------------- |
+| `Checks`                                       | Is Empty, Is Not Empty                             |
+| `Checks.CheckID`                               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.Name`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.Node`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.Notes`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.Output`                                | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.ServiceID`                             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.ServiceName`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Checks.ServiceTags`                           | In, Not In, Is Empty, Is Not Empty                 |
+| `Checks.Status`                                | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node.Address`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node.Datacenter`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node.ID`                                      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node.Meta`                                    | Is Empty, Is Not Empty, In, Not In                 |
+| `Node.Meta.<any>`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node.Node`                                    | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node.TaggedAddresses`                         | Is Empty, Is Not Empty, In, Not In                 |
+| `Node.TaggedAddresses.<any>`                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Connect.Native`                       | Equal, Not Equal                                   |
+| `Service.EnableTagOverride`                    | Equal, Not Equal                                   |
+| `Service.ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `Service.Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Port`                                 | Equal, Not Equal                                   |
+| `Service.Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `Service.Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `Service.Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `Service.Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `Service.TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service.TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `Service.Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `Service.Weights.Passing`                      | Equal, Not Equal                                   |
+| `Service.Weights.Warning`                      | Equal, Not Equal                                   |
 
 ## List Nodes for Connect-capable Service
 
@@ -462,14 +464,14 @@ The filter will be executed against each health check in the results list with
 the following selectors and filter operations being supported:
 
 
-| Selector      | Supported Operations               |
-| ------------- | ---------------------------------- |
-| `CheckID`     | Equal, Not Equal                   |
-| `Name`        | Equal, Not Equal                   |
-| `Node`        | Equal, Not Equal                   |
-| `Notes`       | Equal, Not Equal                   |
-| `Output`      | Equal, Not Equal                   |
-| `ServiceID`   | Equal, Not Equal                   |
-| `ServiceName` | Equal, Not Equal                   |
-| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
-| `Status`      | Equal, Not Equal                   |
+| Selector      | Supported Operations                               |
+| ------------- | -------------------------------------------------- |
+| `CheckID`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Name`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Notes`       | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Output`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceID`   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceName` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty                 |
+| `Status`      | Equal, Not Equal, In, Not In, Matches, Not Matches |

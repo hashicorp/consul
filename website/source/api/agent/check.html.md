@@ -73,17 +73,17 @@ The filter will be executed against each health check value in the results map w
 the following selectors and filter operations being supported:
 
 
-| Selector      | Supported Operations               |
-| ------------- | ---------------------------------- |
-| `CheckID`     | Equal, Not Equal                   |
-| `Name`        | Equal, Not Equal                   |
-| `Node`        | Equal, Not Equal                   |
-| `Notes`       | Equal, Not Equal                   |
-| `Output`      | Equal, Not Equal                   |
-| `ServiceID`   | Equal, Not Equal                   |
-| `ServiceName` | Equal, Not Equal                   |
-| `ServiceTags` | In, Not In, Is Empty, Is Not Empty |
-| `Status`      | Equal, Not Equal                   |
+| Selector      | Supported Operations                               |
+| ------------- | -------------------------------------------------  |
+| `CheckID`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Name`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Node`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Notes`       | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Output`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceID`   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceName` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `ServiceTags` | In, Not In, Is Empty, Is Not Empty                 |
+| `Status`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
 ## Register Check
 

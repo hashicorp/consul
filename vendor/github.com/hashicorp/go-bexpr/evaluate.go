@@ -3,8 +3,11 @@ package bexpr
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 )
+
+var byteSliceTyp reflect.Type = reflect.TypeOf([]byte{})
 
 var primitiveEqualityFns = map[reflect.Kind]func(first interface{}, second reflect.Value) bool{
 	reflect.Bool:    doEqualBool,
@@ -85,6 +88,16 @@ func derefType(rtype reflect.Type) reflect.Type {
 		rtype = rtype.Elem()
 	}
 	return rtype
+}
+
+func doMatchMatches(expression *MatchExpression, value reflect.Value) (bool, error) {
+	if !value.Type().ConvertibleTo(byteSliceTyp) {
+		return false, fmt.Errorf("Value of type %s is not convertible to []byte", value.Type())
+	}
+
+	re := expression.Value.Converted.(*regexp.Regexp)
+
+	return re.Match(value.Convert(byteSliceTyp).Interface().([]byte)), nil
 }
 
 func doMatchEqual(expression *MatchExpression, value reflect.Value) (bool, error) {
@@ -182,6 +195,14 @@ func evaluateMatchExpressionRecurse(expression *MatchExpression, depth int, rval
 			return doMatchIsEmpty(expression, rvalue)
 		case MatchIsNotEmpty:
 			result, err := doMatchIsEmpty(expression, rvalue)
+			if err == nil {
+				return !result, nil
+			}
+			return false, err
+		case MatchMatches:
+			return doMatchMatches(expression, rvalue)
+		case MatchNotMatches:
+			result, err := doMatchMatches(expression, rvalue)
 			if err == nil {
 				return !result, nil
 			}
