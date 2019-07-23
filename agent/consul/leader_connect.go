@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 )
@@ -467,53 +466,6 @@ func nextIndexVal(prevIdx, idx uint64) uint64 {
 		return 0
 	}
 	return idx
-}
-
-// datacentersMeetMinVersion returns whether this datacenter and the primary
-// are ready and have upgraded to at least the given version.
-func (s *Server) datacentersMeetMinVersion(minVersion *version.Version) (bool, error) {
-	localAutopilotHealth := s.autopilot.GetClusterHealth()
-	localServersMeetVersion, err := autopilotServersMeetMinimumVersion(localAutopilotHealth.Servers, minVersion)
-	if err != nil {
-		return false, err
-	}
-	if !localServersMeetVersion {
-		return false, err
-	}
-
-	args := structs.DCSpecificRequest{
-		Datacenter: s.config.PrimaryDatacenter,
-	}
-	var reply autopilot.OperatorHealthReply
-	if err := s.forwardDC("Operator.ServerHealth", s.config.PrimaryDatacenter, &args, &reply); err != nil {
-		return false, err
-	}
-	remoteServersMeetVersion, err := autopilotServersMeetMinimumVersion(reply.Servers, minVersion)
-	if err != nil {
-		return false, err
-	}
-
-	return localServersMeetVersion && remoteServersMeetVersion, nil
-}
-
-// autopilotServersMeetMinimumVersion returns whether the given slice of servers
-// meets a minimum version.
-func autopilotServersMeetMinimumVersion(servers []autopilot.ServerHealth, minVersion *version.Version) (bool, error) {
-	for _, server := range servers {
-		if server.Version == "" {
-			return false, errEmptyVersion
-		}
-		version, err := version.NewVersion(server.Version)
-		if err != nil {
-			return false, fmt.Errorf("error parsing remote server version: %v", err)
-		}
-
-		if version.LessThan(minVersion) {
-			return false, nil
-		}
-	}
-
-	return true, nil
 }
 
 // initializeSecondaryProvider configures the given provider for a secondary, non-root datacenter.
