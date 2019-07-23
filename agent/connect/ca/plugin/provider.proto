@@ -26,6 +26,8 @@ service CA {
     rpc SignIntermediate(SignIntermediateRequest) returns (SignIntermediateResponse);
     rpc CrossSignCA(CrossSignCARequest) returns (CrossSignCAResponse);
     rpc Cleanup(Empty) returns (Empty);
+    rpc SupportsCrossSigning(Empty) returns (SupportsCrossSigningResponse);
+    rpc MinLifetime(Empty) returns (MinLifetimeResponse);
 }
 
 message ConfigureRequest {
@@ -77,6 +79,14 @@ message SignIntermediateResponse {
 
 message CrossSignCAResponse {
     string crt_pem = 1;
+}
+
+message SupportsCrossSigningResponse {
+    bool supports_cross_signing = 1;
+}
+
+message MinLifetimeResponse {
+    string min_lifetime = 1;
 }
 
 // Protobufs doesn't allow no req/resp so in the cases where there are
