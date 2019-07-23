@@ -40,7 +40,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
-	testIt := func(agent *TestAgent, pass bool) {
+	testIt := func(agent *TestAgent, wantPass bool) {
 		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
 		value = base64.StdEncoding.EncodeToString([]byte(value))
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -59,10 +59,10 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 		if _, err := agent.srv.Txn(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if resp.Code != 413 && !pass {
+		if resp.Code != 413 && !wantPass {
 			t.Fatalf("expected 413, got %d", resp.Code)
 		}
-		if resp.Code != 200 && pass {
+		if resp.Code != 200 && wantPass {
 			t.Fatalf("expected 200, got %d", resp.Code)
 		}
 	}
@@ -74,8 +74,8 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	})
 
 	t.Run("allowed", func(t *testing.T) {
-		a := NewTestAgent(t, t.Name(), "")
-		testIt(a, false)
+		a := NewTestAgent(t, t.Name(), "limits = { kv_max_value_size = 123456789 }")
+		testIt(a, true)
 		a.Shutdown()
 	})
 }
@@ -83,7 +83,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 	t.Parallel()
 
-	testIt := func(agent *TestAgent, pass bool) {
+	testIt := func(agent *TestAgent, wantPass bool) {
 		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
 		value = base64.StdEncoding.EncodeToString([]byte(value))
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -116,10 +116,10 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 		if _, err := agent.srv.Txn(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if resp.Code != 413 && !pass {
+		if resp.Code != 413 && !wantPass {
 			t.Fatalf("expected 413, got %d", resp.Code)
 		}
-		if resp.Code != 200 && pass {
+		if resp.Code != 200 && wantPass {
 			t.Fatalf("expected 200, got %d", resp.Code)
 		}
 	}
