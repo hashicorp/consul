@@ -47,26 +47,17 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 		event := stream.Event{
 			Topic: stream.Topic_ServiceHealth,
 			Index: idx,
-			ServiceHealth: &stream.ServiceHealthUpdate{
-				Op:      stream.CatalogOp_Register,
-				Node:    n.Node.Node,
-				Id:      string(n.Node.ID),
-				Address: n.Node.Address,
-			},
 		}
+
 		if n.Service != nil {
 			event.Key = n.Service.Service
-			event.ServiceHealth.Service = n.Service.Service
-			event.ServiceHealth.Port = int32(n.Service.Port)
 		}
-		for _, check := range n.Checks {
-			event.ServiceHealth.Checks = append(event.ServiceHealth.Checks, &stream.HealthCheck{
-				Name:        check.Name,
-				Status:      check.Status,
-				CheckID:     string(check.CheckID),
-				ServiceID:   check.ServiceID,
-				ServiceName: check.ServiceName,
-			})
+
+		event.Payload = &stream.Event_ServiceHealth{
+			ServiceHealth: &stream.ServiceHealthUpdate{
+				Op:          stream.CatalogOp_Register,
+				ServiceNode: stream.ToCheckServiceNode(&n),
+			},
 		}
 
 		// Send the event on the channel if one was provided.
@@ -95,9 +86,13 @@ func (s *Store) DeregistrationEvents(tx *memdb.Txn, idx uint64, node string) ([]
 		stream.Event{
 			Topic: stream.Topic_ServiceHealth,
 			Index: idx,
-			ServiceHealth: &stream.ServiceHealthUpdate{
-				Op:   stream.CatalogOp_Deregister,
-				Node: node,
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Deregister,
+					ServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{Node: node},
+					},
+				},
 			},
 		},
 	}

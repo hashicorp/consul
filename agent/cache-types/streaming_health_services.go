@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/types"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
@@ -211,14 +210,16 @@ func (s *subscriber) run() {
 		// If this isn't the special "end of snapshot" message, update our
 		// version of the state based on the event/op.
 		if !event.EndOfSnapshot {
-			id := fmt.Sprintf("%s/%s", event.ServiceHealth.Node, event.ServiceHealth.Service)
+			serviceHealth := event.GetServiceHealth()
+			node := serviceHealth.ServiceNode
+			id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 			if event.Index > index {
 				index = event.Index
 			}
 
-			switch event.ServiceHealth.Op {
+			switch serviceHealth.Op {
 			case stream.CatalogOp_Register:
-				checkServiceNode := convertEventToCheckServiceNode(event)
+				checkServiceNode := stream.FromCheckServiceNode(serviceHealth.ServiceNode)
 				state[id] = checkServiceNode
 			case stream.CatalogOp_Deregister:
 				delete(state, id)
@@ -248,34 +249,4 @@ func (s *subscriber) run() {
 		}
 		s.lock.Unlock()
 	}
-}
-
-// convertEventToCheckServiceNode converts the protobuf Event into a
-// structs.CheckServiceNode to be returned through the API.
-func convertEventToCheckServiceNode(event *stream.Event) structs.CheckServiceNode {
-	n := event.ServiceHealth
-	node := structs.CheckServiceNode{
-		Node: &structs.Node{
-			Node:    n.Node,
-			ID:      types.NodeID(n.Id),
-			Address: n.Address,
-		},
-	}
-	if n.Service != "" {
-		node.Service = &structs.NodeService{
-			Service: n.Service,
-			Port:    int(n.Port),
-		}
-	}
-	for _, check := range n.Checks {
-		node.Checks = append(node.Checks, &structs.HealthCheck{
-			Name:        check.Name,
-			Status:      check.Status,
-			CheckID:     types.CheckID(check.CheckID),
-			ServiceID:   check.ServiceID,
-			ServiceName: check.ServiceName,
-		})
-	}
-
-	return node
 }

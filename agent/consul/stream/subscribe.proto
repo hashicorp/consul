@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package stream;
 
+import "structs.proto";
+
 service Consul {
     rpc Subscribe(SubscribeRequest) returns (stream Event) {}
 } 
@@ -19,8 +21,10 @@ message Event {
     Topic topic = 1;
     string key = 2;
     uint64 index = 3;
-    ServiceHealthUpdate serviceHealth = 4;
-    bool endOfSnapshot = 5;
+    bool endOfSnapshot = 4;
+    oneof payload {
+        ServiceHealthUpdate serviceHealth = 5;
+    }
 }
 
 enum CatalogOp {
@@ -30,18 +34,6 @@ enum CatalogOp {
 
 message ServiceHealthUpdate {
     CatalogOp op = 1;
-    string node = 2;
-    string id = 3;
-    string address = 4;
-    string service = 5;
-    int32 port = 6;
-    repeated HealthCheck checks = 7;
+    CheckServiceNode serviceNode = 2;
 }
 
-message HealthCheck {
-    string name = 1;
-    string status = 2;
-    string checkID = 3;
-    string serviceID = 4;
-    string serviceName = 5;
-}
