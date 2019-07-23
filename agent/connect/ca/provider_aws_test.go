@@ -28,9 +28,6 @@ func init() {
 	awsAccessKeyId = os.Getenv("AWS_ACCESS_KEY_ID")
 	awsSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 	awsRegion = os.Getenv("AWS_REGION")
-	if awsRegion == "" {
-		awsRegion = "us-east-1"
-	}
 	awsSession, _ := session.NewSession(&aws.Config{
 		Region:      aws.String(awsRegion),
 		Credentials: credentials.NewStaticCredentials(awsAccessKeyId, awsSecretAccessKey, ""),
@@ -62,7 +59,7 @@ func makeProvider(r *require.Assertions, config *structs.CAConfiguration) *AWSPr
 func TestAWSProvider_Configure(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -77,7 +74,7 @@ func TestAWSProvider_Configure(t *testing.T) {
 func TestAWSProvider_ConfigureBadKeyAlgorithm(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -91,7 +88,7 @@ func TestAWSProvider_ConfigureBadKeyAlgorithm(t *testing.T) {
 func TestAWSProvider_ConfigureBadSigningAlgorithm(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -105,7 +102,7 @@ func TestAWSProvider_ConfigureBadSigningAlgorithm(t *testing.T) {
 func TestAWSProvider_ConfigureBadSleepTime(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -124,7 +121,7 @@ func TestAWSProvider_ConfigureBadSleepTime(t *testing.T) {
 func TestAWSProvider_ConfigureBadLeafTTL(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -138,7 +135,7 @@ func TestAWSProvider_ConfigureBadLeafTTL(t *testing.T) {
 func TestAWSProvider_GenerateRoot(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -165,7 +162,7 @@ func TestAWSProvider_GenerateRoot(t *testing.T) {
 func TestAWSProvider_GenerateRootNotRoot(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -179,7 +176,7 @@ func TestAWSProvider_GenerateRootNotRoot(t *testing.T) {
 func TestAWSProvider_Sign(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -221,7 +218,7 @@ func TestAWSProvider_Sign(t *testing.T) {
 func TestAWSProvider_GenerateIntermediateCSR(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -248,7 +245,7 @@ func TestAWSProvider_GenerateIntermediateCSR(t *testing.T) {
 func TestAWSProvider_ActiveRoot(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -274,7 +271,7 @@ func TestAWSProvider_ActiveRoot(t *testing.T) {
 func TestAWSProvider_GenerateIntermediate(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -302,7 +299,7 @@ func TestAWSProvider_GenerateIntermediate(t *testing.T) {
 func TestAWSProvider_ActiveIntermediate(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -330,7 +327,7 @@ func TestAWSProvider_ActiveIntermediate(t *testing.T) {
 func TestAWSProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
@@ -353,7 +350,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 	// It disables and deletes the PCA, which will cause other tests to fail if they are running
 	// at the same time.
 
-	if awsAccessKeyId == "" || awsSecretAccessKey == "" {
+	if awsAccessKeyId == "" || awsSecretAccessKey == "" || awsRegion == "" {
 		t.Skip("skipping test due to missing AWS credentials")
 	}
 
