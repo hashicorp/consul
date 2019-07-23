@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Status endpoint is used to check on server status
@@ -18,7 +19,11 @@ func (s *Status) Ping(args struct{}, reply *struct{}) error {
 }
 
 // Leader is used to get the address of the leader
-func (s *Status) Leader(args struct{}, reply *string) error {
+func (s *Status) Leader(args *structs.DCSpecificRequest, reply *string) error {
+	if args.Datacenter != "" && args.Datacenter != s.server.config.Datacenter {
+		return s.server.forwardDC("Status.Leader", args.Datacenter, args, reply)
+	}
+
 	leader := string(s.server.raft.Leader())
 	if leader != "" {
 		*reply = leader
@@ -29,7 +34,11 @@ func (s *Status) Leader(args struct{}, reply *string) error {
 }
 
 // Peers is used to get all the Raft peers
-func (s *Status) Peers(args struct{}, reply *[]string) error {
+func (s *Status) Peers(args *structs.DCSpecificRequest, reply *[]string) error {
+	if args.Datacenter != "" && args.Datacenter != s.server.config.Datacenter {
+		return s.server.forwardDC("Status.Peers", args.Datacenter, args, reply)
+	}
+
 	future := s.server.raft.GetConfiguration()
 	if err := future.Error(); err != nil {
 		return err

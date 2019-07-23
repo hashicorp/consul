@@ -287,7 +287,7 @@ func (s *Server) maybeBootstrap() {
 		// Retry with exponential backoff to get peer status from this server
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
 			if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
-				"Status.Peers", server.UseTLS, &struct{}{}, &peers); err != nil {
+				"Status.Peers", server.UseTLS, &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
 				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
 				s.logger.Printf("[ERR] consul: Failed to confirm peer status for %s: %v. Retrying in "+
 					"%v...", server.Name, err, nextRetry.String())
