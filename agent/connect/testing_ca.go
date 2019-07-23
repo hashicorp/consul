@@ -25,13 +25,7 @@ const TestClusterID = "11111111-2222-3333-4444-555555555555"
 // unique names for the CA certs.
 var testCACounter uint64
 
-// TestCA creates a test CA certificate and signing key and returns it
-// in the CARoot structure format. The returned CA will be set as Active = true.
-//
-// If xc is non-nil, then the returned certificate will have a signing cert
-// that is cross-signed with the previous cert, and this will be set as
-// SigningCert.
-func TestCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
+func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
 	var result structs.CARoot
 	result.Active = true
 	result.Name = fmt.Sprintf("Test CA %d", atomic.AddUint64(&testCACounter, 1))
@@ -127,8 +121,22 @@ func TestCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	return &result
 }
 
-// testLeaf returns a valid leaf certificate and it's private key for the named
-// service with the given CA Root.
+// TestCA creates a test CA certificate and signing key and returns it
+// in the CARoot structure format. The returned CA will be set as Active = true.
+//
+// If xc is non-nil, then the returned certificate will have a signing cert
+// that is cross-signed with the previous cert, and this will be set as
+// SigningCert.
+func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
+	return testCA(t, xc, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+}
+
+// TestCAWithKeyType is similar to TestCA, except that it
+// takes two additional arguments to override the default private key type and size.
+func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
+	return testCA(t, xc, keyType, keyBits)
+}
+
 func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
 	// Parse the CA cert and signing key from the root
 	cert := root.SigningCert
@@ -205,6 +213,8 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 	return buf.String(), pkPEM, nil
 }
 
+// TestLeaf returns a valid leaf certificate and it's private key for the named
+// service with the given CA Root.
 func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
 	certPEM, keyPEM, err := testLeaf(t, service, root, root.PrivateKeyType, root.PrivateKeyBits)
 	if err != nil {
@@ -300,21 +310,12 @@ type TestAgentRPC interface {
 	RPC(method string, args interface{}, reply interface{}) error
 }
 
-// TestCAConfigSet sets a CARoot returned by TestCA into the TestAgent state. It
-// requires that TestAgent had connect enabled in it's config. If ca is nil, a
-// new CA is created.
-//
-// It returns the CARoot passed or created.
-//
-// Note that we have to use an interface for the TestAgent.RPC method since we
-// can't introduce an import cycle by importing `agent.TestAgent` here directly.
-// It also means this will work in a few other places we mock that method.
-func TestCAConfigSet(t testing.T, a TestAgentRPC,
+func testCAConfigSet(t testing.T, a TestAgentRPC,
 	ca *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
 	t.Helper()
 
 	if ca == nil {
-		ca = TestCA(t, nil, keyType, keyBits)
+		ca = TestCAWithKeyType(t, nil, keyType, keyBits)
 	}
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
@@ -337,4 +338,25 @@ func TestCAConfigSet(t testing.T, a TestAgentRPC,
 		t.Fatalf("failed to set test CA config: %s", err)
 	}
 	return ca
+}
+
+// TestCAConfigSet sets a CARoot returned by TestCA into the TestAgent state. It
+// requires that TestAgent had connect enabled in it's config. If ca is nil, a
+// new CA is created.
+//
+// It returns the CARoot passed or created.
+//
+// Note that we have to use an interface for the TestAgent.RPC method since we
+// can't introduce an import cycle by importing `agent.TestAgent` here directly.
+// It also means this will work in a few other places we mock that method.
+func TestCAConfigSet(t testing.T, a TestAgentRPC,
+	ca *structs.CARoot) *structs.CARoot {
+	return testCAConfigSet(t, a, ca, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+}
+
+// TestCAConfigSetWithKeyType is similar to TestCAConfigSet, except that it
+// takes two additional arguments to override the default private key type and size.
+func TestCAConfigSetWithKeyType(t testing.T, a TestAgentRPC,
+	ca *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
+		return testCAConfigSet(t, a, ca, keyType, keyBits)
 }

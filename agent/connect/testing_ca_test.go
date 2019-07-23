@@ -38,7 +38,7 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 	assert := assert.New(t)
 
 	// Create the certs
-	ca := TestCA(t, nil, keyType, keyBits)
+	ca := TestCAWithKeyType(t, nil, keyType, keyBits)
 	leaf, _ := TestLeaf(t, "web", ca)
 
 	// Create a temporary directory for storing the certs
@@ -70,8 +70,8 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 	assert := assert.New(t)
 
 	// Create the certs
-	ca1 := TestCA(t, nil, keyType, keyBits)
-	ca2 := TestCA(t, ca1, keyType, keyBits)
+	ca1 := TestCAWithKeyType(t, nil, keyType, keyBits)
+	ca2 := TestCAWithKeyType(t, ca1, keyType, keyBits)
 	leaf1, _ := TestLeaf(t, "web", ca1)
 	leaf2, _ := TestLeaf(t, "web", ca2)
 

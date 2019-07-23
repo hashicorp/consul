@@ -27,13 +27,13 @@ import (
 var _ io.Closer = new(Service)
 
 func TestService_Name(t *testing.T) {
-	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca := connect.TestCA(t, nil)
 	s := TestService(t, "web", ca)
 	assert.Equal(t, "web", s.Name())
 }
 
 func TestService_Dial(t *testing.T) {
-	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca := connect.TestCA(t, nil)
 
 	tests := []struct {
 		name           string
@@ -175,7 +175,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 	// Now test that rotating the root updates
 	{
 		// Setup a new generated CA
-		connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+		connect.TestCAConfigSet(t, a, nil)
 	}
 
 	// After some time, both root and leaves should be different but both should
@@ -210,7 +210,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 }
 
 func TestService_HTTPClient(t *testing.T) {
-	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca := connect.TestCA(t, nil)
 
 	s := TestService(t, "web", ca)
 

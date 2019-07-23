@@ -249,8 +249,8 @@ func TestAuthMethodUpdateCommand_k8s(t *testing.T) {
 
 	client := a.Client()
 
-	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
-	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
 
 	createAuthMethod := func(t *testing.T) string {
 		id, err := uuid.GenerateUUID()
@@ -478,8 +478,8 @@ func TestAuthMethodUpdateCommand_k8s_noMerge(t *testing.T) {
 
 	client := a.Client()
 
-	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
-	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil)
 
 	createAuthMethod := func(t *testing.T) string {
 		id, err := uuid.GenerateUUID()

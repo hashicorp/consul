@@ -63,7 +63,7 @@ func main() {
 	// Create CA certs
 	var prevCA *structs.CARoot
 	for i := 1; i <= numCAs; i++ {
-		ca := connect.TestCA(&testing.RuntimeT{}, prevCA, keyType, keyBits)
+		ca := connect.TestCAWithKeyType(&testing.RuntimeT{}, prevCA, keyType, keyBits)
 		prefix := fmt.Sprintf("%s/ca%d-ca", outDir, i)
 		writeFile(prefix+".cert.pem", ca.RootCert)
 		writeFile(prefix+".key.pem", ca.SigningKey)

@@ -152,7 +152,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	typ, rootsCh := testCALeafType(t, rpc)
 	defer close(rootsCh)
 
-	caRoot := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: caRoot.ID,
@@ -165,7 +165,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 
 	// We need this later but needs to be defined so we sign second CSR with it
 	// otherwise we break the cert root checking.
-	caRoot2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot2 := connect.TestCA(t, nil)
 
 	// Instrument ConnectCA.Sign to return signed cert
 	var resp *structs.IssuedCert
@@ -269,7 +269,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 	// timeout in FetchOptions to be much shorter than this.
 	typ.TestOverrideCAChangeInitialDelay = 100 * time.Millisecond
 
-	caRoot := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: caRoot.ID,
@@ -327,7 +327,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 	// needs to correctly notice that it is not the same one that generated the
 	// current cert and start the rotation. This is good, just not obvious that
 	// the behavior is actually well tested here when it is.
-	caRoot2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot2 := connect.TestCA(t, nil)
 	caRoot2.Active = true
 	caRoot.Active = false
 	rootsCh <- structs.IndexedCARoots{
@@ -412,7 +412,7 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 	typ, rootsCh := testCALeafType(t, rpc)
 	defer close(rootsCh)
 
-	caRoot := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: caRoot.ID,
@@ -474,7 +474,7 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 	}
 
 	// No active requests, simulate root change now
-	caRoot2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot2 := connect.TestCA(t, nil)
 	caRoot2.Active = true
 	caRoot.Active = false
 	rootsCh <- structs.IndexedCARoots{
@@ -522,7 +522,7 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 	typ.TestOverrideCAChangeInitialDelay = 100 * time.Millisecond
 
 	// Setup root that will be returned by the mocked Root cache fetch
-	caRoot := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: caRoot.ID,
@@ -603,7 +603,7 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 
 	// Send in new roots, which should trigger the next sign req. We need to take
 	// care to set the new root as active
-	caRoot2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot2 := connect.TestCA(t, nil)
 	caRoot2.Active = true
 	caRoot.Active = false
 	rootsCh <- structs.IndexedCARoots{
@@ -698,7 +698,7 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 	typ, rootsCh := testCALeafType(t, rpc)
 	defer close(rootsCh)
 
-	caRoot := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: caRoot.ID,
@@ -813,7 +813,7 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 	assertRootsWatchCounts(t, typ, 1, 0)
 
 	// Now we deliver the root update
-	caRoot2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot2 := connect.TestCA(t, nil)
 	caRoot2.Active = true
 	caRoot.Active = false
 	rootsCh <- structs.IndexedCARoots{
@@ -879,7 +879,7 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	typ, rootsCh := testCALeafType(t, rpc)
 	defer close(rootsCh)
 
-	caRoot := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	caRoot := connect.TestCA(t, nil)
 	caRoot.Active = true
 	rootsCh <- structs.IndexedCARoots{
 		ActiveRootID: caRoot.ID,

@@ -131,7 +131,7 @@ func TestSignatureMismatches(t *testing.T) {
 				continue
 			}
 			t.Run(fmt.Sprintf("TestMismatches-%s%d-%s%d", p1.keyType, p1.keyBits, p2.keyType, p2.keyBits), func(t *testing.T) {
-				ca := TestCA(t, nil, p1.keyType, p1.keyBits)
+				ca := TestCAWithKeyType(t, nil, p1.keyType, p1.keyBits)
 				r.Equal(p1.keyType, ca.PrivateKeyType)
 				r.Equal(p1.keyBits, ca.PrivateKeyBits)
 				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", ca, p2.keyType, p2.keyBits)
