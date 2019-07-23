@@ -20,6 +20,9 @@ func (s *Status) Ping(args struct{}, reply *struct{}) error {
 
 // Leader is used to get the address of the leader
 func (s *Status) Leader(args *structs.DCSpecificRequest, reply *string) error {
+	// not using the regular forward function as it does a bunch of stuff we
+	// dont want like verifying consistency etc. We just want to enable DC
+	// forwarding
 	if args.Datacenter != "" && args.Datacenter != s.server.config.Datacenter {
 		return s.server.forwardDC("Status.Leader", args.Datacenter, args, reply)
 	}
@@ -35,6 +38,9 @@ func (s *Status) Leader(args *structs.DCSpecificRequest, reply *string) error {
 
 // Peers is used to get all the Raft peers
 func (s *Status) Peers(args *structs.DCSpecificRequest, reply *[]string) error {
+	// not using the regular forward function as it does a bunch of stuff we
+	// dont want like verifying consistency etc. We just want to enable DC
+	// forwarding
 	if args.Datacenter != "" && args.Datacenter != s.server.config.Datacenter {
 		return s.server.forwardDC("Status.Peers", args.Datacenter, args, reply)
 	}
