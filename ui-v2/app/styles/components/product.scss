@@ -55,9 +55,17 @@ html.template-loading main > div {
     display: none;
   }
 }
+// reduced search magnifying icon layout
 @media #{$--lt-horizontal-selects} {
   %app-view header h1 {
     display: inline-block;
+  }
+  %app-view header h1 {
+    display: inline-block;
+  }
+  // on the instance detail page we don't have the magnifier
+  html.template-instance.template-show h1 {
+    display: block;
   }
   #toolbar-toggle + * {
     display: none;
