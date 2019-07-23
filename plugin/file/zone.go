@@ -15,14 +15,15 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Zone defines a structure that contains all data related to a DNS zone.
+// Zone is a structure that contains all data related to a DNS zone.
 type Zone struct {
 	origin  string
 	origLen int
 	file    string
 	*tree.Tree
 	Apex
-	apexMu sync.RWMutex
+
+	sync.RWMutex
 
 	TransferTo   []string
 	StartupOnce  sync.Once
@@ -30,9 +31,9 @@ type Zone struct {
 	Expired      *bool
 
 	ReloadInterval time.Duration
-	reloadMu       sync.RWMutex
 	reloadShutdown chan bool
-	Upstream       *upstream.Upstream // Upstream for looking up external names during the resolution process.
+
+	Upstream *upstream.Upstream // Upstream for looking up external names during the resolution process.
 }
 
 // Apex contains the apex records of a zone: SOA, NS and their potential signatures.
@@ -122,21 +123,18 @@ func (z *Zone) Insert(r dns.RR) error {
 	return nil
 }
 
-// Delete deletes r from z.
-func (z *Zone) Delete(r dns.RR) { z.Tree.Delete(r) }
-
-// File retrieves the file path in a safe way
+// File retrieves the file path in a safe way.
 func (z *Zone) File() string {
-	z.reloadMu.Lock()
-	defer z.reloadMu.Unlock()
+	z.RLock()
+	defer z.RUnlock()
 	return z.file
 }
 
-// SetFile updates the file path in a safe way
+// SetFile updates the file path in a safe way.
 func (z *Zone) SetFile(path string) {
-	z.reloadMu.Lock()
+	z.Lock()
 	z.file = path
-	z.reloadMu.Unlock()
+	z.Unlock()
 }
 
 // TransferAllowed checks if incoming request for transferring the zone is allowed according to the ACLs.
@@ -162,18 +160,16 @@ func (z *Zone) TransferAllowed(state request.Request) bool {
 // All returns all records from the zone, the first record will be the SOA record,
 // otionally followed by all RRSIG(SOA)s.
 func (z *Zone) All() []dns.RR {
-	if z.ReloadInterval > 0 {
-		z.reloadMu.RLock()
-		defer z.reloadMu.RUnlock()
-	}
-
 	records := []dns.RR{}
+	z.RLock()
 	allNodes := z.Tree.All()
+	z.RUnlock()
+
 	for _, a := range allNodes {
 		records = append(records, a.All()...)
 	}
 
-	// Either the entire Apex is filled or none it, this isn't enforced here though.
+	z.RLock()
 	if len(z.Apex.SIGNS) > 0 {
 		records = append(z.Apex.SIGNS, records...)
 	}
@@ -184,9 +180,12 @@ func (z *Zone) All() []dns.RR {
 	if len(z.Apex.SIGSOA) > 0 {
 		records = append(z.Apex.SIGSOA, records...)
 	}
+
 	if z.Apex.SOA != nil {
+		z.RUnlock()
 		return append([]dns.RR{z.Apex.SOA}, records...)
 	}
+	z.RUnlock()
 	return records
 }
 

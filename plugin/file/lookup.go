@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 
+	"github.com/coredns/coredns/plugin/file/rrutil"
 	"github.com/coredns/coredns/plugin/file/tree"
 	"github.com/coredns/coredns/request"
 
@@ -32,31 +33,23 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 	qtype := state.QType()
 	do := state.Do()
 
-	if 0 < z.ReloadInterval {
-		z.reloadMu.RLock()
-	}
-	defer func() {
-		if 0 < z.ReloadInterval {
-			z.reloadMu.RUnlock()
-		}
-	}()
-
 	// If z is a secondary zone we might not have transferred it, meaning we have
 	// all zone context setup, except the actual record. This means (for one thing) the apex
 	// is empty and we don't have a SOA record.
-	z.apexMu.RLock()
-	soa := z.Apex.SOA
-	z.apexMu.RUnlock()
-	if soa == nil {
+	z.RLock()
+	ap := z.Apex
+	tr := z.Tree
+	z.RUnlock()
+	if ap.SOA == nil {
 		return nil, nil, nil, ServerFailure
 	}
 
 	if qtype == dns.TypeSOA {
-		return z.soa(do), z.ns(do), nil, Success
+		return ap.soa(do), ap.ns(do), nil, Success
 	}
 	if qtype == dns.TypeNS && qname == z.origin {
-		nsrrs := z.ns(do)
-		glue := z.Glue(nsrrs, do)
+		nsrrs := ap.ns(do)
+		glue := tr.Glue(nsrrs, do) // technically this isn't glue
 		return nsrrs, nil, glue, Success
 	}
 
@@ -87,14 +80,14 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 			break
 		}
 
-		elem, found = z.Tree.Search(parts)
+		elem, found = tr.Search(parts)
 		if !found {
 			// Apex will always be found, when we are here we can search for a wildcard
 			// and save the result of that search. So when nothing match, but we have a
 			// wildcard we should expand the wildcard.
 
 			wildcard := replaceWithAsteriskLabel(parts)
-			if wild, found := z.Tree.Search(wildcard); found {
+			if wild, found := tr.Search(wildcard); found {
 				wildElem = wild
 			}
 
@@ -110,11 +103,11 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 			// Only one DNAME is allowed per name. We just pick the first one to synthesize from.
 			dname := dnamerrs[0]
 			if cname := synthesizeCNAME(state.Name(), dname.(*dns.DNAME)); cname != nil {
-				answer, ns, extra, rcode := z.additionalProcessing(ctx, state, elem, []dns.RR{cname})
+				answer, ns, extra, rcode := z.externalLookup(ctx, state, elem, []dns.RR{cname})
 
 				if do {
 					sigs := elem.Type(dns.TypeRRSIG)
-					sigs = signatureForSubType(sigs, dns.TypeDNAME)
+					sigs = rrutil.SubTypeSignature(sigs, dns.TypeDNAME)
 					dnamerrs = append(dnamerrs, sigs...)
 				}
 
@@ -140,9 +133,9 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 				continue
 			}
 
-			glue := z.Glue(nsrrs, do)
+			glue := tr.Glue(nsrrs, do)
 			if do {
-				dss := z.typeFromElem(elem, dns.TypeDS, do)
+				dss := typeFromElem(elem, dns.TypeDS, do)
 				nsrrs = append(nsrrs, dss...)
 			}
 
@@ -161,16 +154,16 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 	if found && shot {
 
 		if rrs := elem.Type(dns.TypeCNAME); len(rrs) > 0 && qtype != dns.TypeCNAME {
-			return z.additionalProcessing(ctx, state, elem, rrs)
+			return z.externalLookup(ctx, state, elem, rrs)
 		}
 
 		rrs := elem.Type(qtype)
 
 		// NODATA
 		if len(rrs) == 0 {
-			ret := z.soa(do)
+			ret := ap.soa(do)
 			if do {
-				nsec := z.typeFromElem(elem, dns.TypeNSEC, do)
+				nsec := typeFromElem(elem, dns.TypeNSEC, do)
 				ret = append(ret, nsec...)
 			}
 			return nil, ret, nil, NoData
@@ -178,15 +171,15 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 
 		// Additional section processing for MX, SRV. Check response and see if any of the names are in baliwick -
 		// if so add IP addresses to the additional section.
-		additional := additionalProcessing(z, rrs, do)
+		additional := z.additionalProcessing(rrs, do)
 
 		if do {
 			sigs := elem.Type(dns.TypeRRSIG)
-			sigs = signatureForSubType(sigs, qtype)
+			sigs = rrutil.SubTypeSignature(sigs, qtype)
 			rrs = append(rrs, sigs...)
 		}
 
-		return rrs, z.ns(do), additional, Success
+		return rrs, ap.ns(do), additional, Success
 
 	}
 
@@ -194,19 +187,19 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 
 	// Found wildcard.
 	if wildElem != nil {
-		auth := z.ns(do)
+		auth := ap.ns(do)
 
 		if rrs := wildElem.TypeForWildcard(dns.TypeCNAME, qname); len(rrs) > 0 {
-			return z.additionalProcessing(ctx, state, wildElem, rrs)
+			return z.externalLookup(ctx, state, wildElem, rrs)
 		}
 
 		rrs := wildElem.TypeForWildcard(qtype, qname)
 
 		// NODATA response.
 		if len(rrs) == 0 {
-			ret := z.soa(do)
+			ret := ap.soa(do)
 			if do {
-				nsec := z.typeFromElem(wildElem, dns.TypeNSEC, do)
+				nsec := typeFromElem(wildElem, dns.TypeNSEC, do)
 				ret = append(ret, nsec...)
 			}
 			return nil, ret, nil, Success
@@ -214,13 +207,13 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 
 		if do {
 			// An NSEC is needed to say no longer name exists under this wildcard.
-			if deny, found := z.Tree.Prev(qname); found {
-				nsec := z.typeFromElem(deny, dns.TypeNSEC, do)
+			if deny, found := tr.Prev(qname); found {
+				nsec := typeFromElem(deny, dns.TypeNSEC, do)
 				auth = append(auth, nsec...)
 			}
 
 			sigs := wildElem.TypeForWildcard(dns.TypeRRSIG, qname)
-			sigs = signatureForSubType(sigs, qtype)
+			sigs = rrutil.SubTypeSignature(sigs, qtype)
 			rrs = append(rrs, sigs...)
 
 		}
@@ -231,19 +224,19 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 
 	// Hacky way to get around empty-non-terminals. If a longer name does exist, but this qname, does not, it
 	// must be an empty-non-terminal. If so, we do the proper NXDOMAIN handling, but set the rcode to be success.
-	if x, found := z.Tree.Next(qname); found {
+	if x, found := tr.Next(qname); found {
 		if dns.IsSubDomain(qname, x.Name()) {
 			rcode = Success
 		}
 	}
 
-	ret := z.soa(do)
+	ret := ap.soa(do)
 	if do {
-		deny, found := z.Tree.Prev(qname)
+		deny, found := tr.Prev(qname)
 		if !found {
 			goto Out
 		}
-		nsec := z.typeFromElem(deny, dns.TypeNSEC, do)
+		nsec := typeFromElem(deny, dns.TypeNSEC, do)
 		ret = append(ret, nsec...)
 
 		if rcode != NameError {
@@ -256,10 +249,10 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 		if found {
 			// wildcard denial
 			wildcard := "*." + ce.Name()
-			if ss, found := z.Tree.Prev(wildcard); found {
+			if ss, found := tr.Prev(wildcard); found {
 				// Only add this nsec if it is different than the one already added
 				if ss.Name() != deny.Name() {
-					nsec := z.typeFromElem(ss, dns.TypeNSEC, do)
+					nsec := typeFromElem(ss, dns.TypeNSEC, do)
 					ret = append(ret, nsec...)
 				}
 			}
@@ -270,54 +263,50 @@ Out:
 	return nil, ret, nil, rcode
 }
 
-// Return type tp from e and add signatures (if they exists) and do is true.
-func (z *Zone) typeFromElem(elem *tree.Elem, tp uint16, do bool) []dns.RR {
+// typeFromElem returns the type tp from e and adds signatures (if they exist) and do is true.
+func typeFromElem(elem *tree.Elem, tp uint16, do bool) []dns.RR {
 	rrs := elem.Type(tp)
 	if do {
 		sigs := elem.Type(dns.TypeRRSIG)
-		sigs = signatureForSubType(sigs, tp)
-		if len(sigs) > 0 {
-			rrs = append(rrs, sigs...)
-		}
+		sigs = rrutil.SubTypeSignature(sigs, tp)
+		rrs = append(rrs, sigs...)
 	}
 	return rrs
 }
 
-func (z *Zone) soa(do bool) []dns.RR {
+func (a Apex) soa(do bool) []dns.RR {
 	if do {
-		ret := append([]dns.RR{z.Apex.SOA}, z.Apex.SIGSOA...)
+		ret := append([]dns.RR{a.SOA}, a.SIGSOA...)
 		return ret
 	}
-	return []dns.RR{z.Apex.SOA}
+	return []dns.RR{a.SOA}
 }
 
-func (z *Zone) ns(do bool) []dns.RR {
+func (a Apex) ns(do bool) []dns.RR {
 	if do {
-		ret := append(z.Apex.NS, z.Apex.SIGNS...)
+		ret := append(a.NS, a.SIGNS...)
 		return ret
 	}
-	return z.Apex.NS
+	return a.NS
 }
 
-// aditionalProcessing adds signatures and tries to resolve CNAMEs that point to external names.
-func (z *Zone) additionalProcessing(ctx context.Context, state request.Request, elem *tree.Elem, rrs []dns.RR) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+// externalLookup adds signatures and tries to resolve CNAMEs that point to external names.
+func (z *Zone) externalLookup(ctx context.Context, state request.Request, elem *tree.Elem, rrs []dns.RR) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 
 	qtype := state.QType()
 	do := state.Do()
 
 	if do {
 		sigs := elem.Type(dns.TypeRRSIG)
-		sigs = signatureForSubType(sigs, dns.TypeCNAME)
-		if len(sigs) > 0 {
-			rrs = append(rrs, sigs...)
-		}
+		sigs = rrutil.SubTypeSignature(sigs, dns.TypeCNAME)
+		rrs = append(rrs, sigs...)
 	}
 
 	targetName := rrs[0].(*dns.CNAME).Target
 	elem, _ = z.Tree.Search(targetName)
 	if elem == nil {
-		rrs = append(rrs, z.externalLookup(ctx, state, targetName, qtype)...)
-		return rrs, z.ns(do), nil, Success
+		rrs = append(rrs, z.doLookup(ctx, state, targetName, qtype)...)
+		return rrs, z.Apex.ns(do), nil, Success
 	}
 
 	i := 0
@@ -329,53 +318,39 @@ Redo:
 
 		if do {
 			sigs := elem.Type(dns.TypeRRSIG)
-			sigs = signatureForSubType(sigs, dns.TypeCNAME)
-			if len(sigs) > 0 {
-				rrs = append(rrs, sigs...)
-			}
+			sigs = rrutil.SubTypeSignature(sigs, dns.TypeCNAME)
+			rrs = append(rrs, sigs...)
 		}
 		targetName := cname[0].(*dns.CNAME).Target
 		elem, _ = z.Tree.Search(targetName)
 		if elem == nil {
-			rrs = append(rrs, z.externalLookup(ctx, state, targetName, qtype)...)
-			return rrs, z.ns(do), nil, Success
+			rrs = append(rrs, z.doLookup(ctx, state, targetName, qtype)...)
+			return rrs, z.Apex.ns(do), nil, Success
 		}
 
 		i++
-		if i > maxChain {
-			return rrs, z.ns(do), nil, Success
+		if i > 8 {
+			return rrs, z.Apex.ns(do), nil, Success
 		}
 
 		goto Redo
 	}
 
-	targets := cnameForType(elem.All(), qtype)
+	targets := rrutil.CNAMEForType(elem.All(), qtype)
 	if len(targets) > 0 {
 		rrs = append(rrs, targets...)
 
 		if do {
 			sigs := elem.Type(dns.TypeRRSIG)
-			sigs = signatureForSubType(sigs, qtype)
-			if len(sigs) > 0 {
-				rrs = append(rrs, sigs...)
-			}
+			sigs = rrutil.SubTypeSignature(sigs, qtype)
+			rrs = append(rrs, sigs...)
 		}
 	}
 
-	return rrs, z.ns(do), nil, Success
+	return rrs, z.Apex.ns(do), nil, Success
 }
 
-func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {
-	ret := []dns.RR{}
-	for _, target := range targets {
-		if target.Header().Rrtype == origQtype {
-			ret = append(ret, target)
-		}
-	}
-	return ret
-}
-
-func (z *Zone) externalLookup(ctx context.Context, state request.Request, target string, qtype uint16) []dns.RR {
+func (z *Zone) doLookup(ctx context.Context, state request.Request, target string, qtype uint16) []dns.RR {
 	m, e := z.Upstream.Lookup(ctx, state, target, qtype)
 	if e != nil {
 		return nil
@@ -386,59 +361,9 @@ func (z *Zone) externalLookup(ctx context.Context, state request.Request, target
 	return m.Answer
 }
 
-// signatureForSubType range through the signature and return the correct ones for the subtype.
-func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
-	sigs := []dns.RR{}
-	for _, sig := range rrs {
-		if s, ok := sig.(*dns.RRSIG); ok {
-			if s.TypeCovered == subtype {
-				sigs = append(sigs, s)
-			}
-		}
-	}
-	return sigs
-}
-
-// Glue returns any potential glue records for nsrrs.
-func (z *Zone) Glue(nsrrs []dns.RR, do bool) []dns.RR {
-	glue := []dns.RR{}
-	for _, rr := range nsrrs {
-		if ns, ok := rr.(*dns.NS); ok && dns.IsSubDomain(ns.Header().Name, ns.Ns) {
-			glue = append(glue, z.searchGlue(ns.Ns, do)...)
-		}
-	}
-	return glue
-}
-
-// searchGlue looks up A and AAAA for name.
-func (z *Zone) searchGlue(name string, do bool) []dns.RR {
-	glue := []dns.RR{}
-
-	// A
-	if elem, found := z.Tree.Search(name); found {
-		glue = append(glue, elem.Type(dns.TypeA)...)
-		if do {
-			sigs := elem.Type(dns.TypeRRSIG)
-			sigs = signatureForSubType(sigs, dns.TypeA)
-			glue = append(glue, sigs...)
-		}
-	}
-
-	// AAAA
-	if elem, found := z.Tree.Search(name); found {
-		glue = append(glue, elem.Type(dns.TypeAAAA)...)
-		if do {
-			sigs := elem.Type(dns.TypeRRSIG)
-			sigs = signatureForSubType(sigs, dns.TypeAAAA)
-			glue = append(glue, sigs...)
-		}
-	}
-	return glue
-}
-
 // additionalProcessing checks the current answer section and retrieves A or AAAA records
 // (and possible SIGs) to need to be put in the additional section.
-func additionalProcessing(z *Zone, answer []dns.RR, do bool) (extra []dns.RR) {
+func (z *Zone) additionalProcessing(answer []dns.RR, do bool) (extra []dns.RR) {
 	for _, rr := range answer {
 		name := ""
 		switch x := rr.(type) {
@@ -461,7 +386,7 @@ func additionalProcessing(z *Zone, answer []dns.RR, do bool) (extra []dns.RR) {
 			if a := elem.Type(addr); a != nil {
 				extra = append(extra, a...)
 				if do {
-					sig := signatureForSubType(sigs, addr)
+					sig := rrutil.SubTypeSignature(sigs, addr)
 					extra = append(extra, sig...)
 				}
 			}
@@ -470,5 +395,3 @@ func additionalProcessing(z *Zone, answer []dns.RR, do bool) (extra []dns.RR) {
 
 	return extra
 }
-
-const maxChain = 8

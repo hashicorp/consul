@@ -13,10 +13,8 @@ func (z *Zone) Reload() error {
 	tick := time.NewTicker(z.ReloadInterval)
 
 	go func() {
-
 		for {
 			select {
-
 			case <-tick.C:
 				zFile := z.File()
 				reader, err := os.Open(zFile)
@@ -35,10 +33,10 @@ func (z *Zone) Reload() error {
 				}
 
 				// copy elements we need
-				z.reloadMu.Lock()
+				z.Lock()
 				z.Apex = zone.Apex
 				z.Tree = zone.Tree
-				z.reloadMu.Unlock()
+				z.Unlock()
 
 				log.Infof("Successfully reloaded zone %q in %q with serial %d", z.origin, zFile, z.Apex.SOA.Serial)
 				z.Notify()
@@ -52,11 +50,10 @@ func (z *Zone) Reload() error {
 	return nil
 }
 
-// SOASerialIfDefined returns the SOA's serial if the zone has a SOA record in the Apex, or
-// -1 otherwise.
+// SOASerialIfDefined returns the SOA's serial if the zone has a SOA record in the Apex, or -1 otherwise.
 func (z *Zone) SOASerialIfDefined() int64 {
-	z.reloadMu.Lock()
-	defer z.reloadMu.Unlock()
+	z.RLock()
+	defer z.RUnlock()
 	if z.Apex.SOA != nil {
 		return int64(z.Apex.SOA.Serial)
 	}
