@@ -84,7 +84,6 @@ func TestClientSideVerifier(t *testing.T) {
 	webCA1PEM, _ := connect.TestLeaf(t, "web", ca1)
 	webCA2PEM, _ := connect.TestLeaf(t, "web", ca2)
 
-
 	webCA1 := testCertPEMBlock(t, webCA1PEM)
 	xcCA2 := testCertPEMBlock(t, ca2.SigningCert)
 	webCA2 := testCertPEMBlock(t, webCA2PEM)
