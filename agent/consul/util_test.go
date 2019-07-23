@@ -405,6 +405,80 @@ func TestServersMeetMinimumVersion(t *testing.T) {
 	}
 }
 
+func TestServersInDCMeetMinimumVersion(t *testing.T) {
+	t.Parallel()
+	makeMember := func(version string, datacenter string) serf.Member {
+		return serf.Member{
+			Name: "foo",
+			Addr: net.IP([]byte{127, 0, 0, 1}),
+			Tags: map[string]string{
+				"role":          "consul",
+				"id":            "asdf",
+				"dc":            datacenter,
+				"port":          "10000",
+				"build":         version,
+				"wan_join_port": "1234",
+				"vsn":           "1",
+				"expect":        "3",
+				"raft_vsn":      "3",
+			},
+			Status: serf.StatusAlive,
+		}
+	}
+
+	cases := []struct {
+		members  []serf.Member
+		ver      *version.Version
+		expected bool
+	}{
+		// One server, meets reqs
+		{
+			members: []serf.Member{
+				makeMember("0.7.5", "primary"),
+				makeMember("0.7.3", "secondary"),
+			},
+			ver:      version.Must(version.NewVersion("0.7.5")),
+			expected: true,
+		},
+		// One server, doesn't meet reqs
+		{
+			members: []serf.Member{
+				makeMember("0.7.5", "primary"),
+				makeMember("0.8.1", "secondary"),
+			},
+			ver:      version.Must(version.NewVersion("0.8.0")),
+			expected: false,
+		},
+		// Multiple servers, meets req version
+		{
+			members: []serf.Member{
+				makeMember("0.7.5", "primary"),
+				makeMember("0.8.0", "primary"),
+				makeMember("0.7.0", "secondary"),
+			},
+			ver:      version.Must(version.NewVersion("0.7.5")),
+			expected: true,
+		},
+		// Multiple servers, doesn't meet req version
+		{
+			members: []serf.Member{
+				makeMember("0.7.5", "primary"),
+				makeMember("0.8.0", "primary"),
+				makeMember("0.9.1", "secondary"),
+			},
+			ver:      version.Must(version.NewVersion("0.8.0")),
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		result := ServersInDCMeetMinimumVersion(tc.members, "primary", tc.ver)
+		if result != tc.expected {
+			t.Fatalf("bad: %v, %v, %v", result, tc.ver.String(), tc)
+		}
+	}
+}
+
 func TestInterpolateHIL(t *testing.T) {
 	for _, test := range []struct {
 		name string

@@ -67,26 +67,9 @@ func (s *Server) initializeCA() error {
 	}
 	s.setCAProvider(provider, nil)
 
-	// Check whether the primary DC has been upgraded to support multi-DC Connect.
-	// If it hasn't, we skip the secondary initialization routine and continue acting
-	// as a primary DC. This is periodically re-checked in the goroutine watching the
-	// primary's CA roots so that we can transition to a secondary DC when it has
-	// been upgraded.
-	var primaryHasVersion bool
-	if s.config.PrimaryDatacenter != s.config.Datacenter {
-		primaryHasVersion, err = s.datacentersMeetMinVersion(minMultiDCConnectVersion)
-		if err == errEmptyVersion {
-			s.logger.Printf("[WARN] connect: primary datacenter %q is reachable but not yet initialized", s.config.PrimaryDatacenter)
-			return nil
-		} else if err != nil {
-			s.logger.Printf("[ERR] connect: error initializing CA: could not query primary datacenter: %v", err)
-			return nil
-		}
-	}
-
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already
 	// been upgraded to at least 1.4.0.
-	if s.config.PrimaryDatacenter != s.config.Datacenter && primaryHasVersion {
+	if s.config.PrimaryDatacenter != s.config.Datacenter && ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion) {
 		// Get the root CA to see if we need to refresh our intermediate.
 		args := structs.DCSpecificRequest{
 			Datacenter: s.config.PrimaryDatacenter,
@@ -297,12 +280,7 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 		// secondary mode.
 		provider, _ := s.getCAProvider()
 		if !s.configuredSecondaryCA() {
-			primaryHasVersion, err := s.datacentersMeetMinVersion(minMultiDCConnectVersion)
-			if err != nil {
-				return err
-			}
-
-			if primaryHasVersion {
+			if ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion) {
 				if err := s.initializeSecondaryProvider(provider, roots); err != nil {
 					return err
 				}
