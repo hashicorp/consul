@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * agent: health checks: change long timeout behavior to use to user-configured `timeout` value [[GH-6094](https://github.com/hashicorp/consul/pull/6094)]
+* api: Update filtering language to include substring and regular expression matching on string values [[GH-6190](https://github.com/hashicorp/consul/pull/6190)]
 
 BUG FIXES:
 * agent: avoid reverting any check updates that occur while a service is being added or the config is reloaded [[GH-6144](https://github.com/hashicorp/consul/issues/6144)]
