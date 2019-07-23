@@ -666,4 +666,3 @@ func (c *ConsulProvider) SupportsCrossSigning() bool {
 func (c *ConsulProvider) MinLifetime() time.Duration {
 	return 1 * time.Hour
 }
-
