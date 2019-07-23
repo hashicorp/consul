@@ -22,14 +22,21 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 
 	require := require.New(t)
 
+	masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
+
 	// Initialize primary as the primary DC
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "primary"
 		c.PrimaryDatacenter = "primary"
 		c.Build = "1.4.0"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = masterToken
+		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
+	s1.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
 
 	testrpc.WaitForLeader(t, s1.RPC, "primary")
 
@@ -38,9 +45,14 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		c.Datacenter = "secondary"
 		c.PrimaryDatacenter = "primary"
 		c.Build = "1.4.0"
+		c.ACLsEnabled = true
+		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
+
+	s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
+	s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
