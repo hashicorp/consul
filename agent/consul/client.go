@@ -314,10 +314,6 @@ TRY:
 
 	// Make the request.
 	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
-<<<<<<< HEAD
-
-=======
->>>>>>> Clean up some of the unused GRPC code and add test streaming
 	if rpcErr == nil {
 		return nil
 	}

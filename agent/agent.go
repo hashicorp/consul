@@ -3888,8 +3888,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.StreamingHealthServicesName,
 		cachetype.NewStreamingHealthServices(a.streamClient),
 		&cache.RegisterOptions{
-			// Maintain a blocking query, retry dropped connections quickly
-			Refresh:        true,
+			Refresh:        false,
 			RefreshTimer:   0 * time.Second,
 			RefreshTimeout: 10 * time.Minute,
 		})
@@ -3913,7 +3912,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.ResolvedServiceConfigName, &cachetype.ResolvedServiceConfig{
 		RPC: a,
 	}, &cache.RegisterOptions{
-		Refresh:        false,
+		Refresh:        true,
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
