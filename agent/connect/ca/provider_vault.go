@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -383,6 +384,14 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.
 func (v *VaultProvider) Cleanup() error {
 	return v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+}
+
+func (v *VaultProvider) SupportsCrossSigning() bool {
+	return true
+}
+
+func (v *VaultProvider) MinLifetime() time.Duration {
+	return 1 * time.Hour
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {

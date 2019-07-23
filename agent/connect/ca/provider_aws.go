@@ -248,6 +248,14 @@ func (v *AWSProvider) Cleanup() error {
 	return nil
 }
 
+func (v *AWSProvider) SupportsCrossSigning() bool {
+	return false
+}
+
+func (v *AWSProvider) MinLifetime() time.Duration {
+	return 24 * time.Hour
+}
+
 func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig, error) {
 	config := structs.AWSCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
