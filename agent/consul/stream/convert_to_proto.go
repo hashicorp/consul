@@ -26,6 +26,7 @@ func ToCheckServiceNode(n *structs.CheckServiceNode) *CheckServiceNode {
 			Service:                    service.Service,
 			Tags:                       service.Tags,
 			Address:                    service.Address,
+			TaggedAddresses:            ToTaggedAddresses(service.TaggedAddresses),
 			Meta:                       service.Meta,
 			Port:                       service.Port,
 			Weights:                    ToWeights(service.Weights),
@@ -48,6 +49,14 @@ func ToCheckServiceNode(n *structs.CheckServiceNode) *CheckServiceNode {
 	}
 
 	return checkServiceNode
+}
+
+func ToTaggedAddresses(t map[string]structs.ServiceAddress) map[string]*ServiceAddress {
+	out := make(map[string]*ServiceAddress, len(t))
+	for k, v := range t {
+		out[k] = &ServiceAddress{Address: v.Address, Port: v.Port}
+	}
+	return out
 }
 
 func ToRaftIndex(r structs.RaftIndex) RaftIndex {
@@ -82,6 +91,7 @@ func ToConnectProxyConfig(c *structs.ConnectProxyConfig) *ConnectProxyConfig {
 		LocalServicePort:       c.LocalServicePort,
 		Config:                 c.Config,
 		Upstreams:              ToUpstreams(c.Upstreams),
+		MeshGateway:            &MeshGatewayConfig{Mode: c.MeshGateway.Mode},
 	}
 }
 
@@ -96,6 +106,7 @@ func ToUpstreams(other structs.Upstreams) []Upstream {
 			LocalBindAddress:     u.LocalBindAddress,
 			LocalBindPort:        u.LocalBindPort,
 			Config:               u.Config,
+			MeshGateway:          &MeshGatewayConfig{Mode: u.MeshGateway.Mode},
 		})
 	}
 	return upstreams
@@ -124,6 +135,7 @@ func ToServiceDefinition(s *structs.ServiceDefinition) *ServiceDefinition {
 		Name:              s.Name,
 		Tags:              s.Tags,
 		Address:           s.Address,
+		TaggedAddresses:   ToTaggedAddresses(s.TaggedAddresses),
 		Meta:              s.Meta,
 		Port:              s.Port,
 		Weights:           ToWeights(s.Weights),
