@@ -56,7 +56,7 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
-	github.com/hashicorp/go-raftchunking v0.6.0
+	github.com/hashicorp/go-raftchunking v0.6.1
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
