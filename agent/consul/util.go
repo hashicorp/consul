@@ -282,11 +282,19 @@ func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Versio
 }
 
 // ServersMeetMinimumVersion returns whether the given alive servers from a particular
-// datacenter are at least on the given Consul version
+// datacenter are at least on the given Consul version. This requires at least 1 alive server in the DC
 func ServersInDCMeetMinimumVersion(members []serf.Member, datacenter string, minVersion *version.Version) bool {
-	return ServersMeetRequirements(members, func(srv *metadata.Server) bool {
-		return srv.Status != serf.StatusAlive || srv.Datacenter != datacenter || !srv.Build.LessThan(minVersion)
+	found := false
+	ok := ServersMeetRequirements(members, func(srv *metadata.Server) bool {
+		if srv.Status != serf.StatusAlive || srv.Datacenter != datacenter {
+			return true
+		}
+
+		found = true
+		return !srv.Build.LessThan(minVersion)
 	})
+
+	return found && ok
 }
 
 // ServersMeetRequirements returns whether the given server members meet the requirements as defined by the
