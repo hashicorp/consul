@@ -22,13 +22,15 @@ services:
       - sleep
       - "86400"
 
-  consul:
+  consul-primary:
     image: "consul-dev"
     command:
      - "agent"
      - "-dev"
+     - "-datacenter"
+     - "primary"
      - "-config-dir"
-     - "/workdir/consul"
+     - "/workdir/primary/consul"
      - "-client"
      - "0.0.0.0"
     volumes:
@@ -44,7 +46,7 @@ services:
 
   s1:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s1"
@@ -56,11 +58,11 @@ services:
      - ":8079"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s2:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s2"
@@ -72,11 +74,11 @@ services:
      - ":8179"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s2-v1:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s2-v1"
@@ -88,11 +90,11 @@ services:
      - ":8178"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s2-v2:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s2-v2"
@@ -104,11 +106,11 @@ services:
      - ":8177"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s3:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s3"
@@ -120,11 +122,11 @@ services:
      - ":8279"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s3-v1:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s3-v1"
@@ -136,11 +138,11 @@ services:
      - ":8278"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s3-v2:
     depends_on:
-      - consul
+      - consul-primary
     image: "fortio/fortio"
     environment:
       - "FORTIO_NAME=s3-v2"
@@ -152,16 +154,16 @@ services:
      - ":8277"
      - "-redirect-port"
      - "disabled"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s1-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s1-bootstrap.json"
+     - "/workdir/primary/envoy/s1-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -173,16 +175,16 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s2-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s2-bootstrap.json"
+     - "/workdir/primary/envoy/s2-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -194,16 +196,16 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s2-v1-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s2-v1-bootstrap.json"
+     - "/workdir/primary/envoy/s2-v1-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -215,16 +217,16 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s2-v2-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s2-v2-bootstrap.json"
+     - "/workdir/primary/envoy/s2-v2-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -236,16 +238,16 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s3-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s3-bootstrap.json"
+     - "/workdir/primary/envoy/s3-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -257,16 +259,16 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s3-v1-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s3-v1-bootstrap.json"
+     - "/workdir/primary/envoy/s3-v1-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -278,16 +280,16 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   s3-v2-sidecar-proxy:
     depends_on:
-      - consul
+      - consul-primary
     image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
     command:
      - "envoy"
      - "-c"
-     - "/workdir/envoy/s3-v2-bootstrap.json"
+     - "/workdir/primary/envoy/s3-v2-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -299,11 +301,11 @@ services:
      - "1"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
-  verify:
+  verify-primary:
     depends_on:
-      - consul
+      - consul-primary
     build:
       context: .
       dockerfile: Dockerfile-bats
@@ -312,15 +314,14 @@ services:
      - ENVOY_VERSION
     command:
      - "--pretty"
-     - "/workdir/bats"
+     - "/workdir/primary/bats"
     volumes:
       - *workdir-volume
-    network_mode: service:consul
-    pid: host
+    network_mode: service:consul-primary
 
   s1-sidecar-proxy-consul-exec:
     depends_on:
-      - consul
+      - consul-primary
     build:
       context: .
       dockerfile: Dockerfile-consul-envoy
@@ -336,11 +337,11 @@ services:
       - "--"
       - "-l"
       - "debug"
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   fake-statsd:
     depends_on:
-      - consul
+      - consul-primary
     image: "alpine/socat"
     command:
       - -u
@@ -348,10 +349,10 @@ services:
       # This magic incantation is needed since Envoy doesn't add newlines and so
       # we need each packet to be passed to echo to add a new line before
       # appending.
-      - SYSTEM:'xargs -0 echo >> /workdir/statsd/statsd.log'
+      - SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
     volumes:
       - *workdir-volume
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   wipe-volumes:
     volumes:
@@ -379,12 +380,180 @@ services:
     volumes:
       - *workdir-volume
     image: openzipkin/zipkin
-    network_mode: service:consul
+    network_mode: service:consul-primary
 
   jaeger:
     volumes:
       - *workdir-volume
     image: jaegertracing/all-in-one:1.11
-    network_mode: service:consul
+    network_mode: service:consul-primary
     command:
       - --collector.zipkin.http-port=9411
+
+  consul-secondary:
+    image: "consul-dev"
+    command:
+     - "agent"
+     - "-dev"
+     - "-datacenter"
+     - "secondary"
+     - "-config-dir"
+     - "/workdir/secondary/consul"
+     - "-client"
+     - "0.0.0.0"
+    volumes:
+      - *workdir-volume
+    ports:
+      # Exposing to host makes debugging locally a bit easier
+      - "9500:8500"
+      - "9502:8502"
+
+  s1-secondary:
+    depends_on:
+      - consul-secondary
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s1"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8080"
+     - "-grpc-port"
+     - ":8079"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul-secondary
+
+  s2-secondary:
+    depends_on:
+      - consul-secondary
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s2"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8181"
+     - "-grpc-port"
+     - ":8179"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul-secondary
+
+  s1-sidecar-proxy-secondary:
+    depends_on:
+      - consul-secondary
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/secondary/envoy/s1-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-secondary
+
+  s2-sidecar-proxy-secondary:
+    depends_on:
+      - consul-secondary
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/secondary/envoy/s2-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-secondary
+
+  gateway-primary:
+    depends_on:
+      - consul-primary
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/primary/envoy/mesh-gateway-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-primary
+
+  gateway-secondary:
+    depends_on:
+      - consul-secondary
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/secondary/envoy/mesh-gateway-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-secondary
+
+  verify-primary:
+    depends_on:
+      - consul-primary
+    build:
+      context: .
+      dockerfile: Dockerfile-bats
+    tty: true
+    environment:
+     - ENVOY_VERSION
+    command:
+     - "--pretty"
+     - "/workdir/primary/bats"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-primary
+    pid: host
+
+  verify-secondary:
+    depends_on:
+      - consul-secondary
+    build:
+      context: .
+      dockerfile: Dockerfile-bats
+    tty: true
+    environment:
+     - ENVOY_VERSION
+    command:
+     - "--pretty"
+     - "/workdir/secondary/bats"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-secondary
+    pid: host

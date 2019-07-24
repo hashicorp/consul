@@ -1321,6 +1321,7 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy, deprecatedDest *string) *stru
 		LocalServicePort:       b.intVal(v.LocalServicePort),
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
+		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
 	}
 }
 
@@ -1335,12 +1336,30 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			LocalBindAddress:     b.stringVal(u.LocalBindAddress),
 			LocalBindPort:        b.intVal(u.LocalBindPort),
 			Config:               u.Config,
+			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}
 		if ups[i].DestinationType == "" {
 			ups[i].DestinationType = structs.UpstreamDestTypeService
 		}
 	}
 	return ups
+}
+
+func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGatewayConfig {
+	cfg := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeDefault}
+	if mgConf == nil || mgConf.Mode == nil {
+		// return defaults
+		return cfg
+	}
+
+	mode, err := structs.ValidateMeshGatewayMode(*mgConf.Mode)
+	if err != nil {
+		b.err = multierror.Append(b.err, err)
+		return cfg
+	}
+
+	cfg.Mode = mode
+	return cfg
 }
 
 func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {

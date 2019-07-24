@@ -478,6 +478,9 @@ type ServiceProxy struct {
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
 	Upstreams []Upstream `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
+
+	// Mesh Gateway Configuration
+	MeshGateway *MeshGatewayConfig `json:"mesh_gateway,omitempty" hcl:"mesh_gateway" mapstructure:"mesh_gateway"`
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -513,6 +516,14 @@ type Upstream struct {
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+
+	// Mesh Gateway Configuration
+	MeshGateway *MeshGatewayConfig `json:"mesh_gateway,omitempty" hcl:"mesh_gateway" mapstructure:"mesh_gateway"`
+}
+
+type MeshGatewayConfig struct {
+	// Mesh Gateway Mode
+	Mode *string `json:"mode,omitempty" hcl:"mode" mapstructure:"mode"`
 }
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.

@@ -15,7 +15,7 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2 HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2" {
@@ -28,7 +28,7 @@ load helpers
 }
 
 @test "s1 proxy should be sending metrics to statsd" {
-  run retry_default cat /workdir/statsd/statsd.log
+  run retry_default cat /workdir/primary/statsd/statsd.log
 
   echo "METRICS:"
   echo "$output"
@@ -39,7 +39,7 @@ load helpers
 }
 
 @test "s1 proxy should be sending dogstatsd tagged metrics" {
-  run retry_default must_match_in_statsd_logs '[#,]local_cluster:s1(,|$)'
+  run retry_default must_match_in_statsd_logs '[#,]local_cluster:s1(,|$)' primary
 
   echo "OUTPUT: $output"
 
@@ -47,7 +47,7 @@ load helpers
 }
 
 @test "s1 proxy should be adding cluster name as a tag" {
-  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:s2(,|$)'
+  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:s2(,|$)' primary
 
   echo "OUTPUT: $output"
 
@@ -55,7 +55,7 @@ load helpers
 }
 
 @test "s1 proxy should be sending additional configured tags" {
-  run retry_default must_match_in_statsd_logs '[#,]foo:bar(,|$)'
+  run retry_default must_match_in_statsd_logs '[#,]foo:bar(,|$)' primary
 
   echo "OUTPUT: $output"
 
