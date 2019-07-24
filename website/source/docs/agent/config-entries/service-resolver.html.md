@@ -94,10 +94,10 @@ name = "web"
     returned.
 
   - `OnlyPassing` `(bool: false)` - Specifies the behavior of the resolver's
-    health check filtering. If this is set to false, the results will include
-    instances with checks in the passing as well as the warning states. If this
-    is set to true, only instances with checks in the passing state will be
-    returned.
+    health check interpretation. If this is set to false, instances with checks
+    in the passing as well as the warning states will be considered healthy. If
+    this is set to true, only instances with checks in the passing state will
+    be considered healthy.
 
 - `Redirect` `(ServiceResolverRedirect: <optional>)` - When configured, all
   attempts to resolve the service this resolver defines will be substituted for

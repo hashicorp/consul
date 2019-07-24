@@ -502,8 +502,6 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 			return fmt.Errorf("invalid correlation id %q: %v", u.CorrelationID, err)
 		}
 
-		// TODO(rb): do we have to do onlypassing filters here?
-
 		m, ok := snap.ConnectProxy.WatchedUpstreamEndpoints[svc]
 		if !ok {
 			m = make(map[structs.DiscoveryTarget]structs.CheckServiceNodes)
@@ -608,16 +606,8 @@ func (s *state) resetWatchesFromChain(
 		}
 		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of target %s", id, chain.ServiceName, target)
 
-		// snap.WatchedUpstreams[name]
-
-		// delete(snap.WatchedUpstreams[name], target)
-		// delete(snap.WatchedUpstreamEndpoint[name], target)
-
-		// TODO(rb): augment the health rpc so we can get the health information to pass to envoy directly
-
 		// TODO(rb): make sure the cross-dc request properly fills in the alternate datacenters
 
-		// TODO(rb): handle subset.onlypassing
 		var subset structs.ServiceResolverSubset
 		if target.ServiceSubset != "" {
 			var ok bool
@@ -649,24 +639,12 @@ func (s *state) resetWatchesFromChain(
 			meshGateway = structs.MeshGatewayModeNone
 		}
 
-		filterExp := subset.Filter
-		if subset.OnlyPassing {
-			if filterExp != "" {
-				// TODO (filtering) - Update to "and all Checks as chk { chk.Status == passing }"
-				//                    once the syntax is supported
-				filterExp = fmt.Sprintf("(%s) and not Checks.Status != passing", filterExp)
-			} else {
-				filterExp = "not Checks.Status != passing"
-			}
-		}
-
-		// TODO(rb): update the health endpoint to allow returning even unhealthy endpoints
 		err = s.watchConnectProxyService(
 			ctx,
 			"upstream-target:"+string(encodedTarget)+":"+id,
 			target.Service,
 			target.Datacenter,
-			filterExp,
+			subset.Filter,
 			meshGateway,
 		)
 		if err != nil {
