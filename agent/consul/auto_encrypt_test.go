@@ -10,9 +10,9 @@ import (
 
 func TestAutoEncrypt_resolveAddr(t *testing.T) {
 	type args struct {
-		rawHost string
+		rawHost     string
 		defaultPort int
-		logger  *log.Logger
+		logger      *log.Logger
 	}
 	tests := []struct {
 		name    string
