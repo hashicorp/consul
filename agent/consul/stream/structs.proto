@@ -34,6 +34,7 @@ message ServiceDefinition {
   string Name = 3;
   repeated string Tags = 4;
   string Address = 5;
+  map<string, ServiceAddress> TaggedAddresses = 16;
   map<string, string> Meta = 6;
   int32 Port = 7 [(gogoproto.casttype) = "int"];
   CheckType Check = 8 [(gogoproto.nullable) = false];
@@ -58,6 +59,12 @@ message ServiceDefinition {
   ConnectProxyConfig Proxy = 14;
 
   ServiceConnect Connect = 15;
+}
+
+// Type to hold an address and port of a service
+message ServiceAddress {
+	string Address = 1;
+	int32 Port = 2 [(gogoproto.casttype) = "int"];
 }
 
 // HealthCheck represents a single check on a given node
@@ -118,6 +125,7 @@ message NodeService {
   string Service = 3;
   repeated string Tags = 4;
   string Address = 5;
+  map<string, ServiceAddress> TaggedAddresses = 15;
   map<string, string> Meta = 6;
   int32 Port = 7 [(gogoproto.casttype) = "int"];
   Weights Weights = 8;
@@ -215,6 +223,9 @@ message ConnectProxyConfig {
   // Upstreams describes any upstream dependencies the proxy instance should
   // setup.
   repeated Upstream Upstreams = 6 [(gogoproto.nullable) = false];
+
+  // MeshGateway defines the mesh gateway configuration for this upstream
+  MeshGatewayConfig MeshGateway = 7;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -252,6 +263,9 @@ message Upstream {
   // to the proxy.
   bytes Config = 7
       [(gogoproto.customtype) = "UntypedMap", (gogoproto.nullable) = false];
+
+  // MeshGateway is the configuration for mesh gateway usage of this upstream
+  MeshGatewayConfig MeshGateway = 8;
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -346,6 +360,12 @@ message CheckType {
   // longer than this duration.
   google.protobuf.Duration DeregisterCriticalServiceAfter = 19
       [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
+}
+
+message MeshGatewayConfig {
+    string Mode = 1 [
+        (gogoproto.casttype) =
+            "github.com/hashicorp/consul/agent/structs.MeshGatewayMode" ];
 }
 
 message ProtoHeaders {

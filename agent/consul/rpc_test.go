@@ -2,10 +2,7 @@ package consul
 
 import (
 	"bytes"
-	"context"
-	"io"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -317,53 +314,4 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 			r.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
 		}
 	})
-}
-
-func TestRPC_GRPC(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	dir1, server := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer server.Shutdown()
-
-	dir2, client := testClient(t)
-	defer os.RemoveAll(dir2)
-	defer client.Shutdown()
-
-	// Try to join
-	testrpc.WaitForLeader(t, server.RPC, "dc1")
-	joinLAN(t, client, server)
-	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
-
-	serverMeta := client.routers.FindServer()
-	require.NotNil(serverMeta)
-
-	// Make a basic RPC call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn()
-	require.NoError(err)
-
-	streamClient := NewHealthClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	stream, err := streamClient.Stream(ctx, &TestRequest{})
-	require.NoError(err)
-	var lastTime int32
-	for {
-		reply, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			if strings.Contains(err.Error(), "context deadline exceeded") {
-				break
-			}
-			t.Fatal(err)
-		}
-		if lastTime != 0 {
-			require.True(reply.Data >= lastTime+1)
-		}
-		lastTime = reply.Data
-	}
 }
