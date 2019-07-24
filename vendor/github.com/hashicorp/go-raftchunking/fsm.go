@@ -12,6 +12,16 @@ import (
 var _ raft.FSM = (*ChunkingFSM)(nil)
 var _ raft.ConfigurationStore = (*ChunkingConfigurationStore)(nil)
 
+type ChunkingSuccess struct {
+	Response interface{}
+}
+
+// ChunkingFSM is an FSM that implements chunking; it's the sister of
+// ChunkingApply.
+//
+// N.B.: If a term change happens the final apply from the client will have a
+// nil result and not be passed through to the underlying FSM. To detect this,
+// the final apply to the underlying FSM is wrapped in ChunkingSuccess.
 type ChunkingFSM struct {
 	underlying raft.FSM
 	store      ChunkStorage
@@ -109,7 +119,7 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 		Extensions: ci.NextExtensions,
 	}
 
-	return c.Apply(logToApply)
+	return ChunkingSuccess{Response: c.Apply(logToApply)}
 }
 
 func (c *ChunkingFSM) Snapshot() (raft.FSMSnapshot, error) {
@@ -137,6 +147,10 @@ func (c *ChunkingFSM) CurrentState() (*State, error) {
 }
 
 func (c *ChunkingFSM) RestoreState(state *State) error {
+	// If nil we'll restore to blank, so create a new state with a nil map
+	if state == nil {
+		state = new(State)
+	}
 	return c.store.RestoreChunks(state.ChunkMap)
 }
 

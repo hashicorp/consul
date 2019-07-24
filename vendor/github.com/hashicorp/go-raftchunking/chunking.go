@@ -18,7 +18,7 @@ type ChunkStorage interface {
 	// GetState gets all currently tracked ops, for snapshotting
 	GetChunks() (ChunkMap, error)
 
-	// RestoreState restores the current FSM state from a map
+	// RestoreChunks restores the current FSM state from a map
 	RestoreChunks(ChunkMap) error
 
 	// ClearAll clears all currently tracked ops

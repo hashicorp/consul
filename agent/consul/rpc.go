@@ -2,6 +2,7 @@ package consul
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -45,6 +46,10 @@ const (
 	// value is ever reached. However, it prevents us from blocking
 	// the requesting goroutine forever.
 	enqueueLimit = 30 * time.Second
+)
+
+var (
+	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 )
 
 // listen is used to listen for incoming RPC connections
@@ -202,6 +207,12 @@ func canRetry(args interface{}, err error) bool {
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
+		return true
+	}
+
+	// If we are chunking and it doesn't seem to have completed, try again
+	intErr, ok := args.(error)
+	if ok && strings.Contains(intErr.Error(), ErrChunkingResubmit.Error()) {
 		return true
 	}
 
@@ -368,11 +379,13 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
 	}
 
+	var chunked bool
 	var future raft.ApplyFuture
 	switch {
 	case len(buf) <= raft.SuggestedMaxDataSize || t != structs.KVSRequestType:
 		future = s.raft.Apply(buf, enqueueLimit)
 	default:
+		chunked = true
 		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyLog)
 	}
 
@@ -380,7 +393,24 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		return nil, err
 	}
 
-	return future.Response(), nil
+	resp := future.Response()
+
+	if chunked {
+		// In this case we didn't apply all chunks successfully, possibly due
+		// to a term change; resubmit
+		if resp == nil {
+			return ErrChunkingResubmit, nil
+		}
+		// We expect that this conversion should always work
+		chunkedSuccess, ok := resp.(raftchunking.ChunkingSuccess)
+		if !ok {
+			return nil, errors.New("unknown type of response back from chunking FSM")
+		}
+		// Return the inner wrapped response
+		return chunkedSuccess.Response, nil
+	}
+
+	return resp, nil
 }
 
 // queryFn is used to perform a query operation. If a re-query is needed, the

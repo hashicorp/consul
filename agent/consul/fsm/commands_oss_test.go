@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-raftchunking"
 	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
@@ -1436,11 +1437,10 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var opNum uint64 = 32
 	var logs []*raft.Log
 	for i, b := range buf {
 		chunkInfo := &raftchunkingtypes.ChunkInfo{
-			OpNum:       opNum,
+			OpNum:       uint64(32),
 			SequenceNum: uint32(i),
 			NumChunks:   uint32(len(buf)),
 		}
@@ -1504,11 +1504,20 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	}
 
 	// Apply the rest of the logs
+	var resp interface{}
 	for i := 1; i < len(logs); i += 2 {
-		resp := fsm2.chunker.Apply(logs[i])
+		resp = fsm2.chunker.Apply(logs[i])
 		if resp != nil {
-			t.Fatalf("resp: %v", resp)
+			if _, ok := resp.(raftchunking.ChunkingSuccess); !ok {
+				t.Fatalf("resp: %v", resp)
+			}
 		}
+	}
+	if resp == nil {
+		t.Fatal("expected non-nil final value")
+	}
+	if _, ok := resp.(raftchunking.ChunkingSuccess); !ok {
+		t.Fatalf("expected chunking success for final value, resp: %v", resp)
 	}
 
 	// Verify we are registered
@@ -1537,4 +1546,84 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	if checks[0].CheckID != "db" {
 		t.Fatal("not registered!")
 	}
+}
+
+func TestFSM_Chunking_TermChange(t *testing.T) {
+	t.Parallel()
+	fsm, err := New(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			Node:      "foo",
+			CheckID:   "db",
+			Name:      "db connectivity",
+			Status:    api.HealthPassing,
+			ServiceID: "db",
+		},
+	}
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Only need two chunks to test this
+	chunks := [][]byte{
+		buf[0:2],
+		buf[2:],
+	}
+	var logs []*raft.Log
+	for i, b := range chunks {
+		chunkInfo := &raftchunkingtypes.ChunkInfo{
+			OpNum:       uint64(32),
+			SequenceNum: uint32(i),
+			NumChunks:   uint32(len(chunks)),
+		}
+		chunkBytes, err := proto.Marshal(chunkInfo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, &raft.Log{
+			Term:       uint64(i),
+			Data:       b,
+			Extensions: chunkBytes,
+		})
+	}
+
+	// We should see nil for both
+	for _, log := range logs {
+		resp := fsm.chunker.Apply(log)
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Now verify the other baseline, that when the term doesn't change we see
+	// non-nil. First make the chunker have a clean state, then set the terms
+	// to be the same.
+	fsm.chunker.RestoreState(nil)
+	logs[1].Term = uint64(0)
+
+	// We should see nil only for the first one
+	for i, log := range logs {
+		resp := fsm.chunker.Apply(log)
+		if resp != nil && i == 0 {
+			t.Fatalf("resp: %v", resp)
+		}
+		if resp == nil && i == 1 {
+			t.Fatal("expected non-nil")
+		}
+	}
+
 }
