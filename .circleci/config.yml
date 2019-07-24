@@ -479,10 +479,11 @@ workflows:
     jobs:
       - check-vendor
       - lint-consul-retry
-      - go-fmt-and-vet
+      - go-fmt-and-vet:
+          requires:
+            - check-vendor
       - dev-build:
           requires:
-            - lint-consul-retry
             - go-fmt-and-vet
       - go-test: &go-test
           requires:
