@@ -193,6 +193,9 @@ routes = [
 
             At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
+      - `Methods` `(array<string>)` - A list of HTTP methods for which this match 
+        applies. If unspecified all http methods are matched.
+
   - `Destination` `(ServiceRouteDestination: <optional>)` - Controls how to
     proxy the actual matching request to a service.
 

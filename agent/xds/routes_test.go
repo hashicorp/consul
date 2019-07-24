@@ -191,6 +191,24 @@ func TestRoutesFromSnapshot(t *testing.T) {
 								Destination: toService("hdr-regex"),
 							},
 							{
+								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+									Methods: []string{"GET", "PUT"},
+								}),
+								Destination: toService("just-methods"),
+							},
+							{
+								Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+									Header: []structs.ServiceRouteHTTPMatchHeader{
+										{
+											Name:  "x-debug",
+											Exact: "exact",
+										},
+									},
+									Methods: []string{"GET", "PUT"},
+								}),
+								Destination: toService("hdr-exact-with-method"),
+							},
+							{
 								Match: httpMatchParam(structs.ServiceRouteHTTPMatchQueryParam{
 									Name:  "secretparam1",
 									Exact: "exact",

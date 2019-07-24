@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gogo/protobuf/proto"
 
@@ -250,6 +251,18 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 
 			em.Headers = append(em.Headers, eh)
 		}
+	}
+
+	if len(match.HTTP.Methods) > 0 {
+		methodHeaderRegex := strings.Join(match.HTTP.Methods, "|")
+
+		eh := &envoyroute.HeaderMatcher{
+			Name: ":method",
+			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_RegexMatch{
+				RegexMatch: methodHeaderRegex,
+			},
+		}
+		em.Headers = append(em.Headers, eh)
 	}
 
 	if len(match.HTTP.QueryParam) > 0 {

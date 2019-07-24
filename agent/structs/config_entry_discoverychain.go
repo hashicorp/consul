@@ -58,6 +58,21 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 
 	e.Kind = ServiceRouter
 
+	for _, route := range e.Routes {
+		if route.Match == nil || route.Match.HTTP == nil {
+			continue
+		}
+
+		httpMatch := route.Match.HTTP
+		if len(httpMatch.Methods) == 0 {
+			continue
+		}
+
+		for j := 0; j < len(httpMatch.Methods); j++ {
+			httpMatch.Methods[j] = strings.ToUpper(httpMatch.Methods[j])
+		}
+	}
+
 	return nil
 }
 
@@ -139,6 +154,16 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 					return fmt.Errorf("Route[%d] QueryParam[%d] should only contain one of Present, Exact, or Regex", i, j)
 				}
 			}
+
+			if len(route.Match.HTTP.Methods) > 0 {
+				found := make(map[string]struct{})
+				for _, m := range route.Match.HTTP.Methods {
+					if _, ok := found[m]; ok {
+						return fmt.Errorf("Route[%d] Methods contains %q more than once", i, m)
+					}
+					found[m] = struct{}{}
+				}
+			}
 		}
 
 		if route.Destination != nil {
@@ -218,9 +243,7 @@ type ServiceRouteHTTPMatch struct {
 
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
 	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty"`
-
-	// TODO(rb): reenable Methods
-	// Methods []string `json:",omitempty"`
+	Methods    []string                          `json:",omitempty"`
 }
 
 func (m *ServiceRouteHTTPMatch) IsEmpty() bool {
@@ -228,8 +251,8 @@ func (m *ServiceRouteHTTPMatch) IsEmpty() bool {
 		m.PathPrefix == "" &&
 		m.PathRegex == "" &&
 		len(m.Header) == 0 &&
-		len(m.QueryParam) == 0
-	// && len(m.Methods) == 0
+		len(m.QueryParam) == 0 &&
+		len(m.Methods) == 0
 }
 
 type ServiceRouteHTTPMatchHeader struct {
