@@ -78,6 +78,18 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 			return err
 		}
 	}
+
+	// Persist chunking state
+	if s.chunkState == nil {
+		return nil
+	}
+	if _, err := sink.Write([]byte{byte(structs.ChunkingStateType)}); err != nil {
+		return err
+	}
+	if err := encoder.Encode(s.chunkState); err != nil {
+		return err
+	}
+
 	return nil
 }
 

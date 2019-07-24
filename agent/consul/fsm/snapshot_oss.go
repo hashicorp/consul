@@ -73,9 +73,6 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistIndex(sink, encoder); err != nil {
 		return err
 	}
-	if err := s.persistChunkingState(sink, encoder); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -454,20 +451,6 @@ func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) 
 		if err := encoder.Encode(idx); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (s *snapshot) persistChunkingState(sink raft.SnapshotSink,
-	encoder *codec.Encoder) error {
-	if s.chunkState == nil {
-		return nil
-	}
-	if _, err := sink.Write([]byte{byte(structs.ChunkingStateType)}); err != nil {
-		return err
-	}
-	if err := encoder.Encode(s.chunkState); err != nil {
-		return err
 	}
 	return nil
 }
