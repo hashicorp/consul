@@ -28,6 +28,10 @@ function retry_default {
   retry 5 1 $@
 }
 
+function retry_long {
+  retry 30 1 $@
+}
+
 function echored {
   tput setaf 1
   tput bold
@@ -120,34 +124,38 @@ function snapshot_envoy_admin {
   docker_wget "http://${HOSTPORT}/clusters?format=json" -q -O - > "./workdir/envoy/${ENVOY_NAME}-clusters.json"
 }
 
-function get_healthy_upstream_endpoint_count {
+function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
+  local HEALTH_STATUS=$3
   run retry_default curl -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
+  # echo "$output" >&3
   echo "$output" | jq --raw-output "
 .cluster_statuses[]
 | select(.name|startswith(\"${CLUSTER_NAME}.default.dc1.internal.\"))
-| .host_statuses[].health_status
-| select(.eds_health_status == \"HEALTHY\")
+| [.host_statuses[].health_status.eds_health_status]
+| [select(.[] == \"${HEALTH_STATUS}\")]
 | length"
 }
 
-function assert_upstream_has_healthy_endpoints_once {
+function assert_upstream_has_endpoints_in_status_once {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
-  local EXPECT_COUNT=$3
+  local HEALTH_STATUS=$3
+  local EXPECT_COUNT=$4
 
-  GOT_COUNT=$(get_healthy_upstream_endpoint_count $HOSTPORT $CLUSTER_NAME)
+  GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
 
-function assert_upstream_has_healthy_endpoints {
+function assert_upstream_has_endpoints_in_status {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
-  local EXPECT_COUNT=$3
-  run retry 30 1 assert_upstream_has_healthy_endpoints_once $HOSTPORT $CLUSTER_NAME $EXPECT_COUNT
+  local HEALTH_STATUS=$3
+  local EXPECT_COUNT=$4
+  run retry_long assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
@@ -171,16 +179,35 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
 
-  run retry 30 1 assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT
+  run retry_long assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT
   [ "$status" -eq 0 ]
 }
 
 function docker_consul {
-  docker run -ti --rm --network container:envoy_consul_1 consul-dev $@
+  docker run -i --rm --network container:envoy_consul_1 consul-dev $@
 }
 
 function docker_wget {
   docker run -ti --rm --network container:envoy_consul_1 alpine:3.9 wget $@
+}
+
+function get_envoy_pid {
+  local BOOTSTRAP_NAME=$1
+  run ps aux
+  [ "$status" == 0 ]
+  PID="$(echo "$output" | grep "envoy -c /workdir/envoy/${BOOTSTRAP_NAME}-bootstrap.json" | awk '{print $1}')"
+  [ -n "$PID" ]
+
+  echo "$PID"
+}
+
+function kill_envoy {
+  local BOOTSTRAP_NAME=$1
+
+  PID="$(get_envoy_pid $BOOTSTRAP_NAME)"
+  echo "PID = $PID"
+
+  kill -TERM $PID
 }
 
 function must_match_in_statsd_logs {
@@ -252,6 +279,18 @@ function gen_envoy_bootstrap {
     echo "$output"
     return $status
   fi
+}
+
+function read_config_entry {
+  local KIND=$1
+  local NAME=$2
+  docker_consul config read -kind $KIND -name $NAME
+}
+
+function wait_for_config_entry {
+  local KIND=$1
+  local NAME=$2
+  retry_default read_config_entry $KIND $NAME >/dev/null
 }
 
 function get_upstream_fortio_name {
