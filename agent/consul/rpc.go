@@ -399,6 +399,11 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		// In this case we didn't apply all chunks successfully, possibly due
 		// to a term change; resubmit
 		if resp == nil {
+			// This returns the error in the interface because the raft library
+			// returns errors from the FSM via the future, not via err from the
+			// apply function. Downstream client code expects to see any error
+			// from the FSM (as opposed to the apply itself) and decide whether
+			// it can retry in the future's response.
 			return ErrChunkingResubmit, nil
 		}
 		// We expect that this conversion should always work
