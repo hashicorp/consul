@@ -43,14 +43,14 @@ kubectl create clusterrolebinding my-cluster-admin-binding \
 Install Ambassador and a `LoadBalancer` service for it:
 
 ```bash
-kubectl apply -f https://getambassador.io/yaml/ambassador/ambassador-rbac.yaml
-kubectl apply -f https://getambassador.io/yaml/ambassador/ambassador-service.yaml 
+kubectl apply -f https://www.getambassador.io/yaml/ambassador/ambassador-rbac.yaml
+kubectl apply -f https://www.getambassador.io/yaml/ambassador/ambassador-service.yaml 
 ```
 
 Install the Ambassador Consul Connector:
 
 ```bash
-kubectl apply -f https://getambassador.io/yaml/ambassador/pro/ambassador-consul-connector.yaml
+kubectl apply -f https://www.getambassador.io/yaml/consul/ambassador-consul-connector.yaml
 ```
 
 Add `TLSContext` and `Mapping` annotations to your existing services, directing 
@@ -267,7 +267,7 @@ If you have tried the above troubleshooting steps and are still stuck, DataWire 
 [service sync]: https://www.consul.io/docs/platform/k8s/service-sync.html
 [connect sidecar]: https://www.consul.io/docs/platform/k8s/connect.html
 [install]: https://www.getambassador.io/user-guide/consul-connect-ambassador/
-[ambassador-service.yaml]: https://getambassador.io/yaml/ambassador/ambassador-service.yaml
+[ambassador-service.yaml]: https://www.getambassador.io/yaml/ambassador/ambassador-service.yaml
 [request access]: https://d6e.co/slack
 [intention-check]: https://www.consul.io/docs/commands/intention/check.html
 [install consul]: https://www.consul.io/docs/install/index.html
