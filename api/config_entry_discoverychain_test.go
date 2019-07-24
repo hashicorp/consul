@@ -200,7 +200,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 									{Name: "x-debug", Exact: "1"},
 								},
 								QueryParam: []ServiceRouteHTTPMatchQueryParam{
-									{Name: "debug", Value: "1"},
+									{Name: "debug", Exact: "1"},
 								},
 							},
 						},

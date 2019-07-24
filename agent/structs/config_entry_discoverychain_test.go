@@ -960,11 +960,68 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 		{
 			name: "route with no name query param",
 			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
-				Value: "foo",
+				Exact: "foo",
 			}))),
 			validateErr: "missing required Name field",
 		},
-
+		{
+			name: "route with query param exact match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:  "foo",
+				Exact: "bar",
+			}))),
+		},
+		{
+			name: "route with query param regex match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:  "foo",
+				Regex: "bar",
+			}))),
+		},
+		{
+			name: "route with query param present match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:    "foo",
+				Present: true,
+			}))),
+		},
+		{
+			name: "route with query param exact and regex match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:  "foo",
+				Exact: "bar",
+				Regex: "bar",
+			}))),
+			validateErr: "should only contain one of Present, Exact, or Regex",
+		},
+		{
+			name: "route with query param exact and present match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:    "foo",
+				Exact:   "bar",
+				Present: true,
+			}))),
+			validateErr: "should only contain one of Present, Exact, or Regex",
+		},
+		{
+			name: "route with query param regex and present match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:    "foo",
+				Regex:   "bar",
+				Present: true,
+			}))),
+			validateErr: "should only contain one of Present, Exact, or Regex",
+		},
+		{
+			name: "route with query param exact, regex, and present match",
+			entry: makerouter(routeMatch(httpMatchParam(ServiceRouteHTTPMatchQueryParam{
+				Name:    "foo",
+				Exact:   "bar",
+				Regex:   "bar",
+				Present: true,
+			}))),
+			validateErr: "should only contain one of Present, Exact, or Regex",
+		},
 		////////////////
 		{
 			name: "route with no match and prefix rewrite",
@@ -1033,7 +1090,7 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			entry: makerouter(ServiceRoute{
 				Match: httpMatchParam(ServiceRouteHTTPMatchQueryParam{
 					Name:  "foo",
-					Value: "bar",
+					Exact: "bar",
 				}),
 				Destination: &ServiceRouteDestination{
 					Service:       "other",

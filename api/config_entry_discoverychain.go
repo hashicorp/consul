@@ -49,9 +49,10 @@ type ServiceRouteHTTPMatchHeader struct {
 }
 
 type ServiceRouteHTTPMatchQueryParam struct {
-	Name  string
-	Value string `json:",omitempty"`
-	Regex bool   `json:",omitempty"`
+	Name    string
+	Present bool   `json:",omitempty"`
+	Exact   string `json:",omitempty"`
+	Regex   string `json:",omitempty"`
 }
 
 type ServiceRouteDestination struct {

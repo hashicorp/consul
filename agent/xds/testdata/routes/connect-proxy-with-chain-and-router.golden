@@ -125,9 +125,8 @@
                 "prefix": "/",
                 "queryParameters": [
                   {
-                    "name": "secretparam",
-                    "value": "exact",
-                    "regex": false
+                    "name": "secretparam1",
+                    "value": "exact"
                   }
                 ]
               },
@@ -140,7 +139,7 @@
                 "prefix": "/",
                 "queryParameters": [
                   {
-                    "name": "secretparam",
+                    "name": "secretparam2",
                     "value": "regex",
                     "regex": true
                   }
@@ -148,6 +147,19 @@
               },
               "route": {
                 "cluster": "prm-regex.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/",
+                "queryParameters": [
+                  {
+                    "name": "secretparam3"
+                  }
+                ]
+              },
+              "route": {
+                "cluster": "prm-present.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             },
             {

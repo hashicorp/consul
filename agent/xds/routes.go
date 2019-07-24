@@ -256,9 +256,19 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 		em.QueryParameters = make([]*envoyroute.QueryParameterMatcher, 0, len(match.HTTP.QueryParam))
 		for _, qm := range match.HTTP.QueryParam {
 			eq := &envoyroute.QueryParameterMatcher{
-				Name:  qm.Name,
-				Value: qm.Value,
-				Regex: makeBoolValue(qm.Regex),
+				Name: qm.Name,
+			}
+
+			switch {
+			case qm.Exact != "":
+				eq.Value = qm.Exact
+			case qm.Regex != "":
+				eq.Value = qm.Regex
+				eq.Regex = makeBoolValue(true)
+			case qm.Present:
+				eq.Value = ""
+			default:
+				continue // skip this impossible situation
 			}
 
 			em.QueryParameters = append(em.QueryParameters, eq)
