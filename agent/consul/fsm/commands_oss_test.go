@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
 	"os"
@@ -8,12 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
+	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pascaldekloe/goe/verify"
@@ -1395,5 +1399,142 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1
 		require.Equal(entry, config)
+	}
+}
+
+// This adapts another test by chunking the encoded data and then performing
+// out-of-order applies of half the logs. It then snapshots, restores to a new
+// FSM, and applies the rest. The goal is to verify that chunking snapshotting
+// works as expected.
+func TestFSM_Chunking_Lifecycle(t *testing.T) {
+	t.Parallel()
+	fsm, err := New(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			Node:      "foo",
+			CheckID:   "db",
+			Name:      "db connectivity",
+			Status:    api.HealthPassing,
+			ServiceID: "db",
+		},
+	}
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var opNum uint64 = 32
+	var logs []*raft.Log
+	for i, b := range buf {
+		chunkInfo := &raftchunkingtypes.ChunkInfo{
+			OpNum:       opNum,
+			SequenceNum: uint32(i),
+			NumChunks:   uint32(len(buf)),
+		}
+		chunkBytes, err := proto.Marshal(chunkInfo)
+		if err != nil {
+			t.Fatal(err)
+		}
+		logs = append(logs, &raft.Log{
+			Data:       []byte{b},
+			Extensions: chunkBytes,
+		})
+	}
+
+	// The reason for the skipping is to test out-of-order applies which are
+	// theoretically possible
+	for i := 0; i < len(logs); i += 2 {
+		resp := fsm.chunker.Apply(logs[i])
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Verify we are not registered
+	_, node, err := fsm.state.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node != nil {
+		t.Fatal("did not expect to find node!")
+	}
+
+	// Snapshot, restore elsewhere, apply the rest of the logs, make sure it
+	// looks right
+	snap, err := fsm.Snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snap.Release()
+
+	sinkBuf := bytes.NewBuffer(nil)
+	sink := &MockSink{sinkBuf, false}
+	if err := snap.Persist(sink); err != nil {
+		t.Fatal(err)
+	}
+
+	fsm2, err := New(nil, os.Stderr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fsm2.Restore(sink); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify we are still not registered
+	_, node, err = fsm2.state.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node != nil {
+		t.Fatal("did not expect to find node!")
+	}
+
+	// Apply the rest of the logs
+	for i := 1; i < len(logs); i += 2 {
+		resp := fsm2.chunker.Apply(logs[i])
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Verify we are registered
+	_, node, err = fsm2.state.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node == nil {
+		t.Fatal("did not find node!")
+	}
+
+	// Verify service registered
+	_, services, err := fsm2.state.NodeServices(nil, "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, ok := services.Services["db"]; !ok {
+		t.Fatal("not registered!")
+	}
+
+	// Verify check
+	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if checks[0].CheckID != "db" {
+		t.Fatal("not registered!")
 	}
 }
