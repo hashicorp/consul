@@ -1415,55 +1415,69 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	fsm, err := New(nil, os.Stderr)
 	require.NoError(err)
 
-	req := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-		Service: &structs.NodeService{
-			ID:      "db",
-			Service: "db",
-			Tags:    []string{"master"},
-			Port:    8000,
-		},
-		Check: &structs.HealthCheck{
-			Node:      "foo",
-			CheckID:   "db",
-			Name:      "db connectivity",
-			Status:    api.HealthPassing,
-			ServiceID: "db",
-		},
-	}
-
-	buf, err := structs.Encode(structs.RegisterRequestType, req)
-	require.NoError(err)
-
-	var logs []*raft.Log
-	for i, b := range buf {
-		chunkInfo := &raftchunkingtypes.ChunkInfo{
-			OpNum:       uint64(32),
-			SequenceNum: uint32(i),
-			NumChunks:   uint32(len(buf)),
+	var logOfLogs [][]*raft.Log
+	var bufs [][]byte
+	for i := 0; i < 10; i++ {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("foo%d", i),
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "db",
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    8000,
+			},
+			Check: &structs.HealthCheck{
+				Node:      fmt.Sprintf("foo%d", i),
+				CheckID:   "db",
+				Name:      "db connectivity",
+				Status:    api.HealthPassing,
+				ServiceID: "db",
+			},
 		}
-		chunkBytes, err := proto.Marshal(chunkInfo)
+
+		buf, err := structs.Encode(structs.RegisterRequestType, req)
 		require.NoError(err)
 
-		logs = append(logs, &raft.Log{
-			Data:       []byte{b},
-			Extensions: chunkBytes,
-		})
+		var logs []*raft.Log
+
+		for j, b := range buf {
+			chunkInfo := &raftchunkingtypes.ChunkInfo{
+				OpNum:       uint64(32 + i),
+				SequenceNum: uint32(j),
+				NumChunks:   uint32(len(buf)),
+			}
+			chunkBytes, err := proto.Marshal(chunkInfo)
+			require.NoError(err)
+
+			logs = append(logs, &raft.Log{
+				Data:       []byte{b},
+				Extensions: chunkBytes,
+			})
+		}
+		bufs = append(bufs, buf)
+		logOfLogs = append(logOfLogs, logs)
 	}
 
 	// The reason for the skipping is to test out-of-order applies which are
-	// theoretically possible
-	for i := 0; i < len(logs); i += 2 {
-		resp := fsm.chunker.Apply(logs[i])
+	// theoretically possible. Apply some logs from each set of chunks, but not
+	// the full set, and out of order.
+	for _, logs := range logOfLogs {
+		resp := fsm.chunker.Apply(logs[8])
+		assert.Nil(resp)
+		resp = fsm.chunker.Apply(logs[0])
+		assert.Nil(resp)
+		resp = fsm.chunker.Apply(logs[3])
 		assert.Nil(resp)
 	}
 
 	// Verify we are not registered
-	_, node, err := fsm.state.GetNode("foo")
-	require.NoError(err)
-	assert.Nil(node)
+	for i := 0; i < 10; i++ {
+		_, node, err := fsm.state.GetNode(fmt.Sprintf("foo%d", i))
+		require.NoError(err)
+		assert.Nil(node)
+	}
 
 	// Snapshot, restore elsewhere, apply the rest of the logs, make sure it
 	// looks right
@@ -1482,38 +1496,46 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	require.NoError(err)
 
 	// Verify we are still not registered
-	_, node, err = fsm2.state.GetNode("foo")
-	require.NoError(err)
-	assert.Nil(node)
+	for i := 0; i < 10; i++ {
+		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i))
+		require.NoError(err)
+		assert.Nil(node)
+	}
 
 	// Apply the rest of the logs
-	var resp interface{}
-	for i := 1; i < len(logs); i += 2 {
-		resp = fsm2.chunker.Apply(logs[i])
-		if resp != nil {
-			_, ok := resp.(raftchunking.ChunkingSuccess)
-			assert.True(ok)
+	for _, logs := range logOfLogs {
+		var resp interface{}
+		for i, log := range logs {
+			switch i {
+			case 0, 3, 8:
+			default:
+				resp = fsm2.chunker.Apply(log)
+				if i != len(logs)-1 {
+					assert.Nil(resp)
+				}
+			}
 		}
+		_, ok := resp.(raftchunking.ChunkingSuccess)
+		assert.True(ok)
 	}
-	assert.NotNil(resp)
-	_, ok := resp.(raftchunking.ChunkingSuccess)
-	assert.True(ok)
 
 	// Verify we are registered
-	_, node, err = fsm2.state.GetNode("foo")
-	require.NoError(err)
-	assert.NotNil(node)
+	for i := 0; i < 10; i++ {
+		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i))
+		require.NoError(err)
+		assert.NotNil(node)
 
-	// Verify service registered
-	_, services, err := fsm2.state.NodeServices(nil, "foo")
-	require.NoError(err)
-	_, ok = services.Services["db"]
-	assert.True(ok)
+		// Verify service registered
+		_, services, err := fsm2.state.NodeServices(nil, fmt.Sprintf("foo%d", i))
+		require.NoError(err)
+		_, ok := services.Services["db"]
+		assert.True(ok)
 
-	// Verify check
-	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
-	require.NoError(err)
-	require.Equal(string(checks[0].CheckID), "db")
+		// Verify check
+		_, checks, err := fsm2.state.NodeChecks(nil, fmt.Sprintf("foo%d", i))
+		require.NoError(err)
+		require.Equal(string(checks[0].CheckID), "db")
+	}
 }
 
 func TestFSM_Chunking_TermChange(t *testing.T) {
