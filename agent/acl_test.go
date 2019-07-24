@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
+	"google.golang.org/grpc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -107,6 +108,9 @@ func (a *TestACLAgent) Encrypted() bool {
 	return false
 }
 func (a *TestACLAgent) GetLANCoordinate() (lib.CoordinateSet, error) {
+	return nil, fmt.Errorf("Unimplemented")
+}
+func (a *TestACLAgent) GRPCConn() (*grpc.ClientConn, error) {
 	return nil, fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) Leave() error {

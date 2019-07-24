@@ -119,7 +119,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 	}()
 
 	var snapshotEvents []*stream.Event
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		select {
 		case event := <-eventCh:
 			snapshotEvents = append(snapshotEvents, event)
@@ -132,20 +132,55 @@ func TestStreaming_Subscribe(t *testing.T) {
 		{
 			Key:   "redis",
 			Index: 13,
-			ServiceHealth: &stream.ServiceHealthUpdate{
-				Node:    "node1",
-				Address: "3.4.5.6",
-				Service: "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					ServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:       "node1",
+							Datacenter: "dc1",
+							Address:    "3.4.5.6",
+							RaftIndex:  stream.RaftIndex{CreateIndex: 12, ModifyIndex: 12},
+						},
+						Service: &stream.NodeService{
+							ID:        "redis1",
+							Service:   "redis",
+							Address:   "3.4.5.6",
+							Port:      8080,
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+							RaftIndex: stream.RaftIndex{CreateIndex: 12, ModifyIndex: 12},
+						},
+					},
+				},
 			},
 		},
 		{
 			Key:   "redis",
 			Index: 13,
-			ServiceHealth: &stream.ServiceHealthUpdate{
-				Node:    "node2",
-				Address: "1.2.3.4",
-				Service: "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					ServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:       "node2",
+							Datacenter: "dc1",
+							Address:    "1.2.3.4",
+							RaftIndex:  stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+						},
+						Service: &stream.NodeService{
+							ID:        "redis1",
+							Service:   "redis",
+							Address:   "1.1.1.1",
+							Port:      8080,
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+						},
+					},
+				},
 			},
+		},
+		{
+			Topic: stream.Topic_EndOfSnapshot,
 		},
 	}
 	require.Equal(expected, snapshotEvents)
@@ -165,18 +200,36 @@ func TestStreaming_Subscribe(t *testing.T) {
 	case event := <-eventCh:
 		require.Equal(&stream.Event{
 			Key:   "redis",
-			Index: 13,
-			ServiceHealth: &stream.ServiceHealthUpdate{
-				Node:    "node2",
-				Address: "1.2.3.4",
-				Service: "redis",
-				Checks: []*stream.HealthCheck{
-					{
-						Name:        "check 1",
-						Status:      "critical",
-						CheckID:     "check1",
-						ServiceID:   "redis1",
-						ServiceName: "redis",
+			Index: 14,
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					ServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:       "node2",
+							Datacenter: "dc1",
+							Address:    "1.2.3.4",
+							RaftIndex:  stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+						},
+						Service: &stream.NodeService{
+							ID:        "redis1",
+							Service:   "redis",
+							Address:   "1.1.1.1",
+							Port:      8080,
+							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+						},
+						Checks: []*stream.HealthCheck{
+							{
+								CheckID:     "check1",
+								Name:        "check 1",
+								Node:        "node2",
+								Status:      "critical",
+								ServiceID:   "redis1",
+								ServiceName: "redis",
+								RaftIndex:   stream.RaftIndex{CreateIndex: 14, ModifyIndex: 14},
+							},
+						},
 					},
 				},
 			},
