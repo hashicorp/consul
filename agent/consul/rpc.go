@@ -2,6 +2,7 @@ package consul
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -15,8 +16,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 )
 
@@ -43,6 +46,10 @@ const (
 	// value is ever reached. However, it prevents us from blocking
 	// the requesting goroutine forever.
 	enqueueLimit = 30 * time.Second
+)
+
+var (
+	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 )
 
 // listen is used to listen for incoming RPC connections
@@ -200,6 +207,12 @@ func canRetry(args interface{}, err error) bool {
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
+		return true
+	}
+
+	// If we are chunking and it doesn't seem to have completed, try again
+	intErr, ok := args.(error)
+	if ok && strings.Contains(intErr.Error(), ErrChunkingResubmit.Error()) {
 		return true
 	}
 
@@ -366,12 +379,43 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
 	}
 
-	future := s.raft.Apply(buf, enqueueLimit)
+	var chunked bool
+	var future raft.ApplyFuture
+	switch {
+	case len(buf) <= raft.SuggestedMaxDataSize || t != structs.KVSRequestType:
+		future = s.raft.Apply(buf, enqueueLimit)
+	default:
+		chunked = true
+		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyLog)
+	}
+
 	if err := future.Error(); err != nil {
 		return nil, err
 	}
 
-	return future.Response(), nil
+	resp := future.Response()
+
+	if chunked {
+		// In this case we didn't apply all chunks successfully, possibly due
+		// to a term change; resubmit
+		if resp == nil {
+			// This returns the error in the interface because the raft library
+			// returns errors from the FSM via the future, not via err from the
+			// apply function. Downstream client code expects to see any error
+			// from the FSM (as opposed to the apply itself) and decide whether
+			// it can retry in the future's response.
+			return ErrChunkingResubmit, nil
+		}
+		// We expect that this conversion should always work
+		chunkedSuccess, ok := resp.(raftchunking.ChunkingSuccess)
+		if !ok {
+			return nil, errors.New("unknown type of response back from chunking FSM")
+		}
+		// Return the inner wrapped response
+		return chunkedSuccess.Response, nil
+	}
+
+	return resp, nil
 }
 
 // queryFn is used to perform a query operation. If a re-query is needed, the

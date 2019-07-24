@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/raft"
 )
 
 func DefaultRPCProtocol() (int, error) {
@@ -102,6 +103,7 @@ func DefaultSource() Source {
 		limits = {
 			rpc_rate = -1
 			rpc_max_burst = 1000
+			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}
 		performance = {
 			leave_drain_time = "5s"

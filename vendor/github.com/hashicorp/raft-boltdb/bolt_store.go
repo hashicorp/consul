@@ -33,26 +33,56 @@ type BoltStore struct {
 	path string
 }
 
+// Options contains all the configuraiton used to open the BoltDB
+type Options struct {
+	// Path is the file path to the BoltDB to use
+	Path string
+
+	// BoltOptions contains any specific BoltDB options you might
+	// want to specify [e.g. open timeout]
+	BoltOptions *bolt.Options
+
+	// NoSync causes the database to skip fsync calls after each
+	// write to the log. This is unsafe, so it should be used
+	// with caution.
+	NoSync bool
+}
+
+// readOnly returns true if the contained bolt options say to open
+// the DB in readOnly mode [this can be useful to tools that want
+// to examine the log]
+func (o *Options) readOnly() bool {
+	return o != nil && o.BoltOptions != nil && o.BoltOptions.ReadOnly
+}
+
 // NewBoltStore takes a file path and returns a connected Raft backend.
 func NewBoltStore(path string) (*BoltStore, error) {
+	return New(Options{Path: path})
+}
+
+// New uses the supplied options to open the BoltDB and prepare it for use as a raft backend.
+func New(options Options) (*BoltStore, error) {
 	// Try to connect
-	handle, err := bolt.Open(path, dbFileMode, nil)
+	handle, err := bolt.Open(options.Path, dbFileMode, options.BoltOptions)
 	if err != nil {
 		return nil, err
 	}
+	handle.NoSync = options.NoSync
 
 	// Create the new store
 	store := &BoltStore{
 		conn: handle,
-		path: path,
+		path: options.Path,
 	}
 
-	// Set up our buckets
-	if err := store.initialize(); err != nil {
-		store.Close()
-		return nil, err
+	// If the store was opened read-only, don't try and create buckets
+	if !options.readOnly() {
+		// Set up our buckets
+		if err := store.initialize(); err != nil {
+			store.Close()
+			return nil, err
+		}
 	}
-
 	return store, nil
 }
 
@@ -213,7 +243,7 @@ func (b *BoltStore) Get(k []byte) ([]byte, error) {
 	if val == nil {
 		return nil, ErrKeyNotFound
 	}
-	return append([]byte{}, val...), nil
+	return append([]byte(nil), val...), nil
 }
 
 // SetUint64 is like Set, but handles uint64 values
@@ -228,4 +258,11 @@ func (b *BoltStore) GetUint64(key []byte) (uint64, error) {
 		return 0, err
 	}
 	return bytesToUint64(val), nil
+}
+
+// Sync performs an fsync on the database file handle. This is not necessary
+// under normal operation unless NoSync is enabled, in which this forces the
+// database file to sync against the disk.
+func (b *BoltStore) Sync() error {
+	return b.conn.Sync()
 }
