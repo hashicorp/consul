@@ -79,6 +79,7 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 		OpNum:       ci.OpNum,
 		SequenceNum: ci.SequenceNum,
 		NumChunks:   ci.NumChunks,
+		Term:        l.Term,
 		Data:        l.Data,
 	})
 	if err != nil {

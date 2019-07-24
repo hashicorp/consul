@@ -34,6 +34,7 @@ type ChunkInfo struct {
 	OpNum       uint64
 	SequenceNum uint32
 	NumChunks   uint32
+	Term        uint64
 	Data        []byte
 }
 

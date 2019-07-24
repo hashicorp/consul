@@ -167,8 +167,8 @@ github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uP
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116 h1:Y4V/yReWjQo/Ngyc0w6C3EKXKincp4YgvXeo8lI4LrI=
 github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116/go.mod h1:JSqWYsict+jzcj0+xElxyrBQRPNoiWQuddnxArJ7XHQ=
-github.com/hashicorp/go-raftchunking v0.5.2-0.20190724024606-d26239e7aff2 h1:hOpgQmkt3ON1cU+Km/7A2Jw/YYeGTgwOn1gyuGYauQw=
-github.com/hashicorp/go-raftchunking v0.5.2-0.20190724024606-d26239e7aff2/go.mod h1:cGlg3JtDy7qy6c/3Bu660Mic1JF+7lWqIwCFSb08fX0=
+github.com/hashicorp/go-raftchunking v0.5.2-0.20190724132201-dc7fc8d48ce5 h1:FzLhnSyPJqy2l1+MYJN213zKN7S9lyxp0AdGvuIoasw=
+github.com/hashicorp/go-raftchunking v0.5.2-0.20190724132201-dc7fc8d48ce5/go.mod h1:cGlg3JtDy7qy6c/3Bu660Mic1JF+7lWqIwCFSb08fX0=
 github.com/hashicorp/go-retryablehttp v0.5.3 h1:QlWt0KvWT0lq8MFppF9tsJGF+ynG7ztc2KIPhzRGk7s=
 github.com/hashicorp/go-retryablehttp v0.5.3/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-rootcerts v1.0.0 h1:Rqb66Oo1X/eSV1x66xbDccZjhJigjg0+e82kpwzSwCI=
