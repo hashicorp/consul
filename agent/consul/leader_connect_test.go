@@ -28,7 +28,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "primary"
 		c.PrimaryDatacenter = "primary"
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = masterToken
 		c.ACLDefaultPolicy = "deny"
@@ -44,7 +44,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "secondary"
 		c.PrimaryDatacenter = "primary"
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 	})
@@ -114,7 +114,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -125,7 +125,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -247,7 +247,7 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig.ClusterID = id1
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -261,7 +261,7 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
 		c.CAConfig.ClusterID = id2
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -345,7 +345,6 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	maxRootsQueryTime = 500 * time.Millisecond
 
 	// Initialize dc1 as the primary DC
@@ -362,7 +361,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.Build = "1.4.0"
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -376,22 +375,22 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	{
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		state2 := s2.fsm.State()
 		_, roots2, err := state2.CARoots(nil)
-		require.NoError(err)
-		require.Equal(1, len(roots1))
-		require.Equal(1, len(roots2))
-		require.NotEqual(roots1[0].ID, roots2[0].ID)
-		require.NotEqual(roots1[0].RootCert, roots2[0].RootCert)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(roots1))
+		require.Equal(t, 1, len(roots2))
+		require.NotEqual(t, roots1[0].ID, roots2[0].ID)
+		require.NotEqual(t, roots1[0].RootCert, roots2[0].RootCert)
 		oldSecondaryRootID = roots2[0].ID
 	}
 
 	// Update the version on the fly so s2 kicks off the secondary DC transition.
-	tags := s1.config.SerfLANConfig.Tags
-	tags["build"] = "1.4.0"
-	s1.serfLAN.SetTags(tags)
+	tags := s1.config.SerfWANConfig.Tags
+	tags["build"] = "1.6.0"
+	s1.serfWAN.SetTags(tags)
 
 	// Wait for the secondary transition to happen and then verify the secondary DC
 	// has both roots present.
@@ -399,26 +398,22 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		state := s2.fsm.State()
 		_, roots, err := state.CARoots(nil)
-		r.Check(err)
-		if len(roots) != 2 {
-			r.Fatalf("should have 2 roots: %v", roots)
-		}
+		require.NoError(r, err)
+		require.Len(r, roots, 2)
 		inter, err := secondaryProvider.ActiveIntermediate()
-		r.Check(err)
-		if inter == "" {
-			r.Fatal("should have valid intermediate")
-		}
+		require.NoError(r, err)
+		require.NotEqual(r, "", inter, "should have valid intermediate")
 	})
 	{
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		state2 := s2.fsm.State()
 		_, roots2, err := state2.CARoots(nil)
-		require.NoError(err)
-		require.Equal(1, len(roots1))
-		require.Equal(2, len(roots2))
+		require.NoError(t, err)
+		require.Equal(t, 1, len(roots1))
+		require.Equal(t, 2, len(roots2))
 		var oldSecondaryRoot *structs.CARoot
 		var newSecondaryRoot *structs.CARoot
 		if roots2[0].ID == oldSecondaryRootID {
@@ -428,15 +423,15 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 			oldSecondaryRoot = roots2[1]
 			newSecondaryRoot = roots2[0]
 		}
-		require.Equal(roots1[0].ID, newSecondaryRoot.ID)
-		require.Equal(roots1[0].RootCert, newSecondaryRoot.RootCert)
-		require.NotEqual(newSecondaryRoot.ID, oldSecondaryRoot.ID)
-		require.NotEqual(newSecondaryRoot.RootCert, oldSecondaryRoot.RootCert)
+		require.Equal(t, roots1[0].ID, newSecondaryRoot.ID)
+		require.Equal(t, roots1[0].RootCert, newSecondaryRoot.RootCert)
+		require.NotEqual(t, newSecondaryRoot.ID, oldSecondaryRoot.ID)
+		require.NotEqual(t, newSecondaryRoot.RootCert, oldSecondaryRoot.RootCert)
 	}
 
 	_, caRoot := s1.getCAProvider()
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -448,13 +443,13 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	raw, _ := connect.TestCSR(t, spiffeService)
 
 	leafCsr, err := connect.ParseCSR(raw)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Check that the leaf signed by the new cert can be verified using the
 	// returned cert chain (signed intermediate + remote root).
@@ -467,7 +462,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		Intermediates: intermediatePool,
 		Roots:         rootPool,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 }
 
 func TestLeader_ReplicateIntentions(t *testing.T) {

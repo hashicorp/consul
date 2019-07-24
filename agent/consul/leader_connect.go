@@ -58,19 +58,21 @@ func (s *Server) initializeCA() error {
 	}
 	s.setCAProvider(provider, nil)
 
+	initSecondary := false
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already
 	// been upgraded to at least 1.4.0.
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
 		if !foundPrimary {
 			s.logger.Printf("[WARN] connect: primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
-			return nil
-		}
-		if !versionOk {
+		} else if !versionOk {
 			s.logger.Printf("[WARN] connect: servers in the primary datacenter are not at least at version %s - deferring initialization of the secondary datacenter CA", minMultiDCConnectVersion)
-			return nil
+		} else {
+			initSecondary = true
 		}
+	}
 
+	if initSecondary {
 		// Get the root CA to see if we need to refresh our intermediate.
 		args := structs.DCSpecificRequest{
 			Datacenter: s.config.PrimaryDatacenter,
