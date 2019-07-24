@@ -3082,7 +3082,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 												},
 												{
 													"name": "debug2",
-													"present": false,
+													"present": true,
 													"invert": true
 												},
 												{
@@ -3165,7 +3165,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 											},
 											{
 												name = "debug2"
-												present = false
+												present = true
 												invert = true
 											},
 											{
@@ -3247,7 +3247,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 											},
 											{
 												Name:    "debug2",
-												Present: false,
+												Present: true,
 												Invert:  true,
 											},
 											{
