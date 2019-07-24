@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 * raft: allow trailing logs to be configured as an escape hatch for extreme load that prevents followers catching up with leader [[GH-6186](https://github.com/hashicorp/consul/pull/6186)]
+* raft: added raft log chunking capabilities to allow for storing larger KV entries [[GH-6172](https://github.com/hashicorp/consul/pull/6172)]
 * agent: added configurable limit for log files to be rotated [[GH-5831](https://github.com/hashicorp/consul/pull/5831)]
 
 BUG FIXES:
