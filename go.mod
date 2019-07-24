@@ -56,7 +56,7 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
-	github.com/hashicorp/go-raftchunking v0.5.1
+	github.com/hashicorp/go-raftchunking v0.5.2-0.20190724145251-3521b01a8ca0
 	github.com/hashicorp/go-sockaddr v1.0.0
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.1
@@ -81,7 +81,7 @@ require (
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 // indirect
 	github.com/miekg/dns v1.0.14
 	github.com/mitchellh/cli v1.0.0
-	github.com/mitchellh/copystructure v0.0.0-20160804032330-cdac8253d00f
+	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.0.0
 	github.com/mitchellh/hashstructure v0.0.0-20170609045927-2bca23e0e452
 	github.com/mitchellh/mapstructure v1.1.2

@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
@@ -726,7 +725,7 @@ func (s *Server) setupRaft() error {
 	s.raftNotifyCh = raftNotifyCh
 
 	// Setup the Raft store.
-	s.raft, err = raft.NewRaft(s.config.RaftConfig, raftchunking.NewChunkingFSM(s.fsm), log, stable, snap, trans)
+	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm.ChunkingFSM(), log, stable, snap, trans)
 	if err != nil {
 		return err
 	}
