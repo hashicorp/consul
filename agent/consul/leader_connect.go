@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-version"
 )
 
 const (
@@ -35,15 +33,9 @@ var (
 	// queries when backing off.
 	maxRetryBackoff = 256
 
-	// minMultiDCConnectVersion is the minimum version in order to support multi-DC Connect
-	// features.
-	minMultiDCConnectVersion = version.Must(version.NewVersion("1.4.0"))
-
 	// maxRootsQueryTime is the maximum time the primary roots watch query can block before
 	// returning.
 	maxRootsQueryTime = maxQueryTime
-
-	errEmptyVersion = errors.New("version string is empty")
 )
 
 // initializeCA sets up the CA provider when gaining leadership, either bootstrapping
@@ -68,7 +60,17 @@ func (s *Server) initializeCA() error {
 
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already
 	// been upgraded to at least 1.4.0.
-	if s.config.PrimaryDatacenter != s.config.Datacenter && ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion) {
+	if s.config.PrimaryDatacenter != s.config.Datacenter {
+		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
+		if !foundPrimary {
+			s.logger.Printf("[WARN] connect: primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
+			return nil
+		}
+		if !versionOk {
+			s.logger.Printf("[WARN] connect: servers in the primary datacenter are not at least at version %s - deferring initialization of the secondary datacenter CA", minMultiDCConnectVersion)
+			return nil
+		}
+
 		// Get the root CA to see if we need to refresh our intermediate.
 		args := structs.DCSpecificRequest{
 			Datacenter: s.config.PrimaryDatacenter,
@@ -272,16 +274,21 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 	retryLoopBackoff(stopCh, func() error {
 		var roots structs.IndexedCARoots
 		if err := s.forwardDC("ConnectCA.Roots", s.config.PrimaryDatacenter, &args, &roots); err != nil {
-			return err
+			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
 		}
 
 		// Check to see if the primary has been upgraded in case we're waiting to switch to
 		// secondary mode.
 		provider, _ := s.getCAProvider()
 		if !s.configuredSecondaryCA() {
-			if ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion) {
+			versionOk, primaryFound := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
+			if !primaryFound {
+				return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
+			}
+
+			if versionOk {
 				if err := s.initializeSecondaryProvider(provider, roots); err != nil {
-					return err
+					return fmt.Errorf("Failed to initialize secondary CA provider: %v", err)
 				}
 			}
 		}
@@ -290,17 +297,14 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 		// intermediate.
 		if s.configuredSecondaryCA() {
 			if err := s.initializeSecondaryCA(provider, roots); err != nil {
-				return err
+				return fmt.Errorf("Failed to initialize the secondary CA: %v", err)
 			}
 		}
 
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
 		return nil
 	}, func(err error) {
-		// Don't log the error if it's a result of the primary still starting up.
-		if err != errEmptyVersion {
-			s.logger.Printf("[ERR] connect: error watching primary datacenter roots: %v", err)
-		}
+		s.logger.Printf("[ERR] connect: %v", err)
 	})
 }
 

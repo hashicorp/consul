@@ -6,7 +6,14 @@ import (
 	"net"
 
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+)
+
+var (
+	// minMultiDCConnectVersion is the minimum version in order to support multi-DC Connect
+	// features.
+	minMultiDCConnectVersion = version.Must(version.NewVersion("1.6.0"))
 )
 
 type EnterpriseServer struct{}

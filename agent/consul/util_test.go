@@ -427,9 +427,10 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 	}
 
 	cases := []struct {
-		members  []serf.Member
-		ver      *version.Version
-		expected bool
+		members       []serf.Member
+		ver           *version.Version
+		expected      bool
+		expectedFound bool
 	}{
 		// One server, meets reqs
 		{
@@ -437,8 +438,9 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 				makeMember("0.7.5", "primary"),
 				makeMember("0.7.3", "secondary"),
 			},
-			ver:      version.Must(version.NewVersion("0.7.5")),
-			expected: true,
+			ver:           version.Must(version.NewVersion("0.7.5")),
+			expected:      true,
+			expectedFound: true,
 		},
 		// One server, doesn't meet reqs
 		{
@@ -446,8 +448,9 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 				makeMember("0.7.5", "primary"),
 				makeMember("0.8.1", "secondary"),
 			},
-			ver:      version.Must(version.NewVersion("0.8.0")),
-			expected: false,
+			ver:           version.Must(version.NewVersion("0.8.0")),
+			expected:      false,
+			expectedFound: true,
 		},
 		// Multiple servers, meets req version
 		{
@@ -456,8 +459,9 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 				makeMember("0.8.0", "primary"),
 				makeMember("0.7.0", "secondary"),
 			},
-			ver:      version.Must(version.NewVersion("0.7.5")),
-			expected: true,
+			ver:           version.Must(version.NewVersion("0.7.5")),
+			expected:      true,
+			expectedFound: true,
 		},
 		// Multiple servers, doesn't meet req version
 		{
@@ -466,16 +470,26 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 				makeMember("0.8.0", "primary"),
 				makeMember("0.9.1", "secondary"),
 			},
-			ver:      version.Must(version.NewVersion("0.8.0")),
-			expected: false,
+			ver:           version.Must(version.NewVersion("0.8.0")),
+			expected:      false,
+			expectedFound: true,
+		},
+		{
+			members: []serf.Member{
+				makeMember("0.7.5", "secondary"),
+				makeMember("0.8.0", "secondary"),
+				makeMember("0.9.1", "secondary"),
+			},
+			ver:           version.Must(version.NewVersion("0.7.0")),
+			expected:      true,
+			expectedFound: false,
 		},
 	}
 
 	for _, tc := range cases {
-		result := ServersInDCMeetMinimumVersion(tc.members, "primary", tc.ver)
-		if result != tc.expected {
-			t.Fatalf("bad: %v, %v, %v", result, tc.ver.String(), tc)
-		}
+		result, found := ServersInDCMeetMinimumVersion(tc.members, "primary", tc.ver)
+		require.Equal(t, tc.expected, result)
+		require.Equal(t, tc.expectedFound, found)
 	}
 }
 
