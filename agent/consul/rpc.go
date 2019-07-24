@@ -205,13 +205,6 @@ func canRetry(args interface{}, err error) bool {
 		return true
 	}
 
-	// If we were chunking and the term changed, resubmit against the new
-	// leader
-	intErr, ok := args.(error)
-	if ok && strings.Contains(intErr.Error(), raftchunking.ErrTermMismatch.Error()) {
-		return true
-	}
-
 	// Reads are safe to retry for stream errors, such as if a server was
 	// being shut down.
 	info, ok := args.(structs.RPCInfo)
