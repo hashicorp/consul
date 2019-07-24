@@ -11,7 +11,8 @@ IMPROVEMENTS:
 * agent: health checks: change long timeout behavior to use to user-configured `timeout` value [[GH-6094](https://github.com/hashicorp/consul/pull/6094)]
 * api: Update filtering language to include substring and regular expression matching on string values [[GH-6190](https://github.com/hashicorp/consul/pull/6190)]
 * api: Display allowed HTTP CIDR information nicely [[GH-6029](https://github.com/hashicorp/consul/pull/6029)]
-* connect: rework how the service resolver subset OnlyPassing flag works [GH-6173]
+* connect: rework how the service resolver subset OnlyPassing flag works [[GH-6173](https://github.com/hashicorp/consul/issues/6173)]
+* connect: validate and test more of the L7 config entries [[GH-6156](https://github.com/hashicorp/consul/issues/6156)]
 
 BUG FIXES:
 
