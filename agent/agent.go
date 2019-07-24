@@ -3918,13 +3918,13 @@ func (a *Agent) registerCache() {
 		RefreshTimeout: 10 * time.Minute,
 	})
 
-	a.cache.RegisterType(cachetype.StreamingHealthServicesName,
-		cachetype.NewStreamingHealthServices(a.streamClient),
-		&cache.RegisterOptions{
-			Refresh:        false,
-			RefreshTimer:   0 * time.Second,
-			RefreshTimeout: 10 * time.Minute,
-		})
+	a.cache.RegisterType(cachetype.StreamingHealthServicesName, &cachetype.StreamingHealthServices{
+		Client: a.streamClient,
+	}, &cache.RegisterOptions{
+		Refresh:        false,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
 
 	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{
 		RPC: a,

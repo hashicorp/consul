@@ -10,6 +10,7 @@ service Consul {
 
 enum Topic {
     ServiceHealth = 0;
+    EndOfSnapshot = 1;
 }
   
 message SubscribeRequest {
@@ -21,7 +22,6 @@ message Event {
     Topic topic = 1;
     string key = 2;
     uint64 index = 3;
-    bool endOfSnapshot = 4;
     oneof payload {
         ServiceHealthUpdate serviceHealth = 5;
     }

@@ -29,21 +29,19 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	snapshotCh := make(chan stream.Event, 32)
 	go snapshotFunc(server.Context(), snapshotCh, req.Key)
 
-	h.srv.logger.Printf("[INFO] consul: new subscriber to %s/%s", req.Topic, req.Key)
-
 	// Wait for the events to come in and forward them to the client.
 	for event := range snapshotCh {
-		h.srv.logger.Printf("[INFO] consul: finished sending snapshot to new subscriber")
 		if err := server.Send(&event); err != nil {
 			return err
 		}
 	}
 
 	// Send a marker that this is the end of the snapshot.
-	endSnapshotEvent := stream.Event{EndOfSnapshot: true}
+	endSnapshotEvent := stream.Event{Topic: stream.Topic_EndOfSnapshot}
 	if err := server.Send(&endSnapshotEvent); err != nil {
 		return err
 	}
+	h.srv.logger.Printf("[INFO] consul: finished sending snapshot to new subscriber")
 
 	// Register a subscription on this topic/key with the FSM.
 	eventCh := state.Subscribe(req)
