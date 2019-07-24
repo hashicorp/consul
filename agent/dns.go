@@ -1760,56 +1760,79 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	if _, ok := resp.RemoteAddr().(*net.TCPAddr); ok {
 		network = "tcp"
 	}
+	rejectRecurse := false
 
-	// Recursively resolve
-	c := &dns.Client{Net: network, Timeout: cfg.RecursorTimeout}
-	var r *dns.Msg
-	var rtt time.Duration
-	var err error
-	for _, recursor := range cfg.Recursors {
-		r, rtt, err = c.Exchange(req, recursor)
-		// Check if the response is valid and has the desired Response code
-		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
-			d.logger.Debug("recurse failed for question",
-				"question", q,
-				"rtt", rtt,
-				"recursor", recursor,
-				"rcode", dns.RcodeToString[r.Rcode],
-			)
-			// If we still have recursors to forward the query to,
-			// we move forward onto the next one else the loop ends
-			continue
-		} else if err == nil || (r != nil && r.Truncated) {
-			// Compress the response; we don't know if the incoming
-			// response was compressed or not, so by not compressing
-			// we might generate an invalid packet on the way out.
-			r.Compress = !cfg.DisableCompression
-
-			// Forward the response
-			d.logger.Debug("recurse succeeded for question",
-				"question", q,
-				"rtt", rtt,
-				"recursor", recursor,
-			)
-			if err := resp.WriteMsg(r); err != nil {
-				d.logger.Warn("failed to respond", "error", err)
-			}
-			return
+	// Refuse to recursively resolve requests of type DS for domains that we manage.
+	// Upstream resolvers will not know about the correct record anyways, and it might result in a resolver loop
+	if q.Qtype == dns.TypeDS {
+		if strings.HasSuffix(q.Name, d.domain) {
+			rejectRecurse = true
+			d.logger.Debug("request for %v (%s): Refusing to recurse type DS requests to %v.",
+				q, network, d.domain)
 		}
-		d.logger.Error("recurse failed", "error", err)
+		// altDomain is not empty and the queried name ends with altDomain
+		if d.altDomain != "." && strings.HasSuffix(q.Name, d.altDomain) {
+			rejectRecurse = true
+			d.logger.Debug("request for %v (%s): Refusing to recurse type DS requests to %v.",
+				q, network, d.altDomain)
+		}
 	}
 
-	// If all resolvers fail, return a SERVFAIL message
-	d.logger.Error("all resolvers failed for question from client",
-		"question", q,
-		"client", resp.RemoteAddr().String(),
-		"client_network", resp.RemoteAddr().Network(),
-	)
+	if !rejectRecurse {
+		// Recursively resolve
+		c := &dns.Client{Net: network, Timeout: cfg.RecursorTimeout}
+		var r *dns.Msg
+		var rtt time.Duration
+		var err error
+		for _, recursor := range cfg.Recursors {
+			r, rtt, err = c.Exchange(req, recursor)
+			// Check if the response is valid and has the desired Response code
+			if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
+				d.logger.Debug("recurse failed for question",
+					"question", q,
+					"rtt", rtt,
+					"recursor", recursor,
+					"rcode", dns.RcodeToString[r.Rcode],
+				)
+				// If we still have recursors to forward the query to,
+				// we move forward onto the next one else the loop ends
+				continue
+			} else if err == nil || (r != nil && r.Truncated) {
+				// Compress the response; we don't know if the incoming
+				// response was compressed or not, so by not compressing
+				// we might generate an invalid packet on the way out.
+				r.Compress = !cfg.DisableCompression
+
+				// Forward the response
+				d.logger.Debug("recurse succeeded for question",
+					"question", q,
+					"rtt", rtt,
+					"recursor", recursor,
+				)
+				if err := resp.WriteMsg(r); err != nil {
+					d.logger.Warn("failed to respond", "error", err)
+				}
+				return
+			}
+			d.logger.Error("recurse failed", "error", err)
+		}
+
+		// If all resolvers fail, return a SERVFAIL message
+		d.logger.Error("all resolvers failed for question from client",
+			"question", q,
+			"client", resp.RemoteAddr().String(),
+			"client_network", resp.RemoteAddr().Network(),
+		)
+	}
 	m := &dns.Msg{}
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.RecursionAvailable = true
-	m.SetRcode(req, dns.RcodeServerFailure)
+	if rejectRecurse {
+		m.SetRcode(req, dns.RcodeRefused)
+	} else {
+		m.SetRcode(req, dns.RcodeServerFailure)
+	}
 	if edns := req.IsEdns0(); edns != nil {
 		setEDNS(req, m, true)
 	}
