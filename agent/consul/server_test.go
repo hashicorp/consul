@@ -183,6 +183,10 @@ func newServer(c *Config) (*Server, error) {
 			oldNotify()
 		}
 	}
+	// Restore old notify to guard against re-closing `up` on a retry
+	defer func() {
+		c.NotifyListen = oldNotify
+	}()
 
 	// start server
 	w := c.LogOutput
@@ -820,7 +824,6 @@ func TestServer_BadExpect(t *testing.T) {
 type fakeGlobalResp struct{}
 
 func (r *fakeGlobalResp) Add(interface{}) {
-	return
 }
 
 func (r *fakeGlobalResp) New() interface{} {

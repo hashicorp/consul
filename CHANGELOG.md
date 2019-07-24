@@ -6,6 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* raft: allow trailing logs to be configured as an escape hatch for extreme load that prevents followers catching up with leader [[GH-6186](https://github.com/hashicorp/consul/pull/6186)]
+* agent: added configurable limit for log files to be rotated [[GH-5831](https://github.com/hashicorp/consul/pull/5831)]
 * agent: health checks: change long timeout behavior to use to user-configured `timeout` value [[GH-6094](https://github.com/hashicorp/consul/pull/6094)]
 * api: Update filtering language to include substring and regular expression matching on string values [[GH-6190](https://github.com/hashicorp/consul/pull/6190)]
 * api: Display allowed HTTP CIDR information nicely [[GH-6029](https://github.com/hashicorp/consul/pull/6029)]
@@ -93,9 +95,9 @@ SECURITY:
  [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
  related to HTTP request parsing and so only affect Consul Connect users if they
  have configured HTTP routing rules via the ["escape
- hatch"](#custom-configuration). We recommend Envoy 1.9.1 be used. 
- Note that while we officially deprecate support for older version of Envoy in 1.5.0, 
- we recommend using Envoy 1.9.1 with all previous versions of Consul Connect too 
+ hatch"](#custom-configuration). We recommend Envoy 1.9.1 be used.
+ Note that while we officially deprecate support for older version of Envoy in 1.5.0,
+ we recommend using Envoy 1.9.1 with all previous versions of Consul Connect too
  (back to 1.3.0 where Envoy support was introduced).
 
 BREAKING CHANGES:
@@ -246,7 +248,7 @@ BUG FIXES:
 * cli: display messages from serf in cli [[GH-5236](https://github.com/hashicorp/consul/pull/5236)]
 * connect: Fixed an issue where a blank CA config could be written to a snapshot when Connect was disabled. [[GH-4954](https://github.com/hashicorp/consul/pull/4954)]
 * connect: Fixed a bug with the create and modify indices of leaf certificates not being incremented properly. [[GH-4463](https://github.com/hashicorp/consul/issues/4463)]
-* connect: Fixed an issue where certificates could leak and remain in client memory forever [[GH-5091](https://github.com/hashicorp/consul/pull/5091)] 
+* connect: Fixed an issue where certificates could leak and remain in client memory forever [[GH-5091](https://github.com/hashicorp/consul/pull/5091)]
 * connect: (Consul Enterprise) When requesting to sign intermediates the primary dc is now used
 * connect: added tls config for vault connect ca provider [[GH-5125](https://github.com/hashicorp/consul/issues/5125)]
 * connect: Fix a panic on 32 bit systems for unaligned 64 bit atomic operations. [[GH-5128](https://github.com/hashicorp/consul/issues/5128)]

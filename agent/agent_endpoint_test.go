@@ -564,7 +564,7 @@ func TestAgent_Service(t *testing.T) {
 			}
 			start := time.Now()
 			obj, err := a.srv.AgentService(resp, req)
-			elapsed := time.Now().Sub(start)
+			elapsed := time.Since(start)
 
 			if tt.wantErr != "" {
 				require.Error(err)
@@ -5350,7 +5350,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 			}
 			start := time.Now()
 			obj, err := a.srv.AgentConnectProxyConfig(resp, req)
-			elapsed := time.Now().Sub(start)
+			elapsed := time.Since(start)
 
 			if tt.wantErr {
 				require.Error(err)

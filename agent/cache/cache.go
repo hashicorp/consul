@@ -703,7 +703,7 @@ func (c *Cache) runExpiryLoop() {
 		c.entriesLock.RLock()
 		if len(c.entriesExpiryHeap.Entries) > 0 {
 			entry = c.entriesExpiryHeap.Entries[0]
-			expiryTimer = time.NewTimer(entry.Expires.Sub(time.Now()))
+			expiryTimer = time.NewTimer(time.Until(entry.Expires))
 			expiryCh = expiryTimer.C
 		}
 		c.entriesLock.RUnlock()

@@ -77,16 +77,9 @@ jobs:
       - run: mkdir -p $TEST_RESULTS_DIR
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
-      # Use CircleCI test splitting by classname. Since there are no classes in go,
-      # we fake it by taking everything after github.com/hashicorp/consul/ and setting
-      # it as the classname.
-
-      # This loop writes go test results to <reportname>.xml per go package
       - run: |
-          for pkg in $(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess |circleci tests split --split-by=timings --timings-type=classname | tr '\n' ' '); do
-            reportname=$(echo $pkg | cut -d '/' -f3- | sed "s#/#_#g")
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/$reportname.xml -- -tags=$GOTAGS $pkg
-          done
+          PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname)
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
 
       - store_test_results:
           path: /tmp/test-results
@@ -108,18 +101,11 @@ jobs:
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
-      # Use CircleCI test splitting by classname. Since there are no classes in go,
-      # we fake it by taking everything after github.com/hashicorp/consul/ and setting
-      # it as the classname.
-
-      # This loop writes go test results to <reportname>.xml per go package
       - run:
           working_directory: api
           command: |
-            for pkg in $(go list ./... | circleci tests split --split-by=timings --timings-type=classname | tr '\n' ' '); do
-              reportname=$(echo $pkg | cut -d '/' -f3- | sed "s#/#_#g")
-              gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/$reportname.xml -- -tags=$GOTAGS $pkg
-            done
+            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS $PACKAGE_NAMES
 
       - store_test_results:
           path: /tmp/test-results
@@ -476,7 +462,25 @@ jobs:
             git_merge_branch="ci/master-merge-$(date +%Y%m%d%H%M%S)"
             git checkout -b "${git_merge_branch}"
             latest_oss_commit="$(git rev-parse origin/master)"
-            git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"
+
+            if ! errors=$(git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"); then
+              printf "oss/master merge into ${CIRCLE_BRANCH} failed because git was unable to auto-merge!\n${errors}"
+              curl -X POST -H 'Content-type: application/json' \
+              --data \
+              "{ \
+                \"attachments\": [ \
+                  { \
+                    \"fallback\": \"master merge into ${CIRCLE_BRANCH} failed because git was unable to auto-merge!\", \
+                    \"text\": \"Nightly *master* merge into *${CIRCLE_BRANCH}* failed!\n\nBuild Log: ${CIRCLE_BUILD_URL}\n\nGit was unable to auto-merge due to possible merge conflict.\n\n*Errors:*\n${errors}\", \
+                    \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
+                    \"ts\": \"$(date +%s)\", \
+                    \"color\": \"danger\" \
+                  } \
+                ] \
+              }" ${CONSUL_SLACK_WEBHOOK_URL}
+              exit 1
+            fi
+
             git push origin "${git_merge_branch}"
             sleep 15  # Wait for merge branch to start CircleCI pipeline
 
@@ -568,28 +572,26 @@ workflows:
             branches:
               only:
                 - release/1-6
-  build-distros:
+  go-tests:
     jobs:
       - lint-consul-retry
-      - go-fmt-and-vet:
+      - go-fmt-and-vet
+      - dev-build:
           requires:
             - lint-consul-retry
-      - build-386: &require-go-fmt-vet
-          requires:
             - go-fmt-and-vet
-      - build-amd64: *require-go-fmt-vet
-      - build-arm-arm64: *require-go-fmt-vet
-  test-integrations:
-    jobs:
-      - dev-build
       - go-test: &go-test
           requires:
             - dev-build
-          filters:
-            branches:
-              ignore:
-                - /^pull\/.*$/ # only run go tests on non forks
       - go-test-api: *go-test
+  build-distros:
+    jobs:
+      - build-386
+      - build-amd64
+      - build-arm-arm64
+  test-integrations:
+    jobs:
+      - dev-build
       - dev-upload-s3:
           requires:
             - dev-build

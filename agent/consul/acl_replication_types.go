@@ -316,7 +316,7 @@ func (r *aclRoleReplicator) FetchUpdated(srv *Server, updates []string) (int, er
 				delete(keep, role.ID)
 			}
 			missing := make([]string, 0, len(keep))
-			for id, _ := range keep {
+			for id := range keep {
 				missing = append(missing, id)
 			}
 			return 0, fmt.Errorf("role replication trying to replicated uncached roles with IDs: %v", missing)
