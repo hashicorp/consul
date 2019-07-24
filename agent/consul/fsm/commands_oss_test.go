@@ -1409,10 +1409,11 @@ func TestFSM_ConfigEntry(t *testing.T) {
 // works as expected.
 func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	t.Parallel()
+	require := require.New(t)
+	assert := assert.New(t)
+
 	fsm, err := New(nil, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(err)
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -1432,10 +1433,9 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 			ServiceID: "db",
 		},
 	}
+
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(err)
 
 	var logs []*raft.Log
 	for i, b := range buf {
@@ -1445,9 +1445,8 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 			NumChunks:   uint32(len(buf)),
 		}
 		chunkBytes, err := proto.Marshal(chunkInfo)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(err)
+
 		logs = append(logs, &raft.Log{
 			Data:       []byte{b},
 			Extensions: chunkBytes,
@@ -1458,102 +1457,72 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	// theoretically possible
 	for i := 0; i < len(logs); i += 2 {
 		resp := fsm.chunker.Apply(logs[i])
-		if resp != nil {
-			t.Fatalf("resp: %v", resp)
-		}
+		assert.Nil(resp)
 	}
 
 	// Verify we are not registered
 	_, node, err := fsm.state.GetNode("foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if node != nil {
-		t.Fatal("did not expect to find node!")
-	}
+	require.NoError(err)
+	assert.Nil(node)
 
 	// Snapshot, restore elsewhere, apply the rest of the logs, make sure it
 	// looks right
 	snap, err := fsm.Snapshot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	defer snap.Release()
 
 	sinkBuf := bytes.NewBuffer(nil)
 	sink := &MockSink{sinkBuf, false}
-	if err := snap.Persist(sink); err != nil {
-		t.Fatal(err)
-	}
+	err = snap.Persist(sink)
+	require.NoError(err)
 
 	fsm2, err := New(nil, os.Stderr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := fsm2.Restore(sink); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
+	err = fsm2.Restore(sink)
+	require.NoError(err)
 
 	// Verify we are still not registered
 	_, node, err = fsm2.state.GetNode("foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if node != nil {
-		t.Fatal("did not expect to find node!")
-	}
+	require.NoError(err)
+	assert.Nil(node)
 
 	// Apply the rest of the logs
 	var resp interface{}
 	for i := 1; i < len(logs); i += 2 {
 		resp = fsm2.chunker.Apply(logs[i])
 		if resp != nil {
-			if _, ok := resp.(raftchunking.ChunkingSuccess); !ok {
-				t.Fatalf("resp: %v", resp)
-			}
+			_, ok := resp.(raftchunking.ChunkingSuccess)
+			assert.True(ok)
 		}
 	}
-	if resp == nil {
-		t.Fatal("expected non-nil final value")
-	}
-	if _, ok := resp.(raftchunking.ChunkingSuccess); !ok {
-		t.Fatalf("expected chunking success for final value, resp: %v", resp)
-	}
+	assert.NotNil(resp)
+	_, ok := resp.(raftchunking.ChunkingSuccess)
+	assert.True(ok)
 
 	// Verify we are registered
 	_, node, err = fsm2.state.GetNode("foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if node == nil {
-		t.Fatal("did not find node!")
-	}
+	require.NoError(err)
+	assert.NotNil(node)
 
 	// Verify service registered
 	_, services, err := fsm2.state.NodeServices(nil, "foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if _, ok := services.Services["db"]; !ok {
-		t.Fatal("not registered!")
-	}
+	require.NoError(err)
+	_, ok = services.Services["db"]
+	assert.True(ok)
 
 	// Verify check
 	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if checks[0].CheckID != "db" {
-		t.Fatal("not registered!")
-	}
+	require.NoError(err)
+	require.Equal(string(checks[0].CheckID), "db")
 }
 
 func TestFSM_Chunking_TermChange(t *testing.T) {
 	t.Parallel()
+	assert := assert.New(t)
+	require := require.New(t)
+
 	fsm, err := New(nil, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(err)
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -1574,9 +1543,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 		},
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(err)
 
 	// Only need two chunks to test this
 	chunks := [][]byte{
@@ -1604,9 +1571,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 	// We should see nil for both
 	for _, log := range logs {
 		resp := fsm.chunker.Apply(log)
-		if resp != nil {
-			t.Fatalf("resp: %v", resp)
-		}
+		assert.Nil(resp)
 	}
 
 	// Now verify the other baseline, that when the term doesn't change we see
@@ -1618,12 +1583,11 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 	// We should see nil only for the first one
 	for i, log := range logs {
 		resp := fsm.chunker.Apply(log)
-		if resp != nil && i == 0 {
-			t.Fatalf("resp: %v", resp)
+		if i == 0 {
+			assert.Nil(resp)
 		}
-		if resp == nil && i == 1 {
-			t.Fatal("expected non-nil")
+		if i == 1 {
+			assert.NotNil(resp)
 		}
 	}
-
 }

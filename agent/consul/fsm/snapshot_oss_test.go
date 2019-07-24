@@ -277,9 +277,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			Data:        []byte("bar"),
 		},
 	}
-	if err := fsm.chunker.RestoreState(chunkState); err != nil {
-		t.Fatal(err)
-	}
+	err = fsm.chunker.RestoreState(chunkState)
+	require.NoError(err)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
