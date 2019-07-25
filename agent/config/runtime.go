@@ -833,7 +833,7 @@ type RuntimeConfig struct {
 	// KVMaxValueSize controls the max allowed value size. If not set defaults
 	// to raft's suggested max value size.
 	//
-	// hcl: limit { kv_max_value_size = uint64 }
+	// hcl: limits { kv_max_value_size = uint64 }
 	KVMaxValueSize uint64
 
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
