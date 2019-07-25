@@ -19,17 +19,14 @@ import (
 	"github.com/coredns/coredns/plugin"
 )
 
-func parseLiteralIP(addr string) net.IP {
+// parseIP calls discards any v6 zone info, before calling net.ParseIP.
+func parseIP(addr string) net.IP {
 	if i := strings.Index(addr, "%"); i >= 0 {
 		// discard ipv6 zone
 		addr = addr[0:i]
 	}
 
 	return net.ParseIP(addr)
-}
-
-func absDomainName(b string) string {
-	return plugin.Name(b).Normalize()
 }
 
 type options struct {
@@ -48,48 +45,40 @@ func newOptions() *options {
 	return &options{
 		autoReverse: true,
 		ttl:         3600,
-		reload:      durationOf5s,
+		reload:      time.Duration(5 * time.Second),
 	}
 }
 
-type hostsMap struct {
-	// Key for the list of literal IP addresses must be a host
-	// name. It would be part of DNS labels, a FQDN or an absolute
-	// FQDN.
-	// For now the key is converted to lower case for convenience.
-	byNameV4 map[string][]net.IP
-	byNameV6 map[string][]net.IP
+// Map contains the IPv4/IPv6 and reverse mapping.
+type Map struct {
+	// Key for the list of literal IP addresses must be a FQDN lowercased host name.
+	name4 map[string][]net.IP
+	name6 map[string][]net.IP
 
 	// Key for the list of host names must be a literal IP address
-	// including IPv6 address with zone identifier.
+	// including IPv6 address without zone identifier.
 	// We don't support old-classful IP address notation.
-	byAddr map[string][]string
+	addr map[string][]string
 }
 
-const (
-	durationOf0s = time.Duration(0)
-	durationOf5s = time.Duration(5 * time.Second)
-)
-
-func newHostsMap() *hostsMap {
-	return &hostsMap{
-		byNameV4: make(map[string][]net.IP),
-		byNameV6: make(map[string][]net.IP),
-		byAddr:   make(map[string][]string),
+func newMap() *Map {
+	return &Map{
+		name4: make(map[string][]net.IP),
+		name6: make(map[string][]net.IP),
+		addr:  make(map[string][]string),
 	}
 }
 
-// Len returns the total number of addresses in the hostmap, this includes
-// V4/V6 and any reverse addresses.
-func (h *hostsMap) Len() int {
+// Len returns the total number of addresses in the hostmap, this includes V4/V6 and any reverse addresses.
+func (h *Map) Len() int {
 	l := 0
-	for _, v4 := range h.byNameV4 {
+	for _, v4 := range h.name4 {
 		l += len(v4)
 	}
-	for _, v6 := range h.byNameV6 {
+	for _, v6 := range h.name6 {
 		l += len(v6)
 	}
-	for _, a := range h.byAddr {
+	for _, a := range h.addr {
 		l += len(a)
 	}
 	return l
@@ -103,11 +92,10 @@ type Hostsfile struct {
 	Origins []string
 
 	// hosts maps for lookups
-	hmap *hostsMap
+	hmap *Map
 
 	// inline saves the hosts file that is inlined in a Corefile.
-	// We need a copy here as we want to use it to initialize the maps for parse.
-	inline *hostsMap
+	inline *Map
 
 	// path to the hosts file
 	path string
@@ -132,6 +120,7 @@ func (h *Hostsfile) readHosts() {
 	h.RLock()
 	size := h.size
 	h.RUnlock()
+
 	if err == nil && h.mtime.Equal(stat.ModTime()) && size == stat.Size() {
 		return
 	}
@@ -155,12 +144,11 @@ func (h *Hostsfile) initInline(inline []string) {
 	}
 
 	h.inline = h.parse(strings.NewReader(strings.Join(inline, "\n")))
-	*h.hmap = *h.inline
 }
 
-// Parse reads the hostsfile and populates the byName and byAddr maps.
-func (h *Hostsfile) parse(r io.Reader) *hostsMap {
-	hmap := newHostsMap()
+// Parse reads the hostsfile and populates the byName and addr maps.
+func (h *Hostsfile) parse(r io.Reader) *Map {
+	hmap := newMap()
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -173,73 +161,52 @@ func (h *Hostsfile) parse(r io.Reader) *hostsMap {
 		if len(f) < 2 {
 			continue
 		}
-		addr := parseLiteralIP(string(f[0]))
+		addr := parseIP(string(f[0]))
 		if addr == nil {
 			continue
 		}
-		ver := ipVersion(string(f[0]))
+
+		family := 0
+		if addr.To4() != nil {
+			family = 1
+		} else {
+			family = 2
+		}
+
 		for i := 1; i < len(f); i++ {
-			name := absDomainName(string(f[i]))
+			name := plugin.Name(string(f[i])).Normalize()
 			if plugin.Zones(h.Origins).Matches(name) == "" {
 				// name is not in Origins
 				continue
 			}
-			switch ver {
-			case 4:
-				hmap.byNameV4[name] = append(hmap.byNameV4[name], addr)
-			case 6:
-				hmap.byNameV6[name] = append(hmap.byNameV6[name], addr)
+			switch family {
+			case 1:
+				hmap.name4[name] = append(hmap.name4[name], addr)
+			case 2:
+				hmap.name6[name] = append(hmap.name6[name], addr)
 			default:
 				continue
 			}
 			if !h.options.autoReverse {
 				continue
 			}
-			hmap.byAddr[addr.String()] = append(hmap.byAddr[addr.String()], name)
+			hmap.addr[addr.String()] = append(hmap.addr[addr.String()], name)
 		}
-	}
-
-	for name := range h.hmap.byNameV4 {
-		hmap.byNameV4[name] = append(hmap.byNameV4[name], h.hmap.byNameV4[name]...)
-	}
-	for name := range h.hmap.byNameV4 {
-		hmap.byNameV6[name] = append(hmap.byNameV6[name], h.hmap.byNameV6[name]...)
-	}
-
-	for addr := range h.hmap.byAddr {
-		hmap.byAddr[addr] = append(hmap.byAddr[addr], h.hmap.byAddr[addr]...)
 	}
 
 	return hmap
 }
 
-// ipVersion returns what IP version was used textually
-// For why the string is parsed end to start,
-// see IPv4-Compatible IPv6 addresses - RFC 4291 section 2.5.5
-func ipVersion(s string) int {
-	for i := len(s) - 1; i >= 0; i-- {
-		switch s[i] {
-		case '.':
-			return 4
-		case ':':
-			return 6
-		}
-	}
-	return 0
-}
-
-// LookupStaticHost looks up the IP addresses for the given host from the hosts file.
-func (h *Hostsfile) lookupStaticHost(hmapByName map[string][]net.IP, host string) []net.IP {
-	fqhost := absDomainName(host)
-
+// lookupStaticHost looks up the IP addresses for the given host from the hosts file.
+func (h *Hostsfile) lookupStaticHost(m map[string][]net.IP, host string) []net.IP {
 	h.RLock()
 	defer h.RUnlock()
 
-	if len(hmapByName) == 0 {
+	if len(m) == 0 {
 		return nil
 	}
 
-	ips, ok := hmapByName[fqhost]
+	ips, ok := m[host]
 	if !ok {
 		return nil
 	}
@@ -250,30 +217,38 @@ func (h *Hostsfile) lookupStaticHost(hmapByName map[string][]net.IP, host string
 
 // LookupStaticHostV4 looks up the IPv4 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV4(host string) []net.IP {
-	return h.lookupStaticHost(h.hmap.byNameV4, host)
+	host = strings.ToLower(host)
+	ip1 := h.lookupStaticHost(h.hmap.name4, host)
+	ip2 := h.lookupStaticHost(h.inline.name4, host)
+	return append(ip1, ip2...)
 }
 
 // LookupStaticHostV6 looks up the IPv6 addresses for the given host from the hosts file.
 func (h *Hostsfile) LookupStaticHostV6(host string) []net.IP {
-	return h.lookupStaticHost(h.hmap.byNameV6, host)
+	host = strings.ToLower(host)
+	ip1 := h.lookupStaticHost(h.hmap.name6, host)
+	ip2 := h.lookupStaticHost(h.inline.name6, host)
+	return append(ip1, ip2...)
 }
 
 // LookupStaticAddr looks up the hosts for the given address from the hosts file.
 func (h *Hostsfile) LookupStaticAddr(addr string) []string {
-	h.RLock()
-	defer h.RUnlock()
-	addr = parseLiteralIP(addr).String()
+	addr = parseIP(addr).String()
 	if addr == "" {
 		return nil
 	}
-	if len(h.hmap.byAddr) == 0 {
+
+	h.RLock()
+	defer h.RUnlock()
+	hosts1, _ := h.hmap.addr[addr]
+	hosts2, _ := h.inline.addr[addr]
+
+	if len(hosts1) == 0 && len(hosts2) == 0 {
 		return nil
 	}
-	hosts, ok := h.hmap.byAddr[addr]
-	if !ok {
-		return nil
-	}
-	hostsCp := make([]string, len(hosts))
-	copy(hostsCp, hosts)
+
+	hostsCp := make([]string, len(hosts1)+len(hosts2))
+	copy(hostsCp, hosts1)
+	copy(hostsCp[len(hosts1):], hosts2)
 	return hostsCp
 }

@@ -100,7 +100,7 @@ func TestHostsInlineParse(t *testing.T) {
 	tests := []struct {
 		inputFileRules      string
 		shouldErr           bool
-		expectedbyAddr      map[string][]string
+		expectedaddr        map[string][]string
 		expectedFallthrough fall.F
 	}{
 		{
@@ -148,19 +148,20 @@ func TestHostsInlineParse(t *testing.T) {
 			t.Fatalf("Test %d expected no errors, but got '%v'", i, err)
 		} else if !test.shouldErr {
 			if !h.Fall.Equal(test.expectedFallthrough) {
-				t.Fatalf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fall)
+				t.Errorf("Test %d expected fallthrough of %v, got %v", i, test.expectedFallthrough, h.Fall)
 			}
-			for k, expectedVal := range test.expectedbyAddr {
-				if val, ok := h.hmap.byAddr[k]; !ok {
-					t.Fatalf("Test %d expected %v, got no entry", i, k)
-				} else {
-					if len(expectedVal) != len(val) {
-						t.Fatalf("Test %d expected %v records for %v, got %v", i, len(expectedVal), k, len(val))
-					}
-					for j := range expectedVal {
-						if expectedVal[j] != val[j] {
-							t.Fatalf("Test %d expected %v for %v, got %v", i, expectedVal[j], j, val[j])
-						}
+			for k, expectedVal := range test.expectedaddr {
+				val, ok := h.inline.addr[k]
+				if !ok {
+					t.Errorf("Test %d expected %v, got no entry", i, k)
+					continue
+				}
+				if len(expectedVal) != len(val) {
+					t.Errorf("Test %d expected %v records for %v, got %v", i, len(expectedVal), k, len(val))
+				}
+				for j := range expectedVal {
+					if expectedVal[j] != val[j] {
+						t.Errorf("Test %d expected %v for %v, got %v", i, expectedVal[j], j, val[j])
 					}
 				}
 			}

@@ -9,15 +9,18 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/coredns/coredns/plugin"
 )
 
 func testHostsfile(file string) *Hostsfile {
 	h := &Hostsfile{
 		Origins: []string{"."},
-		hmap:    newHostsMap(),
+		hmap:    newMap(),
+		inline:  newMap(),
 		options: newOptions(),
 	}
-	h.parseReader(strings.NewReader(file))
+	h.hmap = h.parse(strings.NewReader(file))
 	return h
 }
 
@@ -74,44 +77,43 @@ var lookupStaticHostTests = []struct {
 	{
 		hosts,
 		[]staticHostEntry{
-			{"odin", []string{"127.0.0.2", "127.0.0.3"}, []string{"::2"}},
-			{"thor", []string{"127.1.1.1"}, []string{}},
-			{"ullr", []string{"127.1.1.2"}, []string{}},
-			{"ullrhost", []string{"127.1.1.2"}, []string{}},
-			{"localhost", []string{}, []string{"fe80::1"}},
+			{"odin.", []string{"127.0.0.2", "127.0.0.3"}, []string{"::2"}},
+			{"thor.", []string{"127.1.1.1"}, []string{}},
+			{"ullr.", []string{"127.1.1.2"}, []string{}},
+			{"ullrhost.", []string{"127.1.1.2"}, []string{}},
+			{"localhost.", []string{}, []string{"fe80::1"}},
 		},
 	},
 	{
 		singlelinehosts, // see golang.org/issue/6646
 		[]staticHostEntry{
-			{"odin", []string{"127.0.0.2"}, []string{}},
+			{"odin.", []string{"127.0.0.2"}, []string{}},
 		},
 	},
 	{
 		ipv4hosts,
 		[]staticHostEntry{
-			{"localhost", []string{"127.0.0.1", "127.0.0.2", "127.0.0.3"}, []string{}},
-			{"localhost.localdomain", []string{"127.0.0.3"}, []string{}},
+			{"localhost.", []string{"127.0.0.1", "127.0.0.2", "127.0.0.3"}, []string{}},
+			{"localhost.localdomain.", []string{"127.0.0.3"}, []string{}},
 		},
 	},
 	{
 		ipv6hosts,
 		[]staticHostEntry{
-			{"localhost", []string{}, []string{"::1", "fe80::1", "fe80::2", "fe80::3"}},
-			{"localhost.localdomain", []string{}, []string{"fe80::3"}},
+			{"localhost.", []string{}, []string{"::1", "fe80::1", "fe80::2", "fe80::3"}},
+			{"localhost.localdomain.", []string{}, []string{"fe80::3"}},
 		},
 	},
 	{
 		casehosts,
 		[]staticHostEntry{
-			{"PreserveMe", []string{"127.0.0.1"}, []string{"::1"}},
-			{"PreserveMe.local", []string{"127.0.0.1"}, []string{"::1"}},
+			{"PreserveMe.", []string{"127.0.0.1"}, []string{"::1"}},
+			{"PreserveMe.local.", []string{"127.0.0.1"}, []string{"::1"}},
 		},
 	},
 }
 
 func TestLookupStaticHost(t *testing.T) {
-
 	for _, tt := range lookupStaticHostTests {
 		h := testHostsfile(tt.file)
 		for _, ent := range tt.ents {
@@ -121,7 +123,7 @@ func TestLookupStaticHost(t *testing.T) {
 }
 
 func testStaticHost(t *testing.T, ent staticHostEntry, h *Hostsfile) {
-	ins := []string{ent.in, absDomainName(ent.in), strings.ToLower(ent.in), strings.ToUpper(ent.in)}
+	ins := []string{ent.in, plugin.Name(ent.in).Normalize(), strings.ToLower(ent.in), strings.ToUpper(ent.in)}
 	for k, in := range ins {
 		addrsV4 := h.LookupStaticHostV4(in)
 		if len(addrsV4) != len(ent.v4) {
@@ -156,43 +158,43 @@ var lookupStaticAddrTests = []struct {
 	{
 		hosts,
 		[]staticIPEntry{
-			{"255.255.255.255", []string{"broadcasthost"}},
-			{"127.0.0.2", []string{"odin"}},
-			{"127.0.0.3", []string{"odin"}},
-			{"::2", []string{"odin"}},
-			{"127.1.1.1", []string{"thor"}},
-			{"127.1.1.2", []string{"ullr", "ullrhost"}},
-			{"fe80::1", []string{"localhost"}},
+			{"255.255.255.255", []string{"broadcasthost."}},
+			{"127.0.0.2", []string{"odin."}},
+			{"127.0.0.3", []string{"odin."}},
+			{"::2", []string{"odin."}},
+			{"127.1.1.1", []string{"thor."}},
+			{"127.1.1.2", []string{"ullr.", "ullrhost."}},
+			{"fe80::1", []string{"localhost."}},
 		},
 	},
 	{
 		singlelinehosts, // see golang.org/issue/6646
 		[]staticIPEntry{
-			{"127.0.0.2", []string{"odin"}},
+			{"127.0.0.2", []string{"odin."}},
 		},
 	},
 	{
 		ipv4hosts, // see golang.org/issue/8996
 		[]staticIPEntry{
-			{"127.0.0.1", []string{"localhost"}},
-			{"127.0.0.2", []string{"localhost"}},
-			{"127.0.0.3", []string{"localhost", "localhost.localdomain"}},
+			{"127.0.0.1", []string{"localhost."}},
+			{"127.0.0.2", []string{"localhost."}},
+			{"127.0.0.3", []string{"localhost.", "localhost.localdomain."}},
 		},
 	},
 	{
 		ipv6hosts, // see golang.org/issue/8996
 		[]staticIPEntry{
-			{"::1", []string{"localhost"}},
-			{"fe80::1", []string{"localhost"}},
-			{"fe80::2", []string{"localhost"}},
-			{"fe80::3", []string{"localhost", "localhost.localdomain"}},
+			{"::1", []string{"localhost."}},
+			{"fe80::1", []string{"localhost."}},
+			{"fe80::2", []string{"localhost."}},
+			{"fe80::3", []string{"localhost.", "localhost.localdomain."}},
 		},
 	},
 	{
 		casehosts, // see golang.org/issue/12806
 		[]staticIPEntry{
-			{"127.0.0.1", []string{"PreserveMe", "PreserveMe.local"}},
-			{"::1", []string{"PreserveMe", "PreserveMe.local"}},
+			{"127.0.0.1", []string{"PreserveMe.", "PreserveMe.local."}},
+			{"::1", []string{"PreserveMe.", "PreserveMe.local."}},
 		},
 	},
 }
@@ -209,7 +211,7 @@ func TestLookupStaticAddr(t *testing.T) {
 func testStaticAddr(t *testing.T, ent staticIPEntry, h *Hostsfile) {
 	hosts := h.LookupStaticAddr(ent.in)
 	for i := range ent.out {
-		ent.out[i] = absDomainName(ent.out[i])
+		ent.out[i] = plugin.Name(ent.out[i]).Normalize()
 	}
 	if !reflect.DeepEqual(hosts, ent.out) {
 		t.Errorf("%s, lookupStaticAddr(%s) = %v; want %v", h.path, ent.in, hosts, h)
@@ -221,7 +223,7 @@ func TestHostCacheModification(t *testing.T) {
 	// See https://github.com/golang/go/issues/14212.
 
 	h := testHostsfile(ipv4hosts)
-	ent := staticHostEntry{"localhost", []string{"127.0.0.1", "127.0.0.2", "127.0.0.3"}, []string{}}
+	ent := staticHostEntry{"localhost.", []string{"127.0.0.1", "127.0.0.2", "127.0.0.3"}, []string{}}
 	testStaticHost(t, ent, h)
 	// Modify the addresses return by lookupStaticHost.
 	addrs := h.LookupStaticHostV6(ent.in)
@@ -231,7 +233,7 @@ func TestHostCacheModification(t *testing.T) {
 	testStaticHost(t, ent, h)
 
 	h = testHostsfile(ipv6hosts)
-	entip := staticIPEntry{"::1", []string{"localhost"}}
+	entip := staticIPEntry{"::1", []string{"localhost."}}
 	testStaticAddr(t, entip, h)
 	// Modify the hosts return by lookupStaticAddr.
 	hosts := h.LookupStaticAddr(entip.in)

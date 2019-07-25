@@ -26,7 +26,7 @@ func init() {
 func periodicHostsUpdate(h *Hosts) chan bool {
 	parseChan := make(chan bool)
 
-	if h.options.reload == durationOf0s {
+	if h.options.reload == 0 {
 		return parseChan
 	}
 
@@ -78,7 +78,7 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 	h := Hosts{
 		Hostsfile: &Hostsfile{
 			path:    "/etc/hosts",
-			hmap:    newHostsMap(),
+			hmap:    newMap(),
 			options: options,
 		},
 	}
@@ -152,7 +152,7 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 				if err != nil {
 					return h, c.Errf("invalid duration for reload '%s'", remaining[0])
 				}
-				if reload < durationOf0s {
+				if reload < 0 {
 					return h, c.Errf("invalid negative duration for reload '%s'", remaining[0])
 				}
 				options.reload = reload
