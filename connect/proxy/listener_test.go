@@ -109,7 +109,7 @@ func assertAllTimeCounterValue(t *testing.T, sink *metrics.InmemSink,
 func TestPublicListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
-	ca := agConnect.TestCA(t, nil, agConnect.DefaultPrivateKeyType, agConnect.DefaultPrivateKeyBits)
+	ca := agConnect.TestCA(t, nil)
 	ports := freeport.GetT(t, 1)
 
 	testApp := NewTestTCPServer(t)
@@ -161,7 +161,7 @@ func TestPublicListener(t *testing.T) {
 func TestUpstreamListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
-	ca := agConnect.TestCA(t, nil, agConnect.DefaultPrivateKeyType, agConnect.DefaultPrivateKeyBits)
+	ca := agConnect.TestCA(t, nil)
 	ports := freeport.GetT(t, 1)
 
 	// Run a test server that we can dial.

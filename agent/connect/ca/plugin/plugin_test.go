@@ -228,7 +228,7 @@ func TestProvider_CrossSignCA(t *testing.T) {
 		require := require.New(t)
 
 		// Create a CSR
-		root := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+		root := connect.TestCA(t, nil)
 		block, _ := pem.Decode([]byte(root.RootCert))
 		crt, err := x509.ParseCertificate(block.Bytes)
 		require.NoError(err)

@@ -73,7 +73,7 @@ func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
 func TestCerts(t testing.T) (*structs.IndexedCARoots, *structs.IssuedCert) {
 	t.Helper()
 
-	ca := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca := connect.TestCA(t, nil)
 	roots := &structs.IndexedCARoots{
 		ActiveRootID: ca.ID,
 		TrustDomain:  connect.TestClusterID,

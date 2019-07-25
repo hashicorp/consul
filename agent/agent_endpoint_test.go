@@ -4551,7 +4551,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
 	// adds a second and makes it active.
-	ca2 := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// List
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
@@ -4590,7 +4590,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 	// Test that caching is updated in the background
 	{
 		// Set a new CA
-		ca := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+		ca := connect.TestCAConfigSet(t, a, nil)
 
 		retry.Run(t, func(r *retry.R) {
 			// List it again
@@ -4890,7 +4890,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 	// CA already setup by default by NewTestAgent but force a new one so we can
 	// verify it was signed easily.
-	ca1 := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca1 := connect.TestCAConfigSet(t, a, nil)
 
 	{
 		// Register a local service
@@ -4946,7 +4946,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	// Test that caching is updated in the background
 	{
 		// Set a new CA
-		ca := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+		ca := connect.TestCAConfigSet(t, a, nil)
 
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
@@ -4992,7 +4992,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 	// CA already setup by default by NewTestAgent but force a new one so we can
 	// verify it was signed easily.
-	ca1 := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca1 := connect.TestCAConfigSet(t, a, nil)
 
 	{
 		// Register a non-local service (central catalog)
@@ -5067,7 +5067,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	// Test that caching is updated in the background
 	{
 		// Set a new CA
-		ca := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+		ca := connect.TestCAConfigSet(t, a, nil)
 
 		retry.Run(t, func(r *retry.R) {
 			resp := httptest.NewRecorder()
