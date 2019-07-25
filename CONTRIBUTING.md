@@ -44,25 +44,20 @@ faster.
 
 ## Updating Dependencies
 
-We use Golang's [`dep`](https://github.com/golang/dep) as the tool to manage vendor dependencies.
-The tool could be obtained through:
+We use [Go Modules](https://github.com/golang/go/wiki/Modules) as the tool to manage vendor dependencies.
 
+Use the following to update the version of all dependencies
 ```sh
-$ go get -u github.com/golang/dep/cmd/dep
-```
-
-Use the following to update the locked versions of all dependencies
-```sh
-$ make dep-ensure
+$ go get -u
 ```
 
 After the dependencies have been updated or added, you might run the following to
-prune vendored packages:
+cleanup the go module files:
 ```sh
-$ dep prune
+$ go mod tidy
 ```
 
-Please refer to Golang's [`dep`](https://github.com/golang/dep) for more details.
+Please refer to [Go Modules](https://github.com/golang/go/wiki/Modules) for more details.
 
 # Thank You
 
