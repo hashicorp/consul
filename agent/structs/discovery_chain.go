@@ -18,7 +18,17 @@ type CompiledDiscoveryChain struct {
 	Namespace   string // the namespace that the chain was compiled within
 	Datacenter  string // the datacenter that the chain was compiled within
 
-	Protocol string // overall protocol shared by everything in the chain
+	// CustomizationHash is a unique hash of any data that affects the
+	// compilation of the discovery chain other than config entries or the
+	// name/namespace/datacenter evaluation criteria.
+	//
+	// If set, this value should be used to prefix/suffix any generated load
+	// balancer data plane objects to avoid sharing customized and
+	// non-customized versions.
+	CustomizationHash string
+
+	// Protocol is the overall protocol shared by everything in the chain.
+	Protocol string
 
 	// Node is the top node in the chain.
 	//
@@ -49,6 +59,7 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 	if c.Node == nil {
 		return true
 	}
+	// TODO(rb): include CustomizationHash here?
 	return c.Node.Name == c.ServiceName &&
 		c.Node.Type == DiscoveryGraphNodeTypeGroupResolver &&
 		c.Node.GroupResolver.Default

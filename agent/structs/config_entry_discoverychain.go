@@ -986,10 +986,29 @@ func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {
 // DiscoveryChainRequest is used when requesting the discovery chain for a
 // service.
 type DiscoveryChainRequest struct {
-	Name       string
-	Datacenter string
-	// Source      QuerySource
+	Name                 string
+	EvaluateInDatacenter string
+	EvaluateInNamespace  string
 
+	// OverrideMeshGateway allows for the mesh gateway setting to be overridden
+	// for any resolver in the compiled chain.
+	OverrideMeshGateway MeshGatewayConfig
+
+	// OverrideProtocol allows for the final protocol for the chain to be
+	// altered.
+	//
+	// - If the chain ordinarily would be TCP and an L7 protocol is passed here
+	// the chain will not include Routers or Splitters.
+	//
+	// - If the chain ordinarily would be L7 and TCP is passed here the chain
+	// will not include Routers or Splitters.
+	OverrideProtocol string
+
+	// OverrideConnectTimeout allows for the ConnectTimeout setting to be
+	// overridden for any resolver in the compiled chain.
+	OverrideConnectTimeout time.Duration
+
+	Datacenter string // where to route the RPC
 	QueryOptions
 }
 
@@ -1008,9 +1027,19 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 	}
 
 	v, err := hashstructure.Hash(struct {
-		Name string
+		Name                   string
+		EvaluateInDatacenter   string
+		EvaluateInNamespace    string
+		OverrideMeshGateway    MeshGatewayConfig
+		OverrideProtocol       string
+		OverrideConnectTimeout time.Duration
 	}{
-		Name: r.Name,
+		Name:                   r.Name,
+		EvaluateInDatacenter:   r.EvaluateInDatacenter,
+		EvaluateInNamespace:    r.EvaluateInNamespace,
+		OverrideMeshGateway:    r.OverrideMeshGateway,
+		OverrideProtocol:       r.OverrideProtocol,
+		OverrideConnectTimeout: r.OverrideConnectTimeout,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

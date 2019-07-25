@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -13,8 +14,27 @@ type CompileRequest struct {
 	ServiceName       string
 	CurrentNamespace  string
 	CurrentDatacenter string
-	InferDefaults     bool // TODO(rb): remove this?
-	Entries           *structs.DiscoveryChainConfigEntries
+
+	// OverrideMeshGateway allows for the setting to be overridden for any
+	// resolver in the compiled chain.
+	OverrideMeshGateway structs.MeshGatewayConfig
+
+	// OverrideProtocol allows for the final protocol for the chain to be
+	// altered.
+	//
+	// - If the chain ordinarily would be TCP and an L7 protocol is passed here
+	// the chain will not include Routers or Splitters.
+	//
+	// - If the chain ordinarily would be L7 and TCP is passed here the chain
+	// will not include Routers or Splitters.
+	OverrideProtocol string
+
+	// OverrideConnectTimeout allows for the ConnectTimeout setting to be
+	// overridden for any resolver in the compiled chain.
+	OverrideConnectTimeout time.Duration
+
+	InferDefaults bool // TODO(rb): remove this?
+	Entries       *structs.DiscoveryChainConfigEntries
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -53,11 +73,14 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	}
 
 	c := &compiler{
-		serviceName:       serviceName,
-		currentNamespace:  currentNamespace,
-		currentDatacenter: currentDatacenter,
-		inferDefaults:     inferDefaults,
-		entries:           entries,
+		serviceName:            serviceName,
+		currentNamespace:       currentNamespace,
+		currentDatacenter:      currentDatacenter,
+		overrideMeshGateway:    req.OverrideMeshGateway,
+		overrideProtocol:       req.OverrideProtocol,
+		overrideConnectTimeout: req.OverrideConnectTimeout,
+		inferDefaults:          inferDefaults,
+		entries:                entries,
 
 		splitterNodes:      make(map[string]*structs.DiscoveryGraphNode),
 		groupResolverNodes: make(map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode),
@@ -65,6 +88,10 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		resolvers:       make(map[string]*structs.ServiceResolverConfigEntry),
 		retainResolvers: make(map[string]struct{}),
 		targets:         make(map[structs.DiscoveryTarget]struct{}),
+	}
+
+	if req.OverrideProtocol != "" {
+		c.disableAdvancedRoutingFeatures = !enableAdvancedRoutingForProtocol(req.OverrideProtocol)
 	}
 
 	// Clone this resolver map to avoid mutating the input map during compilation.
@@ -80,10 +107,13 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 // compiler is a single-use struct for handling intermediate state necessary
 // for assembling a discovery chain from raw config entries.
 type compiler struct {
-	serviceName       string
-	currentNamespace  string
-	currentDatacenter string
-	inferDefaults     bool
+	serviceName            string
+	currentNamespace       string
+	currentDatacenter      string
+	overrideMeshGateway    structs.MeshGatewayConfig
+	overrideProtocol       string
+	overrideConnectTimeout time.Duration
+	inferDefaults          bool
 
 	// config entries that are being compiled (will be mutated during compilation)
 	//
@@ -97,6 +127,15 @@ type compiler struct {
 	// usesAdvancedRoutingFeatures is set to true if config entries for routing
 	// or splitting appear in the compiled chain
 	usesAdvancedRoutingFeatures bool
+
+	// disableAdvancedRoutingFeatures is set to true if overrideProtocol is set to tcp
+	disableAdvancedRoutingFeatures bool
+
+	// customizedBy indicates which override values customized how the
+	// compilation behaved.
+	//
+	// This is an OUTPUT field.
+	customizedBy customizationMarkers
 
 	// topNode is computed inside of assembleChain()
 	//
@@ -123,6 +162,16 @@ type compiler struct {
 
 	// This is an OUTPUT field.
 	targets map[structs.DiscoveryTarget]struct{}
+}
+
+type customizationMarkers struct {
+	MeshGateway    bool
+	Protocol       bool
+	ConnectTimeout bool
+}
+
+func (m *customizationMarkers) IsZero() bool {
+	return !m.MeshGateway && !m.Protocol && !m.ConnectTimeout
 }
 
 func (c *compiler) recordServiceProtocol(serviceName string) error {
@@ -209,10 +258,42 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	}
 	structs.DiscoveryTargets(targets).Sort()
 
+	if c.overrideProtocol != "" {
+		if c.overrideProtocol != c.protocol {
+			c.protocol = c.overrideProtocol
+			c.customizedBy.Protocol = true
+		}
+	}
+
+	var customizationHash string
+	if !c.customizedBy.IsZero() {
+		var customization struct {
+			OverrideMeshGateway    structs.MeshGatewayConfig
+			OverrideProtocol       string
+			OverrideConnectTimeout time.Duration
+		}
+
+		if c.customizedBy.MeshGateway {
+			customization.OverrideMeshGateway = c.overrideMeshGateway
+		}
+		if c.customizedBy.Protocol {
+			customization.OverrideProtocol = c.overrideProtocol
+		}
+		if c.customizedBy.ConnectTimeout {
+			customization.OverrideConnectTimeout = c.overrideConnectTimeout
+		}
+		v, err := hashstructure.Hash(customization, nil)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create customization hash key: %v", err)
+		}
+		customizationHash = fmt.Sprintf("%x", v)[0:8]
+	}
+
 	return &structs.CompiledDiscoveryChain{
 		ServiceName:        c.serviceName,
 		Namespace:          c.currentNamespace,
 		Datacenter:         c.currentDatacenter,
+		CustomizationHash:  customizationHash,
 		Protocol:           c.protocol,
 		Node:               c.topNode,
 		Resolvers:          c.resolvers,
@@ -291,6 +372,11 @@ func (c *compiler) assembleChain() error {
 	// The only router we consult is the one for the service name at the top of
 	// the chain.
 	router := c.entries.GetRouter(c.serviceName)
+	if router != nil && c.disableAdvancedRoutingFeatures {
+		router = nil
+		c.customizedBy.Protocol = true
+	}
+
 	if router == nil {
 		// If no router is configured, move on down the line to the next hop of
 		// the chain.
@@ -401,6 +487,7 @@ func (c *compiler) getSplitterOrGroupResolverNode(target structs.DiscoveryTarget
 }
 
 func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, error) {
+
 	// Do we already have the node?
 	if prev, ok := c.splitterNodes[name]; ok {
 		return prev, nil
@@ -408,6 +495,10 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 
 	// Fetch the config entry.
 	splitter := c.entries.GetSplitter(name)
+	if splitter != nil && c.disableAdvancedRoutingFeatures {
+		splitter = nil
+		c.customizedBy.Protocol = true
+	}
 	if splitter == nil {
 		return nil, nil
 	}
@@ -520,6 +611,13 @@ RESOLVE_AGAIN:
 		connectTimeout = 5 * time.Second
 	}
 
+	if c.overrideConnectTimeout > 0 {
+		if connectTimeout != c.overrideConnectTimeout {
+			connectTimeout = c.overrideConnectTimeout
+			c.customizedBy.ConnectTimeout = true
+		}
+	}
+
 	// Build node.
 	groupResolverNode := &structs.DiscoveryGraphNode{
 		Type: structs.DiscoveryGraphNodeTypeGroupResolver,
@@ -540,6 +638,13 @@ RESOLVE_AGAIN:
 
 	if c.entries.GlobalProxy != nil && groupResolver.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		groupResolver.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+	}
+
+	if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
+		if groupResolver.MeshGateway.Mode != c.overrideMeshGateway.Mode {
+			groupResolver.MeshGateway.Mode = c.overrideMeshGateway.Mode
+			c.customizedBy.MeshGateway = true
+		}
 	}
 
 	// Retain this target even if we may not retain the group resolver.

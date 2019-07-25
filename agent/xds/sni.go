@@ -45,3 +45,12 @@ func QuerySNI(service string, datacenter string, cfgSnap *proxycfg.ConfigSnapsho
 func TargetSNI(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot) string {
 	return ServiceSNI(target.Service, target.ServiceSubset, target.Namespace, target.Datacenter, cfgSnap)
 }
+
+func CustomizeClusterName(sni string, chain *structs.CompiledDiscoveryChain) string {
+	if chain == nil || chain.CustomizationHash == "" {
+		return sni
+	}
+	// Use a colon to delimit this prefix instead of a dot to avoid a
+	// theoretical collision problem with subsets.
+	return fmt.Sprintf("%s:%s", chain.CustomizationHash, sni)
+}

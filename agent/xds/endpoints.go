@@ -51,11 +51,11 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		if chain == nil {
 			// We ONLY want this branch for prepared queries.
 
-			sni := UpstreamSNI(&u, "", cfgSnap)
+			clusterName := UpstreamSNI(&u, "", cfgSnap)
 			endpoints, ok := cfgSnap.ConnectProxy.UpstreamEndpoints[id]
 			if ok {
 				la := makeLoadAssignment(
-					sni,
+					clusterName,
 					0,
 					[]loadAssignmentEndpointGroup{
 						{Endpoints: endpoints},
@@ -122,9 +122,10 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 				}
 
 				sni := TargetSNI(target, cfgSnap)
+				clusterName := CustomizeClusterName(sni, chain)
 
 				la := makeLoadAssignment(
-					sni,
+					clusterName,
 					overprovisioningFactor,
 					endpointGroups,
 					cfgSnap.Datacenter,

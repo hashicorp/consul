@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -190,6 +191,82 @@ func TestUpstream_UnmarshalJSON(t *testing.T) {
 			}
 			require.NoError(err)
 			require.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestMeshGatewayConfig_OverlayWith(t *testing.T) {
+	var (
+		D = MeshGatewayConfig{Mode: MeshGatewayModeDefault}
+		N = MeshGatewayConfig{Mode: MeshGatewayModeNone}
+		R = MeshGatewayConfig{Mode: MeshGatewayModeRemote}
+		L = MeshGatewayConfig{Mode: MeshGatewayModeLocal}
+	)
+
+	type testCase struct {
+		base, overlay, expect MeshGatewayConfig
+	}
+	cases := []testCase{
+		{D, D, D},
+		{D, N, N},
+		{D, R, R},
+		{D, L, L},
+		{N, D, N},
+		{N, N, N},
+		{N, R, R},
+		{N, L, L},
+		{R, D, R},
+		{R, N, N},
+		{R, R, R},
+		{R, L, L},
+		{L, D, L},
+		{L, N, N},
+		{L, R, R},
+		{L, L, L},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(fmt.Sprintf("%s overlaid with %s", tc.base.Mode, tc.overlay.Mode),
+			func(t *testing.T) {
+				got := tc.base.OverlayWith(tc.overlay)
+				require.Equal(t, tc.expect, got)
+			})
+	}
+}
+
+func TestValidateMeshGatewayMode(t *testing.T) {
+	for _, tc := range []struct {
+		modeConstant string
+		modeExplicit string
+		expect       MeshGatewayMode
+		ok           bool
+	}{
+		{string(MeshGatewayModeNone), "none", MeshGatewayModeNone, true},
+		{string(MeshGatewayModeDefault), "", MeshGatewayModeDefault, true},
+		{string(MeshGatewayModeLocal), "local", MeshGatewayModeLocal, true},
+		{string(MeshGatewayModeRemote), "remote", MeshGatewayModeRemote, true},
+	} {
+		tc := tc
+
+		t.Run(tc.modeConstant+" (constant)", func(t *testing.T) {
+			got, err := ValidateMeshGatewayMode(tc.modeConstant)
+			if tc.ok {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			} else {
+				require.Error(t, err)
+			}
+		})
+		t.Run(tc.modeExplicit+" (explicit)", func(t *testing.T) {
+			got, err := ValidateMeshGatewayMode(tc.modeExplicit)
+			if tc.ok {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			} else {
+				require.Error(t, err)
+			}
 		})
 	}
 }
