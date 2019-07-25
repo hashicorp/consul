@@ -10,6 +10,7 @@ BUG FIXES:
 
 * autopilot: update to also remove failed nodes from WAN gossip pool [[GH-6028](https://github.com/hashicorp/consul/pull/6028)]
 * agent: avoid reverting any check updates that occur while a service is being added or the config is reloaded [[GH-6144](https://github.com/hashicorp/consul/issues/6144)]
+* auto-encrypt: fix an issue that could cause cloud retry-join to fail when utilized with auto-encrypt by falling back to a default port [[GH-6205]](https://github.com/hashicorp/consul/pull/6205)
 
 ## 1.5.2 (June 27, 2019)
 
