@@ -60,6 +60,29 @@ jobs:
     environment:
       <<: *ENVIRONMENT
 
+  # checks vendor directory is correct
+  check-vendor:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run:
+          command: make update-vendor
+      - save_cache:
+          key: consul-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+          - /go/pkg/mod
+      - run: |
+          if ! git diff --exit-code; then
+            echo "Git directory has vendor changes"
+            exit 1
+          fi
+
   go-test:
     docker:
       - image: *GOLANG_IMAGE
@@ -454,11 +477,13 @@ workflows:
   version: 2
   go-tests:
     jobs:
+      - check-vendor
       - lint-consul-retry
-      - go-fmt-and-vet
+      - go-fmt-and-vet:
+          requires:
+            - check-vendor
       - dev-build:
           requires:
-            - lint-consul-retry
             - go-fmt-and-vet
       - go-test: &go-test
           requires:
