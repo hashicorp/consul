@@ -807,16 +807,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectEnabled:                          connectEnabled,
 		ConnectCAProvider:                       connectCAProvider,
 		ConnectCAConfig:                         connectCAConfig,
-		ConnectProxyAllowManagedRoot:            b.boolVal(c.Connect.Proxy.AllowManagedRoot),
-		ConnectProxyAllowManagedAPIRegistration: b.boolVal(c.Connect.Proxy.AllowManagedAPIRegistration),
-		ConnectProxyBindMinPort:                 proxyMinPort,
-		ConnectProxyBindMaxPort:                 proxyMaxPort,
 		ConnectSidecarMinPort:                   sidecarMinPort,
 		ConnectSidecarMaxPort:                   sidecarMaxPort,
-		ConnectProxyDefaultExecMode:             proxyDefaultExecMode,
-		ConnectProxyDefaultDaemonCommand:        proxyDefaultDaemonCommand,
-		ConnectProxyDefaultScriptCommand:        proxyDefaultScriptCommand,
-		ConnectProxyDefaultConfig:               proxyDefaultConfig,
 		DataDir:                                 b.stringVal(c.DataDir),
 		Datacenter:                              datacenter,
 		DevMode:                                 b.boolVal(b.Flags.DevMode),
@@ -1391,10 +1383,6 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 			if sidecar.Connect.SidecarService != nil {
 				b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a nested sidecar_service"))
 				sidecar.Connect.SidecarService = nil
-			}
-			if sidecar.Connect.Proxy != nil {
-				b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a managed proxy"))
-				sidecar.Connect.Proxy = nil
 			}
 		}
 	}

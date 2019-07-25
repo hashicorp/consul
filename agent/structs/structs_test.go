@@ -713,16 +713,6 @@ func TestStructs_NodeService_ValidateSidecarService(t *testing.T) {
 			},
 			"SidecarService cannot have a nested SidecarService",
 		},
-
-		{
-			"Sidecar can't have managed proxy",
-			func(x *NodeService) {
-				x.Connect.SidecarService.Connect = &ServiceConnect{
-					Proxy: &ServiceDefinitionConnectProxy{},
-				}
-			},
-			"SidecarService cannot have a managed proxy",
-		},
 	}
 
 	for _, tc := range cases {

@@ -139,9 +139,8 @@ func (m *Manager) syncState() {
 		// default to the port of the sidecar service, but only if it's already
 		// registered and once we get past here, we don't have enough context to
 		// know that so we'd need to set it here if not during registration of the
-		// proxy service. Sidecar Service and managed proxies in the interim can
-		// do that, but we should validate more generally that that is always
-		// true.
+		// proxy service. Sidecar Service in the interim can do that, but we should
+		// validate more generally that that is always true.
 		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svcID))
 		if err != nil {
 			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,

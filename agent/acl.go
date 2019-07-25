@@ -63,18 +63,6 @@ func (a *Agent) initializeACLs() error {
 	return nil
 }
 
-// resolveProxyToken attempts to resolve an ACL ID to a local proxy token.
-// If a local proxy isn't found with that token, nil is returned.
-func (a *Agent) resolveProxyToken(id string) *local.ManagedProxy {
-	for _, p := range a.State.Proxies() {
-		if p.ProxyToken == id {
-			return p
-		}
-	}
-
-	return nil
-}
-
 // vetServiceRegister makes sure the service registration action is allowed by
 // the given token.
 func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) error {

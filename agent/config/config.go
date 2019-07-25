@@ -92,8 +92,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"service.proxy.upstreams",
 		"services.proxy.upstreams",
 
-		// Need all the service(s) exceptions also for nested sidecar service except
-		// managed proxy which is explicitly not supported there.
+		// Need all the service(s) exceptions also for nested sidecar service.
 		"service.connect.sidecar_service.checks",
 		"services.connect.sidecar_service.checks",
 		"service.connect.sidecar_service.proxy.upstreams",
@@ -549,15 +548,6 @@ type Connect struct {
 
 // ConnectProxy is the agent-global connect proxy configuration.
 type ConnectProxy struct {
-	// Consul will not execute managed proxies if its EUID is 0 (root).
-	// If this is true, then Consul will execute proxies if Consul is
-	// running as root. This is not recommended.
-	AllowManagedRoot *bool `json:"allow_managed_root" hcl:"allow_managed_root" mapstructure:"allow_managed_root"`
-
-	// AllowManagedAPIRegistration enables managed proxy registration
-	// via the agent HTTP API. If this is false, only file configurations
-	// can be used.
-	AllowManagedAPIRegistration *bool `json:"allow_managed_api_registration" hcl:"allow_managed_api_registration" mapstructure:"allow_managed_api_registration"`
 }
 
 // ConnectProxyDefaults is the agent-global defaults for managed Connect proxies.

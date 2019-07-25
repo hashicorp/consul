@@ -833,13 +833,8 @@ type NodeService struct {
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
-	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a managed proxy as part of the actual
-	// service's definition. This duplication is ugly but seemed better than the
-	// alternative which was to re-use the same struct fields for both cases even
-	// though the semantics are different and the non-shred fields make no sense
-	// in the other case. ProxyConfig may be a more natural name here, but it's
-	// confusing for the UX because one of the fields in ConnectProxyConfig is
+	// a proxy service definition. ProxyConfig may be a more natural name here, but
+	// it's confusing for the UX because one of the fields in ConnectProxyConfig is
 	// also called just "Config"
 	Proxy ConnectProxyConfig
 
@@ -889,12 +884,6 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
 	Native bool `json:",omitempty"`
-
-	// DEPRECATED(managed-proxies) - Remove with the rest of managed proxies
-	// Proxy configures a connect proxy instance for the service. This is
-	// only used for agent service definitions and is invalid for non-agent
-	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy `json:",omitempty" bexpr:"-"`
 
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
@@ -1032,10 +1021,6 @@ func (s *NodeService) Validate() error {
 			if s.Connect.SidecarService.Connect.SidecarService != nil {
 				result = multierror.Append(result, fmt.Errorf(
 					"A SidecarService cannot have a nested SidecarService"))
-			}
-			if s.Connect.SidecarService.Connect.Proxy != nil {
-				result = multierror.Append(result, fmt.Errorf(
-					"A SidecarService cannot have a managed proxy"))
 			}
 		}
 	}

@@ -27,19 +27,11 @@ type ServiceDefinition struct {
 	Weights           *Weights
 	Token             string
 	EnableTagOverride bool
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	// ProxyDestination is deprecated in favor of Proxy.DestinationServiceName
-	ProxyDestination string `json:",omitempty"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
-	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a managed proxy as part of the actual
-	// service's definition. This duplication is ugly but seemed better than the
-	// alternative which was to re-use the same struct fields for both cases even
-	// though the semantics are different and the non-shared fields make no sense
-	// in the other case. ProxyConfig may be a more natural name here, but it's
-	// confusing for the UX because one of the fields in ConnectProxyConfig is
+	// a proxy service definition. ProxyConfig may be a more natural name here, but
+	// it's confusing for the UX because one of the fields in ConnectProxyConfig is
 	// also called just "Config"
 	Proxy *ConnectProxyConfig
 
@@ -88,120 +80,6 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 	return ns
 }
 
-// ConnectManagedProxy returns a ConnectManagedProxy from the ServiceDefinition
-// if one is configured validly. Note that is may return nil if no proxy is
-// configured and will also return nil error in this case too as it's an
-// expected case. The error returned indicates that there was an attempt to
-// configure a proxy made but that it was invalid input, e.g. invalid
-// "exec_mode".
-func (s *ServiceDefinition) ConnectManagedProxy() (*ConnectManagedProxy, error) {
-	if s.Connect == nil || s.Connect.Proxy == nil {
-		return nil, nil
-	}
-
-	// NodeService performs some simple normalization like copying ID from Name
-	// which we shouldn't hard code ourselves here...
-	ns := s.NodeService()
-
-	execMode, err := NewProxyExecMode(s.Connect.Proxy.ExecMode)
-	if err != nil {
-		return nil, err
-	}
-
-	// If upstreams were set in the config and NOT in the actual Upstreams field,
-	// extract them out to the new explicit Upstreams and unset in config to make
-	// transition smooth.
-	if deprecatedUpstreams, ok := s.Connect.Proxy.Config["upstreams"]; ok {
-		if len(s.Connect.Proxy.Upstreams) == 0 {
-			if slice, ok := deprecatedUpstreams.([]interface{}); ok {
-				for _, raw := range slice {
-					var oldU deprecatedBuiltInProxyUpstreamConfig
-					var decMeta mapstructure.Metadata
-					decCfg := &mapstructure.DecoderConfig{
-						Metadata: &decMeta,
-						Result:   &oldU,
-					}
-					dec, err := mapstructure.NewDecoder(decCfg)
-					if err != nil {
-						// Just skip it - we never used to parse this so never failed
-						// invalid stuff till it hit the proxy. This is a best-effort
-						// attempt to not break existing service definitions so it's not the
-						// end of the world if we don't have exactly the same failure mode
-						// for invalid input.
-						continue
-					}
-					err = dec.Decode(raw)
-					if err != nil {
-						// same logic as above
-						continue
-					}
-
-					newT := UpstreamDestTypeService
-					if oldU.DestinationType == "prepared_query" {
-						newT = UpstreamDestTypePreparedQuery
-					}
-					u := Upstream{
-						DestinationType:      newT,
-						DestinationName:      oldU.DestinationName,
-						DestinationNamespace: oldU.DestinationNamespace,
-						Datacenter:           oldU.DestinationDatacenter,
-						LocalBindAddress:     oldU.LocalBindAddress,
-						LocalBindPort:        oldU.LocalBindPort,
-					}
-					// Any unrecognized keys should be copied into the config map
-					if len(decMeta.Unused) > 0 {
-						u.Config = make(map[string]interface{})
-						// Paranoid type assertion - mapstructure would have errored if this
-						// wasn't safe but panics are bad...
-						if rawMap, ok := raw.(map[string]interface{}); ok {
-							for _, k := range decMeta.Unused {
-								u.Config[k] = rawMap[k]
-							}
-						}
-					}
-					s.Connect.Proxy.Upstreams = append(s.Connect.Proxy.Upstreams, u)
-				}
-			}
-		}
-		// Remove upstreams even if we didn't add them for consistency.
-		delete(s.Connect.Proxy.Config, "upstreams")
-	}
-
-	p := &ConnectManagedProxy{
-		ExecMode:  execMode,
-		Command:   s.Connect.Proxy.Command,
-		Config:    s.Connect.Proxy.Config,
-		Upstreams: s.Connect.Proxy.Upstreams,
-		// ProxyService will be setup when the agent registers the configured
-		// proxies and starts them etc.
-		TargetServiceID: ns.ID,
-	}
-
-	// Ensure the Upstream type is defaulted
-	for i := range p.Upstreams {
-		if p.Upstreams[i].DestinationType == "" {
-			p.Upstreams[i].DestinationType = UpstreamDestTypeService
-		}
-	}
-
-	return p, nil
-}
-
-// deprecatedBuiltInProxyUpstreamConfig is a struct for extracting old
-// connect/proxy.UpstreamConfiguration syntax upstreams from existing managed
-// proxy configs to convert them to new first-class Upstreams.
-type deprecatedBuiltInProxyUpstreamConfig struct {
-	LocalBindAddress      string `json:"local_bind_address" hcl:"local_bind_address,attr" mapstructure:"local_bind_address"`
-	LocalBindPort         int    `json:"local_bind_port" hcl:"local_bind_port,attr" mapstructure:"local_bind_port"`
-	DestinationName       string `json:"destination_name" hcl:"destination_name,attr" mapstructure:"destination_name"`
-	DestinationNamespace  string `json:"destination_namespace" hcl:"destination_namespace,attr" mapstructure:"destination_namespace"`
-	DestinationType       string `json:"destination_type" hcl:"destination_type,attr" mapstructure:"destination_type"`
-	DestinationDatacenter string `json:"destination_datacenter" hcl:"destination_datacenter,attr" mapstructure:"destination_datacenter"`
-	// ConnectTimeoutMs is removed explicitly because any additional config we
-	// find including this field should be put into the opaque Config map in
-	// Upstream.
-}
-
 // Validate validates the service definition. This also calls the underlying
 // Validate method on the NodeService.
 //
@@ -216,11 +94,6 @@ func (s *ServiceDefinition) Validate() error {
 				if s.Connect.Native {
 					result = multierror.Append(result, fmt.Errorf(
 						"Services that are Connect native may not have a proxy configuration"))
-				}
-
-				if s.Port == 0 {
-					result = multierror.Append(result, fmt.Errorf(
-						"Services with a Connect managed proxy must have a port set"))
 				}
 			}
 		}
@@ -249,46 +122,6 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 		checks = append(checks, check)
 	}
 	return checks, nil
-}
-
-// ServiceDefinitionConnectProxy is the connect proxy config  within a service
-// registration. Note this is duplicated in config.ServiceConnectProxy and needs
-// to be kept in sync.
-type ServiceDefinitionConnectProxy struct {
-	Command   []string               `json:",omitempty"`
-	ExecMode  string                 `json:",omitempty"`
-	Config    map[string]interface{} `json:",omitempty"`
-	Upstreams []Upstream             `json:",omitempty"`
-}
-
-func (p *ServiceDefinitionConnectProxy) MarshalJSON() ([]byte, error) {
-	type typeCopy ServiceDefinitionConnectProxy
-	copy := typeCopy(*p)
-
-	// If we have config, then we want to run it through our proxyConfigWalker
-	// which is a reflectwalk implementation that attempts to turn arbitrary
-	// interface{} values into JSON-safe equivalents (more or less). This
-	// should always work because the config input is either HCL or JSON and
-	// both are JSON compatible.
-	if copy.Config != nil {
-		configCopyRaw, err := copystructure.Copy(copy.Config)
-		if err != nil {
-			return nil, err
-		}
-		configCopy, ok := configCopyRaw.(map[string]interface{})
-		if !ok {
-			// This should never fail because we KNOW the input type,
-			// but we don't ever want to risk the panic.
-			return nil, fmt.Errorf("internal error: config copy is not right type")
-		}
-		if err := reflectwalk.Walk(configCopy, &proxyConfigWalker{}); err != nil {
-			return nil, err
-		}
-
-		copy.Config = configCopy
-	}
-
-	return json.Marshal(&copy)
 }
 
 var typMapIfaceIface = reflect.TypeOf(map[interface{}]interface{}{})

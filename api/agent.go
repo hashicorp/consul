@@ -824,31 +824,6 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *Qu
 	return &out, qm, nil
 }
 
-// ConnectProxyConfig gets the configuration for a local managed proxy instance.
-//
-// Note that this uses an unconventional blocking mechanism since it's
-// agent-local state. That means there is no persistent raft index so we block
-// based on object hash instead.
-func (a *Agent) ConnectProxyConfig(proxyServiceID string, q *QueryOptions) (*ConnectProxyConfig, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/connect/proxy/"+proxyServiceID)
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	var out ConnectProxyConfig
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-	return &out, qm, nil
-}
-
 // EnableServiceMaintenance toggles service maintenance mode on
 // for the given service ID.
 func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
