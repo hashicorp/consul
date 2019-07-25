@@ -29,10 +29,14 @@ tests to assert your change is working properly and is thoroughly covered.
 First, please [search](https://github.com/coredns/coredns/search?q=&type=Issues&utf8=%E2%9C%93) with
 a variety of keywords to ensure your suggestion/proposal is new.
 
-If so, you may open either an issue or a pull request for discussion and feedback.
+Please also check for existing pull requests to see if someone is already working on this. We want to avoid duplication of effort.
+
+If the proposal is new and no one has opened pull request yet, you may open either an issue or a pull request for discussion and feedback.
 
 If you are going to spend significant time implementing code for a pull request, best to open an
 issue first and "claim" it and get feedback before you invest a lot of time.
+
+**If someone already opened a pull request, but you think the pull request has stalled and you would like to open another pull request for the same or similar feature, get some of the maintainers (see [OWNERS](OWNERS)) involved to resolve the situation and move things forward.**
 
 If possible make a pull request as small as possible, or submit multiple pull request to complete a
 feature. Smaller means: easier to understand and review. This in turn means things can be merged

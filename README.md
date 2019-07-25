@@ -184,6 +184,10 @@ More resources can be found:
 - Twitter: [@corednsio](https://twitter.com/corednsio)
 - Mailing list/group: <coredns-discuss@googlegroups.com> (not very active)
 
+## Contribution guidelines
+
+If you want to contribute to CoreDNS, be sure to review the [contribution guidelines](CONTRIBUTING.md).
+
 ## Deployment
 
 Examples for deployment via systemd and other use cases can be found in the [deployment
