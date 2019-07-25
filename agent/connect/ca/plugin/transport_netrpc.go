@@ -5,6 +5,8 @@ import (
 	"net/rpc"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+
 	"github.com/hashicorp/consul/agent/connect/ca"
 )
 
@@ -88,8 +90,7 @@ func (p *providerPluginRPCServer) SupportsCrossSigning(_ struct{}, resp *Support
 }
 
 func (p *providerPluginRPCServer) MinLifetime(_ struct{}, resp *MinLifetimeResponse) error {
-	s := p.impl.MinLifetime()
-	resp.MinLifetime = s.String()
+	resp.MinLifetime = types.DurationProto(p.impl.MinLifetime())
 	return nil
 }
 
@@ -185,7 +186,7 @@ func (p *providerPluginRPCClient) SupportsCrossSigning() bool {
 func (p *providerPluginRPCClient) MinLifetime() time.Duration {
 	var resp MinLifetimeResponse
 	_ = p.client.Call("Plugin.MinLifetime", struct{}{}, &resp)
-	min, _ := time.ParseDuration(resp.MinLifetime)
+	min, _ := types.DurationFromProto(resp.MinLifetime)
 	return min
 }
 

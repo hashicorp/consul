@@ -282,7 +282,7 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
 proto:
-	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
+	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc,Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types:../../..
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker

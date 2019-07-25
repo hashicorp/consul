@@ -14,6 +14,8 @@ option go_package = "github.com/hashicorp/consul/agent/connect/ca/plugin";
 
 package plugin;
 
+import "google/protobuf/duration.proto";
+
 service CA {
     rpc Configure(ConfigureRequest) returns (Empty);
     rpc GenerateRoot(Empty) returns (Empty);
@@ -86,7 +88,7 @@ message SupportsCrossSigningResponse {
 }
 
 message MinLifetimeResponse {
-    string min_lifetime = 1;
+    google.protobuf.Duration min_lifetime = 1;
 }
 
 // Protobufs doesn't allow no req/resp so in the cases where there are

@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/gogo/protobuf/types"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/connect/ca"
 )
 
 // providerPluginGRPCServer implements the CAServer interface for gRPC.
@@ -88,8 +90,7 @@ func (p *providerPluginGRPCServer) SupportsCrossSigning(context.Context, *Empty)
 }
 
 func (p *providerPluginGRPCServer) MinLifetime(context.Context, *Empty) (*MinLifetimeResponse, error) {
-	s := p.impl.MinLifetime().String()
-	return &MinLifetimeResponse{MinLifetime: s}, nil
+	return &MinLifetimeResponse{MinLifetime: types.DurationProto(p.impl.MinLifetime())}, nil
 }
 
 func (p *providerPluginGRPCServer) Cleanup(context.Context, *Empty) (*Empty, error) {
@@ -210,7 +211,7 @@ func (p *providerPluginGRPCClient) SupportsCrossSigning() bool {
 
 func (p *providerPluginGRPCClient) MinLifetime() time.Duration {
 	resp, _ := p.client.MinLifetime(p.doneCtx, &Empty{})
-	min, _ := time.ParseDuration(resp.MinLifetime)
+	min, _ := types.DurationFromProto(resp.MinLifetime)
 	return min
 }
 
