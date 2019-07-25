@@ -257,18 +257,9 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int, useTLS bool) (
 	return nil, fmt.Errorf("rpc error: lead thread didn't get connection")
 }
 
-// HalfCloser is an interface that exposes a TCP half-close. We need this
-// because we want to expose the raw TCP connection underlying a TLS one in a
-// way that's hard to screw up and use for anything else. There's a change
-// brewing that will allow us to use the TLS connection for this instead -
-// https://go-review.googlesource.com/#/c/25159/.
-type HalfCloser interface {
-	CloseWrite() error
-}
-
 // DialTimeout is used to establish a raw connection to the given server, with
 // given connection timeout. It also writes RPCTLS as the first byte.
-func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, HalfCloser, error) {
+func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, useTLS bool) (net.Conn, error) {
 	p.once.Do(p.init)
 
 	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, useTLS || p.ForceTLS, p.TLSConfigurator.OutgoingRPCWrapper(), RPCTLS)
@@ -278,30 +269,28 @@ func (p *ConnPool) DialTimeout(dc string, addr net.Addr, timeout time.Duration, 
 // server, with given connection timeout. It also writes RPCTLSInsecure as the
 // first byte to indicate that the client cannot provide a certificate. This is
 // so far only used for AutoEncrypt.Sign.
-func (p *ConnPool) DialTimeoutInsecure(dc string, addr net.Addr, timeout time.Duration, wrapper tlsutil.DCWrapper) (net.Conn, HalfCloser, error) {
+func (p *ConnPool) DialTimeoutInsecure(dc string, addr net.Addr, timeout time.Duration, wrapper tlsutil.DCWrapper) (net.Conn, error) {
 	p.once.Do(p.init)
 
 	if wrapper == nil {
-		return nil, nil, fmt.Errorf("wrapper cannot be nil")
+		return nil, fmt.Errorf("wrapper cannot be nil")
 	}
 
 	return DialTimeoutWithRPCType(dc, addr, p.SrcAddr, timeout, true, wrapper, RPCTLSInsecure)
 }
 
-func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout time.Duration, useTLS bool, wrapper tlsutil.DCWrapper, rpcType RPCType) (net.Conn, HalfCloser, error) {
+func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout time.Duration, useTLS bool, wrapper tlsutil.DCWrapper, rpcType RPCType) (net.Conn, error) {
 	// Try to dial the conn
 	d := &net.Dialer{LocalAddr: src, Timeout: timeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Cast to TCPConn
-	var hc HalfCloser
 	if tcp, ok := conn.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
 		tcp.SetNoDelay(true)
-		hc = tcp
 	}
 
 	// Check if TLS is enabled
@@ -309,25 +298,25 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcType)}); err != nil {
 			conn.Close()
-			return nil, nil, err
+			return nil, err
 		}
 
 		// Wrap the connection in a TLS client
 		tlsConn, err := wrapper(dc, conn)
 		if err != nil {
 			conn.Close()
-			return nil, nil, err
+			return nil, err
 		}
 		conn = tlsConn
 	}
 
-	return conn, hc, nil
+	return conn, nil
 }
 
 // getNewConn is used to return a new connection
 func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
 	// Get a new, raw connection.
-	conn, _, err := p.DialTimeout(dc, addr, defaultDialTimeout, useTLS)
+	conn, err := p.DialTimeout(dc, addr, defaultDialTimeout, useTLS)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +423,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, use
 // connection if it is not being reused.
 func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	var codec rpc.ClientCodec
-	conn, _, err := p.DialTimeoutInsecure(dc, addr, 1*time.Second, p.TLSConfigurator.OutgoingRPCWrapper())
+	conn, err := p.DialTimeoutInsecure(dc, addr, 1*time.Second, p.TLSConfigurator.OutgoingRPCWrapper())
 	if err != nil {
 		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
 	}
