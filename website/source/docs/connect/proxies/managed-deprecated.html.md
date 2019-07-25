@@ -16,18 +16,15 @@ Connect proxies where the proxy process was started, configured, and stopped by
 Consul. They were enabled via basic configurations within the service
 definition.
 
--> **Consul 1.3.0 deprecates Managed Proxies completely.** It's _strongly_
-recommended you do not build anything using Managed proxies and consider using
+!> **Consul 1.6.0 removes Managed Proxies completely.** 
+This documentation is provided for prior versions only. You may consider using
 [sidecar service
 registrations](/docs/connect/proxies/sidecar-service.html) instead.
 
-Even though this was a beta feature, managed proxies will continue to work at
-least until Consul 1.6 to prevent disruption to demonstration and
-proof-of-concept deployments of Consul Connect. Anyone using managed proxies
-though should aim to change their workflow as soon as possible to avoid issues
-with a later upgrade.
+Managed proxies have been deprecated since Consul 1.3 and have been fully removed
+in Consul 1.6. Anyone using Managed Proxies should aim to change their workflow
+as soon as possible to avoid issues with a later upgrade.
 
-While the current functionality will remain present for a few major releases,
 **new and known issues will not be fixed**.
 
 ## Deprecation Rationale
