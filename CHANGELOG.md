@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.5.3 (July 25, 2019)
 
 IMPROVEMENTS:
 * raft: allow trailing logs to be configured as an escape hatch for extreme load that prevents followers catching up with leader [[GH-6186](https://github.com/hashicorp/consul/pull/6186)]
