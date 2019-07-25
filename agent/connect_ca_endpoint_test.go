@@ -42,7 +42,7 @@ func TestConnectCARoots_list(t *testing.T) {
 
 	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
 	// adds a second and makes it active.
-	ca2 := connect.TestCAConfigSet(t, a, nil)
+	ca2 := connect.TestCAConfigSet(t, a, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	// List
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)

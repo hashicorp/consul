@@ -193,7 +193,7 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.Nil(err)
 
 	// Build a valid value
-	ca1 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1})
@@ -229,7 +229,7 @@ func TestStore_CARootSet_emptyID(t *testing.T) {
 	assert.Nil(err)
 
 	// Build a valid value
-	ca1 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca1.ID = ""
 
 	// Set
@@ -259,9 +259,9 @@ func TestStore_CARootSet_noActive(t *testing.T) {
 	assert.Nil(err)
 
 	// Build a valid value
-	ca1 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca1.Active = false
-	ca2 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca2.Active = false
 
 	// Set
@@ -281,8 +281,8 @@ func TestStore_CARootSet_multipleActive(t *testing.T) {
 	assert.Nil(err)
 
 	// Build a valid value
-	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1, ca2})
@@ -296,10 +296,10 @@ func TestStore_CARootActive_valid(t *testing.T) {
 	s := testStateStore(t)
 
 	// Build a valid value
-	ca1 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca1.Active = false
-	ca2 := connect.TestCA(t, nil)
-	ca3 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca3 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca3.Active = false
 
 	// Set
@@ -335,9 +335,9 @@ func TestStore_CARoot_Snapshot_Restore(t *testing.T) {
 
 	// Create some intentions.
 	roots := structs.CARoots{
-		connect.TestCA(t, nil),
-		connect.TestCA(t, nil),
-		connect.TestCA(t, nil),
+		connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
+		connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
+		connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits),
 	}
 	for _, r := range roots[1:] {
 		r.Active = false

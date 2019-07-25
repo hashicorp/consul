@@ -15,7 +15,7 @@ import (
 )
 
 func Test_verifyServerCertMatchesURI(t *testing.T) {
-	ca1 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	tests := []struct {
 		name     string
@@ -78,8 +78,8 @@ func testCertPEMBlock(t *testing.T, pemValue string) []byte {
 }
 
 func TestClientSideVerifier(t *testing.T) {
-	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, ca1)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca2 := connect.TestCA(t, ca1, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	webCA1PEM, _ := connect.TestLeaf(t, "web", ca1)
 	webCA2PEM, _ := connect.TestLeaf(t, "web", ca2)
@@ -134,8 +134,8 @@ func TestClientSideVerifier(t *testing.T) {
 }
 
 func TestServerSideVerifier(t *testing.T) {
-	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, ca1)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca2 := connect.TestCA(t, ca1, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 
 	webCA1PEM, _ := connect.TestLeaf(t, "web", ca1)
 	webCA2PEM, _ := connect.TestLeaf(t, "web", ca2)
@@ -305,8 +305,8 @@ func requireCorrectVerifier(t *testing.T, expect, got *tls.Config,
 func TestDynamicTLSConfig(t *testing.T) {
 	require := require.New(t)
 
-	ca1 := connect.TestCA(t, nil)
-	ca2 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
+	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	baseCfg := TestTLSConfig(t, "web", ca1)
 	newCfg := TestTLSConfig(t, "web", ca2)
 
@@ -373,7 +373,7 @@ func TestDynamicTLSConfig(t *testing.T) {
 func TestDynamicTLSConfig_Ready(t *testing.T) {
 	require := require.New(t)
 
-	ca1 := connect.TestCA(t, nil)
+	ca1 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	baseCfg := TestTLSConfig(t, "web", ca1)
 
 	c := newDynamicTLSConfig(defaultTLSConfig(), nil)
@@ -391,7 +391,7 @@ func TestDynamicTLSConfig_Ready(t *testing.T) {
 	assertNotBlocked(t, readyCh)
 	require.True(c.Ready(), "should be ready")
 
-	ca2 := connect.TestCA(t, nil)
+	ca2 := connect.TestCA(t, nil, connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits)
 	ca2cfg := TestTLSConfig(t, "web", ca2)
 
 	require.NoError(c.SetRoots(ca2cfg.RootCAs))
