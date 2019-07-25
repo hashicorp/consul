@@ -1,22 +1,9 @@
 package ca
 
-// Assumptions that need to be changed:
-// 1. ECDSA is accepted everywhere. AWS only supports RSA.
-// 2. CA's are able to cross-sign. Hosted CA's don't seem to allow this.
-// 3. Certs don't require a Subject. AWS appears to require a CN.
-// 4. Validity periods can be as short as 1h. AWS minimum is 1d.
-
-//Current issues and problems:
-// 1. Vault provider does not work if configured at bootstrap time. You have to boostrap with Consul and then switch to Vault.
-//    Error: no handler for route 'consul-intermediate/sign/leaf-cert'
-// 2. With any provider besides Consul, the leaf certs are constantly refreshed because the cache is storing the
-//    subject key of the root cert, but Vault and AWS are signing with an intermediate cert.
-
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
+	"log"
 	"regexp"
 	"time"
 
@@ -25,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -44,73 +32,63 @@ type AmazonPCA struct {
 	keyAlgorithm     string
 	signingAlgorithm string
 	sleepTime        time.Duration
-
-	certPEM  string
-	chainPEM string
-	//signingKey  string
-	client *acmpca.ACMPCA
-	logger hclog.Logger
-}
-
-func createPCALogger(pcaType string) hclog.Logger {
-	return hclog.New(&hclog.LoggerOptions{
-		Name:  "pca-" + pcaType,
-		Level: hclog.Trace,
-	})
+	certPEM          string
+	chainPEM         string
+	client           *acmpca.ACMPCA
+	logger           *log.Logger
 }
 
 func NewAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, arn string, pcaType string,
-	keyAlgorithm string, signingAlgorithm string) *AmazonPCA {
+	keyAlgorithm string, signingAlgorithm string, logger *log.Logger) *AmazonPCA {
 	sleepTime, err := time.ParseDuration(config.SleepTime)
 	if err != nil {
 		sleepTime = 5 * time.Second
 	}
-	return &AmazonPCA{arn: arn, pcaType: pcaType, client: client, logger: createPCALogger(pcaType),
+	return &AmazonPCA{arn: arn, pcaType: pcaType, client: client, logger: logger,
 		keyAlgorithm: keyAlgorithm, signingAlgorithm: signingAlgorithm, sleepTime: sleepTime}
 }
 
 func LoadAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, arn string, pcaType string,
-	clusterId string, keyAlgorithm string, signingAlgorithm string) (*AmazonPCA, error) {
-	logger := createPCALogger(pcaType)
-	logger.Trace("entering LoadAmazonPCA", "arn", arn, "type", pcaType, "clusterId",
-		clusterId, "keyAlgo", keyAlgorithm, "signAlgo", signingAlgorithm)
-
-	pca := NewAmazonPCA(client, config, arn, pcaType, keyAlgorithm, signingAlgorithm)
+	clusterId string, keyAlgorithm string, signingAlgorithm string, logger *log.Logger) (*AmazonPCA, error) {
+	pca := NewAmazonPCA(client, config, arn, pcaType, keyAlgorithm, signingAlgorithm, logger)
 	output, err := pca.describe()
 	if err != nil {
 		return nil, err
 	}
 
-	if *output.CertificateAuthority.CertificateAuthorityConfiguration.Subject.CommonName !=
-		GetCommonName(pcaType, clusterId) {
-		logger.Warn("name of specified PCA does not match expected, continuing anyway",
-			"expected", GetCommonName(pcaType, clusterId),
-			"actual", *output.CertificateAuthority.CertificateAuthorityConfiguration.Subject.CommonName)
-	}
+	warned := false
 	if *output.CertificateAuthority.Status != acmpca.CertificateAuthorityStatusActive {
 		return nil, fmt.Errorf("the specified PCA is not active: status is %s",
 			*output.CertificateAuthority.Status)
 	}
+	if *output.CertificateAuthority.CertificateAuthorityConfiguration.Subject.CommonName !=
+		GetCommonName(pcaType, clusterId) {
+		logger.Printf("[WARN] name of specified PCA '%s' does not match expected '%s'",
+			*output.CertificateAuthority.CertificateAuthorityConfiguration.Subject.CommonName,
+			GetCommonName(pcaType, clusterId))
+		warned = true
+	}
 	if *output.CertificateAuthority.CertificateAuthorityConfiguration.KeyAlgorithm != keyAlgorithm {
-		logger.Warn("specified PCA is using an unexpected key algorithm",
-			"expected", keyAlgorithm,
-			"actual", *output.CertificateAuthority.CertificateAuthorityConfiguration.KeyAlgorithm)
+		logger.Printf("[WARN] specified PCA is using an unexpected key algorithm: expected=%s actual=%s",
+			keyAlgorithm, *output.CertificateAuthority.CertificateAuthorityConfiguration.KeyAlgorithm)
+		warned = true
 	}
 	if *output.CertificateAuthority.CertificateAuthorityConfiguration.SigningAlgorithm != signingAlgorithm {
-		logger.Warn("specified PCA is using an unexpected signing algorithm",
-			"expected", signingAlgorithm,
-			"actual", *output.CertificateAuthority.CertificateAuthorityConfiguration.SigningAlgorithm)
+		logger.Printf("[WARN] specified PCA is using an unexpected signing algorithm: expected=%s actual=%s",
+			signingAlgorithm, *output.CertificateAuthority.CertificateAuthorityConfiguration.SigningAlgorithm)
+		warned = true
 	}
 
-	logger.Info("existing PCA passed all preflight checks")
+	if warned {
+		logger.Print("[WARN] existing PCA failed some preflight checks, trying to continue anyway")
+	} else {
+		logger.Print("[WARN] existing PCA passed all preflight checks")
+	}
 	return pca, nil
 }
 
 func FindAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, pcaType string, clusterId string,
-	keyAlgorithm string, signingAlgorithm string) (*AmazonPCA, error) {
-	logger := createPCALogger(pcaType)
-	logger.Trace("entering FindAmazonPCA", "type", pcaType, "clusterId", clusterId)
-
+	keyAlgorithm string, signingAlgorithm string, logger *log.Logger) (*AmazonPCA, error) {
 	var name string = GetCommonName(pcaType, clusterId)
 	var nextToken *string
 	for {
@@ -118,10 +96,10 @@ func FindAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, p
 			MaxResults: aws.Int64(100),
 			NextToken:  nextToken,
 		}
-		logger.Debug("searching existing certificate authorities", "input", input)
+		logger.Print("[DEBUG] listing existing certificate authorities")
 		output, err := client.ListCertificateAuthorities(&input)
 		if err != nil {
-			logger.Error("error searching certificate authorities: " + err.Error())
+			logger.Printf("[ERR] error searching certificate authorities: %s", err.Error())
 			return nil, err
 		}
 
@@ -130,9 +108,9 @@ func FindAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, p
 				*ca.CertificateAuthorityConfiguration.KeyAlgorithm == keyAlgorithm &&
 				*ca.CertificateAuthorityConfiguration.SigningAlgorithm == signingAlgorithm &&
 				*ca.Status == acmpca.CertificateAuthorityStatusActive {
-				logger.Info("found an existing active CA", "arn", *ca.Arn)
+				logger.Printf("[INFO] found an existing active CA %s", *ca.Arn)
 				return NewAmazonPCA(client, config, *ca.Arn, pcaType, *ca.CertificateAuthorityConfiguration.KeyAlgorithm,
-					*ca.CertificateAuthorityConfiguration.SigningAlgorithm), nil
+					*ca.CertificateAuthorityConfiguration.SigningAlgorithm, logger), nil
 			}
 		}
 
@@ -142,21 +120,18 @@ func FindAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, p
 		}
 	}
 
-	logger.Warn("no existing active CA found")
+	logger.Print("[WARN] no existing active CA found")
 	return nil, nil // not found
 }
 
 func CreateAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig, pcaType string, clusterId string,
-	keyAlgorithm string, signingAlgorithm string) (*AmazonPCA, error) {
-	logger := createPCALogger(pcaType)
-	logger.Trace("entering CreateAmazonPCA", "type", pcaType, "clusterId", clusterId,
-		"keyAlgo", keyAlgorithm, "signAlgo", signingAlgorithm)
-
+	keyAlgorithm string, signingAlgorithm string, logger *log.Logger) (*AmazonPCA, error) {
+	commonName := GetCommonName(pcaType, clusterId)
 	createInput := acmpca.CreateCertificateAuthorityInput{
 		CertificateAuthorityType: aws.String(pcaType),
 		CertificateAuthorityConfiguration: &acmpca.CertificateAuthorityConfiguration{
 			Subject: &acmpca.ASN1Subject{
-				CommonName: aws.String(GetCommonName(pcaType, clusterId)),
+				CommonName: aws.String(commonName),
 			},
 			KeyAlgorithm:     aws.String(keyAlgorithm),
 			SigningAlgorithm: aws.String(signingAlgorithm),
@@ -171,7 +146,7 @@ func CreateAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig,
 		},
 	}
 
-	logger.Debug("creating new PCA", "input", createInput)
+	logger.Printf("[DEBUG] creating new PCA %s", commonName)
 	createOutput, err := client.CreateCertificateAuthority(&createInput)
 	if err != nil {
 		return nil, err
@@ -180,7 +155,7 @@ func CreateAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig,
 	// wait for PCA to be created
 	newARN := *createOutput.CertificateAuthorityArn
 	for {
-		logger.Debug("checking to see if CA is ready", "arn", newARN)
+		logger.Printf("[DEBUG] checking to see if PCA %s is ready", newARN)
 
 		describeInput := acmpca.DescribeCertificateAuthorityInput{
 			CertificateAuthorityArn: aws.String(newARN),
@@ -188,21 +163,19 @@ func CreateAmazonPCA(client *acmpca.ACMPCA, config *structs.AWSCAProviderConfig,
 
 		describeOutput, err := client.DescribeCertificateAuthority(&describeInput)
 		if err != nil {
-			logger.Error("error describing CA: " + err.Error())
+			logger.Printf("[ERR] error describing PCA: %s", err.Error())
 			if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
 				return nil, fmt.Errorf("error waiting for PCA to be created: %s", err)
 			}
 		}
 
 		if *describeOutput.CertificateAuthority.Status == acmpca.CertificateAuthorityStatusPendingCertificate {
-			logger.Debug("new CA is ready to accept a certificate", "arn", newARN)
-			logger.Trace("leaving CreateAmazonPCA")
-			return NewAmazonPCA(client, config, newARN, pcaType, keyAlgorithm, signingAlgorithm), nil
+			logger.Printf("[DEBUG] new PCA %s is ready to accept a certificate", newARN)
+			return NewAmazonPCA(client, config, newARN, pcaType, keyAlgorithm, signingAlgorithm, logger), nil
 		}
 
-		// TODO: get from provider config
-		logger.Debug("sleeping until certificate is ready")
-		time.Sleep(5 * time.Second)
+		logger.Print("[DEBUG] sleeping until certificate is ready")
+		time.Sleep(5 * time.Second) // TODO: get from provider config
 	}
 }
 
@@ -215,23 +188,20 @@ func (pca *AmazonPCA) describe() (*acmpca.DescribeCertificateAuthorityOutput, er
 }
 
 func (pca *AmazonPCA) GetCSR() (string, error) {
-	pca.logger.Trace("entering GetCSR")
 	input := &acmpca.GetCertificateAuthorityCsrInput{
 		CertificateAuthorityArn: aws.String(pca.arn),
 	}
-	pca.logger.Debug("retrieving CSR", "input", input)
+	pca.logger.Printf("[DEBUG] retrieving CSR for %s", pca.arn)
 	output, err := pca.client.GetCertificateAuthorityCsr(input)
 	if err != nil {
-		pca.logger.Error("error retrieving CSR: " + err.Error())
+		pca.logger.Printf("[ERR] error retrieving CSR: %s", err.Error())
 		return "", err
 	}
 
-	pca.logger.Trace("leaving GetCSR", "csr", *output.Csr, "error", nil)
 	return *output.Csr, nil
 }
 
 func (pca *AmazonPCA) SetCert(certPEM string, chainPEM string) error {
-	pca.logger.Trace("entering SetCert")
 	chainBytes := []byte(chainPEM)
 	if chainPEM == "" {
 		chainBytes = nil
@@ -242,17 +212,16 @@ func (pca *AmazonPCA) SetCert(certPEM string, chainPEM string) error {
 		CertificateChain:        chainBytes,
 	}
 
-	pca.logger.Debug("uploading certificate", "input", input)
+	pca.logger.Printf("[DEBUG] uploading certificate for %s", pca.arn)
 	_, err := pca.client.ImportCertificateAuthorityCertificate(&input)
 	if err != nil {
-		pca.logger.Error("error importing certificates: " + err.Error())
+		pca.logger.Printf("[ERR] error importing certificates: %s", err.Error())
 		return err
 	}
 
 	pca.certPEM = certPEM
 	pca.chainPEM = chainPEM
 
-	pca.logger.Trace("leaving SetCert", "error", nil)
 	return nil
 }
 
@@ -289,7 +258,6 @@ func (pca *AmazonPCA) CertificateChain() string {
 }
 
 func (pca *AmazonPCA) Generate(signingPCA *AmazonPCA) error {
-	pca.logger.Trace("entering Generate", "signingARN", signingPCA.arn)
 	csrPEM, err := pca.GetCSR()
 	if err != nil {
 		return err
@@ -309,12 +277,10 @@ func (pca *AmazonPCA) Generate(signingPCA *AmazonPCA) error {
 	}
 
 	err = pca.SetCert(newCertPEM, chainPEM)
-	pca.logger.Trace("leaving SetCert", "error", err)
 	return err
 }
 
 func (pca *AmazonPCA) Sign(csrPEM string, templateARN string, validity time.Duration) (string, error) {
-	pca.logger.Trace("entering Sign")
 	issueInput := acmpca.IssueCertificateInput{
 		CertificateAuthorityArn: aws.String(pca.arn),
 		Csr:                     []byte(csrPEM),
@@ -326,16 +292,21 @@ func (pca *AmazonPCA) Sign(csrPEM string, templateARN string, validity time.Dura
 		},
 	}
 
-	pca.logger.Debug("issuing certificate", "input", issueInput)
+	csr, err := connect.ParseCSR(csrPEM)
+	if err != nil {
+		return "", fmt.Errorf("unable to parse CSR: %s", err)
+	}
+
+	pca.logger.Printf("[DEBUG] issuing certificate for %s with %s", csr.Subject.String(), pca.arn)
 	issueOutput, err := pca.client.IssueCertificate(&issueInput)
 	if err != nil {
-		pca.logger.Error("error issuing certificate: " + err.Error())
+		pca.logger.Printf("[ERR] error issuing certificate: %s", err.Error())
 		return "", fmt.Errorf("error issuing certificate from PCA: %s", err)
 	}
 
 	// wait for certificate to be created
 	for {
-		pca.logger.Debug("checking to see if certificate is ready", "arn", *issueOutput.CertificateArn)
+		pca.logger.Printf("[DEBUG] checking to see if certificate %s is ready", *issueOutput.CertificateArn)
 
 		certInput := acmpca.GetCertificateInput{
 			CertificateAuthorityArn: aws.String(pca.arn),
@@ -344,99 +315,85 @@ func (pca *AmazonPCA) Sign(csrPEM string, templateARN string, validity time.Dura
 		certOutput, err := pca.client.GetCertificate(&certInput)
 		if err != nil {
 			if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
-				pca.logger.Error("error retrieving new certificate: "+err.Error(), "arn", *issueOutput.CertificateArn)
+				pca.logger.Printf("[ERR] error retrieving new certificate from %s: %s",
+					*issueOutput.CertificateArn, err.Error())
 				return "", fmt.Errorf("error retrieving certificate from PCA: %s", err)
 			}
 		}
 
 		if certOutput.Certificate != nil {
-			pca.logger.Debug("certificate is ready", "arn", *issueOutput.CertificateArn)
+			pca.logger.Printf("[DEBUG] certificate is ready, ARN is %s", *issueOutput.CertificateArn)
 
 			newCert, err := connect.ParseCert(*certOutput.Certificate)
 			if err == nil {
-				pca.logger.Debug("certificate created",
-					"commonName", newCert.Subject.CommonName,
-					"subjectKey", connect.HexString(newCert.SubjectKeyId),
-					"authorityKey", connect.HexString(newCert.AuthorityKeyId))
+				pca.logger.Printf("[DEBUG] certificate created: commonName=%s subjectKey=%s authorityKey=%s",
+					newCert.Subject.CommonName,
+					connect.HexString(newCert.SubjectKeyId),
+					connect.HexString(newCert.AuthorityKeyId))
 			}
 
-			pca.logger.Trace("leaving Sign", "error", nil)
 			return *certOutput.Certificate, nil
 		}
 
-		pca.logger.Debug("sleeping until certificate is ready", "duration", pca.sleepTime)
+		pca.logger.Printf("[DEBUG] sleeping for %s until certificate is ready", pca.sleepTime)
 		time.Sleep(pca.sleepTime)
 	}
 }
 
 func (pca *AmazonPCA) SignLeaf(csrPEM string, validity time.Duration) (string, error) {
-	pca.logger.Trace("entering SignLeaf")
 	certPEM, err := pca.Sign(csrPEM, LeafTemplateARN, validity)
-	pca.logger.Trace("leaving SignLeaf", "error", err)
 	return certPEM, err
 }
 
 func (pca *AmazonPCA) SignIntermediate(csrPEM string) (string, error) {
-	pca.logger.Trace("entering SignIntermediate")
 	certPEM, err := pca.Sign(csrPEM, IntermediateTemplateARN, IntermediateValidity)
-	pca.logger.Trace("leaving SignIntermediate", "error", err)
 	return certPEM, err
 }
 
 func (pca *AmazonPCA) SignRoot(csrPEM string) (string, error) {
-	pca.logger.Trace("entering SignRoot")
 	certPEM, err := pca.Sign(csrPEM, RootTemplateARN, RootValidity)
-	pca.logger.Trace("leaving SignRoot", "error", err)
 	return certPEM, err
 }
 
 func (pca *AmazonPCA) Disable() error {
-	pca.logger.Trace("entering Disable")
 	input := acmpca.UpdateCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(pca.arn),
 		Status:                  aws.String(acmpca.CertificateAuthorityStatusDisabled),
 	}
-	pca.logger.Info("disabling PCA", "arn", pca.arn)
+	pca.logger.Printf("[INFO] disabling PCA %s", pca.arn)
 	_, err := pca.client.UpdateCertificateAuthority(&input)
 
-	pca.logger.Trace("leaving Disable")
 	return err
 }
 
 func (pca *AmazonPCA) Enable() error {
-	pca.logger.Trace("entering Enable")
 	input := acmpca.UpdateCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(pca.arn),
 		Status:                  aws.String(acmpca.CertificateAuthorityStatusActive),
 	}
-	pca.logger.Info("enabling PCA", "arn", pca.arn)
+	pca.logger.Printf("[INFO] enabling PCA %s", pca.arn)
 	_, err := pca.client.UpdateCertificateAuthority(&input)
 
-	pca.logger.Trace("leaving Enable")
 	return err
 }
 
 func (pca *AmazonPCA) Delete() error {
-	pca.logger.Trace("entering Delete")
 	input := acmpca.DeleteCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(pca.arn),
 	}
-	pca.logger.Info("deleting PCA", "arn", pca.arn)
+	pca.logger.Printf("[INFO] deleting PCA %s", pca.arn)
 	_, err := pca.client.DeleteCertificateAuthority(&input)
 
-	pca.logger.Trace("leaving Delete")
 	return err
 }
 
 func (pca *AmazonPCA) Undelete() error {
-	pca.logger.Trace("entering Undelete")
 	input := acmpca.RestoreCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(pca.arn),
 	}
-	pca.logger.Info("undeleting PCA", "arn", pca.arn)
+	pca.logger.Printf("[INFO] undeleting PCA %s", pca.arn)
 	_, err := pca.client.RestoreCertificateAuthority(&input)
 
-	pca.logger.Trace("leaving Undelete")
 	return err
 }
 

@@ -2,21 +2,19 @@ package ca
 
 import (
 	"crypto/x509"
+	"log"
+	"os"
+	"testing"
 	"time"
 
-	//"crypto/rsa"
-	//"crypto/x509"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acmpca"
-	"github.com/hashicorp/consul/agent/connect"
-	"os"
-	"testing"
-
-	"github.com/hashicorp/consul/agent/structs"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var awsAccessKeyId string
@@ -51,7 +49,8 @@ func makeConfig() *structs.CAConfiguration {
 }
 
 func makeProvider(r *require.Assertions, config *structs.CAConfiguration) *AWSProvider {
-	provider := &AWSProvider{}
+	logger := log.New(os.Stderr, "aws_pca", log.LstdFlags)
+	provider := &AWSProvider{logger: logger}
 	r.NoError(provider.Configure(config.ClusterID, true, config.Config))
 	return provider
 }

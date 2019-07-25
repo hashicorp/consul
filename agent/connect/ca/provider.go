@@ -2,10 +2,20 @@ package ca
 
 import (
 	"crypto/x509"
+	"log"
 	"time"
 )
 
 //go:generate mockery -name Provider -inpkg
+
+// NeedsLogger is an interface that allows Consul to pass a configured
+// logger into any component that needs one.
+type NeedsLogger interface {
+	// SetLogger tells the provider to use the specified logger.
+	// Note: this should be one of the first calls made after instantiating
+	// the provider, so that the provider can log startup messages etc.
+	SetLogger(l *log.Logger)
+}
 
 // Provider is the interface for Consul to interact with
 // an external CA that provides leaf certificate signing for

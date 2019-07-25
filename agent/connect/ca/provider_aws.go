@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
+	"log"
 	"strings"
 	"time"
 
@@ -13,10 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/mapstructure"
 )
 
 type AWSProvider struct {
@@ -25,20 +25,17 @@ type AWSProvider struct {
 	client    *acmpca.ACMPCA
 	isRoot    bool
 	clusterId string
-	logger    hclog.Logger
+	logger    *log.Logger
 	rootPCA   *AmazonPCA
 	subPCA    *AmazonPCA
 	sleepTime time.Duration
 }
 
-func (v *AWSProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
-	v.logger = hclog.New(&hclog.LoggerOptions{
-		Name:  "aws-pca",
-		Level: hclog.Trace,
-	})
-	v.logger.Trace("entering Configure", "clusterId", clusterId, "isRoot", isRoot, "rawConfig", rawConfig)
-	v.logger.Debug("starting configuration of AWS PCA provider")
+func (v *AWSProvider) SetLogger(l *log.Logger) {
+	v.logger = l
+}
 
+func (v *AWSProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
 	config, err := ParseAWSCAConfig(rawConfig)
 	if err != nil {
 		return err
@@ -68,25 +65,22 @@ func (v *AWSProvider) Configure(clusterId string, isRoot bool, rawConfig map[str
 	v.client = acmpca.New(awsSession)
 	v.sleepTime = sleepTime
 
-	v.logger.Info("AWS PCA provider started", "region", v.config.Region, "clusterID", v.clusterId)
-
 	return nil
 }
 
 func (v *AWSProvider) loadFindOrCreate(arn string, pcaType string) (*AmazonPCA, error) {
-	v.logger.Trace("entering loadFindOrCreate", "arn", arn, "type", pcaType)
 	if arn != "" {
 		return LoadAmazonPCA(v.client, v.config, arn, pcaType, v.clusterId,
-			v.config.KeyAlgorithm, v.config.SigningAlgorithm)
+			v.config.KeyAlgorithm, v.config.SigningAlgorithm, v.logger)
 	} else {
 		pca, err := FindAmazonPCA(v.client, v.config, pcaType, v.clusterId,
-			v.config.KeyAlgorithm, v.config.SigningAlgorithm)
+			v.config.KeyAlgorithm, v.config.SigningAlgorithm, v.logger)
 		if err != nil {
 			return nil, err
 		}
 		if pca == nil {
 			pca, err = CreateAmazonPCA(v.client, v.config, pcaType, v.clusterId,
-				v.config.KeyAlgorithm, v.config.SigningAlgorithm)
+				v.config.KeyAlgorithm, v.config.SigningAlgorithm, v.logger)
 			if err != nil {
 				return nil, err
 			}
@@ -96,7 +90,6 @@ func (v *AWSProvider) loadFindOrCreate(arn string, pcaType string) (*AmazonPCA, 
 }
 
 func (v *AWSProvider) GenerateRoot() error {
-	v.logger.Trace("entering GenerateRoot")
 	if !v.isRoot {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
@@ -115,7 +108,6 @@ func (v *AWSProvider) GenerateRoot() error {
 }
 
 func (v *AWSProvider) ensureIntermediate() error {
-	v.logger.Trace("entering ensureIntermediate")
 	if v.subPCA != nil {
 		return nil
 	}
@@ -130,12 +122,10 @@ func (v *AWSProvider) ensureIntermediate() error {
 }
 
 func (v *AWSProvider) ActiveRoot() (string, error) {
-	v.logger.Trace("entering ActiveRoot")
 	return v.rootPCA.Certificate(), nil
 }
 
 func (v *AWSProvider) GenerateIntermediateCSR() (string, error) {
-	v.logger.Trace("entering GenerateIntermediateCSR")
 	if v.isRoot {
 		return "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
@@ -145,12 +135,11 @@ func (v *AWSProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	v.logger.Info("requesting CSR for new intermediate CA cert")
+	v.logger.Print("[INFO] requesting CSR for new intermediate CA cert")
 	return v.subPCA.GetCSR()
 }
 
 func (v *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) error {
-	v.logger.Trace("entering SetIntermediate")
 	if err := v.ensureIntermediate(); err != nil {
 		return err
 	}
@@ -158,7 +147,6 @@ func (v *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 }
 
 func (v *AWSProvider) ActiveIntermediate() (string, error) {
-	v.logger.Trace("entering ActiveIntermediate")
 	if err := v.ensureIntermediate(); err != nil {
 		return "", err
 	}
@@ -166,7 +154,6 @@ func (v *AWSProvider) ActiveIntermediate() (string, error) {
 }
 
 func (v *AWSProvider) GenerateIntermediate() (string, error) {
-	v.logger.Trace("entering GenerateIntermediate")
 	if err := v.ensureIntermediate(); err != nil {
 		return "", err
 	}
@@ -177,7 +164,6 @@ func (v *AWSProvider) GenerateIntermediate() (string, error) {
 }
 
 func (v *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
-	v.logger.Trace("entering Sign", "commonName", csr.Subject.CommonName)
 
 	if err := v.ensureIntermediate(); err != nil {
 		return "", err
@@ -190,12 +176,10 @@ func (v *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 	leafPEM, err := v.subPCA.SignLeaf(pemBuf.String(), v.config.LeafCertTTL)
 
-	v.logger.Trace("leaving Sign", "leafPEM", leafPEM, "error", err)
 	return leafPEM, err
 }
 
 func (v *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	v.logger.Trace("entering SignIntermediate", "commonName", csr.Subject.CommonName)
 
 	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 
@@ -224,23 +208,22 @@ func (v *AWSProvider) CrossSignCA(newCA *x509.Certificate) (string, error) {
 }
 
 func (v *AWSProvider) Cleanup() error {
-	v.logger.Trace("entering Cleanup")
 	if v.config.DeleteOnExit {
 		if v.subPCA != nil {
 			if err := v.subPCA.Disable(); err != nil {
-				v.logger.Warn("error disabling subordinate PCA: " + err.Error())
+				v.logger.Printf("[WARN] error disabling subordinate PCA: %s", err.Error())
 			}
 			if err := v.subPCA.Delete(); err != nil {
-				v.logger.Warn("error deleting subordinate PCA: " + err.Error())
+				v.logger.Printf("[WARN] error deleting subordinate PCA: %s", err.Error())
 			}
 			v.subPCA = nil
 		}
 		if v.rootPCA != nil {
 			if err := v.rootPCA.Disable(); err != nil {
-				v.logger.Warn("error disabling root PCA: " + err.Error())
+				v.logger.Printf("[WARN] error disabling root PCA: %s", err.Error())
 			}
 			if err := v.rootPCA.Delete(); err != nil {
-				v.logger.Warn("error deleting root PCA: " + err.Error())
+				v.logger.Printf("[WARN] error deleting root PCA: %s", err.Error())
 			}
 			v.rootPCA = nil
 		}
