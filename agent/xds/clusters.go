@@ -58,7 +58,6 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 
 		if chain == nil {
-			// Either old-school upstream or prepared query.
 			upstreamCluster, err := s.makeUpstreamCluster(u, cfgSnap)
 			if err != nil {
 				return nil, err
@@ -255,10 +254,12 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		groupResolver := node.GroupResolver
 
 		sni := TargetSNI(target, cfgSnap)
-		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", sni)
+		clusterName := CustomizeSNI(sni, chain)
+
+		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
 		c := &envoy.Cluster{
-			Name:                 sni,
-			AltStatName:          sni, // TODO(rb): change this?
+			Name:                 clusterName,
+			AltStatName:          sni,
 			ConnectTimeout:       groupResolver.ConnectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{

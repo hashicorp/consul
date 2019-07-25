@@ -90,10 +90,10 @@ function init_workdir {
   cp consul-base-cfg/* workdir/${DC}/consul/
 
   # Add any overrides if there are any (no op if not)
-  find ${CASE_DIR} -name '*.hcl' -maxdepth 1 -type f -exec cp -f {} workdir/${DC}/consul \;
+  find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${DC}/consul \;
 
   # Copy all the test files
-  find ${CASE_DIR} -name '*.bats' -maxdepth 1 -type f -exec cp -f {} workdir/${DC}/bats \;
+  find ${CASE_DIR} -maxdepth 1 -name '*.bats' -type f -exec cp -f {} workdir/${DC}/bats \;
   # Copy DC specific bats
   cp helpers.bash workdir/${DC}/bats
 

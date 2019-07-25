@@ -51,6 +51,11 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			setup:  nil,
+		},
+		{
 			name:   "splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,

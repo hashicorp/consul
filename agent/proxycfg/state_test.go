@@ -233,14 +233,13 @@ func genVerifyPreparedQueryWatch(expectedName string, expectedDatacenter string)
 	}
 }
 
-func genVerifyDiscoveryChainWatch(expectedName string, expectedDatacenter string) verifyWatchRequest {
+func genVerifyDiscoveryChainWatch(expected *structs.DiscoveryChainRequest) verifyWatchRequest {
 	return func(t testing.TB, cacheType string, request cache.Request) {
 		require.Equal(t, cachetype.CompiledDiscoveryChainName, cacheType)
 
 		reqReal, ok := request.(*structs.DiscoveryChainRequest)
 		require.True(t, ok)
-		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
-		require.Equal(t, expectedName, reqReal.Name)
+		require.Equal(t, expected, reqReal)
 	}
 }
 
@@ -305,6 +304,203 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		stages   []verificationStage
 	}
 
+	newConnectProxyCase := func(meshGatewayProxyConfigValue structs.MeshGatewayMode) testCase {
+		ns := structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-sidecar-proxy",
+			Service: "web-sidecar-proxy",
+			Address: "10.0.1.1",
+			Port:    443,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+				Upstreams: structs.Upstreams{
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypePreparedQuery,
+						DestinationName: "query",
+						LocalBindPort:   10001,
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api",
+						LocalBindPort:   10002,
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-failover-remote",
+						Datacenter:      "dc2",
+						LocalBindPort:   10003,
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-failover-local",
+						Datacenter:      "dc2",
+						LocalBindPort:   10004,
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeLocal,
+						},
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-failover-direct",
+						Datacenter:      "dc2",
+						LocalBindPort:   10005,
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeNone,
+						},
+					},
+					structs.Upstream{
+						DestinationType: structs.UpstreamDestTypeService,
+						DestinationName: "api-dc2",
+						LocalBindPort:   10006,
+					},
+				},
+			},
+		}
+
+		if meshGatewayProxyConfigValue != structs.MeshGatewayModeDefault {
+			ns.Proxy.MeshGateway.Mode = meshGatewayProxyConfigValue
+		}
+
+		stage0 := verificationStage{
+			requiredWatches: map[string]verifyWatchRequest{
+				rootsWatchID:                    genVerifyRootsWatch("dc1"),
+				leafWatchID:                     genVerifyLeafWatch("web", "dc1"),
+				intentionsWatchID:               genVerifyIntentionWatch("web", "dc1"),
+				"upstream:prepared_query:query": genVerifyPreparedQueryWatch("query", "dc1"),
+				"discovery-chain:api": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: meshGatewayProxyConfigValue,
+					},
+				}),
+				"discovery-chain:api-failover-remote?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-failover-remote",
+					EvaluateInDatacenter: "dc2",
+					EvaluateInNamespace:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeRemote,
+					},
+				}),
+				"discovery-chain:api-failover-local?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-failover-local",
+					EvaluateInDatacenter: "dc2",
+					EvaluateInNamespace:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeLocal,
+					},
+				}),
+				"discovery-chain:api-failover-direct?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-failover-direct",
+					EvaluateInDatacenter: "dc2",
+					EvaluateInNamespace:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeNone,
+					},
+				}),
+				"discovery-chain:api-dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+					Name:                 "api-dc2",
+					EvaluateInDatacenter: "dc1",
+					EvaluateInNamespace:  "default",
+					Datacenter:           "dc1",
+					OverrideMeshGateway: structs.MeshGatewayConfig{
+						Mode: meshGatewayProxyConfigValue,
+					},
+				}),
+			},
+			events: []cache.UpdateEvent{
+				cache.UpdateEvent{
+					CorrelationID: "discovery-chain:api",
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
+							}),
+					},
+					Err: nil,
+				},
+				cache.UpdateEvent{
+					CorrelationID: "discovery-chain:api-failover-remote?dc=dc2",
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "dc2",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeRemote
+							}),
+					},
+					Err: nil,
+				},
+				cache.UpdateEvent{
+					CorrelationID: "discovery-chain:api-failover-local?dc=dc2",
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "dc2",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
+							}),
+					},
+					Err: nil,
+				},
+				cache.UpdateEvent{
+					CorrelationID: "discovery-chain:api-failover-direct?dc=dc2",
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "dc2",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeNone
+							}),
+					},
+					Err: nil,
+				},
+				cache.UpdateEvent{
+					CorrelationID: "discovery-chain:api-dc2",
+					Result: &structs.DiscoveryChainResponse{
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "dc1",
+							func(req *discoverychain.CompileRequest) {
+								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
+							},
+							&structs.ServiceResolverConfigEntry{
+								Kind: structs.ServiceResolver,
+								Name: "api-dc2",
+								Redirect: &structs.ServiceResolverRedirect{
+									Service:    "api",
+									Datacenter: "dc2",
+								},
+							},
+						),
+					},
+					Err: nil,
+				},
+			},
+		}
+
+		stage1 := verificationStage{
+			requiredWatches: map[string]verifyWatchRequest{
+				"upstream-target:api,,,dc1:api":                                        genVerifyServiceWatch("api", "", "dc1", true),
+				"upstream-target:api-failover-remote,,,dc2:api-failover-remote?dc=dc2": genVerifyGatewayWatch("dc2"),
+				"upstream-target:api-failover-local,,,dc2:api-failover-local?dc=dc2":   genVerifyGatewayWatch("dc1"),
+				"upstream-target:api-failover-direct,,,dc2:api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
+			},
+		}
+
+		if meshGatewayProxyConfigValue == structs.MeshGatewayModeDefault {
+			stage1.requiredWatches["upstream-target:api,,,dc2:api-dc2"] = genVerifyServiceWatch("api", "", "dc2", true)
+		} else {
+			stage1.requiredWatches["upstream-target:api,,,dc2:api-dc2"] = genVerifyGatewayWatch("dc1")
+		}
+
+		return testCase{
+			ns:       ns,
+			sourceDC: "dc1",
+			stages:   []verificationStage{stage0, stage1},
+		}
+	}
+
 	cases := map[string]testCase{
 		"initial-gateway": testCase{
 			ns: structs.NodeService{
@@ -325,115 +521,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 			},
 		},
-		"connect-proxy": testCase{
-			ns: structs.NodeService{
-				Kind:    structs.ServiceKindConnectProxy,
-				ID:      "web-sidecar-proxy",
-				Service: "web-sidecar-proxy",
-				Address: "10.0.1.1",
-				Port:    443,
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "web",
-					Upstreams: structs.Upstreams{
-						structs.Upstream{
-							DestinationType: structs.UpstreamDestTypePreparedQuery,
-							DestinationName: "query",
-							LocalBindPort:   10001,
-						},
-						structs.Upstream{
-							DestinationType: structs.UpstreamDestTypeService,
-							DestinationName: "api",
-							LocalBindPort:   10002,
-						},
-						structs.Upstream{
-							DestinationType: structs.UpstreamDestTypeService,
-							DestinationName: "api-failover-remote",
-							Datacenter:      "dc2",
-							LocalBindPort:   10003,
-							MeshGateway: structs.MeshGatewayConfig{
-								Mode: structs.MeshGatewayModeRemote,
-							},
-						},
-						structs.Upstream{
-							DestinationType: structs.UpstreamDestTypeService,
-							DestinationName: "api-failover-local",
-							Datacenter:      "dc2",
-							LocalBindPort:   10004,
-							MeshGateway: structs.MeshGatewayConfig{
-								Mode: structs.MeshGatewayModeLocal,
-							},
-						},
-						structs.Upstream{
-							DestinationType: structs.UpstreamDestTypeService,
-							DestinationName: "api-failover-direct",
-							Datacenter:      "dc2",
-							LocalBindPort:   10005,
-							MeshGateway: structs.MeshGatewayConfig{
-								Mode: structs.MeshGatewayModeNone,
-							},
-						},
-						structs.Upstream{
-							DestinationType: structs.UpstreamDestTypeService,
-							DestinationName: "api-dc2",
-							LocalBindPort:   10006,
-							MeshGateway: structs.MeshGatewayConfig{
-								Mode: structs.MeshGatewayModeLocal,
-							},
-						},
-					},
-					MeshGateway: structs.MeshGatewayConfig{
-						Mode: structs.MeshGatewayModeLocal,
-					},
-				},
-			},
-			sourceDC: "dc1",
-			stages: []verificationStage{
-				verificationStage{
-					requiredWatches: map[string]verifyWatchRequest{
-						rootsWatchID:                    genVerifyRootsWatch("dc1"),
-						leafWatchID:                     genVerifyLeafWatch("web", "dc1"),
-						intentionsWatchID:               genVerifyIntentionWatch("web", "dc1"),
-						"upstream:prepared_query:query": genVerifyPreparedQueryWatch("query", "dc1"),
-						"discovery-chain:api":           genVerifyDiscoveryChainWatch("api", "dc1"),
-						"upstream:" + serviceIDPrefix + "api-failover-remote?dc=dc2": genVerifyGatewayWatch("dc2"),
-						"upstream:" + serviceIDPrefix + "api-failover-local?dc=dc2":  genVerifyGatewayWatch("dc1"),
-						"upstream:" + serviceIDPrefix + "api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
-						"discovery-chain:api-dc2":                                    genVerifyDiscoveryChainWatch("api-dc2", "dc1"),
-					},
-					events: []cache.UpdateEvent{
-						cache.UpdateEvent{
-							CorrelationID: "discovery-chain:api",
-							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1"),
-							},
-							Err: nil,
-						},
-						cache.UpdateEvent{
-							CorrelationID: "discovery-chain:api",
-							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "dc1",
-									&structs.ServiceResolverConfigEntry{
-										Kind: structs.ServiceResolver,
-										Name: "api-dc2",
-										Redirect: &structs.ServiceResolverRedirect{
-											Service:    "api",
-											Datacenter: "dc2",
-										},
-									},
-								),
-							},
-							Err: nil,
-						},
-					},
-				},
-				verificationStage{
-					requiredWatches: map[string]verifyWatchRequest{
-						"upstream-target:api,,,dc1:api": genVerifyServiceWatch("api", "", "dc1", true),
-						"upstream-target:api,,,dc2:api": genVerifyGatewayWatch("dc1"),
-					},
-				},
-			},
-		},
+		"connect-proxy":                    newConnectProxyCase(structs.MeshGatewayModeDefault),
+		"connect-proxy-mesh-gateway-local": newConnectProxyCase(structs.MeshGatewayModeLocal),
 	}
 
 	for name, tc := range cases {

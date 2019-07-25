@@ -45,3 +45,10 @@ func QuerySNI(service string, datacenter string, cfgSnap *proxycfg.ConfigSnapsho
 func TargetSNI(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot) string {
 	return ServiceSNI(target.Service, target.ServiceSubset, target.Namespace, target.Datacenter, cfgSnap)
 }
+
+func CustomizeSNI(sni string, chain *structs.CompiledDiscoveryChain) string {
+	if chain == nil || chain.CustomizationHash == "" {
+		return sni
+	}
+	return fmt.Sprintf("%s.%s", chain.CustomizationHash, sni)
+}

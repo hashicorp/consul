@@ -432,6 +432,10 @@ func TestConfigSnapshotDiscoveryChain(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "simple")
 }
 
+func TestConfigSnapshotDiscoveryChainWithOverrides(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "simple-with-overrides")
+}
+
 func TestConfigSnapshotDiscoveryChainWithFailover(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "failover")
 }
@@ -448,8 +452,18 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	roots, leaf := TestCerts(t)
 
 	// Compile a chain.
-	var entries []structs.ConfigEntry
+	var (
+		entries      []structs.ConfigEntry
+		compileSetup func(req *discoverychain.CompileRequest)
+	)
 	switch variation {
+	case "simple-with-overrides":
+		compileSetup = func(req *discoverychain.CompileRequest) {
+			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
+			req.OverrideProtocol = "grpc"
+			req.OverrideConnectTimeout = 66 * time.Second
+		}
+		fallthrough
 	case "simple":
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
@@ -528,7 +542,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		entries = append(entries, additionalEntries...)
 	}
 
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", entries...)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", compileSetup, entries...)
 
 	dbTarget := structs.DiscoveryTarget{
 		Service:    "db",
@@ -573,6 +587,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	}
 
 	switch variation {
+	case "simple-with-overrides":
 	case "simple":
 	case "failover":
 		snap.ConnectProxy.WatchedUpstreamEndpoints["db"][failTarget] =
