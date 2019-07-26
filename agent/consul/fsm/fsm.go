@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 )
 
@@ -60,6 +61,8 @@ type FSM struct {
 	state     *state.Store
 
 	gc *state.TombstoneGC
+
+	chunker *raftchunking.ChunkingFSM
 }
 
 // New is used to construct a new FSM with a blank state.
@@ -85,7 +88,13 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		}
 	}
 
+	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
+
 	return fsm, nil
+}
+
+func (c *FSM) ChunkingFSM() *raftchunking.ChunkingFSM {
+	return c.chunker
 }
 
 // State is used to return a handle to the current state
@@ -127,7 +136,15 @@ func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Since(start))
 	}(time.Now())
 
-	return &snapshot{c.state.Snapshot()}, nil
+	chunkState, err := c.chunker.CurrentState()
+	if err != nil {
+		return nil, err
+	}
+
+	return &snapshot{
+		state:      c.state.Snapshot(),
+		chunkState: chunkState,
+	}, nil
 }
 
 // Restore streams in the snapshot and replaces the current state store with a
@@ -167,11 +184,23 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 
 		// Decode
 		msg := structs.MessageType(msgType[0])
-		if fn := restorers[msg]; fn != nil {
+		switch {
+		case msg == structs.ChunkingStateType:
+			chunkState := &raftchunking.State{
+				ChunkMap: make(raftchunking.ChunkMap),
+			}
+			if err := dec.Decode(chunkState); err != nil {
+				return err
+			}
+			if err := c.chunker.RestoreState(chunkState); err != nil {
+				return err
+			}
+		case restorers[msg] != nil:
+			fn := restorers[msg]
 			if err := fn(&header, restore, dec); err != nil {
 				return err
 			}
-		} else {
+		default:
 			return fmt.Errorf("Unrecognized msg type %d", msg)
 		}
 	}

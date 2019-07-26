@@ -6,8 +6,6 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* raft: allow trailing logs to be configured as an escape hatch for extreme load that prevents followers catching up with leader [[GH-6186](https://github.com/hashicorp/consul/pull/6186)]
-* agent: added configurable limit for log files to be rotated [[GH-5831](https://github.com/hashicorp/consul/pull/5831)]
 * agent: health checks: change long timeout behavior to use to user-configured `timeout` value [[GH-6094](https://github.com/hashicorp/consul/pull/6094)]
 * api: Update filtering language to include substring and regular expression matching on string values [[GH-6190](https://github.com/hashicorp/consul/pull/6190)]
 * api: Display allowed HTTP CIDR information nicely [[GH-6029](https://github.com/hashicorp/consul/pull/6029)]
@@ -15,10 +13,6 @@ IMPROVEMENTS:
 * connect: validate and test more of the L7 config entries [[GH-6156](https://github.com/hashicorp/consul/issues/6156)]
 * connect: change router syntax for matching query parameters to resemble the syntax for matching paths and headers for consistency. [[GH-6163](https://github.com/hashicorp/consul/issues/6163)]
 * connect: allow L7 routers to match on http methods [[GH-6164](https://github.com/hashicorp/consul/issues/6164)]
-
-BUG FIXES:
-
-* agent: avoid reverting any check updates that occur while a service is being added or the config is reloaded [[GH-6144](https://github.com/hashicorp/consul/issues/6144)]
 
 ## 1.6.0-beta2 (July 15, 2019)
 
@@ -48,6 +42,20 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * autopilot: update to also remove failed nodes from WAN gossip pool [[GH-6028](https://github.com/hashicorp/consul/pull/6028)]
+
+## 1.5.3 (July 25, 2019)
+
+IMPROVEMENTS:
+* raft: allow trailing logs to be configured as an escape hatch for extreme load that prevents followers catching up with leader [[GH-6186](https://github.com/hashicorp/consul/pull/6186)]
+* raft: added raft log chunking capabilities to allow for storing larger KV entries [[GH-6172](https://github.com/hashicorp/consul/pull/6172)]
+* agent: added configurable limit for log files to be rotated [[GH-5831](https://github.com/hashicorp/consul/pull/5831)]
+* api: The v1/status endpoints can now be forwarded to remote datacenters [[GH-6198](https://github.com/hashicorp/consul/pull/6198)]
+
+BUG FIXES:
+
+* autopilot: update to also remove failed nodes from WAN gossip pool [[GH-6028](https://github.com/hashicorp/consul/pull/6028)]
+* agent: avoid reverting any check updates that occur while a service is being added or the config is reloaded [[GH-6144](https://github.com/hashicorp/consul/issues/6144)]
+* auto-encrypt: fix an issue that could cause cloud retry-join to fail when utilized with auto-encrypt by falling back to a default port [[GH-6205]](https://github.com/hashicorp/consul/pull/6205)
 
 ## 1.5.2 (June 27, 2019)
 
