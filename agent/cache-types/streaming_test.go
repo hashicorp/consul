@@ -8,15 +8,17 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// TestStreamingClient is a mock StreamingClient for testing that allows
+// for queueing up custom events to a subscriber.
+type TestStreamingClient struct {
+	events chan *stream.Event
+	ctx    context.Context
+}
+
 func NewTestStreamingClient() *TestStreamingClient {
 	return &TestStreamingClient{
 		events: make(chan *stream.Event, 32),
 	}
-}
-
-type TestStreamingClient struct {
-	events chan *stream.Event
-	ctx    context.Context
 }
 
 func (t *TestStreamingClient) Subscribe(ctx context.Context, in *stream.SubscribeRequest, opts ...grpc.CallOption) (stream.Consul_SubscribeClient, error) {

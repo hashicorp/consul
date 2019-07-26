@@ -10,6 +10,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sentinel"
@@ -1078,6 +1079,12 @@ func (f *aclFilter) allowService(service string) bool {
 	return f.authorizer.ServiceRead(service)
 }
 
+// allowCheckServiceNode is used to determine if a CheckServiceNodeis accessible
+// for an ACL.
+func (f *aclFilter) allowCheckServiceNode(node, service string) bool {
+	return f.allowNode(node) && f.allowService(service)
+}
+
 // allowSession is used to determine if a session for a node is accessible for
 // an ACL.
 func (f *aclFilter) allowSession(node string) bool {
@@ -1085,6 +1092,37 @@ func (f *aclFilter) allowSession(node string) bool {
 		return true
 	}
 	return f.authorizer.SessionRead(node)
+}
+
+// allowEvent is used to determine if a stream.Event is accessible for an ACL.
+func (f *aclFilter) allowEvent(event stream.Event) bool {
+	// Fast path if ACLs are not enabled
+	if f.authorizer == nil {
+		return true
+	}
+
+	switch event.Topic {
+	case stream.Topic_ServiceHealth:
+		health := event.GetServiceHealth()
+		if health == nil {
+			return true
+		}
+		var node, service string
+		if health.ServiceNode != nil {
+			if health.ServiceNode.Node != nil {
+				node = health.ServiceNode.Node.Node
+			}
+			if health.ServiceNode.Service != nil {
+				service = health.ServiceNode.Service.Service
+			}
+		}
+		val := f.allowCheckServiceNode(node, service)
+		f.logger.Printf("checking allow on %s/%s (%v)", node, service, val)
+		return val
+	default:
+		f.logger.Printf("could not filter for unrecognized event topic %s", event.Topic)
+		return true
+	}
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on
@@ -1155,7 +1193,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.allowNode(node.Node.Node) && f.allowService(node.Service.Service) {
+		if f.allowCheckServiceNode(node.Node.Node, node.Service.Service) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)

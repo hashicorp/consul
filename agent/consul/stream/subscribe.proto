@@ -15,6 +15,7 @@ enum Topic {
 message SubscribeRequest {
     Topic topic = 1;
     string key = 2;
+    string token = 3;
 }
 
 message Event {
