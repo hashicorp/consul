@@ -12,13 +12,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-const (
-	// maxKVSize is used to limit the maximum payload length
-	// of a KV entry. If it exceeds this amount, the client is
-	// likely abusing the KV store.
-	maxKVSize = 512 * 1024
-)
-
 func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.KeyRequest{}
@@ -182,9 +175,9 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	}
 
 	// Check the content-length
-	if req.ContentLength > maxKVSize {
+	if req.ContentLength > int64(s.agent.config.KVMaxValueSize) {
 		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Value exceeds %d byte limit", maxKVSize)
+		fmt.Fprintf(resp, "Value exceeds %d byte limit", s.agent.config.KVMaxValueSize)
 		return nil, nil
 	}
 

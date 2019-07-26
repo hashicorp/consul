@@ -47,6 +47,14 @@ UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
 
+################
+# CI Variables #
+################
+CI_DEV_DOCKER_NAMESPACE?=hashicorpdev
+CI_DEV_DOCKER_IMAGE_NAME?=consul
+CI_DEV_DOCKER_WORKDIR?=bin/
+################
+
 DIST_TAG?=1
 DIST_BUILD?=1
 DIST_SIGN?=1
@@ -130,6 +138,26 @@ dev-docker: linux
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@docker build $(NOCACHE) $(QUIET) -t '$(CONSUL_DEV_IMAGE)' --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) $(CURDIR)/pkg/bin/linux_amd64 -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+
+# In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
+# should only run in CI and not locally.
+ci.dev-docker:
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@echo "Building Consul Development container - $(CI_DEV_DOCKER_IMAGE_NAME)"
+	@docker build $(NOCACHE) $(QUIET) -t '$(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)' \
+	--build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+	--label COMMIT_SHA=$(CIRCLE_SHA1) \
+	--label PULL_REQUEST=$(CIRCLE_PULL_REQUEST) \
+	--label CIRCLE_BUILD_URL=$(CIRCLE_BUILD_URL) \
+	$(CI_DEV_DOCKER_WORKDIR) -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
+	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_LOGIN)" --password-stdin
+	@echo "Pushing dev image to: https://cloud.docker.com/u/hashicorpdev/repository/docker/hashicorpdev/consul"
+	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)
+ifeq ($(CIRCLE_BRANCH), master)
+	@docker tag $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT) $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
+	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
+endif
 
 changelogfmt:
 	@echo "--> Making [GH-xxxx] references clickable..."

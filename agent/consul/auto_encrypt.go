@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
+func (c *Client) RequestAutoEncryptCerts(servers []string, defaultPort int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
 	errFn := func(err error) (*structs.SignedResponse, string, error) {
 		return nil, "", err
 	}
@@ -86,11 +87,12 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		// Translate host to net.TCPAddr to make life easier for
 		// RPCInsecure.
 		for _, s := range servers {
-			ips, err := resolveAddr(s, c.logger)
+			ips, port, err := resolveAddr(s, defaultPort, c.logger)
 			if err != nil {
 				c.logger.Printf("[WARN] agent: AutoEncrypt resolveAddr failed: %v", err)
 				continue
 			}
+
 			for _, ip := range ips {
 				addr := net.TCPAddr{IP: ip, Port: port}
 
@@ -117,16 +119,29 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	}
 }
 
-// resolveAddr is used to resolve the address into an address,
-// port, and error. If no port is given, use the default
-func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
-	host, _, err := net.SplitHostPort(rawHost)
-	if err != nil && err.Error() != "missing port in address" {
-		return nil, err
+// resolveAddr is used to resolve the host into IPs, port, and error.
+// If no port is given, use the default
+func resolveAddr(rawHost string, defaultPort int, logger *log.Logger) ([]net.IP, int, error) {
+	host, splitPort, err := net.SplitHostPort(rawHost)
+	if err != nil && err.Error() != fmt.Sprintf("address %s: missing port in address", rawHost) {
+		return nil, defaultPort, err
+	}
+
+	// SplitHostPort returns empty host and splitPort on missingPort err,
+	// so those are set to defaults
+	var port int
+	if err != nil {
+		host = rawHost
+		port = defaultPort
+	} else {
+		port, err = strconv.Atoi(splitPort)
+		if err != nil {
+			port = defaultPort
+		}
 	}
 
 	if ip := net.ParseIP(host); ip != nil {
-		return []net.IP{ip}, nil
+		return []net.IP{ip}, port, nil
 	}
 
 	// First try TCP so we have the best chance for the largest list of
@@ -135,13 +150,17 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	if ips, err := tcpLookupIP(host, logger); err != nil {
 		logger.Printf("[DEBUG] agent: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
 	} else if len(ips) > 0 {
-		return ips, nil
+		return ips, port, nil
 	}
 
 	// If TCP didn't yield anything then use the normal Go resolver which
 	// will try UDP, then might possibly try TCP again if the UDP response
 	// indicates it was truncated.
-	return net.LookupIP(host)
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, port, err
+	}
+	return ips, port, nil
 }
 
 // tcpLookupIP is a helper to initiate a TCP-based DNS lookup for the given host.

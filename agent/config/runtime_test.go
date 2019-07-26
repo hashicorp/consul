@@ -3266,7 +3266,8 @@ func TestFullConfig(t *testing.T) {
 			"leave_on_terminate": true,
 			"limits": {
 				"rpc_rate": 12029.43,
-				"rpc_max_burst": 44848
+				"rpc_max_burst": 44848,
+				"kv_max_value_size": 1234567800000000
 			},
 			"log_level": "k1zo9Spt",
 			"node_id": "AsUIlw99",
@@ -3298,6 +3299,7 @@ func TestFullConfig(t *testing.T) {
 			"raft_protocol": 19016,
 			"raft_snapshot_threshold": 16384,
 			"raft_snapshot_interval": "30s",
+			"raft_trailing_logs": 83749,
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
 			"recursors": [ "63.38.39.58", "92.49.18.18" ],
@@ -3850,6 +3852,7 @@ func TestFullConfig(t *testing.T) {
 			limits {
 				rpc_rate = 12029.43
 				rpc_max_burst = 44848
+				kv_max_value_size = 1234567800000000
 			}
 			log_level = "k1zo9Spt"
 			node_id = "AsUIlw99"
@@ -3881,6 +3884,7 @@ func TestFullConfig(t *testing.T) {
 			raft_protocol = 19016
 			raft_snapshot_threshold = 16384
 			raft_snapshot_interval = "30s"
+			raft_trailing_logs = 83749
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
 			recursors = [ "63.38.39.58", "92.49.18.18" ]
@@ -4514,6 +4518,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPSAddrs:                       []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPSPort:                        15127,
 		KeyFile:                          "IEkkwgIA",
+		KVMaxValueSize:                   1234567800000000,
 		LeaveDrainTime:                   8265 * time.Second,
 		LeaveOnTerm:                      true,
 		LogLevel:                         "k1zo9Spt",
@@ -4532,6 +4537,7 @@ func TestFullConfig(t *testing.T) {
 		RaftProtocol:                     19016,
 		RaftSnapshotThreshold:            16384,
 		RaftSnapshotInterval:             30 * time.Second,
+		RaftTrailingLogs:                 83749,
 		ReconnectTimeoutLAN:              23739 * time.Second,
 		ReconnectTimeoutWAN:              26694 * time.Second,
 		RejoinAfterLeave:                 true,
@@ -5166,6 +5172,7 @@ func TestSanitize(t *testing.T) {
 				OutputMaxSize: checks.DefaultBufSize,
 			},
 		},
+		KVMaxValueSize: 1234567800000000,
 	}
 
 	rtJSON := `{
@@ -5331,6 +5338,7 @@ func TestSanitize(t *testing.T) {
 		"HTTPSAddrs": [],
 		"HTTPSPort": 0,
 		"KeyFile": "hidden",
+		"KVMaxValueSize": 1234567800000000,
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,
 		"LogLevel": "",
@@ -5353,6 +5361,7 @@ func TestSanitize(t *testing.T) {
 		"RaftProtocol": 0,
 		"RaftSnapshotInterval": "0s",
 		"RaftSnapshotThreshold": 0,
+		"RaftTrailingLogs": 0,
 		"ReconnectTimeoutLAN": "0s",
 		"ReconnectTimeoutWAN": "0s",
 		"RejoinAfterLeave": false,

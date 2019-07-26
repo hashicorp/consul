@@ -2,19 +2,31 @@ package agent
 
 import (
 	"net/http"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func (s *HTTPServer) StatusLeader(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
 	var out string
-	if err := s.agent.RPC("Status.Leader", struct{}{}, &out); err != nil {
+	if err := s.agent.RPC("Status.Leader", &args, &out); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
 func (s *HTTPServer) StatusPeers(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
 	var out []string
-	if err := s.agent.RPC("Status.Peers", struct{}{}, &out); err != nil {
+	if err := s.agent.RPC("Status.Peers", &args, &out); err != nil {
 		return nil, err
 	}
 	return out, nil

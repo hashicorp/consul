@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
 )
 
 func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
@@ -69,6 +71,32 @@ func TestStatusLeader(t *testing.T) {
 	}
 }
 
+func TestStatusLeader_ForwardDC(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerDC(t, "primary")
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerDC(t, "secondary")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	joinWAN(t, s2, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "secondary")
+	testrpc.WaitForLeader(t, s2.RPC, "primary")
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "secondary",
+	}
+
+	var out string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Status.Leader", &args, &out))
+	require.Equal(t, s2.config.RPCAdvertise.String(), out)
+}
+
 func TestStatusPeers(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
@@ -85,4 +113,30 @@ func TestStatusPeers(t *testing.T) {
 	if len(peers) != 1 {
 		t.Fatalf("no peers: %v", peers)
 	}
+}
+
+func TestStatusPeers_ForwardDC(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerDC(t, "primary")
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerDC(t, "secondary")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	joinWAN(t, s2, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "secondary")
+	testrpc.WaitForLeader(t, s2.RPC, "primary")
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "secondary",
+	}
+
+	var out []string
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Status.Peers", &args, &out))
+	require.Equal(t, []string{s2.config.RPCAdvertise.String()}, out)
 }
