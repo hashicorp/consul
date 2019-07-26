@@ -26,6 +26,9 @@ As an interim solution, you can add [custom Envoy configuration](#custom-configu
 in the [proxy service definition](/docs/connect/registration/service-registration.html) allowing
 you to use the more powerful features of Envoy.
 
+~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy.html)
+   Envoy must be run with the `--max-obj-name-len` option set to `256` or greater.
+
 ## Supported Versions
 
 Consul's Envoy support was added in version 1.3.0. The following table shows
