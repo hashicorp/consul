@@ -20,7 +20,7 @@ load helpers
 
 @test "s1 upstream should have healthy endpoints for s2" {
   # mesh gateway mode is configured in an upstream override so the cluster name is customized here
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 c225dc1c.s2.default.secondary HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 c225dc1c:s2.default.secondary HEALTHY 1
 }
 
 @test "gateway-primary should have healthy endpoints for secondary" {
