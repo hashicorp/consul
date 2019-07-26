@@ -123,17 +123,17 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// byte arrays so we can assign right over.
 	var opsRPC structs.TxnOps
 	var writes int
-	var netKVSize int
+	var netKVSize uint64
 	for _, in := range ops {
 		switch {
 		case in.KV != nil:
 			size := len(in.KV.Value)
-			if size > maxKVSize {
+			if uint64(size) > s.agent.config.KVMaxValueSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
-				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, maxKVSize)
+				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize)
 				return nil, 0, false
 			}
-			netKVSize += size
+			netKVSize += uint64(size)
 
 			verb := in.KV.Verb
 			if isWrite(verb) {
@@ -273,10 +273,10 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	}
 
 	// Enforce an overall size limit to help prevent abuse.
-	if netKVSize > maxKVSize {
+	if netKVSize > s.agent.config.KVMaxValueSize {
 		resp.WriteHeader(http.StatusRequestEntityTooLarge)
 		fmt.Fprintf(resp, "Cumulative size of key data is too large (%d > %d bytes)",
-			netKVSize, maxKVSize)
+			netKVSize, s.agent.config.KVMaxValueSize)
 
 		return nil, 0, false
 	}

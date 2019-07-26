@@ -3925,7 +3925,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }
 
-func TestAgent_consulConfig(t *testing.T) {
+func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
@@ -3940,4 +3940,14 @@ func TestAgent_consulConfig(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 	require.True(t, a.consulConfig().AutoEncryptAllowTLS)
+}
+
+func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
+	t.Parallel()
+	hcl := `
+		raft_trailing_logs = 812345
+	`
+	a := NewTestAgent(t, t.Name(), hcl)
+	defer a.Shutdown()
+	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }

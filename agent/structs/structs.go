@@ -63,6 +63,7 @@ const (
 	ACLBindingRuleDeleteRequestType             = 26
 	ACLAuthMethodSetRequestType                 = 27
 	ACLAuthMethodDeleteRequestType              = 28
+	ChunkingStateType                           = 29
 )
 
 const (

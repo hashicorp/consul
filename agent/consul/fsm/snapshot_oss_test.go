@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -249,6 +250,36 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(fsm.state.EnsureConfigEntry(18, serviceConfig))
 	require.NoError(fsm.state.EnsureConfigEntry(19, proxyConfig))
 
+	chunkState := &raftchunking.State{
+		ChunkMap: make(raftchunking.ChunkMap),
+	}
+	chunkState.ChunkMap[0] = []*raftchunking.ChunkInfo{
+		{
+			OpNum:       0,
+			SequenceNum: 0,
+			NumChunks:   3,
+			Data:        []byte("foo"),
+		},
+		nil,
+		{
+			OpNum:       0,
+			SequenceNum: 2,
+			NumChunks:   3,
+			Data:        []byte("bar"),
+		},
+	}
+	chunkState.ChunkMap[20] = []*raftchunking.ChunkInfo{
+		nil,
+		{
+			OpNum:       20,
+			SequenceNum: 1,
+			NumChunks:   2,
+			Data:        []byte("bar"),
+		},
+	}
+	err = fsm.chunker.RestoreState(chunkState)
+	require.NoError(err)
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -462,6 +493,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global")
 	require.NoError(err)
 	assert.Equal(proxyConfig, proxyConfEntry)
+
+	newChunkState, err := fsm2.chunker.CurrentState()
+	require.NoError(err)
+	assert.Equal(newChunkState, chunkState)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()
