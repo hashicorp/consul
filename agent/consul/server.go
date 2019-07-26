@@ -820,7 +820,7 @@ func (s *Server) setupGRPC() error {
 	go srv.Serve(lis)
 	s.GRPCListener = lis
 
-	// Set up a local gRPC connection.
+	// Set up a gRPC client connection to the above listener.
 	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithDialer(dialGRPC), grpc.WithDisableRetry())
 	if err != nil {
 		return err

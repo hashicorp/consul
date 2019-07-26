@@ -3888,7 +3888,7 @@ func (a *Agent) registerCache() {
 	a.cache.RegisterType(cachetype.StreamingHealthServicesName, &cachetype.StreamingHealthServices{
 		Client: a.streamClient,
 	}, &cache.RegisterOptions{
-		Refresh:        false,
+		Refresh:        true,
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
