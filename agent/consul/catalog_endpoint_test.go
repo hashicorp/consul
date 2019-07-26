@@ -2441,13 +2441,17 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 	}
 }
 
-func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
+func testACLFilterServer(t *testing.T) (string, string, *Server, rpc.ClientCodec) {
+	return testACLFilterServerV8(t, false)
+}
+
+func testACLFilterServerV8(t *testing.T, enforceVersion8 bool) (dir, token string, srv *Server, codec rpc.ClientCodec) {
 	dir, srv = testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
+		c.ACLEnforceVersion8 = enforceVersion8
 	})
 
 	codec = rpcClient(t, srv)
