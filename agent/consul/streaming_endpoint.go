@@ -29,8 +29,18 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	snapshotCh := make(chan stream.Event, 32)
 	go snapshotFunc(server.Context(), snapshotCh, req.Key)
 
+	// Resolve the token and create the ACL filter.
+	rule, err := h.srv.ResolveToken(req.Token)
+	if err != nil {
+		return err
+	}
+	filt := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
+
 	// Wait for the events to come in and forward them to the client.
 	for event := range snapshotCh {
+		if !filt.allowEvent(event) {
+			continue
+		}
 		if err := server.Send(&event); err != nil {
 			return err
 		}
@@ -56,6 +66,9 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		case event, ok := <-eventCh:
 			if !ok {
 				return fmt.Errorf("handler could not keep up with events")
+			}
+			if !filt.allowEvent(event) {
+				continue
 			}
 			if err := server.Send(&event); err != nil {
 				return err
