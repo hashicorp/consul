@@ -14,6 +14,9 @@ IMPROVEMENTS:
 * connect: change router syntax for matching query parameters to resemble the syntax for matching paths and headers for consistency. [[GH-6163](https://github.com/hashicorp/consul/issues/6163)]
 * connect: allow L7 routers to match on http methods [[GH-6164](https://github.com/hashicorp/consul/issues/6164)]
 
+BUG FIXES:
+* connect: Fixed a bug that would prevent CA replication/initializing in a secondary DC from working when ACLs were enabled. [[GH-6192](https://github.com/hashicorp/consul/issues/6192)]
+
 ## 1.6.0-beta2 (July 15, 2019)
 
 IMPROVEMENTS:
