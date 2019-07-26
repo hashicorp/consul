@@ -231,7 +231,7 @@ github.com/hashicorp/go-msgpack/codec
 github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-plugin v0.0.0-20180331002553-e8d22c780116
 github.com/hashicorp/go-plugin
-# github.com/hashicorp/go-raftchunking v0.6.1
+# github.com/hashicorp/go-raftchunking v0.6.2
 github.com/hashicorp/go-raftchunking
 github.com/hashicorp/go-raftchunking/types
 # github.com/hashicorp/go-retryablehttp v0.5.3
