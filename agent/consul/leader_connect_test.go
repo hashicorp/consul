@@ -3,6 +3,7 @@ package consul
 import (
 	"crypto/x509"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -370,22 +372,27 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
-	// Verify the root lists are different in each DC's state store.
-	var oldSecondaryRootID string
-	{
+	// ensure all the CA initialization stuff would have already been done
+	// this is necessary to ensure that not only has a leader been elected
+	// but that it has also finished its establishLeadership call
+	retry.Run(t, func(r *retry.R) {
+		require.True(r, s1.isReadyForConsistentReads())
+		require.True(r, s2.isReadyForConsistentReads())
+	})
+
+	// Verify the primary has a root (we faked its version too low but since its the primary it ignores any version checks)
+	retry.Run(t, func(r *retry.R) {
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
-		require.NoError(t, err)
+		require.NoError(r, err)
+		require.Len(r, roots1, 1)
+	})
 
-		state2 := s2.fsm.State()
-		_, roots2, err := state2.CARoots(nil)
-		require.NoError(t, err)
-		require.Equal(t, 1, len(roots1))
-		require.Equal(t, 1, len(roots2))
-		require.NotEqual(t, roots1[0].ID, roots2[0].ID)
-		require.NotEqual(t, roots1[0].RootCert, roots2[0].RootCert)
-		oldSecondaryRootID = roots2[0].ID
-	}
+	// Verify the secondary does not have a root - defers initialization until the primary has been upgraded.
+	state2 := s2.fsm.State()
+	_, roots2, err := state2.CARoots(nil)
+	require.NoError(t, err)
+	require.Empty(t, roots2)
 
 	// Update the version on the fly so s2 kicks off the secondary DC transition.
 	tags := s1.config.SerfWANConfig.Tags
@@ -396,38 +403,24 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	// has both roots present.
 	secondaryProvider, _ := s2.getCAProvider()
 	retry.Run(t, func(r *retry.R) {
-		state := s2.fsm.State()
-		_, roots, err := state.CARoots(nil)
-		require.NoError(r, err)
-		require.Len(r, roots, 2)
-		inter, err := secondaryProvider.ActiveIntermediate()
-		require.NoError(r, err)
-		require.NotEqual(r, "", inter, "should have valid intermediate")
-	})
-	{
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
-		require.NoError(t, err)
+		require.NoError(r, err)
+		require.Len(r, roots1, 1)
 
 		state2 := s2.fsm.State()
 		_, roots2, err := state2.CARoots(nil)
-		require.NoError(t, err)
-		require.Equal(t, 1, len(roots1))
-		require.Equal(t, 2, len(roots2))
-		var oldSecondaryRoot *structs.CARoot
-		var newSecondaryRoot *structs.CARoot
-		if roots2[0].ID == oldSecondaryRootID {
-			oldSecondaryRoot = roots2[0]
-			newSecondaryRoot = roots2[1]
-		} else {
-			oldSecondaryRoot = roots2[1]
-			newSecondaryRoot = roots2[0]
-		}
-		require.Equal(t, roots1[0].ID, newSecondaryRoot.ID)
-		require.Equal(t, roots1[0].RootCert, newSecondaryRoot.RootCert)
-		require.NotEqual(t, newSecondaryRoot.ID, oldSecondaryRoot.ID)
-		require.NotEqual(t, newSecondaryRoot.RootCert, oldSecondaryRoot.RootCert)
-	}
+		require.NoError(r, err)
+		require.Len(r, roots2, 1)
+
+		// ensure the roots are the same
+		require.Equal(r, roots1[0].ID, roots2[0].ID)
+		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
+
+		inter, err := secondaryProvider.ActiveIntermediate()
+		require.NoError(r, err)
+		require.NotEmpty(r, inter, "should have valid intermediate")
+	})
 
 	_, caRoot := s1.getCAProvider()
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
@@ -847,4 +840,190 @@ func TestLeader_GenerateCASignRequest(t *testing.T) {
 	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
 	req := s.generateCASignRequest(csr)
 	assert.Equal(t, "east", req.RequestDatacenter())
+}
+
+func TestLeader_CARootPruning(t *testing.T) {
+	t.Parallel()
+
+	caRootPruneInterval = 200 * time.Millisecond
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Get the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+	oldRoot := rootList.Roots[0]
+
+	// Update the provider config to use a new private key, which should
+	// cause a rotation.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"LeafCertTTL":    "500ms",
+			"PrivateKey":     newKey,
+			"RootCert":       "",
+			"RotationPeriod": "2160h",
+			"SkipValidate":   true,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Should have 2 roots now.
+	_, roots, err := s1.fsm.State().CARoots(nil)
+	require.NoError(err)
+	require.Len(roots, 2)
+
+	time.Sleep(2 * time.Second)
+
+	// Now the old root should be pruned.
+	_, roots, err = s1.fsm.State().CARoots(nil)
+	require.NoError(err)
+	require.Len(roots, 1)
+	require.True(roots[0].Active)
+	require.NotEqual(roots[0].ID, oldRoot.ID)
+}
+
+func TestLeader_PersistIntermediateCAs(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Get the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+
+	// Update the provider config to use a new private key, which should
+	// cause a rotation.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     newKey,
+			"RootCert":       "",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Get the active root before leader change.
+	_, root := s1.getCAProvider()
+	require.Len(root.IntermediateCerts, 1)
+
+	// Force a leader change and make sure the root CA values are preserved.
+	s1.Leave()
+	s1.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		var leader *Server
+		for _, s := range []*Server{s2, s3} {
+			if s.IsLeader() {
+				leader = s
+				break
+			}
+		}
+		if leader == nil {
+			r.Fatal("no leader")
+		}
+
+		_, newLeaderRoot := leader.getCAProvider()
+		if !reflect.DeepEqual(newLeaderRoot, root) {
+			r.Fatalf("got %v, want %v", newLeaderRoot, root)
+		}
+	})
+}
+
+func TestLeader_ParseCARoot(t *testing.T) {
+	type test struct {
+		pem           string
+		expectedError bool
+	}
+	tests := []test{
+		{"", true},
+		{`-----BEGIN CERTIFICATE-----
+MIIDHDCCAsKgAwIBAgIQS+meruRVzrmVwEhXNrtk9jAKBggqhkjOPQQDAjCBuTEL
+MAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2Nv
+MRowGAYDVQQJExExMDEgU2Vjb25kIFN0cmVldDEOMAwGA1UEERMFOTQxMDUxFzAV
+BgNVBAoTDkhhc2hpQ29ycCBJbmMuMUAwPgYDVQQDEzdDb25zdWwgQWdlbnQgQ0Eg
+MTkzNzYxNzQwMjcxNzUxOTkyMzAyMzE1NDkxNjUzODYyMzAwNzE3MB4XDTE5MDQx
+MjA5MTg0NVoXDTIwMDQxMTA5MTg0NVowHDEaMBgGA1UEAxMRY2xpZW50LmRjMS5j
+b25zdWwwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS2UroGUh5k7eR//iPsn9ne
+CMCVsERnjqQnK6eDWnM5kTXgXcPPe5pcAS9xs0g8BZ+oVsJSc7sH6RYvX+gw6bCl
+o4IBRjCCAUIwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggr
+BgEFBQcDATAMBgNVHRMBAf8EAjAAMGgGA1UdDgRhBF84NDphNDplZjoxYTpjODo1
+MzoxMDo1YTpjNTplYTpjZTphYTowZDo2ZjpjOTozODozZDphZjo0NTphZTo5OTo4
+YzpiYjoyNzpiYzpiMzpmYTpmMDozMToxNDo4ZTozNDBqBgNVHSMEYzBhgF8yYTox
+MjpjYTo0Mzo0NzowODpiZjoxYTo0Yjo4MTpkNDo2MzowNTo1ODowZToxYzo3Zjoy
+NTo0ZjozNDpmNDozYjpmYzo5YTpkNzo4Mjo2YjpkYzpmODo3YjphMTo5ZDAtBgNV
+HREEJjAkghFjbGllbnQuZGMxLmNvbnN1bIIJbG9jYWxob3N0hwR/AAABMAoGCCqG
+SM49BAMCA0gAMEUCIHcLS74KSQ7RA+edwOprmkPTh1nolwXz9/y9CJ5nMVqEAiEA
+h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
+-----END CERTIFICATE-----`, false},
+	}
+	for _, test := range tests {
+		root, err := parseCARoot(test.pem, "consul", "cluster")
+		if err == nil && test.expectedError {
+			require.Error(t, err)
+		}
+		if test.pem != "" {
+			rootCert, err := connect.ParseCert(test.pem)
+			require.NoError(t, err)
+
+			// just to make sure these two are not the same
+			require.NotEqual(t, rootCert.AuthorityKeyId, rootCert.SubjectKeyId)
+
+			require.Equal(t, connect.HexString(rootCert.SubjectKeyId), root.SigningKeyID)
+		}
+	}
 }
