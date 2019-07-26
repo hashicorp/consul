@@ -2,7 +2,6 @@ package cachetype
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 
@@ -13,8 +12,6 @@ import (
 const (
 	// Recommended name for registration.
 	StreamingHealthServicesName = "streaming-health-services"
-
-	StreamTimeout = 10 * time.Minute
 )
 
 // StreamingHealthServices supports fetching discovering service instances via the

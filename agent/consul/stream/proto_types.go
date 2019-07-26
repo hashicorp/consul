@@ -1,15 +1,24 @@
 package stream
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/gob"
+	"fmt"
 
 	proto "github.com/golang/protobuf/proto"
 )
 
+// Protobuf doesn't natively support a map[string]interface type, so we have
+// to create a stand-in here.
 type UntypedMap map[string]interface{}
 
 func (m UntypedMap) Marshal() ([]byte, error) {
-	return json.Marshal(map[string]interface{}(m))
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(m); err != nil {
+		return nil, fmt.Errorf("encode: %v", err)
+	}
+	return buf.Bytes(), nil
 }
 
 func (m UntypedMap) MarshalTo(data []byte) (n int, err error) {
@@ -22,7 +31,11 @@ func (m UntypedMap) MarshalTo(data []byte) (n int, err error) {
 }
 
 func (m *UntypedMap) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, (*map[string]interface{})(m))
+	dec := gob.NewDecoder(bytes.NewBuffer(data))
+	if err := dec.Decode(m); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m UntypedMap) Size() int {
@@ -30,6 +43,8 @@ func (m UntypedMap) Size() int {
 	return len(b)
 }
 
+// As with UntypedMap above, Headers exists for converting map[string][]string
+// to/from protobuf types.
 type Headers map[string][]string
 
 func (m Headers) Marshal() ([]byte, error) {

@@ -1,6 +1,8 @@
 package stream
 
 import (
+	"reflect"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -52,6 +54,10 @@ func ToCheckServiceNode(n *structs.CheckServiceNode) *CheckServiceNode {
 }
 
 func ToTaggedAddresses(t map[string]structs.ServiceAddress) map[string]*ServiceAddress {
+	if t == nil {
+		return nil
+	}
+
 	out := make(map[string]*ServiceAddress, len(t))
 	for k, v := range t {
 		out[k] = &ServiceAddress{Address: v.Address, Port: v.Port}
@@ -91,7 +97,7 @@ func ToConnectProxyConfig(c *structs.ConnectProxyConfig) *ConnectProxyConfig {
 		LocalServicePort:       c.LocalServicePort,
 		Config:                 c.Config,
 		Upstreams:              ToUpstreams(c.Upstreams),
-		MeshGateway:            &MeshGatewayConfig{Mode: c.MeshGateway.Mode},
+		MeshGateway:            ToMeshGatewayConfig(c.MeshGateway),
 	}
 }
 
@@ -106,7 +112,7 @@ func ToUpstreams(other structs.Upstreams) []Upstream {
 			LocalBindAddress:     u.LocalBindAddress,
 			LocalBindPort:        u.LocalBindPort,
 			Config:               u.Config,
-			MeshGateway:          &MeshGatewayConfig{Mode: u.MeshGateway.Mode},
+			MeshGateway:          ToMeshGatewayConfig(u.MeshGateway),
 		})
 	}
 	return upstreams
@@ -225,4 +231,12 @@ func ToHealthCheck(h *structs.HealthCheck) *HealthCheck {
 		},
 		RaftIndex: ToRaftIndex(h.RaftIndex),
 	}
+}
+
+func ToMeshGatewayConfig(c structs.MeshGatewayConfig) *MeshGatewayConfig {
+	if reflect.DeepEqual(c, structs.MeshGatewayConfig{}) {
+		return nil
+	}
+
+	return &MeshGatewayConfig{Mode: c.Mode}
 }

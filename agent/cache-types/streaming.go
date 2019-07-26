@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"google.golang.org/grpc"
 )
+
+const StreamTimeout = 10 * time.Minute
 
 type StreamingClient interface {
 	Subscribe(ctx context.Context, in *stream.SubscribeRequest, opts ...grpc.CallOption) (stream.Consul_SubscribeClient, error)
@@ -26,19 +29,22 @@ type Subscriber struct {
 	handler EventHandler
 
 	lastResult interface{}
-	lastUpdate time.Time
 	resultCh   chan interface{}
+	ctx        context.Context
 	cancelFunc func()
 
 	lock sync.RWMutex
 }
 
 func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler EventHandler) *Subscriber {
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &Subscriber{
-		client:   client,
-		request:  req,
-		handler:  handler,
-		resultCh: make(chan interface{}, 0),
+		client:     client,
+		request:    req,
+		handler:    handler,
+		resultCh:   make(chan interface{}, 1),
+		ctx:        ctx,
+		cancelFunc: cancel,
 	}
 
 	return s
@@ -46,25 +52,25 @@ func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler 
 
 // Close stops the subscriber by cancelling the context.
 func (s *Subscriber) Close() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.cancelFunc()
+	s.client = nil
+	s.handler = nil
 	return nil
 }
 
 // run starts a Subscribe call for the subscriber's key, receives the initial
 // snapshot of state and then sends the state to the watcher as soon as its
-// watched index requirement is met.
+// watched index requirement is met. Run may only be called once per subscriber.
 func (s *Subscriber) run() {
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancelFunc = cancel
 	defer s.cancelFunc()
 
 	// Start a new Subscribe call.
-	streamHandle, err := s.client.Subscribe(ctx, &s.request)
+	streamHandle, err := s.client.Subscribe(s.ctx, &s.request)
 
 	// If something went wrong setting up the stream, return the error.
 	if err != nil {
-		// Do a blocking send since there should always be a Fetch goroutine watching
-		// on the startup of a subscriber.
 		s.resultCh <- err
 		return
 	}
@@ -86,9 +92,14 @@ func (s *Subscriber) run() {
 		// Update our version of the state based on the event/op.
 		switch event.Topic {
 		case s.request.Topic:
-			s.handler.HandleEvent(event)
-		case stream.Topic_EndOfSnapshot:
-			snapshotDone = true
+			if !event.GetEndOfSnapshot() {
+				s.handler.HandleEvent(event)
+			} else {
+				snapshotDone = true
+			}
+		default:
+			// should never happen
+			panic(fmt.Sprintf("received invalid event topic %s", event.Topic.String()))
 		}
 
 		if event.Index > index {
@@ -109,7 +120,6 @@ func (s *Subscriber) run() {
 		// Send the new view of the state to the watcher.
 		select {
 		case s.resultCh <- result:
-			s.lastUpdate = time.Now()
 		default:
 		}
 	}
@@ -152,6 +162,8 @@ WAIT:
 	case r := <-sub.resultCh:
 		// If an error was returned, exit immediately.
 		if err, ok := r.(error); ok {
+			// Reset the state/subscriber if there was an error.
+			result.State = nil
 			return result, err
 		}
 
