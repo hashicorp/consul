@@ -1157,6 +1157,18 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 		needsLogger.SetLogger(s.logger)
 	}
 
+	commonConfig, err := conf.GetCommonConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving common config: %s", err)
+	}
+
+	// If the provider is configured with a LeafCertTTL less than the provider's
+	// permissible minimum, warn the user but proceed.
+	if commonConfig.LeafCertTTL < newProvider.MinLifetime() {
+		s.logger.Printf("[WARN] configured LeafCertTTL value %v is below provider minimum of %v",
+			commonConfig.LeafCertTTL, newProvider.MinLifetime())
+	}
+
 	return newProvider, nil
 }
 
