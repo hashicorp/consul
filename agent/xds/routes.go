@@ -306,7 +306,7 @@ func makeDefaultRouteMatch() envoyroute.RouteMatch {
 
 func makeRouteActionForSingleCluster(target structs.DiscoveryTarget, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
 	sni := TargetSNI(target, cfgSnap)
-	clusterName := CustomizeSNI(sni, chain)
+	clusterName := CustomizeClusterName(sni, chain)
 
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
@@ -327,7 +327,7 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 		target := groupResolver.Target
 
 		sni := TargetSNI(target, cfgSnap)
-		clusterName := CustomizeSNI(sni, chain)
+		clusterName := CustomizeClusterName(sni, chain)
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.

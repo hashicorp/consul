@@ -122,7 +122,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 				}
 
 				sni := TargetSNI(target, cfgSnap)
-				clusterName := CustomizeSNI(sni, chain)
+				clusterName := CustomizeClusterName(sni, chain)
 
 				la := makeLoadAssignment(
 					clusterName,

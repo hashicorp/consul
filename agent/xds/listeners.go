@@ -294,7 +294,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	upstreamID := u.Identifier()
 
 	sni := UpstreamSNI(u, "", cfgSnap)
-	clusterName := CustomizeSNI(sni, chain)
+	clusterName := CustomizeClusterName(sni, chain)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)

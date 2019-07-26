@@ -46,9 +46,11 @@ func TargetSNI(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot)
 	return ServiceSNI(target.Service, target.ServiceSubset, target.Namespace, target.Datacenter, cfgSnap)
 }
 
-func CustomizeSNI(sni string, chain *structs.CompiledDiscoveryChain) string {
+func CustomizeClusterName(sni string, chain *structs.CompiledDiscoveryChain) string {
 	if chain == nil || chain.CustomizationHash == "" {
 		return sni
 	}
-	return fmt.Sprintf("%s.%s", chain.CustomizationHash, sni)
+	// Use a colon to delimit this prefix instead of a dot to avoid a
+	// theoretical collision problem with subsets.
+	return fmt.Sprintf("%s:%s", chain.CustomizationHash, sni)
 }

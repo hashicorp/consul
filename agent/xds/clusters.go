@@ -254,7 +254,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		groupResolver := node.GroupResolver
 
 		sni := TargetSNI(target, cfgSnap)
-		clusterName := CustomizeSNI(sni, chain)
+		clusterName := CustomizeClusterName(sni, chain)
 
 		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
 		c := &envoy.Cluster{
