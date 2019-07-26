@@ -79,6 +79,14 @@ On a busy cluster, the operating system may not provide enough file descriptors 
 
 Or, if you are starting Consul from `systemd`, you could add `LimitNOFILE=65536` to the unit file for Consul. You can see our example unit file [here][systemd].
 
+## Snapshot close error
+
+Our RPC protocol requires support for a TCP half-close in order to signal the other side that they are done reading the stream, since we don't know the size in advance. This saves us from having to buffer just to calculate the size.
+
+If a host does not properly implement half-close you may see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This should not affect saving and restoring snapshots.
+
+This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
+
 ## ACL Not Found
 
 ```

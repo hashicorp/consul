@@ -830,6 +830,12 @@ type RuntimeConfig struct {
 	// hcl: key_file = string
 	KeyFile string
 
+	// KVMaxValueSize controls the max allowed value size. If not set defaults
+	// to raft's suggested max value size.
+	//
+	// hcl: limits { kv_max_value_size = uint64 }
+	KVMaxValueSize uint64
+
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.
 	//
