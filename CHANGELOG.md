@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.0-beta3 (July 26, 2019)
 
 FEATURES:
 
