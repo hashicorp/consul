@@ -173,7 +173,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
 
-	if ! oldProvider.SupportsCrossSigning() {
+	if !oldProvider.SupportsCrossSigning() {
 		return fmt.Errorf("error: current CA does not support cross-signing")
 	}
 
