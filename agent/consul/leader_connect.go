@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -12,9 +11,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-version"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -36,16 +34,109 @@ var (
 	// queries when backing off.
 	maxRetryBackoff = 256
 
-	// minMultiDCConnectVersion is the minimum version in order to support multi-DC Connect
-	// features.
-	minMultiDCConnectVersion = version.Must(version.NewVersion("1.4.0"))
-
 	// maxRootsQueryTime is the maximum time the primary roots watch query can block before
 	// returning.
 	maxRootsQueryTime = maxQueryTime
-
-	errEmptyVersion = errors.New("version string is empty")
 )
+
+// initializeCAConfig is used to initialize the CA config if necessary
+// when setting up the CA during establishLeadership
+func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
+	state := s.fsm.State()
+	_, config, err := state.CAConfig()
+	if err != nil {
+		return nil, err
+	}
+	if config != nil {
+		return config, nil
+	}
+
+	config = s.config.CAConfig
+	if config.ClusterID == "" {
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
+		config.ClusterID = id
+	}
+
+	req := structs.CARequest{
+		Op:     structs.CAOpSetConfig,
+		Config: config,
+	}
+	if _, err = s.raftApply(structs.ConnectCARequestType, req); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+// parseCARoot returns a filled-in structs.CARoot from a raw PEM value.
+func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
+	id, err := connect.CalculateCertFingerprint(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing root fingerprint: %v", err)
+	}
+	rootCert, err := connect.ParseCert(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing root cert: %v", err)
+	}
+	return &structs.CARoot{
+		ID:                  id,
+		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
+		SerialNumber:        rootCert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.HexString(rootCert.SubjectKeyId),
+		ExternalTrustDomain: clusterID,
+		NotBefore:           rootCert.NotBefore,
+		NotAfter:            rootCert.NotAfter,
+		RootCert:            pemValue,
+		Active:              true,
+	}, nil
+}
+
+// createProvider returns a connect CA provider from the given config.
+func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
+	case structs.VaultCAProvider:
+		return &ca.VaultProvider{}, nil
+	default:
+		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
+}
+
+func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
+	retries := 0
+	var result ca.Provider
+	var resultRoot *structs.CARoot
+	for result == nil {
+		s.caProviderLock.RLock()
+		result = s.caProvider
+		resultRoot = s.caProviderRoot
+		s.caProviderLock.RUnlock()
+
+		// In cases where an agent is started with managed proxies, we may ask
+		// for the provider before establishLeadership completes. If we're the
+		// leader, then wait and get the provider again
+		if result == nil && s.IsLeader() && retries < 10 {
+			retries++
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
+		break
+	}
+
+	return result, resultRoot
+}
+
+func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
+	s.caProviderLock.Lock()
+	defer s.caProviderLock.Unlock()
+	s.caProvider = newProvider
+	s.caProviderRoot = root
+}
 
 // initializeCA sets up the CA provider when gaining leadership, either bootstrapping
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
@@ -67,26 +158,19 @@ func (s *Server) initializeCA() error {
 	}
 	s.setCAProvider(provider, nil)
 
-	// Check whether the primary DC has been upgraded to support multi-DC Connect.
-	// If it hasn't, we skip the secondary initialization routine and continue acting
-	// as a primary DC. This is periodically re-checked in the goroutine watching the
-	// primary's CA roots so that we can transition to a secondary DC when it has
-	// been upgraded.
-	var primaryHasVersion bool
+	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
-		primaryHasVersion, err = s.datacentersMeetMinVersion(minMultiDCConnectVersion)
-		if err == errEmptyVersion {
-			s.logger.Printf("[WARN] connect: primary datacenter %q is reachable but not yet initialized", s.config.PrimaryDatacenter)
+		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
+		if !foundPrimary {
+			s.logger.Printf("[WARN] connect: primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
+			// return nil because we will initialize the secondary CA later
 			return nil
-		} else if err != nil {
-			s.logger.Printf("[ERR] connect: error initializing CA: could not query primary datacenter: %v", err)
+		} else if !versionOk {
+			// return nil because we will initialize the secondary CA later
+			s.logger.Printf("[WARN] connect: servers in the primary datacenter are not at least at version %s - deferring initialization of the secondary datacenter CA", minMultiDCConnectVersion)
 			return nil
 		}
-	}
 
-	// If this isn't the primary DC, run the secondary DC routine if the primary has already
-	// been upgraded to at least 1.4.0.
-	if s.config.PrimaryDatacenter != s.config.Datacenter && primaryHasVersion {
 		// Get the root CA to see if we need to refresh our intermediate.
 		args := structs.DCSpecificRequest{
 			Datacenter: s.config.PrimaryDatacenter,
@@ -109,6 +193,76 @@ func (s *Server) initializeCA() error {
 	}
 
 	return s.initializeRootCA(provider, conf)
+}
+
+// initializeRootCA runs the initialization logic for a root CA.
+func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
+	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
+		return fmt.Errorf("error configuring provider: %v", err)
+	}
+	if err := provider.GenerateRoot(); err != nil {
+		return fmt.Errorf("error generating CA root certificate: %v", err)
+	}
+
+	// Get the active root cert from the CA
+	rootPEM, err := provider.ActiveRoot()
+	if err != nil {
+		return fmt.Errorf("error getting root cert: %v", err)
+	}
+
+	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
+	if err != nil {
+		return err
+	}
+
+	// Check if the CA root is already initialized and exit if it is,
+	// adding on any existing intermediate certs since they aren't directly
+	// tied to the provider.
+	// Every change to the CA after this initial bootstrapping should
+	// be done through the rotation process.
+	state := s.fsm.State()
+	_, activeRoot, err := state.CARootActive(nil)
+	if err != nil {
+		return err
+	}
+	if activeRoot != nil {
+		// This state shouldn't be possible to get into because we update the root and
+		// CA config in the same FSM operation.
+		if activeRoot.ID != rootCA.ID {
+			return fmt.Errorf("stored CA root %q is not the active root (%s)", rootCA.ID, activeRoot.ID)
+		}
+
+		rootCA.IntermediateCerts = activeRoot.IntermediateCerts
+		s.setCAProvider(provider, rootCA)
+
+		return nil
+	}
+
+	// Get the highest index
+	idx, _, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	// Store the root cert in raft
+	resp, err := s.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		Op:    structs.CAOpSetRoots,
+		Index: idx,
+		Roots: []*structs.CARoot{rootCA},
+	})
+	if err != nil {
+		s.logger.Printf("[ERR] connect: Apply failed %v", err)
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	s.setCAProvider(provider, rootCA)
+
+	s.logger.Printf("[INFO] connect: initialized primary datacenter CA with provider %q", conf.Provider)
+
+	return nil
 }
 
 // initializeSecondaryCA runs the routine for generating an intermediate CA CSR and getting
@@ -252,7 +406,10 @@ func (s *Server) startConnectLeader() {
 	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
 		go s.secondaryCARootWatch(s.connectCh)
 		go s.replicateIntentions(s.connectCh)
+
 	}
+
+	go s.runCARootPruning(s.connectCh)
 
 	s.connectEnabled = true
 }
@@ -274,6 +431,75 @@ func (s *Server) stopConnectLeader() {
 	s.connectEnabled = false
 }
 
+func (s *Server) runCARootPruning(stopCh <-chan struct{}) {
+	ticker := time.NewTicker(caRootPruneInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stopCh:
+			return
+		case <-ticker.C:
+			if err := s.pruneCARoots(); err != nil {
+				s.logger.Printf("[ERR] connect: error pruning CA roots: %v", err)
+			}
+		}
+	}
+}
+
+// pruneCARoots looks for any CARoots that have been rotated out and expired.
+func (s *Server) pruneCARoots() error {
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
+	state := s.fsm.State()
+	idx, roots, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	_, caConf, err := state.CAConfig()
+	if err != nil {
+		return err
+	}
+
+	common, err := caConf.GetCommonConfig()
+	if err != nil {
+		return err
+	}
+
+	var newRoots structs.CARoots
+	for _, r := range roots {
+		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > common.LeafCertTTL*2 {
+			s.logger.Printf("[INFO] connect: pruning old unused root CA (ID: %s)", r.ID)
+			continue
+		}
+		newRoot := *r
+		newRoots = append(newRoots, &newRoot)
+	}
+
+	// Return early if there's nothing to remove.
+	if len(newRoots) == len(roots) {
+		return nil
+	}
+
+	// Commit the new root state.
+	var args structs.CARequest
+	args.Op = structs.CAOpSetRoots
+	args.Index = idx
+	args.Roots = newRoots
+	resp, err := s.raftApply(structs.ConnectCARequestType, args)
+	if err != nil {
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+
+	return nil
+}
+
 // secondaryCARootWatch maintains a blocking query to the primary datacenter's
 // ConnectCA.Roots endpoint to monitor when it needs to request a new signed
 // intermediate certificate.
@@ -290,21 +516,25 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 	retryLoopBackoff(stopCh, func() error {
 		var roots structs.IndexedCARoots
 		if err := s.forwardDC("ConnectCA.Roots", s.config.PrimaryDatacenter, &args, &roots); err != nil {
-			return err
+			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
 		}
 
 		// Check to see if the primary has been upgraded in case we're waiting to switch to
 		// secondary mode.
 		provider, _ := s.getCAProvider()
+		if provider == nil {
+			// this happens when leadership is being revoked and this go routine will be stopped
+			return nil
+		}
 		if !s.configuredSecondaryCA() {
-			primaryHasVersion, err := s.datacentersMeetMinVersion(minMultiDCConnectVersion)
-			if err != nil {
-				return err
+			versionOk, primaryFound := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
+			if !primaryFound {
+				return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
 			}
 
-			if primaryHasVersion {
+			if versionOk {
 				if err := s.initializeSecondaryProvider(provider, roots); err != nil {
-					return err
+					return fmt.Errorf("Failed to initialize secondary CA provider: %v", err)
 				}
 			}
 		}
@@ -313,17 +543,14 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 		// intermediate.
 		if s.configuredSecondaryCA() {
 			if err := s.initializeSecondaryCA(provider, roots); err != nil {
-				return err
+				return fmt.Errorf("Failed to initialize the secondary CA: %v", err)
 			}
 		}
 
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
 		return nil
 	}, func(err error) {
-		// Don't log the error if it's a result of the primary still starting up.
-		if err != errEmptyVersion {
-			s.logger.Printf("[ERR] connect: error watching primary datacenter roots: %v", err)
-		}
+		s.logger.Printf("[ERR] connect: %v", err)
 	})
 }
 
@@ -489,53 +716,6 @@ func nextIndexVal(prevIdx, idx uint64) uint64 {
 		return 0
 	}
 	return idx
-}
-
-// datacentersMeetMinVersion returns whether this datacenter and the primary
-// are ready and have upgraded to at least the given version.
-func (s *Server) datacentersMeetMinVersion(minVersion *version.Version) (bool, error) {
-	localAutopilotHealth := s.autopilot.GetClusterHealth()
-	localServersMeetVersion, err := autopilotServersMeetMinimumVersion(localAutopilotHealth.Servers, minVersion)
-	if err != nil {
-		return false, err
-	}
-	if !localServersMeetVersion {
-		return false, err
-	}
-
-	args := structs.DCSpecificRequest{
-		Datacenter: s.config.PrimaryDatacenter,
-	}
-	var reply autopilot.OperatorHealthReply
-	if err := s.forwardDC("Operator.ServerHealth", s.config.PrimaryDatacenter, &args, &reply); err != nil {
-		return false, err
-	}
-	remoteServersMeetVersion, err := autopilotServersMeetMinimumVersion(reply.Servers, minVersion)
-	if err != nil {
-		return false, err
-	}
-
-	return localServersMeetVersion && remoteServersMeetVersion, nil
-}
-
-// autopilotServersMeetMinimumVersion returns whether the given slice of servers
-// meets a minimum version.
-func autopilotServersMeetMinimumVersion(servers []autopilot.ServerHealth, minVersion *version.Version) (bool, error) {
-	for _, server := range servers {
-		if server.Version == "" {
-			return false, errEmptyVersion
-		}
-		version, err := version.NewVersion(server.Version)
-		if err != nil {
-			return false, fmt.Errorf("error parsing remote server version: %v", err)
-		}
-
-		if version.LessThan(minVersion) {
-			return false, nil
-		}
-	}
-
-	return true, nil
 }
 
 // initializeSecondaryProvider configures the given provider for a secondary, non-root datacenter.
