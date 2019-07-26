@@ -522,6 +522,10 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 		// Check to see if the primary has been upgraded in case we're waiting to switch to
 		// secondary mode.
 		provider, _ := s.getCAProvider()
+		if provider == nil {
+			// this happens when leadership is being revoked and this go routine will be stopped
+			return nil
+		}
 		if !s.configuredSecondaryCA() {
 			versionOk, primaryFound := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
 			if !primaryFound {
