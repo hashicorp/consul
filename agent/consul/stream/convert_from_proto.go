@@ -52,6 +52,10 @@ func FromCheckServiceNode(n *CheckServiceNode) structs.CheckServiceNode {
 }
 
 func FromTaggedAddresses(t map[string]*ServiceAddress) map[string]structs.ServiceAddress {
+	if t == nil {
+		return nil
+	}
+
 	out := make(map[string]structs.ServiceAddress, len(t))
 	for k, v := range t {
 		out[k] = structs.ServiceAddress{Address: v.Address, Port: v.Port}
@@ -91,7 +95,7 @@ func FromConnectProxyConfig(c *ConnectProxyConfig) *structs.ConnectProxyConfig {
 		LocalServicePort:       c.LocalServicePort,
 		Config:                 c.Config,
 		Upstreams:              FromUpstreams(c.Upstreams),
-		MeshGateway:            structs.MeshGatewayConfig{Mode: c.MeshGateway.Mode},
+		MeshGateway:            FromMeshGatewayConfig(c.MeshGateway),
 	}
 }
 
@@ -106,7 +110,7 @@ func FromUpstreams(other []Upstream) structs.Upstreams {
 			LocalBindAddress:     u.LocalBindAddress,
 			LocalBindPort:        u.LocalBindPort,
 			Config:               u.Config,
-			MeshGateway:          structs.MeshGatewayConfig{Mode: u.MeshGateway.Mode},
+			MeshGateway:          FromMeshGatewayConfig(u.MeshGateway),
 		})
 	}
 	return upstreams
@@ -225,4 +229,12 @@ func FromHealthCheck(h *HealthCheck) *structs.HealthCheck {
 		},
 		RaftIndex: FromRaftIndex(h.RaftIndex),
 	}
+}
+
+func FromMeshGatewayConfig(c *MeshGatewayConfig) structs.MeshGatewayConfig {
+	if c == nil {
+		return structs.MeshGatewayConfig{}
+	}
+
+	return structs.MeshGatewayConfig{Mode: c.Mode}
 }

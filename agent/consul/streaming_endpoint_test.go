@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -130,8 +131,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 
 	expected := []*stream.Event{
 		{
-			Key:   "redis",
-			Index: 13,
+			Key: "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -140,23 +140,20 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Node:       "node1",
 							Datacenter: "dc1",
 							Address:    "3.4.5.6",
-							RaftIndex:  stream.RaftIndex{CreateIndex: 12, ModifyIndex: 12},
 						},
 						Service: &stream.NodeService{
-							ID:        "redis1",
-							Service:   "redis",
-							Address:   "3.4.5.6",
-							Port:      8080,
-							Weights:   &stream.Weights{Passing: 1, Warning: 1},
-							RaftIndex: stream.RaftIndex{CreateIndex: 12, ModifyIndex: 12},
+							ID:      "redis1",
+							Service: "redis",
+							Address: "3.4.5.6",
+							Port:    8080,
+							Weights: &stream.Weights{Passing: 1, Warning: 1},
 						},
 					},
 				},
 			},
 		},
 		{
-			Key:   "redis",
-			Index: 13,
+			Key: "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -165,25 +162,31 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Node:       "node2",
 							Datacenter: "dc1",
 							Address:    "1.2.3.4",
-							RaftIndex:  stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
 						},
 						Service: &stream.NodeService{
-							ID:        "redis1",
-							Service:   "redis",
-							Address:   "1.1.1.1",
-							Port:      8080,
-							Weights:   &stream.Weights{Passing: 1, Warning: 1},
-							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+							ID:      "redis1",
+							Service: "redis",
+							Address: "1.1.1.1",
+							Port:    8080,
+							Weights: &stream.Weights{Passing: 1, Warning: 1},
 						},
 					},
 				},
 			},
 		},
 		{
-			Topic: stream.Topic_EndOfSnapshot,
+			Topic:   stream.Topic_ServiceHealth,
+			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		},
 	}
-	require.Equal(expected, snapshotEvents)
+	// Fix up the index
+	for i := 0; i < 2; i++ {
+		expected[i].Index = snapshotEvents[i].Index
+		node := expected[i].GetServiceHealth().ServiceNode
+		node.Node.RaftIndex = snapshotEvents[i].GetServiceHealth().ServiceNode.Node.RaftIndex
+		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().ServiceNode.Service.RaftIndex
+	}
+	verify.Values(t, "", snapshotEvents, expected)
 
 	// Update the registration by adding a check.
 	req.Check = &structs.HealthCheck{
@@ -198,9 +201,8 @@ func TestStreaming_Subscribe(t *testing.T) {
 	// Make sure we get the event for the diff.
 	select {
 	case event := <-eventCh:
-		require.Equal(&stream.Event{
-			Key:   "redis",
-			Index: 14,
+		expected := &stream.Event{
+			Key: "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -233,7 +235,14 @@ func TestStreaming_Subscribe(t *testing.T) {
 					},
 				},
 			},
-		}, event)
+		}
+		// Fix up the index
+		expected.Index = event.Index
+		node := expected.GetServiceHealth().ServiceNode
+		node.Node.RaftIndex = event.GetServiceHealth().ServiceNode.Node.RaftIndex
+		node.Service.RaftIndex = event.GetServiceHealth().ServiceNode.Service.RaftIndex
+		node.Checks[0].RaftIndex = event.GetServiceHealth().ServiceNode.Checks[0].RaftIndex
+		verify.Values(t, "", event, expected)
 	case <-time.After(3 * time.Second):
 		t.Fatal("never got event")
 	}

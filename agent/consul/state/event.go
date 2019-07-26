@@ -49,10 +49,11 @@ func (e *EventPublisher) Commit() {
 				continue
 			}
 
-			// todo(kyhavlov): handle this better
 			select {
 			case listener <- event:
 			default:
+				close(listener)
+				delete(e.listeners[subscription.Topic], subscription)
 			}
 		}
 	}

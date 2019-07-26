@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
@@ -16,19 +15,6 @@ import (
 // Health endpoint is used to query the health information
 type Health struct {
 	srv *Server
-}
-
-type HealthGRPCAdapter struct {
-	Health
-}
-
-func (h *HealthGRPCAdapter) Stream(in *TestRequest, stream Health_StreamServer) error {
-	for {
-		if err := stream.Send(&TestReply{Data: int32(time.Now().Second())}); err != nil {
-			return err
-		}
-		time.Sleep(1 * time.Second)
-	}
 }
 
 // ChecksInState is used to get all the checks in a given state
