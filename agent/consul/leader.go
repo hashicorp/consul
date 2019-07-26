@@ -1140,16 +1140,24 @@ func parseCAIntermediate(pemValue, provider, clusterID string) (*structs.CAInter
 
 // createProvider returns a connect CA provider from the given config.
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	var newProvider ca.Provider
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
+		newProvider = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
-		return &ca.VaultProvider{}, nil
+		newProvider = &ca.VaultProvider{}
 	case structs.AWSCAProvider:
-		return &ca.AWSProvider{}, nil
+		newProvider = &ca.AWSProvider{}
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
+
+	// If the provider implements the `NeedsLogger` interface, pass it our logger.
+	if needsLogger, ok := newProvider.(ca.NeedsLogger); ok {
+		needsLogger.SetLogger(s.logger)
+	}
+
+	return newProvider, nil
 }
 
 func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
