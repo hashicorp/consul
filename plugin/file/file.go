@@ -145,7 +145,7 @@ func Parse(f io.Reader, origin, fileName string, serial int64) (*Zone, error) {
 		}
 	}
 	if !seenSOA {
-		return nil, fmt.Errorf("file %q has no SOA record", fileName)
+		return nil, fmt.Errorf("file %q has no SOA record for origin %s", fileName, origin)
 	}
 
 	return z, nil

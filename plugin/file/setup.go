@@ -87,6 +87,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 			origins[i] = plugin.Host(origins[i]).Normalize()
 			z[origins[i]] = NewZone(origins[i], fileName)
 			if openErr == nil {
+				reader.Seek(0, 0)
 				zone, err := Parse(reader, origins[i], fileName, 0)
 				if err == nil {
 					z[origins[i]] = zone
