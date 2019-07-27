@@ -22,13 +22,13 @@ type Zone struct {
 	file    string
 	*tree.Tree
 	Apex
+	Expired *bool
 
 	sync.RWMutex
 
 	TransferTo   []string
 	StartupOnce  sync.Once
 	TransferFrom []string
-	Expired      *bool
 
 	ReloadInterval time.Duration
 	reloadShutdown chan bool
