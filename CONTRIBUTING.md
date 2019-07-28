@@ -42,6 +42,16 @@ If possible make a pull request as small as possible, or submit multiple pull re
 feature. Smaller means: easier to understand and review. This in turn means things can be merged
 faster.
 
+## New Plugins
+
+A new plugin is (usually) about 1000 lines of Go. This includes tests and some plugin boiler
+plate. This is a considerable amount of code and will take time to review. To prevent too much back and
+forth it is advisable to start with the plugin's `README.md`; This will be it's main documentation and will help
+nail down the correct name of the plugin and its various config options.
+
+From there it can work its way through the rest (`setup.go`, the `ServeDNS` handler function,
+etc.). Doing this will help the reviewers, as each chunk of code is relatively small.
+
 ## Updating Dependencies
 
 We use [Go Modules](https://github.com/golang/go/wiki/Modules) as the tool to manage vendor dependencies.
