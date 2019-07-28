@@ -19,7 +19,7 @@ The route53 plugin can be used when coredns is deployed on AWS or elsewhere.
 
 .nf
 route53 [ZONE:HOSTED\_ZONE\_ID...] {
-    [aws\_access\_key AWS\_ACCESS\_KEY\_ID AWS\_SECRET\_ACCESS\_KEY]
+    aws\_access\_key [AWS\_ACCESS\_KEY\_ID AWS\_SECRET\_ACCESS\_KEY]
     credentials PROFILE [FILENAME]
     fallthrough [ZONES...]
 }
@@ -48,16 +48,17 @@ zone.
 \fBFILENAME\fP AWS credentials filename. Defaults to \fB\fC~/.aws/credentials\fR are used.
 .IP \(bu 4
 \fB\fCfallthrough\fR If zone matches and no record can be generated, pass request to the next plugin.
-If \fB[ZONES...]\fP is omitted, then fallthrough happens for all zones for which the plugin is
+If \fBZONES\fP is omitted, then fallthrough happens for all zones for which the plugin is
 authoritative. If specific zones are listed (for example \fB\fCin-addr.arpa\fR and \fB\fCip6.arpa\fR), then
 only queries for those zones will be subject to fallthrough.
 .IP \(bu 4
-\fBZONES\fP zones it should be authoritative for. If empty, the zones from the configuration block
+\fBZONES\fP zones it should be authoritative for. If empty, the zones from the configuration
+block.
 
 
 .SH "EXAMPLES"
 .PP
-Enable route53 with implicit AWS credentials and and resolve CNAMEs via 10.0.0.1:
+Enable route53 with implicit AWS credentials and resolve CNAMEs via 10.0.0.1:
 
 .PP
 .RS

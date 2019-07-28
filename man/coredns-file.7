@@ -7,7 +7,7 @@
 
 .SH "DESCRIPTION"
 .PP
-The file plugin is used for an "old-style" DNS server. It serves from a preloaded file that exists
+The \fIfile\fP plugin is used for an "old-style" DNS server. It serves from a preloaded file that exists
 on disk. If the zone file contains signatures (i.e., is signed using DNSSEC), correct DNSSEC answers
 are returned. Only NSEC is supported! If you use this setup \fIyou\fP are responsible for re-signing the
 zonefile.
@@ -137,4 +137,8 @@ example.org {
 
 .fi
 .RE
+
+.SH "ALSO SEE"
+.PP
+See the \fIloadbalance\fP plugin if you need simple record shuffling.
 
