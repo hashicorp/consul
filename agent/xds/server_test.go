@@ -267,6 +267,40 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 						]
 					}
 				]
+			},
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+				"clusterName": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+				"endpoints": [
+					{
+						"lbEndpoints": [
+							{
+								"endpoint": {
+									"address": {
+										"socketAddress": {
+											"address": "10.10.1.1",
+											"portValue": 8080
+										}
+									}
+								},
+								"healthStatus": "HEALTHY",
+								"loadBalancingWeight": 1
+							},
+							{
+								"endpoint": {
+									"address": {
+										"socketAddress": {
+											"address": "10.10.1.2",
+											"portValue": 8080
+										}
+									}
+								},
+								"healthStatus": "HEALTHY",
+								"loadBalancingWeight": 1
+							}
+						]
+					}
+				]
 			}
 		],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",

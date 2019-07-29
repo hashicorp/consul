@@ -420,7 +420,8 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		ConnectProxy: configSnapshotConnectProxy{
 			Leaf: leaf,
 			UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-				"db": TestUpstreamNodes(t),
+				"db":                       TestUpstreamNodes(t),
+				"prepared_query:geo-cache": TestUpstreamNodes(t),
 			},
 		},
 		Datacenter: "dc1",
