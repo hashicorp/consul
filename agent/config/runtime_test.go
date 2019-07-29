@@ -2488,40 +2488,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
-			desc: "enabling Connect allow_managed_root",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{
-				`{ "connect": { "proxy": { "allow_managed_root": true } } }`,
-			},
-			hcl: []string{
-				`connect { proxy { allow_managed_root = true } }`,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.ConnectProxyAllowManagedRoot = true
-			},
-		},
-
-		{
-			desc: "enabling Connect allow_managed_api_registration",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{
-				`{ "connect": { "proxy": { "allow_managed_api_registration": true } } }`,
-			},
-			hcl: []string{
-				`connect { proxy { allow_managed_api_registration = true } }`,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.ConnectProxyAllowManagedAPIRegistration = true
-			},
-		},
-
-		{
 			// This tests that we correct added the nested paths to arrays of objects
 			// to the exceptions in PatchSliceOfMaps in config.go (for single service)
 			desc: "service.connectsidecar_service with checks and upstreams",
@@ -4971,16 +4937,6 @@ func TestFullConfig(t *testing.T) {
 			"CSRMaxPerSecond":  float64(100),
 			"CSRMaxConcurrent": float64(2),
 		},
-		ConnectProxyAllowManagedRoot:            false,
-		ConnectProxyAllowManagedAPIRegistration: false,
-		ConnectProxyDefaultExecMode:             "script",
-		ConnectProxyDefaultDaemonCommand:        []string{"consul", "connect", "proxy"},
-		ConnectProxyDefaultScriptCommand:        []string{"proxyctl.sh"},
-		ConnectProxyDefaultConfig: map[string]interface{}{
-			"foo":                "bar",
-			"connect_timeout_ms": float64(1000),
-			"pedantic_mode":      true,
-		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
 		DNSAllowStale:                    true,
@@ -5796,14 +5752,8 @@ func TestSanitize(t *testing.T) {
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
 		"ConnectEnabled": false,
-		"ConnectProxyAllowManagedAPIRegistration": false,
-		"ConnectProxyAllowManagedRoot": false,
 		"ConnectProxyBindMaxPort": 0,
 		"ConnectProxyBindMinPort": 0,
-		"ConnectProxyDefaultConfig": {},
-		"ConnectProxyDefaultDaemonCommand": [],
-		"ConnectProxyDefaultExecMode": "",
-		"ConnectProxyDefaultScriptCommand": [],
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
 		"ConnectTestCALeafRootChangeSpread": "0s",
