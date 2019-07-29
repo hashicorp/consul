@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // Expose pprof if configured
-	"os"
 	"sort"
 	"strconv"
 	"strings"
