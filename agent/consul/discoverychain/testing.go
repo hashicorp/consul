@@ -22,7 +22,6 @@ func TestCompileConfigEntries(
 		ServiceName:       serviceName,
 		CurrentNamespace:  currentNamespace,
 		CurrentDatacenter: currentDatacenter,
-		InferDefaults:     true,
 		Entries:           set,
 	}
 	if setup != nil {

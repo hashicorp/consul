@@ -234,7 +234,6 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
-
 	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -250,8 +249,12 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	// TODO(rb): make escape hatches work with chains
 
 	var out []*envoy.Cluster
-	for target, node := range chain.GroupResolverNodes {
-		groupResolver := node.GroupResolver
+
+	for _, node := range chain.Nodes {
+		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+			continue
+		}
+		target := node.Resolver.Target
 
 		sni := TargetSNI(target, cfgSnap)
 		clusterName := CustomizeClusterName(sni, chain)
@@ -260,14 +263,13 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		c := &envoy.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,
-			ConnectTimeout:       groupResolver.ConnectTimeout,
+			ConnectTimeout:       node.Resolver.ConnectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoytype.Percent{
 					Value: 0, // disable panic threshold
 				},
 			},
-			// TODO(rb): adjust load assignment
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 				EdsConfig: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
