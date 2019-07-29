@@ -321,8 +321,6 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
 		TaggedAddresses:     map[string]string{},
-		ProxyBindMinPort:    cfg.ConnectProxyBindMinPort,
-		ProxyBindMaxPort:    cfg.ConnectProxyBindMaxPort,
 	}
 	for k, v := range cfg.TaggedAddresses {
 		lc.TaggedAddresses[k] = v

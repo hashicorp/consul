@@ -33,8 +33,6 @@ type Config struct {
 	NodeID              types.NodeID
 	NodeName            string
 	TaggedAddresses     map[string]string
-	ProxyBindMinPort    int
-	ProxyBindMaxPort    int
 }
 
 // ServiceState describes the state of a service record.

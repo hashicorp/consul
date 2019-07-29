@@ -531,16 +531,6 @@ type RuntimeConfig struct {
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
 
-	// ConnectProxyBindMinPort is the inclusive start of the range of ports
-	// allocated to the agent for starting proxy listeners on where no explicit
-	// port is specified.
-	ConnectProxyBindMinPort int
-
-	// ConnectProxyBindMaxPort is the inclusive end of the range of ports
-	// allocated to the agent for starting proxy listeners on where no explicit
-	// port is specified.
-	ConnectProxyBindMaxPort int
-
 	// ConnectSidecarMinPort is the inclusive start of the range of ports
 	// allocated to the agent for asigning to sidecar services where no port is
 	// specified.
