@@ -2023,40 +2023,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			err: "sidecar_service can't have a nested sidecar_service",
 		},
 		{
-			desc: "sidecar_service can't have managed proxy",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{`{
-				  "service": {
-						"name": "web",
-						"port": 1234,
-						"connect": {
-							"sidecar_service": {
-								"connect": {
-									"proxy": {}
-								}
-							}
-						}
-					}
-				}`},
-			hcl: []string{`
-				service {
-					name = "web"
-					port = 1234
-					connect {
-						sidecar_service {
-							connect {
-								proxy {
-								}
-							}
-						}
-					}
-				}
-			`},
-			err: "sidecar_service can't have a managed proxy",
-		},
-		{
 			desc: "telemetry.prefix_filter cannot be empty",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2399,81 +2365,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 										DestinationName: "db",
 										DestinationType: structs.UpstreamDestTypeService,
 										LocalBindPort:   1234,
-									},
-								},
-							},
-						},
-						Weights: &structs.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-					},
-				}
-			},
-		},
-
-		{
-			desc: "Multiple service managed proxy 'upstreams'",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{
-				`{
-						"service": {
-							"name": "web",
-							"port": 8080,
-							"connect": {
-								"proxy": {
-									"upstreams": [{
-										"destination_name": "db",
-										"local_bind_port": 1234
-									}, {
-										"destination_name": "cache",
-										"local_bind_port": 2345
-									}]
-								}
-							}
-						}
-					}`,
-			},
-			hcl: []string{
-				`service {
-					name = "web"
-					port = 8080
-					connect {
-						proxy {
-							upstreams = [
-								{
-									destination_name = "db"
-									local_bind_port = 1234
-								},
-							  {
-									destination_name = "cache"
-									local_bind_port = 2345
-								}
-							]
-						}
-					}
-				}`,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
-						Name: "web",
-						Port: 8080,
-						Connect: &structs.ServiceConnect{
-							Proxy: &structs.ServiceDefinitionConnectProxy{
-								Upstreams: structs.Upstreams{
-									{
-										DestinationName: "db",
-										DestinationType: structs.UpstreamDestTypeService,
-										LocalBindPort:   1234,
-									},
-									{
-										DestinationName: "cache",
-										DestinationType: structs.UpstreamDestTypeService,
-										LocalBindPort:   2345,
 									},
 								},
 							},
