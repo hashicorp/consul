@@ -84,17 +84,6 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 func (s *ServiceDefinition) Validate() error {
 	var result error
 
-	if s.Kind == ServiceKindTypical {
-		if s.Connect != nil {
-			if s.Connect.Proxy != nil {
-				if s.Connect.Native {
-					result = multierror.Append(result, fmt.Errorf(
-						"Services that are Connect native may not have a proxy configuration"))
-				}
-			}
-		}
-	}
-
 	// Validate the NodeService which covers a lot
 	if err := s.NodeService().Validate(); err != nil {
 		result = multierror.Append(result, err)

@@ -960,10 +960,6 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf("Mesh Gateways cannot have a sidecar service defined"))
 		}
 
-		if s.Connect.Proxy != nil {
-			result = multierror.Append(result, fmt.Errorf("The Connect.Proxy configuration is invalid for Mesh Gateways"))
-		}
-
 		if s.Proxy.DestinationServiceName != "" {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for Mesh Gateways"))
 		}
