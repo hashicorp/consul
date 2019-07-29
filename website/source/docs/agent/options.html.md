@@ -941,34 +941,6 @@ default will automatically work with some tooling.
           CSR resources this way without artificially slowing down rotations.
           Added in 1.4.1.
 
-        * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a>
-          [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This
-          object allows setting options for the Connect proxies. The following
-          sub-keys are available:
-          * <a name="connect_proxy_allow_managed_registration"></a><a
-            href="#connect_proxy_allow_managed_registration">`allow_managed_api_registration`</a>
-            [**Deprecated**](/docs/connect/proxies/managed-deprecated.html)
-            Allows managed proxies to be configured with services that are
-            registered via the Agent HTTP API. Enabling this would allow anyone
-            with permission to register a service to define a command to execute
-            for the proxy. By default, this is false to protect against
-            arbitrary process execution.
-          * <a name="connect_proxy_allow_managed_root"></a><a
-            href="#connect_proxy_allow_managed_root">`allow_managed_root`</a>
-            [**Deprecated**](/docs/connect/proxies/managed-deprecated.html)
-            Allows Consul to start managed proxies if Consul is running as root
-            (EUID of the process is zero). We recommend running Consul as a
-            non-root user. By default, this is false to protect inadvertently
-            running external processes as root.
-        * <a name="connect_proxy_defaults"></a><a
-          href="#connect_proxy_defaults">`proxy_defaults`</a>
-          [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This
-          object configures the default proxy settings for service definitions
-          with [managed proxies](/docs/connect/proxies/managed-deprecated.html)
-          (now deprecated). It accepts the fields `exec_mode`, `daemon_command`,
-          and `config`. These are used as default values for the respective
-          fields in the service definition.
-
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).
 
@@ -1391,8 +1363,6 @@ default will automatically work with some tooling.
       to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
       endpoints will return errors or empty results. TCP and UDP.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300. TCP only.
-    * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Minimum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20000.
-    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Maximum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20255.
     * <a name="sidecar_min_port"></a><a
       href="#sidecar_min_port">`sidecar_min_port`</a> - Inclusive minimum port
       number to use for automatically assigned [sidecar service
