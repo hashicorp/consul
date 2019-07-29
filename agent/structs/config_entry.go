@@ -51,6 +51,7 @@ type ServiceConfigEntry struct {
 	Name        string
 	Protocol    string
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	ExternalSNI string 						`json:",omitempty"`
 
 	// TODO(banks): enable this once we have upstreams supported too. Enabling
 	// sidecars actually makes no sense and adds complications when you don't
@@ -306,6 +307,7 @@ func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, tran
 	case ServiceDefaults:
 		return nil, map[string]string{
 			"mesh_gateway": "meshgateway",
+			"external_sni": "externalsni",
 		}, nil
 	case ServiceRouter:
 		return []string{

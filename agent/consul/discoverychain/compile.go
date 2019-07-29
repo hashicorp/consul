@@ -5,16 +5,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
 
 type CompileRequest struct {
-	ServiceName       string
-	CurrentNamespace  string
-	CurrentDatacenter string
-	InferDefaults     bool // TODO(rb): remove this?
-	Entries           *structs.DiscoveryChainConfigEntries
+	ServiceName        string
+	CurrentNamespace   string
+	CurrentDatacenter  string
+	CurrentTrustDomain string
+	InferDefaults      bool // TODO(rb): remove this?
+	Entries            *structs.DiscoveryChainConfigEntries
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -33,11 +35,12 @@ type CompileRequest struct {
 // valid.
 func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	var (
-		serviceName       = req.ServiceName
-		currentNamespace  = req.CurrentNamespace
-		currentDatacenter = req.CurrentDatacenter
-		inferDefaults     = req.InferDefaults
-		entries           = req.Entries
+		serviceName        = req.ServiceName
+		currentNamespace   = req.CurrentNamespace
+		currentDatacenter  = req.CurrentDatacenter
+		currentTrustDomain = req.CurrentTrustDomain
+		inferDefaults      = req.InferDefaults
+		entries            = req.Entries
 	)
 	if serviceName == "" {
 		return nil, fmt.Errorf("serviceName is required")
@@ -48,16 +51,20 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	if currentDatacenter == "" {
 		return nil, fmt.Errorf("currentDatacenter is required")
 	}
+	if currentTrustDomain == "" {
+		return nil, fmt.Errorf("currentTrustDomain is required")
+	}
 	if entries == nil {
 		return nil, fmt.Errorf("entries is required")
 	}
 
 	c := &compiler{
-		serviceName:       serviceName,
-		currentNamespace:  currentNamespace,
-		currentDatacenter: currentDatacenter,
-		inferDefaults:     inferDefaults,
-		entries:           entries,
+		serviceName:        serviceName,
+		currentNamespace:   currentNamespace,
+		currentDatacenter:  currentDatacenter,
+		currentTrustDomain: currentTrustDomain,
+		inferDefaults:      inferDefaults,
+		entries:            entries,
 
 		splitterNodes:      make(map[string]*structs.DiscoveryGraphNode),
 		groupResolverNodes: make(map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode),
@@ -80,10 +87,11 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 // compiler is a single-use struct for handling intermediate state necessary
 // for assembling a discovery chain from raw config entries.
 type compiler struct {
-	serviceName       string
-	currentNamespace  string
-	currentDatacenter string
-	inferDefaults     bool
+	serviceName        string
+	currentNamespace   string
+	currentDatacenter  string
+	currentTrustDomain string
+	inferDefaults      bool
 
 	// config entries that are being compiled (will be mutated during compilation)
 	//
@@ -382,13 +390,48 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 	if service == "" {
 		panic("newTarget called with empty service which makes no sense")
 	}
-	return structs.DiscoveryTarget{
+	t := structs.DiscoveryTarget{
 		Service:       service,
 		ServiceSubset: serviceSubset,
 		Namespace:     defaultIfEmpty(namespace, c.currentNamespace),
 		Datacenter:    defaultIfEmpty(datacenter, c.currentDatacenter),
 	}
+
+	// Set default connect SNI. This will be overridden later if the service has
+	// an explicit SNI value configured in service-defaults.
+	t.SNI = c.sniForTarget(t, "")
+	return t
 }
+
+// copyAndModifyTarget will duplicate the target and selectively modify it given
+// the requested inputs.
+func (c *compiler)  copyAndModifyTarget(t structs.DiscoveryTarget, service,
+	serviceSubset, namespace, datacenter, externalSNI string) structs.DiscoveryTarget {
+	t2 := t // copy
+	if service != "" && service != t2.Service {
+		t2.Service = service
+		// Reset the chosen subset if we reference a service other than our own.
+		t2.ServiceSubset = ""
+	}
+	if serviceSubset != "" && serviceSubset != t2.ServiceSubset {
+		t2.ServiceSubset = serviceSubset
+	}
+	if namespace != "" && namespace != t2.Namespace {
+		t2.Namespace = namespace
+	}
+	if datacenter != "" && datacenter != t2.Datacenter {
+		t2.Datacenter = datacenter
+	}
+	// Reset SNI to correct value
+	t2.SNI = c.sniForTarget(t2, externalSNI)
+	return t2
+}
+
+func (c *compiler)  sniForTarget(t structs.DiscoveryTarget, externalSNI string) string {
+	return connect.ServiceSNI(t.Service, t.ServiceSubset, t.Namespace,
+		t.Datacenter, c.currentTrustDomain)
+}
+
 
 func (c *compiler) getSplitterOrGroupResolverNode(target structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
 	nextNode, err := c.getSplitterNode(target.Service)
@@ -478,17 +521,31 @@ RESOLVE_AGAIN:
 		c.resolvers[target.Service] = resolver
 	}
 
+	// Fetch service defaults if set (may be nil)
+	serviceDefaults := c.entries.GetService(resolver.Name)
+
+	// Work out if SNI have been overridden for this service
+	externalSNI := ""
+	if serviceDefaults != nil && serviceDefaults.ExternalSNI != "" {
+		externalSNI = serviceDefaults.ExternalSNI
+		// Modify the target directly since it will have be initialized with the
+		// defauly connect SNI format.
+		target.SNI = externalSNI
+	}
+
 	// Handle redirects right up front.
 	//
 	// TODO(rb): What about a redirected subset reference? (web/v2, but web redirects to alt/"")
 	if resolver.Redirect != nil {
 		redirect := resolver.Redirect
 
-		redirectedTarget := target.CopyAndModify(
+		redirectedTarget := c.copyAndModifyTarget(
+			target,
 			redirect.Service,
 			redirect.ServiceSubset,
 			redirect.Namespace,
 			redirect.Datacenter,
+			externalSNI,
 		)
 		if redirectedTarget != target {
 			target = redirectedTarget
@@ -499,6 +556,8 @@ RESOLVE_AGAIN:
 	// Handle default subset.
 	if target.ServiceSubset == "" && resolver.DefaultSubset != "" {
 		target.ServiceSubset = resolver.DefaultSubset
+		// Reset SNI
+		target.SNI = c.sniForTarget(target, externalSNI)
 		goto RESOLVE_AGAIN
 	}
 
@@ -533,9 +592,9 @@ RESOLVE_AGAIN:
 	}
 	groupResolver := groupResolverNode.GroupResolver
 
-	// Default mesh gateway settings
-	if serviceDefault := c.entries.GetService(resolver.Name); serviceDefault != nil {
-		groupResolver.MeshGateway = serviceDefault.MeshGateway
+	// Default mesh gateway setting
+	if serviceDefaults != nil {
+		groupResolver.MeshGateway = serviceDefaults.MeshGateway
 	}
 
 	if c.entries.GlobalProxy != nil && groupResolver.MeshGateway.Mode == structs.MeshGatewayModeDefault {
@@ -572,11 +631,13 @@ RESOLVE_AGAIN:
 			if len(failover.Datacenters) > 0 {
 				for _, dc := range failover.Datacenters {
 					// Rewrite the target as per the failover policy.
-					failoverTarget := target.CopyAndModify(
+					failoverTarget := c.copyAndModifyTarget(
+						target,
 						failover.Service,
 						failover.ServiceSubset,
 						failover.Namespace,
 						dc,
+						externalSNI,
 					)
 					if failoverTarget != target { // don't failover to yourself
 						failoverTargets = append(failoverTargets, failoverTarget)
@@ -584,11 +645,13 @@ RESOLVE_AGAIN:
 				}
 			} else {
 				// Rewrite the target as per the failover policy.
-				failoverTarget := target.CopyAndModify(
+				failoverTarget := c.copyAndModifyTarget(
+					target,
 					failover.Service,
 					failover.ServiceSubset,
 					failover.Namespace,
 					"",
+					externalSNI,
 				)
 				if failoverTarget != target { // don't failover to yourself
 					failoverTargets = append(failoverTargets, failoverTarget)

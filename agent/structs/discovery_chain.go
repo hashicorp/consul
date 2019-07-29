@@ -122,7 +122,10 @@ type DiscoveryFailover struct {
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
 // config entry to execute a catalog query to generate a list of service
-// instances during discovery.
+// instances during discovery. It also encodes the SNI header that should be
+// used when addressing those instances to avoid proxy integrations needing to
+// duplicate SNI encoding details and to allow external services from other
+// meshes to explicitly set an alternative SNI value.
 //
 // This is a value type so it can be used as a map key.
 type DiscoveryTarget struct {
@@ -130,36 +133,11 @@ type DiscoveryTarget struct {
 	ServiceSubset string `json:",omitempty"`
 	Namespace     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
+	SNI           string `json:",omitempty"`
 }
 
 func (t DiscoveryTarget) IsEmpty() bool {
 	return t.Service == "" && t.ServiceSubset == "" && t.Namespace == "" && t.Datacenter == ""
-}
-
-// CopyAndModify will duplicate the target and selectively modify it given the
-// requested inputs.
-func (t DiscoveryTarget) CopyAndModify(
-	service,
-	serviceSubset,
-	namespace,
-	datacenter string,
-) DiscoveryTarget {
-	t2 := t // copy
-	if service != "" && service != t2.Service {
-		t2.Service = service
-		// Reset the chosen subset if we reference a service other than our own.
-		t2.ServiceSubset = ""
-	}
-	if serviceSubset != "" && serviceSubset != t2.ServiceSubset {
-		t2.ServiceSubset = serviceSubset
-	}
-	if namespace != "" && namespace != t2.Namespace {
-		t2.Namespace = namespace
-	}
-	if datacenter != "" && datacenter != t2.Datacenter {
-		t2.Datacenter = datacenter
-	}
-	return t2
 }
 
 var _ encoding.TextMarshaler = DiscoveryTarget{}

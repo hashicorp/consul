@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -59,6 +60,7 @@ func TestCompile(t *testing.T) {
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
+		"default SNI override": testcase_DefaultSNIOverride(),
 
 		// TODO(rb): handle this case better: "circular split":                                   testcase_CircularSplit(),
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
@@ -94,11 +96,12 @@ func TestCompile(t *testing.T) {
 			}
 
 			res, err := Compile(CompileRequest{
-				ServiceName:       "main",
-				CurrentNamespace:  "default",
-				CurrentDatacenter: "dc1",
-				InferDefaults:     true,
-				Entries:           tc.entries,
+				ServiceName:        "main",
+				CurrentNamespace:   "default",
+				CurrentDatacenter:  "dc1",
+				CurrentTrustDomain: connect.TestClusterID + ".consul",
+				InferDefaults:      true,
+				Entries:            tc.entries,
 			})
 			if tc.expectErr != "" {
 				require.Error(t, err)
@@ -1238,6 +1241,38 @@ func testcase_DefaultResolver() compileTestCase {
 	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
 }
 
+func testcase_DefaultSNIOverride() compileTestCase {
+	entries := newEntries()
+
+	resolver := newDefaultServiceResolver("main")
+
+	setServiceExternalSNI(entries, "main", "main.some.other.service.mesh")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "tcp",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+			Name: "main",
+			GroupResolver: &structs.DiscoveryGroupResolver{
+				Definition:     resolver,
+				Default:        true,
+				ConnectTimeout: 5 * time.Second,
+				Target:         newTargetWithSNI("main", "", "default", "dc1", "main.some.other.service.mesh"),
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"main": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTargetWithSNI("main", "", "default", "dc1", "main.some.other.service.mesh"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTargetWithSNI("main", "", "default", "dc1", "main.some.other.service.mesh"): nil,
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
+}
+
 func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 	entries := newEntries()
 	entries.GlobalProxy = &structs.ProxyConfigEntry{
@@ -1918,6 +1953,14 @@ func setServiceProtocol(entries *structs.DiscoveryChainConfigEntries, name, prot
 	})
 }
 
+func setServiceExternalSNI(entries *structs.DiscoveryChainConfigEntries, name, sni string) {
+	entries.AddServices(&structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        name,
+		ExternalSNI: sni,
+	})
+}
+
 func newEntries() *structs.DiscoveryChainConfigEntries {
 	return &structs.DiscoveryChainConfigEntries{
 		Routers:   make(map[string]*structs.ServiceRouterConfigEntry),
@@ -1927,10 +1970,21 @@ func newEntries() *structs.DiscoveryChainConfigEntries {
 }
 
 func newTarget(service, serviceSubset, namespace, datacenter string) structs.DiscoveryTarget {
+	return newTargetWithSNI(
+		service,
+		serviceSubset,
+		namespace,
+		datacenter,
+		connect.ServiceSNI(service, serviceSubset, namespace, datacenter, connect.TestClusterID+".consul"),
+	)
+}
+
+func newTargetWithSNI(service, serviceSubset, namespace, datacenter, sni string) structs.DiscoveryTarget {
 	return structs.DiscoveryTarget{
 		Service:       service,
 		ServiceSubset: serviceSubset,
 		Namespace:     namespace,
 		Datacenter:    datacenter,
+		SNI:           sni,
 	}
 }
