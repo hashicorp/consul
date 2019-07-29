@@ -165,29 +165,45 @@ func parseAddress(addrStr string) (string, int, error) {
 	return addr, port, nil
 }
 
-func canBind(addr string) bool {
+// canBindInternal is here mainly so we can unit test this with a constant net.Addr list
+func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 	if addr == "" {
 		return false
 	}
 
 	ip := net.ParseIP(addr)
 	if ip == nil {
+		fmt.Println("failed to parse IP")
 		return false
 	}
 
+	ipStr := ip.String()
+
+	for _, addr := range ifAddrs {
+		switch v := addr.(type) {
+		case *net.IPNet:
+			fmt.Printf("checking IPNet IP %v - %v\n", v, v.IP)
+			if v.IP.String() == ipStr {
+				return true
+			}
+		default:
+			if addr.String() == ipStr {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func canBind(addr string) bool {
 	ifAddrs, err := net.InterfaceAddrs()
 
 	if err != nil {
 		return false
 	}
 
-	for _, addr := range ifAddrs {
-		if addr.String() == ip.String() {
-			return true
-		}
-	}
-
-	return false
+	return canBindInternal(addr, ifAddrs)
 }
 
 func (c *cmd) Run(args []string) int {
