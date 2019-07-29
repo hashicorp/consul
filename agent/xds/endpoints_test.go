@@ -266,11 +266,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 					Namespace:  "default",
 					Datacenter: "dc1",
 				}
-				dbResolverNode := chain.GroupResolverNodes[dbTarget]
+				dbResolverNode := chain.Nodes["resolver:"+dbTarget.Identifier()]
 
-				groupResolverFailover := dbResolverNode.GroupResolver.Failover
+				failover := dbResolverNode.Resolver.Failover
 
-				groupResolverFailover.Definition.OverprovisioningFactor = 160
+				failover.Definition.OverprovisioningFactor = 160
 			},
 		},
 		{

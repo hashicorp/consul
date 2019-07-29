@@ -73,14 +73,20 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 				continue // skip the upstream (should not happen)
 			}
 
-			for target, node := range chain.GroupResolverNodes {
-				groupResolver := node.GroupResolver
-				failover := groupResolver.Failover
+			// Find all resolver nodes.
+			for _, node := range chain.Nodes {
+				if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+					continue
+				}
+				failover := node.Resolver.Failover
+				target := node.Resolver.Target
 
 				endpoints, ok := chainEndpointMap[target]
 				if !ok {
 					continue // skip the cluster (should not happen)
 				}
+
+				targetConfig := chain.Targets[target]
 
 				var (
 					endpointGroups         []loadAssignmentEndpointGroup
@@ -89,7 +95,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 				primaryGroup := loadAssignmentEndpointGroup{
 					Endpoints:   endpoints,
-					OnlyPassing: chain.SubsetDefinitionForTarget(target).OnlyPassing,
+					OnlyPassing: targetConfig.Subset.OnlyPassing,
 				}
 
 				if failover != nil && len(failover.Targets) > 0 {
@@ -112,9 +118,11 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 							continue // skip the failover target (should not happen)
 						}
 
+						failTargetConfig := chain.Targets[failTarget]
+
 						endpointGroups = append(endpointGroups, loadAssignmentEndpointGroup{
 							Endpoints:   failEndpoints,
-							OnlyPassing: chain.SubsetDefinitionForTarget(failTarget).OnlyPassing,
+							OnlyPassing: failTargetConfig.Subset.OnlyPassing,
 						})
 					}
 				} else {
