@@ -5807,7 +5807,6 @@ func TestSanitize(t *testing.T) {
 		"ConnectSidecarMaxPort": 0,
 		"ConnectSidecarMinPort": 0,
 		"ConnectTestCALeafRootChangeSpread": "0s",
-		"ConnectTestDisableManagedProxies": false,
 		"ConsulCoordinateUpdateBatchSize": 0,
 		"ConsulCoordinateUpdateMaxBatches": 0,
 		"ConsulCoordinateUpdatePeriod": "15s",
