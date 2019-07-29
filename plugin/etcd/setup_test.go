@@ -105,12 +105,12 @@ func TestSetupEtcd(t *testing.T) {
 		if !test.shouldErr {
 			if test.username != "" {
 				if etcd.Client.Username != test.username {
-					t.Errorf("Etcd username not correctly set for input %s. Excpeted: '%+v', actual: '%+v'", test.input, test.username, etcd.Client.Username)
+					t.Errorf("Etcd username not correctly set for input %s. Expected: '%+v', actual: '%+v'", test.input, test.username, etcd.Client.Username)
 				}
 			}
 			if test.password != "" {
 				if etcd.Client.Password != test.password {
-					t.Errorf("Etcd password not correctly set for input %s. Excpeted: '%+v', actual: '%+v'", test.input, test.password, etcd.Client.Password)
+					t.Errorf("Etcd password not correctly set for input %s. Expected: '%+v', actual: '%+v'", test.input, test.password, etcd.Client.Password)
 				}
 			}
 		}
