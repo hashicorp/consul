@@ -280,12 +280,8 @@ type ConnectProxyConfig struct {
 	TargetServiceID   string
 	TargetServiceName string
 	ContentHash       string
-	// DEPRECATED(managed-proxies) - this struct is re-used for sidecar configs
-	// but they don't need ExecMode or Command
-	ExecMode  ProxyExecMode          `json:",omitempty"`
-	Command   []string               `json:",omitempty"`
-	Config    map[string]interface{} `bexpr:"-"`
-	Upstreams []Upstream
+	Config            map[string]interface{} `bexpr:"-"`
+	Upstreams         []Upstream
 }
 
 // Upstream is the response structure for a proxy upstream configuration.

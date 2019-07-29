@@ -120,6 +120,44 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 	return checks, nil
 }
 
+// ServiceDefinitionConnectProxy is the connect proxy config  within a service
+// registration. Note this is duplicated in config.ServiceConnectProxy and needs
+// to be kept in sync.
+type ServiceDefinitionConnectProxy struct {
+	Config    map[string]interface{} `json:",omitempty"`
+	Upstreams []Upstream             `json:",omitempty"`
+}
+
+func (p *ServiceDefinitionConnectProxy) MarshalJSON() ([]byte, error) {
+	type typeCopy ServiceDefinitionConnectProxy
+	copy := typeCopy(*p)
+
+	// If we have config, then we want to run it through our proxyConfigWalker
+	// which is a reflectwalk implementation that attempts to turn arbitrary
+	// interface{} values into JSON-safe equivalents (more or less). This
+	// should always work because the config input is either HCL or JSON and
+	// both are JSON compatible.
+	if copy.Config != nil {
+		configCopyRaw, err := copystructure.Copy(copy.Config)
+		if err != nil {
+			return nil, err
+		}
+		configCopy, ok := configCopyRaw.(map[string]interface{})
+		if !ok {
+			// This should never fail because we KNOW the input type,
+			// but we don't ever want to risk the panic.
+			return nil, fmt.Errorf("internal error: config copy is not right type")
+		}
+		if err := reflectwalk.Walk(configCopy, &proxyConfigWalker{}); err != nil {
+			return nil, err
+		}
+
+		copy.Config = configCopy
+	}
+
+	return json.Marshal(&copy)
+}
+
 var typMapIfaceIface = reflect.TypeOf(map[interface{}]interface{}{})
 
 // proxyConfigWalker implements interfaces for the reflectwalk package

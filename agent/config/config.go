@@ -435,8 +435,6 @@ type ServiceConnect struct {
 }
 
 type ServiceConnectProxy struct {
-	Command   []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
-	ExecMode  *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
 	Config    map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
 	Upstreams []Upstream             `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
 }
