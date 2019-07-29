@@ -629,11 +629,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
 
-	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
-	proxyDefaultDaemonCommand := c.Connect.ProxyDefaults.DaemonCommand
-	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
-	proxyDefaultConfig := c.Connect.ProxyDefaults.Config
-
 	enableRemoteScriptChecks := b.boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := b.boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
