@@ -76,6 +76,27 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
+	return startService(s)
+}
+
+// NewServiceWithoutH2 is the same as NewServiceWithLogger, but without `h2` inside of tls.NextProtos.
+func NewServiceWithoutH2(serviceName string, client *api.Client,
+	logger *log.Logger) (*Service, error) {
+	tls := defaultTLSConfig()
+	tls.NextProtos = nil
+	s := &Service{
+		service:              serviceName,
+		client:               client,
+		logger:               logger,
+		tlsCfg:               newDynamicTLSConfig(tls, logger),
+		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
+	}
+
+	return startService(s)
+}
+
+// startService starts the given service
+func startService(s *Service) (*Service, error) {
 	// Set up root and leaf watches
 	p, err := watch.Parse(map[string]interface{}{
 		"type": "connect_roots",
@@ -96,8 +117,8 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	go s.rootsWatch.RunWithClientAndLogger(client, s.logger)
-	go s.leafWatch.RunWithClientAndLogger(client, s.logger)
+	go s.rootsWatch.RunWithClientAndLogger(s.client, s.logger)
+	go s.leafWatch.RunWithClientAndLogger(s.client, s.logger)
 
 	return s, nil
 }

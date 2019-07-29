@@ -46,7 +46,7 @@ type Config struct {
 
 // Service returns the *connect.Service structure represented by this config.
 func (c *Config) Service(client *api.Client, logger *log.Logger) (*connect.Service, error) {
-	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
+	return connect.NewServiceWithoutH2(c.ProxiedServiceName, client, logger)
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
