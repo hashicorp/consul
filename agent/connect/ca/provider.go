@@ -12,7 +12,7 @@ import (
 // logger into any component that needs one.
 type NeedsLogger interface {
 	// SetLogger tells the provider to use the specified logger.
-	// Note: this should be one of the first calls made after instantiating
+	// This is called immediately after instantiating
 	// the provider, so that the provider can log startup messages etc.
 	SetLogger(l *log.Logger)
 }
