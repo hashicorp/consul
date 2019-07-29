@@ -377,10 +377,6 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 			func(x *NodeService) { x.Connect.SidecarService = &ServiceDefinition{} },
 			"cannot have a sidecar service",
 		},
-		"connect-managed-proxy": testCase{
-			func(x *NodeService) { x.Connect.Proxy = &ServiceDefinitionConnectProxy{} },
-			"Connect.Proxy configuration is invalid",
-		},
 		"proxy-destination-name": testCase{
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "foo" },
 			"Proxy.DestinationServiceName configuration is invalid",
