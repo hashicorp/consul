@@ -3,7 +3,6 @@ package local
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 const fullSyncReadMaxStale = 2 * time.Second
