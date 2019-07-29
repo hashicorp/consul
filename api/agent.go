@@ -90,13 +90,11 @@ type AgentService struct {
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
-	CreateIndex       uint64 `json:",omitempty" bexpr:"-"`
-	ModifyIndex       uint64 `json:",omitempty" bexpr:"-"`
-	ContentHash       string `json:",omitempty" bexpr:"-"`
-	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty" bexpr:"-"`
-	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
-	Connect          *AgentServiceConnect            `json:",omitempty"`
+	CreateIndex       uint64                          `json:",omitempty" bexpr:"-"`
+	ModifyIndex       uint64                          `json:",omitempty" bexpr:"-"`
+	ContentHash       string                          `json:",omitempty" bexpr:"-"`
+	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect           *AgentServiceConnect            `json:",omitempty"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -176,10 +174,8 @@ type AgentServiceRegistration struct {
 	Weights           *AgentWeights             `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
-	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty"`
-	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
-	Connect          *AgentServiceConnect            `json:",omitempty"`
+	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect           *AgentServiceConnect            `json:",omitempty"`
 }
 
 // AgentCheckRegistration is used to register a new check

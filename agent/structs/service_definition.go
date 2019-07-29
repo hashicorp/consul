@@ -61,10 +61,6 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
 			}
 		}
-	} else {
-		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-		// Legacy convert ProxyDestination into a Proxy config
-		ns.Proxy.DestinationServiceName = s.ProxyDestination
 	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service

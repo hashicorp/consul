@@ -173,11 +173,6 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	actual := val["db-proxy"]
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
 	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
-
-	// DEPRECATED (ProxyDestination) - remove the next comment and assertion
-	// Should still have deprecated ProxyDestination filled in until we remove it
-	// completely at a major version bump.
-	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
 }
 
 // Thie tests that a sidecar-registered service is returned as expected.
@@ -213,11 +208,6 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	require.NotNil(actual)
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
 	assert.Equal(srv1.Proxy.ToAPI(), actual.Proxy)
-
-	// DEPRECATED (ProxyDestination) - remove the next comment and assertion
-	// Should still have deprecated ProxyDestination filled in until we remove it
-	// completely at a major version bump.
-	assert.Equal(srv1.Proxy.DestinationServiceName, actual.ProxyDestination)
 
 	// Sanity check that LocalRegisteredAsSidecar is not in the output (assuming
 	// JSON encoding). Right now this is not the case because the services
@@ -3027,8 +3017,7 @@ func TestAgent_RegisterService_ManagedConnectProxy_Disabled(t *testing.T) {
 
 // This tests local agent service registration of a unmanaged connect proxy.
 // This verifies that it is put in the local state store properly for syncing
-// later. Note that _managed_ connect proxies are registered as part of the
-// target service's registration.
+// later.
 func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	t.Parallel()
 
@@ -3043,8 +3032,6 @@ func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 		Kind: api.ServiceKindConnectProxy,
 		Name: "connect-proxy",
 		Port: 8000,
-		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-		ProxyDestination: "bad_destination", // Deprecated, check it's overridden
 		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceName: "web",
 			Upstreams: []api.Upstream{

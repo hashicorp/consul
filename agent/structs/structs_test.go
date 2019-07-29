@@ -165,12 +165,6 @@ func testServiceNode(t *testing.T) *ServiceNode {
 			ModifyIndex: 2,
 		},
 		ServiceProxy: TestConnectProxyConfig(t),
-		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-		// ServiceProxyDestination is deprecated bit must be set consistently with
-		// the value of ServiceProxy.DestinationServiceName otherwise a round-trip
-		// through ServiceNode -> NodeService and back will not match and fail
-		// tests.
-		ServiceProxyDestination: "web",
 		ServiceConnect: ServiceConnect{
 			Native: true,
 		},
@@ -249,7 +243,6 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	serviceTags := sn.ServiceTags
 	serviceWeights := Weights{Passing: 2, Warning: 1}
 	sn.ServiceWeights = serviceWeights
-	serviceProxyDestination := sn.ServiceProxyDestination
 	serviceProxy := sn.ServiceProxy
 	serviceConnect := sn.ServiceConnect
 	serviceTaggedAddresses := sn.ServiceTaggedAddresses
@@ -282,7 +275,6 @@ func TestStructs_ServiceNode_IsSameService(t *testing.T) {
 	check(func() { other.ServiceMeta = map[string]string{"my": "meta"} }, func() { other.ServiceMeta = serviceMeta })
 	check(func() { other.ServiceName = "duck" }, func() { other.ServiceName = serviceName })
 	check(func() { other.ServicePort = 65534 }, func() { other.ServicePort = servicePort })
-	check(func() { other.ServiceProxyDestination = "duck" }, func() { other.ServiceProxyDestination = serviceProxyDestination })
 	check(func() { other.ServiceTags = []string{"new", "tags"} }, func() { other.ServiceTags = serviceTags })
 	check(func() { other.ServiceWeights = Weights{Passing: 42, Warning: 41} }, func() { other.ServiceWeights = serviceWeights })
 	check(func() { other.ServiceProxy = ConnectProxyConfig{} }, func() { other.ServiceProxy = serviceProxy })
@@ -439,19 +431,19 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		},
 
 		{
-			"connect-proxy: no ProxyDestination",
+			"connect-proxy: no Proxy.DestinationServiceName",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "" },
 			"Proxy.DestinationServiceName must be",
 		},
 
 		{
-			"connect-proxy: whitespace ProxyDestination",
+			"connect-proxy: whitespace Proxy.DestinationServiceName",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "  " },
 			"Proxy.DestinationServiceName must be",
 		},
 
 		{
-			"connect-proxy: valid ProxyDestination",
+			"connect-proxy: valid Proxy.DestinationServiceName",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "hello" },
 			"",
 		},

@@ -532,11 +532,6 @@ func TestAPI_CatalogConnect(t *testing.T) {
 
 	proxy := proxyReg.Service
 
-	// DEPRECATED (ProxyDestination) - remove this case when the field is removed
-	deprecatedProxyReg := testUnmanagedProxyRegistration(t)
-	deprecatedProxyReg.Service.ProxyDestination = deprecatedProxyReg.Service.Proxy.DestinationServiceName
-	deprecatedProxyReg.Service.Proxy = nil
-
 	service := &AgentService{
 		ID:      proxyReg.Service.Proxy.DestinationServiceID,
 		Service: proxyReg.Service.Proxy.DestinationServiceName,

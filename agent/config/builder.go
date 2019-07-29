@@ -1278,10 +1278,8 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
 		Weights:           serviceWeights,
 		Checks:            checks,
-		// DEPRECATED (ProxyDestination) - don't populate deprecated field, just use
-		// it as a default below on read. Remove that when removing ProxyDestination
-		Proxy:   b.serviceProxyVal(v.Proxy, v.ProxyDestination),
-		Connect: b.serviceConnectVal(v.Connect),
+		Proxy:             b.serviceProxyVal(v.Proxy),
+		Connect:           b.serviceConnectVal(v.Connect),
 	}
 }
 
@@ -1299,13 +1297,8 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	}
 }
 
-func (b *Builder) serviceProxyVal(v *ServiceProxy, deprecatedDest *string) *structs.ConnectProxyConfig {
+func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 	if v == nil {
-		if deprecatedDest != nil {
-			return &structs.ConnectProxyConfig{
-				DestinationServiceName: b.stringVal(deprecatedDest),
-			}
-		}
 		return nil
 	}
 
