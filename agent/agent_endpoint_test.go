@@ -70,8 +70,6 @@ func TestAgent_Services(t *testing.T) {
 	}
 	require.NoError(t, a.State.AddService(srv1, ""))
 
-	// TODO(mike): add an unmanaged proxy for this service?
-
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
 	obj, err := a.srv.AgentServices(nil, req)
 	if err != nil {
@@ -81,8 +79,6 @@ func TestAgent_Services(t *testing.T) {
 	assert.Lenf(t, val, 1, "bad services: %v", obj)
 	assert.Equal(t, 5000, val["mysql"].Port)
 	assert.Equal(t, srv1.Meta, val["mysql"].Meta)
-	require.NotNil(t, val["mysql"].Connect)
-	require.NotNil(t, val["mysql"].Connect.Proxy)
 }
 
 func TestAgent_ServicesFiltered(t *testing.T) {
