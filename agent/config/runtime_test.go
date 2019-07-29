@@ -2318,67 +2318,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 
 		{
-			desc: "Service managed proxy 'upstreams'",
-			args: []string{
-				`-data-dir=` + dataDir,
-			},
-			json: []string{
-				`{
-						"service": {
-							"name": "web",
-							"port": 8080,
-							"connect": {
-								"proxy": {
-									"upstreams": [{
-										"destination_name": "db",
-										"local_bind_port": 1234
-									}]
-								}
-							}
-						}
-					}`,
-			},
-			hcl: []string{
-				`service {
-					name = "web"
-					port = 8080
-					connect {
-						proxy {
-							upstreams {
-								destination_name = "db"
-								local_bind_port = 1234
-							}
-						}
-					}
-				}`,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{
-						Name: "web",
-						Port: 8080,
-						Connect: &structs.ServiceConnect{
-							Proxy: &structs.ServiceDefinitionConnectProxy{
-								Upstreams: structs.Upstreams{
-									{
-										DestinationName: "db",
-										DestinationType: structs.UpstreamDestTypeService,
-										LocalBindPort:   1234,
-									},
-								},
-							},
-						},
-						Weights: &structs.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-					},
-				}
-			},
-		},
-
-		{
 			// This tests that we correct added the nested paths to arrays of objects
 			// to the exceptions in PatchSliceOfMaps in config.go (for single service)
 			desc: "service.connectsidecar_service with checks and upstreams",
