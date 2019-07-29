@@ -30,23 +30,6 @@ const (
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 )
 
-// ProxyExecMode is the execution mode for a managed Connect proxy.
-type ProxyExecMode string
-
-const (
-	// ProxyExecModeDaemon indicates that the proxy command should be long-running
-	// and should be started and supervised by the agent until it's target service
-	// is deregistered.
-	ProxyExecModeDaemon ProxyExecMode = "daemon"
-
-	// ProxyExecModeScript indicates that the proxy command should be invoke to
-	// completion on each change to the configuration of lifecycle event. The
-	// script typically fetches the config and certificates from the agent API and
-	// then configures an externally managed daemon, perhaps starting and stopping
-	// it if necessary.
-	ProxyExecModeScript ProxyExecMode = "script"
-)
-
 // UpstreamDestType is the type of upstream discovery mechanism.
 type UpstreamDestType string
 
@@ -114,8 +97,6 @@ type AgentServiceConnect struct {
 // AgentServiceConnectProxy represents the Connect Proxy configuration of a
 // service.
 type AgentServiceConnectProxy struct {
-	ExecMode  ProxyExecMode          `json:",omitempty"`
-	Command   []string               `json:",omitempty"`
 	Config    map[string]interface{} `json:",omitempty" bexpr:"-"`
 	Upstreams []Upstream             `json:",omitempty"`
 }

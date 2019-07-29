@@ -54,14 +54,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Add a service instance with Connect config.
 	connectConf := structs.ServiceConnect{
 		Native: true,
-		Proxy: &structs.ServiceDefinitionConnectProxy{
-			Command:  []string{"foo", "bar"},
-			ExecMode: "a",
-			Config: map[string]interface{}{
-				"a": "qwer",
-				"b": 4.3,
-			},
-		},
 	}
 	fsm.state.EnsureService(3, "foo", &structs.NodeService{
 		ID:      "web",

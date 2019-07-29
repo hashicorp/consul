@@ -69,40 +69,6 @@ func TestServiceDefinitionValidate(t *testing.T) {
 			func(x *ServiceDefinition) {},
 			"",
 		},
-
-		{
-			"managed proxy with a port set",
-			func(x *ServiceDefinition) {
-				x.Port = 8080
-				x.Connect = &ServiceConnect{
-					Proxy: &ServiceDefinitionConnectProxy{},
-				}
-			},
-			"",
-		},
-
-		{
-			"managed proxy with no port set",
-			func(x *ServiceDefinition) {
-				x.Port = 0 // Explicitly unset this as the test default sets it sanely
-				x.Connect = &ServiceConnect{
-					Proxy: &ServiceDefinitionConnectProxy{},
-				}
-			},
-			"must have a port",
-		},
-
-		{
-			"managed proxy with native set",
-			func(x *ServiceDefinition) {
-				x.Port = 8080
-				x.Connect = &ServiceConnect{
-					Native: true,
-					Proxy:  &ServiceDefinitionConnectProxy{},
-				}
-			},
-			"may not have a proxy",
-		},
 	}
 
 	for _, tc := range cases {
@@ -129,23 +95,6 @@ func TestServiceDefinitionConnectProxy_json(t *testing.T) {
 		Expected string
 		Err      string
 	}{
-		{
-			"no config",
-			&ServiceDefinitionConnectProxy{
-				Command:  []string{"foo"},
-				ExecMode: "bar",
-			},
-			`
-{
-	"Command": [
-		"foo"
-	],
-	"ExecMode": "bar"
-}
-			`,
-			"",
-		},
-
 		{
 			"basic config",
 			&ServiceDefinitionConnectProxy{

@@ -270,12 +270,6 @@ $ curl \
   "TargetServiceID": "web",
   "TargetServiceName": "web",
   "ContentHash": "cffa5f4635b134b9",
-  "ExecMode": "daemon",
-  "Command": [
-    "/usr/local/bin/consul",
-    "connect",
-    "proxy"
-  ],
   "Config": {
     "bind_address": "127.0.0.1",
     "bind_port": 20199,
@@ -307,10 +301,6 @@ $ curl \
 
 - `ContentHash` `(string)` - The content hash of the response used for hash-based
   blocking queries.
-
-- `ExecMode` `(string)` - The execution mode of the managed proxy.
-
-- `Command` `(array<string>)` - The command for the managed proxy.
 
 - `Config` `(map<string|any>)` - The configuration for the managed proxy. This
   is a map of primitive values (including arrays and maps) that is set by the

@@ -1353,8 +1353,6 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	var proxy *structs.ServiceDefinitionConnectProxy
 	if v.Proxy != nil {
 		proxy = &structs.ServiceDefinitionConnectProxy{
-			ExecMode:  b.stringVal(v.Proxy.ExecMode),
-			Command:   v.Proxy.Command,
 			Config:    v.Proxy.Config,
 			Upstreams: b.upstreamsVal(v.Proxy.Upstreams),
 		}

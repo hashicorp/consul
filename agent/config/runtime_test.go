@@ -5145,8 +5145,6 @@ func TestFullConfig(t *testing.T) {
 				},
 				Connect: &structs.ServiceConnect{
 					Proxy: &structs.ServiceDefinitionConnectProxy{
-						ExecMode: "daemon",
-						Command:  []string{"awesome-proxy"},
 						Config: map[string]interface{}{
 							"foo": "qux",
 						},
