@@ -16,17 +16,16 @@ var watchFuncFactory map[string]watchFactory
 
 func init() {
 	watchFuncFactory = map[string]watchFactory{
-		"key":                  keyWatch,
-		"keyprefix":            keyPrefixWatch,
-		"services":             servicesWatch,
-		"nodes":                nodesWatch,
-		"service":              serviceWatch,
-		"checks":               checksWatch,
-		"event":                eventWatch,
-		"connect_roots":        connectRootsWatch,
-		"connect_leaf":         connectLeafWatch,
-		"connect_proxy_config": connectProxyConfigWatch,
-		"agent_service":        agentServiceWatch,
+		"key":           keyWatch,
+		"keyprefix":     keyPrefixWatch,
+		"services":      servicesWatch,
+		"nodes":         nodesWatch,
+		"service":       serviceWatch,
+		"checks":        checksWatch,
+		"event":         eventWatch,
+		"connect_roots": connectRootsWatch,
+		"connect_leaf":  connectLeafWatch,
+		"agent_service": agentServiceWatch,
 	}
 }
 
