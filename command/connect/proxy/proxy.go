@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	proxyAgent "github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
@@ -122,16 +121,19 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// TODO(mike): create small abstraction wrapping these env vars
 	// Load the proxy ID and token from env vars if they're set
-	if c.proxyID == "" {
-		c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
-	}
-	if c.sidecarFor == "" {
-		c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
-	}
-	if c.http.Token() == "" && c.http.TokenFile() == "" {
-		c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
-	}
+	/*
+		if c.proxyID == "" {
+			c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
+		}
+		if c.sidecarFor == "" {
+			c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
+		}
+		if c.http.Token() == "" && c.http.TokenFile() == "" {
+			c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
+		}
+	*/
 
 	// Setup the log outputs
 	logConfig := &logger.Config{
