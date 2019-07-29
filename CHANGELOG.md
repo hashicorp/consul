@@ -1,3 +1,10 @@
+## UNRELEASED
+
+BUG FIXES:
+
+* connect : Fixed a regression that broken xds endpoint generation for prepared query upstreams. [[GH-6236](https://github.com/hashicorp/consul/pull/6236)]
+
+
 ## 1.6.0-beta3 (July 26, 2019)
 
 FEATURES:
