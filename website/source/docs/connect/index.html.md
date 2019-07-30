@@ -31,7 +31,7 @@ networks, software-defined networks, cross-cloud, and more.
 
 ## Observability
 
-One of the key benefits Consul Connect is the uniform and consistent view it can
+One of the key benefits of Consul Connect is the uniform and consistent view it can
 provide  of all the services on your network, irrespective of their different
 programming languages and frameworks. When you configure Consul Connect to use
 sidecar proxies, those proxies "see" all service-to-service traffic and can
@@ -52,7 +52,7 @@ There are several ways to try Connect in different environments.
    locally without installing anything else.
 
  - The [Kubernetes guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube)
-   walks you though configuring Consul Connect in Kubernetes using the Helm
+   walks you through configuring Consul Connect in Kubernetes using the Helm
    chart, and using intentions. You can run the guide on Minikube or an extant
    Kubernets cluster.
 
