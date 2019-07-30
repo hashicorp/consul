@@ -215,6 +215,13 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		return err
 	}
 
+	commonConfig, err := conf.GetCommonConfig()
+	if err != nil {
+		return err
+	}
+	rootCA.PrivateKeyType = commonConfig.PrivateKeyType
+	rootCA.PrivateKeyBits = commonConfig.PrivateKeyBits
+
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
 	// tied to the provider.
