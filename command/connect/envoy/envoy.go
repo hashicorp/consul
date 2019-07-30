@@ -173,7 +173,6 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 
 	ip := net.ParseIP(addr)
 	if ip == nil {
-		fmt.Println("failed to parse IP")
 		return false
 	}
 
@@ -182,7 +181,6 @@ func canBindInternal(addr string, ifAddrs []net.Addr) bool {
 	for _, addr := range ifAddrs {
 		switch v := addr.(type) {
 		case *net.IPNet:
-			fmt.Printf("checking IPNet IP %v - %v\n", v, v.IP)
 			if v.IP.String() == ipStr {
 				return true
 			}
