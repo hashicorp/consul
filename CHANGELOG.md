@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * connect : Fixed a regression that broken xds endpoint generation for prepared query upstreams. [[GH-6236](https://github.com/hashicorp/consul/pull/6236)]
+* cli: Fixed bindable IP detection with the `connect envoy` command. [[GH-6238](https://github.com/hashicorp/consul/pull/6238)]
 
 
 ## 1.6.0-beta3 (July 26, 2019)
