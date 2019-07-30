@@ -6,6 +6,30 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// TranslateServicePort is used to provide the final, translated port for a service,
+// depending on how the agent and the other node are configured. The dc
+// parameter is the dc the datacenter this node is from.
+func (a *Agent) TranslateServicePort(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int {
+	if a.config.TranslateWANAddrs && (a.config.Datacenter != dc) {
+		if wanAddr, ok := taggedAddresses["wan"]; ok && wanAddr.Port != 0 {
+			return wanAddr.Port
+		}
+	}
+	return port
+}
+
+// TranslateServiceAddress is used to provide the final, translated address for a node,
+// depending on how the agent and the other node are configured. The dc
+// parameter is the dc the datacenter this node is from.
+func (a *Agent) TranslateServiceAddress(dc string, addr string, taggedAddresses map[string]structs.ServiceAddress) string {
+	if a.config.TranslateWANAddrs && (a.config.Datacenter != dc) {
+		if wanAddr, ok := taggedAddresses["wan"]; ok && wanAddr.Address != "" {
+			return wanAddr.Address
+		}
+	}
+	return addr
+}
+
 // TranslateAddress is used to provide the final, translated address for a node,
 // depending on how the agent and the other node are configured. The dc
 // parameter is the dc the datacenter this node is from.
@@ -45,6 +69,8 @@ func (a *Agent) TranslateAddresses(dc string, subj interface{}) {
 	case structs.CheckServiceNodes:
 		for _, entry := range v {
 			entry.Node.Address = a.TranslateAddress(dc, entry.Node.Address, entry.Node.TaggedAddresses)
+			entry.Service.Address = a.TranslateServiceAddress(dc, entry.Service.Address, entry.Service.TaggedAddresses)
+			entry.Service.Port = a.TranslateServicePort(dc, entry.Service.Port, entry.Service.TaggedAddresses)
 		}
 	case *structs.Node:
 		v.Address = a.TranslateAddress(dc, v.Address, v.TaggedAddresses)
@@ -55,6 +81,16 @@ func (a *Agent) TranslateAddresses(dc string, subj interface{}) {
 	case structs.ServiceNodes:
 		for _, entry := range v {
 			entry.Address = a.TranslateAddress(dc, entry.Address, entry.TaggedAddresses)
+			entry.ServiceAddress = a.TranslateServiceAddress(dc, entry.ServiceAddress, entry.ServiceTaggedAddresses)
+			entry.ServicePort = a.TranslateServicePort(dc, entry.ServicePort, entry.ServiceTaggedAddresses)
+		}
+	case *structs.NodeServices:
+		if v.Node != nil {
+			v.Node.Address = a.TranslateAddress(dc, v.Node.Address, v.Node.TaggedAddresses)
+		}
+		for _, entry := range v.Services {
+			entry.Address = a.TranslateServiceAddress(dc, entry.Address, entry.TaggedAddresses)
+			entry.Port = a.TranslateServicePort(dc, entry.Port, entry.TaggedAddresses)
 		}
 	default:
 		panic(fmt.Errorf("Unhandled type passed to address translator: %#v", subj))

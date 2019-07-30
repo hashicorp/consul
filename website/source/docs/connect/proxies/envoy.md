@@ -26,6 +26,9 @@ As an interim solution, you can add [custom Envoy configuration](#custom-configu
 in the [proxy service definition](/docs/connect/registration/service-registration.html) allowing
 you to use the more powerful features of Envoy.
 
+~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy.html)
+   Envoy must be run with the `--max-obj-name-len` option set to `256` or greater.
+
 ## Supported Versions
 
 Consul's Envoy support was added in version 1.3.0. The following table shows
@@ -95,7 +98,7 @@ the ability to control some parts of the bootstrap config via proxy
 configuration options.
 
 Users can add the following configuration items to the [global `proxy-defaults`
-configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or override them directly in the `proxy.config` field
+configuration entry](/docs/agent/config-entries/proxy-defaults.html) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
@@ -104,7 +107,7 @@ definition](/docs/connect/registration/service-registration.html) or
   StatsD listener that Envoy should deliver metrics to. For example, this may be
   `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this case
   users can configure this property once in the [global `proxy-defaults`
-configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) for convenience. Currently, TCP is not supported.
+configuration entry](/docs/agent/config-entries/proxy-defaults.html) for convenience. Currently, TCP is not supported.
 
     ~> **Note:** currently the url **must use an ip address** not a dns name due
     to the way Envoy is setup for StatsD.
@@ -115,7 +118,7 @@ configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaul
     pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
     when the Envoy instance is bootstrapped while still allowing global
     configuration of all proxies to use StatsD in the [global `proxy-defaults`
-configuration entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults). The env variable must contain a full valid URL
+configuration entry](/docs/agent/config-entries/proxy-defaults.html). The env variable must contain a full valid URL
     value as specified above and nothing else. It is not currently possible to use
     environment variables as only part of the URL.
 
@@ -153,7 +156,7 @@ to configure appropriate proxy settings for that service's proxies and also for
 the upstream listeners of any downstream service.
 
 Users can define a service's protocol in its [`service-defaults` configuration
-entry](/docs/agent/config_entries.html#service-defaults-service-defaults). Agents with
+entry](/docs/agent/config-entries/service-defaults.html). Agents with
 [`enable_central_service_config`](/docs/agent/options.html#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
@@ -171,7 +174,7 @@ actually registered.
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration.html), or defined in
 the  [global `proxy-defaults` configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
+entry](/docs/agent/config-entries/proxy-defaults.html) to act as
 defaults that are inherited by all services.
 
 
@@ -196,6 +199,10 @@ defaults that are inherited by all services.
     filter](https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
+- `bind_address` - Override the address Envoy's public listener binds to. By
+  default Envoy will bind to the service address or 0.0.0.0 if there is not explicit address on the service registration.
+- `bind_port` - Override the port Envoy's public listener binds to. By default
+  Envoy will bind to the service port.
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
@@ -212,6 +219,31 @@ definition](/docs/connect/registration/service-registration.html) or
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000
   (5 seconds).
+
+### Mesh Gateway Options <sup>(beta)</sup>
+
+These fields may also be overridden explicitly in the [proxy service
+definition](/docs/connect/registration/service-registration.html), or defined in
+the  [global `proxy-defaults` configuration
+entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) to act as
+defaults that are inherited by all services.
+
+- `connect_timeout_ms` - The number of milliseconds to allow when making upstream
+  connections before timing out. Defaults to 5000
+  (5 seconds).
+
+- `envoy_mesh_gateway_bind_tagged_addresses` - Indicates that the mesh gateway
+  services tagged addresses should be bound to listeners in addition to the
+  default listener address.
+
+- `envoy_mesh_gateway_bind_addresses` - A map of additional addresses to be bound.
+  This map's keys are the name of the listeners to be created and the values are
+  a map with two keys, address and port, that combined make the address to bind the
+  listener to. These are bound in addition to the default address.
+
+- `envoy_mesh_gateway_no_default_bind` - Prevents binding to the default address
+  of the mesh gateway service. This should be used with one of the other options
+  to configure the gateways bind addresses.
 
 ## Advanced Configuration
 
@@ -253,7 +285,7 @@ with no `@type` field.
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
+entry](/docs/agent/config-entries/proxy-defaults.html) or
 override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
@@ -289,7 +321,7 @@ definition](/docs/connect/registration/service-registration.html) or
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config_entries.html#proxy-defaults-proxy-defaults) or
+entry](/docs/agent/config-entries/proxy-defaults.html) or
 override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.

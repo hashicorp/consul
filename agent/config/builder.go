@@ -1237,6 +1237,26 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	}
 }
 
+func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]structs.ServiceAddress {
+	if len(v) <= 0 {
+		return nil
+	}
+
+	svcAddrs := make(map[string]structs.ServiceAddress)
+	for addrName, addrConf := range v {
+		addr := structs.ServiceAddress{}
+		if addrConf.Address != nil {
+			addr.Address = *addrConf.Address
+		}
+		if addrConf.Port != nil {
+			addr.Port = *addrConf.Port
+		}
+
+		svcAddrs[addrName] = addr
+	}
+	return svcAddrs
+}
+
 func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if v == nil {
 		return nil
@@ -1275,6 +1295,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,
 		Address:           b.stringVal(v.Address),
+		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              b.intVal(v.Port),
 		Token:             b.stringVal(v.Token),
@@ -1295,6 +1316,8 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	switch *v {
 	case string(structs.ServiceKindConnectProxy):
 		return structs.ServiceKindConnectProxy
+	case string(structs.ServiceKindMeshGateway):
+		return structs.ServiceKindMeshGateway
 	default:
 		return structs.ServiceKindTypical
 	}
@@ -1317,6 +1340,7 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy, deprecatedDest *string) *stru
 		LocalServicePort:       b.intVal(v.LocalServicePort),
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
+		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
 	}
 }
 
@@ -1331,12 +1355,30 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			LocalBindAddress:     b.stringVal(u.LocalBindAddress),
 			LocalBindPort:        b.intVal(u.LocalBindPort),
 			Config:               u.Config,
+			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}
 		if ups[i].DestinationType == "" {
 			ups[i].DestinationType = structs.UpstreamDestTypeService
 		}
 	}
 	return ups
+}
+
+func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGatewayConfig {
+	cfg := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeDefault}
+	if mgConf == nil || mgConf.Mode == nil {
+		// return defaults
+		return cfg
+	}
+
+	mode, err := structs.ValidateMeshGatewayMode(*mgConf.Mode)
+	if err != nil {
+		b.err = multierror.Append(b.err, err)
+		return cfg
+	}
+
+	cfg.Mode = mode
+	return cfg
 }
 
 func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {

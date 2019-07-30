@@ -58,6 +58,16 @@ $ curl \
       "ID": "redis",
       "Service": "redis",
       "Tags": [],
+      "TaggedAddresses": {
+        "lan": {
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.0.53",
+          "port": 80
+        }
+      },
       "Meta": {
           "redis_version": "4.0"
       },
@@ -77,31 +87,36 @@ $ curl \
 The filter is executed against each value in the service mapping with the
 following selectors and filter operations being supported:
 
-| Selector                               | Supported Operations               |
-| -------------------------------------- | ---------------------------------- |
-| `Address`                              | Equal, Not Equal                   |
-| `Connect.Native`                       | Equal, Not Equal                   |
-| `EnableTagOverride`                    | Equal, Not Equal                   |
-| `ID`                                   | Equal, Not Equal                   |
-| `Kind`                                 | Equal, Not Equal                   |
-| `Meta`                                 | In, Not In, Is Empty, Is Not Empty |
-| `Meta.<any>`                           | Equal, Not Equal                   |
-| `Port`                                 | Equal, Not Equal                   |
-| `Proxy.DestinationServiceID`           | Equal, Not Equal                   |
-| `Proxy.DestinationServiceName`         | Equal, Not Equal                   |
-| `Proxy.LocalServiceAddress`            | Equal, Not Equal                   |
-| `Proxy.LocalServicePort`               | Equal, Not Equal                   |
-| `Proxy.Upstreams`                      | Is Empty, Is Not Empty             |
-| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal                   |
-| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal                   |
-| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal                   |
-| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal                   |
-| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal                   |
-| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                   |
-| `Service`                              | Equal, Not Equal                   |
-| `Tags`                                 | In, Not In, Is Empty, Is Not Empty |
-| `Weights.Passing`                      | Equal, Not Equal                   |
-| `Weights.Warning`                      | Equal, Not Equal                   |
+| Selector                               | Supported Operations                               |
+| -------------------------------------- | -------------------------------------------------  |
+| `Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                       | Equal, Not Equal                                   |
+| `EnableTagOverride`                    | Equal, Not Equal                                   |
+| `ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                 | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                      | Equal, Not Equal                                   |
+| `Weights.Warning`                      | Equal, Not Equal                                   |
 
 
 ## Get Service Configuration
@@ -157,6 +172,16 @@ $ curl \
     "Meta": null,
     "Port": 18080,
     "Address": "",
+    "TaggedAddresses": {
+        "lan": {
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.0.53",
+          "port": 80
+        }
+      },
     "Weights": {
         "Passing": 1,
         "Warning": 1
@@ -270,6 +295,16 @@ curl localhost:8500/v1/agent/health/service/name/web
                 "rails"
             ],
             "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
             "Meta": null,
             "Port": 80,
             "EnableTagOverride": false,
@@ -290,6 +325,16 @@ curl localhost:8500/v1/agent/health/service/name/web
                 "rails"
             ],
             "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
             "Meta": null,
             "Port": 80,
             "EnableTagOverride": false,
@@ -332,6 +377,16 @@ curl localhost:8500/v1/agent/health/service/id/web2
             "rails"
         ],
         "Address": "",
+        "TaggedAddresses": {
+          "lan": {
+            "address": "127.0.0.1",
+            "port": 8000
+          },
+          "wan": {
+            "address": "198.18.0.53",
+            "port": 80
+          }
+        },
         "Meta": null,
         "Port": 80,
         "EnableTagOverride": false,
@@ -370,6 +425,16 @@ curl localhost:8500/v1/agent/health/service/id/web1
             "rails"
         ],
         "Address": "",
+        "TaggedAddresses": {
+          "lan": {
+            "address": "127.0.0.1",
+            "port": 8000
+          },
+          "wan": {
+            "address": "198.18.0.53",
+            "port": 80
+          }
+        },
         "Meta": null,
         "Port": 80,
         "EnableTagOverride": false,
@@ -443,6 +508,10 @@ service definition keys for compatibility with the config file format.
   provided, the agent's address is used as the address for the service during
   DNS queries.
 
+- `TaggedAddresses` `(map<string|object>: nil)` - Specifies a map of explicit LAN
+  and WAN addresses for the service instance. Both the address and port can be
+  specified within the map values.
+
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.
 
@@ -451,7 +520,8 @@ service definition keys for compatibility with the config file format.
 - `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
   typical Consul service. This value may also be "connect-proxy" for
   services that are [Connect-capable](/docs/connect/index.html)
-  proxies representing another service.
+  proxies representing another service or "mesh-gateway" for instances of
+  a [mesh gateway](/docs/connect/mesh_gateway.html)
 
 - `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
   was used for "connect-proxy" `Kind` services however the equivalent field is
@@ -460,8 +530,8 @@ service definition keys for compatibility with the config file format.
   entirely. It's strongly recommended to switch to using the new field.
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
-  Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
-  the [Proxy documentation](/docs/connect/registration/service-registration.html)
+  Connect proxy instance. This is only valid if `Kind == "connect-proxy"` or
+  `Kind == "mesh-gateway"`. See the [Proxy documentation](/docs/connect/registration/service-registration.html)
   for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the

@@ -407,11 +407,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-encrypt",
 			args: []string{
-				`-encrypt=i0P+gFTkLPg0h53eNYjydg==`,
+				`-encrypt=pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=`,
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.EncryptKey = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 				rt.DataDir = dataDir
 			},
 		},
@@ -2104,14 +2104,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "encrypt": "i0P+gFTkLPg0h53eNYjydg==" }`},
-			hcl:  []string{` encrypt = "i0P+gFTkLPg0h53eNYjydg==" `},
+			json: []string{`{ "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=" }`},
+			hcl:  []string{` encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=" `},
 			patch: func(rt *RuntimeConfig) {
-				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.EncryptKey = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 				rt.DataDir = dataDir
 			},
 			pre: func() {
-				writeFile(filepath.Join(dataDir, SerfLANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
+				writeFile(filepath.Join(dataDir, SerfLANKeyring), []byte("pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="))
 			},
 			warns: []string{`WARNING: LAN keyring exists but -encrypt given, using keyring`},
 		},
@@ -2120,17 +2120,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "encrypt": "i0P+gFTkLPg0h53eNYjydg==", "server": true }`},
-			hcl:  []string{` encrypt = "i0P+gFTkLPg0h53eNYjydg==" server = true `},
+			json: []string{`{ "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=", "server": true }`},
+			hcl:  []string{` encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=" server = true `},
 			patch: func(rt *RuntimeConfig) {
-				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.EncryptKey = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 				rt.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
 				rt.DataDir = dataDir
 			},
 			pre: func() {
-				writeFile(filepath.Join(dataDir, SerfWANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
+				writeFile(filepath.Join(dataDir, SerfWANKeyring), []byte("pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="))
 			},
 			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
 		},
@@ -2267,6 +2267,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"service": {
 						"name": "a",
 						"port": 80,
+						"tagged_addresses": {
+							"wan": {
+								"address": "198.18.3.4",
+								"port": 443
+							}
+						},
 						"enable_tag_override": true,
 						"check": {
 							"id": "x",
@@ -2283,6 +2289,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					name = "a"
 					port = 80
 					enable_tag_override = true
+					tagged_addresses = {
+						wan = {
+							address = "198.18.3.4"
+							port = 443
+						}
+					}
 					check = {
 						id = "x"
 						name = "y"
@@ -2295,8 +2307,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
 					&structs.ServiceDefinition{
-						Name:              "a",
-						Port:              80,
+						Name: "a",
+						Port: 80,
+						TaggedAddresses: map[string]structs.ServiceAddress{
+							"wan": structs.ServiceAddress{
+								Address: "198.18.3.4",
+								Port:    443,
+							},
+						},
 						EnableTagOverride: true,
 						Checks: []*structs.CheckType{
 							&structs.CheckType{
@@ -2505,7 +2523,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 
 		{
 			// This tests that we correct added the nested paths to arrays of objects
-			// to the exceptions in patchSliceOfMaps in config.go (for single service)
+			// to the exceptions in PatchSliceOfMaps in config.go (for single service)
 			desc: "service.connectsidecar_service with checks and upstreams",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2601,7 +2619,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		},
 		{
 			// This tests that we correct added the nested paths to arrays of objects
-			// to the exceptions in patchSliceOfMaps in config.go (for service*s*)
+			// to the exceptions in PatchSliceOfMaps in config.go (for service*s*)
 			desc: "services.connect.sidecar_service with checks and upstreams",
 			args: []string{
 				`-data-dir=` + dataDir,
@@ -2791,7 +2809,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					foo = "bar"
 				}
 			}`},
-			err: "config_entries.bootstrap[0]: Payload does not contain a Kind",
+			err: "config_entries.bootstrap[0]: Payload does not contain a kind/Kind",
 		},
 		{
 			desc: "ConfigEntry bootstrap unknown kind",
@@ -2845,12 +2863,466 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			}`},
 			err: "config_entries.bootstrap[0]: invalid name (\"invalid-name\"), only \"global\" is supported",
 		},
+		{
+			desc: "ConfigEntry bootstrap proxy-defaults (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "proxy-defaults",
+							"name": "global",
+							"config": {
+								"bar": "abc",
+								"moreconfig": {
+									"moar": "config"
+								}
+							},
+							"mesh_gateway": {
+								"mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						kind = "proxy-defaults"
+						name = "global"
+						config {
+						  "bar" = "abc"
+						  "moreconfig" {
+							"moar" = "config"
+						  }
+						}
+						mesh_gateway {
+							mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"bar": "abc",
+							"moreconfig": map[string]interface{}{
+								"moar": "config",
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap proxy-defaults (camel-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"Kind": "proxy-defaults",
+							"Name": "global",
+							"Config": {
+								"bar": "abc",
+								"moreconfig": {
+									"moar": "config"
+								}
+							},
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						Kind = "proxy-defaults"
+						Name = "global"
+						Config {
+						  "bar" = "abc"
+						  "moreconfig" {
+							"moar" = "config"
+						  }
+						}
+						MeshGateway {
+							Mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"bar": "abc",
+							"moreconfig": map[string]interface{}{
+								"moar": "config",
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-defaults (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-defaults",
+							"name": "web",
+							"protocol": "http",
+							"mesh_gateway": {
+								"mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						kind = "service-defaults"
+						name = "web"
+						protocol = "http"
+						mesh_gateway {
+							mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "web",
+						Protocol: "http",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-defaults (camel-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"Kind": "service-defaults",
+							"Name": "web",
+							"Protocol": "http",
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						Kind = "service-defaults"
+						Name = "web"
+						Protocol = "http"
+						MeshGateway {
+							Mode = "remote"
+						}
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceConfigEntry{
+						Kind:     structs.ServiceDefaults,
+						Name:     "web",
+						Protocol: "http",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-router (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-router",
+							"name": "main",
+							"routes": [
+								{
+									"match": {
+										"http": {
+											"path_exact": "/foo",
+											"header": [
+												{
+													"name": "debug1",
+													"present": true
+												},
+												{
+													"name": "debug2",
+													"present": true,
+													"invert": true
+												},
+												{
+													"name": "debug3",
+													"exact": "1"
+												},
+												{
+													"name": "debug4",
+													"prefix": "aaa"
+												},
+												{
+													"name": "debug5",
+													"suffix": "bbb"
+												},
+												{
+													"name": "debug6",
+													"regex": "a.*z"
+												}
+											]
+										}
+									},
+									"destination": {
+									  "service"                 : "carrot",
+									  "service_subset"          : "kale",
+									  "namespace"               : "leek",
+									  "prefix_rewrite"          : "/alternate",
+									  "request_timeout"         : "99s",
+									  "num_retries"             : 12345,
+									  "retry_on_connect_failure": true,
+									  "retry_on_status_codes"   : [401, 209]
+									}
+								},
+								{
+									"match": {
+										"http": {
+											"path_prefix": "/foo",
+											"methods": [ "GET", "DELETE" ],
+											"query_param": [
+												{
+													"name": "hack1",
+													"present": true
+												},
+												{
+													"name": "hack2",
+													"exact": "1"
+												},
+												{
+													"name": "hack3",
+													"regex": "a.*z"
+												}
+											]
+										}
+									}
+								},
+								{
+									"match": {
+										"http": {
+											"path_regex": "/foo"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}`},
+			hcl: []string{`
+				config_entries {
+					bootstrap {
+						kind = "service-router"
+						name = "main"
+						routes = [
+							{
+								match {
+									http {
+										path_exact = "/foo"
+										header = [
+											{
+												name = "debug1"
+												present = true
+											},
+											{
+												name = "debug2"
+												present = true
+												invert = true
+											},
+											{
+												name = "debug3"
+												exact = "1"
+											},
+											{
+												name = "debug4"
+												prefix = "aaa"
+											},
+											{
+												name = "debug5"
+												suffix = "bbb"
+											},
+											{
+												name = "debug6"
+												regex = "a.*z"
+											},
+										]
+									}
+								}
+								destination {
+								  service               = "carrot"
+								  service_subset         = "kale"
+								  namespace             = "leek"
+								  prefix_rewrite         = "/alternate"
+								  request_timeout        = "99s"
+								  num_retries            = 12345
+								  retry_on_connect_failure = true
+								  retry_on_status_codes    = [401, 209]
+								}
+							},
+							{
+								match {
+									http {
+										path_prefix = "/foo"
+										methods = [ "GET", "DELETE" ]
+										query_param = [
+											{
+												name = "hack1"
+												present = true
+											},
+											{
+												name = "hack2"
+												exact = "1"
+											},
+											{
+												name = "hack3"
+												regex = "a.*z"
+											},
+										]
+									}
+								}
+							},
+							{
+								match {
+									http {
+										path_regex = "/foo"
+									}
+								}
+							},
+						]
+					}
+				}`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceRouterConfigEntry{
+						Kind: structs.ServiceRouter,
+						Name: "main",
+						Routes: []structs.ServiceRoute{
+							{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathExact: "/foo",
+										Header: []structs.ServiceRouteHTTPMatchHeader{
+											{
+												Name:    "debug1",
+												Present: true,
+											},
+											{
+												Name:    "debug2",
+												Present: true,
+												Invert:  true,
+											},
+											{
+												Name:  "debug3",
+												Exact: "1",
+											},
+											{
+												Name:   "debug4",
+												Prefix: "aaa",
+											},
+											{
+												Name:   "debug5",
+												Suffix: "bbb",
+											},
+											{
+												Name:  "debug6",
+												Regex: "a.*z",
+											},
+										},
+									},
+								},
+								Destination: &structs.ServiceRouteDestination{
+									Service:               "carrot",
+									ServiceSubset:         "kale",
+									Namespace:             "leek",
+									PrefixRewrite:         "/alternate",
+									RequestTimeout:        99 * time.Second,
+									NumRetries:            12345,
+									RetryOnConnectFailure: true,
+									RetryOnStatusCodes:    []uint32{401, 209},
+								},
+							},
+							{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathPrefix: "/foo",
+										Methods:    []string{"GET", "DELETE"},
+										QueryParam: []structs.ServiceRouteHTTPMatchQueryParam{
+											{
+												Name:    "hack1",
+												Present: true,
+											},
+											{
+												Name:  "hack2",
+												Exact: "1",
+											},
+											{
+												Name:  "hack3",
+												Regex: "a.*z",
+											},
+										},
+									},
+								},
+							},
+							{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathRegex: "/foo",
+									},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
 }
 
 func testConfig(t *testing.T, tests []configTest, dataDir string) {
+	t.Helper()
 	for _, tt := range tests {
 		for pass, format := range []string{"json", "hcl"} {
 			// clean data dir before every test
@@ -3337,6 +3809,16 @@ func TestFullConfig(t *testing.T) {
 				"meta": {
 					"mymeta": "data"
 				},
+				"tagged_addresses": {
+					"lan": {
+						"address": "2d79888a",
+						"port": 2143
+					},
+					"wan": {
+						"address": "d4db85e2",
+						"port": 6109
+					}
+				},
 				"tags": ["nkwshvM5", "NTDWn3ek"],
 				"address": "cOlSOhbp",
 				"token": "msy7iWER",
@@ -3550,6 +4032,17 @@ func TestFullConfig(t *testing.T) {
 								"local_bind_port": 11884
 							}
 						]
+					}
+				},
+				{
+					"id": "kvVqbwSE",
+					"kind": "mesh-gateway",
+					"name": "gw-primary-dc",
+					"port": 27147,
+					"proxy": {
+						"config": {
+							"1CuJHVfw" : "Kzqsa7yc"
+						}
 					}
 				}
 			],
@@ -3922,6 +4415,16 @@ func TestFullConfig(t *testing.T) {
 				meta = {
 					mymeta = "data"
 				}
+				tagged_addresses = {
+					lan = {
+						address = "2d79888a"
+						port = 2143
+					}
+					wan = {
+						address = "d4db85e2"
+						port = 6109
+					}
+				}
 				tags = ["nkwshvM5", "NTDWn3ek"]
 				address = "cOlSOhbp"
 				token = "msy7iWER"
@@ -4134,6 +4637,17 @@ func TestFullConfig(t *testing.T) {
 								local_bind_address = "127.24.88.0"
 							},
 						]
+					}
+				},
+				{
+					id = "kvVqbwSE"
+					kind = "mesh-gateway"
+					name = "gw-primary-dc"
+					port = 27147
+					proxy {
+						config {
+							"1CuJHVfw" = "Kzqsa7yc"
+						}
 					}
 				}
 			]
@@ -4722,8 +5236,33 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 			{
-				ID:      "dLOXpSCI",
-				Name:    "o1ynPkp0",
+				ID:   "kvVqbwSE",
+				Kind: "mesh-gateway",
+				Name: "gw-primary-dc",
+				Port: 27147,
+				Proxy: &structs.ConnectProxyConfig{
+					Config: map[string]interface{}{
+						"1CuJHVfw": "Kzqsa7yc",
+					},
+				},
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+			},
+			{
+				ID:   "dLOXpSCI",
+				Name: "o1ynPkp0",
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"lan": structs.ServiceAddress{
+						Address: "2d79888a",
+						Port:    2143,
+					},
+					"wan": structs.ServiceAddress{
+						Address: "d4db85e2",
+						Port:    6109,
+					},
+				},
 				Tags:    []string{"nkwshvM5", "NTDWn3ek"},
 				Address: "cOlSOhbp",
 				Token:   "msy7iWER",
@@ -5130,6 +5669,14 @@ func TestConfigDecodeBytes(t *testing.T) {
 	}
 }
 
+func parseCIDR(t *testing.T, cidr string) *net.IPNet {
+	_, x, err := net.ParseCIDR(cidr)
+	if err != nil {
+		t.Fatalf("CIDRParse: %v", err)
+	}
+	return x
+}
+
 func TestSanitize(t *testing.T) {
 	rt := RuntimeConfig{
 		BindAddr:             &net.IPAddr{IP: net.ParseIP("127.0.0.1")},
@@ -5140,6 +5687,10 @@ func TestSanitize(t *testing.T) {
 			&net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 		},
 		DNSSOA: RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
+		AllowWriteHTTPFrom: []*net.IPNet{
+			parseCIDR(t, "127.0.0.0/8"),
+			parseCIDR(t, "::1/128"),
+		},
 		HTTPAddrs: []net.Addr{
 			&net.TCPAddr{IP: net.ParseIP("1.2.3.4"), Port: 5678},
 			&net.UnixAddr{Name: "/var/run/foo"},
@@ -5424,6 +5975,7 @@ func TestSanitize(t *testing.T) {
 			"Port": 0,
 			"Proxy": null,
 			"ProxyDestination": "",
+			"TaggedAddresses": {},
 			"Tags": [],
 			"Token": "hidden",
 			"Weights": {
@@ -5481,7 +6033,10 @@ func TestSanitize(t *testing.T) {
 		"Version": "",
 		"VersionPrerelease": "",
 		"Watches": [],
-		"AllowWriteHTTPFrom": []
+		"AllowWriteHTTPFrom": [
+			"127.0.0.0/8",
+			"::1/128"
+		]
 	}`
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,7 +21,7 @@ import (
 
 var update = flag.Bool("update", false, "update golden files")
 
-func TestCatalogCommand_noTabs(t *testing.T) {
+func TestEnvoyCommand_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
@@ -200,6 +201,21 @@ func TestGenerateConfig(t *testing.T) {
 				// to do.
 				AgentAddress:          "127.0.0.1",
 				AgentPort:             "9999",
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name: "grpc-addr-unix",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-grpc-addr", "unix:///var/run/consul.sock"},
+			Env: []string{},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentSocket:           "/var/run/consul.sock",
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -511,4 +527,100 @@ func testMockAgentProxyConfig(cfg map[string]interface{}) http.HandlerFunc {
 		}
 		w.Write(cfgJSON)
 	})
+}
+
+func TestEnvoyCommand_canBindInternal(t *testing.T) {
+	t.Parallel()
+	type testCheck struct {
+		expected bool
+		addr     string
+	}
+
+	type testCase struct {
+		ifAddrs []net.Addr
+		checks  map[string]testCheck
+	}
+
+	parseIPNets := func(t *testing.T, in ...string) []net.Addr {
+		var out []net.Addr
+		for _, addr := range in {
+			ip := net.ParseIP(addr)
+			require.NotNil(t, ip)
+			out = append(out, &net.IPNet{IP: ip})
+		}
+		return out
+	}
+
+	parseIPs := func(t *testing.T, in ...string) []net.Addr {
+		var out []net.Addr
+		for _, addr := range in {
+			ip := net.ParseIP(addr)
+			require.NotNil(t, ip)
+			out = append(out, &net.IPAddr{IP: ip})
+		}
+		return out
+	}
+
+	cases := map[string]testCase{
+		"IPNet": {
+			parseIPNets(t, "10.3.0.2", "198.18.0.1", "2001:db8:a0b:12f0::1"),
+			map[string]testCheck{
+				"ipv4": {
+					true,
+					"10.3.0.2",
+				},
+				"secondary ipv4": {
+					true,
+					"198.18.0.1",
+				},
+				"ipv6": {
+					true,
+					"2001:db8:a0b:12f0::1",
+				},
+				"ipv4 not found": {
+					false,
+					"1.2.3.4",
+				},
+				"ipv6 not found": {
+					false,
+					"::ffff:192.168.0.1",
+				},
+			},
+		},
+		"IPAddr": {
+			parseIPs(t, "10.3.0.2", "198.18.0.1", "2001:db8:a0b:12f0::1"),
+			map[string]testCheck{
+				"ipv4": {
+					true,
+					"10.3.0.2",
+				},
+				"secondary ipv4": {
+					true,
+					"198.18.0.1",
+				},
+				"ipv6": {
+					true,
+					"2001:db8:a0b:12f0::1",
+				},
+				"ipv4 not found": {
+					false,
+					"1.2.3.4",
+				},
+				"ipv6 not found": {
+					false,
+					"::ffff:192.168.0.1",
+				},
+			},
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			for checkName, check := range tcase.checks {
+				t.Run(checkName, func(t *testing.T) {
+					require.Equal(t, check.expected, canBindInternal(check.addr, tcase.ifAddrs))
+				})
+			}
+		})
+	}
 }

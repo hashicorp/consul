@@ -141,6 +141,9 @@ func (s *Intention) Apply(
 		}
 	}
 
+	// make sure we set the hash prior to raft application
+	args.Intention.SetHash(true)
+
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
 	if err != nil {

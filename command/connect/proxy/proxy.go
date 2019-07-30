@@ -247,6 +247,33 @@ func LookupProxyIDForSidecar(client *api.Client, sidecarFor string) (string, err
 	return proxyIDs[0], nil
 }
 
+// LookupGatewayProxyID finds the mesh-gateway service registered with the local
+// agent if any and returns its service ID. It will return an ID if and only if
+// there is exactly one registered mesh-gateway registered to the agent.
+func LookupGatewayProxy(client *api.Client) (*api.AgentService, error) {
+	svcs, err := client.Agent().ServicesWithFilter("Kind == `mesh-gateway`")
+	if err != nil {
+		return nil, fmt.Errorf("Failed looking up mesh-gateway instances: %v", err)
+	}
+
+	var proxyIDs []string
+	for _, svc := range svcs {
+		proxyIDs = append(proxyIDs, svc.ID)
+	}
+
+	switch len(svcs) {
+	case 0:
+		return nil, fmt.Errorf("No mesh-gateway services registered with this agent")
+	case 1:
+		for _, svc := range svcs {
+			return svc, nil
+		}
+		return nil, fmt.Errorf("This should be unreachable")
+	default:
+		return nil, fmt.Errorf("Cannot lookup the mesh-gateway's proxy ID because multiple are registered with the agent")
+	}
+}
+
 func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error) {
 	// Use the configured proxy ID
 	if c.proxyID != "" {

@@ -483,3 +483,52 @@ func TestInternal_ServiceDump(t *testing.T) {
 		require.Len(t, nodes, 3)
 	})
 }
+
+func TestInternal_ServiceDump_Kind(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+	registerTestCatalogEntriesMeshGateway(t, codec)
+
+	doRequest := func(t *testing.T, kind structs.ServiceKind) structs.CheckServiceNodes {
+		t.Helper()
+		args := structs.ServiceDumpRequest{
+			Datacenter:     "dc1",
+			ServiceKind:    kind,
+			UseServiceKind: true,
+		}
+
+		var out structs.IndexedCheckServiceNodes
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
+		return out.Nodes
+	}
+
+	// Run the tests against the test server
+	t.Run("Typical", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindTypical)
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes, 9)
+	})
+
+	t.Run("Mesh Gateway", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindMeshGateway)
+		require.Len(t, nodes, 1)
+		require.Equal(t, "mg-gw", nodes[0].Service.Service)
+		require.Equal(t, "mg-gw-01", nodes[0].Service.ID)
+	})
+
+	t.Run("Connect Proxy", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindConnectProxy)
+		require.Len(t, nodes, 1)
+		require.Equal(t, "web-proxy", nodes[0].Service.Service)
+		require.Equal(t, "web-proxy", nodes[0].Service.ID)
+	})
+}

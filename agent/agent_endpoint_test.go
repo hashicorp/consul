@@ -231,6 +231,38 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	assert.NotContains(string(output), "locally_registered_as_sidecar")
 }
 
+// Thie tests that a mesh gateway service is returned as expected.
+func TestAgent_Services_MeshGateway(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		Kind:    structs.ServiceKindMeshGateway,
+		ID:      "mg-dc1-01",
+		Service: "mg-dc1",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+	a.State.AddService(srv1, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[string]*api.AgentService)
+	require.Len(t, val, 1)
+	actual := val["mg-dc1-01"]
+	require.NotNil(t, actual)
+	require.Equal(t, api.ServiceKindMeshGateway, actual.Kind)
+	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
 func TestAgent_Services_ACLFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), TestACLConfig())
@@ -317,7 +349,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "3442362e971c43d1",
+		ContentHash: "accc98ff3082d229",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -327,14 +359,14 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "90b5c19bf0f5073"
+	updatedResponse.ContentHash = "9185f2c81891c18b"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
 		ID:          "web",
 		Service:     "web",
 		Port:        8181,
-		ContentHash: "69351c1ac865b034",
+		ContentHash: "f6e4f875dd7c0de8",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -624,7 +656,7 @@ func TestAgent_Service_DeprecatedManagedProxy(t *testing.T) {
 		Service:     "web-proxy",
 		Port:        9999,
 		Address:     "10.10.10.10",
-		ContentHash: "e24f099e42e88317",
+		ContentHash: "245d12541a0e7e84",
 		Proxy: &api.AgentServiceConnectProxyConfig{
 			DestinationServiceID:   "web",
 			DestinationServiceName: "web",
@@ -2503,6 +2535,16 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		"name":"test",
 		"port":8000,
 		"enable_tag_override": true,
+		"tagged_addresses": {
+			"lan": {
+				"address": "1.2.3.4",
+				"port": 5353
+			},
+			"wan": {
+				"address": "2.3.4.5",
+				"port": 53
+			}
+		},
 		"meta": {
 			"some": "meta",
 			"enable_tag_override": "meta is 'opaque' so should not get translated"
@@ -2595,6 +2637,16 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			svc := &structs.NodeService{
 				ID:      "test",
 				Service: "test",
+				TaggedAddresses: map[string]structs.ServiceAddress{
+					"lan": {
+						Address: "1.2.3.4",
+						Port:    5353,
+					},
+					"wan": {
+						Address: "2.3.4.5",
+						Port:    53,
+					},
+				},
 				Meta: map[string]string{
 					"some":                "meta",
 					"enable_tag_override": "meta is 'opaque' so should not get translated",
@@ -5157,7 +5209,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 		ProxyServiceID:    "test-proxy",
 		TargetServiceID:   "test",
 		TargetServiceName: "test",
-		ContentHash:       "a7c93585b6d70445",
+		ContentHash:       "cd9fae3f744900f3",
 		ExecMode:          "daemon",
 		Command:           []string{"tubes.sh"},
 		Config: map[string]interface{}{
@@ -5178,7 +5230,7 @@ func TestAgentConnectProxyConfig_Blocking(t *testing.T) {
 	ur, err := copystructure.Copy(expectedResponse)
 	require.NoError(t, err)
 	updatedResponse := ur.(*api.ConnectProxyConfig)
-	updatedResponse.ContentHash = "aedc0ca0f3f7794e"
+	updatedResponse.ContentHash = "59b052e51c1dada3"
 	updatedResponse.Upstreams = append(updatedResponse.Upstreams, api.Upstream{
 		DestinationType: "service",
 		DestinationName: "cache",

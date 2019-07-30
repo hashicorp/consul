@@ -66,7 +66,36 @@ func TestConfigEntry_Apply(t *testing.T) {
 	require.Equal("foo", serviceConf.Name)
 	require.Equal("tcp", serviceConf.Protocol)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+}
 
+func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Entry: &structs.ProxyConfigEntry{
+			Kind:        "proxy-defaults",
+			Name:        "global",
+			MeshGateway: structs.MeshGatewayConfig{Mode: "local"},
+		},
+	}
+	out := false
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	require.True(t, out)
+
+	state := s1.fsm.State()
+	_, entry, err := state.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	require.NoError(t, err)
+
+	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
+	require.True(t, ok)
+	require.Equal(t, structs.MeshGatewayModeLocal, proxyConf.MeshGateway.Mode)
 }
 
 func TestConfigEntry_Apply_ACLDeny(t *testing.T) {

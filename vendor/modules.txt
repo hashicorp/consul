@@ -198,7 +198,7 @@ github.com/gregjones/httpcache/diskcache
 github.com/hailocab/go-hostpool
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-bexpr v0.1.0
+# github.com/hashicorp/go-bexpr v0.1.2
 github.com/hashicorp/go-bexpr
 # github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 github.com/hashicorp/go-checkpoint

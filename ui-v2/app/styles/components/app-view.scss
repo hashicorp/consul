@@ -1,7 +1,6 @@
 @import './app-view/index';
 @import './filter-bar/index';
 @import './buttons/index';
-@import './type-icon/index';
 main {
   @extend %app-view;
 }
@@ -24,7 +23,11 @@ main {
   margin-top: 20px;
 }
 %app-view h1 span.kind-proxy {
-  @extend %type-icon, %with-proxy;
+  @extend %frame-gray-900;
+  @extend %pill;
+}
+%app-view h1 span.kind-proxy::before {
+  width: 0.3em !important;
 }
 %app-view h1 em {
   color: $gray-600;

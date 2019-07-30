@@ -414,6 +414,23 @@
           </li>
           <li<%= sidebar_current("docs-agent-cfg_entries") %>>
             <a href="/docs/agent/config_entries.html">Configuration Entries</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_router") %>>
+                <a href="/docs/agent/config-entries/service-router.html">service-router <sup>(beta)</sup></a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_splitter") %>>
+                <a href="/docs/agent/config-entries/service-splitter.html">service-splitter <sup>(beta)</sup></a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_resolver") %>>
+                <a href="/docs/agent/config-entries/service-resolver.html">service-resolver <sup>(beta)</sup></a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-service_defaults") %>>
+                <a href="/docs/agent/config-entries/service-defaults.html">service-defaults</a>
+              </li>
+              <li<%= sidebar_current("docs-agent-cfg_entries-proxy_defaults") %>>
+                <a href="/docs/agent/config-entries/proxy-defaults.html">proxy-defaults</a>
+              </li>
+            </ul>
           </li>
           <li<%= sidebar_current("docs-agent-cloud-auto-join") %>>
             <a href="/docs/agent/cloud-auto-join.html">Cloud Auto-join</a>
@@ -477,13 +494,15 @@
           <li<%= sidebar_current("docs-connect-observability") %>>
             <a href="/docs/connect/observability.html">Observability</a>
           </li>
-        </li>
-        <li<%= sidebar_current("docs-connect-intentions") %>>
-          <a href="/docs/connect/intentions.html">Intentions - Security Policies</a>
-        </li>
-        <li<%= sidebar_current("docs-connect-internals") %>>
-          <a href="/docs/connect/connect-internals.html">Architecture</a>
-        </li>
+          <li<%= sidebar_current("docs-connect-l7_traffic_management") %>>
+            <a href="/docs/connect/l7-traffic-management.html">L7 Traffic Management <sup>(beta)</sup></a>
+          </li>
+          <li<%= sidebar_current("docs-connect-intentions") %>>
+            <a href="/docs/connect/intentions.html">Intentions - Security Policies</a>
+          </li>
+          <li<%= sidebar_current("docs-connect-internals") %>>
+            <a href="/docs/connect/connect-internals.html">Architecture</a>
+          </li>
           <li<%= sidebar_current("docs-connect-proxies") %>>
             <a href="/docs/connect/proxies.html">Supported Proxies</a>
             <ul class="nav">
@@ -497,6 +516,9 @@
                 <a href="/docs/connect/proxies/integrate.html">Proxy Integration</a>
               </li>
             </ul>
+          </li>
+          <li<%= sidebar_current("docs-connect-meshgateways") %>>
+             <a href="/docs/connect/mesh_gateway.html">Mesh Gateways <sup>(beta)</sup></a>
           </li>
           <li<%= sidebar_current("docs-connect-registration") %>>
             <a href="/docs/connect/registration.html">Registering Proxies</a>
@@ -604,10 +626,7 @@
           <li<%= sidebar_current("docs-enterprise-federation") %>>
             <a href="/docs/enterprise/federation/index.html">Advanced Federation</a>
           </li>
-          <li<%= sidebar_current("docs-enterprise-connect-multi-datacenter") %>>
-            <a href="/docs/enterprise/connect-multi-datacenter/index.html">Connect Multi-Datacenter</a>
-          </li>
-          <li<%= sidebar_current("docs-enterprise-network-segments") %>>
+         <li<%= sidebar_current("docs-enterprise-network-segments") %>>
             <a href="/docs/enterprise/network-segments/index.html">Network Segments</a>
           </li>
           <li<%= sidebar_current("docs-enterprise-sentinel") %>>

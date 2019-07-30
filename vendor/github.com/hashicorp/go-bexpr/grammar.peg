@@ -58,7 +58,7 @@ ParenthesizedExpression "grouping" <- "(" _? expr:OrExpression _? ")" {
 
 MatchExpression "match" <- MatchSelectorOpValue / MatchSelectorOp / MatchValueOpSelector
 
-MatchSelectorOpValue "match" <- selector:Selector operator:(MatchEqual / MatchNotEqual / MatchContains / MatchNotContains) value:Value {
+MatchSelectorOpValue "match" <- selector:Selector operator:(MatchEqual / MatchNotEqual / MatchContains / MatchNotContains / MatchMatches / MatchNotMatches) value:Value {
    return &MatchExpression{Selector: selector.(Selector), Operator: operator.(MatchOperator), Value: value.(*MatchValue)}, nil
 }
 
@@ -96,7 +96,12 @@ MatchContains <- _ "contains" _ {
 MatchNotContains <- _ "not" _ "contains" _ {
    return MatchNotIn, nil
 }
-
+MatchMatches <- _ "matches" _ {
+   return MatchMatches, nil
+}
+MatchNotMatches <- _ "not" _ "matches" _ {
+   return MatchNotMatches, nil
+}
 
 Selector "selector" <- first:Identifier rest:SelectorOrIndex* {
    sel := Selector{

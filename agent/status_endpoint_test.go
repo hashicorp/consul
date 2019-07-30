@@ -48,6 +48,9 @@ func TestStatusLeaderSecondary(t *testing.T) {
 		require.Len(r, a2.WANMembers(), 2)
 	})
 
+	testrpc.WaitForLeader(t, a1.RPC, "secondary")
+	testrpc.WaitForLeader(t, a2.RPC, "primary")
+
 	req, _ := http.NewRequest("GET", "/v1/status/leader?dc=secondary", nil)
 	obj, err := a1.srv.StatusLeader(nil, req)
 	require.NoError(t, err)
@@ -100,6 +103,9 @@ func TestStatusPeersSecondary(t *testing.T) {
 		require.Len(r, a1.WANMembers(), 2)
 		require.Len(r, a2.WANMembers(), 2)
 	})
+
+	testrpc.WaitForLeader(t, a1.RPC, "secondary")
+	testrpc.WaitForLeader(t, a2.RPC, "primary")
 
 	req, _ := http.NewRequest("GET", "/v1/status/peers?dc=secondary", nil)
 	obj, err := a1.srv.StatusPeers(nil, req)

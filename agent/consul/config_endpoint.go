@@ -6,6 +6,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -231,6 +232,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
+			reply.MeshGateway.Mode = structs.MeshGatewayModeDefault
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated
 			// during the blocking query, this function will be rerun and these state store lookups
 			// will both be current.
@@ -263,15 +265,21 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					return fmt.Errorf("failed to copy global proxy-defaults: %v", err)
 				}
 				reply.ProxyConfig = mapCopy.(map[string]interface{})
+				reply.MeshGateway = proxyConf.MeshGateway
 			}
 
 			reply.Index = index
 
-			if serviceConf != nil && serviceConf.Protocol != "" {
-				if reply.ProxyConfig == nil {
-					reply.ProxyConfig = make(map[string]interface{})
+			if serviceConf != nil {
+				if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
+					reply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
 				}
-				reply.ProxyConfig["protocol"] = serviceConf.Protocol
+				if serviceConf.Protocol != "" {
+					if reply.ProxyConfig == nil {
+						reply.ProxyConfig = make(map[string]interface{})
+					}
+					reply.ProxyConfig["protocol"] = serviceConf.Protocol
+				}
 			}
 
 			// Apply the upstream protocols to the upstream configs
@@ -301,6 +309,56 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					"protocol": upstreamConf.Protocol,
 				}
 			}
+
+			return nil
+		})
+}
+
+func (c *ConfigEntry) ReadDiscoveryChain(args *structs.DiscoveryChainRequest, reply *structs.DiscoveryChainResponse) error {
+	if done, err := c.srv.forward("ConfigEntry.ReadDiscoveryChain", args, args, reply); done {
+		return err
+	}
+	defer metrics.MeasureSince([]string{"config_entry", "read_discovery_chain"}, time.Now())
+
+	// Fetch the ACL token, if any.
+	rule, err := c.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if rule != nil && !rule.ServiceRead(args.Name) {
+		return acl.ErrPermissionDenied
+	}
+
+	if args.Name == "" {
+		return fmt.Errorf("Must provide service name")
+	}
+
+	const currentNamespace = "default"
+
+	return c.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, entries, err := state.ReadDiscoveryChainConfigEntries(ws, args.Name)
+			if err != nil {
+				return err
+			}
+
+			// Then we compile it into something useful.
+			chain, err := discoverychain.Compile(discoverychain.CompileRequest{
+				ServiceName:       args.Name,
+				CurrentNamespace:  currentNamespace,
+				CurrentDatacenter: c.srv.config.Datacenter,
+				InferDefaults:     true,
+				Entries:           entries,
+			})
+			if err != nil {
+				return err
+			}
+
+			reply.Index = index
+			reply.ConfigEntries = entries
+			reply.Chain = chain
 
 			return nil
 		})

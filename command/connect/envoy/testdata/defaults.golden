@@ -19,14 +19,12 @@
         "connect_timeout": "1s",
         "type": "STATIC",
         "http2_protocol_options": {},
-        "hosts": [
-          {
+        "hosts": [{
             "socket_address": {
               "address": "127.0.0.1",
               "port_value": 8502
             }
-          }
-        ]
+          }]
       }
     ]
   },

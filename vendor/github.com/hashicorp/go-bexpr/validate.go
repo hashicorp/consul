@@ -2,6 +2,7 @@ package bexpr
 
 import (
 	"fmt"
+	"regexp"
 )
 
 func validateRecurse(ast Expression, fields FieldConfigurations, maxRawValueLength int) (int, error) {
@@ -95,6 +96,24 @@ func validateRecurse(ast Expression, fields FieldConfigurations, maxRawValueLeng
 				}
 
 				node.Value.Converted = coerced
+			}
+
+			if node.Operator == MatchMatches || node.Operator == MatchNotMatches {
+				var regRaw string
+				if strVal, ok := node.Value.Converted.(string); ok {
+					regRaw = strVal
+				} else if node.Value.Converted == nil {
+					regRaw = node.Value.Raw
+				} else {
+					return 1, fmt.Errorf("Match operator %q cannot be used with fields whose coercion functions return non string values", node.Operator)
+				}
+
+				re, err := regexp.Compile(regRaw)
+				if err != nil {
+					return 1, fmt.Errorf("Failed to compile regular expression %q: %v", regRaw, err)
+				}
+
+				node.Value.Converted = re
 			}
 		} else {
 			switch node.Operator {

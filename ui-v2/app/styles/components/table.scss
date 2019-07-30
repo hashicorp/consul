@@ -1,6 +1,5 @@
 @import './icons/index';
 @import './table/index';
-@import './type-icon/index';
 
 html.template-service.template-list td:first-child a span,
 html.template-node.template-show #services td:first-child a span,
@@ -19,11 +18,6 @@ html.template-service.template-list main th:first-child {
 
 td.folder {
   @extend %with-folder;
-}
-td .kind-proxy {
-  @extend %type-icon, %with-proxy;
-  text-indent: -9000px !important;
-  width: 24px;
 }
 table:not(.sessions) tbody tr {
   cursor: pointer;

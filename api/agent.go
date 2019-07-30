@@ -23,6 +23,11 @@ const (
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
+
+	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
+	// service will proxy connections based off the SNI header set by other
+	// connect proxies
+	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 )
 
 // ProxyExecMode is the execution mode for a managed Connect proxy.
@@ -82,6 +87,7 @@ type AgentService struct {
 	Meta              map[string]string
 	Port              int
 	Address           string
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
 	CreateIndex       uint64 `json:",omitempty" bexpr:"-"`
@@ -119,12 +125,13 @@ type AgentServiceConnectProxy struct {
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
-	DestinationServiceName string
+	DestinationServiceName string                 `json:",omitempty"`
 	DestinationServiceID   string                 `json:",omitempty"`
 	LocalServiceAddress    string                 `json:",omitempty"`
 	LocalServicePort       int                    `json:",omitempty"`
 	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
-	Upstreams              []Upstream
+	Upstreams              []Upstream             `json:",omitempty"`
+	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -157,15 +164,16 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	Kind              ServiceKind       `json:",omitempty"`
-	ID                string            `json:",omitempty"`
-	Name              string            `json:",omitempty"`
-	Tags              []string          `json:",omitempty"`
-	Port              int               `json:",omitempty"`
-	Address           string            `json:",omitempty"`
-	EnableTagOverride bool              `json:",omitempty"`
-	Meta              map[string]string `json:",omitempty"`
-	Weights           *AgentWeights     `json:",omitempty"`
+	Kind              ServiceKind               `json:",omitempty"`
+	ID                string                    `json:",omitempty"`
+	Name              string                    `json:",omitempty"`
+	Tags              []string                  `json:",omitempty"`
+	Port              int                       `json:",omitempty"`
+	Address           string                    `json:",omitempty"`
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
+	EnableTagOverride bool                      `json:",omitempty"`
+	Meta              map[string]string         `json:",omitempty"`
+	Weights           *AgentWeights             `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
 	// DEPRECATED (ProxyDestination) - remove this field
@@ -293,6 +301,7 @@ type Upstream struct {
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
+	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 }
 
 // Agent can be used to query the Agent endpoints

@@ -19,6 +19,7 @@ type ServiceDefinition struct {
 	Name              string
 	Tags              []string
 	Address           string
+	TaggedAddresses   map[string]ServiceAddress
 	Meta              map[string]string
 	Port              int
 	Check             CheckType
@@ -75,6 +76,14 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service
+	}
+	if len(s.TaggedAddresses) > 0 {
+		taggedAddrs := make(map[string]ServiceAddress)
+		for k, v := range s.TaggedAddresses {
+			taggedAddrs[k] = v
+		}
+
+		ns.TaggedAddresses = taggedAddrs
 	}
 	return ns
 }
