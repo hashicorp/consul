@@ -14,13 +14,13 @@ To complete the RPC encryption section, you must have [configured agent certific
 
 ## Gossip Encryption
 
-To enable gossip encryption, you need to use an encryption key when starting the Consul agent. The key can be simple set with the `encrypt` parameter in the agent configuration file. Alternatively, the encryption key can be placed in a seperate configuration file with only the `encrypt` field, since the agent can merge multiple configuration files. The key must be 16-bytes, Base64 encoded. 
+To enable gossip encryption, you need to use an encryption key when starting the Consul agent. The key can be simple set with the `encrypt` parameter in the agent configuration file. Alternatively, the encryption key can be placed in a seperate configuration file with only the `encrypt` field, since the agent can merge multiple configuration files. The key must be 32-bytes, Base64 encoded. 
 
 You can use the Consul CLI command, [`consul keygen`](/docs/commands/keygen.html), to generate a cryptographically suitable key.
 
 ```sh
 $ consul keygen
-cg8StVXbQJ0gPvMd9o7yrg==
+pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 ```
 
 ### Enable Gossip Encryption: New Cluster
@@ -34,7 +34,7 @@ agent configuration file and then pass the file at startup with the [`-config-di
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw=="
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 }
 ```
 
@@ -64,7 +64,7 @@ Gossip encryption can also be enabled on an existing cluster, but requires sever
 
 ```sh
 $ consul keygen
-JY34uTPZyfUE+6tinMYEVw==
+pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 ```
 
 **Step 2**: Set the [`encrypt`](/docs/agent/options.html#_encrypt) key, and set `encrypt_verify_incoming` and `encrypt_verify_outgoing` to `false` in the agent configuration file. Then initiate a rolling update of the cluster with these new values. After this step, the agents will be able to decrypt gossip but will not yet be sending encrypted traffic.
@@ -75,7 +75,7 @@ JY34uTPZyfUE+6tinMYEVw==
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
   "encrypt_verify_incoming": false,
   "encrypt_verify_outgoing": false
 }
@@ -91,7 +91,7 @@ A rolling update can be made by restarting the Consul agents (clients and server
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
   "encrypt_verify_incoming": false,
   "encrypt_verify_outgoing": true
 }
@@ -105,7 +105,7 @@ A rolling update can be made by restarting the Consul agents (clients and server
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
   "encrypt_verify_incoming": true,
   "encrypt_verify_outgoing": true
 }
@@ -139,7 +139,7 @@ After TLS has been configured on all the agents, you can start the agents and RP
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
   "verify_incoming": true,
   "verify_outgoing": true,
   "verify_server_hostname": true,
@@ -165,7 +165,7 @@ Enabling TLS on an existing cluster is supported. This process assumes a startin
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
   "verify_incoming": false,
   "verify_outgoing": false,
   "ca_file": "consul-agent-ca.pem",
@@ -187,7 +187,7 @@ Next, perform a rolling restart of each agent in the cluster. After this step, T
   "log_level": "INFO",
   "node_name": "bulldog",
   "server": true,
-  "encrypt": "JY34uTPZyfUE+6tinMYEVw==",
+  "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=",
   "verify_incoming": true,
   "verify_outgoing": true,
   "verify_server_hostname": true,

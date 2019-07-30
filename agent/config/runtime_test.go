@@ -407,11 +407,11 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-encrypt",
 			args: []string{
-				`-encrypt=i0P+gFTkLPg0h53eNYjydg==`,
+				`-encrypt=pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=`,
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.EncryptKey = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 				rt.DataDir = dataDir
 			},
 		},
@@ -2104,14 +2104,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "encrypt": "i0P+gFTkLPg0h53eNYjydg==" }`},
-			hcl:  []string{` encrypt = "i0P+gFTkLPg0h53eNYjydg==" `},
+			json: []string{`{ "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=" }`},
+			hcl:  []string{` encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=" `},
 			patch: func(rt *RuntimeConfig) {
-				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.EncryptKey = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 				rt.DataDir = dataDir
 			},
 			pre: func() {
-				writeFile(filepath.Join(dataDir, SerfLANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
+				writeFile(filepath.Join(dataDir, SerfLANKeyring), []byte("pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="))
 			},
 			warns: []string{`WARNING: LAN keyring exists but -encrypt given, using keyring`},
 		},
@@ -2120,17 +2120,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "encrypt": "i0P+gFTkLPg0h53eNYjydg==", "server": true }`},
-			hcl:  []string{` encrypt = "i0P+gFTkLPg0h53eNYjydg==" server = true `},
+			json: []string{`{ "encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=", "server": true }`},
+			hcl:  []string{` encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=" server = true `},
 			patch: func(rt *RuntimeConfig) {
-				rt.EncryptKey = "i0P+gFTkLPg0h53eNYjydg=="
+				rt.EncryptKey = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 				rt.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
 				rt.DataDir = dataDir
 			},
 			pre: func() {
-				writeFile(filepath.Join(dataDir, SerfWANKeyring), []byte("i0P+gFTkLPg0h53eNYjydg=="))
+				writeFile(filepath.Join(dataDir, SerfWANKeyring), []byte("pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="))
 			},
 			warns: []string{`WARNING: WAN keyring exists but -encrypt given, using keyring`},
 		},

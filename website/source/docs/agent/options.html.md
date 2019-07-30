@@ -242,7 +242,7 @@ will exit with an error at startup.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
-  network traffic. This key must be 16-bytes that are Base64-encoded. The
+  network traffic. This key must be 32-bytes that are Base64-encoded. The
   easiest way to create an encryption key is to use
   [`consul keygen`](/docs/commands/keygen.html). All
   nodes within a cluster must share the same encryption key to communicate.

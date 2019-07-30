@@ -29,8 +29,7 @@ func TestKeygenCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	if len(result) != 16 {
+	if len(result) != 32 {
 		t.Fatalf("bad: %#v", result)
 	}
 }
