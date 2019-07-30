@@ -89,8 +89,9 @@ closed in step 1; so the health endpoint is broken. The same can hopen in the pr
 
 In general be careful with assigning new port and expecting reload to work fully.
 
-Also any `import` statement is not discovered by this plugin. This means if any of these imported files
-changes the *reload* plugin is ignorant of that fact.
+In CoreDNS v1.6.0 and earlier any `import` statements are not discovered by this plugin.
+This means if any of these imported files changes the *reload* plugin is ignorant of that fact.
+CoreDNS v1.7.0 and later does parse the Corefile and supports detecting changes in imported files.
 
 ## Metrics
 
