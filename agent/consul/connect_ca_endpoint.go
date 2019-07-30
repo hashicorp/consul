@@ -359,6 +359,8 @@ func (s *ConnectCA) Roots(
 					IntermediateCerts:   r.IntermediateCerts,
 					RaftIndex:           r.RaftIndex,
 					Active:              r.Active,
+					PrivateKeyType:      r.PrivateKeyType,
+					PrivateKeyBits:      r.PrivateKeyBits,
 				}
 
 				if r.Active {
