@@ -239,10 +239,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		panic("impossible to return no results")
 	}
 
-	if err := c.detectCircularSplits(); err != nil {
-		return nil, err
-	}
-	if err := c.detectCircularResolves(); err != nil {
+	if err := c.detectCircularReferences(); err != nil {
 		return nil, err
 	}
 
@@ -304,13 +301,58 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	}, nil
 }
 
-func (c *compiler) detectCircularSplits() error {
-	// TODO(rb): detect when a tree of splitters backtracks
-	return nil
-}
+func (c *compiler) detectCircularReferences() error {
+	var (
+		todo       stringStack
+		visited    = make(map[string]struct{})
+		visitChain stringStack
+	)
 
-func (c *compiler) detectCircularResolves() error {
-	// TODO(rb): detect when a series of redirects and failovers cause a circular reference
+	todo.Push(c.startNode)
+	for {
+		current, ok := todo.Pop()
+		if !ok {
+			break
+		}
+		if current == "_popvisit" {
+			if v, ok := visitChain.Pop(); ok {
+				delete(visited, v)
+			}
+			continue
+		}
+		visitChain.Push(current)
+
+		if _, ok := visited[current]; ok {
+			return &structs.ConfigEntryGraphError{
+				Message: fmt.Sprintf(
+					"detected circular reference: [%s]",
+					strings.Join(visitChain.Items(), " -> "),
+				),
+			}
+		}
+		visited[current] = struct{}{}
+
+		todo.Push("_popvisit")
+
+		node := c.nodes[current]
+
+		switch node.Type {
+		case structs.DiscoveryGraphNodeTypeRouter:
+			for _, route := range node.Routes {
+				todo.Push(route.NextNode)
+			}
+		case structs.DiscoveryGraphNodeTypeSplitter:
+			for _, split := range node.Splits {
+				todo.Push(split.NextNode)
+			}
+		case structs.DiscoveryGraphNodeTypeResolver:
+			// Circular redirects are detected elsewhere and failover isn't
+			// recursive so there's nothing more to do here.
+		default:
+			return fmt.Errorf("unexpected graph node type: %s", node.Type)
+		}
+	}
+
 	return nil
 }
 
@@ -619,6 +661,13 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 // capabilities from a resolver config entry. It recurses into itself to
 // _generate_ targets used for failover out of convenience.
 func (c *compiler) getResolverNode(target structs.DiscoveryTarget, recursedForFailover bool) (*structs.DiscoveryGraphNode, error) {
+	var (
+		// State to help detect redirect cycles and print helpful error
+		// messages.
+		redirectHistory = make(map[structs.DiscoveryTarget]struct{})
+		redirectOrder   []structs.DiscoveryTarget
+	)
+
 RESOLVE_AGAIN:
 	// Do we already have the node?
 	if prev, ok := c.resolveNodes[target]; ok {
@@ -636,6 +685,24 @@ RESOLVE_AGAIN:
 		resolver = newDefaultServiceResolver(target.Service)
 		c.resolvers[target.Service] = resolver
 	}
+
+	if _, ok := redirectHistory[target]; ok {
+		redirectOrder = append(redirectOrder, target)
+
+		pretty := make([]string, len(redirectOrder))
+		for i, target := range redirectOrder {
+			pretty[i] = target.String()
+		}
+
+		return nil, &structs.ConfigEntryGraphError{
+			Message: fmt.Sprintf(
+				"detected circular resolver redirect: [%s]",
+				strings.Join(pretty, " -> "),
+			),
+		}
+	}
+	redirectHistory[target] = struct{}{}
+	redirectOrder = append(redirectOrder, target)
 
 	// Handle redirects right up front.
 	//

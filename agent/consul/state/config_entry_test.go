@@ -685,6 +685,62 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectErr:      `does not have a subset named "v1"`,
 			expectGraphErr: true,
 		},
+		/////////////////////////////////////////////////
+		{
+			name: "cannot introduce circular resolver redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "other",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "main",
+					},
+				},
+			},
+			op: func(t *testing.T, s *Store) error {
+				entry := &structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "other",
+					},
+				}
+				return s.EnsureConfigEntry(0, entry)
+			},
+			expectErr:      `detected circular resolver redirect`,
+			expectGraphErr: true,
+		},
+		{
+			name: "cannot introduce circular split",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: "service-splitter",
+					Name: "other",
+					Splits: []structs.ServiceSplit{
+						{Weight: 100, Service: "main"},
+					},
+				},
+			},
+			op: func(t *testing.T, s *Store) error {
+				entry := &structs.ServiceSplitterConfigEntry{
+					Kind: "service-splitter",
+					Name: "main",
+					Splits: []structs.ServiceSplit{
+						{Weight: 100, Service: "other"},
+					},
+				}
+				return s.EnsureConfigEntry(0, entry)
+			},
+			expectErr:      `detected circular reference`,
+			expectGraphErr: true,
+		},
 	} {
 		tc := tc
 

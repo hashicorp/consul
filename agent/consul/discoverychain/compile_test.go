@@ -22,7 +22,6 @@ type compileTestCase struct {
 func TestCompile(t *testing.T) {
 	t.Parallel()
 
-	// TODO(rb): test circular dependency?
 	cases := map[string]compileTestCase{
 		"router with defaults":                             testcase_JustRouterWithDefaults(),
 		"router with defaults and resolver":                testcase_RouterWithDefaults_NoSplit_WithResolver(),
@@ -39,6 +38,8 @@ func TestCompile(t *testing.T) {
 		"service and subset redirect":                      testcase_ServiceAndSubsetRedirect(),
 		"datacenter redirect":                              testcase_DatacenterRedirect(),
 		"service failover":                                 testcase_ServiceFailover(),
+		"service failover through redirect":                testcase_ServiceFailoverThroughRedirect(),
+		"circular resolver failover":                       testcase_Resolver_CircularFailover(),
 		"service and subset failover":                      testcase_ServiceAndSubsetFailover(),
 		"datacenter failover":                              testcase_DatacenterFailover(),
 		"service failover with mesh gateways":              testcase_ServiceFailover_WithMeshGateways(),
@@ -48,7 +49,6 @@ func TestCompile(t *testing.T) {
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
 
-		// TODO(rb): handle this case better: "circular split":                                   testcase_CircularSplit(),
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
 		"multi dc canary":            testcase_MultiDatacenterCanary(),
 
@@ -65,6 +65,10 @@ func TestCompile(t *testing.T) {
 		"resolver with protocol from override":         testcase_ResolverProtocolOverride(),
 		"resolver with protocol from override ignored": testcase_ResolverProtocolOverrideIgnored(),
 		"router ignored due to protocol override":      testcase_RouterIgnored_ResolverProtocolOverride(),
+
+		// circular references
+		"circular resolver redirect": testcase_Resolver_CircularRedirect(),
+		"circular split":             testcase_CircularSplit(),
 	}
 
 	for name, tc := range cases {
@@ -1028,6 +1032,108 @@ func testcase_ServiceFailover() compileTestCase {
 	return compileTestCase{entries: entries, expect: expect}
 }
 
+func testcase_ServiceFailoverThroughRedirect() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "backup",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "actual",
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "backup"},
+			},
+		},
+	)
+
+	resolverMain := entries.GetResolver("main")
+
+	wildFail := resolverMain.Failover["*"]
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("actual", "", "default", "dc1"),
+						},
+					},
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("actual", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc1"):   structs.DiscoveryTargetConfig{},
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_Resolver_CircularFailover() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "backup",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "main"},
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "backup"},
+			},
+		},
+	)
+
+	resolverMain := entries.GetResolver("main")
+
+	wildFail := resolverMain.Failover["*"]
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("backup", "", "default", "dc1"),
+						},
+					},
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("backup", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc1"):   structs.DiscoveryTargetConfig{},
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
 func testcase_ServiceAndSubsetFailover() compileTestCase {
 	entries := newEntries()
 	entries.AddResolvers(
@@ -1385,67 +1491,6 @@ func testcase_Resolve_WithDefaultSubset() compileTestCase {
 			newTarget("main", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
 				Subset: structs.ServiceResolverSubset{
 					Filter: "Service.Meta.version == 2",
-				},
-			},
-		},
-	}
-	return compileTestCase{entries: entries, expect: expect}
-}
-
-func testcase_CircularSplit() compileTestCase {
-	entries := newEntries()
-	setServiceProtocol(entries, "main", "http")
-	setServiceProtocol(entries, "other", "http")
-
-	entries.AddSplitters(
-		&structs.ServiceSplitterConfigEntry{
-			Kind: "service-splitter",
-			Name: "main",
-			Splits: []structs.ServiceSplit{
-				{Weight: 60, Service: "other"},
-				{Weight: 40, Service: "main"}, // goes straight to resolver
-			},
-		},
-		&structs.ServiceSplitterConfigEntry{
-			Kind: "service-splitter",
-			Name: "other",
-			Splits: []structs.ServiceSplit{
-				{Weight: 60, Service: "main"},
-				{Weight: 40, Service: "other"}, // goes straight to resolver
-			},
-		},
-	)
-
-	resolveMain := newDefaultServiceResolver("main")
-
-	expect := &structs.CompiledDiscoveryChain{
-		Protocol:  "http",
-		StartNode: "splitter:main",
-		Nodes: map[string]*structs.DiscoveryGraphNode{
-			"splitter:main": &structs.DiscoveryGraphNode{
-				Type: structs.DiscoveryGraphNodeTypeSplitter,
-				Name: "main",
-				Splits: []*structs.DiscoverySplit{
-					{
-						Weight:   60,
-						NextNode: "resolver:main,v2,,dc1",
-					},
-				},
-			},
-			"resolver:main,v2,,dc1": &structs.DiscoveryGraphNode{
-				Type: structs.DiscoveryGraphNodeTypeResolver,
-				Name: "main,v2,,dc1",
-				Resolver: &structs.DiscoveryResolver{
-					Definition:     resolveMain,
-					ConnectTimeout: 5 * time.Second,
-					Target:         newTarget("main", "v2", "default", "dc1"),
-				},
-			},
-		},
-		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-			newTarget("main", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
-				Subset: structs.ServiceResolverSubset{
-					Filter: "TODO",
 				},
 			},
 		},
@@ -2028,6 +2073,57 @@ func testcase_RouterIgnored_ResolverProtocolOverride() compileTestCase {
 		setup: func(req *CompileRequest) {
 			req.OverrideProtocol = "tcp"
 		},
+	}
+}
+
+func testcase_Resolver_CircularRedirect() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "other",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "main",
+			},
+		},
+	)
+
+	return compileTestCase{entries: entries,
+		expectErr:      "detected circular resolver redirect",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_CircularSplit() compileTestCase {
+	entries := newEntries()
+	setGlobalProxyProtocol(entries, "http")
+	entries.AddSplitters(
+		&structs.ServiceSplitterConfigEntry{
+			Kind: "service-splitter",
+			Name: "main",
+			Splits: []structs.ServiceSplit{
+				{Weight: 100, Service: "other"},
+			},
+		},
+		&structs.ServiceSplitterConfigEntry{
+			Kind: "service-splitter",
+			Name: "other",
+			Splits: []structs.ServiceSplit{
+				{Weight: 100, Service: "main"},
+			},
+		},
+	)
+
+	return compileTestCase{entries: entries,
+		expectErr:      "detected circular reference",
+		expectGraphErr: true,
 	}
 }
 

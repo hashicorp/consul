@@ -86,6 +86,18 @@ type DiscoveryGraphNode struct {
 	Resolver *DiscoveryResolver `json:",omitempty"`
 }
 
+func (s *DiscoveryGraphNode) IsRouter() bool {
+	return s.Type == DiscoveryGraphNodeTypeRouter
+}
+
+func (s *DiscoveryGraphNode) IsSplitter() bool {
+	return s.Type == DiscoveryGraphNodeTypeSplitter
+}
+
+func (s *DiscoveryGraphNode) IsResolver() bool {
+	return s.Type == DiscoveryGraphNodeTypeResolver
+}
+
 func (s *DiscoveryGraphNode) ServiceName() string {
 	if s.Type == DiscoveryGraphNodeTypeResolver {
 		return s.Resolver.Target.Service
