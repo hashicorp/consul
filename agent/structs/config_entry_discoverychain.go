@@ -883,6 +883,32 @@ func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
 	}
 }
 
+func (e *DiscoveryChainConfigEntries) Flatten() []ConfigEntry {
+	n := len(e.Routers) + len(e.Splitters) + len(e.Resolvers) + len(e.Services)
+	if e.GlobalProxy != nil {
+		n++
+	}
+	out := make([]ConfigEntry, 0, n)
+
+	for _, v := range e.Routers {
+		out = append(out, v)
+	}
+	for _, v := range e.Splitters {
+		out = append(out, v)
+	}
+	for _, v := range e.Resolvers {
+		out = append(out, v)
+	}
+	for _, v := range e.Services {
+		out = append(out, v)
+	}
+	if e.GlobalProxy != nil {
+		out = append(out, e.GlobalProxy)
+	}
+
+	return out
+}
+
 func (e *DiscoveryChainConfigEntries) GetRouter(name string) *ServiceRouterConfigEntry {
 	if e.Routers != nil {
 		return e.Routers[name]
@@ -1051,10 +1077,9 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 	return info
 }
 
-// TODO(rb): either fix the compiled results, or take the derived data and stash it here in a json/msgpack-friendly way?
 type DiscoveryChainResponse struct {
-	ConfigEntries *DiscoveryChainConfigEntries `json:",omitempty"` // TODO(rb): remove these?
-	Chain         *CompiledDiscoveryChain      `json:",omitempty"`
+	Chain   *CompiledDiscoveryChain
+	Entries []ConfigEntry
 	QueryMeta
 }
 

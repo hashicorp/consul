@@ -24,10 +24,10 @@ type CompiledDiscoveryChain struct {
 	// If set, this value should be used to prefix/suffix any generated load
 	// balancer data plane objects to avoid sharing customized and
 	// non-customized versions.
-	CustomizationHash string
+	CustomizationHash string `json:",omitempty"`
 
 	// Protocol is the overall protocol shared by everything in the chain.
-	Protocol string
+	Protocol string `json:",omitempty"`
 
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.

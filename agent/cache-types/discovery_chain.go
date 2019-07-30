@@ -38,7 +38,7 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 
 	// Fetch
 	var reply structs.DiscoveryChainResponse
-	if err := c.RPC.RPC("ConfigEntry.ReadDiscoveryChain", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("DiscoveryChain.Get", reqReal, &reply); err != nil {
 		return result, err
 	}
 
