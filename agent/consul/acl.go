@@ -1146,7 +1146,6 @@ func (f *aclFilter) allowEvent(event stream.Event) bool {
 			}
 		}
 		val := f.allowCheckServiceNode(node, service)
-		f.logger.Printf("checking allow on %s/%s (%v)", node, service, val)
 		return val
 	default:
 		f.logger.Printf("could not filter for unrecognized event topic %s", event.Topic)
