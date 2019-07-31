@@ -200,6 +200,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			// In case the user doesn't enable error plugin, we still
 			// need to make sure that we stay alive up here
 			if rec := recover(); rec != nil {
+				log.Errorf("Recovered from panic in server: %q", s.Addr)
 				vars.Panic.Inc()
 				errorAndMetricsFunc(s.Addr, w, r, dns.RcodeServerFailure)
 			}
