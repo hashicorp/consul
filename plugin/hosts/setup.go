@@ -73,13 +73,12 @@ func setup(c *caddy.Controller) error {
 func hostsParse(c *caddy.Controller) (Hosts, error) {
 	config := dnsserver.GetConfig(c)
 
-	options := newOptions()
-
 	h := Hosts{
 		Hostsfile: &Hostsfile{
 			path:    "/etc/hosts",
 			hmap:    newMap(),
-			options: options,
+			inline:  newMap(),
+			options: newOptions(),
 		},
 	}
 
@@ -129,7 +128,7 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 			case "fallthrough":
 				h.Fall.SetZonesFromArgs(c.RemainingArgs())
 			case "no_reverse":
-				options.autoReverse = false
+				h.options.autoReverse = false
 			case "ttl":
 				remaining := c.RemainingArgs()
 				if len(remaining) < 1 {
@@ -142,7 +141,7 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 				if ttl <= 0 || ttl > 65535 {
 					return h, c.Errf("ttl provided is invalid")
 				}
-				options.ttl = uint32(ttl)
+				h.options.ttl = uint32(ttl)
 			case "reload":
 				remaining := c.RemainingArgs()
 				if len(remaining) != 1 {
@@ -155,7 +154,7 @@ func hostsParse(c *caddy.Controller) (Hosts, error) {
 				if reload < 0 {
 					return h, c.Errf("invalid negative duration for reload '%s'", remaining[0])
 				}
-				options.reload = reload
+				h.options.reload = reload
 			default:
 				if len(h.Fall.Zones) == 0 {
 					line := strings.Join(append([]string{c.Val()}, c.RemainingArgs()...), " ")

@@ -29,8 +29,8 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	zone := plugin.Zones(h.Origins).Matches(qname)
 	if zone == "" {
-		// PTR zones don't need to be specified in Origins
-		if state.Type() != "PTR" {
+		// PTR zones don't need to be specified in Origins.
+		if state.QType() != dns.TypePTR {
 			// if this doesn't match we need to fall through regardless of h.Fallthrough
 			return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 		}
@@ -56,8 +56,10 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		if h.Fall.Through(qname) {
 			return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 		}
-		if !h.otherRecordsExist(state.QType(), qname) {
-			return dns.RcodeNameError, nil
+		// We want to send an NXDOMAIN, but because of /etc/hosts' setup we don't have a SOA, so we make it REFUSED
+		// to at least give an answer back to signals we're having problems resolving this.
+		if !h.otherRecordsExist(qname) {
+			return dns.RcodeServerFailure, nil
 		}
 	}
 
@@ -70,23 +72,12 @@ func (h Hosts) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return dns.RcodeSuccess, nil
 }
 
-func (h Hosts) otherRecordsExist(qtype uint16, qname string) bool {
-	switch qtype {
-	case dns.TypeA:
-		if len(h.LookupStaticHostV6(qname)) > 0 {
-			return true
-		}
-	case dns.TypeAAAA:
-		if len(h.LookupStaticHostV4(qname)) > 0 {
-			return true
-		}
-	default:
-		if len(h.LookupStaticHostV4(qname)) > 0 {
-			return true
-		}
-		if len(h.LookupStaticHostV6(qname)) > 0 {
-			return true
-		}
+func (h Hosts) otherRecordsExist(qname string) bool {
+	if len(h.LookupStaticHostV4(qname)) > 0 {
+		return true
+	}
+	if len(h.LookupStaticHostV6(qname)) > 0 {
+		return true
 	}
 	return false
 }
