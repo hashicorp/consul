@@ -47,6 +47,31 @@ func (Topic) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_38d2980c9543da44, []int{0}
 }
 
+type ACLResource int32
+
+const (
+	ACLResource_ServiceACL ACLResource = 0
+	ACLResource_NodeACL    ACLResource = 1
+)
+
+var ACLResource_name = map[int32]string{
+	0: "ServiceACL",
+	1: "NodeACL",
+}
+
+var ACLResource_value = map[string]int32{
+	"ServiceACL": 0,
+	"NodeACL":    1,
+}
+
+func (x ACLResource) String() string {
+	return proto.EnumName(ACLResource_name, int32(x))
+}
+
+func (ACLResource) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_38d2980c9543da44, []int{1}
+}
+
 type CatalogOp int32
 
 const (
@@ -69,13 +94,13 @@ func (x CatalogOp) String() string {
 }
 
 func (CatalogOp) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{1}
+	return fileDescriptor_38d2980c9543da44, []int{2}
 }
 
 type SubscribeRequest struct {
-	Topic                Topic    `protobuf:"varint,1,opt,name=topic,proto3,enum=stream.Topic" json:"topic,omitempty"`
-	Key                  string   `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Token                string   `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
+	Topic                Topic    `protobuf:"varint,1,opt,name=Topic,proto3,enum=stream.Topic" json:"Topic,omitempty"`
+	Key                  string   `protobuf:"bytes,2,opt,name=Key,proto3" json:"Key,omitempty"`
+	Token                string   `protobuf:"bytes,3,opt,name=Token,proto3" json:"Token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -136,13 +161,14 @@ func (m *SubscribeRequest) GetToken() string {
 }
 
 type Event struct {
-	Topic Topic  `protobuf:"varint,1,opt,name=topic,proto3,enum=stream.Topic" json:"topic,omitempty"`
-	Key   string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Index uint64 `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	Topic        Topic      `protobuf:"varint,1,opt,name=Topic,proto3,enum=stream.Topic" json:"Topic,omitempty"`
+	Key          string     `protobuf:"bytes,2,opt,name=Key,proto3" json:"Key,omitempty"`
+	Index        uint64     `protobuf:"varint,3,opt,name=Index,proto3" json:"Index,omitempty"`
+	RequiredACLs []*ACLRule `protobuf:"bytes,4,rep,name=RequiredACLs,proto3" json:"RequiredACLs,omitempty"`
 	// Types that are valid to be assigned to Payload:
 	//	*Event_ServiceHealth
 	//	*Event_EndOfSnapshot
-	Payload              isEvent_Payload `protobuf_oneof:"payload"`
+	Payload              isEvent_Payload `protobuf_oneof:"Payload"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -188,10 +214,10 @@ type isEvent_Payload interface {
 }
 
 type Event_ServiceHealth struct {
-	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,4,opt,name=serviceHealth,proto3,oneof"`
+	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,5,opt,name=ServiceHealth,proto3,oneof"`
 }
 type Event_EndOfSnapshot struct {
-	EndOfSnapshot bool `protobuf:"varint,5,opt,name=endOfSnapshot,proto3,oneof"`
+	EndOfSnapshot bool `protobuf:"varint,6,opt,name=EndOfSnapshot,proto3,oneof"`
 }
 
 func (*Event_ServiceHealth) isEvent_Payload() {}
@@ -225,6 +251,13 @@ func (m *Event) GetIndex() uint64 {
 	return 0
 }
 
+func (m *Event) GetRequiredACLs() []*ACLRule {
+	if m != nil {
+		return m.RequiredACLs
+	}
+	return nil
+}
+
 func (m *Event) GetServiceHealth() *ServiceHealthUpdate {
 	if x, ok := m.GetPayload().(*Event_ServiceHealth); ok {
 		return x.ServiceHealth
@@ -249,10 +282,10 @@ func (*Event) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, 
 
 func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	m := msg.(*Event)
-	// payload
+	// Payload
 	switch x := m.Payload.(type) {
 	case *Event_ServiceHealth:
-		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.ServiceHealth); err != nil {
 			return err
 		}
@@ -261,7 +294,7 @@ func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if x.EndOfSnapshot {
 			t = 1
 		}
-		_ = b.EncodeVarint(5<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(6<<3 | proto.WireVarint)
 		_ = b.EncodeVarint(t)
 	case nil:
 	default:
@@ -273,7 +306,7 @@ func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*Event)
 	switch tag {
-	case 4: // payload.serviceHealth
+	case 5: // Payload.ServiceHealth
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -281,7 +314,7 @@ func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) 
 		err := b.DecodeMessage(msg)
 		m.Payload = &Event_ServiceHealth{msg}
 		return true, err
-	case 5: // payload.endOfSnapshot
+	case 6: // Payload.EndOfSnapshot
 		if wire != proto.WireVarint {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -295,7 +328,7 @@ func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) 
 
 func _Event_OneofSizer(msg proto.Message) (n int) {
 	m := msg.(*Event)
-	// payload
+	// Payload
 	switch x := m.Payload.(type) {
 	case *Event_ServiceHealth:
 		s := proto.Size(x.ServiceHealth)
@@ -312,9 +345,64 @@ func _Event_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+type ACLRule struct {
+	Resource             ACLResource `protobuf:"varint,1,opt,name=Resource,proto3,enum=stream.ACLResource" json:"Resource,omitempty"`
+	Segment              string      `protobuf:"bytes,2,opt,name=Segment,proto3" json:"Segment,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
+}
+
+func (m *ACLRule) Reset()         { *m = ACLRule{} }
+func (m *ACLRule) String() string { return proto.CompactTextString(m) }
+func (*ACLRule) ProtoMessage()    {}
+func (*ACLRule) Descriptor() ([]byte, []int) {
+	return fileDescriptor_38d2980c9543da44, []int{2}
+}
+func (m *ACLRule) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ACLRule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ACLRule.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ACLRule) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ACLRule.Merge(m, src)
+}
+func (m *ACLRule) XXX_Size() int {
+	return m.Size()
+}
+func (m *ACLRule) XXX_DiscardUnknown() {
+	xxx_messageInfo_ACLRule.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ACLRule proto.InternalMessageInfo
+
+func (m *ACLRule) GetResource() ACLResource {
+	if m != nil {
+		return m.Resource
+	}
+	return ACLResource_ServiceACL
+}
+
+func (m *ACLRule) GetSegment() string {
+	if m != nil {
+		return m.Segment
+	}
+	return ""
+}
+
 type ServiceHealthUpdate struct {
-	Op                   CatalogOp         `protobuf:"varint,1,opt,name=op,proto3,enum=stream.CatalogOp" json:"op,omitempty"`
-	ServiceNode          *CheckServiceNode `protobuf:"bytes,2,opt,name=serviceNode,proto3" json:"serviceNode,omitempty"`
+	Op                   CatalogOp         `protobuf:"varint,1,opt,name=Op,proto3,enum=stream.CatalogOp" json:"Op,omitempty"`
+	ServiceNode          *CheckServiceNode `protobuf:"bytes,2,opt,name=ServiceNode,proto3" json:"ServiceNode,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
 	XXX_sizecache        int32             `json:"-"`
@@ -324,7 +412,7 @@ func (m *ServiceHealthUpdate) Reset()         { *m = ServiceHealthUpdate{} }
 func (m *ServiceHealthUpdate) String() string { return proto.CompactTextString(m) }
 func (*ServiceHealthUpdate) ProtoMessage()    {}
 func (*ServiceHealthUpdate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{2}
+	return fileDescriptor_38d2980c9543da44, []int{3}
 }
 func (m *ServiceHealthUpdate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -369,40 +457,47 @@ func (m *ServiceHealthUpdate) GetServiceNode() *CheckServiceNode {
 
 func init() {
 	proto.RegisterEnum("stream.Topic", Topic_name, Topic_value)
+	proto.RegisterEnum("stream.ACLResource", ACLResource_name, ACLResource_value)
 	proto.RegisterEnum("stream.CatalogOp", CatalogOp_name, CatalogOp_value)
 	proto.RegisterType((*SubscribeRequest)(nil), "stream.SubscribeRequest")
 	proto.RegisterType((*Event)(nil), "stream.Event")
+	proto.RegisterType((*ACLRule)(nil), "stream.ACLRule")
 	proto.RegisterType((*ServiceHealthUpdate)(nil), "stream.ServiceHealthUpdate")
 }
 
 func init() { proto.RegisterFile("subscribe.proto", fileDescriptor_38d2980c9543da44) }
 
 var fileDescriptor_38d2980c9543da44 = []byte{
-	// 376 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x52, 0x41, 0xaf, 0x93, 0x40,
-	0x10, 0x66, 0xfb, 0x1e, 0xf5, 0x31, 0x95, 0x27, 0x5d, 0x3d, 0x90, 0x9a, 0x10, 0xc4, 0xc4, 0x60,
-	0x0f, 0x8d, 0xc1, 0x8b, 0xf1, 0xd8, 0x6a, 0xd2, 0x93, 0x4d, 0x16, 0x3d, 0x9b, 0x2d, 0x8c, 0x2d,
-	0x29, 0xb2, 0x2b, 0xbb, 0x34, 0xf6, 0x9f, 0xf8, 0x93, 0x3c, 0x78, 0xf0, 0x27, 0x98, 0xfa, 0x47,
-	0x0c, 0x50, 0xb0, 0x35, 0xde, 0xde, 0x6d, 0xe7, 0x9b, 0x6f, 0xbe, 0x99, 0xd9, 0x6f, 0xe0, 0x81,
-	0xaa, 0xd6, 0x2a, 0x29, 0xb3, 0x35, 0xce, 0x64, 0x29, 0xb4, 0xa0, 0x43, 0xa5, 0x4b, 0xe4, 0x9f,
-	0x27, 0xb6, 0xd2, 0x65, 0x95, 0x68, 0xd5, 0xc2, 0xc1, 0x47, 0x70, 0xe2, 0x8e, 0xc9, 0xf0, 0x4b,
-	0x85, 0x4a, 0xd3, 0xa7, 0x60, 0x6a, 0x21, 0xb3, 0xc4, 0x25, 0x3e, 0x09, 0x6f, 0x23, 0x7b, 0xd6,
-	0x96, 0xce, 0xde, 0xd7, 0x20, 0x6b, 0x73, 0xd4, 0x81, 0xab, 0x1d, 0x1e, 0xdc, 0x81, 0x4f, 0x42,
-	0x8b, 0xd5, 0x4f, 0xfa, 0xa8, 0x2e, 0xdb, 0x61, 0xe1, 0x5e, 0x35, 0x58, 0x1b, 0x04, 0x3f, 0x08,
-	0x98, 0x6f, 0xf7, 0x58, 0xdc, 0x45, 0x36, 0x2b, 0x52, 0xfc, 0xda, 0xc8, 0x5e, 0xb3, 0x36, 0xa0,
-	0x0b, 0xb0, 0x15, 0x96, 0xfb, 0x2c, 0xc1, 0x25, 0xf2, 0x5c, 0x6f, 0xdd, 0x6b, 0x9f, 0x84, 0xa3,
-	0xe8, 0x71, 0x27, 0x1a, 0x9f, 0x27, 0x3f, 0xc8, 0x94, 0x6b, 0x5c, 0x1a, 0xec, 0xb2, 0x86, 0x3e,
-	0x03, 0x1b, 0x8b, 0x74, 0xf5, 0x29, 0x2e, 0xb8, 0x54, 0x5b, 0xa1, 0x5d, 0xd3, 0x27, 0xe1, 0x4d,
-	0xcd, 0xbb, 0x80, 0xe7, 0x16, 0xdc, 0x93, 0xfc, 0x90, 0x0b, 0x9e, 0x06, 0x1a, 0x1e, 0xfe, 0x47,
-	0x9a, 0x3e, 0x81, 0x81, 0x90, 0xa7, 0xc5, 0xc6, 0xdd, 0x0c, 0x0b, 0xae, 0x79, 0x2e, 0x36, 0x2b,
-	0xc9, 0x06, 0x42, 0xd2, 0xd7, 0x30, 0x3a, 0x75, 0x7f, 0x27, 0x52, 0x6c, 0x36, 0x1c, 0x45, 0x6e,
-	0xcf, 0xdd, 0x62, 0xb2, 0x8b, 0xff, 0xe6, 0xd9, 0x39, 0x79, 0x3a, 0x01, 0xb3, 0xf9, 0x25, 0x3a,
-	0x06, 0xfb, 0xa2, 0xbd, 0x63, 0x4c, 0x9f, 0x83, 0xd5, 0x37, 0xa2, 0xf7, 0xe1, 0x86, 0xe1, 0x26,
-	0x53, 0x1a, 0x4b, 0xc7, 0xa0, 0xb7, 0x00, 0x6f, 0xb0, 0xec, 0x62, 0x12, 0xcd, 0x61, 0xb8, 0x10,
-	0x85, 0xaa, 0x72, 0xfa, 0x0a, 0xac, 0xde, 0x76, 0xda, 0x0f, 0xf1, 0xef, 0x25, 0x4c, 0x7a, 0x8f,
-	0x1a, 0x07, 0x03, 0xe3, 0x05, 0x99, 0x3b, 0xdf, 0x8f, 0x1e, 0xf9, 0x79, 0xf4, 0xc8, 0xaf, 0xa3,
-	0x47, 0xbe, 0xfd, 0xf6, 0x8c, 0xf5, 0xb0, 0xb9, 0xa4, 0x97, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff,
-	0x74, 0xeb, 0xa7, 0xc8, 0x73, 0x02, 0x00, 0x00,
+	// 457 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x53, 0x4d, 0x6f, 0xd3, 0x40,
+	0x14, 0xf4, 0x26, 0x4d, 0xd2, 0x3c, 0x37, 0xad, 0xbb, 0xe5, 0x60, 0x05, 0x29, 0x32, 0x46, 0x42,
+	0x26, 0x87, 0x80, 0xdc, 0x0b, 0xe2, 0x96, 0x98, 0x4a, 0x45, 0x44, 0x04, 0x6d, 0xca, 0x19, 0x39,
+	0xf6, 0x23, 0xb1, 0xea, 0x7a, 0xcd, 0xee, 0xba, 0xa2, 0x47, 0xfe, 0x05, 0x3f, 0x89, 0x23, 0x3f,
+	0x01, 0x85, 0x3f, 0x82, 0xfc, 0xa9, 0x24, 0xe2, 0xd6, 0x9b, 0xe7, 0xbd, 0x99, 0xd1, 0xf8, 0x79,
+	0x0c, 0x67, 0x32, 0x5b, 0xc9, 0x40, 0x44, 0x2b, 0x9c, 0xa4, 0x82, 0x2b, 0x4e, 0xbb, 0x52, 0x09,
+	0xf4, 0xef, 0x86, 0x03, 0xa9, 0x44, 0x16, 0x28, 0x59, 0x8e, 0xed, 0x2f, 0x60, 0x2c, 0x6b, 0x26,
+	0xc3, 0x6f, 0x19, 0x4a, 0x45, 0x9f, 0x43, 0xe7, 0x86, 0xa7, 0x51, 0x60, 0x12, 0x8b, 0x38, 0xa7,
+	0xee, 0x60, 0x52, 0x4a, 0x27, 0xc5, 0x90, 0x95, 0x3b, 0x6a, 0x40, 0xfb, 0x03, 0x3e, 0x98, 0x2d,
+	0x8b, 0x38, 0x7d, 0x96, 0x3f, 0xd2, 0x27, 0xb9, 0xec, 0x16, 0x13, 0xb3, 0x5d, 0xcc, 0x4a, 0x60,
+	0xff, 0x68, 0x41, 0xe7, 0xea, 0x1e, 0x93, 0xc7, 0xd8, 0xbe, 0x4f, 0x42, 0xfc, 0x5e, 0xd8, 0x1e,
+	0xb1, 0x12, 0xd0, 0x4b, 0x38, 0xc9, 0xe3, 0x46, 0x02, 0xc3, 0xa9, 0x37, 0x97, 0xe6, 0x91, 0xd5,
+	0x76, 0x74, 0xf7, 0xac, 0xf6, 0x9c, 0x7a, 0x73, 0x96, 0xc5, 0xc8, 0xf6, 0x48, 0xd4, 0x83, 0xc1,
+	0x12, 0xc5, 0x7d, 0x14, 0xe0, 0x35, 0xfa, 0xb1, 0xda, 0x98, 0x1d, 0x8b, 0x38, 0xba, 0xfb, 0xb4,
+	0x56, 0xed, 0x2d, 0x3f, 0xa7, 0xa1, 0xaf, 0xf0, 0x5a, 0x63, 0xfb, 0x1a, 0xfa, 0x02, 0x06, 0x57,
+	0x49, 0xb8, 0xf8, 0xba, 0x4c, 0xfc, 0x54, 0x6e, 0xb8, 0x32, 0xbb, 0x16, 0x71, 0x8e, 0x73, 0xde,
+	0xde, 0x78, 0xd6, 0x87, 0xde, 0x27, 0xff, 0x21, 0xe6, 0x7e, 0x68, 0xdf, 0x40, 0xaf, 0x0a, 0x44,
+	0x5f, 0xc1, 0x31, 0x43, 0xc9, 0x33, 0x11, 0x60, 0x75, 0x87, 0x8b, 0xdd, 0xcc, 0xd5, 0x8a, 0x35,
+	0x24, 0x6a, 0x42, 0x6f, 0x89, 0xeb, 0x3b, 0x4c, 0x54, 0x75, 0x94, 0x1a, 0xda, 0x0a, 0x2e, 0xfe,
+	0x13, 0x98, 0x3e, 0x83, 0xd6, 0x22, 0xad, 0xbc, 0xcf, 0x6b, 0x6f, 0xcf, 0x57, 0x7e, 0xcc, 0xd7,
+	0x8b, 0x94, 0xb5, 0x16, 0x29, 0x7d, 0x0b, 0x7a, 0xa5, 0xfc, 0xc8, 0x43, 0x2c, 0x7c, 0x75, 0xd7,
+	0x6c, 0xb8, 0x1b, 0x0c, 0x6e, 0x77, 0xf6, 0x6c, 0x97, 0x3c, 0x1e, 0x56, 0x5f, 0x91, 0x9e, 0x1f,
+	0x1c, 0xd3, 0xd0, 0xc6, 0x63, 0xd0, 0x77, 0x5e, 0x82, 0x9e, 0x02, 0x54, 0x8c, 0xa9, 0x37, 0x37,
+	0x34, 0xaa, 0x43, 0x2f, 0xb7, 0xc8, 0x01, 0x19, 0xbf, 0x84, 0x7e, 0x13, 0x8a, 0x9e, 0xe4, 0x57,
+	0x59, 0x47, 0x52, 0xa1, 0x30, 0xb4, 0x5c, 0xf7, 0x0e, 0x45, 0x8d, 0x89, 0x3b, 0x83, 0xae, 0xc7,
+	0x13, 0x99, 0xc5, 0xf4, 0x0d, 0xf4, 0x9b, 0xb6, 0xd2, 0x26, 0xf0, 0x61, 0x81, 0x87, 0x4d, 0xb5,
+	0x8a, 0xe2, 0xd9, 0xda, 0x6b, 0x32, 0x33, 0x7e, 0x6d, 0x47, 0xe4, 0xf7, 0x76, 0x44, 0xfe, 0x6c,
+	0x47, 0xe4, 0xe7, 0xdf, 0x91, 0xb6, 0xea, 0x16, 0x3f, 0xc0, 0xe5, 0xbf, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0x99, 0x31, 0x67, 0xdb, 0x2a, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -581,6 +676,18 @@ func (m *Event) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
 	}
+	if len(m.RequiredACLs) > 0 {
+		for _, msg := range m.RequiredACLs {
+			dAtA[i] = 0x22
+			i++
+			i = encodeVarintSubscribe(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
 	if m.Payload != nil {
 		nn1, err1 := m.Payload.MarshalTo(dAtA[i:])
 		if err1 != nil {
@@ -597,7 +704,7 @@ func (m *Event) MarshalTo(dAtA []byte) (int, error) {
 func (m *Event_ServiceHealth) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.ServiceHealth != nil {
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintSubscribe(dAtA, i, uint64(m.ServiceHealth.Size()))
 		n2, err2 := m.ServiceHealth.MarshalTo(dAtA[i:])
@@ -610,7 +717,7 @@ func (m *Event_ServiceHealth) MarshalTo(dAtA []byte) (int, error) {
 }
 func (m *Event_EndOfSnapshot) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	dAtA[i] = 0x28
+	dAtA[i] = 0x30
 	i++
 	if m.EndOfSnapshot {
 		dAtA[i] = 1
@@ -620,6 +727,38 @@ func (m *Event_EndOfSnapshot) MarshalTo(dAtA []byte) (int, error) {
 	i++
 	return i, nil
 }
+func (m *ACLRule) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ACLRule) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Resource != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Resource))
+	}
+	if len(m.Segment) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Segment)))
+		i += copy(dAtA[i:], m.Segment)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func (m *ServiceHealthUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -704,6 +843,12 @@ func (m *Event) Size() (n int) {
 	if m.Index != 0 {
 		n += 1 + sovSubscribe(uint64(m.Index))
 	}
+	if len(m.RequiredACLs) > 0 {
+		for _, e := range m.RequiredACLs {
+			l = e.Size()
+			n += 1 + l + sovSubscribe(uint64(l))
+		}
+	}
 	if m.Payload != nil {
 		n += m.Payload.Size()
 	}
@@ -734,6 +879,25 @@ func (m *Event_EndOfSnapshot) Size() (n int) {
 	n += 2
 	return n
 }
+func (m *ACLRule) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Resource != 0 {
+		n += 1 + sovSubscribe(uint64(m.Resource))
+	}
+	l = len(m.Segment)
+	if l > 0 {
+		n += 1 + l + sovSubscribe(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *ServiceHealthUpdate) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1004,6 +1168,40 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 		case 4:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequiredACLs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RequiredACLs = append(m.RequiredACLs, &ACLRule{})
+			if err := m.RequiredACLs[len(m.RequiredACLs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ServiceHealth", wireType)
 			}
 			var msglen int
@@ -1037,7 +1235,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			m.Payload = &Event_ServiceHealth{v}
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EndOfSnapshot", wireType)
 			}
@@ -1058,6 +1256,111 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Payload = &Event_EndOfSnapshot{b}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSubscribe(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ACLRule) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSubscribe
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ACLRule: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ACLRule: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Resource", wireType)
+			}
+			m.Resource = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Resource |= ACLResource(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Segment", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Segment = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSubscribe(dAtA[iNdEx:])
