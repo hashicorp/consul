@@ -23,27 +23,28 @@ func stringValue(v reflect.Value, indent int, buf *bytes.Buffer) {
 	case reflect.Struct:
 		buf.WriteString("{\n")
 
+		names := []string{}
 		for i := 0; i < v.Type().NumField(); i++ {
-			ft := v.Type().Field(i)
-			fv := v.Field(i)
-
-			if ft.Name[0:1] == strings.ToLower(ft.Name[0:1]) {
+			name := v.Type().Field(i).Name
+			f := v.Field(i)
+			if name[0:1] == strings.ToLower(name[0:1]) {
 				continue // ignore unexported fields
 			}
-			if (fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Slice) && fv.IsNil() {
+			if (f.Kind() == reflect.Ptr || f.Kind() == reflect.Slice) && f.IsNil() {
 				continue // ignore unset fields
 			}
+			names = append(names, name)
+		}
 
+		for i, n := range names {
+			val := v.FieldByName(n)
 			buf.WriteString(strings.Repeat(" ", indent+2))
-			buf.WriteString(ft.Name + ": ")
+			buf.WriteString(n + ": ")
+			stringValue(val, indent+2, buf)
 
-			if tag := ft.Tag.Get("sensitive"); tag == "true" {
-				buf.WriteString("<sensitive>")
-			} else {
-				stringValue(fv, indent+2, buf)
+			if i < len(names)-1 {
+				buf.WriteString(",\n")
 			}
-
-			buf.WriteString(",\n")
 		}
 
 		buf.WriteString("\n" + strings.Repeat(" ", indent) + "}")

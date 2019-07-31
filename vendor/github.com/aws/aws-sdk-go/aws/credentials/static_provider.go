@@ -9,6 +9,8 @@ const StaticProviderName = "StaticProvider"
 
 var (
 	// ErrStaticCredentialsEmpty is emitted when static credentials are empty.
+	//
+	// @readonly
 	ErrStaticCredentialsEmpty = awserr.New("EmptyStaticCreds", "static credentials are empty", nil)
 )
 

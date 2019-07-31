@@ -527,8 +527,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	serviceName := fmt.Sprintf("%s.service.%s.%s", req.Service, req.Datacenter, "consul")
-	csr, err := connect.CreateCSR(serviceName, id, pk)
+	csr, err := connect.CreateCSR(id, pk)
 	if err != nil {
 		return result, err
 	}

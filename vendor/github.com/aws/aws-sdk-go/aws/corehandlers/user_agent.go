@@ -17,7 +17,7 @@ var SDKVersionUserAgentHandler = request.NamedHandler{
 }
 
 const execEnvVar = `AWS_EXECUTION_ENV`
-const execEnvUAKey = `exec-env`
+const execEnvUAKey = `exec_env`
 
 // AddHostExecEnvUserAgentHander is a request handler appending the SDK's
 // execution environment to the user agent.

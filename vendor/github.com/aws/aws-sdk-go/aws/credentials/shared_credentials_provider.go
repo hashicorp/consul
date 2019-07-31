@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-ini/ini"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/internal/ini"
 	"github.com/aws/aws-sdk-go/internal/shareddefaults"
 )
 
@@ -76,37 +77,36 @@ func (p *SharedCredentialsProvider) IsExpired() bool {
 // The credentials retrieved from the profile will be returned or error. Error will be
 // returned if it fails to read from the file, or the data is invalid.
 func loadProfile(filename, profile string) (Value, error) {
-	config, err := ini.OpenFile(filename)
+	config, err := ini.Load(filename)
 	if err != nil {
 		return Value{ProviderName: SharedCredsProviderName}, awserr.New("SharedCredsLoad", "failed to load shared credentials file", err)
 	}
-
-	iniProfile, ok := config.GetSection(profile)
-	if !ok {
-		return Value{ProviderName: SharedCredsProviderName}, awserr.New("SharedCredsLoad", "failed to get profile", nil)
+	iniProfile, err := config.GetSection(profile)
+	if err != nil {
+		return Value{ProviderName: SharedCredsProviderName}, awserr.New("SharedCredsLoad", "failed to get profile", err)
 	}
 
-	id := iniProfile.String("aws_access_key_id")
-	if len(id) == 0 {
+	id, err := iniProfile.GetKey("aws_access_key_id")
+	if err != nil {
 		return Value{ProviderName: SharedCredsProviderName}, awserr.New("SharedCredsAccessKey",
 			fmt.Sprintf("shared credentials %s in %s did not contain aws_access_key_id", profile, filename),
-			nil)
+			err)
 	}
 
-	secret := iniProfile.String("aws_secret_access_key")
-	if len(secret) == 0 {
+	secret, err := iniProfile.GetKey("aws_secret_access_key")
+	if err != nil {
 		return Value{ProviderName: SharedCredsProviderName}, awserr.New("SharedCredsSecret",
 			fmt.Sprintf("shared credentials %s in %s did not contain aws_secret_access_key", profile, filename),
 			nil)
 	}
 
 	// Default to empty string if not found
-	token := iniProfile.String("aws_session_token")
+	token := iniProfile.Key("aws_session_token")
 
 	return Value{
-		AccessKeyID:     id,
-		SecretAccessKey: secret,
-		SessionToken:    token,
+		AccessKeyID:     id.String(),
+		SecretAccessKey: secret.String(),
+		SessionToken:    token.String(),
 		ProviderName:    SharedCredsProviderName,
 	}, nil
 }

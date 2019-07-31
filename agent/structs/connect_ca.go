@@ -112,53 +112,6 @@ type CARoot struct {
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
 
-// CAIntermediate represents an intermediate CA certificate that is trusted and used
-// to sign leaf certificates.
-type CAIntermediate struct {
-	// ID is a globally unique ID (UUID) representing this CA root.
-	ID string
-
-	// Name is a human-friendly name for this CA root. This value is
-	// opaque to Consul and is not used for anything internally.
-	Name string
-
-	// SerialNumber is the x509 serial number of the certificate.
-	SerialNumber uint64
-
-	// SigningKeyID is the ID of the public key that corresponds to the private
-	// key used to sign the certificate. Is is the HexString format of the raw
-	// AuthorityKeyID bytes.
-	SigningKeyID string
-
-	// ExternalTrustDomain is the trust domain this root was generated under. It
-	// is usually empty implying "the current cluster trust-domain". It is set
-	// only in the case that a cluster changes trust domain and then all old roots
-	// that are still trusted have the old trust domain set here.
-	//
-	// We currently DON'T validate these trust domains explicitly anywhere, see
-	// IndexedRoots.TrustDomain doc. We retain this information for debugging and
-	// future flexibility.
-	ExternalTrustDomain string
-
-	// Time validity bounds.
-	NotBefore time.Time
-	NotAfter  time.Time
-
-	// IntermediateCert is the PEM-encoded public certificate.
-	IntermediateCert string
-
-	// Active is true if this is the current active CA. This must only
-	// be true for exactly one CA. For any method that modifies roots in the
-	// state store, tests should be written to verify that multiple roots
-	// cannot be active.
-	Active bool
-
-	// RotatedOutAt is the time at which this CA was removed from the state.
-	// This will only be set on roots that have been rotated out from being the
-	// active root.
-	RotatedOutAt time.Time `json:"-"`
-}
-
 // CASignRequest is the request for signing a service certificate.
 type CASignRequest struct {
 	// Datacenter is the target for this request.
@@ -254,7 +207,6 @@ func (q *CARequest) RequestDatacenter() string {
 const (
 	ConsulCAProvider = "consul"
 	VaultCAProvider  = "vault"
-	AWSCAProvider    = "aws"
 )
 
 // CAConfiguration is the configuration for the current CA plugin.
@@ -395,20 +347,6 @@ type VaultCAProviderConfig struct {
 	KeyFile       string
 	TLSServerName string
 	TLSSkipVerify bool
-}
-
-type AWSCAProviderConfig struct {
-	CommonCAProviderConfig `mapstructure:",squash"`
-
-	AccessKeyId      string
-	SecretAccessKey  string
-	Region           string
-	SleepTime        string
-	RootARN          string
-	IntermediateARN  string
-	KeyAlgorithm     string
-	SigningAlgorithm string
-	DeleteOnExit     bool
 }
 
 // CALeafOp is the operation for a request related to leaf certificates.

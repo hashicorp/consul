@@ -118,12 +118,6 @@ var LogHTTPResponseHandler = request.NamedHandler{
 func logResponse(r *request.Request) {
 	lw := &logWriter{r.Config.Logger, bytes.NewBuffer(nil)}
 
-	if r.HTTPResponse == nil {
-		lw.Logger.Log(fmt.Sprintf(logRespErrMsg,
-			r.ClientInfo.ServiceName, r.Operation.Name, "request's HTTPResponse is nil"))
-		return
-	}
-
 	logBody := r.Config.LogLevel.Matches(aws.LogDebugWithHTTPBody)
 	if logBody {
 		r.HTTPResponse.Body = &teeReaderCloser{
