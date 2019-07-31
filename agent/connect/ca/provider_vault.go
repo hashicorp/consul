@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -104,6 +105,8 @@ func (v *VaultProvider) GenerateRoot() error {
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
 			"uri_sans":    spiffeID.URI().String(),
+			"key_type":    v.config.PrivateKeyType,
+			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
 			return err
@@ -174,8 +177,8 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	// Generate a new intermediate CSR for the root to sign.
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
 		"common_name": "Vault CA Intermediate Authority",
-		"key_bits":    224,
-		"key_type":    "ec",
+		"key_type":    v.config.PrivateKeyType,
+		"key_bits":    v.config.PrivateKeyBits,
 		"uri_sans":    spiffeID.URI().String(),
 	})
 	if err != nil {
@@ -372,6 +375,14 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.
 func (v *VaultProvider) Cleanup() error {
 	return v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+}
+
+func (v *VaultProvider) SupportsCrossSigning() bool {
+	return true
+}
+
+func (v *VaultProvider) MinLifetime() time.Duration {
+	return 1 * time.Hour
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {

@@ -4,9 +4,12 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"time"
+
+	"github.com/gogo/protobuf/types"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/connect/ca"
-	"google.golang.org/grpc"
 )
 
 // providerPluginGRPCServer implements the CAServer interface for gRPC.
@@ -79,6 +82,15 @@ func (p *providerPluginGRPCServer) CrossSignCA(_ context.Context, req *CrossSign
 
 	crtPEM, err := p.impl.CrossSignCA(crt)
 	return &CrossSignCAResponse{CrtPem: crtPEM}, err
+}
+
+func (p *providerPluginGRPCServer) SupportsCrossSigning(context.Context, *Empty) (*SupportsCrossSigningResponse, error) {
+	s := p.impl.SupportsCrossSigning()
+	return &SupportsCrossSigningResponse{SupportsCrossSigning: s}, nil
+}
+
+func (p *providerPluginGRPCServer) MinLifetime(context.Context, *Empty) (*MinLifetimeResponse, error) {
+	return &MinLifetimeResponse{MinLifetime: types.DurationProto(p.impl.MinLifetime())}, nil
 }
 
 func (p *providerPluginGRPCServer) Cleanup(context.Context, *Empty) (*Empty, error) {
@@ -190,6 +202,17 @@ func (p *providerPluginGRPCClient) CrossSignCA(crt *x509.Certificate) (string, e
 	}
 
 	return resp.CrtPem, nil
+}
+
+func (p *providerPluginGRPCClient) SupportsCrossSigning() bool {
+	resp, _ := p.client.SupportsCrossSigning(p.doneCtx, &Empty{})
+	return resp.SupportsCrossSigning
+}
+
+func (p *providerPluginGRPCClient) MinLifetime() time.Duration {
+	resp, _ := p.client.MinLifetime(p.doneCtx, &Empty{})
+	min, _ := types.DurationFromProto(resp.MinLifetime)
+	return min
 }
 
 func (p *providerPluginGRPCClient) Cleanup() error {

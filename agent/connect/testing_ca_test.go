@@ -1,6 +1,7 @@
 package connect
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,12 +15,21 @@ import (
 var hasOpenSSL bool
 
 func init() {
+	goodParams = []KeyConfig{
+		{keyType: "rsa", keyBits: 2048},
+		{keyType: "rsa", keyBits: 4096},
+		{keyType: "ec", keyBits: 224},
+		{keyType: "ec", keyBits: 256},
+		{keyType: "ec", keyBits: 384},
+		{keyType: "ec", keyBits: 521},
+	}
+
 	_, err := exec.LookPath("openssl")
 	hasOpenSSL = err == nil
 }
 
 // Test that the TestCA and TestLeaf functions generate valid certificates.
-func TestTestCAAndLeaf(t *testing.T) {
+func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 	if !hasOpenSSL {
 		t.Skip("openssl not found")
 		return
@@ -28,7 +38,7 @@ func TestTestCAAndLeaf(t *testing.T) {
 	assert := assert.New(t)
 
 	// Create the certs
-	ca := TestCA(t, nil)
+	ca := TestCAWithKeyType(t, nil, keyType, keyBits)
 	leaf, _ := TestLeaf(t, "web", ca)
 
 	// Create a temporary directory for storing the certs
@@ -51,7 +61,7 @@ func TestTestCAAndLeaf(t *testing.T) {
 }
 
 // Test cross-signing.
-func TestTestCAAndLeaf_xc(t *testing.T) {
+func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 	if !hasOpenSSL {
 		t.Skip("openssl not found")
 		return
@@ -60,8 +70,8 @@ func TestTestCAAndLeaf_xc(t *testing.T) {
 	assert := assert.New(t)
 
 	// Create the certs
-	ca1 := TestCA(t, nil)
-	ca2 := TestCA(t, ca1)
+	ca1 := TestCAWithKeyType(t, nil, keyType, keyBits)
+	ca2 := TestCAWithKeyType(t, ca1, keyType, keyBits)
 	leaf1, _ := TestLeaf(t, "web", ca1)
 	leaf2, _ := TestLeaf(t, "web", ca2)
 
@@ -96,5 +106,25 @@ func TestTestCAAndLeaf_xc(t *testing.T) {
 		output, err := cmd.Output()
 		t.Log(string(output))
 		assert.Nil(err)
+	}
+}
+
+func TestTestCAAndLeaf(t *testing.T) {
+	t.Parallel()
+	for _, params := range goodParams {
+		t.Run(fmt.Sprintf("TestTestCAAndLeaf-%s-%d", params.keyType, params.keyBits),
+			func(t *testing.T) {
+				testCAAndLeaf(t, params.keyType, params.keyBits)
+			})
+	}
+}
+
+func TestTestCAAndLeaf_xc(t *testing.T) {
+	t.Parallel()
+	for _, params := range goodParams {
+		t.Run(fmt.Sprintf("TestTestCAAndLeaf_xc-%s-%d", params.keyType, params.keyBits),
+			func(t *testing.T) {
+				testCAAndLeaf_xc(t, params.keyType, params.keyBits)
+			})
 	}
 }

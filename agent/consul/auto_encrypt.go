@@ -47,14 +47,19 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, defaultPort int, toke
 		Agent:      string(c.config.NodeName),
 	}
 
+	conf, err := c.config.CAConfig.GetCommonConfig()
+	if err != nil {
+		return errFn(err)
+	}
+
 	// Create a new private key
-	pk, pkPEM, err := connect.GeneratePrivateKey()
+	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(conf.PrivateKeyType, conf.PrivateKeyBits)
 	if err != nil {
 		return errFn(err)
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	csr, err := connect.CreateCSR("Consul RPC", id, pk)
 	if err != nil {
 		return errFn(err)
 	}

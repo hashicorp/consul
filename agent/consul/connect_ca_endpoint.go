@@ -168,6 +168,16 @@ func (s *ConnectCA) ConfigurationSet(
 		return nil
 	}
 
+	// Have the old provider cross-sign the new intermediate
+	oldProvider, _ := s.srv.getCAProvider()
+	if oldProvider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
+
+	if !oldProvider.SupportsCrossSigning() {
+		return fmt.Errorf("error: current CA does not support cross-signing")
+	}
+
 	// Create a new instance of the provider described by the config
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
@@ -237,11 +247,6 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	// Have the old provider cross-sign the new intermediate
-	oldProvider, _ := s.srv.getCAProvider()
-	if oldProvider == nil {
-		return fmt.Errorf("internal error: CA provider is nil")
-	}
 	xcCert, err := oldProvider.CrossSignCA(newRoot)
 	if err != nil {
 		return err
@@ -359,6 +364,8 @@ func (s *ConnectCA) Roots(
 					IntermediateCerts:   r.IntermediateCerts,
 					RaftIndex:           r.RaftIndex,
 					Active:              r.Active,
+					PrivateKeyType:      r.PrivateKeyType,
+					PrivateKeyBits:      r.PrivateKeyBits,
 				}
 
 				if r.Active {

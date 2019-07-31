@@ -138,7 +138,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 	// Generate a private key if needed
 	newState := *providerState
 	if c.config.PrivateKey == "" {
-		_, pk, err := connect.GeneratePrivateKey()
+		_, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 		if err != nil {
 			return err
 		}
@@ -184,7 +184,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 	}
 
 	// Create a new private key and CSR.
-	signer, pk, err := connect.GeneratePrivateKey()
+	signer, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 	if err != nil {
 		return "", err
 	}
@@ -657,4 +657,12 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
+}
+
+func (c *ConsulProvider) SupportsCrossSigning() bool {
+	return true
+}
+
+func (c *ConsulProvider) MinLifetime() time.Duration {
+	return 1 * time.Hour
 }
