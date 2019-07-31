@@ -38,6 +38,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 	// Wait for the events to come in and forward them to the client.
 	for event := range snapshotCh {
+		event.SetACLRules()
 		if !filt.allowEvent(event) {
 			continue
 		}
@@ -67,6 +68,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 			if !ok {
 				return fmt.Errorf("handler could not keep up with events")
 			}
+			event.SetACLRules()
 			if !filt.allowEvent(event) {
 				continue
 			}

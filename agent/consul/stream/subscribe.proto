@@ -13,19 +13,30 @@ enum Topic {
 }
   
 message SubscribeRequest {
-    Topic topic = 1;
-    string key = 2;
-    string token = 3;
+    Topic Topic = 1;
+    string Key = 2;
+    string Token = 3;
 }
 
 message Event {
-    Topic topic = 1;
-    string key = 2;
-    uint64 index = 3;
-    oneof payload {
-        ServiceHealthUpdate serviceHealth = 4;
-        bool endOfSnapshot = 5;
+    Topic Topic = 1;
+    string Key = 2;
+    uint64 Index = 3;
+    repeated ACLRule RequiredACLs = 4;
+    oneof Payload {
+        ServiceHealthUpdate ServiceHealth = 5;
+        bool EndOfSnapshot = 6;
     }
+}
+
+enum ACLResource {
+    ServiceACL = 0;
+    NodeACL = 1;
+}
+
+message ACLRule {
+    ACLResource Resource = 1;
+    string Segment = 2; 
 }
 
 enum CatalogOp {
@@ -34,7 +45,7 @@ enum CatalogOp {
 }
 
 message ServiceHealthUpdate {
-    CatalogOp op = 1;
-    CheckServiceNode serviceNode = 2;
+    CatalogOp Op = 1;
+    CheckServiceNode ServiceNode = 2;
 }
 

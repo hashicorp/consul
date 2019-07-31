@@ -1101,27 +1101,23 @@ func (f *aclFilter) allowEvent(event stream.Event) bool {
 		return true
 	}
 
-	switch event.Topic {
-	case stream.Topic_ServiceHealth:
-		health := event.GetServiceHealth()
-		if health == nil {
-			return true
-		}
-		var node, service string
-		if health.ServiceNode != nil {
-			if health.ServiceNode.Node != nil {
-				node = health.ServiceNode.Node.Node
+	allow := true
+	for _, rule := range event.RequiredACLs {
+		switch rule.Resource {
+		case stream.ACLResource_NodeACL:
+			if !f.allowNode(rule.Segment) {
+				allow = false
 			}
-			if health.ServiceNode.Service != nil {
-				service = health.ServiceNode.Service.Service
+		case stream.ACLResource_ServiceACL:
+			if !f.allowService(rule.Segment) {
+				allow = false
 			}
+		default:
+			f.logger.Printf("unrecognized ACL resource type %q", rule.Resource)
 		}
-		val := f.allowCheckServiceNode(node, service)
-		return val
-	default:
-		f.logger.Printf("could not filter for unrecognized event topic %s", event.Topic)
-		return true
 	}
+
+	return allow
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on

@@ -8,7 +8,9 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -650,6 +652,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	}
 
 	// Ensure background refresh works
+	var index uint64
 	{
 		// Register a new instance of the service
 		args2 := args
@@ -668,6 +671,12 @@ func TestHealthServiceNodes(t *testing.T) {
 			if len(nodes) != 2 {
 				r.Fatalf("Want 2 nodes")
 			}
+			header := resp.Header().Get("X-Consul-Index")
+			if header == "" || header == "0" {
+				r.Fatalf("Want non-zero header: %q", header)
+			}
+			index, err = strconv.ParseUint(header, 10, 64)
+			r.Check(err)
 
 			// Should be a cache hit! The data should've updated in the cache
 			// in the background so this should've been fetched directly from
@@ -676,6 +685,29 @@ func TestHealthServiceNodes(t *testing.T) {
 				r.Fatalf("should be a cache hit")
 			}
 		})
+	}
+
+	// Test blocking queries (for streaming)
+	// Register a new instance of the service after a delay
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+
+		args3 := args
+		args3.Node = "zoo"
+		args3.Address = "127.0.0.3"
+		require.NoError(a.RPC("Catalog.Register", args3, &out))
+	}()
+
+	{
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/health/service/test?index=%d", index), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		require.NoError(err)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		if len(nodes) != 3 {
+			t.Fatalf("Want 3 nodes")
+		}
 	}
 }
 
