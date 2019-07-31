@@ -16,8 +16,6 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/apache/thrift v0.12.0 h1:pODnxUFNcjP9UTLZGTdeh+j16A8lJbRvD3rOtrk/7bs=
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
-github.com/aws/aws-sdk-go v1.21.2 h1:CqbWrQzi7s8J2F0TRRdLvTr0+bt5Zxo2IDoFNGsAiUg=
-github.com/aws/aws-sdk-go v1.21.2/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.21.6 h1:3GuIm55Uls52aQIDGBnSEZbk073jpasfQyeM5eZU61Q=
 github.com/aws/aws-sdk-go v1.21.6/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
@@ -194,8 +192,6 @@ github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsq
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5 h1:82Tnq9OJpn+h5xgGpss5/mOv3KXdjtkdorFSOUusjM8=
 github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5/go.mod h1:uVHyebswE1cCXr2A73cRM2frx5ld1RJUCJkFNZ90ZiI=
-github.com/openzipkin/zipkin-go-opentracing v0.3.5 h1:nZPvd2EmRKP+NzFdSuxZF/FG4Y4W2gn6ugXliTAu9o0=
-github.com/openzipkin/zipkin-go-opentracing v0.3.5/go.mod h1:js2AbwmHW0YD9DwIw2JhQWmbfFi/UnWyYwdVhqbCDOE=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/philhofer/fwd v1.0.0 h1:UbZqGr5Y38ApvM/V/jEljVxwocdweyH+vmYvRPBnbqQ=
 github.com/philhofer/fwd v1.0.0/go.mod h1:gk3iGcWd9+svBvR0sR+KPcfE+RNWozjowpeBVG3ZVNU=
@@ -362,12 +358,8 @@ google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZi
 google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiqXj38=
 google.golang.org/grpc v1.21.1 h1:j6XxA85m/6txkUCHvzlV5f+HBNl/1r5cZ2A/3IEFOO8=
 google.golang.org/grpc v1.21.1/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
-google.golang.org/grpc v1.22.0 h1:J0UbZOIrCAl+fpTOf8YLs4dJo8L/owV4LYVtAXQoPkw=
-google.golang.org/grpc v1.22.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.22.1 h1:/7cs52RnTJmD43s3uxzlq2U7nqVTd/37viQwMrMNlOM=
 google.golang.org/grpc v1.22.1/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
-gopkg.in/DataDog/dd-trace-go.v1 v1.16.0 h1:M+pIoj6uFByW3E8KaAaBmsLl3Sma3JzXZ9eo7ffyX5A=
-gopkg.in/DataDog/dd-trace-go.v1 v1.16.0/go.mod h1:DVp8HmDh8PuTu2Z0fVVlBsyWaC++fzwVCaGWylTe3tg=
 gopkg.in/DataDog/dd-trace-go.v1 v1.16.1 h1:Dngw1zun6yTYFHNdzEWBlrJzFA2QJMjSA2sZ4nH2UWo=
 gopkg.in/DataDog/dd-trace-go.v1 v1.16.1/go.mod h1:DVp8HmDh8PuTu2Z0fVVlBsyWaC++fzwVCaGWylTe3tg=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=

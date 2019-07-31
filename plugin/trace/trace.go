@@ -20,7 +20,7 @@ import (
 
 	"github.com/miekg/dns"
 	ot "github.com/opentracing/opentracing-go"
-	zipkin "github.com/openzipkin/zipkin-go-opentracing"
+	zipkin "github.com/openzipkin-contrib/zipkin-go-opentracing"
 )
 
 const (
