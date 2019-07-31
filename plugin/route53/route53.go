@@ -248,6 +248,7 @@ func (h *Route53) updateZones(ctx context.Context) error {
 				newZ.Upstream = h.upstream
 				in := &route53.ListResourceRecordSetsInput{
 					HostedZoneId: aws.String(hostedZone.id),
+					MaxItems: aws.String("1000"),
 				}
 				err = h.client.ListResourceRecordSetsPagesWithContext(ctx, in,
 					func(out *route53.ListResourceRecordSetsOutput, last bool) bool {
