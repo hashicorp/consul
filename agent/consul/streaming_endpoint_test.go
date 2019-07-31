@@ -166,12 +166,13 @@ func TestStreaming_Subscribe(t *testing.T) {
 			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		},
 	}
-	// Fix up the index
 	for i := 0; i < 2; i++ {
+		// Fix up the index
 		expected[i].Index = snapshotEvents[i].Index
 		node := expected[i].GetServiceHealth().ServiceNode
 		node.Node.RaftIndex = snapshotEvents[i].GetServiceHealth().ServiceNode.Node.RaftIndex
 		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().ServiceNode.Service.RaftIndex
+		expected[i].SetACLRules()
 	}
 	verify.Values(t, "", snapshotEvents, expected)
 
@@ -223,6 +224,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 				},
 			},
 		}
+		expected.SetACLRules()
 		// Fix up the index
 		expected.Index = event.Index
 		node := expected.GetServiceHealth().ServiceNode
