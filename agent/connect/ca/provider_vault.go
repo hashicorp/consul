@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -419,4 +420,12 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	}
 
 	return &config, nil
+}
+
+func (v *VaultProvider) SupportsCrossSigning() bool {
+	return true
+}
+
+func (v *VaultProvider) MinLifetime() time.Duration {
+	return 1 * time.Hour
 }
