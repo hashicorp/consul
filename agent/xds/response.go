@@ -49,6 +49,16 @@ func makeAddress(ip string, port int) envoycore.Address {
 	}
 }
 
+func makePipeAddress(name string) envoycore.Address {
+	return envoycore.Address{
+		Address: &envoycore.Address_Pipe{
+			Pipe: &envoycore.Pipe{
+				Path: name,
+			},
+		},
+	}
+}
+
 func makeAddressPtr(ip string, port int) *envoycore.Address {
 	a := makeAddress(ip, port)
 	return &a

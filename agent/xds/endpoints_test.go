@@ -256,6 +256,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
 			name:   "connect-proxy-with-chain-and-sliding-failover",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

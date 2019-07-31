@@ -116,6 +116,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
 			name:   "splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,

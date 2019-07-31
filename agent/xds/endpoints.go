@@ -35,10 +35,9 @@ func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
 // (upstream instances) in the snapshot.
 func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	// TODO(rb): this sizing is a low bound.
 	resources := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.UpstreamEndpoints))
 
-	// TODO(rb): should naming from 1.5 -> 1.6 for clusters remain unchanged?
+	clusterExists := make(map[string]struct{})
 
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
@@ -52,6 +51,11 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 			// We ONLY want this branch for prepared queries.
 
 			clusterName := ServiceSNI(u.DestinationName, "", u.DestinationNamespace, u.Datacenter, cfgSnap)
+
+			if _, ok := clusterExists[clusterName]; ok {
+				continue
+			}
+
 			endpoints, ok := cfgSnap.ConnectProxy.UpstreamEndpoints[id]
 			if ok {
 				la := makeLoadAssignment(
@@ -62,6 +66,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 					},
 					cfgSnap.Datacenter,
 				)
+				clusterExists[clusterName] = struct{}{}
 				resources = append(resources, la)
 			}
 
@@ -73,17 +78,25 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 				continue // skip the upstream (should not happen)
 			}
 
-			// Find all resolver nodes.
-			for _, node := range chain.Nodes {
-				if node.Type != structs.DiscoveryGraphNodeTypeResolver {
-					continue
+			addLoadAssignment := func(
+				target structs.DiscoveryTarget,
+				failover *structs.DiscoveryFailover,
+				loopback bool,
+			) {
+				if loopback && failover != nil {
+					failover = nil // ignore this
 				}
-				failover := node.Resolver.Failover
-				target := node.Resolver.Target
 
 				endpoints, ok := chainEndpointMap[target]
 				if !ok {
-					continue // skip the cluster (should not happen)
+					return // skip the cluster (should not happen)
+				}
+
+				sni := TargetSNI(target, cfgSnap)
+				clusterName := CustomizeClusterName(sni, chain, loopback)
+
+				if _, ok := clusterExists[clusterName]; ok {
+					return
 				}
 
 				targetConfig := chain.Targets[target]
@@ -120,17 +133,26 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 						failTargetConfig := chain.Targets[failTarget]
 
-						endpointGroups = append(endpointGroups, loadAssignmentEndpointGroup{
+						failGroup := loadAssignmentEndpointGroup{
 							Endpoints:   failEndpoints,
 							OnlyPassing: failTargetConfig.Subset.OnlyPassing,
-						})
+						}
+
+						if !loopback {
+							switch failTargetConfig.MeshGateway.Mode {
+							case structs.MeshGatewayModeLocal, structs.MeshGatewayModeRemote:
+								failSNI := TargetSNI(failTarget, cfgSnap)
+								failClusterName := CustomizeClusterName(failSNI, chain, true)
+								failGroup.Endpoints = nil
+								failGroup.AlternateUnixAddress = "@" + failClusterName
+							}
+						}
+
+						endpointGroups = append(endpointGroups, failGroup)
 					}
 				} else {
 					endpointGroups = append(endpointGroups, primaryGroup)
 				}
-
-				sni := TargetSNI(target, cfgSnap)
-				clusterName := CustomizeClusterName(sni, chain)
 
 				la := makeLoadAssignment(
 					clusterName,
@@ -138,7 +160,31 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 					endpointGroups,
 					cfgSnap.Datacenter,
 				)
+				clusterExists[clusterName] = struct{}{}
 				resources = append(resources, la)
+			}
+
+			// Find all resolver nodes.
+			for _, node := range chain.Nodes {
+				if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+					continue
+				}
+				failover := node.Resolver.Failover
+				target := node.Resolver.Target
+
+				addLoadAssignment(target, failover, false)
+
+				// We have to do some SNI-laundering when failover through a mesh gateway
+				// is involved. See GH issue 6161.
+				if node.Resolver.Failover != nil {
+					for _, target := range node.Resolver.Failover.Targets {
+						targetConfig := chain.Targets[target]
+						switch targetConfig.MeshGateway.Mode {
+						case structs.MeshGatewayModeLocal, structs.MeshGatewayModeRemote:
+							addLoadAssignment(target, nil, true)
+						}
+					}
+				}
 			}
 		}
 	}
@@ -227,8 +273,9 @@ func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {
 }
 
 type loadAssignmentEndpointGroup struct {
-	Endpoints   structs.CheckServiceNodes
-	OnlyPassing bool
+	Endpoints            structs.CheckServiceNodes
+	AlternateUnixAddress string
+	OnlyPassing          bool
 }
 
 func makeLoadAssignment(
@@ -248,48 +295,63 @@ func makeLoadAssignment(
 	}
 
 	for priority, endpointGroup := range endpointGroups {
-		endpoints := endpointGroup.Endpoints
-		es := make([]envoyendpoint.LbEndpoint, 0, len(endpoints))
+		var es []envoyendpoint.LbEndpoint
+		if endpointGroup.AlternateUnixAddress == "" {
+			endpoints := endpointGroup.Endpoints
+			es = make([]envoyendpoint.LbEndpoint, 0, len(endpoints))
 
-		for _, ep := range endpoints {
-			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
-			addr, port := ep.BestAddress(localDatacenter != ep.Node.Datacenter)
-			healthStatus := envoycore.HealthStatus_HEALTHY
-			weight := 1
-			if ep.Service.Weights != nil {
-				weight = ep.Service.Weights.Passing
+			for _, ep := range endpoints {
+				// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
+				addr, port := ep.BestAddress(localDatacenter != ep.Node.Datacenter)
+				healthStatus := envoycore.HealthStatus_HEALTHY
+				weight := 1
+				if ep.Service.Weights != nil {
+					weight = ep.Service.Weights.Passing
+				}
+
+				for _, chk := range ep.Checks {
+					if chk.Status == api.HealthCritical {
+						healthStatus = envoycore.HealthStatus_UNHEALTHY
+					}
+					if endpointGroup.OnlyPassing && chk.Status != api.HealthPassing {
+						healthStatus = envoycore.HealthStatus_UNHEALTHY
+					}
+					if chk.Status == api.HealthWarning && ep.Service.Weights != nil {
+						weight = ep.Service.Weights.Warning
+					}
+				}
+				// Make weights fit Envoy's limits. A zero weight means that either Warning
+				// (likely) or Passing (weirdly) weight has been set to 0 effectively making
+				// this instance unhealthy and should not be sent traffic.
+				if weight < 1 {
+					healthStatus = envoycore.HealthStatus_UNHEALTHY
+					weight = 1
+				}
+				if weight > 128 {
+					weight = 128
+				}
+				es = append(es, envoyendpoint.LbEndpoint{
+					HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
+						Endpoint: &envoyendpoint.Endpoint{
+							Address: makeAddressPtr(addr, port),
+						},
+					},
+					HealthStatus:        healthStatus,
+					LoadBalancingWeight: makeUint32Value(weight),
+				})
 			}
 
-			for _, chk := range ep.Checks {
-				if chk.Status == api.HealthCritical {
-					healthStatus = envoycore.HealthStatus_UNHEALTHY
-				}
-				if endpointGroup.OnlyPassing && chk.Status != api.HealthPassing {
-					healthStatus = envoycore.HealthStatus_UNHEALTHY
-				}
-				if chk.Status == api.HealthWarning && ep.Service.Weights != nil {
-					weight = ep.Service.Weights.Warning
-				}
-			}
-			// Make weights fit Envoy's limits. A zero weight means that either Warning
-			// (likely) or Passing (weirdly) weight has been set to 0 effectively making
-			// this instance unhealthy and should not be sent traffic.
-			if weight < 1 {
-				healthStatus = envoycore.HealthStatus_UNHEALTHY
-				weight = 1
-			}
-			if weight > 128 {
-				weight = 128
-			}
-			es = append(es, envoyendpoint.LbEndpoint{
+		} else {
+			address := makePipeAddress(endpointGroup.AlternateUnixAddress)
+			es = []envoyendpoint.LbEndpoint{{
 				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 					Endpoint: &envoyendpoint.Endpoint{
-						Address: makeAddressPtr(addr, port),
+						Address: &address,
 					},
 				},
-				HealthStatus:        healthStatus,
-				LoadBalancingWeight: makeUint32Value(weight),
-			})
+				HealthStatus:        envoycore.HealthStatus_HEALTHY,
+				LoadBalancingWeight: makeUint32Value(1),
+			}}
 		}
 
 		cla.Endpoints = append(cla.Endpoints, envoyendpoint.LocalityLbEndpoints{

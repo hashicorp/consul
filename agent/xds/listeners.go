@@ -42,16 +42,19 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
 func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	// One listener for each upstream plus the public one
-	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
+	// One listener for each upstream plus the public one. If failover through
+	// gateways is involved this could grow a little bit more.
+	resources := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Configure public listener
-	var err error
-	resources[0], err = s.makePublicListener(cfgSnap, token)
+	publicListener, err := s.makePublicListener(cfgSnap, token)
 	if err != nil {
 		return nil, err
 	}
-	for i, u := range cfgSnap.Proxy.Upstreams {
+	resources = append(resources, publicListener)
+
+	launderedClusters := make(map[string]struct{})
+	for _, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
 
 		var chain *structs.CompiledDiscoveryChain
@@ -59,17 +62,71 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
 		}
 
-		var upstreamListener proto.Message
 		if chain == nil || chain.IsDefault() {
-			upstreamListener, err = s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+			upstreamListener, err := s.makeUpstreamListenerIgnoreDiscoveryChain(&u, chain, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+
+			resources = append(resources, upstreamListener)
+
 		} else {
-			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
+			upstreamListener, failoverTargets, err := s.makeUpstreamListenersForDiscoveryChain(&u, chain, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+
+			resources = append(resources, upstreamListener)
+
+			for target, _ := range failoverTargets {
+				// These will be named identically to the cluster they front.
+				sni := TargetSNI(target, cfgSnap)
+				clusterName := CustomizeClusterName(sni, chain, true)
+
+				if _, ok := launderedClusters[clusterName]; ok {
+					continue // already added
+				}
+
+				listenerName := clusterName + ":unix"
+				filterName := listenerName
+
+				// we create a local unix anonymous listener
+				l := &envoy.Listener{
+					Name:    clusterName + ":unix",
+					Address: makePipeAddress("@" + clusterName),
+				}
+
+				filter, err := makeListenerFilter(false, chain.Protocol, filterName, clusterName, "upstream_", false)
+				if err != nil {
+					return nil, err
+				}
+
+				// We do no validation of this request. Ideally it wouldn't
+				// even be TLS, but due to the way failover is rendered into
+				// Clusters it has to speak TLS.
+				commonTlsContext := makeCommonTLSContext(cfgSnap)
+				commonTlsContext.ValidationContextType = nil
+				tlsContext := &envoyauth.DownstreamTlsContext{
+					CommonTlsContext:         commonTlsContext,
+					RequireClientCertificate: &types.BoolValue{Value: false},
+					RequireSni:               &types.BoolValue{Value: false},
+				}
+
+				l.FilterChains = []envoylistener.FilterChain{
+					{
+						Filters: []envoylistener.Filter{
+							filter,
+						},
+						TlsContext: tlsContext,
+					},
+				}
+
+				resources = append(resources, l)
+				launderedClusters[clusterName] = struct{}{}
+			}
 		}
-		if err != nil {
-			return nil, err
-		}
-		resources[i+1] = upstreamListener
 	}
+
 	return resources, nil
 }
 
@@ -212,7 +269,7 @@ func injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, token string, listen
 	return nil
 }
 
-func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (proto.Message, error) {
+func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token string) (*envoy.Listener, error) {
 	var l *envoy.Listener
 	var err error
 
@@ -274,7 +331,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
-) (proto.Message, error) {
+) (*envoy.Listener, error) {
 	cfg, err := ParseUpstreamConfig(u.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -294,7 +351,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	upstreamID := u.Identifier()
 
 	sni := UpstreamSNI(u, "", cfgSnap)
-	clusterName := CustomizeClusterName(sni, chain)
+	clusterName := CustomizeClusterName(sni, chain, false)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)
@@ -367,11 +424,11 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 	return l, nil
 }
 
-func (s *Server) makeUpstreamListenerForDiscoveryChain(
+func (s *Server) makeUpstreamListenersForDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
-) (proto.Message, error) {
+) (*envoy.Listener, map[structs.DiscoveryTarget]struct{}, error) {
 	// TODO(rb): make the listener escape hatch work again
 	cfg, err := ParseUpstreamConfigNoDefaults(u.Config)
 	if err != nil {
@@ -388,8 +445,9 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 	upstreamID := u.Identifier()
 
-	l := makeListener(upstreamID, addr, u.LocalBindPort)
+	standardListener := makeListener(upstreamID, addr, u.LocalBindPort)
 
+	// TODO(rb): this is unnecessary now that we incoroprate overrides into the chain
 	proto := cfg.Protocol
 	if proto == "" {
 		proto = chain.Protocol
@@ -401,17 +459,37 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 	filter, err := makeListenerFilter(true, proto, upstreamID, "", "upstream_", false)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	l.FilterChains = []envoylistener.FilterChain{
+	standardListener.FilterChains = []envoylistener.FilterChain{
 		{
 			Filters: []envoylistener.Filter{
 				filter,
 			},
 		},
 	}
-	return l, nil
+
+	// We have to do some SNI-laundering when failover through a mesh gateway
+	// is involved. See GH issue 6161.
+	failoverTargets := make(map[structs.DiscoveryTarget]struct{})
+	for _, node := range chain.Nodes {
+		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+			continue
+		}
+		if node.Resolver.Failover == nil {
+			continue
+		}
+		for _, target := range node.Resolver.Failover.Targets {
+			targetConfig := chain.Targets[target]
+			switch targetConfig.MeshGateway.Mode {
+			case structs.MeshGatewayModeLocal, structs.MeshGatewayModeRemote:
+				failoverTargets[target] = struct{}{}
+			}
+		}
+	}
+
+	return standardListener, failoverTargets, nil
 }
 
 func makeListenerFilter(useRDS bool, protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {

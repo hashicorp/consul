@@ -39,7 +39,6 @@ func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token st
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
 func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	// TODO(rb): this sizing is a low bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Include the "app" cluster for the public listener
@@ -49,6 +48,8 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	clusters = append(clusters, appCluster)
+
+	clusterExists := make(map[string]struct{})
 
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
@@ -65,13 +66,14 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			clusters = append(clusters, upstreamCluster)
 
 		} else {
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, cfgSnap)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, cfgSnap, clusterExists)
 			if err != nil {
 				return nil, err
 			}
 
 			for _, cluster := range upstreamClusters {
 				clusters = append(clusters, cluster)
+				clusterExists[cluster.Name] = struct{}{}
 			}
 		}
 	}
@@ -233,6 +235,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	upstream structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
+	clusterExists map[string]struct{},
 ) ([]*envoy.Cluster, error) {
 	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
@@ -250,20 +253,15 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 
 	var out []*envoy.Cluster
 
-	for _, node := range chain.Nodes {
-		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
-			continue
+	addCluster := func(sni, clusterName string, connectTimeout time.Duration) {
+		if _, ok := clusterExists[clusterName]; ok {
+			return
 		}
-		target := node.Resolver.Target
-
-		sni := TargetSNI(target, cfgSnap)
-		clusterName := CustomizeClusterName(sni, chain)
-
 		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
 		c := &envoy.Cluster{
 			Name:                 clusterName,
 			AltStatName:          sni,
-			ConnectTimeout:       node.Resolver.ConnectTimeout,
+			ConnectTimeout:       connectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoytype.Percent{
@@ -301,6 +299,34 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		out = append(out, c)
+	}
+
+	for _, node := range chain.Nodes {
+		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+			continue
+		}
+		target := node.Resolver.Target
+
+		sni := TargetSNI(target, cfgSnap)
+		clusterName := CustomizeClusterName(sni, chain, false)
+
+		addCluster(sni, clusterName, node.Resolver.ConnectTimeout)
+
+		// We have to do some SNI-laundering when failover through a mesh gateway
+		// is involved. See GH issue 6161.
+		if node.Resolver.Failover == nil {
+			continue
+		}
+		for _, target := range node.Resolver.Failover.Targets {
+			targetConfig := chain.Targets[target]
+			switch targetConfig.MeshGateway.Mode {
+			case structs.MeshGatewayModeLocal, structs.MeshGatewayModeRemote:
+				loopbackSNI := TargetSNI(target, cfgSnap)
+				loopbackClusterName := CustomizeClusterName(loopbackSNI, chain, true)
+
+				addCluster(loopbackSNI, loopbackClusterName, node.Resolver.ConnectTimeout)
+			}
+		}
 	}
 
 	return out, nil

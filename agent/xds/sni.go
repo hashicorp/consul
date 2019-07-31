@@ -46,11 +46,30 @@ func TargetSNI(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot)
 	return ServiceSNI(target.Service, target.ServiceSubset, target.Namespace, target.Datacenter, cfgSnap)
 }
 
-func CustomizeClusterName(sni string, chain *structs.CompiledDiscoveryChain) string {
-	if chain == nil || chain.CustomizationHash == "" {
+func CustomizeClusterName(sni string, chain *structs.CompiledDiscoveryChain, loopback bool) string {
+	if chain == nil {
 		return sni
 	}
-	// Use a colon to delimit this prefix instead of a dot to avoid a
+
+	// Use a colon to delimit these prefixes instead of a dot to avoid a
 	// theoretical collision problem with subsets.
-	return fmt.Sprintf("%s:%s", chain.CustomizationHash, sni)
+	prefix := ""
+	if loopback {
+		// When addressing a failover in another datacenter through a mesh
+		// gateway we do a loopback pass through another listener to scrub the
+		// incorrect SNI value.
+		//
+		// These loopback clusters SHOULD NOT themselves have failover. The
+		// easiest way around that is to generate a differently named cluster
+		// for any failover target.
+		prefix = "loopback:"
+	}
+
+	if chain.CustomizationHash == "" {
+		if prefix == "" {
+			return sni
+		}
+		return prefix + sni
+	}
+	return fmt.Sprintf("%s%s:%s", prefix, chain.CustomizationHash, sni)
 }

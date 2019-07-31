@@ -440,6 +440,10 @@ func TestConfigSnapshotDiscoveryChainWithFailover(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "failover")
 }
 
+func TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway")
+}
+
 func TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc")
 }
@@ -481,6 +485,26 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Service: "fail",
+					},
+				},
+			},
+		)
+	case "failover-through-remote-gateway":
+		entries = append(entries,
+			&structs.ServiceConfigEntry{
+				Kind: structs.ServiceDefaults,
+				Name: "db",
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Datacenters: []string{"dc2"},
 					},
 				},
 			},
@@ -554,6 +578,11 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		Namespace:  "default",
 		Datacenter: "dc1",
 	}
+	failTargetDC2 := structs.DiscoveryTarget{
+		Service:    "db",
+		Namespace:  "default",
+		Datacenter: "dc2",
+	}
 
 	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -592,6 +621,9 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	case "failover":
 		snap.ConnectProxy.WatchedUpstreamEndpoints["db"][failTarget] =
 			TestUpstreamNodesAlternate(t)
+	case "failover-through-remote-gateway":
+		snap.ConnectProxy.WatchedUpstreamEndpoints["db"][failTargetDC2] =
+			TestGatewayNodesDC2(t)
 	case "splitter-with-resolver-redirect-multidc":
 		dbTarget_v1_dc1 := structs.DiscoveryTarget{
 			Service:       "db",

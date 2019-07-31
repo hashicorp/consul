@@ -19,7 +19,7 @@ load helpers
 }
 
 @test "s2 proxy should be healthy" {
-  assert_service_has_healthy_instances s2 1
+  assert_service_has_healthy_instances s2 1 secondary
 }
 
 @test "gateway-secondary is used for the upstream connection" {
