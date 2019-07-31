@@ -116,6 +116,7 @@ func parseCAIntermediate(pemValue, provider, clusterID string) (*structs.CAInter
 		Active:              true,
 	}, nil
 }
+
 // createProvider returns a connect CA provider from the given config.
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
 	var newProvider ca.Provider
