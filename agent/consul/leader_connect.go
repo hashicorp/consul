@@ -94,16 +94,60 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 	}, nil
 }
 
+// parseCAIntermediate returns a filled-in structs.CAIntermediate from a raw PEM value.
+func parseCAIntermediate(pemValue, provider, clusterID string) (*structs.CAIntermediate, error) {
+	id, err := connect.CalculateCertFingerprint(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing intermediate fingerprint: %v", err)
+	}
+	cert, err := connect.ParseCert(pemValue)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+	return &structs.CAIntermediate{
+		ID:                  id,
+		Name:                fmt.Sprintf("%s CA Intermediate Cert", strings.Title(provider)),
+		SerialNumber:        cert.SerialNumber.Uint64(),
+		SigningKeyID:        connect.HexString(cert.SubjectKeyId),
+		ExternalTrustDomain: clusterID,
+		NotBefore:           cert.NotBefore,
+		NotAfter:            cert.NotAfter,
+		IntermediateCert:    pemValue,
+		Active:              true,
+	}, nil
+}
 // createProvider returns a connect CA provider from the given config.
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	var newProvider ca.Provider
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
+		newProvider = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
-		return &ca.VaultProvider{}, nil
+		newProvider = &ca.VaultProvider{}
+	case structs.AWSCAProvider:
+		newProvider = &ca.AWSProvider{}
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
+
+	// If the provider implements the `NeedsLogger` interface, pass it our logger.
+	if needsLogger, ok := newProvider.(ca.NeedsLogger); ok {
+		needsLogger.SetLogger(s.logger)
+	}
+
+	commonConfig, err := conf.GetCommonConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving common config: %s", err)
+	}
+
+	// If the provider is configured with a LeafCertTTL less than the provider's
+	// permissible minimum, warn the user but proceed.
+	if commonConfig.LeafCertTTL < newProvider.MinLifetime() {
+		s.logger.Printf("[WARN] configured LeafCertTTL value %v is below provider minimum of %v",
+			commonConfig.LeafCertTTL, newProvider.MinLifetime())
+	}
+
+	return newProvider, nil
 }
 
 func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
@@ -221,6 +265,21 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	}
 	rootCA.PrivateKeyType = commonConfig.PrivateKeyType
 	rootCA.PrivateKeyBits = commonConfig.PrivateKeyBits
+
+	interPEM, err := provider.GenerateIntermediate()
+	if err != nil {
+		return fmt.Errorf("error getting intermediate cert: %v", err)
+	}
+
+	interCA, err := parseCAIntermediate(interPEM, conf.Provider, conf.ClusterID)
+	if err != nil {
+		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+
+	if interCA.ID != rootCA.ID {
+		//rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+		rootCA.SigningKeyID = interCA.SigningKeyID
+	}
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
