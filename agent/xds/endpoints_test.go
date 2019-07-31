@@ -254,6 +254,26 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGatewayTriggered,
+			setup:  nil,
+		},
+		{
 			name:   "splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,

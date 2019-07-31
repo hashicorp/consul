@@ -60,6 +60,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 				ServiceName:            args.Name,
 				CurrentNamespace:       evalNS,
 				CurrentDatacenter:      evalDC,
+				UseInDatacenter:        c.srv.config.Datacenter,
 				OverrideMeshGateway:    args.OverrideMeshGateway,
 				OverrideProtocol:       args.OverrideProtocol,
 				OverrideConnectTimeout: args.OverrideConnectTimeout,

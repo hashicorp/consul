@@ -3,11 +3,11 @@
 load helpers
 
 @test "s2 proxy is running correct version" {
-  assert_envoy_version 19001
+  assert_envoy_version 19002
 }
 
-@test "s2 proxy admin is up on :19001" {
-  retry_default curl -f -s localhost:19001/stats -o /dev/null
+@test "s2 proxy admin is up on :19002" {
+  retry_default curl -f -s localhost:19002/stats -o /dev/null
 }
 
 @test "gateway-secondary proxy admin is up on :19003" {

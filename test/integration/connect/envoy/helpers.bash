@@ -246,7 +246,8 @@ function assert_envoy_metric {
 
 function get_healthy_service_count {
   local SERVICE_NAME=$1
-  run retry_default curl -s -f 127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?passing
+  local DC=$2
+  run retry_default curl -s -f "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
@@ -254,8 +255,9 @@ function get_healthy_service_count {
 function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
+  local DC=${3:-primary}
 
-  GOT_COUNT=$(get_healthy_service_count $SERVICE_NAME)
+  GOT_COUNT=$(get_healthy_service_count $SERVICE_NAME $DC)
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
@@ -263,8 +265,9 @@ function assert_service_has_healthy_instances_once {
 function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
+  local DC=${3:-primary}
 
-  run retry_long assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT
+  run retry_long assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT $DC
   [ "$status" -eq 0 ]
 }
 
@@ -444,7 +447,9 @@ function assert_expected_fortio_name {
   local EXPECT_NAME=$1
 
   GOT=$(get_upstream_fortio_name)
-  echo "GOT $GOT"
 
-  [ "$GOT" == "FORTIO_NAME=${EXPECT_NAME}" ]
+  if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
+    echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
+    return 1
+  fi
 }

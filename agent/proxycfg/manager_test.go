@@ -46,7 +46,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	roots, leaf := TestCerts(t)
 
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1",
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", "dc1",
 			func(req *discoverychain.CompileRequest) {
 				// This is because structs.TestUpstreams uses an opaque config
 				// to override connect timeouts.
@@ -59,7 +59,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		)
 	}
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1",
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", "dc1",
 			func(req *discoverychain.CompileRequest) {
 				// This is because structs.TestUpstreams uses an opaque config
 				// to override connect timeouts.
@@ -201,6 +201,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							"db.default.dc1": TestUpstreamNodes(t),
 						},
 					},
+					WatchedGateways: nil, // Clone() clears this out
+					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
+						"db": {},
+					},
 					UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
 				},
 				Datacenter: "dc1",
@@ -240,6 +244,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 							"v1.db.default.dc1": TestUpstreamNodes(t),
 							"v2.db.default.dc1": TestUpstreamNodesAlternate(t),
 						},
+					},
+					WatchedGateways: nil, // Clone() clears this out
+					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
+						"db": {},
 					},
 					UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
 				},

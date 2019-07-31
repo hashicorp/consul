@@ -12,8 +12,9 @@ import (
 
 type CompileRequest struct {
 	ServiceName       string
-	CurrentNamespace  string
-	CurrentDatacenter string
+	CurrentNamespace  string // TODO(rb): rename to EvaluateInDatacenter
+	CurrentDatacenter string // TODO(rb): rename to EvaluateInNamespace
+	UseInDatacenter   string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
 	// resolver in the compiled chain.
@@ -55,6 +56,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		serviceName       = req.ServiceName
 		currentNamespace  = req.CurrentNamespace
 		currentDatacenter = req.CurrentDatacenter
+		useInDatacenter   = req.UseInDatacenter
 		entries           = req.Entries
 	)
 	if serviceName == "" {
@@ -66,6 +68,9 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	if currentDatacenter == "" {
 		return nil, fmt.Errorf("currentDatacenter is required")
 	}
+	if useInDatacenter == "" {
+		return nil, fmt.Errorf("useInDatacenter is required")
+	}
 	if entries == nil {
 		return nil, fmt.Errorf("entries is required")
 	}
@@ -74,6 +79,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		serviceName:            serviceName,
 		currentNamespace:       currentNamespace,
 		currentDatacenter:      currentDatacenter,
+		useInDatacenter:        useInDatacenter,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
@@ -108,6 +114,7 @@ type compiler struct {
 	serviceName            string
 	currentNamespace       string
 	currentDatacenter      string
+	useInDatacenter        string
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
 	overrideConnectTimeout time.Duration
@@ -250,8 +257,20 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	for targetID, _ := range c.loadedTargets {
-		if _, ok := c.retainedTargets[targetID]; !ok {
+	for targetID, target := range c.loadedTargets {
+		if _, ok := c.retainedTargets[targetID]; ok {
+			// Flip mesh gateway modes back to none if sharing a datacenter.
+			// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
+
+			meshGateway := structs.MeshGatewayModeDefault
+			if target.Datacenter != c.useInDatacenter {
+				meshGateway = target.MeshGateway.Mode
+			}
+
+			if meshGateway != target.MeshGateway.Mode {
+				target.MeshGateway.Mode = meshGateway
+			}
+		} else {
 			delete(c.loadedTargets, targetID)
 		}
 	}

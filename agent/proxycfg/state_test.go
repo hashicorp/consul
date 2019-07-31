@@ -420,7 +420,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				cache.UpdateEvent{
 					CorrelationID: "discovery-chain:api",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1", "dc1",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
 							}),
@@ -430,7 +430,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				cache.UpdateEvent{
 					CorrelationID: "discovery-chain:api-failover-remote?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "dc2",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "dc2", "dc1",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeRemote
 							}),
@@ -440,7 +440,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				cache.UpdateEvent{
 					CorrelationID: "discovery-chain:api-failover-local?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "dc2",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "dc2", "dc1",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
 							}),
@@ -450,7 +450,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				cache.UpdateEvent{
 					CorrelationID: "discovery-chain:api-failover-direct?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "dc2",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "dc2", "dc1",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeNone
 							}),
@@ -460,7 +460,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				cache.UpdateEvent{
 					CorrelationID: "discovery-chain:api-dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "dc1", "dc1",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
 							},
@@ -482,16 +482,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		stage1 := verificationStage{
 			requiredWatches: map[string]verifyWatchRequest{
 				"upstream-target:api.default.dc1:api":                                        genVerifyServiceWatch("api", "", "dc1", true),
-				"upstream-target:api-failover-remote.default.dc2:api-failover-remote?dc=dc2": genVerifyGatewayWatch("dc2"),
-				"upstream-target:api-failover-local.default.dc2:api-failover-local?dc=dc2":   genVerifyGatewayWatch("dc1"),
+				"upstream-target:api-failover-remote.default.dc2:api-failover-remote?dc=dc2": genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
+				"upstream-target:api-failover-local.default.dc2:api-failover-local?dc=dc2":   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
 				"upstream-target:api-failover-direct.default.dc2:api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
+				"mesh-gateway:dc2:api-failover-remote?dc=dc2":                                genVerifyGatewayWatch("dc2"),
+				"mesh-gateway:dc1:api-failover-local?dc=dc2":                                 genVerifyGatewayWatch("dc1"),
 			},
 		}
 
-		if meshGatewayProxyConfigValue == structs.MeshGatewayModeDefault {
-			stage1.requiredWatches["upstream-target:api.default.dc2:api-dc2"] = genVerifyServiceWatch("api", "", "dc2", true)
-		} else {
-			stage1.requiredWatches["upstream-target:api.default.dc2:api-dc2"] = genVerifyGatewayWatch("dc1")
+		if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
+			stage1.requiredWatches["mesh-gateway:dc1:api-dc2"] = genVerifyGatewayWatch("dc1")
 		}
 
 		return testCase{

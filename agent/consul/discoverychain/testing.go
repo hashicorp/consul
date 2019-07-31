@@ -11,6 +11,7 @@ func TestCompileConfigEntries(
 	serviceName string,
 	currentNamespace string,
 	currentDatacenter string,
+	useInDatacenter string,
 	setup func(req *CompileRequest),
 	entries ...structs.ConfigEntry,
 ) *structs.CompiledDiscoveryChain {
@@ -22,6 +23,7 @@ func TestCompileConfigEntries(
 		ServiceName:       serviceName,
 		CurrentNamespace:  currentNamespace,
 		CurrentDatacenter: currentDatacenter,
+		UseInDatacenter:   useInDatacenter,
 		Entries:           set,
 	}
 	if setup != nil {

@@ -48,7 +48,7 @@ load helpers
 }
 
 @test "s1 proxy should be adding cluster name as a tag" {
-  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:1a47f6e1_s2(,|$)' primary
+  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:s2(,|$)' primary
 
   echo "OUTPUT: $output"
 
