@@ -40,7 +40,10 @@ func main() {
 			o, err = owners(p, o)
 			return err
 		})
-
+	if err != nil {
+		log.Fatal(err)
+	}
+	
 	// sort it and format it
 	list := []string{}
 	for k := range o {
