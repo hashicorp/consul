@@ -658,11 +658,3 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 
 	return buf.String(), nil
 }
-
-func (c *ConsulProvider) SupportsCrossSigning() bool {
-	return true
-}
-
-func (c *ConsulProvider) MinLifetime() time.Duration {
-	return 1 * time.Hour
-}

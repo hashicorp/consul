@@ -3,9 +3,6 @@ package plugin
 import (
 	"crypto/x509"
 	"net/rpc"
-	"time"
-
-	"github.com/gogo/protobuf/types"
 
 	"github.com/hashicorp/consul/agent/connect/ca"
 )
@@ -81,17 +78,6 @@ func (p *providerPluginRPCServer) CrossSignCA(args *CrossSignCARequest, resp *Cr
 
 	resp.CrtPem, err = p.impl.CrossSignCA(crt)
 	return err
-}
-
-func (p *providerPluginRPCServer) SupportsCrossSigning(_ struct{}, resp *SupportsCrossSigningResponse) error {
-	s := p.impl.SupportsCrossSigning()
-	resp.SupportsCrossSigning = s
-	return nil
-}
-
-func (p *providerPluginRPCServer) MinLifetime(_ struct{}, resp *MinLifetimeResponse) error {
-	resp.MinLifetime = types.DurationProto(p.impl.MinLifetime())
-	return nil
 }
 
 func (p *providerPluginRPCServer) Cleanup(struct{}, *struct{}) error {
@@ -175,19 +161,6 @@ func (p *providerPluginRPCClient) CrossSignCA(crt *x509.Certificate) (string, er
 		Crt: crt.Raw,
 	}, &resp)
 	return resp.CrtPem, err
-}
-
-func (p *providerPluginRPCClient) SupportsCrossSigning() bool {
-	var resp SupportsCrossSigningResponse
-	_ = p.client.Call("Plugin.SupportsCrossSigning", struct{}{}, &resp)
-	return resp.SupportsCrossSigning
-}
-
-func (p *providerPluginRPCClient) MinLifetime() time.Duration {
-	var resp MinLifetimeResponse
-	_ = p.client.Call("Plugin.MinLifetime", struct{}{}, &resp)
-	min, _ := types.DurationFromProto(resp.MinLifetime)
-	return min
 }
 
 func (p *providerPluginRPCClient) Cleanup() error {

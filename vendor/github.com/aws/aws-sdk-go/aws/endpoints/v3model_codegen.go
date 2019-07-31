@@ -16,10 +16,6 @@ import (
 type CodeGenOptions struct {
 	// Options for how the model will be decoded.
 	DecodeModelOptions DecodeModelOptions
-
-	// Disables code generation of the service endpoint prefix IDs defined in
-	// the model.
-	DisableGenerateServiceIDs bool
 }
 
 // Set combines all of the option functions together
@@ -43,16 +39,8 @@ func CodeGenModel(modelFile io.Reader, outFile io.Writer, optFns ...func(*CodeGe
 		return err
 	}
 
-	v := struct {
-		Resolver
-		CodeGenOptions
-	}{
-		Resolver:       resolver,
-		CodeGenOptions: opts,
-	}
-
 	tmpl := template.Must(template.New("tmpl").Funcs(funcMap).Parse(v3Tmpl))
-	if err := tmpl.ExecuteTemplate(outFile, "defaults", v); err != nil {
+	if err := tmpl.ExecuteTemplate(outFile, "defaults", resolver); err != nil {
 		return fmt.Errorf("failed to execute template, %v", err)
 	}
 
@@ -178,17 +166,15 @@ import (
 	"regexp"
 )
 
-	{{ template "partition consts" $.Resolver }}
+	{{ template "partition consts" . }}
 
-	{{ range $_, $partition := $.Resolver }}
+	{{ range $_, $partition := . }}
 		{{ template "partition region consts" $partition }}
 	{{ end }}
 
-	{{ if not $.DisableGenerateServiceIDs -}}
-	{{ template "service consts" $.Resolver }}
-	{{- end }}
+	{{ template "service consts" . }}
 	
-	{{ template "endpoint resolvers" $.Resolver }}
+	{{ template "endpoint resolvers" . }}
 {{- end }}
 
 {{ define "partition consts" }}

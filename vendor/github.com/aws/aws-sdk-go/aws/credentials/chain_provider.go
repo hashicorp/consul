@@ -9,7 +9,9 @@ var (
 	// providers in the ChainProvider.
 	//
 	// This has been deprecated. For verbose error messaging set
-	// aws.Config.CredentialsChainVerboseErrors to true.
+	// aws.Config.CredentialsChainVerboseErrors to true
+	//
+	// @readonly
 	ErrNoValidProvidersFoundInChain = awserr.New("NoCredentialProviders",
 		`no valid providers in chain. Deprecated.
 	For verbose messaging see aws.Config.CredentialsChainVerboseErrors`,
