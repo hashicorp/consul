@@ -72,7 +72,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	z.RLock()
 	exp := z.Expired
 	z.RUnlock()
-	if exp != nil && *exp {
+	if exp {
 		log.Errorf("Zone %s is expired", zone)
 		return dns.RcodeServerFailure, nil
 	}

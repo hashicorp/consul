@@ -19,7 +19,7 @@ import (
 	"github.com/miekg/dns"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	// Pull this in for logtostderr flag parsing
+	// Pull this in setting klog's output to stdout
 	"k8s.io/klog"
 
 	// Excluding azure because it is failing to compile
@@ -35,8 +35,6 @@ import (
 var log = clog.NewWithPlugin("kubernetes")
 
 func init() {
-	klog.SetOutput(os.Stdout)
-
 	caddy.RegisterPlugin("kubernetes", caddy.Plugin{
 		ServerType: "dns",
 		Action:     setup,
@@ -44,6 +42,8 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
+	klog.SetOutput(os.Stdout)
+
 	k, err := kubernetesParse(c)
 	if err != nil {
 		return plugin.Error("kubernetes", err)

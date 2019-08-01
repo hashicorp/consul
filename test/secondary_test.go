@@ -73,13 +73,13 @@ func TestSecondaryZoneTransfer(t *testing.T) {
 	var r *dns.Msg
 	// This is now async; we we need to wait for it to be transferred.
 	for i := 0; i < 10; i++ {
-		r, _ = dns.Exchange(m, udp)
-		if len(r.Answer) == 0 {
+		r, err = dns.Exchange(m, udp)
+		if len(r.Answer) != 0 {
 			break
 		}
 		time.Sleep(100 * time.Microsecond)
 	}
-	if len(r.Answer) != 0 {
+	if len(r.Answer) == 0 {
 		t.Fatalf("Expected answer section")
 	}
 }

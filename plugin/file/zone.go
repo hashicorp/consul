@@ -22,7 +22,7 @@ type Zone struct {
 	file    string
 	*tree.Tree
 	Apex
-	Expired *bool
+	Expired bool
 
 	sync.RWMutex
 
@@ -46,16 +46,13 @@ type Apex struct {
 
 // NewZone returns a new zone.
 func NewZone(name, file string) *Zone {
-	z := &Zone{
+	return &Zone{
 		origin:         dns.Fqdn(name),
 		origLen:        dns.CountLabel(dns.Fqdn(name)),
 		file:           filepath.Clean(file),
 		Tree:           &tree.Tree{},
-		Expired:        new(bool),
 		reloadShutdown: make(chan bool),
 	}
-	*z.Expired = false
-	return z
 }
 
 // Copy copies a zone.

@@ -125,7 +125,6 @@ func TestTransferIn(t *testing.T) {
 	defer s.Shutdown()
 
 	z := new(Zone)
-	z.Expired = new(bool)
 	z.origin = testZone
 	z.TransferFrom = []string{addrstr}
 
@@ -140,7 +139,6 @@ func TestTransferIn(t *testing.T) {
 
 func TestIsNotify(t *testing.T) {
 	z := new(Zone)
-	z.Expired = new(bool)
 	z.origin = testZone
 	state := newRequest(testZone, dns.TypeSOA)
 	// need to set opcode
