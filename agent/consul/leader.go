@@ -953,7 +953,13 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
-			if _, err = s.raftApply(structs.ConfigEntryRequestType, &req); err != nil {
+			resp, err := s.raftApply(structs.ConfigEntryRequestType, &req)
+			if err == nil {
+				if respErr, ok := resp.(error); ok {
+					err = respErr
+				}
+			}
+			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
 			}
 		}
