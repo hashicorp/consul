@@ -259,7 +259,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
 		c := &envoy.Cluster{
 			Name:                 clusterName,
-			AltStatName:          sni,
+			AltStatName:          clusterName,
 			ConnectTimeout:       groupResolver.ConnectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
