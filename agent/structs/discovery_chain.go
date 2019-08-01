@@ -111,11 +111,10 @@ func (s *DiscoveryGraphNode) MapKey() string {
 
 // compiled form of ServiceResolverConfigEntry
 type DiscoveryResolver struct {
-	Definition     *ServiceResolverConfigEntry `json:",omitempty"`
-	Default        bool                        `json:",omitempty"`
-	ConnectTimeout time.Duration               `json:",omitempty"`
-	Target         DiscoveryTarget             `json:",omitempty"`
-	Failover       *DiscoveryFailover          `json:",omitempty"`
+	Default        bool               `json:",omitempty"`
+	ConnectTimeout time.Duration      `json:",omitempty"`
+	Target         DiscoveryTarget    `json:",omitempty"`
+	Failover       *DiscoveryFailover `json:",omitempty"`
 }
 
 type DiscoveryTargetConfig struct {
@@ -137,8 +136,7 @@ type DiscoverySplit struct {
 
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
-	Definition *ServiceResolverFailover `json:",omitempty"`
-	Targets    []DiscoveryTarget        `json:",omitempty"`
+	Targets []DiscoveryTarget `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver

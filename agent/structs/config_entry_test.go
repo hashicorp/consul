@@ -424,7 +424,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						service_subset = "sure"
 						namespace = "neighbor"
 						datacenters = ["dc5", "dc14"]
-						overprovisioning_factor = 150
 					},
 					"*" = {
 						datacenters = ["dc7"]
@@ -450,7 +449,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						ServiceSubset = "sure"
 						Namespace = "neighbor"
 						Datacenters = ["dc5", "dc14"]
-						OverprovisioningFactor = 150
 					},
 					"*" = {
 						Datacenters = ["dc7"]
@@ -472,11 +470,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"v2": {
-						Service:                "failcopy",
-						ServiceSubset:          "sure",
-						Namespace:              "neighbor",
-						Datacenters:            []string{"dc5", "dc14"},
-						OverprovisioningFactor: 150,
+						Service:       "failcopy",
+						ServiceSubset: "sure",
+						Namespace:     "neighbor",
+						Datacenters:   []string{"dc5", "dc14"},
 					},
 					"*": {
 						Datacenters: []string{"dc7"},

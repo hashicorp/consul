@@ -16,7 +16,6 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 	typ := &CompiledDiscoveryChain{RPC: rpc}
 
 	// just do the default chain
-	entries := structs.NewDiscoveryChainConfigEntries()
 	chain := discoverychain.TestCompileConfigEntries(t, "web", "default", "dc1", nil)
 
 	// Expect the proper RPC call. This also sets the expected value
@@ -31,7 +30,6 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 
 			reply := args.Get(2).(*structs.DiscoveryChainResponse)
 			reply.Chain = chain
-			reply.Entries = entries.Flatten()
 			reply.QueryMeta.Index = 48
 			resp = reply
 		})

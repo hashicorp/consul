@@ -96,11 +96,10 @@ func Test_makeLoadAssignment(t *testing.T) {
 
 	// TODO(rb): test onlypassing
 	tests := []struct {
-		name                   string
-		clusterName            string
-		overprovisioningFactor int
-		endpoints              []loadAssignmentEndpointGroup
-		want                   *envoy.ClusterLoadAssignment
+		name        string
+		clusterName string
+		endpoints   []loadAssignmentEndpointGroup
+		want        *envoy.ClusterLoadAssignment
 	}{
 		{
 			name:        "no instances",
@@ -210,7 +209,6 @@ func Test_makeLoadAssignment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeLoadAssignment(
 				tt.clusterName,
-				tt.overprovisioningFactor,
 				tt.endpoints,
 				"dc1",
 			)
@@ -254,24 +252,6 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "connect-proxy-with-chain-and-failover",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-chain-and-sliding-failover",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				chain := snap.ConnectProxy.DiscoveryChain["db"]
-
-				dbTarget := structs.DiscoveryTarget{
-					Service:    "db",
-					Namespace:  "default",
-					Datacenter: "dc1",
-				}
-				dbResolverNode := chain.Nodes["resolver:"+dbTarget.Identifier()]
-
-				failover := dbResolverNode.Resolver.Failover
-
-				failover.Definition.OverprovisioningFactor = 160
-			},
 		},
 		{
 			name:   "splitter-with-resolver-redirect",

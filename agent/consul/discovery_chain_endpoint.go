@@ -20,7 +20,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 	if done, err := c.srv.forward("DiscoveryChain.Get", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"discoverychain", "get"}, time.Now())
+	defer metrics.MeasureSince([]string{"discovery_chain", "get"}, time.Now())
 
 	// Fetch the ACL token, if any.
 	rule, err := c.srv.ResolveToken(args.Token)
@@ -70,7 +70,6 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			}
 
 			reply.Index = index
-			reply.Entries = entries.Flatten()
 			reply.Chain = chain
 
 			return nil

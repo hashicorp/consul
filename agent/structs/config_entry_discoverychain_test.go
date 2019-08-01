@@ -457,20 +457,6 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "failover with invalid overprovisioning factor",
-			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test",
-				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
-						Service:                "backup",
-						OverprovisioningFactor: -1,
-					},
-				},
-			},
-			validateErr: `Bad Failover["*"].OverprovisioningFactor '-1', must be >= 0`,
-		},
-		{
 			name: "failover with empty datacenters in list",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,

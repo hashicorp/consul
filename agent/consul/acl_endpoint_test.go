@@ -5255,6 +5255,22 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	return &out, nil
 }
 
+func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
+	policy, err := upsertTestPolicyWithRules(codec, masterToken, datacenter, rules)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := upsertTestToken(codec, masterToken, datacenter, func(token *structs.ACLToken) {
+		token.Policies = []structs.ACLTokenPolicyLink{{ID: policy.ID}}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
 func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
 	arg := structs.ACLTokenGetRequest{
 		TokenID:      "root",
@@ -5312,6 +5328,10 @@ func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 
 // upsertTestPolicy creates a policy for testing purposes
 func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRules(codec, masterToken, datacenter, "")
+}
+
+func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
 	// Make sure test policies can't collide
 	policyUnq, err := uuid.GenerateUUID()
 	if err != nil {
@@ -5321,7 +5341,8 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 	arg := structs.ACLPolicySetRequest{
 		Datacenter: datacenter,
 		Policy: structs.ACLPolicy{
-			Name: fmt.Sprintf("test-policy-%s", policyUnq),
+			Name:  fmt.Sprintf("test-policy-%s", policyUnq),
+			Rules: rules,
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
 	}

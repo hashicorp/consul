@@ -755,7 +755,6 @@ RESOLVE_AGAIN:
 		Type: structs.DiscoveryGraphNodeTypeResolver,
 		Name: target.Identifier(),
 		Resolver: &structs.DiscoveryResolver{
-			Definition:     resolver,
 			Default:        resolver.IsDefault(),
 			Target:         target,
 			ConnectTimeout: connectTimeout,
@@ -837,9 +836,7 @@ RESOLVE_AGAIN:
 
 			// If we filtered everything out then no point in having a failover.
 			if len(failoverTargets) > 0 {
-				df := &structs.DiscoveryFailover{
-					Definition: &failover,
-				}
+				df := &structs.DiscoveryFailover{}
 				node.Resolver.Failover = df
 
 				// Convert the targets into targets by cheating a bit and

@@ -336,11 +336,10 @@ func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, tran
 			}, nil
 	case ServiceResolver:
 		return nil, map[string]string{
-			"connect_timeout":         "connecttimeout",
-			"default_subset":          "defaultsubset",
-			"only_passing":            "onlypassing",
-			"overprovisioning_factor": "overprovisioningfactor",
-			"service_subset":          "servicesubset",
+			"connect_timeout": "connecttimeout",
+			"default_subset":  "defaultsubset",
+			"only_passing":    "onlypassing",
+			"service_subset":  "servicesubset",
 		}, nil
 	default:
 		return nil, nil, fmt.Errorf("kind %q should be explicitly handled here", kind)

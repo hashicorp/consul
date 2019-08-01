@@ -9,43 +9,44 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *HTTPServer) ConnectDiscoveryChainGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	switch req.Method {
+	case "GET", "POST":
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST"}}
+	}
+
 	var args structs.DiscoveryChainRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
 
-	args.Name = strings.TrimPrefix(req.URL.Path, "/v1/connect/discovery-chain/")
+	args.Name = strings.TrimPrefix(req.URL.Path, "/v1/discovery-chain/")
 	if args.Name == "" {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Missing chain name")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Missing chain name"}
 	}
 
-	args.EvaluateInDatacenter = req.URL.Query().Get("eval_dc")
-	// TODO(namespaces): args.EvaluateInNamespace = req.URL.Query().Get("eval_namespace")
+	args.EvaluateInDatacenter = req.URL.Query().Get("compile-dc")
+	// TODO(namespaces): args.EvaluateInNamespace = req.URL.Query().Get("compile-namespace")
 
-	overrideMeshGatewayMode := req.URL.Query().Get("override_mesh_gateway_mode")
-	if overrideMeshGatewayMode != "" {
-		mode, err := structs.ValidateMeshGatewayMode(overrideMeshGatewayMode)
-		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Invalid override_mesh_gateway_mode parameter")
-			return nil, nil
+	if req.Method == "POST" {
+		var apiReq discoveryChainReadRequest
+		if err := decodeBody(req, &apiReq, nil); err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 		}
-		args.OverrideMeshGateway.Mode = mode
-	}
 
-	args.OverrideProtocol = req.URL.Query().Get("override_protocol")
-	overrideTimeoutString := req.URL.Query().Get("override_connect_timeout")
-	if overrideTimeoutString != "" {
-		d, err := time.ParseDuration(overrideTimeoutString)
-		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(resp, "Invalid override_connect_timeout parameter")
-			return nil, nil
+		args.OverrideProtocol = apiReq.OverrideProtocol
+		args.OverrideConnectTimeout = apiReq.OverrideConnectTimeout
+
+		if apiReq.OverrideMeshGateway.Mode != "" {
+			_, err := structs.ValidateMeshGatewayMode(string(apiReq.OverrideMeshGateway.Mode))
+			if err != nil {
+				resp.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(resp, "Invalid OverrideMeshGateway.Mode parameter")
+				return nil, nil
+			}
+			args.OverrideMeshGateway = apiReq.OverrideMeshGateway
 		}
-		args.OverrideConnectTimeout = d
 	}
 
 	// Make the RPC request
@@ -56,15 +57,17 @@ func (s *HTTPServer) ConnectDiscoveryChainGet(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 
-	apiOut := apiDiscoveryChainResponse{
-		Chain:   out.Chain,
-		Entries: out.Entries,
-	}
-
-	return apiOut, nil
+	return discoveryChainReadResponse{Chain: out.Chain}, nil
 }
 
-type apiDiscoveryChainResponse struct {
-	Chain   *structs.CompiledDiscoveryChain
-	Entries []structs.ConfigEntry
+// discoveryChainReadRequest is the API variation of structs.DiscoveryChainRequest
+type discoveryChainReadRequest struct {
+	OverrideMeshGateway    structs.MeshGatewayConfig
+	OverrideProtocol       string
+	OverrideConnectTimeout time.Duration
+}
+
+// discoveryChainReadResponse is the API variation of structs.DiscoveryChainResponse
+type discoveryChainReadResponse struct {
+	Chain *structs.CompiledDiscoveryChain
 }
