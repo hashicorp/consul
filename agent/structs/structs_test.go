@@ -582,7 +582,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 					},
 					{
 						DestinationType:  UpstreamDestTypeService,
-						DestinationName:  "foo",
+						DestinationName:  "bar",
 						LocalBindAddress: "127.0.0.2",
 						LocalBindPort:    5000,
 					},
