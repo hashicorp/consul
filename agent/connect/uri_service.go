@@ -7,8 +7,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// SpiffeIDService is the structure to represent the SPIFFE ID for a service.
-type SpiffeIDService struct {
+// SpiffeIDConsulService is the structure to represent the SPIFFE ID for a
+// Consul service (in contrast to the ID for an external service).
+type SpiffeIDConsulService struct {
 	Host       string
 	Namespace  string
 	Datacenter string
@@ -16,7 +17,7 @@ type SpiffeIDService struct {
 }
 
 // URI returns the *url.URL for this SPIFFE ID.
-func (id *SpiffeIDService) URI() *url.URL {
+func (id *SpiffeIDConsulService) URI() *url.URL {
 	var result url.URL
 	result.Scheme = "spiffe"
 	result.Host = id.Host
@@ -26,7 +27,7 @@ func (id *SpiffeIDService) URI() *url.URL {
 }
 
 // CertURI impl.
-func (id *SpiffeIDService) Authorize(ixn *structs.Intention) (bool, bool) {
+func (id *SpiffeIDConsulService) Authorize(ixn *structs.Intention) (bool, bool) {
 	if ixn.SourceNS != structs.IntentionWildcard && ixn.SourceNS != id.Namespace {
 		// Non-matching namespace
 		return false, false

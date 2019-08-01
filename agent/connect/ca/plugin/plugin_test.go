@@ -166,7 +166,7 @@ func TestProvider_Sign(t *testing.T) {
 		require := require.New(t)
 
 		// Create a CSR
-		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDService(t, "web"))
+		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDConsulService(t, "web"))
 		block, _ := pem.Decode([]byte(csrPEM))
 		csr, err := x509.ParseCertificateRequest(block.Bytes)
 		require.NoError(err)
@@ -197,7 +197,7 @@ func TestProvider_SignIntermediate(t *testing.T) {
 		require := require.New(t)
 
 		// Create a CSR
-		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDService(t, "web"))
+		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDConsulService(t, "web"))
 		block, _ := pem.Decode([]byte(csrPEM))
 		csr, err := x509.ParseCertificateRequest(block.Bytes)
 		require.NoError(err)

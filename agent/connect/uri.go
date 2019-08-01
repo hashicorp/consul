@@ -81,7 +81,7 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			}
 		}
 
-		return &SpiffeIDService{
+		return &SpiffeIDConsulService{
 			Host:       input.Host,
 			Namespace:  ns,
 			Datacenter: dc,

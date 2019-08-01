@@ -5993,7 +5993,7 @@ func TestAgentConnectAuthorize_allow(t *testing.T) {
 
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        target,
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		ClientCertURI: connect.TestSpiffeIDConsulService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
@@ -6090,7 +6090,7 @@ func TestAgentConnectAuthorize_deny(t *testing.T) {
 
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        target,
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		ClientCertURI: connect.TestSpiffeIDConsulService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 	resp := httptest.NewRecorder()
@@ -6204,7 +6204,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	{
 		args := &structs.ConnectAuthorizeRequest{
 			Target:        target,
-			ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+			ClientCertURI: connect.TestSpiffeIDConsulService(t, "web").URI().String(),
 		}
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
@@ -6221,7 +6221,7 @@ func TestAgentConnectAuthorize_denyWildcard(t *testing.T) {
 	{
 		args := &structs.ConnectAuthorizeRequest{
 			Target:        target,
-			ClientCertURI: connect.TestSpiffeIDService(t, "api").URI().String(),
+			ClientCertURI: connect.TestSpiffeIDConsulService(t, "api").URI().String(),
 		}
 		req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
 		resp := httptest.NewRecorder()
@@ -6264,7 +6264,7 @@ func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        "foo",
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		ClientCertURI: connect.TestSpiffeIDConsulService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST",
 		"/v1/agent/connect/authorize?token="+token, jsonReader(args))
@@ -6284,7 +6284,7 @@ func TestAgentConnectAuthorize_defaultDeny(t *testing.T) {
 
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        "foo",
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		ClientCertURI: connect.TestSpiffeIDConsulService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
@@ -6316,7 +6316,7 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 
 	args := &structs.ConnectAuthorizeRequest{
 		Target:        "foo",
-		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
+		ClientCertURI: connect.TestSpiffeIDConsulService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()

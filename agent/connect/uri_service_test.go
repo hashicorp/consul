@@ -9,7 +9,7 @@ import (
 
 func TestSpiffeIDServiceAuthorize(t *testing.T) {
 	ns := structs.IntentionDefaultNamespace
-	serviceWeb := &SpiffeIDService{
+	serviceWeb := &SpiffeIDConsulService{
 		Host:       "1234.consul",
 		Namespace:  structs.IntentionDefaultNamespace,
 		Datacenter: "dc01",
@@ -18,7 +18,7 @@ func TestSpiffeIDServiceAuthorize(t *testing.T) {
 
 	cases := []struct {
 		Name  string
-		URI   *SpiffeIDService
+		URI   *SpiffeIDConsulService
 		Ixn   *structs.Intention
 		Auth  bool
 		Match bool

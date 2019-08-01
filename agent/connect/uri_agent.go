@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// SpiffeIDService is the structure to represent the SPIFFE ID for an agent.
+// SpiffeIDAgent is the structure to represent the SPIFFE ID for an agent.
 type SpiffeIDAgent struct {
 	Host       string
 	Datacenter string

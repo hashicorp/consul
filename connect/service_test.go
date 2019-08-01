@@ -96,7 +96,7 @@ func TestService_Dial(t *testing.T) {
 			// Always expect to be connecting to a "DB"
 			resolver := &StaticResolver{
 				Addr:    testSvr.Addr,
-				CertURI: connect.TestSpiffeIDService(t, "db"),
+				CertURI: connect.TestSpiffeIDConsulService(t, "db"),
 			}
 
 			// All test runs should complete in under 500ms due to the timeout about.
@@ -233,7 +233,7 @@ func TestService_HTTPClient(t *testing.T) {
 			//require.Equal("https://backend.service.consul:443", addr)
 			return &StaticResolver{
 				Addr:    testSvr.Addr,
-				CertURI: connect.TestSpiffeIDService(t, "backend"),
+				CertURI: connect.TestSpiffeIDConsulService(t, "backend"),
 			}, nil
 		}
 

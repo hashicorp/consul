@@ -130,7 +130,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
-	spiffeService := &connect.SpiffeIDService{
+	spiffeService := &connect.SpiffeIDConsulService{
 		Host:       "node1",
 		Namespace:  "default",
 		Datacenter: "dc1",
@@ -268,7 +268,7 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 	require.Equal(oldRoot.Issuer.CommonName, xc.Issuer.CommonName)
 
 	// Get a leaf cert so we can verify against the cross-signed cert.
-	spiffeService := &connect.SpiffeIDService{
+	spiffeService := &connect.SpiffeIDConsulService{
 		Host:       "node1",
 		Namespace:  "default",
 		Datacenter: "dc1",
@@ -341,7 +341,7 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	require.NoError(provider2.SetIntermediate(intermediatePEM, rootPEM))
 
 	// Have provider2 sign a leaf cert and make sure the chain is correct.
-	spiffeService := &connect.SpiffeIDService{
+	spiffeService := &connect.SpiffeIDConsulService{
 		Host:       "node1",
 		Namespace:  "default",
 		Datacenter: "dc1",

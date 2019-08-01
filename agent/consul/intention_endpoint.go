@@ -287,7 +287,7 @@ func (s *Intention) Check(
 	var uri connect.CertURI
 	switch query.SourceType {
 	case structs.IntentionSourceConsul:
-		uri = &connect.SpiffeIDService{
+		uri = &connect.SpiffeIDConsulService{
 			Namespace: query.SourceNS,
 			Service:   query.SourceName,
 		}

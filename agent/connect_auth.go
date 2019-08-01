@@ -45,7 +45,7 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(BadRequestError{"ClientCertURI not a valid Connect identifier"})
 	}
 
-	uriService, ok := uri.(*connect.SpiffeIDService)
+	uriService, ok := uri.(*connect.SpiffeIDConsulService)
 	if !ok {
 		return returnErr(BadRequestError{"ClientCertURI not a valid Service identifier"})
 	}

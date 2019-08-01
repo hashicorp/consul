@@ -139,7 +139,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	require.NoError(err)
 	client.SetToken(provider.config.Token)
 
-	spiffeService := &connect.SpiffeIDService{
+	spiffeService := &connect.SpiffeIDConsulService{
 		Host:       "node1",
 		Namespace:  "default",
 		Datacenter: "dc1",

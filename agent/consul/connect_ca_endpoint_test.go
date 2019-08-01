@@ -245,7 +245,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	// Verify that new leaf certs get the cross-signed intermediate bundled
 	{
 		// Generate a CSR and request signing
-		spiffeId := connect.TestSpiffeIDService(t, "web")
+		spiffeId := connect.TestSpiffeIDConsulService(t, "web")
 		csr, _ := connect.TestCSR(t, spiffeId)
 		args := &structs.CASignRequest{
 			Datacenter: "dc1",
@@ -308,7 +308,7 @@ func TestConnectCASign(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Generate a CSR and request signing
-	spiffeId := connect.TestSpiffeIDService(t, "web")
+	spiffeId := connect.TestSpiffeIDConsulService(t, "web")
 	csr, _ := connect.TestCSR(t, spiffeId)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
@@ -318,7 +318,7 @@ func TestConnectCASign(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
 
 	// Generate a second CSR and request signing
-	spiffeId2 := connect.TestSpiffeIDService(t, "web2")
+	spiffeId2 := connect.TestSpiffeIDConsulService(t, "web2")
 	csr, _ = connect.TestCSR(t, spiffeId2)
 	args = &structs.CASignRequest{
 		Datacenter: "dc1",
@@ -365,7 +365,7 @@ func BenchmarkConnectCASign(b *testing.B) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Generate a CSR and request signing
-	spiffeID := connect.TestSpiffeIDService(b, "web")
+	spiffeID := connect.TestSpiffeIDConsulService(b, "web")
 	csr, _ := connect.TestCSR(b, spiffeID)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
@@ -405,7 +405,7 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Generate a CSR and request signing a few times in a loop.
-	spiffeID := connect.TestSpiffeIDService(t, "web")
+	spiffeID := connect.TestSpiffeIDConsulService(t, "web")
 	csr, _ := connect.TestCSR(t, spiffeID)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
@@ -459,7 +459,7 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Generate a CSR and request signing a few times in a loop.
-	spiffeID := connect.TestSpiffeIDService(t, "web")
+	spiffeID := connect.TestSpiffeIDConsulService(t, "web")
 	csr, _ := connect.TestCSR(t, spiffeID)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
@@ -579,7 +579,7 @@ func TestConnectCASignValidation(t *testing.T) {
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &webToken))
 	}
 
-	testWebID := connect.TestSpiffeIDService(t, "web")
+	testWebID := connect.TestSpiffeIDConsulService(t, "web")
 
 	tests := []struct {
 		name    string
@@ -588,7 +588,7 @@ func TestConnectCASignValidation(t *testing.T) {
 	}{
 		{
 			name: "different cluster",
-			id: &connect.SpiffeIDService{
+			id: &connect.SpiffeIDConsulService{
 				Host:       "55555555-4444-3333-2222-111111111111.consul",
 				Namespace:  testWebID.Namespace,
 				Datacenter: testWebID.Datacenter,
@@ -603,7 +603,7 @@ func TestConnectCASignValidation(t *testing.T) {
 		},
 		{
 			name: "same cluster, CSR for a different DC should NOT validate",
-			id: &connect.SpiffeIDService{
+			id: &connect.SpiffeIDConsulService{
 				Host:       testWebID.Host,
 				Namespace:  testWebID.Namespace,
 				Datacenter: "dc2",
@@ -613,7 +613,7 @@ func TestConnectCASignValidation(t *testing.T) {
 		},
 		{
 			name: "same cluster and DC, different service should not have perms",
-			id: &connect.SpiffeIDService{
+			id: &connect.SpiffeIDConsulService{
 				Host:       testWebID.Host,
 				Namespace:  testWebID.Namespace,
 				Datacenter: testWebID.Datacenter,

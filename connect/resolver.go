@@ -149,7 +149,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 	}
 
 	// Generate the expected CertURI
-	certURI := &connect.SpiffeIDService{
+	certURI := &connect.SpiffeIDConsulService{
 		// No host since we don't validate trust domain here (we rely on x509 to
 		// prove trust).
 		Namespace:  "default",

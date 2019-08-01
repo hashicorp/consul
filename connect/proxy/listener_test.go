@@ -141,7 +141,7 @@ func TestPublicListener(t *testing.T) {
 	// cert for now.
 	conn, err := svc.Dial(context.Background(), &connect.StaticResolver{
 		Addr:    TestLocalAddr(ports[0]),
-		CertURI: agConnect.TestSpiffeIDService(t, "db"),
+		CertURI: agConnect.TestSpiffeIDConsulService(t, "db"),
 	})
 	require.NoError(t, err)
 
@@ -190,7 +190,7 @@ func TestUpstreamListener(t *testing.T) {
 	// Setup with a statuc resolver instead
 	rf := TestStaticUpstreamResolverFunc(&connect.StaticResolver{
 		Addr:    testSvr.Addr,
-		CertURI: agConnect.TestSpiffeIDService(t, "db"),
+		CertURI: agConnect.TestSpiffeIDConsulService(t, "db"),
 	})
 	l := newUpstreamListenerWithResolver(svc, cfg, rf, log.New(os.Stderr, "", log.LstdFlags))
 

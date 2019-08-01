@@ -352,7 +352,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 	subject := ""
 	switch id := spiffeId.(type) {
-	case *connect.SpiffeIDService:
+	case *connect.SpiffeIDConsulService:
 		subject = id.Service
 	case *connect.SpiffeIDAgent:
 		subject = id.Agent

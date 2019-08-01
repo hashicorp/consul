@@ -504,7 +504,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	// Build the cert uri
 	var id connect.CertURI
 	if req.Service != "" {
-		id = &connect.SpiffeIDService{
+		id = &connect.SpiffeIDConsulService{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Namespace:  "default",

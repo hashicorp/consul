@@ -449,7 +449,7 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 		return deniedResponse("Destination Principal is not a valid Connect identity")
 	}
 
-	destID, ok := dest.(*connect.SpiffeIDService)
+	destID, ok := dest.(*connect.SpiffeIDConsulService)
 	if !ok {
 		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination service ID: src=%s dest=%s",
 			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)

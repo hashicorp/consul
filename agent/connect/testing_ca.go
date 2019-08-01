@@ -145,7 +145,7 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 	}
 
 	// Build the SPIFFE ID
-	spiffeId := &SpiffeIDService{
+	spiffeId := &SpiffeIDConsulService{
 		Host:       fmt.Sprintf("%s.consul", TestClusterID),
 		Namespace:  "default",
 		Datacenter: "dc1",

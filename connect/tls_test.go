@@ -26,7 +26,7 @@ func Test_verifyServerCertMatchesURI(t *testing.T) {
 		{
 			name:     "simple match",
 			certs:    TestPeerCertificates(t, "web", ca1),
-			expected: connect.TestSpiffeIDService(t, "web"),
+			expected: connect.TestSpiffeIDConsulService(t, "web"),
 			wantErr:  false,
 		},
 		{
@@ -34,25 +34,25 @@ func Test_verifyServerCertMatchesURI(t *testing.T) {
 			// validity is enforced with x509 name constraints where needed.
 			name:     "different trust-domain allowed",
 			certs:    TestPeerCertificates(t, "web", ca1),
-			expected: connect.TestSpiffeIDServiceWithHost(t, "web", "other.consul"),
+			expected: connect.TestSpiffeIDConsulServiceWithHost(t, "web", "other.consul"),
 			wantErr:  false,
 		},
 		{
 			name:     "mismatch",
 			certs:    TestPeerCertificates(t, "web", ca1),
-			expected: connect.TestSpiffeIDService(t, "db"),
+			expected: connect.TestSpiffeIDConsulService(t, "db"),
 			wantErr:  true,
 		},
 		{
 			name:     "no certs",
 			certs:    []*x509.Certificate{},
-			expected: connect.TestSpiffeIDService(t, "db"),
+			expected: connect.TestSpiffeIDConsulService(t, "db"),
 			wantErr:  true,
 		},
 		{
 			name:     "nil certs",
 			certs:    nil,
-			expected: connect.TestSpiffeIDService(t, "db"),
+			expected: connect.TestSpiffeIDConsulService(t, "db"),
 			wantErr:  true,
 		},
 	}

@@ -168,7 +168,7 @@ func TestCheckRequest(t testing.T, source, dest string) *envoyauth.CheckRequest 
 }
 
 func makeAttributeContextPeer(t testing.T, svc string) *envoyauth.AttributeContext_Peer {
-	spiffeID := connect.TestSpiffeIDService(t, svc)
+	spiffeID := connect.TestSpiffeIDConsulService(t, svc)
 	return &envoyauth.AttributeContext_Peer{
 		// We don't care about IP for now might later though
 		Address: makeAddressPtr("10.0.0.1", 1234),

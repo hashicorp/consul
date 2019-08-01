@@ -24,7 +24,7 @@ var testCertURICases = []struct {
 	{
 		"basic service ID",
 		"spiffe://1234.consul/ns/default/dc/dc01/svc/web",
-		&SpiffeIDService{
+		&SpiffeIDConsulService{
 			Host:       "1234.consul",
 			Namespace:  "default",
 			Datacenter: "dc01",
@@ -47,7 +47,7 @@ var testCertURICases = []struct {
 	{
 		"service with URL-encoded values",
 		"spiffe://1234.consul/ns/foo%2Fbar/dc/bar%2Fbaz/svc/baz%2Fqux",
-		&SpiffeIDService{
+		&SpiffeIDConsulService{
 			Host:       "1234.consul",
 			Namespace:  "foo/bar",
 			Datacenter: "bar/baz",

@@ -22,7 +22,7 @@ func TestStaticResolver_Resolve(t *testing.T) {
 	}{
 		{
 			name:   "simples",
-			fields: fields{"1.2.3.4:80", connect.TestSpiffeIDService(t, "foo")},
+			fields: fields{"1.2.3.4:80", connect.TestSpiffeIDConsulService(t, "foo")},
 		},
 	}
 	for _, tt := range tests {
@@ -126,7 +126,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			},
 			// Want empty host since we don't enforce trust domain outside of TLS and
 			// don't need to load the current one this way.
-			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
+			wantCertURI: connect.TestSpiffeIDConsulServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -139,7 +139,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			},
 			// Want empty host since we don't enforce trust domain outside of TLS and
 			// don't need to load the current one this way.
-			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "db", ""),
+			wantCertURI: connect.TestSpiffeIDConsulServiceWithHost(t, "db", ""),
 			wantErr:     false,
 		},
 		{
@@ -178,7 +178,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			},
 			// Want empty host since we don't enforce trust domain outside of TLS and
 			// don't need to load the current one this way.
-			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
+			wantCertURI: connect.TestSpiffeIDConsulServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},
@@ -190,7 +190,7 @@ func TestConsulResolver_Resolve(t *testing.T) {
 			},
 			// Want empty host since we don't enforce trust domain outside of TLS and
 			// don't need to load the current one this way.
-			wantCertURI: connect.TestSpiffeIDServiceWithHost(t, "web", ""),
+			wantCertURI: connect.TestSpiffeIDConsulServiceWithHost(t, "web", ""),
 			wantErr:     false,
 			addrs:       proxyAddrs,
 		},

@@ -423,7 +423,7 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 	signingID := connect.SpiffeIDSigningForCluster(config)
-	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
+	serviceID, isService := spiffeID.(*connect.SpiffeIDConsulService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	if !isService && !isAgent {
 		return fmt.Errorf("SPIFFE ID in CSR must be a service or agent ID")
