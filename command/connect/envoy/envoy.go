@@ -336,17 +336,17 @@ func (c *cmd) lookupGRPCPort() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	cfg, ok := self["DebugConfig"] // TODO: use string?
+	cfg, ok := self["DebugConfig"]
 	if !ok {
-		return 0, fmt.Errorf("no debug config") // TODO: error msg: what is acceptable to show to client?
+		return 0, fmt.Errorf("unexpected agent response: no debug config")
 	}
 	port, ok := cfg["GRPCPort"]
 	if !ok {
-		return 0, fmt.Errorf("no grpc port") // TODO: error msg
+		return 0, fmt.Errorf("agent does not have grpc port enabled")
 	}
 	portN, ok := port.(float64)
 	if !ok {
-		return 0, fmt.Errorf("non-float64 port number") // TODO: error msg
+		return 0, fmt.Errorf("invalid grpc port in agent response")
 	}
 
 	return int(portN), nil
