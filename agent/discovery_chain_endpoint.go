@@ -11,12 +11,6 @@ import (
 )
 
 func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	switch req.Method {
-	case "GET", "POST":
-	default:
-		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST"}}
-	}
-
 	var args structs.DiscoveryChainRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
