@@ -220,11 +220,6 @@ func (c *cmd) Run(args []string) int {
 	if c.grpcAddr == "" {
 		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
 	}
-	if c.grpcAddr == "" {
-		// This is the dev mode default and recommended production setting if
-		// enabled.
-		c.grpcAddr = "localhost:8502"
-	}
 	if c.http.Token() == "" && c.http.TokenFile() == "" {
 		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
 		// calling SetToken with empty will force that to override the
@@ -358,6 +353,21 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
 			"required")
 		return 1
+	}
+
+	// See if we need to lookup grpcAddr
+	if c.grpcAddr == "" {
+		port, err := c.lookupGRPCPort()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		}
+		if port <= 0 {
+			// This is the dev mode default and recommended production setting if
+			// enabled.
+			port = 8502
+			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
+		}
+		c.grpcAddr = fmt.Sprintf("localhost:%v", port)
 	}
 
 	// Generate config
@@ -546,6 +556,27 @@ func (c *cmd) lookupProxyIDForSidecar() (string, error) {
 
 func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
 	return proxyCmd.LookupGatewayProxy(c.client)
+}
+
+func (c *cmd) lookupGRPCPort() (int, error) {
+	self, err := c.client.Agent().Self()
+	if err != nil {
+		return 0, err
+	}
+	cfg, ok := self["DebugConfig"]
+	if !ok {
+		return 0, fmt.Errorf("unexpected agent response: no debug config")
+	}
+	port, ok := cfg["GRPCPort"]
+	if !ok {
+		return 0, fmt.Errorf("agent does not have grpc port enabled")
+	}
+	portN, ok := port.(float64)
+	if !ok {
+		return 0, fmt.Errorf("invalid grpc port in agent response")
+	}
+
+	return int(portN), nil
 }
 
 func (c *cmd) Synopsis() string {

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -67,6 +68,7 @@ func TestGenerateConfig(t *testing.T) {
 		Env         []string
 		Files       map[string]string
 		ProxyConfig map[string]interface{}
+		GRPCPort    int // only used for testing custom-configured grpc port
 		WantArgs    BootstrapTplArgs
 		WantErr     string
 	}{
@@ -216,6 +218,24 @@ func TestGenerateConfig(t *testing.T) {
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentSocket:           "/var/run/consul.sock",
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:     "grpc-addr-config",
+			Flags:    []string{"-proxy-id", "test-proxy"},
+			GRPCPort: 9999,
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "9999",
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -453,7 +473,7 @@ func TestGenerateConfig(t *testing.T) {
 
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
-			srv := httptest.NewServer(testMockAgentProxyConfig(tc.ProxyConfig))
+			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort))
 			defer srv.Close()
 
 			// Set the agent HTTP address in ENV to be our mock
@@ -499,6 +519,25 @@ func TestGenerateConfig(t *testing.T) {
 			require.Equal(string(expected), string(actual))
 		})
 	}
+}
+
+// testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
+// routing /agent/service/... requests to testMockAgentProxyConfig and
+// routing /agent/self requests to testMockAgentSelf.
+func testMockAgent(agentCfg map[string]interface{}, grpcPort int) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/agent/service") {
+			testMockAgentProxyConfig(agentCfg)(w, r)
+			return
+		}
+
+		if strings.Contains(r.URL.Path, "/agent/self") {
+			testMockAgentSelf(grpcPort)(w, r)
+			return
+		}
+
+		http.NotFound(w, r)
+	})
 }
 
 func testMockAgentProxyConfig(cfg map[string]interface{}) http.HandlerFunc {
@@ -623,4 +662,24 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 			}
 		})
 	}
+}
+
+// testMockAgentSelf returns an empty /v1/agent/self response except GRPC
+// port is filled in to match the given wantGRPCPort argument.
+func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := agent.Self{
+			DebugConfig: map[string]interface{}{
+				"GRPCPort": wantGRPCPort,
+			},
+		}
+
+		selfJSON, err := json.Marshal(resp)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(selfJSON)
+	})
 }

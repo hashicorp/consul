@@ -41,7 +41,7 @@ This means there is a gossip pool that contains all the agents for a given datac
 a few purposes: first, there is no need to configure clients with the addresses of servers;
 discovery is done automatically. Second, the work of detecting agent failures
 is not placed on the servers but is distributed. This makes failure detection much more
-scalable than naive heartbeating schemes. It also provides failure detection for the nodes; if the agent is not reachable, than the node may have experienced a failure. Thirdly, it is used as a messaging layer to notify
+scalable than naive heartbeating schemes. It also provides failure detection for the nodes; if the agent is not reachable, then the node may have experienced a failure. Thirdly, it is used as a messaging layer to notify
 when important events such as leader election take place.
 
 The servers in each datacenter are all part of a single Raft peer set. This means that
