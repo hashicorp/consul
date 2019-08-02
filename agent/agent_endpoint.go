@@ -1291,26 +1291,12 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	var qOpts structs.QueryOptions
 
 	// Store DC in the ConnectCALeafRequest but query opts separately
-	// Don't resolve a proxy token to a real token that will be
-	// done with a call to verifyProxyToken later along with
-	// other security relevant checks.
-	if done := s.parseWithoutResolvingProxyToken(resp, req, &args.Datacenter, &qOpts); done {
+	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {
 		return nil, nil
 	}
 	args.MinQueryIndex = qOpts.MinQueryIndex
 	args.MaxQueryTime = qOpts.MaxQueryTime
-
-	// Verify the proxy token. This will check both the local proxy token
-	// as well as the ACL if the token isn't local. The checks done in
-	// verifyProxyToken are still relevant because a leaf cert can be cached
-	// verifying the proxy token matches the service id or that a real
-	// acl token still is valid and has ServiceWrite is necessary or
-	// that cached cert is potentially unprotected.
-	effectiveToken, _, err := s.agent.verifyProxyToken(qOpts.Token, serviceName, "")
-	if err != nil {
-		return nil, err
-	}
-	args.Token = effectiveToken
+	args.Token = qOpts.Token
 
 	raw, m, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
 	if err != nil {

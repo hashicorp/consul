@@ -864,7 +864,7 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 // optionally resolve proxy tokens to real ACL tokens. If the token is invalid or not specified it will populate
 // the token with the agents UserToken (acl_token in the consul configuration)
 // Parsing has the following priority: ?token, X-Consul-Token and last "Authorization: Bearer "
-func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolveProxyToken bool) {
+func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
 		tok = other
@@ -892,13 +892,6 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolv
 	}
 
 	if tok != "" {
-		if resolveProxyToken {
-			if p := s.agent.resolveProxyToken(tok); p != nil {
-				*token = s.agent.State.ServiceToken(p.Proxy.TargetServiceID)
-				return
-			}
-		}
-
 		*token = tok
 		return
 	}
@@ -907,15 +900,9 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string, resolv
 }
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or
-// Authorization Bearer token header (RFC6750) and resolve proxy tokens to real ACL tokens
+// Authorization Bearer token header (RFC6750)
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
-	s.parseTokenInternal(req, token, true)
-}
-
-// parseTokenWithoutResolvingProxyToken is used to parse the ?token query param or the X-Consul-Token header
-// or Authorization Bearer header token (RFC6750) and
-func (s *HTTPServer) parseTokenWithoutResolvingProxyToken(req *http.Request, token *string) {
-	s.parseTokenInternal(req, token, false)
+	s.parseTokenInternal(req, token)
 }
 
 func sourceAddrFromRequest(req *http.Request) string {
@@ -972,9 +959,9 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 
 // parseInternal is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions, resolveProxyToken bool) bool {
+func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
-	s.parseTokenInternal(req, &b.Token, resolveProxyToken)
+	s.parseTokenInternal(req, &b.Token)
 	s.parseFilter(req, &b.Filter)
 	if s.parseConsistency(resp, req, b) {
 		return true
@@ -988,12 +975,7 @@ func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, 
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
-	return s.parseInternal(resp, req, dc, b, true)
-}
-
-// parseWithoutResolvingProxyToken is a convenience method similar to parse except that it disables resolving proxy tokens
-func (s *HTTPServer) parseWithoutResolvingProxyToken(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
-	return s.parseInternal(resp, req, dc, b, false)
+	return s.parseInternal(resp, req, dc, b)
 }
 
 func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
