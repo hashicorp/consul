@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 )
@@ -124,6 +125,58 @@ func TestDiscoveryChainRead(t *testing.T) {
 			}
 			require.Equal(t, expect, value.Chain)
 		}))
+
+		require.True(t, t.Run(method+": read default chain with cache", func(t *testing.T) {
+			var (
+				req *http.Request
+				err error
+			)
+			if method == "GET" {
+				req, err = http.NewRequest("GET", "/v1/discovery-chain/web?cached", nil)
+			} else {
+				apiReq := &discoveryChainReadRequest{}
+				req, err = http.NewRequest("POST", "/v1/discovery-chain/web?cached", jsonReader(apiReq))
+			}
+			require.NoError(t, err)
+
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.DiscoveryChainRead(resp, req)
+			require.NoError(t, err)
+
+			// The GET request primes the cache so the POST is a hit.
+			if method == "GET" {
+				// Should be a cache miss
+				require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+			} else {
+				// Should be a cache HIT now!
+				require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+			}
+
+			value := obj.(discoveryChainReadResponse)
+
+			expect := &structs.CompiledDiscoveryChain{
+				ServiceName: "web",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+				Protocol:    "tcp",
+				StartNode:   "resolver:web.default.dc1",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+						Type: structs.DiscoveryGraphNodeTypeResolver,
+						Name: "web.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Default:        true,
+							ConnectTimeout: 5 * time.Second,
+							Target:         "web.default.dc1",
+						},
+					},
+				},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+				},
+			}
+			require.Equal(t, expect, value.Chain)
+		}))
 	}
 
 	{ // Now create one config entry.
@@ -139,37 +192,35 @@ func TestDiscoveryChainRead(t *testing.T) {
 		require.True(t, out)
 	}
 
+	// Ensure background refresh works
 	require.True(t, t.Run("GET: read modified chain", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/v1/discovery-chain/web", nil)
-		require.NoError(t, err)
+		retry.Run(t, func(r *retry.R) {
+			req, err := http.NewRequest("GET", "/v1/discovery-chain/web?cached", nil)
+			r.Check(err)
 
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.DiscoveryChainRead(resp, req)
-		require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.DiscoveryChainRead(resp, req)
+			r.Check(err)
 
-		value := obj.(discoveryChainReadResponse)
+			value := obj.(discoveryChainReadResponse)
+			chain := value.Chain
 
-		expect := &structs.CompiledDiscoveryChain{
-			ServiceName: "web",
-			Namespace:   "default",
-			Datacenter:  "dc1",
-			Protocol:    "tcp",
-			StartNode:   "resolver:web.default.dc1",
-			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
-					Type: structs.DiscoveryGraphNodeTypeResolver,
-					Name: "web.default.dc1",
-					Resolver: &structs.DiscoveryResolver{
-						ConnectTimeout: 33 * time.Second,
-						Target:         "web.default.dc1",
-					},
-				},
-			},
-			Targets: map[string]*structs.DiscoveryTarget{
-				"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
-			},
-		}
-		require.Equal(t, expect, value.Chain)
+			// light comparison
+			node := chain.Nodes["resolver:web.default.dc1"]
+			if node == nil {
+				r.Fatalf("missing node")
+			}
+			if node.Resolver.Default {
+				r.Fatalf("not refreshed yet")
+			}
+
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+			if resp.Header().Get("X-Cache") != "HIT" {
+				r.Fatalf("should be a cache hit")
+			}
+		})
 	}))
 
 	// TODO(namespaces): add a test

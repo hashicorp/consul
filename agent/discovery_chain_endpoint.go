@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -53,9 +54,31 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 	var out structs.DiscoveryChainResponse
 	defer setMeta(resp, &out.QueryMeta)
 
-	if err := s.agent.RPC("DiscoveryChain.Get", &args, &out); err != nil {
-		return nil, err
+	if args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(cachetype.CompiledDiscoveryChainName, &args)
+		if err != nil {
+			return nil, err
+		}
+		defer setCacheMeta(resp, &m)
+
+		reply, ok := raw.(*structs.DiscoveryChainResponse)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		out = *reply
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("DiscoveryChain.Get", &args, &out); err != nil {
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	return discoveryChainReadResponse{Chain: out.Chain}, nil
 }
