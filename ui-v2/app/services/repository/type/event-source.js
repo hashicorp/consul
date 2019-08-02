@@ -14,7 +14,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
       type: 'message',
       data: result,
     };
-    const meta = get(event.data || {}, 'meta');
+    const meta = get(event.data || {}, 'meta') || {};
     if (typeof meta.date !== 'undefined') {
       // unload anything older than our current sync date/time
       store.peekAll(repo.getModelName()).forEach(function(item) {
