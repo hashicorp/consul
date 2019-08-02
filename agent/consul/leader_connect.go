@@ -217,7 +217,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	// Also create the intermediate CA, which is the one that actually signs leaf certs
 	interPEM, err := provider.GenerateIntermediate()
 	if err != nil {
-		return fmt.Errorf("error getting intermediate cert: %v", err)
+		return fmt.Errorf("error generating intermediate cert: %v", err)
 	}
 	_, err = connect.ParseCert(interPEM)
 	if err != nil {
