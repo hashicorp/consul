@@ -63,7 +63,7 @@ export default {
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
   kvs: create(kvs(visitable, deletable, creatable, clickable, attribute, collection)),
-  kv: create(kv(visitable, submitable, deletable, cancelable, clickable)),
+  kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(
