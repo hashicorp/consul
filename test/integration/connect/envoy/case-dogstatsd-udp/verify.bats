@@ -15,7 +15,8 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
+  # protocol is configured in an upstream override so the cluster name is customized here
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 1a47f6e1:s2.default.primary HEALTHY 1
 }
 
 @test "s1 upstream should be able to connect to s2" {
@@ -47,7 +48,7 @@ load helpers
 }
 
 @test "s1 proxy should be adding cluster name as a tag" {
-  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:s2(,|$)' primary
+  run retry_default must_match_in_statsd_logs '[#,]envoy.cluster_name:1a47f6e1_s2(,|$)' primary
 
   echo "OUTPUT: $output"
 

@@ -185,6 +185,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: nil,
 		},
 		{
+			name:   "connect-proxy-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			setup:  nil,
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 		},

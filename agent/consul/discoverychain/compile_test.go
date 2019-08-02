@@ -24,10 +24,12 @@ func TestCompile_NoEntries_NoInferDefaults(t *testing.T) {
 
 type compileTestCase struct {
 	entries *structs.DiscoveryChainConfigEntries
+	setup   func(req *CompileRequest)
 	// expect: the GroupResolverNodes map should have nil values
 	expect *structs.CompiledDiscoveryChain
 	// expectIsDefault tests behavior of CompiledDiscoveryChain.IsDefault()
 	expectIsDefault bool
+	expectCustom    bool
 	expectErr       string
 	expectGraphErr  bool
 }
@@ -72,6 +74,11 @@ func TestCompile(t *testing.T) {
 		"failover crosses protocols":       testcase_FailoverCrossesProtocols(),
 		"redirect crosses protocols":       testcase_RedirectCrossesProtocols(),
 		"redirect to missing subset":       testcase_RedirectToMissingSubset(),
+
+		// overrides
+		"resolver with protocol from override":         testcase_ResolverProtocolOverride(),
+		"resolver with protocol from override ignored": testcase_ResolverProtocolOverrideIgnored(),
+		"router ignored due to protocol override":      testcase_RouterIgnored_ResolverProtocolOverride(),
 	}
 
 	for name, tc := range cases {
@@ -93,13 +100,18 @@ func TestCompile(t *testing.T) {
 				require.NoError(t, entry.Validate())
 			}
 
-			res, err := Compile(CompileRequest{
+			req := CompileRequest{
 				ServiceName:       "main",
 				CurrentNamespace:  "default",
 				CurrentDatacenter: "dc1",
 				InferDefaults:     true,
 				Entries:           tc.entries,
-			})
+			}
+			if tc.setup != nil {
+				tc.setup(&req)
+			}
+
+			res, err := Compile(req)
 			if tc.expectErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectErr)
@@ -126,6 +138,13 @@ func TestCompile(t *testing.T) {
 					for target, _ := range res.GroupResolverNodes {
 						res.GroupResolverNodes[target] = nil
 					}
+				}
+
+				if tc.expectCustom {
+					require.NotEmpty(t, res.CustomizationHash)
+					res.CustomizationHash = ""
+				} else {
+					require.Empty(t, res.CustomizationHash)
 				}
 
 				require.Equal(t, tc.expect, res)
@@ -1882,6 +1901,122 @@ func testcase_RedirectToMissingSubset() compileTestCase {
 		entries:        entries,
 		expectErr:      `does not have a subset named "v1"`,
 		expectGraphErr: true,
+	}
+}
+
+func testcase_ResolverProtocolOverride() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "grpc")
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "http2",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+			Name: "main",
+			GroupResolver: &structs.DiscoveryGroupResolver{
+				Definition:     resolver,
+				Default:        true,
+				ConnectTimeout: 5 * time.Second,
+				Target:         newTarget("main", "", "default", "dc1"),
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"main": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTarget("main", "", "default", "dc1"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTarget("main", "", "default", "dc1"): nil,
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+		expectCustom: true,
+		setup: func(req *CompileRequest) {
+			req.OverrideProtocol = "http2"
+		},
+	}
+}
+
+func testcase_ResolverProtocolOverrideIgnored() compileTestCase {
+	// This shows that if you try to override the protocol to its current value
+	// the override is completely ignored.
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "http2")
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "http2",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+			Name: "main",
+			GroupResolver: &structs.DiscoveryGroupResolver{
+				Definition:     resolver,
+				Default:        true,
+				ConnectTimeout: 5 * time.Second,
+				Target:         newTarget("main", "", "default", "dc1"),
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"main": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTarget("main", "", "default", "dc1"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTarget("main", "", "default", "dc1"): nil,
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+		setup: func(req *CompileRequest) {
+			req.OverrideProtocol = "http2"
+		},
+	}
+}
+
+func testcase_RouterIgnored_ResolverProtocolOverride() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "grpc")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: "service-router",
+			Name: "main",
+		},
+	)
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol: "tcp",
+		Node: &structs.DiscoveryGraphNode{
+			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
+			Name: "main",
+			GroupResolver: &structs.DiscoveryGroupResolver{
+				Definition:     resolver,
+				Default:        true,
+				ConnectTimeout: 5 * time.Second,
+				Target:         newTarget("main", "", "default", "dc1"),
+			},
+		},
+		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
+			"main": resolver,
+		},
+		Targets: []structs.DiscoveryTarget{
+			newTarget("main", "", "default", "dc1"),
+		},
+		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
+			newTarget("main", "", "default", "dc1"): nil,
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+		expectCustom: true,
+		setup: func(req *CompileRequest) {
+			req.OverrideProtocol = "tcp"
+		},
 	}
 }
 

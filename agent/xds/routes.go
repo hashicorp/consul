@@ -87,14 +87,14 @@ func makeUpstreamRouteForDiscoveryChain(
 
 			next := discoveryRoute.DestinationNode
 			if next.Type == structs.DiscoveryGraphNodeTypeSplitter {
-				routeAction, err = makeRouteActionForSplitter(next.Splits, cfgSnap)
+				routeAction, err = makeRouteActionForSplitter(next.Splits, chain, cfgSnap)
 				if err != nil {
 					return nil, err
 				}
 
 			} else if next.Type == structs.DiscoveryGraphNodeTypeGroupResolver {
 				groupResolver := next.GroupResolver
-				routeAction = makeRouteActionForSingleCluster(groupResolver.Target, cfgSnap)
+				routeAction = makeRouteActionForSingleCluster(groupResolver.Target, chain, cfgSnap)
 
 			} else {
 				return nil, fmt.Errorf("unexpected graph node after route %q", next.Type)
@@ -142,7 +142,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := makeRouteActionForSplitter(chain.Node.Splits, cfgSnap)
+		routeAction, err := makeRouteActionForSplitter(chain.Node.Splits, chain, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeGroupResolver:
 		groupResolver := chain.Node.GroupResolver
 
-		routeAction := makeRouteActionForSingleCluster(groupResolver.Target, cfgSnap)
+		routeAction := makeRouteActionForSingleCluster(groupResolver.Target, chain, cfgSnap)
 
 		defaultRoute := envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
@@ -304,8 +304,9 @@ func makeDefaultRouteMatch() envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForSingleCluster(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
-	clusterName := TargetSNI(target, cfgSnap)
+func makeRouteActionForSingleCluster(target structs.DiscoveryTarget, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
+	sni := TargetSNI(target, cfgSnap)
+	clusterName := CustomizeClusterName(sni, chain)
 
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
@@ -316,7 +317,7 @@ func makeRouteActionForSingleCluster(target structs.DiscoveryTarget, cfgSnap *pr
 	}
 }
 
-func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, cfgSnap *proxycfg.ConfigSnapshot) (*envoyroute.Route_Route, error) {
+func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) (*envoyroute.Route_Route, error) {
 	clusters := make([]*envoyroute.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
 		if split.Node.Type != structs.DiscoveryGraphNodeTypeGroupResolver {
@@ -324,7 +325,9 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, cfgSnap *proxy
 		}
 		groupResolver := split.Node.GroupResolver
 		target := groupResolver.Target
-		clusterName := TargetSNI(target, cfgSnap)
+
+		sni := TargetSNI(target, cfgSnap)
+		clusterName := CustomizeClusterName(sni, chain)
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
