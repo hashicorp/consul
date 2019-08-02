@@ -421,9 +421,6 @@ type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
 	Native *bool `json:"native,omitempty" hcl:"native" mapstructure:"native"`
 
-	// Proxy configures a connect proxy instance for the service
-	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
 	// along with the application service definition. It's nested nature allows
@@ -432,11 +429,6 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	SidecarService *ServiceDefinition `json:"sidecar_service,omitempty" hcl:"sidecar_service" mapstructure:"sidecar_service"`
-}
-
-type ServiceConnectProxy struct {
-	Config    map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
-	Upstreams []Upstream             `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
 }
 
 // ServiceProxy is the additional config needed for a Kind = connect-proxy
