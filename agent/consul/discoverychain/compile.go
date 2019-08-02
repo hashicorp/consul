@@ -33,8 +33,7 @@ type CompileRequest struct {
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
 
-	InferDefaults bool // TODO(rb): remove this?
-	Entries       *structs.DiscoveryChainConfigEntries
+	Entries *structs.DiscoveryChainConfigEntries
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -56,7 +55,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		serviceName       = req.ServiceName
 		currentNamespace  = req.CurrentNamespace
 		currentDatacenter = req.CurrentDatacenter
-		inferDefaults     = req.InferDefaults
 		entries           = req.Entries
 	)
 	if serviceName == "" {
@@ -79,15 +77,15 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
-		inferDefaults:          inferDefaults,
 		entries:                entries,
 
-		splitterNodes:      make(map[string]*structs.DiscoveryGraphNode),
-		groupResolverNodes: make(map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode),
+		resolvers:     make(map[string]*structs.ServiceResolverConfigEntry),
+		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
+		resolveNodes:  make(map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode),
 
-		resolvers:       make(map[string]*structs.ServiceResolverConfigEntry),
-		retainResolvers: make(map[string]struct{}),
-		targets:         make(map[structs.DiscoveryTarget]struct{}),
+		nodes: make(map[string]*structs.DiscoveryGraphNode),
+
+		targets: make(map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig),
 	}
 
 	if req.OverrideProtocol != "" {
@@ -113,16 +111,19 @@ type compiler struct {
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
 	overrideConnectTimeout time.Duration
-	inferDefaults          bool
 
 	// config entries that are being compiled (will be mutated during compilation)
 	//
 	// This is an INPUT field.
 	entries *structs.DiscoveryChainConfigEntries
 
+	// resolvers is initially seeded by copying the provided entries.Resolvers
+	// map and default resolvers are added as they are needed.
+	resolvers map[string]*structs.ServiceResolverConfigEntry
+
 	// cached nodes
-	splitterNodes      map[string]*structs.DiscoveryGraphNode
-	groupResolverNodes map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode // this is also an OUTPUT field
+	splitterNodes map[string]*structs.DiscoveryGraphNode
+	resolveNodes  map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode
 
 	// usesAdvancedRoutingFeatures is set to true if config entries for routing
 	// or splitting appear in the compiled chain
@@ -137,31 +138,24 @@ type compiler struct {
 	// This is an OUTPUT field.
 	customizedBy customizationMarkers
 
-	// topNode is computed inside of assembleChain()
-	//
-	// This is an OUTPUT field.
-	topNode *structs.DiscoveryGraphNode
-
 	// protocol is the common protocol used for all referenced services. These
 	// cannot be mixed.
 	//
 	// This is an OUTPUT field.
 	protocol string
 
-	// resolvers is initially seeded by copying the provided entries.Resolvers
-	// map and default resolvers are added as they are needed.
-	//
-	// If redirects cause a resolver to not be needed it will be omitted from
-	// this map.
+	// startNode is computed inside of assembleChain()
 	//
 	// This is an OUTPUT field.
-	resolvers map[string]*structs.ServiceResolverConfigEntry
-	// retainResolvers flags the elements of the resolvers map that should be
-	// retained in the final results.
-	retainResolvers map[string]struct{}
+	startNode string
+
+	// nodes is computed inside of compile()
+	//
+	// This is an OUTPUT field.
+	nodes map[string]*structs.DiscoveryGraphNode
 
 	// This is an OUTPUT field.
-	targets map[structs.DiscoveryTarget]struct{}
+	targets map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig
 }
 
 type customizationMarkers struct {
@@ -172,6 +166,23 @@ type customizationMarkers struct {
 
 func (m *customizationMarkers) IsZero() bool {
 	return !m.MeshGateway && !m.Protocol && !m.ConnectTimeout
+}
+
+// recordNode stores the node internally in the compiled chain.
+func (c *compiler) recordNode(node *structs.DiscoveryGraphNode) {
+	// Some types have their own type-specific lookups, so record those, too.
+	switch node.Type {
+	case structs.DiscoveryGraphNodeTypeRouter:
+		// no special storage
+	case structs.DiscoveryGraphNodeTypeSplitter:
+		c.splitterNodes[node.ServiceName()] = node
+	case structs.DiscoveryGraphNodeTypeResolver:
+		c.resolveNodes[node.Resolver.Target] = node
+	default:
+		panic("unknown node type '" + node.Type + "'")
+	}
+
+	c.nodes[node.MapKey()] = node
 }
 
 func (c *compiler) recordServiceProtocol(serviceName string) error {
@@ -220,11 +231,12 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	if c.topNode == nil {
-		if c.inferDefaults {
-			panic("impossible to return no results with infer defaults set to true")
-		}
-		return nil, nil
+	// We don't need these intermediates anymore.
+	c.splitterNodes = nil
+	c.resolveNodes = nil
+
+	if c.startNode == "" {
+		panic("impossible to return no results")
 	}
 
 	if err := c.detectCircularSplits(); err != nil {
@@ -236,11 +248,8 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 
 	c.flattenAdjacentSplitterNodes()
 
-	// Remove any unused resolvers.
-	for name, _ := range c.resolvers {
-		if _, ok := c.retainResolvers[name]; !ok {
-			delete(c.resolvers, name)
-		}
+	if err := c.removeUnusedNodes(); err != nil {
+		return nil, err
 	}
 
 	if !enableAdvancedRoutingForProtocol(c.protocol) && c.usesAdvancedRoutingFeatures {
@@ -251,12 +260,6 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 			),
 		}
 	}
-
-	targets := make([]structs.DiscoveryTarget, 0, len(c.targets))
-	for target, _ := range c.targets {
-		targets = append(targets, target)
-	}
-	structs.DiscoveryTargets(targets).Sort()
 
 	if c.overrideProtocol != "" {
 		if c.overrideProtocol != c.protocol {
@@ -290,15 +293,14 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	}
 
 	return &structs.CompiledDiscoveryChain{
-		ServiceName:        c.serviceName,
-		Namespace:          c.currentNamespace,
-		Datacenter:         c.currentDatacenter,
-		CustomizationHash:  customizationHash,
-		Protocol:           c.protocol,
-		Node:               c.topNode,
-		Resolvers:          c.resolvers,
-		Targets:            targets,
-		GroupResolverNodes: c.groupResolverNodes, // TODO(rb): prune unused
+		ServiceName:       c.serviceName,
+		Namespace:         c.currentNamespace,
+		Datacenter:        c.currentDatacenter,
+		CustomizationHash: customizationHash,
+		Protocol:          c.protocol,
+		StartNode:         c.startNode,
+		Nodes:             c.nodes,
+		Targets:           c.targets,
 	}, nil
 }
 
@@ -315,23 +317,28 @@ func (c *compiler) detectCircularResolves() error {
 func (c *compiler) flattenAdjacentSplitterNodes() {
 	for {
 		anyChanged := false
-		for _, splitterNode := range c.splitterNodes {
-			fixedSplits := make([]*structs.DiscoverySplit, 0, len(splitterNode.Splits))
+		for _, node := range c.nodes {
+			if node.Type != structs.DiscoveryGraphNodeTypeSplitter {
+				continue
+			}
+
+			fixedSplits := make([]*structs.DiscoverySplit, 0, len(node.Splits))
 			changed := false
-			for _, split := range splitterNode.Splits {
-				if split.Node.Type != structs.DiscoveryGraphNodeTypeSplitter {
+			for _, split := range node.Splits {
+				nextNode := c.nodes[split.NextNode]
+				if nextNode.Type != structs.DiscoveryGraphNodeTypeSplitter {
 					fixedSplits = append(fixedSplits, split)
 					continue
 				}
 
 				changed = true
 
-				for _, innerSplit := range split.Node.Splits {
+				for _, innerSplit := range nextNode.Splits {
 					effectiveWeight := split.Weight * innerSplit.Weight / 100
 
 					newDiscoverySplit := &structs.DiscoverySplit{
-						Weight: structs.NormalizeServiceSplitWeight(effectiveWeight),
-						Node:   innerSplit.Node,
+						Weight:   structs.NormalizeServiceSplitWeight(effectiveWeight),
+						NextNode: innerSplit.NextNode,
 					}
 
 					fixedSplits = append(fixedSplits, newDiscoverySplit)
@@ -339,7 +346,7 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 			}
 
 			if changed {
-				splitterNode.Splits = fixedSplits
+				node.Splits = fixedSplits
 				anyChanged = true
 			}
 		}
@@ -350,21 +357,81 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 	}
 }
 
+// removeUnusedNodes walks the chain from the start and prunes any nodes that
+// are no longer referenced. This can happen as a result of operations like
+// flattenAdjacentSplitterNodes().
+func (c *compiler) removeUnusedNodes() error {
+	var (
+		visited = make(map[string]struct{})
+		todo    = make(map[string]struct{})
+	)
+
+	todo[c.startNode] = struct{}{}
+
+	getNext := func() string {
+		if len(todo) == 0 {
+			return ""
+		}
+		for k, _ := range todo {
+			delete(todo, k)
+			return k
+		}
+		return ""
+	}
+
+	for {
+		next := getNext()
+		if next == "" {
+			break
+		}
+		if _, ok := visited[next]; ok {
+			continue
+		}
+		visited[next] = struct{}{}
+
+		node := c.nodes[next]
+		if node == nil {
+			return fmt.Errorf("compilation references non-retained node %q", next)
+		}
+
+		switch node.Type {
+		case structs.DiscoveryGraphNodeTypeRouter:
+			for _, route := range node.Routes {
+				todo[route.NextNode] = struct{}{}
+			}
+		case structs.DiscoveryGraphNodeTypeSplitter:
+			for _, split := range node.Splits {
+				todo[split.NextNode] = struct{}{}
+			}
+		case structs.DiscoveryGraphNodeTypeResolver:
+			// nothing special
+		default:
+			return fmt.Errorf("unknown node type %q", node.Type)
+		}
+	}
+
+	if len(visited) == len(c.nodes) {
+		return nil
+	}
+
+	for name, _ := range c.nodes {
+		if _, ok := visited[name]; !ok {
+			delete(c.nodes, name)
+		}
+	}
+
+	return nil
+}
+
 // assembleChain will do the initial assembly of a chain of DiscoveryGraphNode
-// entries from the provided config entries.  No default resolvers are injected
-// here so it is expected that if there are no discovery chain config entries
-// set up for a given service that it will produce no topNode from this.
+// entries from the provided config entries.
 func (c *compiler) assembleChain() error {
-	if c.topNode != nil {
+	if c.startNode != "" || len(c.nodes) > 0 {
 		return fmt.Errorf("assembleChain should only be called once")
 	}
 
 	// Check for short circuit path.
 	if len(c.resolvers) == 0 && c.entries.IsChainEmpty() {
-		if !c.inferDefaults {
-			return nil // nothing explicitly configured
-		}
-
 		// Materialize defaults and cache.
 		c.resolvers[c.serviceName] = newDefaultServiceResolver(c.serviceName)
 	}
@@ -380,12 +447,12 @@ func (c *compiler) assembleChain() error {
 	if router == nil {
 		// If no router is configured, move on down the line to the next hop of
 		// the chain.
-		node, err := c.getSplitterOrGroupResolverNode(c.newTarget(c.serviceName, "", "", ""))
+		node, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", ""))
 		if err != nil {
 			return err
 		}
 
-		c.topNode = node
+		c.startNode = node.MapKey()
 		return nil
 	}
 
@@ -419,11 +486,11 @@ func (c *compiler) assembleChain() error {
 			err  error
 		)
 		if dest.ServiceSubset == "" && dest.Namespace == "" {
-			node, err = c.getSplitterOrGroupResolverNode(
+			node, err = c.getSplitterOrResolverNode(
 				c.newTarget(svc, dest.ServiceSubset, dest.Namespace, ""),
 			)
 		} else {
-			node, err = c.getGroupResolverNode(
+			node, err = c.getResolverNode(
 				c.newTarget(svc, dest.ServiceSubset, dest.Namespace, ""),
 				false,
 			)
@@ -431,23 +498,25 @@ func (c *compiler) assembleChain() error {
 		if err != nil {
 			return err
 		}
-		compiledRoute.DestinationNode = node
+		compiledRoute.NextNode = node.MapKey()
 	}
 
 	// If we have a router, we'll add a catch-all route at the end to send
 	// unmatched traffic to the next hop in the chain.
-	defaultDestinationNode, err := c.getSplitterOrGroupResolverNode(c.newTarget(c.serviceName, "", "", ""))
+	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", ""))
 	if err != nil {
 		return err
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition:      newDefaultServiceRoute(c.serviceName),
-		DestinationNode: defaultDestinationNode,
+		Definition: newDefaultServiceRoute(c.serviceName),
+		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
 
-	c.topNode = routeNode
+	c.startNode = routeNode.MapKey()
+	c.recordNode(routeNode)
+
 	return nil
 }
 
@@ -476,18 +545,17 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 	}
 }
 
-func (c *compiler) getSplitterOrGroupResolverNode(target structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
+func (c *compiler) getSplitterOrResolverNode(target structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
 	nextNode, err := c.getSplitterNode(target.Service)
 	if err != nil {
 		return nil, err
 	} else if nextNode != nil {
 		return nextNode, nil
 	}
-	return c.getGroupResolverNode(target, false)
+	return c.getResolverNode(target, false)
 }
 
 func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, error) {
-
 	// Do we already have the node?
 	if prev, ok := c.splitterNodes[name]; ok {
 		return prev, nil
@@ -512,7 +580,7 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 
 	// If we record this exists before recursing down it will short-circuit
 	// sanely if there is some sort of graph loop below.
-	c.splitterNodes[name] = splitNode
+	c.recordNode(splitNode)
 
 	for _, split := range splitter.Splits {
 		compiledSplit := &structs.DiscoverySplit{
@@ -527,33 +595,33 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 			if err != nil {
 				return nil, err
 			} else if nextNode != nil {
-				compiledSplit.Node = nextNode
+				compiledSplit.NextNode = nextNode.MapKey()
 				continue
 			}
 			// fall through to group-resolver
 		}
 
-		node, err := c.getGroupResolverNode(
+		node, err := c.getResolverNode(
 			c.newTarget(svc, split.ServiceSubset, split.Namespace, ""),
 			false,
 		)
 		if err != nil {
 			return nil, err
 		}
-		compiledSplit.Node = node
+		compiledSplit.NextNode = node.MapKey()
 	}
 
 	c.usesAdvancedRoutingFeatures = true
 	return splitNode, nil
 }
 
-// getGroupResolverNode handles most of the code to handle
-// redirection/rewriting capabilities from a resolver config entry. It recurses
-// into itself to _generate_ targets used for failover out of convenience.
-func (c *compiler) getGroupResolverNode(target structs.DiscoveryTarget, recursedForFailover bool) (*structs.DiscoveryGraphNode, error) {
+// getResolverNode handles most of the code to handle redirection/rewriting
+// capabilities from a resolver config entry. It recurses into itself to
+// _generate_ targets used for failover out of convenience.
+func (c *compiler) getResolverNode(target structs.DiscoveryTarget, recursedForFailover bool) (*structs.DiscoveryGraphNode, error) {
 RESOLVE_AGAIN:
 	// Do we already have the node?
-	if prev, ok := c.groupResolverNodes[target]; ok {
+	if prev, ok := c.resolveNodes[target]; ok {
 		return prev, nil
 	}
 
@@ -603,9 +671,6 @@ RESOLVE_AGAIN:
 		}
 	}
 
-	// Since we're actually building a node with it, we can keep it.
-	c.retainResolvers[target.Service] = struct{}{}
-
 	connectTimeout := resolver.ConnectTimeout
 	if connectTimeout < 1 {
 		connectTimeout = 5 * time.Second
@@ -619,48 +684,51 @@ RESOLVE_AGAIN:
 	}
 
 	// Build node.
-	groupResolverNode := &structs.DiscoveryGraphNode{
-		Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-		Name: resolver.Name,
-		GroupResolver: &structs.DiscoveryGroupResolver{
+	node := &structs.DiscoveryGraphNode{
+		Type: structs.DiscoveryGraphNodeTypeResolver,
+		Name: target.Identifier(),
+		Resolver: &structs.DiscoveryResolver{
 			Definition:     resolver,
 			Default:        resolver.IsDefault(),
 			Target:         target,
 			ConnectTimeout: connectTimeout,
 		},
 	}
-	groupResolver := groupResolverNode.GroupResolver
 
-	// Default mesh gateway settings
-	if serviceDefault := c.entries.GetService(resolver.Name); serviceDefault != nil {
-		groupResolver.MeshGateway = serviceDefault.MeshGateway
+	targetConfig := structs.DiscoveryTargetConfig{
+		Subset: resolver.Subsets[target.ServiceSubset],
 	}
 
-	if c.entries.GlobalProxy != nil && groupResolver.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-		groupResolver.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+	// Default mesh gateway settings
+	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil {
+		targetConfig.MeshGateway = serviceDefault.MeshGateway
+	}
+
+	if c.entries.GlobalProxy != nil && targetConfig.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+		targetConfig.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
 	}
 
 	if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
-		if groupResolver.MeshGateway.Mode != c.overrideMeshGateway.Mode {
-			groupResolver.MeshGateway.Mode = c.overrideMeshGateway.Mode
+		if targetConfig.MeshGateway.Mode != c.overrideMeshGateway.Mode {
+			targetConfig.MeshGateway.Mode = c.overrideMeshGateway.Mode
 			c.customizedBy.MeshGateway = true
 		}
 	}
 
 	// Retain this target even if we may not retain the group resolver.
-	c.targets[target] = struct{}{}
+	c.targets[target] = targetConfig
 
 	if recursedForFailover {
 		// If we recursed here from ourselves in a failover context, just emit
 		// this node without caching it or even processing failover again.
 		// This is a little weird but it keeps the redirect/default-subset
 		// logic in one place.
-		return groupResolverNode, nil
+		return node, nil
 	}
 
 	// If we record this exists before recursing down it will short-circuit
 	// sanely if there is some sort of graph loop below.
-	c.groupResolverNodes[target] = groupResolverNode
+	c.recordNode(node)
 
 	if len(resolver.Failover) > 0 {
 		f := resolver.Failover
@@ -705,23 +773,23 @@ RESOLVE_AGAIN:
 				df := &structs.DiscoveryFailover{
 					Definition: &failover,
 				}
-				groupResolver.Failover = df
+				node.Resolver.Failover = df
 
 				// Convert the targets into targets by cheating a bit and
 				// recursing into ourselves.
 				for _, target := range failoverTargets {
-					failoverGroupResolverNode, err := c.getGroupResolverNode(target, true)
+					failoverResolveNode, err := c.getResolverNode(target, true)
 					if err != nil {
 						return nil, err
 					}
-					failoverTarget := failoverGroupResolverNode.GroupResolver.Target
+					failoverTarget := failoverResolveNode.Resolver.Target
 					df.Targets = append(df.Targets, failoverTarget)
 				}
 			}
 		}
 	}
 
-	return groupResolverNode, nil
+	return node, nil
 }
 
 func newDefaultServiceResolver(serviceName string) *structs.ServiceResolverConfigEntry {

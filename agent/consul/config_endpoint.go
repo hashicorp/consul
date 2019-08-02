@@ -361,7 +361,6 @@ func (c *ConfigEntry) ReadDiscoveryChain(args *structs.DiscoveryChainRequest, re
 				OverrideMeshGateway:    args.OverrideMeshGateway,
 				OverrideProtocol:       args.OverrideProtocol,
 				OverrideConnectTimeout: args.OverrideConnectTimeout,
-				InferDefaults:          true,
 				Entries:                entries,
 			})
 			if err != nil {

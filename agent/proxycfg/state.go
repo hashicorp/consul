@@ -559,37 +559,6 @@ func (s *state) resetWatchesFromChain(
 		return fmt.Errorf("not possible to arrive here with no discovery chain")
 	}
 
-	// Collect all sorts of catalog queries we'll have to run.
-	targets := make(map[structs.DiscoveryTarget]*structs.ServiceResolverConfigEntry)
-	addTarget := func(target structs.DiscoveryTarget) error {
-		resolver, ok := chain.Resolvers[target.Service]
-		if !ok {
-			return fmt.Errorf("missing resolver %q for target %s", target.Service, target)
-		}
-
-		targets[target] = resolver
-		return nil
-	}
-
-	// NOTE: We will NEVER see a missing chain, because we always request it with defaulting enabled.
-	meshGatewayModes := make(map[structs.DiscoveryTarget]structs.MeshGatewayMode)
-	for _, group := range chain.GroupResolverNodes {
-		groupResolver := group.GroupResolver
-
-		meshGatewayModes[groupResolver.Target] = groupResolver.MeshGateway.Mode
-
-		if err := addTarget(groupResolver.Target); err != nil {
-			return err
-		}
-		if groupResolver.Failover != nil {
-			for _, target := range groupResolver.Failover.Targets {
-				if err := addTarget(target); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
 	// Initialize relevant sub maps.
 	if _, ok := snap.ConnectProxy.WatchedUpstreams[id]; !ok {
 		snap.ConnectProxy.WatchedUpstreams[id] = make(map[structs.DiscoveryTarget]context.CancelFunc)
@@ -611,35 +580,17 @@ func (s *state) resetWatchesFromChain(
 		cancelFn()
 	}
 
-	for target, resolver := range targets {
-		if target.Service != resolver.Name {
-			panic(target.Service + " != " + resolver.Name) // TODO(rb): remove
-		}
+	for target, targetConfig := range chain.Targets {
 		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of target %s", id, chain.ServiceName, target)
 
-		// TODO(rb): make sure the cross-dc request properly fills in the alternate datacenters
-
-		var subset structs.ServiceResolverSubset
-		if target.ServiceSubset != "" {
-			var ok bool
-			subset, ok = resolver.Subsets[target.ServiceSubset]
-			if !ok {
-				// Not possible really.
-				return fmt.Errorf("target %s cannot be resolved; service %q does not have a subset named %q", target, target.Service, target.ServiceSubset)
-			}
-		}
-
-		encodedTarget, err := target.MarshalText()
-		if err != nil {
-			return fmt.Errorf("target %s cannot be converted into a cache key string: %v", target, err)
-		}
+		encodedTarget := target.Identifier()
 
 		ctx, cancel := context.WithCancel(s.ctx)
 
 		// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
 		meshGateway := structs.MeshGatewayModeDefault
 		if target.Datacenter != s.source.Datacenter {
-			meshGateway = meshGatewayModes[target]
+			meshGateway = targetConfig.MeshGateway.Mode
 		}
 
 		// if the default mode
@@ -647,12 +598,12 @@ func (s *state) resetWatchesFromChain(
 			meshGateway = structs.MeshGatewayModeNone
 		}
 
-		err = s.watchConnectProxyService(
+		err := s.watchConnectProxyService(
 			ctx,
-			"upstream-target:"+string(encodedTarget)+":"+id,
+			"upstream-target:"+encodedTarget+":"+id,
 			target.Service,
 			target.Datacenter,
-			subset.Filter,
+			targetConfig.Subset.Filter,
 			meshGateway,
 		)
 		if err != nil {
