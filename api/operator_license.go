@@ -8,30 +8,30 @@ import (
 
 type License struct {
 	// The unique identifier of the license
-	LicenseID string `json:"license_id" jsonapi:"primary,license"`
+	LicenseID string `json:"license_id"`
 
 	// The customer ID associated with the license
-	CustomerID string `json:"customer_id" jsonapi:"attr,customer_id"`
+	CustomerID string `json:"customer_id"`
 
 	// If set, an identifier that should be used to lock the license to a
 	// particular site, cluster, etc.
-	InstallationID string `json:"installation_id" jsonapi:"attr,installation_id"`
+	InstallationID string `json:"installation_id"`
 
 	// The time at which the license was issued
-	IssueTime time.Time `json:"issue_time" jsonapi:"attr,issue_time,iso8601"`
+	IssueTime time.Time `json:"issue_time"`
 
 	// The time at which the license starts being valid
-	StartTime time.Time `json:"start_time" jsonapi:"attr,issue_time,iso8601"`
+	StartTime time.Time `json:"start_time"`
 
 	// The time after which the license expires
-	ExpirationTime time.Time `json:"expiration_time" jsonapi:"attr,expiration_time,iso8601"`
+	ExpirationTime time.Time `json:"expiration_time"`
 
 	// The time at which the license ceases to function and can
 	// no longer be used in any capacity
-	TerminationTime time.Time `json:"termination_time" jsonapi:"attr,termination_time,iso8601"`
+	TerminationTime time.Time `json:"termination_time"`
 
 	// The product the license is valid for
-	Product string `json:"product" jsonapi:"attr,product"`
+	Product string `json:"product"`
 
 	// License Specific Flags
 	Flags map[string]interface{} `json:"flags"`
