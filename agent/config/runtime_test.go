@@ -3455,17 +3455,7 @@ func TestFullConfig(t *testing.T) {
 					"csr_max_per_second": 100,
 					"csr_max_concurrent": 2
 				},
-				"enabled": true,
-				"proxy_defaults": {
-					"exec_mode": "script",
-					"daemon_command": ["consul", "connect", "proxy"],
-					"script_command": ["proxyctl.sh"],
-					"config": {
-						"foo": "bar",
-						"connect_timeout_ms": 1000,
-						"pedantic_mode": true
-					}
-				}
+				"enabled": true
 			},
 			"gossip_lan" : {
 				"gossip_nodes": 6,
@@ -3557,8 +3547,6 @@ func TestFullConfig(t *testing.T) {
 				"https": 15127,
 				"server": 3757,
 				"grpc": 4881,
-				"proxy_min_port": 2000,
-				"proxy_max_port": 3000,
 				"sidecar_min_port": 8888,
 				"sidecar_max_port": 9999
 			},
@@ -3789,15 +3777,7 @@ func TestFullConfig(t *testing.T) {
 							"deregister_critical_service_after": "68482s"
 						}
 					],
-					"connect": {
-						"proxy": {
-							"exec_mode": "daemon",
-							"command": ["awesome-proxy"],
-							"config": {
-								"foo": "qux"
-							}
-						}
-					}
+					"connect": {}
 				},
 				{
 					"id": "Kh81CPF6",
@@ -4060,18 +4040,6 @@ func TestFullConfig(t *testing.T) {
 					csr_max_concurrent = 2.0
 				}
 				enabled = true
-				proxy_defaults {
-					exec_mode = "script"
-					daemon_command = ["consul", "connect", "proxy"]
-					script_command = ["proxyctl.sh"]
-					config = {
-						foo = "bar"
-						# hack float since json parses numbers as float and we have to
-						# assert against the same thing
-						connect_timeout_ms = 1000.0
-						pedantic_mode = true
-					}
-				}
 			}
 			gossip_lan {
 				gossip_nodes    = 6

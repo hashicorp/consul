@@ -11,8 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/testrpc"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/local"
