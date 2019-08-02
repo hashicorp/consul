@@ -89,20 +89,12 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 					Resolver: &structs.DiscoveryResolver{
 						Default:        true,
 						ConnectTimeout: 5 * time.Second,
-						Target: structs.DiscoveryTarget{
-							Service:    "web",
-							Namespace:  "default",
-							Datacenter: "dc1",
-						},
+						Target:         "web.default.dc1",
 					},
 				},
 			},
-			Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-				structs.DiscoveryTarget{
-					Service:    "web",
-					Namespace:  "default",
-					Datacenter: "dc1",
-				}: {},
+			Targets: map[string]*structs.DiscoveryTarget{
+				"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
 			},
 		},
 	}
@@ -190,20 +182,12 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							ConnectTimeout: 33 * time.Second,
-							Target: structs.DiscoveryTarget{
-								Service:    "web",
-								Namespace:  "default",
-								Datacenter: "dc1",
-							},
+							Target:         "web.default.dc1",
 						},
 					},
 				},
-				Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-					structs.DiscoveryTarget{
-						Service:    "web",
-						Namespace:  "default",
-						Datacenter: "dc1",
-					}: {},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
 				},
 			},
 		}

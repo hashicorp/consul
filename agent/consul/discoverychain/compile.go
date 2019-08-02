@@ -81,11 +81,11 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 
 		resolvers:     make(map[string]*structs.ServiceResolverConfigEntry),
 		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
-		resolveNodes:  make(map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode),
+		resolveNodes:  make(map[string]*structs.DiscoveryGraphNode),
 
-		nodes: make(map[string]*structs.DiscoveryGraphNode),
-
-		targets: make(map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig),
+		nodes:           make(map[string]*structs.DiscoveryGraphNode),
+		loadedTargets:   make(map[string]*structs.DiscoveryTarget),
+		retainedTargets: make(map[string]struct{}),
 	}
 
 	if req.OverrideProtocol != "" {
@@ -123,7 +123,7 @@ type compiler struct {
 
 	// cached nodes
 	splitterNodes map[string]*structs.DiscoveryGraphNode
-	resolveNodes  map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode
+	resolveNodes  map[string]*structs.DiscoveryGraphNode
 
 	// usesAdvancedRoutingFeatures is set to true if config entries for routing
 	// or splitting appear in the compiled chain
@@ -155,7 +155,8 @@ type compiler struct {
 	nodes map[string]*structs.DiscoveryGraphNode
 
 	// This is an OUTPUT field.
-	targets map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig
+	loadedTargets   map[string]*structs.DiscoveryTarget
+	retainedTargets map[string]struct{}
 }
 
 type customizationMarkers struct {
@@ -175,7 +176,7 @@ func (c *compiler) recordNode(node *structs.DiscoveryGraphNode) {
 	case structs.DiscoveryGraphNodeTypeRouter:
 		// no special storage
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		c.splitterNodes[node.ServiceName()] = node
+		c.splitterNodes[node.Name] = node
 	case structs.DiscoveryGraphNodeTypeResolver:
 		c.resolveNodes[node.Resolver.Target] = node
 	default:
@@ -249,6 +250,12 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
+	for targetID, _ := range c.loadedTargets {
+		if _, ok := c.retainedTargets[targetID]; !ok {
+			delete(c.loadedTargets, targetID)
+		}
+	}
+
 	if !enableAdvancedRoutingForProtocol(c.protocol) && c.usesAdvancedRoutingFeatures {
 		return nil, &structs.ConfigEntryGraphError{
 			Message: fmt.Sprintf(
@@ -297,7 +304,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		Protocol:          c.protocol,
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
-		Targets:           c.targets,
+		Targets:           c.loadedTargets,
 	}, nil
 }
 
@@ -575,19 +582,53 @@ func newDefaultServiceRoute(serviceName string) *structs.ServiceRoute {
 	}
 }
 
-func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter string) structs.DiscoveryTarget {
+func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
 	if service == "" {
 		panic("newTarget called with empty service which makes no sense")
 	}
-	return structs.DiscoveryTarget{
-		Service:       service,
-		ServiceSubset: serviceSubset,
-		Namespace:     defaultIfEmpty(namespace, c.currentNamespace),
-		Datacenter:    defaultIfEmpty(datacenter, c.currentDatacenter),
+
+	t := structs.NewDiscoveryTarget(
+		service,
+		serviceSubset,
+		defaultIfEmpty(namespace, c.currentNamespace),
+		defaultIfEmpty(datacenter, c.currentDatacenter),
+	)
+
+	prev, ok := c.loadedTargets[t.ID]
+	if ok {
+		return prev
 	}
+	c.loadedTargets[t.ID] = t
+	return t
 }
 
-func (c *compiler) getSplitterOrResolverNode(target structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
+func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+	var (
+		service2       = t.Service
+		serviceSubset2 = t.ServiceSubset
+		namespace2     = t.Namespace
+		datacenter2    = t.Datacenter
+	)
+
+	if service != "" && service != service2 {
+		service2 = service
+		// Reset the chosen subset if we reference a service other than our own.
+		serviceSubset2 = ""
+	}
+	if serviceSubset != "" {
+		serviceSubset2 = serviceSubset
+	}
+	if namespace != "" {
+		namespace2 = namespace
+	}
+	if datacenter != "" {
+		datacenter2 = datacenter
+	}
+
+	return c.newTarget(service2, serviceSubset2, namespace2, datacenter2)
+}
+
+func (c *compiler) getSplitterOrResolverNode(target *structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
 	nextNode, err := c.getSplitterNode(target.Service)
 	if err != nil {
 		return nil, err
@@ -660,17 +701,17 @@ func (c *compiler) getSplitterNode(name string) (*structs.DiscoveryGraphNode, er
 // getResolverNode handles most of the code to handle redirection/rewriting
 // capabilities from a resolver config entry. It recurses into itself to
 // _generate_ targets used for failover out of convenience.
-func (c *compiler) getResolverNode(target structs.DiscoveryTarget, recursedForFailover bool) (*structs.DiscoveryGraphNode, error) {
+func (c *compiler) getResolverNode(target *structs.DiscoveryTarget, recursedForFailover bool) (*structs.DiscoveryGraphNode, error) {
 	var (
 		// State to help detect redirect cycles and print helpful error
 		// messages.
-		redirectHistory = make(map[structs.DiscoveryTarget]struct{})
-		redirectOrder   []structs.DiscoveryTarget
+		redirectHistory = make(map[string]struct{})
+		redirectOrder   []string
 	)
 
 RESOLVE_AGAIN:
 	// Do we already have the node?
-	if prev, ok := c.resolveNodes[target]; ok {
+	if prev, ok := c.resolveNodes[target.ID]; ok {
 		return prev, nil
 	}
 
@@ -686,23 +727,18 @@ RESOLVE_AGAIN:
 		c.resolvers[target.Service] = resolver
 	}
 
-	if _, ok := redirectHistory[target]; ok {
-		redirectOrder = append(redirectOrder, target)
-
-		pretty := make([]string, len(redirectOrder))
-		for i, target := range redirectOrder {
-			pretty[i] = target.String()
-		}
+	if _, ok := redirectHistory[target.ID]; ok {
+		redirectOrder = append(redirectOrder, target.ID)
 
 		return nil, &structs.ConfigEntryGraphError{
 			Message: fmt.Sprintf(
 				"detected circular resolver redirect: [%s]",
-				strings.Join(pretty, " -> "),
+				strings.Join(redirectOrder, " -> "),
 			),
 		}
 	}
-	redirectHistory[target] = struct{}{}
-	redirectOrder = append(redirectOrder, target)
+	redirectHistory[target.ID] = struct{}{}
+	redirectOrder = append(redirectOrder, target.ID)
 
 	// Handle redirects right up front.
 	//
@@ -710,13 +746,14 @@ RESOLVE_AGAIN:
 	if resolver.Redirect != nil {
 		redirect := resolver.Redirect
 
-		redirectedTarget := target.CopyAndModify(
+		redirectedTarget := c.rewriteTarget(
+			target,
 			redirect.Service,
 			redirect.ServiceSubset,
 			redirect.Namespace,
 			redirect.Datacenter,
 		)
-		if redirectedTarget != target {
+		if redirectedTarget.ID != target.ID {
 			target = redirectedTarget
 			goto RESOLVE_AGAIN
 		}
@@ -724,7 +761,13 @@ RESOLVE_AGAIN:
 
 	// Handle default subset.
 	if target.ServiceSubset == "" && resolver.DefaultSubset != "" {
-		target.ServiceSubset = resolver.DefaultSubset
+		target = c.rewriteTarget(
+			target,
+			"",
+			resolver.DefaultSubset,
+			"",
+			"",
+		)
 		goto RESOLVE_AGAIN
 	}
 
@@ -753,36 +796,34 @@ RESOLVE_AGAIN:
 	// Build node.
 	node := &structs.DiscoveryGraphNode{
 		Type: structs.DiscoveryGraphNodeTypeResolver,
-		Name: target.Identifier(),
+		Name: target.ID,
 		Resolver: &structs.DiscoveryResolver{
 			Default:        resolver.IsDefault(),
-			Target:         target,
+			Target:         target.ID,
 			ConnectTimeout: connectTimeout,
 		},
 	}
 
-	targetConfig := structs.DiscoveryTargetConfig{
-		Subset: resolver.Subsets[target.ServiceSubset],
-	}
+	target.Subset = resolver.Subsets[target.ServiceSubset]
 
 	// Default mesh gateway settings
 	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil {
-		targetConfig.MeshGateway = serviceDefault.MeshGateway
+		target.MeshGateway = serviceDefault.MeshGateway
 	}
 
-	if c.entries.GlobalProxy != nil && targetConfig.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-		targetConfig.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+	if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+		target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
 	}
 
 	if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
-		if targetConfig.MeshGateway.Mode != c.overrideMeshGateway.Mode {
-			targetConfig.MeshGateway.Mode = c.overrideMeshGateway.Mode
+		if target.MeshGateway.Mode != c.overrideMeshGateway.Mode {
+			target.MeshGateway.Mode = c.overrideMeshGateway.Mode
 			c.customizedBy.MeshGateway = true
 		}
 	}
 
-	// Retain this target even if we may not retain the group resolver.
-	c.targets[target] = targetConfig
+	// Retain this target in the final results.
+	c.retainedTargets[target.ID] = struct{}{}
 
 	if recursedForFailover {
 		// If we recursed here from ourselves in a failover context, just emit
@@ -807,29 +848,31 @@ RESOLVE_AGAIN:
 
 		if ok {
 			// Determine which failover definitions apply.
-			var failoverTargets []structs.DiscoveryTarget
+			var failoverTargets []*structs.DiscoveryTarget
 			if len(failover.Datacenters) > 0 {
 				for _, dc := range failover.Datacenters {
 					// Rewrite the target as per the failover policy.
-					failoverTarget := target.CopyAndModify(
+					failoverTarget := c.rewriteTarget(
+						target,
 						failover.Service,
 						failover.ServiceSubset,
 						failover.Namespace,
 						dc,
 					)
-					if failoverTarget != target { // don't failover to yourself
+					if failoverTarget.ID != target.ID { // don't failover to yourself
 						failoverTargets = append(failoverTargets, failoverTarget)
 					}
 				}
 			} else {
 				// Rewrite the target as per the failover policy.
-				failoverTarget := target.CopyAndModify(
+				failoverTarget := c.rewriteTarget(
+					target,
 					failover.Service,
 					failover.ServiceSubset,
 					failover.Namespace,
 					"",
 				)
-				if failoverTarget != target { // don't failover to yourself
+				if failoverTarget.ID != target.ID { // don't failover to yourself
 					failoverTargets = append(failoverTargets, failoverTarget)
 				}
 			}
@@ -839,8 +882,9 @@ RESOLVE_AGAIN:
 				df := &structs.DiscoveryFailover{}
 				node.Resolver.Failover = df
 
-				// Convert the targets into targets by cheating a bit and
-				// recursing into ourselves.
+				// Take care of doing any redirects or configuration loading
+				// related to targets by cheating a bit and recursing into
+				// ourselves.
 				for _, target := range failoverTargets {
 					failoverResolveNode, err := c.getResolverNode(target, true)
 					if err != nil {

@@ -45,23 +45,6 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	// Create a bunch of common data for the various test cases.
 	roots, leaf := TestCerts(t)
 
-	dbTarget := structs.DiscoveryTarget{
-		Service:    "db",
-		Namespace:  "default",
-		Datacenter: "dc1",
-	}
-	dbTarget_v1 := structs.DiscoveryTarget{
-		Service:       "db",
-		ServiceSubset: "v1",
-		Namespace:     "default",
-		Datacenter:    "dc1",
-	}
-	dbTarget_v2 := structs.DiscoveryTarget{
-		Service:       "db",
-		ServiceSubset: "v2",
-		Namespace:     "default",
-		Datacenter:    "dc1",
-	}
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
 		return discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1",
 			func(req *discoverychain.CompileRequest) {
@@ -213,9 +196,9 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						"db": dbDefaultChain(),
 					},
 					WatchedUpstreams: nil, // Clone() clears this out
-					WatchedUpstreamEndpoints: map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+					WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 						"db": {
-							dbTarget: TestUpstreamNodes(t),
+							"db.default.dc1": TestUpstreamNodes(t),
 						},
 					},
 					UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
@@ -252,10 +235,10 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						"db": dbSplitChain(),
 					},
 					WatchedUpstreams: nil, // Clone() clears this out
-					WatchedUpstreamEndpoints: map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes{
+					WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 						"db": {
-							dbTarget_v1: TestUpstreamNodes(t),
-							dbTarget_v2: TestUpstreamNodesAlternate(t),
+							"v1.db.default.dc1": TestUpstreamNodes(t),
+							"v2.db.default.dc1": TestUpstreamNodesAlternate(t),
 						},
 					},
 					UpstreamEndpoints: map[string]structs.CheckServiceNodes{},

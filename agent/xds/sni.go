@@ -42,7 +42,7 @@ func QuerySNI(service string, datacenter string, cfgSnap *proxycfg.ConfigSnapsho
 	return fmt.Sprintf("%s.default.%s.query.%s", service, datacenter, cfgSnap.Roots.TrustDomain)
 }
 
-func TargetSNI(target structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot) string {
+func TargetSNI(target *structs.DiscoveryTarget, cfgSnap *proxycfg.ConfigSnapshot) string {
 	return ServiceSNI(target.Service, target.ServiceSubset, target.Namespace, target.Datacenter, cfgSnap)
 }
 

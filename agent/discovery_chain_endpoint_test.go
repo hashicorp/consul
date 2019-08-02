@@ -71,20 +71,12 @@ func TestDiscoveryChainRead(t *testing.T) {
 						Resolver: &structs.DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target: structs.DiscoveryTarget{
-								Service:    "web",
-								Namespace:  "default",
-								Datacenter: "dc1",
-							},
+							Target:         "web.default.dc1",
 						},
 					},
 				},
-				Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-					structs.DiscoveryTarget{
-						Service:    "web",
-						Namespace:  "default",
-						Datacenter: "dc1",
-					}: {},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -122,20 +114,12 @@ func TestDiscoveryChainRead(t *testing.T) {
 						Resolver: &structs.DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target: structs.DiscoveryTarget{
-								Service:    "web",
-								Namespace:  "default",
-								Datacenter: "dc2",
-							},
+							Target:         "web.default.dc2",
 						},
 					},
 				},
-				Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-					structs.DiscoveryTarget{
-						Service:    "web",
-						Namespace:  "default",
-						Datacenter: "dc2",
-					}: {},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"web.default.dc2": structs.NewDiscoveryTarget("web", "", "default", "dc2"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -177,20 +161,12 @@ func TestDiscoveryChainRead(t *testing.T) {
 					Name: "web.default.dc1",
 					Resolver: &structs.DiscoveryResolver{
 						ConnectTimeout: 33 * time.Second,
-						Target: structs.DiscoveryTarget{
-							Service:    "web",
-							Namespace:  "default",
-							Datacenter: "dc1",
-						},
+						Target:         "web.default.dc1",
 					},
 				},
 			},
-			Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-				structs.DiscoveryTarget{
-					Service:    "web",
-					Namespace:  "default",
-					Datacenter: "dc1",
-				}: {},
+			Targets: map[string]*structs.DiscoveryTarget{
+				"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
 			},
 		}
 		require.Equal(t, expect, value.Chain)
@@ -215,6 +191,11 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 		value := obj.(discoveryChainReadResponse)
 
+		expectTarget := structs.NewDiscoveryTarget("web", "", "default", "dc1")
+		expectTarget.MeshGateway = structs.MeshGatewayConfig{
+			Mode: structs.MeshGatewayModeLocal,
+		}
+
 		expect := &structs.CompiledDiscoveryChain{
 			ServiceName:       "web",
 			Namespace:         "default",
@@ -228,38 +209,14 @@ func TestDiscoveryChainRead(t *testing.T) {
 					Name: "web.default.dc1",
 					Resolver: &structs.DiscoveryResolver{
 						ConnectTimeout: 22 * time.Second,
-						Target: structs.DiscoveryTarget{
-							Service:    "web",
-							Namespace:  "default",
-							Datacenter: "dc1",
-						},
+						Target:         "web.default.dc1",
 					},
 				},
 			},
-			Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
-				structs.DiscoveryTarget{
-					Service:    "web",
-					Namespace:  "default",
-					Datacenter: "dc1",
-				}: {
-					MeshGateway: structs.MeshGatewayConfig{
-						Mode: structs.MeshGatewayModeLocal,
-					},
-				},
+			Targets: map[string]*structs.DiscoveryTarget{
+				expectTarget.ID: expectTarget,
 			},
 		}
 		require.Equal(t, expect, value.Chain)
 	}))
 }
-
-// func TestDiscoveryChainRead_Post(t *testing.T) {
-// 	t.Parallel()
-
-// 	a := NewTestAgent(t, t.Name(), "")
-// 	defer a.Shutdown()
-// 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-// 	// TODO: no entries and compile
-
-// 	// TODO: yes entries and compile
-// }

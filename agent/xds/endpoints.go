@@ -78,20 +78,20 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 					continue
 				}
 				failover := node.Resolver.Failover
-				target := node.Resolver.Target
+				targetID := node.Resolver.Target
 
-				endpoints, ok := chainEndpointMap[target]
+				target := chain.Targets[targetID]
+
+				endpoints, ok := chainEndpointMap[targetID]
 				if !ok {
 					continue // skip the cluster (should not happen)
 				}
-
-				targetConfig := chain.Targets[target]
 
 				var endpointGroups []loadAssignmentEndpointGroup
 
 				primaryGroup := loadAssignmentEndpointGroup{
 					Endpoints:   endpoints,
-					OnlyPassing: targetConfig.Subset.OnlyPassing,
+					OnlyPassing: target.Subset.OnlyPassing,
 				}
 
 				if failover != nil && len(failover.Targets) > 0 {
@@ -99,17 +99,17 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 					endpointGroups = append(endpointGroups, primaryGroup)
 
-					for _, failTarget := range failover.Targets {
-						failEndpoints, ok := chainEndpointMap[failTarget]
+					for _, failTargetID := range failover.Targets {
+						failEndpoints, ok := chainEndpointMap[failTargetID]
 						if !ok {
 							continue // skip the failover target (should not happen)
 						}
 
-						failTargetConfig := chain.Targets[failTarget]
+						failTarget := chain.Targets[failTargetID]
 
 						endpointGroups = append(endpointGroups, loadAssignmentEndpointGroup{
 							Endpoints:   failEndpoints,
-							OnlyPassing: failTargetConfig.Subset.OnlyPassing,
+							OnlyPassing: failTarget.Subset.OnlyPassing,
 						})
 					}
 				} else {
