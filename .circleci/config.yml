@@ -190,7 +190,7 @@ jobs:
             GOARM: 6
             CC: arm-linux-gnueabihf-gcc
             GOARCH: arm
-          command: go build -o ./pkg/bin/armhf/consul  -ldflags="${GOLDFLAGS}"
+          command: go build -o ./pkg/bin/linux_armhf/consul  -ldflags="${GOLDFLAGS}"
       - run:
           environment:
             CC: aarch64-linux-gnu-gcc
