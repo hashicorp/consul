@@ -10,36 +10,18 @@ func TestDiscoveryTarget_TextMarshal(t *testing.T) {
 	for _, tc := range []struct {
 		target DiscoveryTarget
 		enc    string
-		alt    DiscoveryTarget
 	}{
 		{
-			target: DiscoveryTarget{"", "", "", ""},
-			enc:    ",,,",
-			alt:    DiscoveryTarget{"", "", "default", ""},
+			target: DiscoveryTarget{"svc", "", "default", "dc1"},
+			enc:    "svc.default.dc1",
 		},
 		{
-			target: DiscoveryTarget{"a:b", "", "", ""},
-			enc:    "a%3Ab,,,",
-			alt:    DiscoveryTarget{"a:b", "", "default", ""},
-		},
-		{
-			target: DiscoveryTarget{"", "a:b", "", ""},
-			enc:    ",a%3Ab,,",
-			alt:    DiscoveryTarget{"", "a:b", "default", ""},
-		},
-		{
-			target: DiscoveryTarget{"", "", "a:b", ""},
-			enc:    ",,a%3Ab,",
-			alt:    DiscoveryTarget{"", "", "a:b", ""},
-		},
-		{
-			target: DiscoveryTarget{"", "", "", "a:b"},
-			enc:    ",,,a%3Ab",
-			alt:    DiscoveryTarget{"", "", "default", "a:b"},
+			target: DiscoveryTarget{"svc", "sub", "other", "dc2"},
+			enc:    "sub.svc.other.dc2",
 		},
 		{
 			target: DiscoveryTarget{"one", "two", "three", "four"},
-			enc:    "one,two,three,four",
+			enc:    "two.one.three.four",
 		},
 	} {
 		tc := tc
@@ -50,11 +32,7 @@ func TestDiscoveryTarget_TextMarshal(t *testing.T) {
 
 			var dec DiscoveryTarget
 			require.NoError(t, dec.UnmarshalText(out))
-			if tc.alt.IsEmpty() {
-				require.Equal(t, tc.target, dec)
-			} else {
-				require.Equal(t, tc.alt, dec)
-			}
+			require.Equal(t, tc.target, dec)
 		})
 	}
 }

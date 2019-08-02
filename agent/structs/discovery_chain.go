@@ -1,10 +1,8 @@
 package structs
 
 import (
-	"bytes"
 	"encoding"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -195,76 +193,35 @@ func (t DiscoveryTarget) MarshalText() (text []byte, err error) {
 }
 
 func (t DiscoveryTarget) Identifier() string {
-	var buf bytes.Buffer
-	buf.WriteString(url.QueryEscape(t.Service))
-	buf.WriteRune(',')
-	buf.WriteString(url.QueryEscape(t.ServiceSubset)) // TODO(rb): move this first so the scoping flows from small->large?
-	buf.WriteRune(',')
-	if t.Namespace != "default" {
-		buf.WriteString(url.QueryEscape(t.Namespace))
+	// NOTE: this format is similar to the SNI syntax for simplicity
+	if t.ServiceSubset == "" {
+		return fmt.Sprintf("%s.%s.%s", t.Service, t.Namespace, t.Datacenter)
+	} else {
+		return fmt.Sprintf("%s.%s.%s.%s", t.ServiceSubset, t.Service, t.Namespace, t.Datacenter)
 	}
-	buf.WriteRune(',')
-	buf.WriteString(url.QueryEscape(t.Datacenter))
-	return buf.String()
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (t *DiscoveryTarget) UnmarshalText(text []byte) error {
-	parts := bytes.Split(text, []byte(","))
-	bad := false
-	if len(parts) != 4 {
+	parts := strings.Split(string(text), ".")
+	switch len(parts) {
+	case 3: // no subset
+		t.ServiceSubset = ""
+		t.Service = parts[0]
+		t.Namespace = parts[1]
+		t.Datacenter = parts[2]
+	case 4: // with subset
+		t.ServiceSubset = parts[0]
+		t.Service = parts[1]
+		t.Namespace = parts[2]
+		t.Datacenter = parts[3]
+	default:
 		return fmt.Errorf("invalid target: %q", string(text))
 	}
 
-	var err error
-	t.Service, err = url.QueryUnescape(string(parts[0]))
-	if err != nil {
-		bad = true
-	}
-	t.ServiceSubset, err = url.QueryUnescape(string(parts[1]))
-	if err != nil {
-		bad = true
-	}
-	t.Namespace, err = url.QueryUnescape(string(parts[2]))
-	if err != nil {
-		bad = true
-	}
-	t.Datacenter, err = url.QueryUnescape(string(parts[3]))
-	if err != nil {
-		bad = true
-	}
-
-	if bad {
-		return fmt.Errorf("invalid target: %q", string(text))
-	}
-
-	if t.Namespace == "" {
-		t.Namespace = "default"
-	}
 	return nil
 }
 
 func (t DiscoveryTarget) String() string {
-	var b strings.Builder
-
-	if t.ServiceSubset != "" {
-		b.WriteString(t.ServiceSubset)
-	} else {
-		b.WriteString("<default>")
-	}
-	b.WriteRune('.')
-
-	b.WriteString(t.Service)
-	b.WriteRune('.')
-
-	if t.Namespace != "" {
-		b.WriteString(t.Namespace)
-	} else {
-		b.WriteString("<default>")
-	}
-	b.WriteRune('.')
-
-	b.WriteString(t.Datacenter)
-
-	return b.String()
+	return t.Identifier()
 }

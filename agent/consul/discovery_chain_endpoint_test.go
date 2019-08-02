@@ -81,11 +81,11 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Namespace:   "default",
 			Datacenter:  "dc1",
 			Protocol:    "tcp",
-			StartNode:   "resolver:web,,,dc1",
+			StartNode:   "resolver:web.default.dc1",
 			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:web,,,dc1": &structs.DiscoveryGraphNode{
+				"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
 					Type: structs.DiscoveryGraphNodeTypeResolver,
-					Name: "web,,,dc1",
+					Name: "web.default.dc1",
 					Resolver: &structs.DiscoveryResolver{
 						Default:        true,
 						ConnectTimeout: 5 * time.Second,
@@ -183,11 +183,11 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				Namespace:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web,,,dc1",
+				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web,,,dc1": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
 						Type: structs.DiscoveryGraphNodeTypeResolver,
-						Name: "web,,,dc1",
+						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							ConnectTimeout: 33 * time.Second,
 							Target: structs.DiscoveryTarget{
