@@ -20,7 +20,7 @@
                   {{#changeable-set dispatcher=searchableUnhealthy}}
                     {{#block-slot 'set' as |unhealthy|}}
                       {{#each unhealthy as |item|}}
-                          {{healthchecked-resource
+                          {{#healthchecked-resource
                               tagName='li'
                               data-test-node=item.Node
                               href=(href-to 'dc.nodes.show' item.Node)
@@ -28,6 +28,12 @@
                               address=item.Address
                               checks=item.Checks
                           }}
+                            {{#block-slot 'icon'}}
+                              {{#if (eq item.Address leader.Address)}}
+                                <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
+                              {{/if}}
+                            {{/block-slot}}
+                          {{/healthchecked-resource}}
                       {{/each}}
                     {{/block-slot}}
                     {{#block-slot 'empty'}}
@@ -46,13 +52,19 @@
             {{#changeable-set dispatcher=searchableHealthy}}
               {{#block-slot 'set' as |healthy|}}
                 {{#list-collection cellHeight=92 items=healthy as |item index|}}
-                    {{healthchecked-resource
+                    {{#healthchecked-resource
                         data-test-node=item.Node
                         href=(href-to 'dc.nodes.show' item.Node)
                         name=item.Node
                         address=item.Address
                         checks=item.Checks
                     }}
+                      {{#block-slot 'icon'}}
+                        {{#if (eq item.Address leader.Address)}}
+                          <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
+                        {{/if}}
+                      {{/block-slot}}
+                    {{/healthchecked-resource}}
                 {{/list-collection}}
               {{/block-slot}}
               {{#block-slot 'empty'}}
