@@ -6,6 +6,7 @@ IMPROVEMENTS:
 * connect: reconcile how upstream configuration works with discovery chains [[GH-6225](https://github.com/hashicorp/consul/issues/6225)]
 * connect: simplify the compiled discovery chain data structures [[GH-6242](https://github.com/hashicorp/consul/issues/6242)]
 * connect: detect and prevent circular discovery chain references [[GH-6246](https://github.com/hashicorp/consul/issues/6246)]
+* license (enterprise): Added license endpoint support to the API client [[GH-6268](https://github.com/hashicorp/consul/pull/6268)]
 
 BUG FIXES:
 
