@@ -442,8 +442,6 @@ func (s *Store) testCompileDiscoveryChain(
 		return err
 	}
 
-	// TODO(rb): is this ok that we execute the compiler in the state store?
-
 	// Note we use an arbitrary namespace and datacenter as those would not
 	// currently affect the graph compilation in ways that matter here.
 	req := discoverychain.CompileRequest{
