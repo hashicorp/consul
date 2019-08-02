@@ -17,6 +17,7 @@ export default Route.extend(WithKvActions, {
       isLoading: false,
       parent: repo.findBySlug(ascend(key, 1) || '/', dc),
       item: repo.findBySlug(key, dc),
+      session: null,
     }).then(model => {
       // TODO: Consider loading this after initial page load
       const session = get(model.item, 'Session');
