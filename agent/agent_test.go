@@ -3155,7 +3155,6 @@ func TestAgent_ReLoadProxiesFromConfig(t *testing.T) {
 				Name: "web",
 				Connect: &structs.ServiceConnect{
 					Native: false,
-					Proxy:  &structs.ServiceDefinitionConnectProxy{},
 				},
 			},
 		},

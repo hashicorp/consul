@@ -2461,24 +2461,6 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 			]
 		},
 		"connect": {
-			"proxy": {
-				"exec_mode": "script",
-				"config": {
-					"destination_type": "connect.proxy.config is 'opaque' so should not get translated"
-				},
-				"upstreams": [
-					{
-						"destination_type": "service",
-						"destination_namespace": "default",
-						"destination_name": "db",
-						"local_bind_address": "` + tt.ip + `",
-						"local_bind_port": 1234,
-						"config": {
-							"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated"
-						}
-					}
-				]
-			},
 			"sidecar_service": {
 				"name":"test-proxy",
 				"port":8001,
@@ -2563,23 +2545,6 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 					},
 				},
 				Connect: structs.ServiceConnect{
-					Proxy: &structs.ServiceDefinitionConnectProxy{
-						Config: map[string]interface{}{
-							"destination_type": "connect.proxy.config is 'opaque' so should not get translated",
-						},
-						Upstreams: structs.Upstreams{
-							{
-								DestinationType:      structs.UpstreamDestTypeService,
-								DestinationName:      "db",
-								DestinationNamespace: "default",
-								LocalBindAddress:     tt.ip,
-								LocalBindPort:        1234,
-								Config: map[string]interface{}{
-									"destination_type": "connect.proxy.upstreams.config is 'opaque' so should not get translated",
-								},
-							},
-						},
-					},
 					// The sidecar service is nilled since it is only config sugar and
 					// shouldn't be represented in state. We assert that the translations
 					// there worked by inspecting the registered sidecar below.
@@ -4262,7 +4227,6 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4299,7 +4263,6 @@ func TestAgentConnectCALeafCert_aclProxyToken(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4345,7 +4308,6 @@ func TestAgentConnectCALeafCert_aclProxyTokenOther(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4367,7 +4329,6 @@ func TestAgentConnectCALeafCert_aclProxyTokenOther(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4410,7 +4371,6 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4468,7 +4428,6 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4761,7 +4720,6 @@ func TestAgentConnectProxyConfig_aclDefaultDeny(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4797,7 +4755,6 @@ func TestAgentConnectProxyConfig_aclProxyToken(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 
@@ -4902,7 +4859,6 @@ func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
 				TTL: 15 * time.Second,
 			},
 			Connect: &structs.ServiceConnect{
-				Proxy: &structs.ServiceDefinitionConnectProxy{},
 			},
 		}
 

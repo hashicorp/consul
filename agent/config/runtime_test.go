@@ -4394,15 +4394,7 @@ func TestFullConfig(t *testing.T) {
 							deregister_critical_service_after = "68482s"
 						}
 					]
-					connect {
-						proxy {
-							exec_mode = "daemon"
-							command = ["awesome-proxy"]
-							config = {
-								foo = "qux"
-							}
-						}
-					}
+					connect {}
 				},
 				{
 					id = "Kh81CPF6"
@@ -4973,13 +4965,7 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
-				Connect: &structs.ServiceConnect{
-					Proxy: &structs.ServiceDefinitionConnectProxy{
-						Config: map[string]interface{}{
-							"foo": "qux",
-						},
-					},
-				},
+				Connect: &structs.ServiceConnect{},
 			},
 			{
 				ID:   "Kh81CPF6",
