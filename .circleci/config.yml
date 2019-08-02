@@ -195,7 +195,7 @@ jobs:
           environment:
             CC: aarch64-linux-gnu-gcc
             GOARCH: arm64
-          command: go build -o ./pkg/bin/aarch64/consul  -ldflags="${GOLDFLAGS}"
+          command: go build -o ./pkg/bin/linux_aarch64/consul  -ldflags="${GOLDFLAGS}"
       - store_artifacts:
           path: ./pkg/bin
 
