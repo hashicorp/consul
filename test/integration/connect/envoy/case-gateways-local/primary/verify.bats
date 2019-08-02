@@ -19,7 +19,8 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.secondary HEALTHY 1
+  # mesh gateway mode is configured in an upstream override so the cluster name is customized here
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 c225dc1c:s2.default.secondary HEALTHY 1
 }
 
 @test "gateway-primary should have healthy endpoints for secondary" {
@@ -33,7 +34,7 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric 127.0.0.1:19000 "cluster.s2.default.secondary.*cx_total" 1
+  assert_envoy_metric 127.0.0.1:19000 "cluster.c225dc1c_s2.default.secondary.*cx_total" 1
 }
 
 @test "gateway-primary is used for the upstream connection" {

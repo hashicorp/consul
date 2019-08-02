@@ -246,6 +246,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			setup:  nil,
+		},
+		{
 			name:   "connect-proxy-with-chain-and-failover",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup:  nil,
@@ -261,11 +266,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 					Namespace:  "default",
 					Datacenter: "dc1",
 				}
-				dbResolverNode := chain.GroupResolverNodes[dbTarget]
+				dbResolverNode := chain.Nodes["resolver:"+dbTarget.Identifier()]
 
-				groupResolverFailover := dbResolverNode.GroupResolver.Failover
+				failover := dbResolverNode.Resolver.Failover
 
-				groupResolverFailover.Definition.OverprovisioningFactor = 160
+				failover.Definition.OverprovisioningFactor = 160
 			},
 		},
 		{

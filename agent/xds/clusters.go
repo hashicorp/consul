@@ -58,7 +58,6 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 
 		if chain == nil {
-			// Either old-school upstream or prepared query.
 			upstreamCluster, err := s.makeUpstreamCluster(u, cfgSnap)
 			if err != nil {
 				return nil, err
@@ -235,7 +234,6 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
-
 	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -251,22 +249,27 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	// TODO(rb): make escape hatches work with chains
 
 	var out []*envoy.Cluster
-	for target, node := range chain.GroupResolverNodes {
-		groupResolver := node.GroupResolver
+
+	for _, node := range chain.Nodes {
+		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
+			continue
+		}
+		target := node.Resolver.Target
 
 		sni := TargetSNI(target, cfgSnap)
-		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", sni)
+		clusterName := CustomizeClusterName(sni, chain)
+
+		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
 		c := &envoy.Cluster{
-			Name:                 sni,
-			AltStatName:          sni, // TODO(rb): change this?
-			ConnectTimeout:       groupResolver.ConnectTimeout,
+			Name:                 clusterName,
+			AltStatName:          clusterName,
+			ConnectTimeout:       node.Resolver.ConnectTimeout,
 			ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_EDS},
 			CommonLbConfig: &envoy.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoytype.Percent{
 					Value: 0, // disable panic threshold
 				},
 			},
-			// TODO(rb): adjust load assignment
 			EdsClusterConfig: &envoy.Cluster_EdsClusterConfig{
 				EdsConfig: &envoycore.ConfigSource{
 					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{

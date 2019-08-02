@@ -37,6 +37,19 @@ type MeshGatewayConfig struct {
 	Mode MeshGatewayMode `json:",omitempty"`
 }
 
+func (c *MeshGatewayConfig) IsZero() bool {
+	zeroVal := MeshGatewayConfig{}
+	return *c == zeroVal
+}
+
+func (base *MeshGatewayConfig) OverlayWith(overlay MeshGatewayConfig) MeshGatewayConfig {
+	out := *base
+	if overlay.Mode != MeshGatewayModeDefault {
+		out.Mode = overlay.Mode
+	}
+	return out
+}
+
 func ValidateMeshGatewayMode(mode string) (MeshGatewayMode, error) {
 	switch MeshGatewayMode(mode) {
 	case MeshGatewayModeNone:
@@ -196,9 +209,11 @@ type Upstream struct {
 
 // Validate sanity checks the struct is valid
 func (u *Upstream) Validate() error {
-	if u.DestinationType != UpstreamDestTypeService &&
-		u.DestinationType != UpstreamDestTypePreparedQuery {
-		return fmt.Errorf("unknown upstream destination type")
+	switch u.DestinationType {
+	case UpstreamDestTypePreparedQuery:
+	case UpstreamDestTypeService, "":
+	default:
+		return fmt.Errorf("unknown upstream destination type: %q", u.DestinationType)
 	}
 
 	if u.DestinationName == "" {
@@ -226,6 +241,38 @@ func (u *Upstream) ToAPI() api.Upstream {
 		Config:               u.Config,
 		MeshGateway:          u.MeshGateway.ToAPI(),
 	}
+}
+
+// ToKey returns a value-type representation that uniquely identifies the
+// upstream in a canonical way. Set and unset values are deliberately handled
+// differently.
+//
+// These fields should be user-specificed explicit values and not inferred
+// values.
+func (u *Upstream) ToKey() UpstreamKey {
+	return UpstreamKey{
+		DestinationType:      u.DestinationType,
+		DestinationNamespace: u.DestinationNamespace,
+		DestinationName:      u.DestinationName,
+		Datacenter:           u.Datacenter,
+	}
+}
+
+type UpstreamKey struct {
+	DestinationType      string
+	DestinationName      string
+	DestinationNamespace string
+	Datacenter           string
+}
+
+func (k UpstreamKey) String() string {
+	return fmt.Sprintf(
+		"[type=%q, name=%q, namespace=%q, datacenter=%q]",
+		k.DestinationType,
+		k.DestinationName,
+		k.DestinationNamespace,
+		k.Datacenter,
+	)
 }
 
 // Identifier returns a string representation that uniquely identifies the

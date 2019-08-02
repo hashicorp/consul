@@ -8,26 +8,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCompile_NoEntries_NoInferDefaults(t *testing.T) {
-	entries := newEntries()
-
-	res, err := Compile(CompileRequest{
-		ServiceName:       "main",
-		CurrentNamespace:  "default",
-		CurrentDatacenter: "dc1",
-		InferDefaults:     false,
-		Entries:           entries,
-	})
-	require.NoError(t, err)
-	require.Nil(t, res)
-}
-
 type compileTestCase struct {
 	entries *structs.DiscoveryChainConfigEntries
-	// expect: the GroupResolverNodes map should have nil values
-	expect *structs.CompiledDiscoveryChain
+	setup   func(req *CompileRequest)
+	expect  *structs.CompiledDiscoveryChain
 	// expectIsDefault tests behavior of CompiledDiscoveryChain.IsDefault()
 	expectIsDefault bool
+	expectCustom    bool
 	expectErr       string
 	expectGraphErr  bool
 }
@@ -35,7 +22,6 @@ type compileTestCase struct {
 func TestCompile(t *testing.T) {
 	t.Parallel()
 
-	// TODO(rb): test circular dependency?
 	cases := map[string]compileTestCase{
 		"router with defaults":                             testcase_JustRouterWithDefaults(),
 		"router with defaults and resolver":                testcase_RouterWithDefaults_NoSplit_WithResolver(),
@@ -52,15 +38,17 @@ func TestCompile(t *testing.T) {
 		"service and subset redirect":                      testcase_ServiceAndSubsetRedirect(),
 		"datacenter redirect":                              testcase_DatacenterRedirect(),
 		"service failover":                                 testcase_ServiceFailover(),
+		"service failover through redirect":                testcase_ServiceFailoverThroughRedirect(),
+		"circular resolver failover":                       testcase_Resolver_CircularFailover(),
 		"service and subset failover":                      testcase_ServiceAndSubsetFailover(),
 		"datacenter failover":                              testcase_DatacenterFailover(),
+		"service failover with mesh gateways":              testcase_ServiceFailover_WithMeshGateways(),
 		"noop split to resolver with default subset":       testcase_NoopSplit_WithDefaultSubset(),
 		"resolver with default subset":                     testcase_Resolve_WithDefaultSubset(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
 
-		// TODO(rb): handle this case better: "circular split":                                   testcase_CircularSplit(),
 		"all the bells and whistles": testcase_AllBellsAndWhistles(),
 		"multi dc canary":            testcase_MultiDatacenterCanary(),
 
@@ -72,6 +60,15 @@ func TestCompile(t *testing.T) {
 		"failover crosses protocols":       testcase_FailoverCrossesProtocols(),
 		"redirect crosses protocols":       testcase_RedirectCrossesProtocols(),
 		"redirect to missing subset":       testcase_RedirectToMissingSubset(),
+
+		// overrides
+		"resolver with protocol from override":         testcase_ResolverProtocolOverride(),
+		"resolver with protocol from override ignored": testcase_ResolverProtocolOverrideIgnored(),
+		"router ignored due to protocol override":      testcase_RouterIgnored_ResolverProtocolOverride(),
+
+		// circular references
+		"circular resolver redirect": testcase_Resolver_CircularRedirect(),
+		"circular split":             testcase_CircularSplit(),
 	}
 
 	for name, tc := range cases {
@@ -93,13 +90,17 @@ func TestCompile(t *testing.T) {
 				require.NoError(t, entry.Validate())
 			}
 
-			res, err := Compile(CompileRequest{
+			req := CompileRequest{
 				ServiceName:       "main",
 				CurrentNamespace:  "default",
 				CurrentDatacenter: "dc1",
-				InferDefaults:     true,
 				Entries:           tc.entries,
-			})
+			}
+			if tc.setup != nil {
+				tc.setup(&req)
+			}
+
+			res, err := Compile(req)
 			if tc.expectErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectErr)
@@ -118,14 +119,11 @@ func TestCompile(t *testing.T) {
 				tc.expect.Namespace = "default"
 				tc.expect.Datacenter = "dc1"
 
-				// These nodes are duplicated elsewhere in the results, so we only
-				// care that the keys are present. Walk the results and nil out the
-				// value payloads so that the require.Equal will still do the work
-				// for us.
-				if len(res.GroupResolverNodes) > 0 {
-					for target, _ := range res.GroupResolverNodes {
-						res.GroupResolverNodes[target] = nil
-					}
+				if tc.expectCustom {
+					require.NotEmpty(t, res.CustomizationHash)
+					res.CustomizationHash = ""
+				} else {
+					require.Empty(t, res.CustomizationHash)
 				}
 
 				require.Equal(t, tc.expect, res)
@@ -149,34 +147,32 @@ func testcase_JustRouterWithDefaults() compileTestCase {
 	resolver := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							Default:        true,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "resolver:main,,,dc1",
 					},
 				},
 			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -204,33 +200,31 @@ func testcase_RouterWithDefaults_NoSplit_WithResolver() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 33 * time.Second,
-							Target:         newTarget("main", "", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "resolver:main,,,dc1",
 					},
 				},
 			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 33 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -260,43 +254,42 @@ func testcase_RouterWithDefaults_WithNoopSplit_DefaultResolver() compileTestCase
 	resolver := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeSplitter,
-						Name: "main",
-						Splits: []*structs.DiscoverySplit{
-							{
-								Weight: 100,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "main",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolver,
-										Default:        true,
-										ConnectTimeout: 5 * time.Second,
-										Target:         newTarget("main", "", "default", "dc1"),
-									},
-								},
-							},
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "splitter:main",
 					},
 				},
 			},
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:main,,,dc1",
+					},
+				},
+			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -326,43 +319,42 @@ func testcase_NoopSplit_DefaultResolver_ProtocolFromProxyDefaults() compileTestC
 	resolver := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeSplitter,
-						Name: "main",
-						Splits: []*structs.DiscoverySplit{
-							{
-								Weight: 100,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "main",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolver,
-										Default:        true,
-										ConnectTimeout: 5 * time.Second,
-										Target:         newTarget("main", "", "default", "dc1"),
-									},
-								},
-							},
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "splitter:main",
 					},
 				},
 			},
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:main,,,dc1",
+					},
+				},
+			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -399,42 +391,41 @@ func testcase_RouterWithDefaults_WithNoopSplit_WithResolver() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeSplitter,
-						Name: "main",
-						Splits: []*structs.DiscoverySplit{
-							{
-								Weight: 100,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "main",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolver,
-										ConnectTimeout: 33 * time.Second,
-										Target:         newTarget("main", "", "default", "dc1"),
-									},
-								},
-							},
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "splitter:main",
 					},
 				},
 			},
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:main,,,dc1",
+					},
+				},
+			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 33 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -485,49 +476,50 @@ func testcase_RouteBypassesSplit() compileTestCase {
 	resolverMain := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: &router.Routes[0],
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "other",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverOther,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("other", "bypass", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: &router.Routes[0],
+						NextNode:   "resolver:other,bypass,,dc1",
 					},
-				},
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverMain,
-							Default:        true,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "", "default", "dc1"),
-						},
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "resolver:main,,,dc1",
 					},
 				},
 			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
+			"resolver:other,bypass,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other,bypass,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverOther,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("other", "bypass", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"other": resolverOther,
-			"main":  resolverMain,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-			newTarget("other", "bypass", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"):        nil,
-			newTarget("other", "bypass", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("other", "bypass", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == bypass",
+				},
+			},
 		},
 	}
 
@@ -551,34 +543,32 @@ func testcase_NoopSplit_DefaultResolver() compileTestCase {
 	resolver := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 100,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							Default:        true,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:main,,,dc1",
 					},
 				},
 			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -609,33 +599,31 @@ func testcase_NoopSplit_WithResolver() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 100,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 33 * time.Second,
-							Target:         newTarget("main", "", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:main,,,dc1",
 					},
 				},
 			},
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 33 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -674,47 +662,53 @@ func testcase_SubsetSplit() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 60,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "v2", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   60,
+						NextNode: "resolver:main,v2,,dc1",
 					},
-				},
-				{
-					Weight: 40,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "v1", "default", "dc1"),
-						},
+					{
+						Weight:   40,
+						NextNode: "resolver:main,v1,,dc1",
 					},
 				},
 			},
+			"resolver:main,v2,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v2,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v2", "default", "dc1"),
+				},
+			},
+			"resolver:main,v1,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v1,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v1", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "v1", "default", "dc1"),
-			newTarget("main", "v2", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "v1", "default", "dc1"): nil,
-			newTarget("main", "v2", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "v1", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 1",
+				},
+			},
+			newTarget("main", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 2",
+				},
+			},
 		},
 	}
 
@@ -742,50 +736,47 @@ func testcase_ServiceSplit() compileTestCase {
 	resolverBar := newDefaultServiceResolver("bar")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 60,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "foo",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverFoo,
-							Default:        true,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("foo", "", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   60,
+						NextNode: "resolver:foo,,,dc1",
 					},
-				},
-				{
-					Weight: 40,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "bar",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverBar,
-							Default:        true,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("bar", "", "default", "dc1"),
-						},
+					{
+						Weight:   40,
+						NextNode: "resolver:bar,,,dc1",
 					},
 				},
 			},
+			"resolver:foo,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "foo,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverFoo,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("foo", "", "default", "dc1"),
+				},
+			},
+			"resolver:bar,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "bar,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverBar,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("bar", "", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"foo": resolverFoo,
-			"bar": resolverBar,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("bar", "", "default", "dc1"),
-			newTarget("foo", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("bar", "", "default", "dc1"): nil,
-			newTarget("foo", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("bar", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("foo", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -838,33 +829,35 @@ func testcase_SplitBypassesSplit() compileTestCase {
 	resolverNext := entries.GetResolver("next")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 100,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "next",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverNext,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("next", "bypassed", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:next,bypassed,,dc1",
 					},
 				},
 			},
+			"resolver:next,bypassed,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "next,bypassed,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverNext,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("next", "bypassed", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"next": resolverNext,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("next", "bypassed", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("next", "bypassed", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("next", "bypassed", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == bypass",
+				},
+			},
 		},
 	}
 
@@ -886,25 +879,22 @@ func testcase_ServiceRedirect() compileTestCase {
 	resolverOther := newDefaultServiceResolver("other")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "other",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolverOther,
-				Default:        true,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("other", "", "default", "dc1"),
+		Protocol:  "tcp",
+		StartNode: "resolver:other,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverOther,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("other", "", "default", "dc1"),
+				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"other": resolverOther,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("other", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("other", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("other", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -939,24 +929,25 @@ func testcase_ServiceAndSubsetRedirect() compileTestCase {
 	resolver := entries.GetResolver("other")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "other",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("other", "v2", "default", "dc1"),
+		Protocol:  "tcp",
+		StartNode: "resolver:other,v2,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other,v2,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other,v2,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("other", "v2", "default", "dc1"),
+				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"other": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("other", "v2", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("other", "v2", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("other", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 2",
+				},
+			},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -977,24 +968,21 @@ func testcase_DatacenterRedirect() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("main", "", "default", "dc9"),
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc9",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc9": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc9",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc9"),
+				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc9"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc9"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc9"): structs.DiscoveryTargetConfig{},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1013,37 +1001,134 @@ func testcase_ServiceFailover() compileTestCase {
 	)
 
 	resolverMain := entries.GetResolver("main")
-	resolverBackup := newDefaultServiceResolver("backup")
 
 	wildFail := resolverMain.Failover["*"]
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolverMain,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("main", "", "default", "dc1"),
-				Failover: &structs.DiscoveryFailover{
-					Definition: &wildFail,
-					Targets: []structs.DiscoveryTarget{
-						newTarget("backup", "", "default", "dc1"),
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("backup", "", "default", "dc1"),
+						},
 					},
 				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main":   resolverMain,
-			"backup": resolverBackup,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("backup", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc1"):   structs.DiscoveryTargetConfig{},
 		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("backup", "", "default", "dc1"),
-			newTarget("main", "", "default", "dc1"),
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ServiceFailoverThroughRedirect() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "backup",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "actual",
+			},
 		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "backup"},
+			},
+		},
+	)
+
+	resolverMain := entries.GetResolver("main")
+
+	wildFail := resolverMain.Failover["*"]
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("actual", "", "default", "dc1"),
+						},
+					},
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("actual", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc1"):   structs.DiscoveryTargetConfig{},
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_Resolver_CircularFailover() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "backup",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "main"},
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "backup"},
+			},
+		},
+	)
+
+	resolverMain := entries.GetResolver("main")
+
+	wildFail := resolverMain.Failover["*"]
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("backup", "", "default", "dc1"),
+						},
+					},
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("backup", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc1"):   structs.DiscoveryTargetConfig{},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1070,31 +1155,32 @@ func testcase_ServiceAndSubsetFailover() compileTestCase {
 	wildFail := resolver.Failover["*"]
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("main", "", "default", "dc1"),
-				Failover: &structs.DiscoveryFailover{
-					Definition: &wildFail,
-					Targets: []structs.DiscoveryTarget{
-						newTarget("main", "backup", "default", "dc1"),
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("main", "backup", "default", "dc1"),
+						},
 					},
 				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-			newTarget("main", "backup", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "backup", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == backup",
+				},
+			},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1116,33 +1202,89 @@ func testcase_DatacenterFailover() compileTestCase {
 	wildFail := resolver.Failover["*"]
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("main", "", "default", "dc1"),
-				Failover: &structs.DiscoveryFailover{
-					Definition: &wildFail,
-					Targets: []structs.DiscoveryTarget{
-						newTarget("main", "", "default", "dc2"),
-						newTarget("main", "", "default", "dc4"),
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("main", "", "default", "dc2"),
+							newTarget("main", "", "default", "dc4"),
+						},
 					},
 				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc2"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc4"): structs.DiscoveryTargetConfig{},
 		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-			newTarget("main", "", "default", "dc2"),
-			newTarget("main", "", "default", "dc4"),
+	}
+	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_ServiceFailover_WithMeshGateways() compileTestCase {
+	entries := newEntries()
+	entries.GlobalProxy = &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		MeshGateway: structs.MeshGatewayConfig{
+			Mode: structs.MeshGatewayModeRemote,
 		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+	}
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {Service: "backup"},
+			},
+		},
+	)
+
+	resolverMain := entries.GetResolver("main")
+
+	wildFail := resolverMain.Failover["*"]
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+					Failover: &structs.DiscoveryFailover{
+						Definition: &wildFail,
+						Targets: []structs.DiscoveryTarget{
+							newTarget("backup", "", "default", "dc1"),
+						},
+					},
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("backup", "", "default", "dc1"): structs.DiscoveryTargetConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				},
+			},
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				},
+			},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1176,33 +1318,35 @@ func testcase_NoopSplit_WithDefaultSubset() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 100,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "v2", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   100,
+						NextNode: "resolver:main,v2,,dc1",
 					},
 				},
 			},
+			"resolver:main,v2,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v2,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v2", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "v2", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "v2", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 2",
+				},
+			},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1214,25 +1358,22 @@ func testcase_DefaultResolver() compileTestCase {
 	resolver := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				Default:        true,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("main", "", "default", "dc1"),
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
@@ -1254,28 +1395,26 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 	resolver := newDefaultServiceResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "grpc",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				Default:        true,
-				ConnectTimeout: 5 * time.Second,
+		Protocol:  "grpc",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeRemote,
 				},
-				Target: newTarget("main", "", "default", "dc1"),
 			},
-		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc1"): nil,
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
@@ -1296,25 +1435,22 @@ func testcase_RedirectToDefaultResolverIsNotDefaultChain() compileTestCase {
 	resolver := newDefaultServiceResolver("other")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "other",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				Default:        true,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("other", "", "default", "dc1"),
+		Protocol:  "tcp",
+		StartNode: "resolver:other,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:other,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "other,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("other", "", "default", "dc1"),
+				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"other": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("other", "", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("other", "", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("other", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
 		},
 	}
 
@@ -1338,83 +1474,25 @@ func testcase_Resolve_WithDefaultSubset() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "tcp",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-			Name: "main",
-			GroupResolver: &structs.DiscoveryGroupResolver{
-				Definition:     resolver,
-				ConnectTimeout: 5 * time.Second,
-				Target:         newTarget("main", "v2", "default", "dc1"),
-			},
-		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "v2", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "v2", "default", "dc1"): nil,
-		},
-	}
-	return compileTestCase{entries: entries, expect: expect}
-}
-
-func testcase_CircularSplit() compileTestCase {
-	entries := newEntries()
-	setServiceProtocol(entries, "main", "http")
-	setServiceProtocol(entries, "other", "http")
-
-	entries.AddSplitters(
-		&structs.ServiceSplitterConfigEntry{
-			Kind: "service-splitter",
-			Name: "main",
-			Splits: []structs.ServiceSplit{
-				{Weight: 60, Service: "other"},
-				{Weight: 40, Service: "main"}, // goes straight to resolver
-			},
-		},
-		&structs.ServiceSplitterConfigEntry{
-			Kind: "service-splitter",
-			Name: "other",
-			Splits: []structs.ServiceSplit{
-				{Weight: 60, Service: "main"},
-				{Weight: 40, Service: "other"}, // goes straight to resolver
-			},
-		},
-	)
-
-	resolveMain := newDefaultServiceResolver("main")
-
-	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 60,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolveMain,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "v2", "default", "dc1"),
-						},
-					},
+		Protocol:  "tcp",
+		StartNode: "resolver:main,v2,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,v2,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v2,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v2", "default", "dc1"),
 				},
 			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolveMain,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "v2", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "v2", "default", "dc1"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 2",
+				},
+			},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1463,47 +1541,45 @@ func testcase_MultiDatacenterCanary() compileTestCase {
 	resolver := entries.GetResolver("main")
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeSplitter,
-			Name: "main",
-			Splits: []*structs.DiscoverySplit{
-				{
-					Weight: 60,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 33 * time.Second,
-							Target:         newTarget("main", "", "default", "dc2"),
-						},
+		Protocol:  "http",
+		StartNode: "splitter:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"splitter:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "main",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   60,
+						NextNode: "resolver:main,,,dc2",
 					},
-				},
-				{
-					Weight: 40,
-					Node: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolver,
-							ConnectTimeout: 33 * time.Second,
-							Target:         newTarget("main", "", "default", "dc3"),
-						},
+					{
+						Weight:   40,
+						NextNode: "resolver:main,,,dc3",
 					},
 				},
 			},
+			"resolver:main,,,dc2": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc2",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 33 * time.Second,
+					Target:         newTarget("main", "", "default", "dc2"),
+				},
+			},
+			"resolver:main,,,dc3": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc3",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					ConnectTimeout: 33 * time.Second,
+					Target:         newTarget("main", "", "default", "dc3"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main": resolver,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "", "default", "dc2"),
-			newTarget("main", "", "default", "dc3"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "", "default", "dc2"): nil,
-			newTarget("main", "", "default", "dc3"): nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc2"): structs.DiscoveryTargetConfig{},
+			newTarget("main", "", "default", "dc3"): structs.DiscoveryTargetConfig{},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1600,111 +1676,119 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 	)
 
 	expect := &structs.CompiledDiscoveryChain{
-		Protocol: "http",
-		Node: &structs.DiscoveryGraphNode{
-			Type: structs.DiscoveryGraphNodeTypeRouter,
-			Name: "main",
-			Routes: []*structs.DiscoveryRoute{
-				{
-					Definition: &router.Routes[0],
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "redirected",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverRedirected,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("redirected", "prod", "default", "dc1"),
-						},
+		Protocol:  "http",
+		StartNode: "router:main",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"router:main": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeRouter,
+				Name: "main",
+				Routes: []*structs.DiscoveryRoute{
+					{
+						Definition: &router.Routes[0],
+						NextNode:   "resolver:redirected,prod,,dc1",
 					},
-				},
-				{
-					Definition: &router.Routes[1],
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeSplitter,
-						Name: "svc-split",
-						Splits: []*structs.DiscoverySplit{
-							{
-								Weight: 60,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "redirected",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolverRedirected,
-										ConnectTimeout: 5 * time.Second,
-										Target:         newTarget("redirected", "prod", "default", "dc1"),
-									},
-								},
-							},
-							{
-								Weight: 30,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "main",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolverMain,
-										ConnectTimeout: 5 * time.Second,
-										Target:         newTarget("main", "v1", "default", "dc1"),
-									},
-								},
-							},
-							{
-								Weight: 8,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "main",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolverMain,
-										ConnectTimeout: 5 * time.Second,
-										Target:         newTarget("main", "v2", "default", "dc1"),
-									},
-								},
-							},
-							{
-								Weight: 2,
-								Node: &structs.DiscoveryGraphNode{
-									Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-									Name: "main",
-									GroupResolver: &structs.DiscoveryGroupResolver{
-										Definition:     resolverMain,
-										ConnectTimeout: 5 * time.Second,
-										Target:         newTarget("main", "v3", "default", "dc1"),
-									},
-								},
-							},
-						},
+					{
+						Definition: &router.Routes[1],
+						NextNode:   "splitter:svc-split",
 					},
-				},
-				{
-					Definition: newDefaultServiceRoute("main"),
-					DestinationNode: &structs.DiscoveryGraphNode{
-						Type: structs.DiscoveryGraphNodeTypeGroupResolver,
-						Name: "main",
-						GroupResolver: &structs.DiscoveryGroupResolver{
-							Definition:     resolverMain,
-							ConnectTimeout: 5 * time.Second,
-							Target:         newTarget("main", "default-subset", "default", "dc1"),
-						},
+					{
+						Definition: newDefaultServiceRoute("main"),
+						NextNode:   "resolver:main,default-subset,,dc1",
 					},
 				},
 			},
+			"splitter:svc-split": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeSplitter,
+				Name: "svc-split",
+				Splits: []*structs.DiscoverySplit{
+					{
+						Weight:   60,
+						NextNode: "resolver:redirected,prod,,dc1",
+					},
+					{
+						Weight:   30,
+						NextNode: "resolver:main,v1,,dc1",
+					},
+					{
+						Weight:   8,
+						NextNode: "resolver:main,v2,,dc1",
+					},
+					{
+						Weight:   2,
+						NextNode: "resolver:main,v3,,dc1",
+					},
+				},
+			},
+			"resolver:redirected,prod,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "redirected,prod,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverRedirected,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("redirected", "prod", "default", "dc1"),
+				},
+			},
+			"resolver:main,v1,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v1,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v1", "default", "dc1"),
+				},
+			},
+			"resolver:main,v2,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v2,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v2", "default", "dc1"),
+				},
+			},
+			"resolver:main,v3,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,v3,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "v3", "default", "dc1"),
+				},
+			},
+			"resolver:main,default-subset,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,default-subset,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolverMain,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "default-subset", "default", "dc1"),
+				},
+			},
 		},
-		Resolvers: map[string]*structs.ServiceResolverConfigEntry{
-			"main":       resolverMain,
-			"redirected": resolverRedirected,
-		},
-		Targets: []structs.DiscoveryTarget{
-			newTarget("main", "default-subset", "default", "dc1"),
-			newTarget("main", "v1", "default", "dc1"),
-			newTarget("main", "v2", "default", "dc1"),
-			newTarget("main", "v3", "default", "dc1"),
-			newTarget("redirected", "prod", "default", "dc1"),
-		},
-		GroupResolverNodes: map[structs.DiscoveryTarget]*structs.DiscoveryGraphNode{
-			newTarget("main", "default-subset", "default", "dc1"): nil,
-			newTarget("main", "v1", "default", "dc1"):             nil,
-			newTarget("main", "v2", "default", "dc1"):             nil,
-			newTarget("main", "v3", "default", "dc1"):             nil,
-			newTarget("redirected", "prod", "default", "dc1"):     nil,
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "default-subset", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{OnlyPassing: true},
+			},
+			newTarget("main", "v1", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 1",
+				},
+			},
+			newTarget("main", "v2", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 2",
+				},
+			},
+			newTarget("main", "v3", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "Service.Meta.version == 3",
+				},
+			},
+			newTarget("redirected", "prod", "default", "dc1"): structs.DiscoveryTargetConfig{
+				Subset: structs.ServiceResolverSubset{
+					Filter: "ServiceMeta.env == prod",
+				},
+			},
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
@@ -1881,6 +1965,164 @@ func testcase_RedirectToMissingSubset() compileTestCase {
 	return compileTestCase{
 		entries:        entries,
 		expectErr:      `does not have a subset named "v1"`,
+		expectGraphErr: true,
+	}
+}
+
+func testcase_ResolverProtocolOverride() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "grpc")
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http2",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+		expectCustom: true,
+		setup: func(req *CompileRequest) {
+			req.OverrideProtocol = "http2"
+		},
+	}
+}
+
+func testcase_ResolverProtocolOverrideIgnored() compileTestCase {
+	// This shows that if you try to override the protocol to its current value
+	// the override is completely ignored.
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "http2")
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "http2",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+		setup: func(req *CompileRequest) {
+			req.OverrideProtocol = "http2"
+		},
+	}
+}
+
+func testcase_RouterIgnored_ResolverProtocolOverride() compileTestCase {
+	entries := newEntries()
+	setServiceProtocol(entries, "main", "grpc")
+
+	entries.AddRouters(
+		&structs.ServiceRouterConfigEntry{
+			Kind: "service-router",
+			Name: "main",
+		},
+	)
+
+	resolver := newDefaultServiceResolver("main")
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main,,,dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main,,,dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main,,,dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Definition:     resolver,
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         newTarget("main", "", "default", "dc1"),
+				},
+			},
+		},
+		Targets: map[structs.DiscoveryTarget]structs.DiscoveryTargetConfig{
+			newTarget("main", "", "default", "dc1"): structs.DiscoveryTargetConfig{},
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true,
+		expectCustom: true,
+		setup: func(req *CompileRequest) {
+			req.OverrideProtocol = "tcp"
+		},
+	}
+}
+
+func testcase_Resolver_CircularRedirect() compileTestCase {
+	entries := newEntries()
+	entries.AddResolvers(
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "main",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "other",
+			},
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: "service-resolver",
+			Name: "other",
+			Redirect: &structs.ServiceResolverRedirect{
+				Service: "main",
+			},
+		},
+	)
+
+	return compileTestCase{entries: entries,
+		expectErr:      "detected circular resolver redirect",
+		expectGraphErr: true,
+	}
+}
+
+func testcase_CircularSplit() compileTestCase {
+	entries := newEntries()
+	setGlobalProxyProtocol(entries, "http")
+	entries.AddSplitters(
+		&structs.ServiceSplitterConfigEntry{
+			Kind: "service-splitter",
+			Name: "main",
+			Splits: []structs.ServiceSplit{
+				{Weight: 100, Service: "other"},
+			},
+		},
+		&structs.ServiceSplitterConfigEntry{
+			Kind: "service-splitter",
+			Name: "other",
+			Splits: []structs.ServiceSplit{
+				{Weight: 100, Service: "main"},
+			},
+		},
+	)
+
+	return compileTestCase{entries: entries,
+		expectErr:      "detected circular reference",
 		expectGraphErr: true,
 	}
 }

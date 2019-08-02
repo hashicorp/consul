@@ -1,12 +1,17 @@
 package consul
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -1157,4 +1162,54 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 		require.Equal(t, global_entry_init.Name, global.Name)
 		require.Equal(t, global_entry_init.Config, global.Config)
 	})
+}
+
+func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
+	t.Parallel()
+
+	pr, pw := io.Pipe()
+	defer pw.Close()
+
+	ch := make(chan string, 1)
+	go func() {
+		defer pr.Close()
+		scan := bufio.NewScanner(pr)
+		for scan.Scan() {
+			line := scan.Text()
+
+			if strings.Contains(line, "consul: failed to establish leadership") {
+				ch <- ""
+				return
+			}
+			if strings.Contains(line, "connect: initialized primary datacenter") {
+				ch <- "leadership should not have gotten here if config entries properly failed"
+				return
+			}
+		}
+
+		if scan.Err() != nil {
+			ch <- fmt.Sprintf("ERROR: %v", scan.Err())
+		} else {
+			ch <- "should not get here"
+		}
+	}()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.LogOutput = io.MultiWriter(pw, testutil.TestWriter(t))
+		c.Build = "1.6.0"
+		c.ConfigEntryBootstrap = []structs.ConfigEntry{
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "web",
+				Splits: []structs.ServiceSplit{
+					{Weight: 100, Service: "web"},
+				},
+			},
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	result := <-ch
+	require.Empty(t, result)
 }

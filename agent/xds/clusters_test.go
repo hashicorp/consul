@@ -106,6 +106,11 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			setup:  nil,
+		},
+		{
 			name:   "connect-proxy-with-chain-and-failover",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup:  nil,
