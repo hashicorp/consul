@@ -3,6 +3,7 @@ package agent
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -225,15 +226,42 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 	// TODO(namespaces): add a test
 
-	require.True(t, t.Run("POST: read modified chain with overrides", func(t *testing.T) {
-		apiReq := &discoveryChainReadRequest{
-			OverrideMeshGateway: structs.MeshGatewayConfig{
-				Mode: structs.MeshGatewayModeLocal,
+	expectTarget := structs.NewDiscoveryTarget("web", "", "default", "dc1")
+	expectTarget.MeshGateway = structs.MeshGatewayConfig{
+		Mode: structs.MeshGatewayModeLocal,
+	}
+
+	expectModifiedWithOverrides := &structs.CompiledDiscoveryChain{
+		ServiceName:       "web",
+		Namespace:         "default",
+		Datacenter:        "dc1",
+		Protocol:          "grpc",
+		CustomizationHash: "98809527",
+		StartNode:         "resolver:web.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "web.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					ConnectTimeout: 22 * time.Second,
+					Target:         "web.default.dc1",
+				},
 			},
-			OverrideProtocol:       "grpc",
-			OverrideConnectTimeout: 22 * time.Second,
-		}
-		req, err := http.NewRequest("POST", "/v1/discovery-chain/web", jsonReader(apiReq))
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			expectTarget.ID: expectTarget,
+		},
+	}
+
+	require.True(t, t.Run("POST: read modified chain with overrides (camel case)", func(t *testing.T) {
+		body := ` {
+			"OverrideMeshGateway": {
+				"Mode": "local"
+			},
+			"OverrideProtocol":       "grpc",
+			"OverrideConnectTimeout": "22s"
+		} `
+		req, err := http.NewRequest("POST", "/v1/discovery-chain/web", strings.NewReader(body))
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
@@ -242,32 +270,26 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 		value := obj.(discoveryChainReadResponse)
 
-		expectTarget := structs.NewDiscoveryTarget("web", "", "default", "dc1")
-		expectTarget.MeshGateway = structs.MeshGatewayConfig{
-			Mode: structs.MeshGatewayModeLocal,
-		}
+		require.Equal(t, expectModifiedWithOverrides, value.Chain)
+	}))
 
-		expect := &structs.CompiledDiscoveryChain{
-			ServiceName:       "web",
-			Namespace:         "default",
-			Datacenter:        "dc1",
-			Protocol:          "grpc",
-			CustomizationHash: "98809527",
-			StartNode:         "resolver:web.default.dc1",
-			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
-					Type: structs.DiscoveryGraphNodeTypeResolver,
-					Name: "web.default.dc1",
-					Resolver: &structs.DiscoveryResolver{
-						ConnectTimeout: 22 * time.Second,
-						Target:         "web.default.dc1",
-					},
-				},
+	require.True(t, t.Run("POST: read modified chain with overrides (snake case)", func(t *testing.T) {
+		body := ` {
+			"override_mesh_gateway": {
+				"mode": "local"
 			},
-			Targets: map[string]*structs.DiscoveryTarget{
-				expectTarget.ID: expectTarget,
-			},
-		}
-		require.Equal(t, expect, value.Chain)
+			"override_protocol":       "grpc",
+			"override_connect_timeout": "22s"
+		} `
+		req, err := http.NewRequest("POST", "/v1/discovery-chain/web", strings.NewReader(body))
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.DiscoveryChainRead(resp, req)
+		require.NoError(t, err)
+
+		value := obj.(discoveryChainReadResponse)
+
+		require.Equal(t, expectModifiedWithOverrides, value.Chain)
 	}))
 }

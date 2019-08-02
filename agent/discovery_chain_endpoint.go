@@ -8,6 +8,8 @@ import (
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/mitchellh/mapstructure"
 )
 
 func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -25,8 +27,13 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 	// TODO(namespaces): args.EvaluateInNamespace = req.URL.Query().Get("compile-namespace")
 
 	if req.Method == "POST" {
-		var apiReq discoveryChainReadRequest
-		if err := decodeBody(req, &apiReq, nil); err != nil {
+		var raw map[string]interface{}
+		if err := decodeBody(req, &raw, nil); err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		}
+
+		apiReq, err := decodeDiscoveryChainReadRequest(raw)
+		if err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 		}
 
@@ -87,4 +94,34 @@ type discoveryChainReadRequest struct {
 // discoveryChainReadResponse is the API variation of structs.DiscoveryChainResponse
 type discoveryChainReadResponse struct {
 	Chain *structs.CompiledDiscoveryChain
+}
+
+func decodeDiscoveryChainReadRequest(raw map[string]interface{}) (*discoveryChainReadRequest, error) {
+	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
+	// to do this part first.
+	raw = lib.PatchSliceOfMaps(raw, nil, nil)
+
+	lib.TranslateKeys(raw, map[string]string{
+		"override_mesh_gateway":    "overridemeshgateway",
+		"override_protocol":        "overrideprotocol",
+		"override_connect_timeout": "overrideconnecttimeout",
+	})
+
+	var apiReq discoveryChainReadRequest
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		Result:           &apiReq,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := decoder.Decode(raw); err != nil {
+		return nil, err
+	}
+
+	return &apiReq, nil
 }
