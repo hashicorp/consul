@@ -209,10 +209,19 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	if err != nil {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
-
 	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
+	}
+
+	// Also create the intermediate CA, which is the one that actually signs leaf certs
+	interPEM, err := provider.GenerateIntermediate()
+	if err != nil {
+		return fmt.Errorf("error generating intermediate cert: %v", err)
+	}
+	_, err = connect.ParseCert(interPEM)
+	if err != nil {
+		return fmt.Errorf("error getting intermediate cert: %v", err)
 	}
 
 	commonConfig, err := conf.GetCommonConfig()
