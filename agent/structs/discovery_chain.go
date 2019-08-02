@@ -164,10 +164,6 @@ func (t *DiscoveryTarget) setID() {
 	}
 }
 
-func (t *DiscoveryTarget) IsEmpty() bool {
-	return t.Service == "" && t.ServiceSubset == "" && t.Namespace == "" && t.Datacenter == ""
-}
-
 func (t *DiscoveryTarget) String() string {
 	return t.ID
 }
