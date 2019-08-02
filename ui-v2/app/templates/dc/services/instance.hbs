@@ -77,6 +77,7 @@
                 'Addresses' ''
 )
                 'Tags'
+                'Meta Data'
               )
             )
             selected=selectedTab
@@ -95,6 +96,7 @@
                     (hash id=(slugify 'Addresses') partial='dc/services/addresses') ''
 )
                     (hash id=(slugify 'Tags') partial='dc/services/tags')
+                    (hash id=(slugify 'Meta Data') partial='dc/services/metadata')
                 )
             ) as |panel|
         }}
