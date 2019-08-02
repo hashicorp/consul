@@ -10,8 +10,8 @@ import (
 type configSnapshotConnectProxy struct {
 	Leaf                     *structs.IssuedCert
 	DiscoveryChain           map[string]*structs.CompiledDiscoveryChain // this is keyed by the Upstream.Identifier(), not the chain name
-	WatchedUpstreams         map[string]map[structs.DiscoveryTarget]context.CancelFunc
-	WatchedUpstreamEndpoints map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes
+	WatchedUpstreams         map[string]map[string]context.CancelFunc
+	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 	UpstreamEndpoints        map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
 }
 

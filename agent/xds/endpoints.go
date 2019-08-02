@@ -56,7 +56,6 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 			if ok {
 				la := makeLoadAssignment(
 					clusterName,
-					0,
 					[]loadAssignmentEndpointGroup{
 						{Endpoints: endpoints},
 					},
@@ -79,23 +78,20 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 					continue
 				}
 				failover := node.Resolver.Failover
-				target := node.Resolver.Target
+				targetID := node.Resolver.Target
 
-				endpoints, ok := chainEndpointMap[target]
+				target := chain.Targets[targetID]
+
+				endpoints, ok := chainEndpointMap[targetID]
 				if !ok {
 					continue // skip the cluster (should not happen)
 				}
 
-				targetConfig := chain.Targets[target]
-
-				var (
-					endpointGroups         []loadAssignmentEndpointGroup
-					overprovisioningFactor int
-				)
+				var endpointGroups []loadAssignmentEndpointGroup
 
 				primaryGroup := loadAssignmentEndpointGroup{
 					Endpoints:   endpoints,
-					OnlyPassing: targetConfig.Subset.OnlyPassing,
+					OnlyPassing: target.Subset.OnlyPassing,
 				}
 
 				if failover != nil && len(failover.Targets) > 0 {
@@ -103,26 +99,17 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 					endpointGroups = append(endpointGroups, primaryGroup)
 
-					if failover.Definition.OverprovisioningFactor > 0 {
-						overprovisioningFactor = failover.Definition.OverprovisioningFactor
-					}
-					if overprovisioningFactor <= 0 {
-						// We choose such a large value here that the failover math should
-						// in effect not happen until zero instances are healthy.
-						overprovisioningFactor = 100000
-					}
-
-					for _, failTarget := range failover.Targets {
-						failEndpoints, ok := chainEndpointMap[failTarget]
+					for _, failTargetID := range failover.Targets {
+						failEndpoints, ok := chainEndpointMap[failTargetID]
 						if !ok {
 							continue // skip the failover target (should not happen)
 						}
 
-						failTargetConfig := chain.Targets[failTarget]
+						failTarget := chain.Targets[failTargetID]
 
 						endpointGroups = append(endpointGroups, loadAssignmentEndpointGroup{
 							Endpoints:   failEndpoints,
-							OnlyPassing: failTargetConfig.Subset.OnlyPassing,
+							OnlyPassing: failTarget.Subset.OnlyPassing,
 						})
 					}
 				} else {
@@ -134,7 +121,6 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 				la := makeLoadAssignment(
 					clusterName,
-					overprovisioningFactor,
 					endpointGroups,
 					cfgSnap.Datacenter,
 				)
@@ -154,7 +140,6 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		clusterName := DatacenterSNI(dc, cfgSnap)
 		la := makeLoadAssignment(
 			clusterName,
-			0,
 			[]loadAssignmentEndpointGroup{
 				{Endpoints: endpoints},
 			},
@@ -168,7 +153,6 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		clusterName := ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap)
 		la := makeLoadAssignment(
 			clusterName,
-			0,
 			[]loadAssignmentEndpointGroup{
 				{Endpoints: endpoints},
 			},
@@ -200,7 +184,6 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 			la := makeLoadAssignment(
 				clusterName,
-				0,
 				[]loadAssignmentEndpointGroup{
 					{
 						Endpoints:   endpoints,
@@ -231,19 +214,17 @@ type loadAssignmentEndpointGroup struct {
 	OnlyPassing bool
 }
 
-func makeLoadAssignment(
-	clusterName string,
-	overprovisioningFactor int,
-	endpointGroups []loadAssignmentEndpointGroup,
-	localDatacenter string,
-) *envoy.ClusterLoadAssignment {
+func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localDatacenter string) *envoy.ClusterLoadAssignment {
 	cla := &envoy.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints:   make([]envoyendpoint.LocalityLbEndpoints, 0, len(endpointGroups)),
 	}
-	if overprovisioningFactor > 0 {
+
+	if len(endpointGroups) > 1 {
 		cla.Policy = &envoy.ClusterLoadAssignment_Policy{
-			OverprovisioningFactor: makeUint32Value(overprovisioningFactor),
+			// We choose such a large value here that the failover math should
+			// in effect not happen until zero instances are healthy.
+			OverprovisioningFactor: makeUint32Value(100000),
 		}
 	}
 

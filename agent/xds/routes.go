@@ -307,7 +307,9 @@ func makeDefaultRouteMatch() envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForSingleCluster(target structs.DiscoveryTarget, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
+func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDiscoveryChain, cfgSnap *proxycfg.ConfigSnapshot) *envoyroute.Route_Route {
+	target := chain.Targets[targetID]
+
 	sni := TargetSNI(target, cfgSnap)
 	clusterName := CustomizeClusterName(sni, chain)
 
@@ -328,7 +330,9 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 		if nextNode.Type != structs.DiscoveryGraphNodeTypeResolver {
 			return nil, fmt.Errorf("unexpected splitter destination node type: %s", nextNode.Type)
 		}
-		target := nextNode.Resolver.Target
+		targetID := nextNode.Resolver.Target
+
+		target := chain.Targets[targetID]
 
 		sni := TargetSNI(target, cfgSnap)
 		clusterName := CustomizeClusterName(sni, chain)

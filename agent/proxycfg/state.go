@@ -359,8 +359,8 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		snap.ConnectProxy.DiscoveryChain = make(map[string]*structs.CompiledDiscoveryChain)
-		snap.ConnectProxy.WatchedUpstreams = make(map[string]map[structs.DiscoveryTarget]context.CancelFunc)
-		snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes)
+		snap.ConnectProxy.WatchedUpstreams = make(map[string]map[string]context.CancelFunc)
+		snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 		snap.ConnectProxy.UpstreamEndpoints = make(map[string]structs.CheckServiceNodes) // TODO(rb): deprecated
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedServices = make(map[string]context.CancelFunc)
@@ -503,22 +503,17 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 			return fmt.Errorf("invalid type for service response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "upstream-target:")
-		encTarget, svc, ok := removeColonPrefix(correlationID)
+		targetID, svc, ok := removeColonPrefix(correlationID)
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
 
-		target := structs.DiscoveryTarget{}
-		if err := target.UnmarshalText([]byte(encTarget)); err != nil {
-			return fmt.Errorf("invalid correlation id %q: %v", u.CorrelationID, err)
-		}
-
 		m, ok := snap.ConnectProxy.WatchedUpstreamEndpoints[svc]
 		if !ok {
-			m = make(map[structs.DiscoveryTarget]structs.CheckServiceNodes)
+			m = make(map[string]structs.CheckServiceNodes)
 			snap.ConnectProxy.WatchedUpstreamEndpoints[svc] = m
 		}
-		snap.ConnectProxy.WatchedUpstreamEndpoints[svc][target] = resp.Nodes
+		snap.ConnectProxy.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
 
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
@@ -561,11 +556,10 @@ func (s *state) resetWatchesFromChain(
 
 	// Initialize relevant sub maps.
 	if _, ok := snap.ConnectProxy.WatchedUpstreams[id]; !ok {
-		snap.ConnectProxy.WatchedUpstreams[id] = make(map[structs.DiscoveryTarget]context.CancelFunc)
+		snap.ConnectProxy.WatchedUpstreams[id] = make(map[string]context.CancelFunc)
 	}
 	if _, ok := snap.ConnectProxy.WatchedUpstreamEndpoints[id]; !ok {
-		// TODO(rb): does this belong here?
-		snap.ConnectProxy.WatchedUpstreamEndpoints[id] = make(map[structs.DiscoveryTarget]structs.CheckServiceNodes)
+		snap.ConnectProxy.WatchedUpstreamEndpoints[id] = make(map[string]structs.CheckServiceNodes)
 	}
 
 	// We could invalidate this selectively based on a hash of the relevant
@@ -573,24 +567,22 @@ func (s *state) resetWatchesFromChain(
 	// upstream when the chain changes in any way.
 	//
 	// TODO(rb): content hash based add/remove
-	for target, cancelFn := range snap.ConnectProxy.WatchedUpstreams[id] {
-		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: stopping watch of target %s", id, chain.ServiceName, target)
-		delete(snap.ConnectProxy.WatchedUpstreams[id], target)
-		delete(snap.ConnectProxy.WatchedUpstreamEndpoints[id], target) // TODO(rb): safe?
+	for targetID, cancelFn := range snap.ConnectProxy.WatchedUpstreams[id] {
+		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: stopping watch of target %s", id, chain.ServiceName, targetID)
+		delete(snap.ConnectProxy.WatchedUpstreams[id], targetID)
+		delete(snap.ConnectProxy.WatchedUpstreamEndpoints[id], targetID)
 		cancelFn()
 	}
 
-	for target, targetConfig := range chain.Targets {
-		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of target %s", id, chain.ServiceName, target)
-
-		encodedTarget := target.Identifier()
+	for _, target := range chain.Targets {
+		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of target %s", id, chain.ServiceName, target.ID)
 
 		ctx, cancel := context.WithCancel(s.ctx)
 
 		// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
 		meshGateway := structs.MeshGatewayModeDefault
 		if target.Datacenter != s.source.Datacenter {
-			meshGateway = targetConfig.MeshGateway.Mode
+			meshGateway = target.MeshGateway.Mode
 		}
 
 		// if the default mode
@@ -600,10 +592,10 @@ func (s *state) resetWatchesFromChain(
 
 		err := s.watchConnectProxyService(
 			ctx,
-			"upstream-target:"+encodedTarget+":"+id,
+			"upstream-target:"+target.ID+":"+id,
 			target.Service,
 			target.Datacenter,
-			targetConfig.Subset.Filter,
+			target.Subset.Filter,
 			meshGateway,
 		)
 		if err != nil {
@@ -611,7 +603,7 @@ func (s *state) resetWatchesFromChain(
 			return err
 		}
 
-		snap.ConnectProxy.WatchedUpstreams[id][target] = cancel
+		snap.ConnectProxy.WatchedUpstreams[id][target.ID] = cancel
 	}
 
 	return nil

@@ -16,13 +16,12 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 	typ := &CompiledDiscoveryChain{RPC: rpc}
 
 	// just do the default chain
-	entries := structs.NewDiscoveryChainConfigEntries()
 	chain := discoverychain.TestCompileConfigEntries(t, "web", "default", "dc1", nil)
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.DiscoveryChainResponse
-	rpc.On("RPC", "ConfigEntry.ReadDiscoveryChain", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "DiscoveryChain.Get", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.DiscoveryChainRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
@@ -30,7 +29,6 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 			require.True(t, req.AllowStale)
 
 			reply := args.Get(2).(*structs.DiscoveryChainResponse)
-			reply.ConfigEntries = entries
 			reply.Chain = chain
 			reply.QueryMeta.Index = 48
 			resp = reply

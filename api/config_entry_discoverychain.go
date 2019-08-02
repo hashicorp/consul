@@ -118,12 +118,8 @@ type ServiceResolverRedirect struct {
 }
 
 type ServiceResolverFailover struct {
-	Service                string   `json:",omitempty"`
-	ServiceSubset          string   `json:",omitempty"`
-	Namespace              string   `json:",omitempty"`
-	Datacenters            []string `json:",omitempty"`
-	OverprovisioningFactor int      `json:",omitempty"`
-
-	// TODO(rb): bring this back after normal DC failover works
-	// NearestN               int      `json:",omitempty"`
+	Service       string   `json:",omitempty"`
+	ServiceSubset string   `json:",omitempty"`
+	Namespace     string   `json:",omitempty"`
+	Datacenters   []string `json:",omitempty"`
 }

@@ -188,7 +188,7 @@ func DecodeConfigEntryFromJSON(data []byte) (ConfigEntry, error) {
 	return DecodeConfigEntry(raw)
 }
 
-// Config can be used to query the Config endpoints
+// ConfigEntries can be used to query the Config endpoints
 type ConfigEntries struct {
 	c *Client
 }

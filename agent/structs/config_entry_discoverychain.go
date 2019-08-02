@@ -677,10 +677,6 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				}
 			}
 
-			if f.OverprovisioningFactor < 0 {
-				return fmt.Errorf("Bad Failover[%q].OverprovisioningFactor '%d', must be >= 0", subset, f.OverprovisioningFactor)
-			}
-
 			for _, dc := range f.Datacenters {
 				if dc == "" {
 					return fmt.Errorf("Bad Failover[%q].Datacenters: found empty datacenter", subset)
@@ -783,10 +779,8 @@ type ServiceResolverRedirect struct {
 
 // There are some restrictions on what is allowed in here:
 //
-// - Service, ServiceSubset, Namespace, NearestN, and Datacenters cannot all be
+// - Service, ServiceSubset, Namespace, and Datacenters cannot all be
 //   empty at once.
-//
-// - Both 'NearestN' and 'Datacenters' may be specified at once.
 //
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
@@ -809,27 +803,12 @@ type ServiceResolverFailover struct {
 	// This is a DESTINATION during failover.
 	Namespace string `json:",omitempty"`
 
-	// NearestN is set to the number of remote datacenters to try, based on
-	// network coordinates.
-	//
-	// This is a DESTINATION during failover.
-	//
-	// TODO(rb): bring this back after normal DC failover works
-	// NearestN int `json:",omitempty"`
-
-	// Datacenters is a fixed list of datacenters to try after NearestN.  We
-	// never try a datacenter multiple times, so those are subtracted from this
-	// list before proceeding.
+	// Datacenters is a fixed list of datacenters to try. We never try a
+	// datacenter multiple times, so those are subtracted from this list before
+	// proceeding.
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
-
-	// OverprovisioningFactor is a pass through for envoy's
-	// overprovisioning_factor value.
-	//
-	// If omitted the overprovisioning factor value will be set so high as to
-	// imply binary failover (all or nothing).
-	OverprovisioningFactor int `json:",omitempty"`
 }
 
 type discoveryChainConfigEntry interface {
@@ -1051,10 +1030,8 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 	return info
 }
 
-// TODO(rb): either fix the compiled results, or take the derived data and stash it here in a json/msgpack-friendly way?
 type DiscoveryChainResponse struct {
-	ConfigEntries *DiscoveryChainConfigEntries `json:",omitempty"` // TODO(rb): remove these?
-	Chain         *CompiledDiscoveryChain      `json:",omitempty"`
+	Chain *CompiledDiscoveryChain
 	QueryMeta
 }
 

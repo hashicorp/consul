@@ -254,7 +254,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
 			continue
 		}
-		target := node.Resolver.Target
+		targetID := node.Resolver.Target
+
+		target := chain.Targets[targetID]
 
 		sni := TargetSNI(target, cfgSnap)
 		clusterName := CustomizeClusterName(sni, chain)

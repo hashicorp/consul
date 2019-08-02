@@ -545,17 +545,6 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 
 	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", compileSetup, entries...)
 
-	dbTarget := structs.DiscoveryTarget{
-		Service:    "db",
-		Namespace:  "default",
-		Datacenter: "dc1",
-	}
-	failTarget := structs.DiscoveryTarget{
-		Service:    "fail",
-		Namespace:  "default",
-		Datacenter: "dc1",
-	}
-
 	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: "web-sidecar-proxy",
@@ -578,9 +567,9 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
 				"db": dbChain,
 			},
-			WatchedUpstreamEndpoints: map[string]map[structs.DiscoveryTarget]structs.CheckServiceNodes{
-				"db": map[structs.DiscoveryTarget]structs.CheckServiceNodes{
-					dbTarget: TestUpstreamNodes(t),
+			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+				"db": map[string]structs.CheckServiceNodes{
+					"db.default.dc1": TestUpstreamNodes(t),
 				},
 			},
 		},
@@ -591,24 +580,12 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	case "simple-with-overrides":
 	case "simple":
 	case "failover":
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"][failTarget] =
+		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["fail.default.dc1"] =
 			TestUpstreamNodesAlternate(t)
 	case "splitter-with-resolver-redirect-multidc":
-		dbTarget_v1_dc1 := structs.DiscoveryTarget{
-			Service:       "db",
-			ServiceSubset: "v1",
-			Namespace:     "default",
-			Datacenter:    "dc1",
-		}
-		dbTarget_v2_dc2 := structs.DiscoveryTarget{
-			Service:       "db",
-			ServiceSubset: "v2",
-			Namespace:     "default",
-			Datacenter:    "dc2",
-		}
-		snap.ConnectProxy.WatchedUpstreamEndpoints["db"] = map[structs.DiscoveryTarget]structs.CheckServiceNodes{
-			dbTarget_v1_dc1: TestUpstreamNodes(t),
-			dbTarget_v2_dc2: TestUpstreamNodesDC2(t),
+		snap.ConnectProxy.WatchedUpstreamEndpoints["db"] = map[string]structs.CheckServiceNodes{
+			"v1.db.default.dc1": TestUpstreamNodes(t),
+			"v2.db.default.dc2": TestUpstreamNodesDC2(t),
 		}
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
