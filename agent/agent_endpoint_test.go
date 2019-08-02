@@ -4225,8 +4225,7 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4261,8 +4260,7 @@ func TestAgentConnectCALeafCert_aclProxyToken(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4306,8 +4304,7 @@ func TestAgentConnectCALeafCert_aclProxyTokenOther(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4327,8 +4324,7 @@ func TestAgentConnectCALeafCert_aclProxyTokenOther(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4369,8 +4365,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4426,8 +4421,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4718,8 +4712,7 @@ func TestAgentConnectProxyConfig_aclDefaultDeny(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4753,8 +4746,7 @@ func TestAgentConnectProxyConfig_aclProxyToken(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
@@ -4857,8 +4849,7 @@ func TestAgentConnectProxyConfig_aclServiceReadDeny(t *testing.T) {
 			Check: structs.CheckType{
 				TTL: 15 * time.Second,
 			},
-			Connect: &structs.ServiceConnect{
-			},
+			Connect: &structs.ServiceConnect{},
 		}
 
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
