@@ -184,7 +184,7 @@ jobs:
             GOARM: 5
             CC: arm-linux-gnueabi-gcc
             GOARCH: arm
-          command: go build -o ./pkg/bin/armel/consul  -ldflags="${GOLDFLAGS}"
+          command: go build -o ./pkg/bin/linux_armel/consul  -ldflags="${GOLDFLAGS}"
       - run:
           environment:
             GOARM: 6
