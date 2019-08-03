@@ -58,7 +58,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 			if ok {
 				z.TransferIn()
 			} else {
-				log.Infof("Notify from %s for %s: no serial increase seen", state.IP(), zone)
+				log.Infof("Notify from %s for %s: no SOA serial increase seen", state.IP(), zone)
 			}
 			if err != nil {
 				log.Warningf("Notify from %s for %s: failed primary check: %s", state.IP(), zone, err)
@@ -115,7 +115,7 @@ type serialErr struct {
 }
 
 func (s *serialErr) Error() string {
-	return fmt.Sprintf("%s for origin %s in file %s, with serial %d", s.err, s.origin, s.zone, s.serial)
+	return fmt.Sprintf("%s for origin %s in file %s, with %d SOA serial", s.err, s.origin, s.zone, s.serial)
 }
 
 // Parse parses the zone in filename and returns a new Zone or an error.

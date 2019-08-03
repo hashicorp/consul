@@ -38,7 +38,7 @@ func (z *Zone) Reload() error {
 				z.Tree = zone.Tree
 				z.Unlock()
 
-				log.Infof("Successfully reloaded zone %q in %q with serial %d", z.origin, zFile, z.Apex.SOA.Serial)
+				log.Infof("Successfully reloaded zone %q in %q with %d SOA serial", z.origin, zFile, z.Apex.SOA.Serial)
 				z.Notify()
 
 			case <-z.reloadShutdown:
