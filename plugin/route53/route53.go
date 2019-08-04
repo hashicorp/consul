@@ -31,6 +31,7 @@ type Route53 struct {
 	zoneNames []string
 	client    route53iface.Route53API
 	upstream  *upstream.Upstream
+	refresh   time.Duration
 
 	zMu   sync.RWMutex
 	zones zones
@@ -49,7 +50,7 @@ type zones map[string][]*zone
 // exist, and returns a new *Route53. In addition to this, upstream is passed
 // for doing recursive queries against CNAMEs.
 // Returns error if it cannot verify any given domain name/zone id pair.
-func New(ctx context.Context, c route53iface.Route53API, keys map[string][]string, up *upstream.Upstream) (*Route53, error) {
+func New(ctx context.Context, c route53iface.Route53API, keys map[string][]string, up *upstream.Upstream, refresh time.Duration) (*Route53, error) {
 	zones := make(map[string][]*zone, len(keys))
 	zoneNames := make([]string, 0, len(keys))
 	for dns, hostedZoneIDs := range keys {
@@ -72,6 +73,7 @@ func New(ctx context.Context, c route53iface.Route53API, keys map[string][]strin
 		zoneNames: zoneNames,
 		zones:     zones,
 		upstream:  up,
+		refresh:   refresh,
 	}, nil
 }
 
@@ -87,7 +89,7 @@ func (h *Route53) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				log.Infof("Breaking out of Route53 update loop: %v", ctx.Err())
 				return
-			case <-time.After(1 * time.Minute):
+			case <-time.After(h.refresh):
 				if err := h.updateZones(ctx); err != nil && ctx.Err() == nil /* Don't log error if ctx expired. */ {
 					log.Errorf("Failed to update zones: %v", err)
 				}
@@ -248,7 +250,7 @@ func (h *Route53) updateZones(ctx context.Context) error {
 				newZ.Upstream = h.upstream
 				in := &route53.ListResourceRecordSetsInput{
 					HostedZoneId: aws.String(hostedZone.id),
-					MaxItems: aws.String("1000"),
+					MaxItems:     aws.String("1000"),
 				}
 				err = h.client.ListResourceRecordSetsPagesWithContext(ctx, in,
 					func(out *route53.ListResourceRecordSetsOutput, last bool) bool {

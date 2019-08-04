@@ -51,6 +51,22 @@ func TestSetupRoute53(t *testing.T) {
 		{`route53 example.org:12345678 example.org:12345678 {
 	}`, true},
 
+		{`route53 example.org:12345678 {
+	refresh 90
+}`, false},
+		{`route53 example.org:12345678 {
+	refresh 5m
+}`, false},
+		{`route53 example.org:12345678 {
+	refresh
+}`, true},
+		{`route53 example.org:12345678 {
+	refresh foo
+}`, true},
+		{`route53 example.org:12345678 {
+	refresh -1m
+}`, true},
+
 		{`route53 example.org {
 	}`, true},
 	}

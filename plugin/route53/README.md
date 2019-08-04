@@ -18,6 +18,7 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
     aws_access_key [AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]
     credentials PROFILE [FILENAME]
     fallthrough [ZONES...]
+    refresh DURATION
 }
 ~~~
 
@@ -47,6 +48,14 @@ route53 [ZONE:HOSTED_ZONE_ID...] {
 
 *   **ZONES** zones it should be authoritative for. If empty, the zones from the configuration
     block.
+
+*   `refresh` can be used to control how long between record retrievals from Route 53. It requires
+    a duration string as a parameter to specify the duration between update cycles. Each update
+    cycle may result in many AWS API calls depending on how many domains use this plugin and how
+    many records are in each. Adjusting the update frequency may help reduce the potential of API
+    rate-limiting imposed by AWS.
+
+*   **DURATION** A duration string. Defaults to `1m`. If units are unspecified, seconds are assumed.
 
 ## Examples
 
@@ -84,5 +93,14 @@ Enable route53 with multiple hosted zones with the same domain:
 ~~~ txt
 . {
     route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 example.org.:Z93A52145678156
+}
+~~~
+
+Enable route53 and refresh records every 3 minutes
+~~~ txt
+. {
+    route53 example.org.:Z1Z2Z3Z4DZ5Z6Z7 {
+      refresh 3m
+    }
 }
 ~~~

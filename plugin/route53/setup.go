@@ -2,7 +2,10 @@ package route53
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -53,6 +56,8 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 
 		up := upstream.New()
 
+		refresh := time.Duration(1) * time.Minute // default update frequency to 1 minute
+
 		args := c.RemainingArgs()
 
 		for i := 0; i < len(args); i++ {
@@ -98,6 +103,23 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 				}
 			case "fallthrough":
 				fall.SetZonesFromArgs(c.RemainingArgs())
+			case "refresh":
+				if c.NextArg() {
+					refreshStr := c.Val()
+					_, err := strconv.Atoi(refreshStr)
+					if err == nil {
+						refreshStr = fmt.Sprintf("%ss", c.Val())
+					}
+					refresh, err = time.ParseDuration(refreshStr)
+					if err != nil {
+						return c.Errf("Unable to parse duration: '%v'", err)
+					}
+					if refresh <= 0 {
+						return c.Errf("refresh interval must be greater than 0: %s", refreshStr)
+					}
+				} else {
+					return c.ArgErr()
+				}
 			default:
 				return c.Errf("unknown property '%s'", c.Val())
 			}
@@ -107,7 +129,7 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 		})
 		client := f(credentials.NewChainCredentials(providers))
 		ctx := context.Background()
-		h, err := New(ctx, client, keys, up)
+		h, err := New(ctx, client, keys, up, refresh)
 		if err != nil {
 			return c.Errf("failed to create Route53 plugin: %v", err)
 		}
