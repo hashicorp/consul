@@ -18,6 +18,7 @@ BUG FIXES:
 * cli: Fixed bindable IP detection with the `connect envoy` command. [[GH-6238](https://github.com/hashicorp/consul/pull/6238)]
 * connect: validate upstreams and prevent duplicates [[GH-6224](https://github.com/hashicorp/consul/issues/6224)]
 * server: if inserting bootstrap config entries fails don't silence the errors [[GH-6256](https://github.com/hashicorp/consul/issues/6256)]
+* connect: fix failover through a mesh gateway to a remote datacenter [[GH-6259](https://github.com/hashicorp/consul/issues/6259)]
 
 ## 1.6.0-beta3 (July 26, 2019)
 
