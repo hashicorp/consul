@@ -328,7 +328,7 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "f5826efc5ffc207a"
+	updatedResponse.ContentHash = "9185f2c81891c18b"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
