@@ -65,7 +65,7 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
         key: key,
         type: BlockingEventSource,
         settings: {
-          enabled: settings.blocking,
+          enabled: typeof settings.blocking === 'undefined' || settings.blocking,
         },
         createEvent: createEvent,
       }
