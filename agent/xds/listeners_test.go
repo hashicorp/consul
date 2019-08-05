@@ -195,6 +195,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 		},
