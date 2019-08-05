@@ -25,6 +25,8 @@ Managed proxies have been deprecated since Consul 1.3 and have been fully remove
 in Consul 1.6. Anyone using Managed Proxies should aim to change their workflow
 as soon as possible to avoid issues with a later upgrade.
 
+After transitioning away from all managed proxy usage, the `proxy` subdirectory inside [`data_dir`](https://www.consul.io/docs/agent/options.html#_data_dir) (specified in Consul config) can be deleted to remove extraneous configuration files and free up disk space.
+
 **new and known issues will not be fixed**.
 
 ## Deprecation Rationale
