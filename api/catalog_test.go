@@ -558,10 +558,6 @@ func TestAPI_CatalogConnect(t *testing.T) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			r.Fatal(err)
 		}
-		// First try to register deprecated proxy, shouldn't error
-		if _, err := catalog.Register(deprecatedProxyReg, nil); err != nil {
-			r.Fatal(err)
-		}
 		if _, err := catalog.Register(proxyReg, nil); err != nil {
 			r.Fatal(err)
 		}
