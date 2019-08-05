@@ -11,10 +11,10 @@ import (
 )
 
 type CompileRequest struct {
-	ServiceName       string
-	CurrentNamespace  string // TODO(rb): rename to EvaluateInNamespace
-	CurrentDatacenter string // TODO(rb): rename to EvaluateInDatacenter
-	UseInDatacenter   string // where the results will be used from
+	ServiceName          string
+	EvaluateInNamespace  string
+	EvaluateInDatacenter string
+	UseInDatacenter      string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
 	// resolver in the compiled chain.
@@ -53,20 +53,20 @@ type CompileRequest struct {
 // valid.
 func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	var (
-		serviceName       = req.ServiceName
-		currentNamespace  = req.CurrentNamespace
-		currentDatacenter = req.CurrentDatacenter
-		useInDatacenter   = req.UseInDatacenter
-		entries           = req.Entries
+		serviceName          = req.ServiceName
+		evaluateInNamespace  = req.EvaluateInNamespace
+		evaluateInDatacenter = req.EvaluateInDatacenter
+		useInDatacenter      = req.UseInDatacenter
+		entries              = req.Entries
 	)
 	if serviceName == "" {
 		return nil, fmt.Errorf("serviceName is required")
 	}
-	if currentNamespace == "" {
-		return nil, fmt.Errorf("currentNamespace is required")
+	if evaluateInNamespace == "" {
+		return nil, fmt.Errorf("evaluateInNamespace is required")
 	}
-	if currentDatacenter == "" {
-		return nil, fmt.Errorf("currentDatacenter is required")
+	if evaluateInDatacenter == "" {
+		return nil, fmt.Errorf("evaluateInDatacenter is required")
 	}
 	if useInDatacenter == "" {
 		return nil, fmt.Errorf("useInDatacenter is required")
@@ -77,8 +77,8 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 
 	c := &compiler{
 		serviceName:            serviceName,
-		currentNamespace:       currentNamespace,
-		currentDatacenter:      currentDatacenter,
+		evaluateInNamespace:    evaluateInNamespace,
+		evaluateInDatacenter:   evaluateInDatacenter,
 		useInDatacenter:        useInDatacenter,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
@@ -112,8 +112,8 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 // for assembling a discovery chain from raw config entries.
 type compiler struct {
 	serviceName            string
-	currentNamespace       string
-	currentDatacenter      string
+	evaluateInNamespace    string
+	evaluateInDatacenter   string
 	useInDatacenter        string
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
@@ -305,8 +305,8 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 
 	return &structs.CompiledDiscoveryChain{
 		ServiceName:       c.serviceName,
-		Namespace:         c.currentNamespace,
-		Datacenter:        c.currentDatacenter,
+		Namespace:         c.evaluateInNamespace,
+		Datacenter:        c.evaluateInDatacenter,
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
 		StartNode:         c.startNode,
@@ -597,8 +597,8 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 	t := structs.NewDiscoveryTarget(
 		service,
 		serviceSubset,
-		defaultIfEmpty(namespace, c.currentNamespace),
-		defaultIfEmpty(datacenter, c.currentDatacenter),
+		defaultIfEmpty(namespace, c.evaluateInNamespace),
+		defaultIfEmpty(datacenter, c.evaluateInDatacenter),
 	)
 
 	prev, ok := c.loadedTargets[t.ID]

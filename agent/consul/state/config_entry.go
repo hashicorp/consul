@@ -447,11 +447,11 @@ func (s *Store) testCompileDiscoveryChain(
 	//
 	// TODO(rb): we should thread a better value than "dc1" down here as that is going to sometimes show up in user facing errors
 	req := discoverychain.CompileRequest{
-		ServiceName:       chainName,
-		CurrentNamespace:  "default",
-		CurrentDatacenter: "dc1",
-		UseInDatacenter:   "dc1",
-		Entries:           speculativeEntries,
+		ServiceName:          chainName,
+		EvaluateInNamespace:  "default",
+		EvaluateInDatacenter: "dc1",
+		UseInDatacenter:      "dc1",
+		Entries:              speculativeEntries,
 	}
 	_, err = discoverychain.Compile(req)
 	return err

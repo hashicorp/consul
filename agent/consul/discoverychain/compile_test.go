@@ -92,11 +92,11 @@ func TestCompile(t *testing.T) {
 			}
 
 			req := CompileRequest{
-				ServiceName:       "main",
-				CurrentNamespace:  "default",
-				CurrentDatacenter: "dc1",
-				UseInDatacenter:   "dc1",
-				Entries:           tc.entries,
+				ServiceName:          "main",
+				EvaluateInNamespace:  "default",
+				EvaluateInDatacenter: "dc1",
+				UseInDatacenter:      "dc1",
+				Entries:              tc.entries,
 			}
 			if tc.setup != nil {
 				tc.setup(&req)
