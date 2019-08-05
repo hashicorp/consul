@@ -103,6 +103,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 					cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
 					cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
 					targetID,
+					cfgSnap.Datacenter,
 				)
 				if !valid {
 					continue // skip the cluster if we're still populating the snapshot
@@ -121,6 +122,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 							cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
 							cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
 							failTargetID,
+							cfgSnap.Datacenter,
 						)
 						if !valid {
 							continue // skip the failover target if we're still populating the snapshot
@@ -279,6 +281,7 @@ func makeLoadAssignmentEndpointGroup(
 	targetHealth map[string]structs.CheckServiceNodes,
 	gatewayHealth map[string]structs.CheckServiceNodes,
 	targetID string,
+	currentDatacenter string,
 ) (loadAssignmentEndpointGroup, bool) {
 	realEndpoints, ok := targetHealth[targetID]
 	if !ok {
@@ -287,9 +290,15 @@ func makeLoadAssignmentEndpointGroup(
 	}
 	target := targets[targetID]
 
+	var gatewayDatacenter string
 	switch target.MeshGateway.Mode {
-	case structs.MeshGatewayModeRemote, structs.MeshGatewayModeLocal:
-	default:
+	case structs.MeshGatewayModeRemote:
+		gatewayDatacenter = target.Datacenter
+	case structs.MeshGatewayModeLocal:
+		gatewayDatacenter = currentDatacenter
+	}
+
+	if gatewayDatacenter == "" {
 		return loadAssignmentEndpointGroup{
 			Endpoints:   realEndpoints,
 			OnlyPassing: target.Subset.OnlyPassing,
@@ -297,7 +306,7 @@ func makeLoadAssignmentEndpointGroup(
 	}
 
 	// If using a mesh gateway we need to pull those endpoints instead.
-	gatewayEndpoints, ok := gatewayHealth[target.Datacenter]
+	gatewayEndpoints, ok := gatewayHealth[gatewayDatacenter]
 	if !ok {
 		// skip the cluster if we're still populating the snapshot
 		return loadAssignmentEndpointGroup{}, false

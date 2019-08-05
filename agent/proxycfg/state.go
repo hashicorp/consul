@@ -159,7 +159,6 @@ func (s *state) watchMeshGateway(ctx context.Context, dc string, upstreamID stri
 }
 
 func (s *state) watchConnectProxyService(ctx context.Context, correlationId string, service string, dc string, filter string) error {
-	// This includes both the None and Default modes on purpose
 	return s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
 		Datacenter: dc,
 		QueryOptions: structs.QueryOptions{
