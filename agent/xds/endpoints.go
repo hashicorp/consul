@@ -250,6 +250,10 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 			addr, port := ep.BestAddress(localDatacenter != ep.Node.Datacenter)
 			healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
 
+			if endpointGroup.OverrideHealth != envoycore.HealthStatus_UNKNOWN {
+				healthStatus = endpointGroup.OverrideHealth
+			}
+
 			es = append(es, envoyendpoint.LbEndpoint{
 				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 					Endpoint: &envoyendpoint.Endpoint{
