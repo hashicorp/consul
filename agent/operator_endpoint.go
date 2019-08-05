@@ -73,6 +73,7 @@ type keyringArgs struct {
 	Key         string
 	Token       string
 	RelayFactor uint8
+	LocalOnly   bool
 }
 
 // OperatorKeyringEndpoint handles keyring operations (install, list, use, remove)
@@ -100,6 +101,17 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 		if err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Invalid relay factor: %v", err)
+			return nil, nil
+		}
+	}
+
+	// Parse local-only
+	if localOnly := req.URL.Query().Get("local-only"); localOnly != "" {
+		var err error
+		args.LocalOnly, err = strconv.ParseBool(localOnly)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Error parsing local-only: %v", err)
 			return nil, nil
 		}
 	}

@@ -178,11 +178,13 @@ func (m *Internal) KeyringOperation(
 		}
 	}
 
-	// Only perform WAN keyring querying and RPC forwarding once
-	if !args.Forwarded && m.srv.serfWAN != nil {
-		args.Forwarded = true
-		m.executeKeyringOp(args, reply, true)
-		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
+	if !args.LocalOnly {
+		// Only perform WAN keyring querying and RPC forwarding once
+		if !args.Forwarded && m.srv.serfWAN != nil {
+			args.Forwarded = true
+			m.executeKeyringOp(args, reply, true)
+			return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
+		}
 	}
 
 	// Query the LAN keyring of this node's DC
