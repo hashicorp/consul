@@ -3,6 +3,7 @@ package consul
 import (
 	"encoding/base64"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -302,7 +303,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	}
 }
 
-func TestInternal_KeyringOperation_LocalOnly(t *testing.T) {
+func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
 	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
@@ -380,6 +381,39 @@ func TestInternal_KeyringOperation_LocalOnly(t *testing.T) {
 	}
 	if lanResp != 2 || wanResp != 1 {
 		t.Fatalf("should have 2 lan and 1 wan response, got (lan=%d) (wan=%d)", lanResp, wanResp)
+	}
+}
+
+func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
+	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Try request with `LocalOnly` set to true
+	var out structs.KeyringResponses
+	req := structs.KeyringRequest{
+		Operation: structs.KeyringRemove,
+		LocalOnly: true,
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out)
+	if err == nil {
+		t.Fatalf("expected an error")
+	}
+	if !strings.Contains(err.Error(), "LocalOnly") {
+		t.Fatalf("expected error to contain string 'LocalOnly'. Got: %v", err)
 	}
 }
 

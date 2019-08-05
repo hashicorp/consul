@@ -73,7 +73,7 @@ type keyringArgs struct {
 	Key         string
 	Token       string
 	RelayFactor uint8
-	LocalOnly   bool
+	LocalOnly   bool // ?local-only; only used for GET requests
 }
 
 // OperatorKeyringEndpoint handles keyring operations (install, list, use, remove)
@@ -105,7 +105,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 		}
 	}
 
-	// Parse local-only
+	// Parse local-only. local-only will only be used in GET requests.
 	if localOnly := req.URL.Query().Get("local-only"); localOnly != "" {
 		var err error
 		args.LocalOnly, err = strconv.ParseBool(localOnly)
