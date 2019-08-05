@@ -88,8 +88,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	client := a.Client()
 	agent := client.Agent()
 
-	// TODO(mike): Is this actually a managed proxy? Can sidecars _be_ managed proxies?
-	// Register a local agent service with a managed proxy
+	// Register a local agent service with a sidecar proxy
 	reg := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8080,
