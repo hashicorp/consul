@@ -183,6 +183,7 @@ func DecodeConfigEntryFromJSON(data []byte) (ConfigEntry, error) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
+
 	return DecodeConfigEntry(raw)
 }
 
