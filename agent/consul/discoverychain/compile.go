@@ -257,20 +257,8 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	for targetID, target := range c.loadedTargets {
-		if _, ok := c.retainedTargets[targetID]; ok {
-			// Flip mesh gateway modes back to none if sharing a datacenter.
-			// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-
-			meshGateway := structs.MeshGatewayModeDefault
-			if target.Datacenter != c.useInDatacenter {
-				meshGateway = target.MeshGateway.Mode
-			}
-
-			if meshGateway != target.MeshGateway.Mode {
-				target.MeshGateway.Mode = meshGateway
-			}
-		} else {
+	for targetID, _ := range c.loadedTargets {
+		if _, ok := c.retainedTargets[targetID]; !ok {
 			delete(c.loadedTargets, targetID)
 		}
 	}
@@ -825,19 +813,24 @@ RESOLVE_AGAIN:
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
 
-	// Default mesh gateway settings
-	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil {
-		target.MeshGateway = serviceDefault.MeshGateway
-	}
+	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
+	if target.Datacenter == c.useInDatacenter {
+		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
+	} else {
+		// Default mesh gateway settings
+		if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil {
+			target.MeshGateway = serviceDefault.MeshGateway
+		}
 
-	if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-		target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
-	}
+		if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+		}
 
-	if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
-		if target.MeshGateway.Mode != c.overrideMeshGateway.Mode {
-			target.MeshGateway.Mode = c.overrideMeshGateway.Mode
-			c.customizedBy.MeshGateway = true
+		if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
+			if target.MeshGateway.Mode != c.overrideMeshGateway.Mode {
+				target.MeshGateway.Mode = c.overrideMeshGateway.Mode
+				c.customizedBy.MeshGateway = true
+			}
 		}
 	}
 
