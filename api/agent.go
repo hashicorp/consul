@@ -90,15 +90,7 @@ type AgentServiceChecksInfo struct {
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
 	Native         bool                      `json:",omitempty"`
-	Proxy          *AgentServiceConnectProxy `json:",omitempty" bexpr:"-"`
 	SidecarService *AgentServiceRegistration `json:",omitempty" bexpr:"-"`
-}
-
-// AgentServiceConnectProxy represents the Connect Proxy configuration of a
-// service.
-type AgentServiceConnectProxy struct {
-	Config    map[string]interface{} `json:",omitempty" bexpr:"-"`
-	Upstreams []Upstream             `json:",omitempty"`
 }
 
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
