@@ -413,7 +413,7 @@ services:
       - consul-secondary
     image: "fortio/fortio"
     environment:
-      - "FORTIO_NAME=s1"
+      - "FORTIO_NAME=s1-secondary"
     command:
      - "server"
      - "-http-port"
@@ -429,7 +429,7 @@ services:
       - consul-secondary
     image: "fortio/fortio"
     environment:
-      - "FORTIO_NAME=s2"
+      - "FORTIO_NAME=s2-secondary"
     command:
      - "server"
      - "-http-port"

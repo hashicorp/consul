@@ -12,7 +12,10 @@ type configSnapshotConnectProxy struct {
 	DiscoveryChain           map[string]*structs.CompiledDiscoveryChain // this is keyed by the Upstream.Identifier(), not the chain name
 	WatchedUpstreams         map[string]map[string]context.CancelFunc
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
-	UpstreamEndpoints        map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
+	WatchedGateways          map[string]map[string]context.CancelFunc
+	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
+
+	UpstreamEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
 }
 
 type configSnapshotMeshGateway struct {
@@ -74,6 +77,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
 		snap.ConnectProxy.WatchedUpstreams = nil
+		snap.ConnectProxy.WatchedGateways = nil
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedDatacenters = nil
 		snap.MeshGateway.WatchedServices = nil

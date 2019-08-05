@@ -148,40 +148,30 @@ func (s *state) initWatches() error {
 	}
 }
 
-func (s *state) watchConnectProxyService(ctx context.Context, correlationId string, service string, dc string, filter string, meshGatewayMode structs.MeshGatewayMode) error {
-	switch meshGatewayMode {
-	case structs.MeshGatewayModeRemote:
-		return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
-			Datacenter:     dc,
-			QueryOptions:   structs.QueryOptions{Token: s.token},
-			ServiceKind:    structs.ServiceKindMeshGateway,
-			UseServiceKind: true,
-			Source:         *s.source,
-		}, correlationId, s.ch)
-	case structs.MeshGatewayModeLocal:
-		return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
-			Datacenter:     s.source.Datacenter,
-			QueryOptions:   structs.QueryOptions{Token: s.token},
-			ServiceKind:    structs.ServiceKindMeshGateway,
-			UseServiceKind: true,
-			Source:         *s.source,
-		}, correlationId, s.ch)
-	default:
-		// This includes both the None and Default modes on purpose
-		return s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
-			Datacenter: dc,
-			QueryOptions: structs.QueryOptions{
-				Token:  s.token,
-				Filter: filter,
-			},
-			ServiceName: service,
-			Connect:     true,
-			// Note that Identifier doesn't type-prefix for service any more as it's
-			// the default and makes metrics and other things much cleaner. It's
-			// simpler for us if we have the type to make things unambiguous.
-			Source: *s.source,
-		}, correlationId, s.ch)
-	}
+func (s *state) watchMeshGateway(ctx context.Context, dc string, upstreamID string) error {
+	return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+		Datacenter:     dc,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		ServiceKind:    structs.ServiceKindMeshGateway,
+		UseServiceKind: true,
+		Source:         *s.source,
+	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
+}
+
+func (s *state) watchConnectProxyService(ctx context.Context, correlationId string, service string, dc string, filter string) error {
+	return s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+		Datacenter: dc,
+		QueryOptions: structs.QueryOptions{
+			Token:  s.token,
+			Filter: filter,
+		},
+		ServiceName: service,
+		Connect:     true,
+		// Note that Identifier doesn't type-prefix for service any more as it's
+		// the default and makes metrics and other things much cleaner. It's
+		// simpler for us if we have the type to make things unambiguous.
+		Source: *s.source,
+	}, correlationId, s.ch)
 }
 
 // initWatchesConnectProxy sets up the watches needed based on current proxy registration
@@ -361,6 +351,9 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.ConnectProxy.DiscoveryChain = make(map[string]*structs.CompiledDiscoveryChain)
 		snap.ConnectProxy.WatchedUpstreams = make(map[string]map[string]context.CancelFunc)
 		snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+		snap.ConnectProxy.WatchedGateways = make(map[string]map[string]context.CancelFunc)
+		snap.ConnectProxy.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+
 		snap.ConnectProxy.UpstreamEndpoints = make(map[string]structs.CheckServiceNodes) // TODO(rb): deprecated
 	case structs.ServiceKindMeshGateway:
 		snap.MeshGateway.WatchedServices = make(map[string]context.CancelFunc)
@@ -515,6 +508,23 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		}
 		snap.ConnectProxy.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
 
+	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for service response: %T", u.Result)
+		}
+		correlationID := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
+		dc, svc, ok := removeColonPrefix(correlationID)
+		if !ok {
+			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
+		}
+		m, ok := snap.ConnectProxy.WatchedGatewayEndpoints[svc]
+		if !ok {
+			m = make(map[string]structs.CheckServiceNodes)
+			snap.ConnectProxy.WatchedGatewayEndpoints[svc] = m
+		}
+		snap.ConnectProxy.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
+
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
@@ -561,6 +571,12 @@ func (s *state) resetWatchesFromChain(
 	if _, ok := snap.ConnectProxy.WatchedUpstreamEndpoints[id]; !ok {
 		snap.ConnectProxy.WatchedUpstreamEndpoints[id] = make(map[string]structs.CheckServiceNodes)
 	}
+	if _, ok := snap.ConnectProxy.WatchedGateways[id]; !ok {
+		snap.ConnectProxy.WatchedGateways[id] = make(map[string]context.CancelFunc)
+	}
+	if _, ok := snap.ConnectProxy.WatchedGatewayEndpoints[id]; !ok {
+		snap.ConnectProxy.WatchedGatewayEndpoints[id] = make(map[string]structs.CheckServiceNodes)
+	}
 
 	// We could invalidate this selectively based on a hash of the relevant
 	// resolver information, but for now just reset anything about this
@@ -574,29 +590,26 @@ func (s *state) resetWatchesFromChain(
 		cancelFn()
 	}
 
+	needGateways := make(map[string]struct{})
 	for _, target := range chain.Targets {
 		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of target %s", id, chain.ServiceName, target.ID)
 
+		// We'll get endpoints from the gateway query, but the health still has
+		// to come from the backing service query.
+		switch target.MeshGateway.Mode {
+		case structs.MeshGatewayModeRemote:
+			needGateways[target.Datacenter] = struct{}{}
+		case structs.MeshGatewayModeLocal:
+			needGateways[s.source.Datacenter] = struct{}{}
+		}
+
 		ctx, cancel := context.WithCancel(s.ctx)
-
-		// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-		meshGateway := structs.MeshGatewayModeDefault
-		if target.Datacenter != s.source.Datacenter {
-			meshGateway = target.MeshGateway.Mode
-		}
-
-		// if the default mode
-		if meshGateway == structs.MeshGatewayModeDefault {
-			meshGateway = structs.MeshGatewayModeNone
-		}
-
 		err := s.watchConnectProxyService(
 			ctx,
 			"upstream-target:"+target.ID+":"+id,
 			target.Service,
 			target.Datacenter,
 			target.Subset.Filter,
-			meshGateway,
 		)
 		if err != nil {
 			cancel()
@@ -604,6 +617,33 @@ func (s *state) resetWatchesFromChain(
 		}
 
 		snap.ConnectProxy.WatchedUpstreams[id][target.ID] = cancel
+	}
+
+	for dc, _ := range needGateways {
+		if _, ok := snap.ConnectProxy.WatchedGateways[id][dc]; ok {
+			continue
+		}
+
+		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of mesh gateway in dc %s", id, chain.ServiceName, dc)
+
+		ctx, cancel := context.WithCancel(s.ctx)
+		err := s.watchMeshGateway(ctx, dc, id)
+		if err != nil {
+			cancel()
+			return err
+		}
+
+		snap.ConnectProxy.WatchedGateways[id][dc] = cancel
+	}
+
+	for dc, cancelFn := range snap.ConnectProxy.WatchedGateways[id] {
+		if _, ok := needGateways[dc]; ok {
+			continue
+		}
+		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: stopping watch of mesh gateway in dc %s", id, chain.ServiceName, dc)
+		delete(snap.ConnectProxy.WatchedGateways[id], dc)
+		delete(snap.ConnectProxy.WatchedGatewayEndpoints[id], dc)
+		cancelFn()
 	}
 
 	return nil

@@ -246,6 +246,13 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		panic("chain must be provided")
 	}
 
+	id := upstream.Identifier()
+	chainEndpointMap, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
+	if !ok {
+		// this should not happen
+		return nil, fmt.Errorf("no endpoint map for upstream %q", id)
+	}
+
 	// TODO(rb): make escape hatches work with chains
 
 	var out []*envoy.Cluster
@@ -254,12 +261,30 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
 			continue
 		}
+		failover := node.Resolver.Failover
 		targetID := node.Resolver.Target
 
 		target := chain.Targets[targetID]
 
+		// Determine if we have to generate the entire cluster differently.
+		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
+
 		sni := TargetSNI(target, cfgSnap)
 		clusterName := CustomizeClusterName(sni, chain)
+
+		if failoverThroughMeshGateway {
+			actualTargetID := firstHealthyTarget(
+				chain.Targets,
+				chainEndpointMap,
+				targetID,
+				failover.Targets,
+			)
+
+			if actualTargetID != targetID {
+				actualTarget := chain.Targets[actualTargetID]
+				sni = TargetSNI(actualTarget, cfgSnap)
+			}
+		}
 
 		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
 		c := &envoy.Cluster{

@@ -58,8 +58,9 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			// Then we compile it into something useful.
 			chain, err := discoverychain.Compile(discoverychain.CompileRequest{
 				ServiceName:            args.Name,
-				CurrentNamespace:       evalNS,
-				CurrentDatacenter:      evalDC,
+				EvaluateInNamespace:    evalNS,
+				EvaluateInDatacenter:   evalDC,
+				UseInDatacenter:        c.srv.config.Datacenter,
 				OverrideMeshGateway:    args.OverrideMeshGateway,
 				OverrideProtocol:       args.OverrideProtocol,
 				OverrideConnectTimeout: args.OverrideConnectTimeout,

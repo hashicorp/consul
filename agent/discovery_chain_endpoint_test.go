@@ -3,6 +3,7 @@ package agent
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -188,6 +189,11 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Kind:           structs.ServiceResolver,
 				Name:           "web",
 				ConnectTimeout: 33 * time.Second,
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Datacenters: []string{"dc2"},
+					},
+				},
 			},
 		}, &out))
 		require.True(t, out)
@@ -203,31 +209,49 @@ func TestDiscoveryChainRead(t *testing.T) {
 			obj, err := a.srv.DiscoveryChainRead(resp, req)
 			r.Check(err)
 
-			value := obj.(discoveryChainReadResponse)
-			chain := value.Chain
-
-			// light comparison
-			node := chain.Nodes["resolver:web.default.dc1"]
-			if node == nil {
-				r.Fatalf("missing node")
-			}
-			if node.Resolver.Default {
-				r.Fatalf("not refreshed yet")
-			}
-
 			// Should be a cache hit! The data should've updated in the cache
 			// in the background so this should've been fetched directly from
 			// the cache.
 			if resp.Header().Get("X-Cache") != "HIT" {
 				r.Fatalf("should be a cache hit")
 			}
+
+			value := obj.(discoveryChainReadResponse)
+
+			expect := &structs.CompiledDiscoveryChain{
+				ServiceName: "web",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+				Protocol:    "tcp",
+				StartNode:   "resolver:web.default.dc1",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+						Type: structs.DiscoveryGraphNodeTypeResolver,
+						Name: "web.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							ConnectTimeout: 33 * time.Second,
+							Target:         "web.default.dc1",
+							Failover: &structs.DiscoveryFailover{
+								Targets: []string{"web.default.dc2"},
+							},
+						},
+					},
+				},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+					"web.default.dc2": structs.NewDiscoveryTarget("web", "", "default", "dc2"),
+				},
+			}
+			if !reflect.DeepEqual(expect, value.Chain) {
+				r.Fatalf("should be equal: expected=%+v, got=%+v", expect, value.Chain)
+			}
 		})
 	}))
 
 	// TODO(namespaces): add a test
 
-	expectTarget := structs.NewDiscoveryTarget("web", "", "default", "dc1")
-	expectTarget.MeshGateway = structs.MeshGatewayConfig{
+	expectTarget_DC2 := structs.NewDiscoveryTarget("web", "", "default", "dc2")
+	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
 	}
 
@@ -245,11 +269,15 @@ func TestDiscoveryChainRead(t *testing.T) {
 				Resolver: &structs.DiscoveryResolver{
 					ConnectTimeout: 22 * time.Second,
 					Target:         "web.default.dc1",
+					Failover: &structs.DiscoveryFailover{
+						Targets: []string{"web.default.dc2"},
+					},
 				},
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			expectTarget.ID: expectTarget,
+			"web.default.dc1":   structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+			expectTarget_DC2.ID: expectTarget_DC2,
 		},
 	}
 

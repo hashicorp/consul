@@ -444,11 +444,14 @@ func (s *Store) testCompileDiscoveryChain(
 
 	// Note we use an arbitrary namespace and datacenter as those would not
 	// currently affect the graph compilation in ways that matter here.
+	//
+	// TODO(rb): we should thread a better value than "dc1" down here as that is going to sometimes show up in user facing errors
 	req := discoverychain.CompileRequest{
-		ServiceName:       chainName,
-		CurrentNamespace:  "default",
-		CurrentDatacenter: "dc1",
-		Entries:           speculativeEntries,
+		ServiceName:          chainName,
+		EvaluateInNamespace:  "default",
+		EvaluateInDatacenter: "dc1",
+		UseInDatacenter:      "dc1",
+		Entries:              speculativeEntries,
 	}
 	_, err = discoverychain.Compile(req)
 	return err
