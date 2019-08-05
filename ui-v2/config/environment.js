@@ -71,7 +71,6 @@ module.exports = function(environment) {
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2019',
   });
-
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
@@ -93,8 +92,15 @@ module.exports = function(environment) {
 
     ENV.APP.rootElement = '#ember-testing';
     ENV.APP.autoboot = false;
-    ENV['ember-cli-api-double'] = {
-      reader: 'html',
+    ENV['@hashicorp/ember-cli-api-double'] = {
+      'auto-import': false,
+      enabled: true,
+      endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+    };
+  }
+  if (environment === 'staging') {
+    ENV['@hashicorp/ember-cli-api-double'] = {
+      enabled: true,
       endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
     };
   }

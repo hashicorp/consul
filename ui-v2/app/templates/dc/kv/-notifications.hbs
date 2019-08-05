@@ -16,5 +16,11 @@
   {{else}}
     There was an error deleting your key.
   {{/if}}
+{{ else if (eq type 'deletesession')}}
+  {{#if (eq status 'success') }}
+    Your session was invalidated.
+  {{else}}
+    There was an error invalidating your session.
+  {{/if}}
 {{/if}}
 

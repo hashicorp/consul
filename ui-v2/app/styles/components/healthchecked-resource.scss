@@ -1,14 +1,68 @@
-@import './healthchecked-resource/index';
-@import './icons/index';
-.healthchecked-resource {
-  @extend %healthchecked-resource;
+@import '../base/components/stats-card/index';
+.healthchecked-resource > div {
+  @extend %stats-card;
 }
-%healthchecked-resource li.passing {
-  @extend %with-passing;
+
+%tooltip-below::after {
+  top: calc(100% - 8px);
+  bottom: auto;
+  border-top: none;
+  border-bottom: 18px solid $gray-500;
 }
-%healthchecked-resource li.warning {
-  @extend %with-warning;
+%tooltip-below::before {
+  top: calc(100% + 4px);
+  bottom: auto;
 }
-%healthchecked-resource li.critical {
-  @extend %with-critical;
+%tooltip-left::before {
+  right: 0;
+}
+%tooltip-right::before {
+  left: -10px;
+}
+%stats-card-icon {
+  @extend %tooltip-below;
+  /*TODO: This should probably go into base*/
+  line-height: 1em;
+}
+%stats-card-icon:first-child::before {
+  right: 0;
+}
+%stats-card-icon:last-child::before {
+  left: -10px;
+}
+
+%stats-card-icon:last-child {
+  @extend %with-star-icon;
+}
+%stats-card header > .zero {
+  @extend %with-minus-square-fill-color-icon;
+  color: $gray-400;
+}
+%stats-card header > .non-zero {
+  @extend %with-check-circle-fill-color-icon;
+  color: $green-500;
+}
+
+%stats-card li a > :first-child {
+  font-size: 0;
+  height: 16px;
+  min-width: 16px;
+}
+[data-tooltip] {
+  @extend %with-pseudo-tooltip;
+}
+%stats-card li a > :last-child {
+  margin-left: 10px;
+}
+%stats-card a > :first-child::before {
+  left: -10px;
+}
+%stats-card a.passing > :first-child {
+  @extend %with-check-circle-fill-color-icon;
+}
+%stats-card a.warning > :first-child {
+  @extend %with-alert-triangle-color-icon;
+}
+%stats-card a.critical > :first-child {
+  @extend %with-cancel-square-fill-color-icon;
 }
