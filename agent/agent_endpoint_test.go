@@ -318,7 +318,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "accc98ff3082d229",
+		ContentHash: "f5826efc5ffc207a",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
