@@ -302,7 +302,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 				// Fallback to proxyConf global protocol.
 				protocol := proxyConfGlobalProtocol
-				if upstreamConf != nil && upstreamConf.Protocol != "" {
+				if upstreamConf.Protocol != "" {
 					protocol = upstreamConf.Protocol
 				}
 

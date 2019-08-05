@@ -736,11 +736,16 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 		Kind: structs.ServiceDefaults,
 		Name: "other",
 	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "alreadyprotocol",
+		Protocol: "grpc",
+	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
 		Datacenter: s1.config.Datacenter,
-		Upstreams:  []string{"bar", "other", "baz"},
+		Upstreams:  []string{"bar", "other", "alreadyprotocol", "dne"},
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
@@ -755,6 +760,9 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 			},
 			"other": map[string]interface{}{
 				"protocol": "http",
+			},
+			"alreadyprotocol": map[string]interface{}{
+				"protocol": "grpc",
 			},
 		},
 		// Don't know what this is deterministically
