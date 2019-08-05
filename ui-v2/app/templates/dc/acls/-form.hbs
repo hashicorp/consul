@@ -13,7 +13,7 @@
             {{/each}}
         </div>
         <label class="type-text">
-            <span>Policy <a href="{{env 'CONSUL_DOCUMENTATION_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+            <span>Policy <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{code-editor class=(if item.error.Rules 'error') name='Rules' value=item.Rules syntax="hcl" onkeyup=(action 'change' 'Rules')}}
         </label>
 {{#if create }}
