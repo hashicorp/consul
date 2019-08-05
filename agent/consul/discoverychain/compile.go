@@ -12,8 +12,8 @@ import (
 
 type CompileRequest struct {
 	ServiceName       string
-	CurrentNamespace  string // TODO(rb): rename to EvaluateInDatacenter
-	CurrentDatacenter string // TODO(rb): rename to EvaluateInNamespace
+	CurrentNamespace  string // TODO(rb): rename to EvaluateInNamespace
+	CurrentDatacenter string // TODO(rb): rename to EvaluateInDatacenter
 	UseInDatacenter   string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
