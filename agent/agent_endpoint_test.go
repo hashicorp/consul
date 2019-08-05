@@ -335,7 +335,7 @@ func TestAgent_Service(t *testing.T) {
 		ID:          "web",
 		Service:     "web",
 		Port:        8181,
-		ContentHash: "f6e4f875dd7c0de8",
+		ContentHash: "afaa0e76b202ffbb",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
