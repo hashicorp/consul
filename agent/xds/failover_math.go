@@ -5,7 +5,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// TODO: test
 func firstHealthyTarget(
 	targets map[string]*structs.DiscoveryTarget,
 	targetHealth map[string]structs.CheckServiceNodes,
