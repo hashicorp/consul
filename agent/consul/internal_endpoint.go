@@ -184,7 +184,8 @@ func (m *Internal) KeyringOperation(
 		return fmt.Errorf("argument error: LocalOnly can only be used for List operations")
 	}
 
-	if !args.LocalOnly { // LocalOnly should always be false for non-GET requests
+	// args.LocalOnly should always be false for non-GET requests
+	if !args.LocalOnly {
 		// Only perform WAN keyring querying and RPC forwarding once
 		if !args.Forwarded && m.srv.serfWAN != nil {
 			args.Forwarded = true
