@@ -281,6 +281,12 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
+			// Extract the global protocol from proxyConf for upstream configs.
+			var proxyConfGlobalProtocol interface{}
+			if proxyConf != nil && proxyConf.Config != nil {
+				proxyConfGlobalProtocol = proxyConf.Config["protocol"]
+			}
+
 			// Apply the upstream protocols to the upstream configs
 			for _, upstream := range args.Upstreams {
 				_, upstreamEntry, err := state.ConfigEntry(ws, structs.ServiceDefaults, upstream)
@@ -296,8 +302,19 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					}
 				}
 
+				// No upstream found; skip.
+				if upstreamConf == nil {
+					continue
+				}
+
+				// Fallback to proxyConf global protocol.
+				protocol := proxyConfGlobalProtocol
+				if upstreamConf.Protocol != "" {
+					protocol = upstreamConf.Protocol
+				}
+
 				// Nothing to configure if a protocol hasn't been set.
-				if upstreamConf == nil || upstreamConf.Protocol == "" {
+				if protocol == nil {
 					continue
 				}
 
@@ -305,7 +322,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					reply.UpstreamConfigs = make(map[string]map[string]interface{})
 				}
 				reply.UpstreamConfigs[upstream] = map[string]interface{}{
-					"protocol": upstreamConf.Protocol,
+					"protocol": protocol,
 				}
 			}
 

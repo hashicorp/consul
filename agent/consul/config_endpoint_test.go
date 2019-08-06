@@ -733,6 +733,73 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	require.Equal(map[string]interface{}{"foo": 1}, proxyConf.Config)
 }
 
+func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "bar",
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "other",
+	}))
+	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "alreadyprotocol",
+		Protocol: "grpc",
+	}))
+
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "other", "alreadyprotocol", "dne"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"protocol": "http",
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": map[string]interface{}{
+				"protocol": "http",
+			},
+			"other": map[string]interface{}{
+				"protocol": "http",
+			},
+			"alreadyprotocol": map[string]interface{}{
+				"protocol": "grpc",
+			},
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(expected, out)
+}
+
 func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 	t.Parallel()
 
