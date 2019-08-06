@@ -5,7 +5,7 @@ import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 
 import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
 
-module('Integration | Adapter | token | response', function(hooks) {
+module('Integration | Serializer | token', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'token-name';

@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-module('Integration | Adapter | acl | url', function(hooks) {
+module('Integration | Adapter | acl', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'token-name';

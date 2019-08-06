@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-module('Integration | Adapter | intention | url', function(hooks) {
+module('Integration | Adapter | intention', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'intention-name';

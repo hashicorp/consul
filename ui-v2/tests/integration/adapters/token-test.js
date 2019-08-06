@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-module('Integration | Adapter | token | url', function(hooks) {
+module('Integration | Adapter | token', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'policy-id';

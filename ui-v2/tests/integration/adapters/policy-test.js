@@ -1,6 +1,6 @@
 import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
-module('Integration | Adapter | policy | url', function(hooks) {
+module('Integration | Adapter | policy', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'policy-name';

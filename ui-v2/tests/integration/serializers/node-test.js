@@ -2,7 +2,7 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
-module('Integration | Adapter | node | response', function(hooks) {
+module('Integration | Serializer | node', function(hooks) {
   setupTest(hooks);
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
     const serializer = this.owner.lookup('serializer:node');

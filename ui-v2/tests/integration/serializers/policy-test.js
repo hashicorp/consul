@@ -2,7 +2,7 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
-module('Integration | Adapter | policy | response', function(hooks) {
+module('Integration | Serializer | policy', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'policy-name';
