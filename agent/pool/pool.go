@@ -300,6 +300,8 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 	if tcp, ok := conn.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
 		tcp.SetNoDelay(true)
+
+		// Expose TCPConn CloseWrite method on HalfCloser
 		hc = tcp
 	}
 
@@ -319,6 +321,7 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 		}
 		conn = tlsConn
 
+		// Cast to tls.Conn to expose CloseWrite method on HalfCloser
 		if tlsConn, ok := conn.(*tls.Conn); ok {
 			hc = tlsConn
 		}
