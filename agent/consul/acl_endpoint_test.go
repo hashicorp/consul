@@ -5314,6 +5314,18 @@ func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter str
 	return &out, nil
 }
 
+func deleteTestToken(codec rpc.ClientCodec, masterToken string, datacenter string, tokenAccessor string) error {
+	arg := structs.ACLTokenDeleteRequest{
+		Datacenter:   datacenter,
+		TokenID:      tokenAccessor,
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var ignored string
+	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &arg, &ignored)
+	return err
+}
+
 func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, policyID string) error {
 	arg := structs.ACLPolicyDeleteRequest{
 		Datacenter:   datacenter,
