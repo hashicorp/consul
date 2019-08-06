@@ -38,16 +38,15 @@ func New(ui cli.Ui) *cmd {
 const DefaultAdminAccessLogPath = "/dev/null"
 
 type cmd struct {
-	UI     cli.Ui
-	flags  *flag.FlagSet
-	http   *flags.HTTPFlags
-	help   string
-	client *api.Client
+	UI      cli.Ui
+	flags   *flag.FlagSet
+	connect *flags.ConnectFlags
+	http    *flags.HTTPFlags
+	help    string
+	client  *api.Client
 
 	// flags
 	meshGateway          bool
-	proxyID              string
-	sidecarFor           string
 	adminAccessLogPath   string
 	adminBind            string
 	envoyBin             string
@@ -68,17 +67,8 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.proxyID, "proxy-id", "",
-		"The proxy's ID on the local agent.")
-
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
 		"Generate the bootstrap.json but don't exec envoy")
-
-	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
-		"The ID of a service instance on the local agent that this proxy should "+
-			"become a sidecar for. It requires that the proxy service is registered "+
-			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
-			"to this value. If more than one such proxy is registered it will fail.")
 
 	c.flags.StringVar(&c.envoyBin, "envoy-binary", "",
 		"The full path to the envoy binary to run. By default will just search "+
@@ -127,6 +117,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.deregAfterCritical, "deregister-after-critical", "6h",
 		"The amount of time the gateway services health check can be failing before being deregistered")
 
+	c.connect = &flags.ConnectFlags{}
+	flags.Merge(c.flags, c.connect.Init())
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
@@ -209,16 +201,6 @@ func (c *cmd) Run(args []string) int {
 	}
 	passThroughArgs := c.flags.Args()
 
-	// TODO(mike): uncomment after restoring env var functionality
-	// Load the proxy ID and token from env vars if they're set
-	/*
-		if c.proxyID == "" {
-			c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
-		}
-		if c.sidecarFor == "" {
-			c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
-		}
-	*/
 	if c.grpcAddr == "" {
 		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
 	}
@@ -337,24 +319,24 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// See if we need to lookup proxyID
-	if c.proxyID == "" && c.sidecarFor != "" {
+	if c.connect.ProxyID() == "" && c.connect.SidecarFor() != "" {
 		proxyID, err := c.lookupProxyIDForSidecar()
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
-		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.meshGateway {
+		c.connect.SetProxyID(proxyID)
+	} else if c.connect.ProxyID() == "" && c.meshGateway {
 		gatewaySvc, err := c.lookupGatewayProxy()
 		if err != nil {
 			c.UI.Error(err.Error())
 			return 1
 		}
-		c.proxyID = gatewaySvc.ID
+		c.connect.SetProxyID(gatewaySvc.ID)
 		c.meshGatewaySvcName = gatewaySvc.Service
 	}
 
-	if c.proxyID == "" {
+	if c.connect.ProxyID() == "" {
 		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-mesh-gateway is " +
 			"required")
 		return 1
@@ -494,9 +476,9 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	// common case, even if the command was invoked with proxy-id and we don't
 	// know service name yet, we will after we resolve the proxy's config in a bit
 	// and will update this then.
-	cluster := c.proxyID
-	if c.sidecarFor != "" {
-		cluster = c.sidecarFor
+	cluster := c.connect.ProxyID()
+	if c.connect.SidecarFor() != "" {
+		cluster = c.connect.SidecarFor()
 	} else if c.meshGateway && c.meshGatewaySvcName != "" {
 		cluster = c.meshGatewaySvcName
 	}
@@ -508,7 +490,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 
 	return &BootstrapTplArgs{
 		ProxyCluster:          cluster,
-		ProxyID:               c.proxyID,
+		ProxyID:               c.connect.ProxyID(),
 		AgentAddress:          agentAddr,
 		AgentPort:             agentPort,
 		AgentSocket:           agentSock,
@@ -532,7 +514,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 
 	if !c.disableCentralConfig {
 		// Fetch any customization from the registration
-		svc, _, err := c.client.Agent().Service(c.proxyID, nil)
+		svc, _, err := c.client.Agent().Service(c.connect.ProxyID(), nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed fetch proxy config from local agent: %s", err)
 		}
@@ -555,8 +537,9 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	return bsCfg.GenerateJSON(args)
 }
 
+// TODO(mike): should this move into ConnectFlags?
 func (c *cmd) lookupProxyIDForSidecar() (string, error) {
-	return proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
+	return proxyCmd.LookupProxyIDForSidecar(c.client, c.connect.SidecarFor())
 }
 
 func (c *cmd) lookupGatewayProxy() (*api.AgentService, error) {
