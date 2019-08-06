@@ -1,7 +1,7 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
-module('Integration | Adapter | dc | response', function(hooks) {
+module('Integration | Serializer | dc', function(hooks) {
   setupTest(hooks);
   test('respondForFindAll returns the correct data for list endpoint', function(assert) {
     const serializer = this.owner.lookup('serializer:dc');

@@ -2,24 +2,19 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
-
-import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
-
-module('Integration | Adapter | token | response', function(hooks) {
+module('Integration | Serializer | service', function(hooks) {
   setupTest(hooks);
-  const dc = 'dc-1';
-  const id = 'token-name';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:token');
+    const serializer = this.owner.lookup('serializer:service');
+    const dc = 'dc-1';
     const request = {
-      url: `/v1/acl/tokens?dc=${dc}`,
+      url: `/v1/internal/ui/services?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = payload.map(item =>
         Object.assign({}, item, {
           Datacenter: dc,
-          uid: `["${dc}","${item.AccessorID}"]`,
-          Policies: createPolicies(item),
+          uid: `["${dc}","${item.Name}"]`,
         })
       );
       const actual = serializer.respondForQuery(
@@ -36,17 +31,20 @@ module('Integration | Adapter | token | response', function(hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:token');
+    const serializer = this.owner.lookup('serializer:service');
+    const dc = 'dc-1';
+    const id = 'service-name';
     const request = {
-      url: `/v1/acl/token/${id}?dc=${dc}`,
+      url: `/v1/health/service/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
-      const expected = Object.assign({}, payload, {
+      const expected = {
         Datacenter: dc,
         [META]: {},
         uid: `["${dc}","${id}"]`,
-        Policies: createPolicies(payload),
-      });
+        Name: id,
+        Nodes: payload,
+      };
       const actual = serializer.respondForQueryRecord(
         function(cb) {
           const headers = {};
@@ -55,6 +53,7 @@ module('Integration | Adapter | token | response', function(hooks) {
         },
         {
           dc: dc,
+          id: id,
         }
       );
       assert.deepEqual(actual, expected);

@@ -1,7 +1,7 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
-module('Integration | Adapter | coordinate | response', function(hooks) {
+module('Integration | Serializer | coordinate', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {

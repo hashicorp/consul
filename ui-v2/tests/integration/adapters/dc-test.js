@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-module('Integration | Adapter | dc | url', function(hooks) {
+module('Integration | Adapter | dc', function(hooks) {
   setupTest(hooks);
   test('requestForFindAll returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:dc');

@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
-module('Integration | Adapter | session | url', function(hooks) {
+module('Integration | Adapter | session', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'session-id';
