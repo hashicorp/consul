@@ -9,7 +9,6 @@ package consul
 
 import (
 	"bytes"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -193,7 +192,7 @@ RESPOND:
 func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
 
-	conn, err := connPool.DialTimeout(dc, addr, 10*time.Second, useTLS)
+	conn, hc, err := connPool.DialTimeout(dc, addr, 10*time.Second, useTLS)
 	if err != nil {
 		return nil, err
 	}
@@ -226,21 +225,12 @@ func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 	// the other side that they are done reading the stream, since we don't
 	// know the size in advance. This saves us from having to buffer just to
 	// calculate the size.
-	switch connType := conn.(type) {
-	case *tls.Conn:
-		if tlsConn, ok := conn.(*tls.Conn); ok {
-			if err := tlsConn.CloseWrite(); err != nil {
-				return nil, fmt.Errorf("failed to half close TLS snapshot connection: %v", err)
-			}
+	if hc != nil {
+		if err := hc.CloseWrite(); err != nil {
+			return nil, fmt.Errorf("failed to half close snapshot connection: %v", err)
 		}
-	case *net.TCPConn:
-		if tcpConn, ok := conn.(*net.TCPConn); ok {
-			if err := tcpConn.CloseWrite(); err != nil {
-				return nil, fmt.Errorf("failed to half close non-TLS snapshot connection: %v", err)
-			}
-		}
-	default:
-		return nil, fmt.Errorf("unexpected Conn type: %T", connType)
+	} else {
+		return nil, fmt.Errorf("snapshot connection requires half-close support")
 	}
 
 	// Pull the header decoded as msgpack. The caller can continue to read
