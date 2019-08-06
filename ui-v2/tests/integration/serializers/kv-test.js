@@ -2,21 +2,27 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
-module('Integration | Adapter | acl | response', function(hooks) {
+module('Integration | Serializer | kv', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
-  const id = 'token-name';
+  const id = 'key-name/here';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:acl');
+    const serializer = this.owner.lookup('serializer:kv');
     const request = {
-      url: `/v1/acl/list?dc=${dc}`,
+      url: `/v1/kv/${id}?keys&dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = payload.map(item =>
-        Object.assign({}, item, {
-          Datacenter: dc,
-          uid: `["${dc}","${item.ID}"]`,
-        })
+        Object.assign(
+          {},
+          {
+            Key: item,
+          },
+          {
+            Datacenter: dc,
+            uid: `["${dc}","${item}"]`,
+          }
+        )
       );
       const actual = serializer.respondForQuery(
         function(cb) {
@@ -32,9 +38,9 @@ module('Integration | Adapter | acl | response', function(hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:acl');
+    const serializer = this.owner.lookup('serializer:kv');
     const request = {
-      url: `/v1/acl/info/${id}?dc=${dc}`,
+      url: `/v1/kv/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = Object.assign({}, payload[0], {

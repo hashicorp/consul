@@ -2,13 +2,14 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
-module('Integration | Adapter | node | response', function(hooks) {
+module('Integration | Serializer | policy', function(hooks) {
   setupTest(hooks);
+  const dc = 'dc-1';
+  const id = 'policy-name';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:node');
-    const dc = 'dc-1';
+    const serializer = this.owner.lookup('serializer:policy');
     const request = {
-      url: `/v1/internal/ui/nodes?dc=${dc}`,
+      url: `/v1/acl/policies?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = payload.map(item =>
@@ -31,11 +32,9 @@ module('Integration | Adapter | node | response', function(hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:node');
-    const dc = 'dc-1';
-    const id = 'node-name';
+    const serializer = this.owner.lookup('serializer:policy');
     const request = {
-      url: `/v1/internal/ui/node/${id}?dc=${dc}`,
+      url: `/v1/acl/policy/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = Object.assign({}, payload, {

@@ -2,19 +2,19 @@ import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
-module('Integration | Adapter | service | response', function(hooks) {
+module('Integration | Serializer | node', function(hooks) {
   setupTest(hooks);
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:service');
+    const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
     const request = {
-      url: `/v1/internal/ui/services?dc=${dc}`,
+      url: `/v1/internal/ui/nodes?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = payload.map(item =>
         Object.assign({}, item, {
           Datacenter: dc,
-          uid: `["${dc}","${item.Name}"]`,
+          uid: `["${dc}","${item.ID}"]`,
         })
       );
       const actual = serializer.respondForQuery(
@@ -31,20 +31,18 @@ module('Integration | Adapter | service | response', function(hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:service');
+    const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
-    const id = 'service-name';
+    const id = 'node-name';
     const request = {
-      url: `/v1/health/service/${id}?dc=${dc}`,
+      url: `/v1/internal/ui/node/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
-      const expected = {
+      const expected = Object.assign({}, payload, {
         Datacenter: dc,
         [META]: {},
         uid: `["${dc}","${id}"]`,
-        Name: id,
-        Nodes: payload,
-      };
+      });
       const actual = serializer.respondForQueryRecord(
         function(cb) {
           const headers = {};
@@ -53,7 +51,6 @@ module('Integration | Adapter | service | response', function(hooks) {
         },
         {
           dc: dc,
-          id: id,
         }
       );
       assert.deepEqual(actual, expected);
