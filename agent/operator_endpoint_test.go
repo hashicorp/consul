@@ -277,16 +277,12 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 		"asdf": "Error parsing relay factor",
 	}
 	for relayFactor, errString := range cases {
-		req, _ := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+		req, err := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
-		_, err := a.srv.OperatorKeyringEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		body := resp.Body.String()
-		if !strings.Contains(body, errString) {
-			t.Fatalf("bad: %v", body)
-		}
+		_, err = a.srv.OperatorKeyringEndpoint(resp, req)
+		require.Error(t, err, "tc: "+relayFactor)
+		require.Contains(t, err.Error(), errString, "tc: "+relayFactor)
 	}
 }
 
@@ -298,17 +294,30 @@ func TestOperator_Keyring_LocalOnly(t *testing.T) {
 	`)
 	defer a.Shutdown()
 
-	cases := map[string]bool{
-		"GET":    true,
-		"DELETE": false,
-		"POST":   false,
+	cases := []struct {
+		description string
+		method      string
+		local       interface{}
+		ok          bool
+	}{
+		{"all ok", "GET", true, true},
+		{"garbage local-only value", "GET", "garbage", false},
+		{"wrong method (DELETE)", "DELETE", true, false},
 	}
-	for method, ok := range cases {
-		req, _ := http.NewRequest(method, "/v1/operator/keyring?local-only=true", nil)
+
+	for _, tc := range cases {
+		url := fmt.Sprintf("/v1/operator/keyring?local-only=%v", tc.local)
+		req, err := http.NewRequest(tc.method, url, nil)
+		require.NoError(t, err, "tc: "+tc.description)
+
 		resp := httptest.NewRecorder()
-		_, err := a.srv.OperatorKeyringEndpoint(resp, req)
-		require.NoError(t, err)
-		require.Equal(t, resp.Code == http.StatusOK, ok)
+		_, err = a.srv.OperatorKeyringEndpoint(resp, req)
+		if tc.ok {
+			require.NoError(t, err, "tc: "+tc.description)
+		}
+		if !tc.ok {
+			require.Error(t, err, "tc: "+tc.description)
+		}
 	}
 }
 
