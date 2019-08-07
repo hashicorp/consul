@@ -161,6 +161,13 @@ Create a file named `mesh-gateway-policy.json` containing the following content.
 
 ```json
 {
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}  
+{
   "service_prefix": {
     "": {
       "policy": "read"
