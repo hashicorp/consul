@@ -37,9 +37,13 @@ module('Integration | Adapter | policy', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/policy?dc=${dc}`;
     const actual = adapter
-      .requestForCreateRecord(client.url, {
-        Datacenter: dc,
-      })
+      .requestForCreateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -48,10 +52,14 @@ module('Integration | Adapter | policy', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/policy/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForUpdateRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForUpdateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -60,10 +68,14 @@ module('Integration | Adapter | policy', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `DELETE /v1/acl/policy/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForDeleteRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForDeleteRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });

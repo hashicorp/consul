@@ -24,30 +24,31 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForCreateRecord: function(request, data) {
+  requestForCreateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/acl/token?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
-  requestForUpdateRecord: function(request, data) {
-    // TODO: Serializer - Pretty sure this can go now
+  requestForUpdateRecord: function(request, serialized, data) {
+    // TODO: here we check data['Rules'] not serialized['Rules']
+    // data.Rules is not undefined, and serialized.Rules is not null
+    // revisit this at some point we should probably use serialized here
     // If a token has Rules, use the old API
     if (typeof data['Rules'] !== 'undefined') {
-      // TODO: need to clean up vars sent
-      data['ID'] = data['SecretID'];
-      data['Name'] = data['Description'];
+      // https://www.consul.io/api/acl/legacy.html#update-acl-token
       return request`
         PUT /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+
+        ${serialized}
       `;
-    }
-    if (typeof data['SecretID'] !== 'undefined') {
-      delete data['SecretID'];
     }
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+
+      ${serialized}
     `;
   },
-  requestForDeleteRecord: function(request, data) {
+  requestForDeleteRecord: function(request, serialized, data) {
     return request`
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;

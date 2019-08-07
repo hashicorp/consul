@@ -76,9 +76,10 @@ export default Service.extend({
   url: function() {
     return url(...arguments);
   },
-  request: function(cb, body) {
+  request: function(cb) {
     const client = this;
     return cb(function(strs, ...values) {
+      let body = {};
       const doubleBreak = strs.reduce(function(prev, item, i) {
         if (item.indexOf('\n\n') !== -1) {
           return i;
@@ -87,11 +88,15 @@ export default Service.extend({
       }, -1);
       if (doubleBreak !== -1) {
         body = values.splice(doubleBreak).reduce(function(prev, item) {
-          return {
-            ...prev,
-            ...item,
-          };
-        }, body || {});
+          if (typeof item !== 'string') {
+            return {
+              ...prev,
+              ...item,
+            };
+          } else {
+            return item;
+          }
+        }, body);
       }
       let temp = url(strs, ...values).split(' ');
       const method = temp.shift();
@@ -165,15 +170,19 @@ export default Service.extend({
           // for write-like actions
           // potentially we should change things so you _have_ to do that
           // as doing it this way is a little magical
-          if (method !== 'GET') {
-            if (headers['Content-Type'].indexOf('json') !== -1) {
-              options.data = JSON.stringify(body);
-            } else {
-              // TODO: Does this need urlencoding? Assuming jQuery does this
-              options.data = body;
-            }
+          if (method !== 'GET' && headers['Content-Type'].indexOf('json') !== -1) {
+            options.data = JSON.stringify(body);
+          } else {
+            // TODO: Does this need urlencoding? Assuming jQuery does this
+            options.data = body;
           }
         }
+        // temporarily reset the headers/content-type so it works the same
+        // as previously, should be able to remove this once the data layer
+        // rewrite is over and we can assert sending via form-encoded is fine
+        options.contentType = 'application/json; charset=utf-8';
+        headers['Content-Type'] = options.contentType;
+        //
         options.beforeSend = function(xhr) {
           if (headers) {
             Object.keys(headers).forEach(key => xhr.setRequestHeader(key, headers[key]));

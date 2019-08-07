@@ -23,7 +23,7 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForDeleteRecord: function(request, data) {
+  requestForDeleteRecord: function(request, serialized, data) {
     return request`
       PUT /v1/session/destroy/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;

@@ -10,21 +10,25 @@ export default Serializer.extend(WithPolicies, WithRoles, {
   slugKey: SLUG_KEY,
   attrs: ATTRS,
   serialize: function(snapshot, options) {
-    const data = this._super(...arguments);
-    // TODO: Check this as it used to be only on update
-    // Pretty sure Rules will only ever be on update as you can't
-    // create legacy tokens here
-    if (typeof data['Rules'] !== 'undefined') {
-      data['ID'] = data['SecretID'];
-      data['Name'] = data['Description'];
+    let data = this._super(...arguments);
+    // If a token has Rules, use the old API shape
+    // notice we use a null check here (not an undefined check)
+    // as we are dealing with the serialized model not raw user data
+    if (data['Rules'] !== null) {
+      data = {
+        ID: data.SecretID,
+        Name: data.Description,
+        Type: data.Type,
+        Rules: data.Rules,
+      };
     }
     // make sure we never send the SecretID
-    if (data && typeof data['SecretID'] !== 'undefined') {
+    if (data) {
       delete data['SecretID'];
     }
     return data;
   },
-  respondForUpdateRecord: function(respond, query) {
+  respondForUpdateRecord: function(respond, serialized, data) {
     return this._super(
       cb =>
         respond((headers, body) => {
@@ -44,7 +48,8 @@ export default Serializer.extend(WithPolicies, WithRoles, {
           }
           return cb(headers, body);
         }),
-      query
+      serialized,
+      data
     );
   },
 });
