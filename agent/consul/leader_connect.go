@@ -574,13 +574,15 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 // the intentions there to the local state.
 func (s *Server) replicateIntentions(stopCh <-chan struct{}) {
 	args := structs.DCSpecificRequest{
-		Datacenter:   s.config.PrimaryDatacenter,
-		QueryOptions: structs.QueryOptions{Token: s.tokens.ReplicationToken()},
+		Datacenter: s.config.PrimaryDatacenter,
 	}
 
 	s.logger.Printf("[DEBUG] connect: starting Connect intention replication from primary datacenter %q", s.config.PrimaryDatacenter)
 
 	retryLoopBackoff(stopCh, func() error {
+		// Always use the latest replication token value in case it changed while looping.
+		args.QueryOptions.Token = s.tokens.ReplicationToken()
+
 		var remote structs.IndexedIntentions
 		if err := s.forwardDC("Intention.List", s.config.PrimaryDatacenter, &args, &remote); err != nil {
 			return err
