@@ -41,6 +41,11 @@ Protocol = "http"
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
 
+- `ExternalSNI` <sup>(beta)</sup> `(string: "")` - This is an optional setting
+  that allows for the TLS
+  [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value to be
+  changed to a non-connect value when federating with an external system.
+
 ## ACLs
 
 Configuration entries may be protected by

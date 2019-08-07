@@ -20,6 +20,7 @@ Please review the following documentation to understand how Consul works.
 * [Sessions](/docs/internals/sessions.html)
 * [Anti-Entropy](/docs/internals/anti-entropy.html)
 * [Security Model](/docs/internals/security.html)
+* [Discovery Chain <sup>beta</sup>](/docs/internals/discovery-chain.html)
 
 You should also be familiar with [Jepsen testing](/docs/internals/jepsen.html), before deploying 
 a production datacenter. 
