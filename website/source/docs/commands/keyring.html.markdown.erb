@@ -54,6 +54,10 @@ Only one actionable argument may be specified per run, including `-list`,
   cause nodes to relay their response to the operation through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is 5.
 
+* `-local-only` - Setting this to true will force a keyring list query to only hit
+  local servers (no WAN traffic). Setting `local-only` is only allowed for list
+  queries.
+
 ## Output
 
 The output of the `consul keyring -list` command consolidates information from

@@ -95,6 +95,18 @@ func TestKeyringCommand_failedConnection(t *testing.T) {
 	}
 }
 
+func TestKeyringCommand_invalidLocalOnly(t *testing.T) {
+	t.Parallel()
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	args := []string{"-install=blah", "-local-only=true"}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestKeyringCommand_invalidRelayFactor(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
@@ -286,6 +287,28 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 		if !strings.Contains(body, errString) {
 			t.Fatalf("bad: %v", body)
 		}
+	}
+}
+
+func TestOperator_Keyring_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key := "H3/9gBxcKKRf45CaI2DlRg=="
+	a := NewTestAgent(t, t.Name(), `
+		encrypt = "`+key+`"
+	`)
+	defer a.Shutdown()
+
+	cases := map[string]bool{
+		"GET":    true,
+		"DELETE": false,
+		"POST":   false,
+	}
+	for method, ok := range cases {
+		req, _ := http.NewRequest(method, "/v1/operator/keyring?local-only=true", nil)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.OperatorKeyringEndpoint(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, resp.Code == http.StatusOK, ok)
 	}
 }
 

@@ -41,9 +41,9 @@ The table below shows this endpoint's support for
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
   This is specified as part of the URL as a query parameter.
-- `local-only` `(bool: false)` - Setting `local-only` to true will force the keyring 
-  query to only hit local servers (no WAN traffic). This is specified as part of 
-  the URL as a query parameter.
+- `local-only` `(bool: false)` - Setting `local-only` to true will force keyring 
+  list queries to only hit local servers (no WAN traffic). This flag can only be set
+  for list queries. It is specified as part of the URL as a query parameter.
 
 ### Sample Request
 

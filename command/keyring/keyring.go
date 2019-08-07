@@ -28,6 +28,7 @@ type cmd struct {
 	removeKey  string
 	listKeys   bool
 	relay      int
+	local      bool
 }
 
 func (c *cmd) init() {
@@ -48,6 +49,9 @@ func (c *cmd) init() {
 		"Setting this to a non-zero value will cause nodes to relay their response "+
 			"to the operation through this many randomly-chosen other nodes in the "+
 			"cluster. The maximum allowed value is 5.")
+	c.flags.BoolVar(&c.local, "local-only", false,
+		"Setting this to true will force the keyring query to only hit local servers "+
+			"(no WAN traffic). This flag can only be set for list queries.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -89,6 +93,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Validate local-only
+	err = agent.ValidateLocalOnly(c.local, c.listKeys)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error validating local-only: %s", err))
+		return 1
+	}
+
 	// All other operations will require a client connection
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -98,7 +109,7 @@ func (c *cmd) Run(args []string) int {
 
 	if c.listKeys {
 		c.UI.Info("Gathering installed encryption keys...")
-		responses, err := client.Operator().KeyringList(&consulapi.QueryOptions{RelayFactor: relayFactor})
+		responses, err := client.Operator().KeyringList(&consulapi.QueryOptions{RelayFactor: relayFactor, LocalOnly: c.local})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
