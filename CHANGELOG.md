@@ -21,6 +21,7 @@ BUG FIXES:
 * connect: fix failover through a mesh gateway to a remote datacenter [[GH-6259](https://github.com/hashicorp/consul/issues/6259)]
 * api: un-deprecate api.DecodeConfigEntry [[GH-6278](https://github.com/hashicorp/consul/issues/6278)]
 * connect: ensure intention replication continues to work when the replication ACL token changes [[GH-6288](https://github.com/hashicorp/consul/issues/6288)]
+* command: ensure that the json form of config entries can be submitted with 'consul config write' [[GH-6290](https://github.com/hashicorp/consul/issues/6290)]
 
 ## 1.6.0-beta3 (July 26, 2019)
 
