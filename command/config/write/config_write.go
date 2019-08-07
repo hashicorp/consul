@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 )
@@ -102,7 +101,7 @@ func (c *cmd) Run(args []string) int {
 func parseConfigEntry(data string) (api.ConfigEntry, error) {
 	// parse the data
 	var raw map[string]interface{}
-	if err := hcl.Decode(&raw, data); err != nil {
+	if err := hclDecode(&raw, data); err != nil {
 		return nil, fmt.Errorf("Failed to decode config entry input: %v", err)
 	}
 
