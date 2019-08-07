@@ -32,7 +32,7 @@ export default Adapter.extend({
     `;
   },
   requestForUpdateRecord: function(request, serialized, data) {
-    // the id is in the data, don't add it in here
+    // the id is in the data, don't add it into the URL
     // https://www.consul.io/api/acl.html#update-acl-token
     return request`
       PUT /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
@@ -58,6 +58,7 @@ export default Adapter.extend({
     const serialized = serializer.serialize(snapshot, {});
     return get(this, 'client')
       .request(request => this.requestForClone(request, serialized, unserialized))
-      .then(respond => serializer.respondForQueryRecord(respond, unserialized));
+      .catch(e => adapter.error(e))
+      .then(respond => serializer.respondForQueryRecord(respond, serialized, unserialized));
   },
 });

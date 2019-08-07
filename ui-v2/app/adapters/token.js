@@ -62,13 +62,15 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForClone: function(request, { dc, id }) {
+  requestForClone: function(request, serialized, unserialized) {
     // this uses snapshots
+    const id = unserialized[SLUG_KEY];
+    const dc = unserialized[DATACENTER_KEY];
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
-      PUT /v1/acl/token/${id}/clone?${{ dc }}
+      PUT /v1/acl/token/${id}/clone?${{ [API_DATACENTER_KEY]: dc }}
     `;
   },
   // TODO: self doesn't get passed a snapshot right now
@@ -79,16 +81,31 @@ export default Adapter.extend({
     // const unserialized = this.snapshotToJSON(snapshot, type);
     const serialized = unserialized; //serializer.serialize(snapshot, {});
     return get(this, 'client')
-      .request(request => this.requestForSelf(request, unserialized), serialized)
-      .then(respond => serializer.respondForQueryRecord(respond, unserialized));
+      .request(request => this.requestForSelf(request, serialized, unserialized))
+      .then(respond => serializer.respondForQueryRecord(respond, serialized, unserialized));
   },
-  // TODO: Does id even need to be here now?
   clone: function(store, type, id, snapshot) {
+    const client = get(this, 'client');
+    const adapter = this;
     const serializer = store.serializerFor(type.modelName);
-    const unserialized = this.snapshotToJSON(snapshot, type);
+    const unserialized = snapshot.attributes();
     const serialized = serializer.serialize(snapshot, {});
-    return get(this, 'client')
-      .request(request => this.requestForClone(request, unserialized), serialized)
-      .then(respond => serializer.respondForQueryRecord(respond, unserialized));
+    return client
+      .request(function(request) {
+        return adapter.requestForClone(request, serialized, unserialized);
+      })
+      .catch(function(e) {
+        return adapter.error(e);
+      })
+      .then(function(response) {
+        // TODO: When HTTPAdapter:responder changes, this will also need to change
+        return serializer.respondForQueryRecord(response, {
+          [API_DATACENTER_KEY]: unserialized[SLUG_KEY],
+        });
+      });
+    // TODO: Potentially add specific serializer errors here
+    // .catch(function(e) {
+    //   return Promise.reject(e);
+    // });
   },
 });
