@@ -53,8 +53,9 @@ export default Adapter.extend({
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
-  requestForSelf: function(request, { dc, index, secret }) {
-    // do we need dc and index here?
+  requestForSelf: function(request, serialized, { dc, index, secret }) {
+    // TODO: Change here and elsewhere to use Authorization Bearer Token
+    // https://github.com/hashicorp/consul/pull/4502
     return request`
       GET /v1/acl/token/self?${{ dc }}
       X-Consul-Token: ${secret}
@@ -62,6 +63,7 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
+  // TODO: We should probably call this requestForCloneRecord
   requestForClone: function(request, serialized, unserialized) {
     // this uses snapshots
     const id = unserialized[SLUG_KEY];
@@ -76,13 +78,29 @@ export default Adapter.extend({
   // TODO: self doesn't get passed a snapshot right now
   // ideally it would just for consistency
   // thing is its probably not the same shape as a 'Token'
+  // we should probably at least pass a null id as the third argument
   self: function(store, type, unserialized) {
+    const client = get(this, 'client');
+    const adapter = this;
     const serializer = store.serializerFor(type.modelName);
-    // const unserialized = this.snapshotToJSON(snapshot, type);
+    // const unserialized = snapshot.attributes();
     const serialized = unserialized; //serializer.serialize(snapshot, {});
-    return get(this, 'client')
-      .request(request => this.requestForSelf(request, serialized, unserialized))
-      .then(respond => serializer.respondForQueryRecord(respond, serialized, unserialized));
+
+    return client
+      .request(function(request) {
+        return adapter.requestForSelf(request, serialized, unserialized);
+      })
+      .catch(function(e) {
+        return adapter.error(e);
+      })
+      .then(function(response) {
+        // TODO: When HTTPAdapter:responder changes, this will also need to change
+        return serializer.respondForQueryRecord(response, serialized, unserialized);
+      });
+    // TODO: Potentially add specific serializer errors here
+    // .catch(function(e) {
+    //   return Promise.reject(e);
+    // });
   },
   clone: function(store, type, id, snapshot) {
     const client = get(this, 'client');

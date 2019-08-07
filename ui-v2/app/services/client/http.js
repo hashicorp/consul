@@ -30,6 +30,11 @@ const dispose = function(request) {
   }
   return request;
 };
+// TODO: Potentially url should check if any of the params
+// passed to it are undefined (null is fine). We could then get rid of the
+// multitude of checks we do throughout the adapters
+// right now createURL converts undefined to '' so we need to check thats not needed
+// anywhere (todo written here for visibility)
 const url = createURL(encodeURIComponent);
 export default Service.extend({
   dom: service('dom'),

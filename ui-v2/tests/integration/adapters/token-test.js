@@ -116,4 +116,53 @@ module('Integration | Adapter | token', function(hooks) {
       .split('\n')[0];
     assert.equal(actual, expected);
   });
+  test('requestForClone returns the correct url', function(assert) {
+    const adapter = this.owner.lookup('adapter:token');
+    const client = this.owner.lookup('service:client/http');
+    const expected = `PUT /v1/acl/token/${id}/clone?dc=${dc}`;
+    const actual = adapter
+      .requestForClone(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          AccessorID: id,
+        }
+      )
+      .split('\n')[0];
+    assert.equal(actual, expected);
+  });
+  test('requestForSelf returns the correct url', function(assert) {
+    const adapter = this.owner.lookup('adapter:token');
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/acl/token/self?dc=${dc}`;
+    const actual = adapter
+      .requestForSelf(
+        client.url,
+        {},
+        {
+          dc: dc,
+        }
+      )
+      .split('\n')[0];
+    assert.equal(actual, expected);
+  });
+  test('requestForSelf sets a token header using a secret', function(assert) {
+    const adapter = this.owner.lookup('adapter:token');
+    const client = this.owner.lookup('service:client/http');
+    const secret = 'sssh';
+    const expected = `X-Consul-Token: ${secret}`;
+    const actual = adapter
+      .requestForSelf(
+        client.url,
+        {},
+        {
+          dc: dc,
+          secret: secret,
+        }
+      )
+      .split('\n')[1]
+      .trim();
+    assert.equal(actual, expected);
+  });
 });
