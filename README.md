@@ -29,15 +29,17 @@ Currently CoreDNS is able to:
 * Allow for zone transfers, i.e., act as a primary server (*file*).
 * Automatically load zone files from disk (*auto*).
 * Caching of DNS responses (*cache*).
-* Use etcd as a backend (replace [SkyDNS](https://github.com/skynetservices/skydns)) (*etcd*).
+* Use etcd as a backend (replacing [SkyDNS](https://github.com/skynetservices/skydns)) (*etcd*).
 * Use k8s (kubernetes) as a backend (*kubernetes*).
 * Serve as a proxy to forward queries to some other (recursive) nameserver (*forward*).
 * Provide metrics (by using Prometheus) (*metrics*).
 * Provide query (*log*) and error (*errors*) logging.
+* Integrate with cloud providers (*route53*).
 * Support the CH class: `version.bind` and friends (*chaos*).
 * Support the RFC 5001 DNS name server identifier (NSID) option (*nsid*).
 * Profiling support (*pprof*).
 * Rewrite queries (qtype, qclass and qname) (*rewrite* and *template*).
+* Block ANY queries (*any*).
 
 And more. Each of the plugins is documented. See [coredns.io/plugins](https://coredns.io/plugins)
 for all in-tree plugins, and [coredns.io/explugins](https://coredns.io/explugins) for all
@@ -45,11 +47,13 @@ out-of-tree plugins.
 
 ## Compilation from Source
 
-To compile CoreDNS, we assume you have a working Go setup. See various tutorials if you don’t have that already configured.
+To compile CoreDNS, we assume you have a working Go setup. See various tutorials if you don’t have
+that already configured.
 
 First, make sure your golang version is 1.12 or higher as `go mod` support is needed.
 See [here](https://github.com/golang/go/wiki/Modules) for `go mod` details.
 Then, check out the project and run `make` to compile the binary:
+
 ~~~
 $ git clone https://github.com/coredns/coredns
 $ cd coredns
@@ -60,8 +64,8 @@ This should yield a `coredns` binary.
 
 ## Compilation with Docker
 
-CoreDNS requires Go to compile. However, if you already have docker installed and prefer not to setup
-a Go environment, you could build CoreDNS easily:
+CoreDNS requires Go to compile. However, if you already have docker installed and prefer not to
+setup a Go environment, you could build CoreDNS easily:
 
 ```
 $ docker run --rm -i -t -v $PWD:/go/src/github.com/coredns/coredns \
@@ -85,8 +89,8 @@ CoreDNS-001
 Any query sent to port 53 should return some information; your sending address, port and protocol
 used.
 
-If you have a Corefile without a port number specified it will, by default, use port 53, but you
-can override the port with the `-dns.port` flag:
+If you have a Corefile without a port number specified it will, by default, use port 53, but you can
+override the port with the `-dns.port` flag:
 
 `./coredns -dns.port 1053`, runs the server on port 1053.
 
@@ -101,8 +105,8 @@ Start a simple proxy. You'll need to be root to start listening on port 53.
 }
 ~~~
 
-Just start CoreDNS: `./coredns`. Then just query on that port (53). The query should be forwarded to
-8.8.8.8 and the response will be returned. Each query should also show up in the log which is
+Just start CoreDNS: `./coredns`. Then just query on that port (53). The query should be forwarded
+to 8.8.8.8 and the response will be returned. Each query should also show up in the log which is
 printed on standard output.
 
 Serve the (NSEC) DNSSEC-signed `example.org` on port 1053, with errors and logging sent to standard
@@ -120,8 +124,8 @@ example.org:1053 {
 }
 ~~~
 
-Serve `example.org` on port 1053, but forward everything that does *not* match `example.org` to a recursive
-nameserver *and* rewrite ANY queries to HINFO.
+Serve `example.org` on port 1053, but forward everything that does *not* match `example.org` to a
+recursive nameserver *and* rewrite ANY queries to HINFO.
 
 ~~~ txt
 .:1053 {
@@ -152,10 +156,18 @@ add the closing dot: `10.0.0.0/24.` as this also stops the conversion.
 This even works for CIDR (See RFC 1518 and 1519) addressing, i.e. `10.0.0.0/25`, CoreDNS will then
 check if the `in-addr` request falls in the correct range.
 
-Listening on TLS and for gRPC? Use:
+Listening on TLS (DoT) and for gRPC? Use:
 
 ~~~ corefile
 tls://example.org grpc://example.org {
+    whoami
+}
+~~~
+
+And for DNS over HTTP/2 (DoH) use:
+
+~~~ corefile
+https://example.org {
     whoami
 }
 ~~~
@@ -186,7 +198,8 @@ More resources can be found:
 
 ## Contribution guidelines
 
-If you want to contribute to CoreDNS, be sure to review the [contribution guidelines](CONTRIBUTING.md).
+If you want to contribute to CoreDNS, be sure to review the [contribution
+guidelines](CONTRIBUTING.md).
 
 ## Deployment
 
@@ -210,8 +223,8 @@ And finally 1.4.1 that removes the config workarounds.
 ## Security
 
 ### Security Audit
-
-A third party security audit was performed by Cure53, you can see the full report [here](https://coredns.io/assets/DNS-01-report.pdf).
+A third party security audit was performed by Cure53, you can see the full report
+[here](https://coredns.io/assets/DNS-01-report.pdf).
 
 ### Reporting security vulnerabilities
 
@@ -219,4 +232,5 @@ If you find a security vulnerability or any security related issues, please DO N
 issue, instead send your report privately to `security@coredns.io`. Security reports are greatly
 appreciated and we will publicly thank you for it.
 
-Please consult [security vulnerability disclosures and security fix and release process document](https://github.com/coredns/coredns/blob/master/SECURITY-RELEASE-PROCESS.md)
+Please consult [security vulnerability disclosures and security fix and release process
+document](https://github.com/coredns/coredns/blob/master/SECURITY-RELEASE-PROCESS.md)
