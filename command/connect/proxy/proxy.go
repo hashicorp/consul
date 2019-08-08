@@ -35,11 +35,10 @@ func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
 }
 
 type cmd struct {
-	UI      cli.Ui
-	flags   *flag.FlagSet
-	connect *flags.ConnectFlags
-	http    *flags.HTTPFlags
-	help    string
+	UI    cli.Ui
+	flags *flag.FlagSet
+	http  *flags.HTTPFlags
+	help  string
 
 	shutdownCh <-chan struct{}
 
@@ -50,6 +49,8 @@ type cmd struct {
 	// flags
 	logLevel    string
 	cfgFile     string
+	proxyID     string
+	sidecarFor  string
 	pprofAddr   string
 	service     string
 	serviceAddr string
@@ -64,6 +65,15 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+
+	c.flags.StringVar(&c.proxyID, "proxy-id", "",
+		"The proxy's ID on the local agent.")
+
+	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
+		"The ID of a service instance on the local agent that this proxy should "+
+			"become a sidecar for. It requires that the proxy service is registered "+
+			"with the agent as a connect-proxy with Proxy.DestinationServiceID set "+
+			"to this value. If more than one such proxy is registered it will fail.")
 
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Specifies the log level.")
@@ -95,8 +105,6 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.registerId, "register-id", "",
 		"ID suffix for the service. Use this to disambiguate with other proxies.")
 
-	c.connect = &flags.ConnectFlags{}
-	flags.Merge(c.flags, c.connect.Init())
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -111,6 +119,20 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Should have no non-flag arguments."))
 		return 1
 	}
+
+	// TODO(mike): create small abstraction wrapping these env vars
+	// Load the proxy ID and token from env vars if they're set
+	/*
+		if c.proxyID == "" {
+			c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
+		}
+		if c.sidecarFor == "" {
+			c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
+		}
+		if c.http.Token() == "" && c.http.TokenFile() == "" {
+			c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
+		}
+	*/
 
 	// Setup the log outputs
 	logConfig := &logger.Config{
@@ -190,9 +212,8 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-// TODO(mike): should this move into ConnectFlags?
 func (c *cmd) lookupProxyIDForSidecar(client *api.Client) (string, error) {
-	return LookupProxyIDForSidecar(client, c.connect.SidecarFor())
+	return LookupProxyIDForSidecar(client, c.sidecarFor)
 }
 
 // LookupProxyIDForSidecar finds candidate local proxy registrations that are a
@@ -256,26 +277,25 @@ func LookupGatewayProxy(client *api.Client) (*api.AgentService, error) {
 
 func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error) {
 	// Use the configured proxy ID
-	if c.connect.ProxyID() != "" {
+	if c.proxyID != "" {
 		c.UI.Info("Configuration mode: Agent API")
-		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.connect.ProxyID()))
-		return proxyImpl.NewAgentConfigWatcher(client, c.connect.ProxyID(), c.logger)
+		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
+		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
 	}
 
-	if c.connect.SidecarFor() != "" {
+	if c.sidecarFor != "" {
 		// Running as a sidecar, we need to find the proxy-id for the requested
 		// service
 		var err error
-		proxyID, err := c.lookupProxyIDForSidecar(client)
+		c.proxyID, err = c.lookupProxyIDForSidecar(client)
 		if err != nil {
 			return nil, err
 		}
-		c.connect.SetProxyID(proxyID)
 
 		c.UI.Info("Configuration mode: Agent API")
-		c.UI.Info(fmt.Sprintf("    Sidecar for ID: %s", c.connect.SidecarFor()))
-		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.connect.ProxyID()))
-		return proxyImpl.NewAgentConfigWatcher(client, c.connect.ProxyID(), c.logger)
+		c.UI.Info(fmt.Sprintf("    Sidecar for ID: %s", c.sidecarFor))
+		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
+		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
 	}
 
 	// Otherwise, we're representing a manually specified service.
