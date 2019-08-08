@@ -4,10 +4,6 @@ export default Component.extend({
   classNames: ['sort-control'],
   direction: 'asc',
   onchange: function() {},
-  init: function() {
-    this._super(...arguments);
-    this.guid = this.elementId;
-  },
   actions: {
     change: function(e) {
       if (e.target.type === 'checkbox') {
