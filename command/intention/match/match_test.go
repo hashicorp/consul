@@ -41,6 +41,11 @@ func TestCommand_Validation(t *testing.T) {
 			[]string{"-source", "-destination", "foo"},
 			"only one of -source",
 		},
+
+		"invalid -source-type": {
+			[]string{"-source-type", "invalid", "-source", "foo"},
+			"-source-type \"invalid\" is not supported: must be set to consul, external-trust-domain or external-uri",
+		},
 	}
 
 	for name, tc := range cases {

@@ -3,6 +3,7 @@ package get
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/command/intention"
 	"io"
 	"sort"
 	"time"
@@ -25,12 +26,18 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
+	// flags
+	flagSourceType string
+
 	// testStdin is the input for testing.
 	testStdin io.Reader
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.flagSourceType, intention.SourceTypeFlagName, "consul",
+		intention.SourceTypeUsageAbbrev+" Ignored if ID is set.")
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -39,6 +46,12 @@ func (c *cmd) init() {
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		return 1
+	}
+
+	sourceType, err := intention.ValidateSourceTypeFlag(c.flagSourceType)
+	if err != nil {
+		c.UI.Error(err.Error())
 		return 1
 	}
 
@@ -51,7 +64,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Get the intention ID to load
 	f := &finder.Finder{Client: client}
-	id, err := f.IDFromArgs(c.flags.Args())
+	id, err := f.IDFromArgs(sourceType, c.flags.Args())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error: %s", err))
 		return 1

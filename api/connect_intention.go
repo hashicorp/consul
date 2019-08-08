@@ -106,12 +106,25 @@ type IntentionSourceType string
 const (
 	// IntentionSourceConsul is a service within the Consul catalog.
 	IntentionSourceConsul IntentionSourceType = "consul"
+
+	// IntentionSourceExternalTrustDomain is a service whose identity is not provided
+	// by Connect and will present a SPIFFE ID whose trust domain (i.e. hostname)
+	// is the same as that set in the intention's SourceName.
+	IntentionSourceExternalTrustDomain IntentionSourceType = "external-trust-domain"
+
+	// IntentionSourceExternalURI is a service whose identity is not provided
+	// by Connect and will present a SPIFFE ID equal to the ID set in the
+	// intention's SourceName.
+	IntentionSourceExternalURI IntentionSourceType = "external-uri"
 )
 
 // IntentionMatch are the arguments for the intention match API.
 type IntentionMatch struct {
 	By    IntentionMatchType
 	Names []string
+	// SourceType is the type of the value for the source.
+	// If the match type is destination then this will be ignored.
+	SourceType IntentionSourceType
 }
 
 // IntentionMatchType is the target for a match request. For example,
@@ -123,6 +136,10 @@ const (
 	IntentionMatchSource      IntentionMatchType = "source"
 	IntentionMatchDestination IntentionMatchType = "destination"
 )
+
+// intentionSourceTypeParam is the name of the parameter used to specify
+// the Source Type for HTTP requests
+const intentionSourceTypeParam = "source-type"
 
 // IntentionCheck are the arguments for the intention check API. For
 // more documentation see the IntentionCheck function.
@@ -214,6 +231,9 @@ func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[str
 	r := h.c.newRequest("GET", "/v1/connect/intentions/match")
 	r.setQueryOptions(q)
 	r.params.Set("by", string(args.By))
+	if args.SourceType != "" {
+		r.params.Set(intentionSourceTypeParam, string(args.SourceType))
+	}
 	for _, name := range args.Names {
 		r.params.Add("name", name)
 	}
@@ -242,7 +262,7 @@ func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *
 	r.params.Set("source", args.Source)
 	r.params.Set("destination", args.Destination)
 	if args.SourceType != "" {
-		r.params.Set("source-type", string(args.SourceType))
+		r.params.Set(intentionSourceTypeParam, string(args.SourceType))
 	}
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {

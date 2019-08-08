@@ -3,6 +3,7 @@ package check
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/command/intention"
 	"io"
 
 	"github.com/hashicorp/consul/api"
@@ -22,12 +23,18 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
+	// flags
+	flagSourceType string
+
 	// testStdin is the input for testing.
 	testStdin io.Reader
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.flagSourceType, intention.SourceTypeFlagName, "consul",
+		intention.SourceTypeUsageAbbrev)
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -41,7 +48,13 @@ func (c *cmd) Run(args []string) int {
 
 	args = c.flags.Args()
 	if len(args) != 2 {
-		c.UI.Error(fmt.Sprintf("Error: command requires exactly two arguments: src and dst"))
+		c.UI.Error("Error: command requires exactly two arguments: src and dst")
+		return 2
+	}
+
+	sourceType, err := intention.ValidateSourceTypeFlag(c.flagSourceType)
+	if err != nil {
+		c.UI.Error(err.Error())
 		return 2
 	}
 
@@ -56,7 +69,7 @@ func (c *cmd) Run(args []string) int {
 	allowed, _, err := client.Connect().IntentionCheck(&api.IntentionCheck{
 		Source:      args[0],
 		Destination: args[1],
-		SourceType:  api.IntentionSourceConsul,
+		SourceType:  sourceType,
 	}, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error checking the connection: %s", err))

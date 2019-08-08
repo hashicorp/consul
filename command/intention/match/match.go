@@ -3,6 +3,7 @@ package match
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/command/intention"
 	"io"
 
 	"github.com/hashicorp/consul/api"
@@ -24,6 +25,7 @@ type cmd struct {
 
 	// flags
 	flagSource      bool
+	flagSourceType  string
 	flagDestination bool
 
 	// testStdin is the input for testing.
@@ -34,6 +36,9 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.flagSource, "source", false,
 		"Match intentions with the given source.")
+	c.flags.StringVar(&c.flagSourceType, intention.SourceTypeFlagName, "consul",
+		"Type of -source. One of consul (default),"+
+			" external-trust-domain or external-uri. Ignored if -destination is set.")
 	c.flags.BoolVar(&c.flagDestination, "destination", false,
 		"Match intentions with the given destination.")
 
@@ -64,6 +69,12 @@ func (c *cmd) Run(args []string) int {
 		by = api.IntentionMatchSource
 	}
 
+	sourceType, err := intention.ValidateSourceTypeFlag(c.flagSourceType)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
 	// Create and test the HTTP client
 	client, err := c.http.APIClient()
 	if err != nil {
@@ -73,8 +84,9 @@ func (c *cmd) Run(args []string) int {
 
 	// Match the intention
 	matches, _, err := client.Connect().IntentionMatch(&api.IntentionMatch{
-		By:    by,
-		Names: []string{args[0]},
+		By:         by,
+		Names:      []string{args[0]},
+		SourceType: sourceType,
 	}, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error matching the connection: %s", err))

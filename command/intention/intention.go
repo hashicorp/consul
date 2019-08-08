@@ -1,6 +1,8 @@
 package intention
 
 import (
+	"fmt"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -46,3 +48,30 @@ Usage: consul intention <subcommand> [options] [args]
 
   For more examples, ask for subcommand help or view the documentation.
 `
+
+// SourceTypeUsageAbbrev is the usage of the -source-type flag in all commands except
+// for intention create which has a more detailed usage.
+const SourceTypeUsageAbbrev = "Type of SRC. One of consul (default)," +
+	" external-trust-domain or external-uri."
+
+// SourceTypeFlagName is the name of the source type flag.
+const SourceTypeFlagName = "source-type"
+
+// ValidateSourceTypeFlag returns an error if srcType is not a valid type.
+// If valid it returns the corresponding enum value.
+func ValidateSourceTypeFlag(srcType string) (api.IntentionSourceType, error) {
+	ist := api.IntentionSourceType(srcType)
+	switch ist {
+	case api.IntentionSourceConsul,
+		api.IntentionSourceExternalTrustDomain,
+		api.IntentionSourceExternalURI:
+		return ist, nil
+	default:
+		return ist, fmt.Errorf("-%s %q is not supported: must be set to %s, %s or %s",
+			SourceTypeFlagName,
+			srcType,
+			api.IntentionSourceConsul,
+			api.IntentionSourceExternalTrustDomain,
+			api.IntentionSourceExternalURI)
+	}
+}

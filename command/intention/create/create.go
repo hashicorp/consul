@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/command/intention"
 	"io"
 	"os"
 
@@ -26,11 +27,12 @@ type cmd struct {
 	help  string
 
 	// flags
-	flagAllow   bool
-	flagDeny    bool
-	flagFile    bool
-	flagReplace bool
-	flagMeta    map[string]string
+	flagAllow      bool
+	flagDeny       bool
+	flagFile       bool
+	flagReplace    bool
+	flagSourceType string
+	flagMeta       map[string]string
 
 	// testStdin is the input for testing.
 	testStdin io.Reader
@@ -46,6 +48,17 @@ func (c *cmd) init() {
 		"Read intention data from one or more files.")
 	c.flags.BoolVar(&c.flagReplace, "replace", false,
 		"Replace matching intentions.")
+	c.flags.StringVar(&c.flagSourceType, intention.SourceTypeFlagName, "consul",
+		fmt.Sprintf("Type of SRC. One of consul (default), external-trust-domain or "+
+			"external-uri. external-trust-domain and external-uri are only supported "+
+			"in Consul Enterprise. external-trust-domain or external-uri should be used "+
+			"when SRC is a service whose identity is not provided by Connect. "+
+			"If -%s=external-trust-domain, SRC must be a SPIFFE ID with only "+
+			"the trust domain, e.g. 'spiffe://trust.domain'. If "+
+			"-%s=external-uri, SRC must be a SPIFFE ID with a path, "+
+			"e.g. 'spiffe://trust.domain/path'.",
+			intention.SourceTypeFlagName,
+			intention.SourceTypeFlagName))
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
 		"Metadata to set on the intention, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
@@ -94,7 +107,7 @@ func (c *cmd) Run(args []string) int {
 	for _, ixn := range ixns {
 		// If replace is set to true, then perform an update operation.
 		if c.flagReplace {
-			oldIxn, err := find.Find(ixn.SourceString(), ixn.DestinationString())
+			oldIxn, err := find.Find(ixn.SourceType, ixn.SourceString(), ixn.DestinationString())
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error looking up intention for replacement with source %q "+
@@ -149,10 +162,15 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
+	sourceType, err := intention.ValidateSourceTypeFlag(c.flagSourceType)
+	if err != nil {
+		return nil, err
+	}
+
 	return []*api.Intention{&api.Intention{
 		SourceName:      args[0],
 		DestinationName: args[1],
-		SourceType:      api.IntentionSourceConsul,
+		SourceType:      sourceType,
 		Action:          c.ixnAction(),
 		Meta:            c.flagMeta,
 	}}, nil

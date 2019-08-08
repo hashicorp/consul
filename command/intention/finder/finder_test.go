@@ -39,11 +39,19 @@ func TestFinder(t *testing.T) {
 	}
 
 	finder := &Finder{Client: client}
-	ixn, err := finder.Find("a/b", "c/d")
+	ixn, err := finder.Find(api.IntentionSourceConsul, "a/b", "c/d")
 	require.NoError(err)
 	require.Equal(ids[0], ixn.ID)
 
-	ixn, err = finder.Find("a/c", "c/d")
+	ixn, err = finder.Find(api.IntentionSourceConsul, "a/c", "c/d")
+	require.NoError(err)
+	require.Nil(ixn)
+
+	// If SourceType is different, shouldn't match.
+	ixn, err = finder.Find(api.IntentionSourceExternalTrustDomain, "a/b", "c/d")
+	require.NoError(err)
+	require.Nil(ixn)
+	ixn, err = finder.Find(api.IntentionSourceExternalURI, "a/b", "c/d")
 	require.NoError(err)
 	require.Nil(ixn)
 }

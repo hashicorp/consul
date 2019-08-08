@@ -36,6 +36,11 @@ func TestCommand_Validation(t *testing.T) {
 			[]string{"a", "b", "c"},
 			"requires exactly 1 or 2",
 		},
+
+		"invalid -source-type": {
+			[]string{"-source-type", "invalid", "a", "b"},
+			"-source-type \"invalid\" is not supported: must be set to consul, external-trust-domain or external-uri",
+		},
 	}
 
 	for name, tc := range cases {
@@ -121,4 +126,50 @@ func TestCommand_srcDst(t *testing.T) {
 	}
 	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
 	require.Contains(ui.OutputWriter.String(), id)
+}
+
+func TestCommand_sourceType(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t, t.Name(), ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	// Create the intention
+	{
+		var err error
+		_, _, err = client.Connect().IntentionCreate(&api.Intention{
+			SourceName:      "web",
+			DestinationName: "db",
+			Action:          api.IntentionActionAllow,
+			SourceType:      api.IntentionSourceConsul,
+		}, nil)
+		require.NoError(err)
+	}
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	// Get it with source type external-uri.
+	{
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-source-type=external-uri",
+			"web", "db",
+		}
+		require.Equal(1, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(ui.ErrorWriter.String(), "Error: Intention with source \"web\", source type \"external-uri\" and destination \"db\" not found.")
+	}
+
+	// Get it with source type external-trust-domain.
+	{
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-source-type=external-trust-domain",
+			"web", "db",
+		}
+		require.Equal(1, c.Run(args), ui.ErrorWriter.String())
+		require.Contains(ui.ErrorWriter.String(), "Error: Intention with source \"web\", source type \"external-trust-domain\" and destination \"db\" not found.")
+	}
 }

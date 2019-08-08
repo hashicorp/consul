@@ -33,6 +33,10 @@ func TestCommand_Validation(t *testing.T) {
 			[]string{"-allow", "-deny", "foo", "bar"},
 			"one of -allow",
 		},
+		"-source-type not valid": {
+			[]string{"-source-type", "invalid", "foo", "bar"},
+			"-source-type \"invalid\" is not supported: must be set to consul, external-trust-domain or external-uri",
+		},
 	}
 
 	for name, tc := range cases {
@@ -76,6 +80,7 @@ func TestCommand(t *testing.T) {
 	ixns, _, err := client.Connect().Intentions(nil)
 	require.NoError(err)
 	require.Len(ixns, 1)
+	require.Equal(api.IntentionSourceConsul, ixns[0].SourceType)
 	require.Equal("foo", ixns[0].SourceName)
 	require.Equal("bar", ixns[0].DestinationName)
 	require.Equal(api.IntentionActionAllow, ixns[0].Action)
@@ -133,6 +138,35 @@ func TestCommand_meta(t *testing.T) {
 	require.Equal(map[string]string{"hello": "world"}, ixns[0].Meta)
 }
 
+// Test that creating an intention with -source-type != consul fails
+// since not Consul Enterprise.
+func TestCommand_SourceTypeNonConsulFails(t *testing.T) {
+	t.Parallel()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	cases := []string{
+		"external-trust-domain",
+		"external-uri",
+	}
+
+	for _, sourceType := range cases {
+		t.Run(sourceType, func(t *testing.T) {
+			require := require.New(t)
+			a := agent.NewTestAgent(t, t.Name(), ``)
+			defer a.Shutdown()
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-source-type=" + sourceType,
+				"foo", "bar",
+			}
+			require.Equal(1, c.Run(args), ui.ErrorWriter.String())
+			require.Contains(ui.ErrorWriter.String(), "SourceTypes 'external-trust-domain' and 'external-uri' are only supported in Consul Enterprise")
+		})
+	}
+}
+
 func TestCommand_File(t *testing.T) {
 	t.Parallel()
 
@@ -162,6 +196,7 @@ func TestCommand_File(t *testing.T) {
 	ixns, _, err := client.Connect().Intentions(nil)
 	require.NoError(err)
 	require.Len(ixns, 1)
+	require.Equal(api.IntentionSourceConsul, ixns[0].SourceType)
 	require.Equal("foo", ixns[0].SourceName)
 	require.Equal("bar", ixns[0].DestinationName)
 	require.Equal(api.IntentionActionAllow, ixns[0].Action)
