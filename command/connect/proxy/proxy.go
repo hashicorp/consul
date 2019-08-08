@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // Expose pprof if configured
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -120,19 +121,16 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// TODO(mike): create small abstraction wrapping these env vars
 	// Load the proxy ID and token from env vars if they're set
-	/*
-		if c.proxyID == "" {
-			c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
-		}
-		if c.sidecarFor == "" {
-			c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
-		}
-		if c.http.Token() == "" && c.http.TokenFile() == "" {
-			c.http.SetToken(os.Getenv(proxyAgent.EnvProxyToken))
-		}
-	*/
+	if c.proxyID == "" {
+		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
+	}
+	if c.sidecarFor == "" {
+		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
+	}
+	if c.http.Token() == "" && c.http.TokenFile() == "" {
+		c.http.SetToken(os.Getenv("CONNECT_PROXY_TOKEN"))
+	}
 
 	// Setup the log outputs
 	logConfig := &logger.Config{

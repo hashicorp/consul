@@ -209,28 +209,22 @@ func (c *cmd) Run(args []string) int {
 	}
 	passThroughArgs := c.flags.Args()
 
-	// TODO(mike): uncomment after restoring env var functionality
 	// Load the proxy ID and token from env vars if they're set
-	/*
-		if c.proxyID == "" {
-			c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
-		}
-		if c.sidecarFor == "" {
-			c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
-		}
-	*/
+	if c.proxyID == "" {
+		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
+	}
+	if c.sidecarFor == "" {
+		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
+	}
 	if c.grpcAddr == "" {
 		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
 	}
 	if c.http.Token() == "" && c.http.TokenFile() == "" {
 		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
 		// calling SetToken with empty will force that to override the
-		// TODO(mike): uncomment after restoring env var functionality
-		/*
-			if proxyToken := os.Getenv(proxyAgent.EnvProxyToken); proxyToken != "" {
-				c.http.SetToken(proxyToken)
-			}
-		*/
+		if proxyToken := os.Getenv("CONNECT_PROXY_TOKEN"); proxyToken != "" {
+			c.http.SetToken(proxyToken)
+		}
 	}
 
 	// Setup Consul client
