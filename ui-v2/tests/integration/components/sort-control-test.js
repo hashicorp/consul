@@ -32,3 +32,19 @@ test('it renders', function(assert) {
     'template block text'
   );
 });
+test('it changes direction and calls onchange when clicked/activated', function(assert) {
+  assert.expect(2);
+  let count = 0;
+  this.on('change', e => {
+    if (count === 0) {
+      assert.equal(e.target.value, 'sort:desc');
+    } else {
+      assert.equal(e.target.value, 'sort:asc');
+    }
+    count++;
+  });
+  this.render(hbs`{{sort-control checked=true value='sort' onchange=(action 'change')}}`);
+  const $label = this.$('label');
+  $label.trigger('click');
+  $label.trigger('click');
+});
