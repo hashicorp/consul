@@ -2,6 +2,7 @@ package envoy
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -149,7 +150,13 @@ func (c *BootstrapConfig) GenerateJSON(args *BootstrapTplArgs) ([]byte, error) {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	// Pretty print the JSON.
+	var buf2 bytes.Buffer
+	if err := json.Indent(&buf2, buf.Bytes(), "", "  "); err != nil {
+		return nil, err
+	}
+
+	return buf2.Bytes(), nil
 }
 
 // ConfigureArgs takes the basic template arguments generated from the command
@@ -265,6 +272,50 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name string, addr string) (strin
 	}`, nil
 }
 
+var sniTagJSONs []string
+
+func init() {
+	// <subset>.<service>.<namespace>.<datacenter>.<internal|external>.<trustdomain>.consul
+	// - cluster.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+	// - cluster.f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+	// - cluster.v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+	// - cluster.f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+	const PART = `[^.]+`
+	const MAYBEPART = `[^.]*`
+	rules := [][]string{
+		{"consul.custom_hash",
+			fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.service_subset",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.service",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.namespace",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.datacenter",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.visibility",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)}, // internal:true/false would be idea
+		{"consul.trust_domain",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.target",
+			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+		{"consul.full_target",
+			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+	}
+
+	for _, rule := range rules {
+		m := map[string]string{
+			"tag_name": rule[0],
+			"regex":    rule[1],
+		}
+		d, err := json.Marshal(m)
+		if err != nil {
+			panic("error pregenerating SNI envoy tags: " + err.Error())
+		}
+		sniTagJSONs = append(sniTagJSONs, string(d))
+	}
+}
+
 func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
 	var tagJSONs []string
 
@@ -272,6 +323,9 @@ func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
 	defaults := map[string]string{
 		"local_cluster": args.ProxyCluster,
 	}
+
+	// Explode SNI portions.
+	tagJSONs = append(tagJSONs, sniTagJSONs...)
 
 	for _, tag := range c.StatsTags {
 		parts := strings.SplitN(tag, "=", 2)

@@ -83,6 +83,13 @@ const (
 )
 
 func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
+	sniTagJSON := strings.Join(sniTagJSONs, ",\n")
+	defaultStatsConfigJSON := `{
+					"stats_tags": [
+						` + sniTagJSON + `
+					],
+					"use_all_default_tags": true
+				}`
 
 	tests := []struct {
 		name     string
@@ -93,10 +100,12 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "defaults",
-			input:    BootstrapConfig{},
-			wantArgs: BootstrapTplArgs{},
-			wantErr:  false,
+			name:  "defaults",
+			input: BootstrapConfig{},
+			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
+			},
+			wantErr: false,
 		},
 		{
 			name: "extra-stats-sinks",
@@ -109,6 +118,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				}`,
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.custom_exciting_sink",
 					"config": {
@@ -123,6 +133,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsdURL: "udp://127.0.0.1:9125",
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.statsd",
 					"config": {
@@ -149,6 +160,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				}`,
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.statsd",
 					"config": {
@@ -176,6 +188,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			env: []string{"MY_STATSD_URL=udp://127.0.0.1:9125"},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.statsd",
 					"config": {
@@ -196,6 +209,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				DogstatsdURL: "udp://127.0.0.1:9125",
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.dog_statsd",
 					"config": {
@@ -216,6 +230,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				DogstatsdURL: "unix:///var/run/dogstatsd.sock",
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.dog_statsd",
 					"config": {
@@ -237,6 +252,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			env: []string{"MY_STATSD_URL=udp://127.0.0.1:9125"},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
 					"name": "envoy.dog_statsd",
 					"config": {
@@ -273,6 +289,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: `{
 					"stats_tags": [
+						` + sniTagJSON + `,
 						{
 							"tag_name": "canary",
 							"fixed_value": "1"
@@ -307,6 +324,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StaticClustersJSON: expectedPromCluster,
 				// Should add a static http listener too
 				StaticListenersJSON: expectedPromListener,
+				StatsConfigJSON:     defaultStatsConfigJSON,
 			},
 			wantErr: false,
 		},
@@ -328,6 +346,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StaticClustersJSON: `{"foo":"bar"},` + expectedPromCluster,
 				// Should add a static http listener too
 				StaticListenersJSON: `{"baz":"qux"},` + expectedPromListener,
+				StatsConfigJSON:     defaultStatsConfigJSON,
 			},
 			wantErr: false,
 		},
@@ -337,6 +356,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsFlushInterval: `10s`,
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON:    defaultStatsConfigJSON,
 				StatsFlushInterval: `10s`,
 			},
 			wantErr: false,
@@ -347,6 +367,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				TracingConfigJSON: `{"foo": "bar"}`,
 			},
 			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON:   defaultStatsConfigJSON,
 				TracingConfigJSON: `{"foo": "bar"}`,
 			},
 			wantErr: false,

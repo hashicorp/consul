@@ -283,7 +283,7 @@ func TestGenerateConfig(t *testing.T) {
 						"cluster": "{{ .ProxyCluster }}",
 						"id": "{{ .ProxyID }}"
 					},
-					custom_field = "foo"
+					"custom_field": "foo"
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
