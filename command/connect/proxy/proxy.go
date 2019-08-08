@@ -128,9 +128,6 @@ func (c *cmd) Run(args []string) int {
 	if c.sidecarFor == "" {
 		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
 	}
-	if c.http.Token() == "" && c.http.TokenFile() == "" {
-		c.http.SetToken(os.Getenv("CONNECT_PROXY_TOKEN"))
-	}
 
 	// Setup the log outputs
 	logConfig := &logger.Config{

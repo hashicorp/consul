@@ -219,13 +219,6 @@ func (c *cmd) Run(args []string) int {
 	if c.grpcAddr == "" {
 		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
 	}
-	if c.http.Token() == "" && c.http.TokenFile() == "" {
-		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
-		// calling SetToken with empty will force that to override the
-		if proxyToken := os.Getenv("CONNECT_PROXY_TOKEN"); proxyToken != "" {
-			c.http.SetToken(proxyToken)
-		}
-	}
 
 	// Setup Consul client
 	client, err := c.http.APIClient()
