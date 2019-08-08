@@ -31,13 +31,13 @@ var (
 		Namespace: plugin.Namespace,
 		Subsystem: "forward",
 		Name:      "healthcheck_failure_count_total",
-		Help:      "Counter of the number of failed healtchecks.",
+		Help:      "Counter of the number of failed healthchecks.",
 	}, []string{"to"})
 	HealthcheckBrokenCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "forward",
 		Name:      "healthcheck_broken_count_total",
-		Help:      "Counter of the number of complete failures of the healtchecks.",
+		Help:      "Counter of the number of complete failures of the healthchecks.",
 	})
 	SocketGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: plugin.Namespace,
