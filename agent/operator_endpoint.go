@@ -95,12 +95,17 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 		}
 	}
 
-	// Parse local-only. local-only will only be used in GET requests.
+	// Parse local-only. local-only can only be used in GET requests.
 	if localOnly := req.URL.Query().Get("local-only"); localOnly != "" {
 		var err error
 		args.LocalOnly, err = strconv.ParseBool(localOnly)
 		if err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing local-only: %v", err)}
+		}
+
+		err = ValidateLocalOnly(args.LocalOnly, req.Method == "GET")
+		if err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid use of local-only: %v", err)}
 		}
 	}
 

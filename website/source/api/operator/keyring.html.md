@@ -16,7 +16,8 @@ more details on the gossip protocol and its use.
 ## List Gossip Encryption Keys
 
 This endpoint lists the gossip encryption keys installed on both the WAN and LAN
-rings of every known datacenter.
+rings of every known datacenter, unless otherwise specified with the `local-only` 
+query parameter (see below).
 
 If ACLs are enabled, the client will need to supply an ACL Token with `keyring`
 read privileges.

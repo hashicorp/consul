@@ -20,7 +20,9 @@ are installed on the cluster. You can review the installed keys using the
 `-list` argument, and remove unneeded keys with `-remove`.
 
 All operations performed by this command can only be run against server nodes,
-and affect both the LAN and WAN keyrings in lock-step.
+and affect both the LAN and WAN keyrings in lock-step. The only exception to this
+is for the `-list` operation, you may set the `-local-only` flag to only query 
+against local server nodes. 
 
 All variations of the `keyring` command return 0 if all nodes reply and there
 are no errors. If any node fails to reply or reports failure, the exit code

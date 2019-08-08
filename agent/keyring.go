@@ -134,7 +134,7 @@ func ParseRelayFactor(n int) (uint8, error) {
 // set for list requests.
 func ValidateLocalOnly(local bool, list bool) error {
 	if local && !list {
-		return fmt.Errorf("local-only cannot be set for non-list requests")
+		return fmt.Errorf("local-only can only be set for list requests")
 	}
 	return nil
 }
