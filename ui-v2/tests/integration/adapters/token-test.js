@@ -13,6 +13,26 @@ module('Integration | Adapter | token', function(hooks) {
     });
     assert.equal(actual, expected);
   });
+  test('requestForQuery returns the correct url when a policy is specified', function(assert) {
+    const adapter = this.owner.lookup('adapter:token');
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/acl/tokens?policy=${id}&dc=${dc}`;
+    const actual = adapter.requestForQuery(client.url, {
+      dc: dc,
+      policy: id,
+    });
+    assert.equal(actual, expected);
+  });
+  test('requestForQuery returns the correct url when a role is specified', function(assert) {
+    const adapter = this.owner.lookup('adapter:token');
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/acl/tokens?role=${id}&dc=${dc}`;
+    const actual = adapter.requestForQuery(client.url, {
+      dc: dc,
+      role: id,
+    });
+    assert.equal(actual, expected);
+  });
   test('urlForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
