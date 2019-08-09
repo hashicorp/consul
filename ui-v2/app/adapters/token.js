@@ -7,9 +7,9 @@ import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 export default Adapter.extend({
   store: service('store'),
 
-  requestForQuery: function(request, { dc, index, policy }) {
+  requestForQuery: function(request, { dc, index, role, policy }) {
     return request`
-      GET /v1/acl/tokens?${{ policy, dc }}
+      GET /v1/acl/tokens?${{ role, policy, dc }}
 
       ${{ index }}
     `;
