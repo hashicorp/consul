@@ -278,6 +278,12 @@ func TestAgent_Service(t *testing.T) {
 	services {
 		name = "web"
 		port = 8181
+		tagged_addresses {
+			wan {
+				address = "198.18.0.1"
+				port = 1818
+			}
+		}
 	}
 	`)
 	defer a.Shutdown()
@@ -323,6 +329,8 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		Meta: map[string]string{},
+		Tags: []string{},
 	}
 
 	// Copy and modify
@@ -335,11 +343,19 @@ func TestAgent_Service(t *testing.T) {
 		ID:          "web",
 		Service:     "web",
 		Port:        8181,
-		ContentHash: "afaa0e76b202ffbb",
+		ContentHash: "6c247f8ffa5d1fb2",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
 		},
+		TaggedAddresses: map[string]api.ServiceAddress{
+			"wan": api.ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    1818,
+			},
+		},
+		Meta: map[string]string{},
+		Tags: []string{},
 	}
 
 	tests := []struct {
