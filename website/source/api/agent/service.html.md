@@ -315,6 +315,35 @@ curl localhost:8500/v1/agent/health/service/name/web
             "CreateIndex": 0,
             "ModifyIndex": 0
         }
+    ],
+    "passing": [
+        {
+            "ID": "web1",
+            "Service": "web",
+            "Tags": [
+                "rails"
+            ],
+            "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
+            "Meta": null,
+            "Port": 80,
+            "EnableTagOverride": false,
+            "Connect": {
+                "Native": false,
+                "Proxy": null
+            },
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
     ]
 }
 ```
