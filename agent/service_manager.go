@@ -38,7 +38,7 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	// For now only sidecar proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
-	if !service.IsSidecarProxy() {
+	if !service.IsSidecarProxy() && !service.IsMeshGateway() {
 		return s.agent.addServiceInternal(service, chkTypes, persist, token, source)
 	}
 
