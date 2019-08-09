@@ -6,9 +6,9 @@
 
 ## Description
 
-The azure plugin is useful for serving zones from Microsoft Azure DNS.
-Thi *azure* plugin supports all the DNS records supported by Azure, viz. A, AAAA, CAA, CNAME, MX, NS, PTR, SOA, SRV, and TXT record types. For a non-existing resource record, zone's SOA response will returned.
-
+The azure plugin is useful for serving zones from Microsoft Azure DNS. The *azure* plugin supports
+all the DNS records supported by Azure, viz. A, AAAA, CNAME, MX, NS, PTR, SOA, SRV, and TXT
+record types.
 
 ## Syntax
 
@@ -18,35 +18,39 @@ azure RESOURCE_GROUP:ZONE... {
     client CLIENT_ID
     secret CLIENT_SECRET
     subscription SUBSCRIPTION_ID
+    environment ENVIRONMENT
+    fallthrough [ZONES...]
 }
 ~~~
 
-*   **`RESOURCE_GROUP`** The resource group to which the dns hosted zones belong on Azure
+*   **RESOURCE_GROUP:ZONE** is the resource group to which the hosted zones belongs on Azure,
+    and  **ZONE** the zone that contains data.
 
-*   **`ZONE`** the zone that contains the resource record sets to be
-    accessed.
+*   **CLIENT_ID** and **CLIENT_SECRET** are the credentials for Azure, and `tenant` specifies the
+    **TENANT_ID** to be used. **SUBSCRIPTION_ID** is the subscription ID. All of these are needed
+    to access the data in Azure.
+
+*  `environment` specifies the Azure **ENVIRONMENT**.
 
 *   `fallthrough` If zone matches and no record can be generated, pass request to the next plugin.
     If **ZONES** is omitted, then fallthrough happens for all zones for which the plugin is
-    authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then
-    only queries for those zones will be subject to fallthrough.
-
-*   `environment` the azure environment to use. Defaults to `AzurePublicCloud`. Possible values: `AzureChinaCloud`, `AzureGermanCloud`, `AzurePublicCloud`, `AzureUSGovernmentCloud`.
+    authoritative.
 
 ## Examples
 
-Enable the *azure* plugin with Azure credentials:
+Enable the *azure* plugin with Azure credentials for the zone `example.org`:
 
 ~~~ txt
-. {
-    azure resource_group_foo:foo.com {
+example.org {
+    azure resource_group_foo:example.org {
       tenant 123abc-123abc-123abc-123abc
-      client 123abc-123abc-123abc-123abc
-      secret 123abc-123abc-123abc-123abc
-      subscription 123abc-123abc-123abc-123abc
+      client 123abc-123abc-123abc-234xyz
+      subscription 123abc-123abc-123abc-563abc
+      secret mysecret
     }
 }
 ~~~
 
 ## Also See
-- [Azure DNS Overview](https://docs.microsoft.com/en-us/azure/dns/dns-overview)
+
+The [Azure DNS Overview](https://docs.microsoft.com/en-us/azure/dns/dns-overview).

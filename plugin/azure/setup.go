@@ -8,7 +8,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
-	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	azuredns "github.com/Azure/azure-sdk-for-go/profiles/latest/dns/mgmt/dns"
 	azurerest "github.com/Azure/go-autorest/autorest/azure"
@@ -31,19 +30,21 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error("azure", err)
 	}
 	ctx := context.Background()
+
 	dnsClient := azuredns.NewRecordSetsClient(env.Values[auth.SubscriptionID])
-	dnsClient.Authorizer, err = env.GetAuthorizer()
-	if err != nil {
-		return c.Errf("failed to create azure plugin: %v", err)
+	if dnsClient.Authorizer, err = env.GetAuthorizer(); err != nil {
+		return plugin.Error("azure", err)
 	}
-	h, err := New(ctx, dnsClient, keys, upstream.New())
+
+	h, err := New(ctx, dnsClient, keys)
 	if err != nil {
-		return c.Errf("failed to initialize azure plugin: %v", err)
+		return plugin.Error("azure", err)
 	}
 	h.Fall = fall
 	if err := h.Run(ctx); err != nil {
-		return c.Errf("failed to run azure plugin: %v", err)
+		return plugin.Error("azure", err)
 	}
+
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		h.Next = next
 		return h
@@ -54,11 +55,10 @@ func setup(c *caddy.Controller) error {
 func parse(c *caddy.Controller) (auth.EnvironmentSettings, map[string][]string, fall.F, error) {
 	resourceGroupMapping := map[string][]string{}
 	resourceGroupSet := map[string]struct{}{}
-	var err error
-	var fall fall.F
-
 	azureEnv := azurerest.PublicCloud
 	env := auth.EnvironmentSettings{Values: map[string]string{}}
+
+	var fall fall.F
 
 	for c.Next() {
 		args := c.RemainingArgs()
@@ -66,14 +66,14 @@ func parse(c *caddy.Controller) (auth.EnvironmentSettings, map[string][]string, 
 		for i := 0; i < len(args); i++ {
 			parts := strings.SplitN(args[i], ":", 2)
 			if len(parts) != 2 {
-				return env, resourceGroupMapping, fall, c.Errf("invalid resource group / zone '%s'", args[i])
+				return env, resourceGroupMapping, fall, c.Errf("invalid resource group/zone: %q", args[i])
 			}
 			resourceGroup, zoneName := parts[0], parts[1]
 			if resourceGroup == "" || zoneName == "" {
-				return env, resourceGroupMapping, fall, c.Errf("invalid resource group / zone '%s'", args[i])
+				return env, resourceGroupMapping, fall, c.Errf("invalid resource group/zone: %q", args[i])
 			}
 			if _, ok := resourceGroupSet[args[i]]; ok {
-				return env, resourceGroupMapping, fall, c.Errf("conflict zone '%s'", args[i])
+				return env, resourceGroupMapping, fall, c.Errf("conflicting zone: %q", args[i])
 			}
 
 			resourceGroupSet[args[i]] = struct{}{}
@@ -106,18 +106,20 @@ func parse(c *caddy.Controller) (auth.EnvironmentSettings, map[string][]string, 
 					return env, resourceGroupMapping, fall, c.ArgErr()
 				}
 				env.Values[auth.ClientSecret] = c.Val()
-				azureEnv, err = azurerest.EnvironmentFromName(c.Val())
-				if err != nil {
-					return env, resourceGroupMapping, fall, c.Errf("cannot set azure environment: %s", err.Error())
+				var err error
+				if azureEnv, err = azurerest.EnvironmentFromName(c.Val()); err != nil {
+					return env, resourceGroupMapping, fall, c.Errf("cannot set azure environment: %q", err.Error())
 				}
 			case "fallthrough":
 				fall.SetZonesFromArgs(c.RemainingArgs())
 			default:
-				return env, resourceGroupMapping, fall, c.Errf("unknown property '%s'", c.Val())
+				return env, resourceGroupMapping, fall, c.Errf("unknown property: %q", c.Val())
 			}
 		}
 	}
+
 	env.Values[auth.Resource] = azureEnv.ResourceManagerEndpoint
 	env.Environment = azureEnv
+
 	return env, resourceGroupMapping, fall, nil
 }

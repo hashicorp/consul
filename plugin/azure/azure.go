@@ -27,38 +27,39 @@ type zones map[string][]*zone
 
 // Azure is the core struct of the azure plugin.
 type Azure struct {
-	Next      plugin.Handler
-	Fall      fall.F
 	zoneNames []string
 	client    azuredns.RecordSetsClient
 	upstream  *upstream.Upstream
 	zMu       sync.RWMutex
 	zones     zones
+
+	Next plugin.Handler
+	Fall fall.F
 }
 
 // New validates the input DNS zones and initializes the Azure struct.
-func New(ctx context.Context, dnsClient azuredns.RecordSetsClient, keys map[string][]string, up *upstream.Upstream) (*Azure, error) {
+func New(ctx context.Context, dnsClient azuredns.RecordSetsClient, keys map[string][]string) (*Azure, error) {
 	zones := make(map[string][]*zone, len(keys))
-	zoneNames := make([]string, 0, len(keys))
-	for resourceGroup, inputZoneNames := range keys {
-		for _, zoneName := range inputZoneNames {
-			_, err := dnsClient.ListAllByDNSZone(context.Background(), resourceGroup, zoneName, nil, "")
-			if err != nil {
+	names := make([]string, len(keys))
+
+	for resourceGroup, znames := range keys {
+		for _, name := range znames {
+			if _, err := dnsClient.ListAllByDNSZone(context.Background(), resourceGroup, name, nil, ""); err != nil {
 				return nil, err
 			}
-			// Normalizing zoneName to make it fqdn if required.
-			zoneNameFQDN := dns.Fqdn(zoneName)
-			if _, ok := zones[zoneNameFQDN]; !ok {
-				zoneNames = append(zoneNames, zoneNameFQDN)
+
+			fqdn := dns.Fqdn(name)
+			if _, ok := zones[fqdn]; !ok {
+				names = append(names, fqdn)
 			}
-			zones[zoneNameFQDN] = append(zones[zoneNameFQDN], &zone{id: resourceGroup, zone: zoneName, z: file.NewZone(zoneName, "")})
+			zones[fqdn] = append(zones[fqdn], &zone{id: resourceGroup, zone: fqdn, z: file.NewZone(fqdn, "")})
 		}
 	}
 	return &Azure{
 		client:    dnsClient,
 		zones:     zones,
-		zoneNames: zoneNames,
-		upstream:  up,
+		zoneNames: names,
+		upstream:  upstream.New(),
 	}, nil
 }
 
@@ -114,107 +115,67 @@ func updateZoneFromResourceSet(recordSet azuredns.RecordSetListResultPage, zName
 		resultTTL := uint32(*(result.RecordSetProperties.TTL))
 		if result.RecordSetProperties.ARecords != nil {
 			for _, A := range *(result.RecordSetProperties.ARecords) {
-				a := dns.A{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypeA,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				a := &dns.A{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: resultTTL},
 					A: net.ParseIP(*(A.Ipv4Address))}
-				newZ.Insert(&a)
+				newZ.Insert(a)
 			}
 		}
 
 		if result.RecordSetProperties.AaaaRecords != nil {
 			for _, AAAA := range *(result.RecordSetProperties.AaaaRecords) {
-				aaaa := dns.AAAA{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypeAAAA,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				aaaa := &dns.AAAA{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: resultTTL},
 					AAAA: net.ParseIP(*(AAAA.Ipv6Address))}
-				newZ.Insert(&aaaa)
+				newZ.Insert(aaaa)
 			}
 		}
 
 		if result.RecordSetProperties.MxRecords != nil {
 			for _, MX := range *(result.RecordSetProperties.MxRecords) {
-				mx := dns.MX{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypeMX,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				mx := &dns.MX{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeMX, Class: dns.ClassINET, Ttl: resultTTL},
 					Preference: uint16(*(MX.Preference)),
 					Mx:         dns.Fqdn(*(MX.Exchange))}
-				newZ.Insert(&mx)
+				newZ.Insert(mx)
 			}
 		}
 
 		if result.RecordSetProperties.PtrRecords != nil {
 			for _, PTR := range *(result.RecordSetProperties.PtrRecords) {
-				ptr := dns.PTR{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypePTR,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				ptr := &dns.PTR{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: resultTTL},
 					Ptr: dns.Fqdn(*(PTR.Ptrdname))}
-				newZ.Insert(&ptr)
+				newZ.Insert(ptr)
 			}
 		}
 
 		if result.RecordSetProperties.SrvRecords != nil {
 			for _, SRV := range *(result.RecordSetProperties.SrvRecords) {
-				srv := dns.SRV{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypeSRV,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				srv := &dns.SRV{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: resultTTL},
 					Priority: uint16(*(SRV.Priority)),
 					Weight:   uint16(*(SRV.Weight)),
 					Port:     uint16(*(SRV.Port)),
 					Target:   dns.Fqdn(*(SRV.Target))}
-				newZ.Insert(&srv)
+				newZ.Insert(srv)
 			}
 		}
 
 		if result.RecordSetProperties.TxtRecords != nil {
 			for _, TXT := range *(result.RecordSetProperties.TxtRecords) {
-				txt := dns.TXT{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypeTXT,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				txt := &dns.TXT{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: resultTTL},
 					Txt: *(TXT.Value)}
-				newZ.Insert(&txt)
+				newZ.Insert(txt)
 			}
 		}
 
 		if result.RecordSetProperties.NsRecords != nil {
 			for _, NS := range *(result.RecordSetProperties.NsRecords) {
-				ns := dns.NS{
-					Hdr: dns.RR_Header{
-						Name:   resultFqdn,
-						Rrtype: dns.TypeNS,
-						Class:  dns.ClassINET,
-						Ttl:    resultTTL},
+				ns := &dns.NS{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: resultTTL},
 					Ns: *(NS.Nsdname)}
-				newZ.Insert(&ns)
+				newZ.Insert(ns)
 			}
 		}
 
 		if result.RecordSetProperties.SoaRecord != nil {
 			SOA := result.RecordSetProperties.SoaRecord
-			soa := dns.SOA{
-				Hdr: dns.RR_Header{
-					Name:   resultFqdn,
-					Rrtype: dns.TypeSOA,
-					Class:  dns.ClassINET,
-					Ttl:    resultTTL},
+			soa := &dns.SOA{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeSOA, Class: dns.ClassINET, Ttl: resultTTL},
 				Minttl:  uint32(*(SOA.MinimumTTL)),
 				Expire:  uint32(*(SOA.ExpireTime)),
 				Retry:   uint32(*(SOA.RetryTime)),
@@ -222,19 +183,14 @@ func updateZoneFromResourceSet(recordSet azuredns.RecordSetListResultPage, zName
 				Serial:  uint32(*(SOA.SerialNumber)),
 				Mbox:    dns.Fqdn(*(SOA.Email)),
 				Ns:      *(SOA.Host)}
-			newZ.Insert(&soa)
+			newZ.Insert(soa)
 		}
 
 		if result.RecordSetProperties.CnameRecord != nil {
 			CNAME := result.RecordSetProperties.CnameRecord.Cname
-			cname := dns.CNAME{
-				Hdr: dns.RR_Header{
-					Name:   resultFqdn,
-					Rrtype: dns.TypeCNAME,
-					Class:  dns.ClassINET,
-					Ttl:    resultTTL},
+			cname := &dns.CNAME{Hdr: dns.RR_Header{Name: resultFqdn, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: resultTTL},
 				Target: dns.Fqdn(*CNAME)}
-			newZ.Insert(&cname)
+			newZ.Insert(cname)
 		}
 	}
 	return newZ
@@ -245,13 +201,13 @@ func (h *Azure) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	state := request.Request{W: w, Req: r}
 	qname := state.Name()
 
-	zName := plugin.Zones(h.zoneNames).Matches(qname)
-	if zName == "" {
+	zone := plugin.Zones(h.zoneNames).Matches(qname)
+	if zone == "" {
 		return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 	}
 
-	z, ok := h.zones[zName] // ok true if we are authoritive for the zone.
-	if !ok || z == nil {
+	zones, ok := h.zones[zone] // ok true if we are authoritive for the zone.
+	if !ok || zones == nil {
 		return dns.RcodeServerFailure, nil
 	}
 
@@ -259,9 +215,9 @@ func (h *Azure) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	m.SetReply(r)
 	m.Authoritative = true
 	var result file.Result
-	for _, hostedZone := range z {
+	for _, z := range zones {
 		h.zMu.RLock()
-		m.Answer, m.Ns, m.Extra, result = hostedZone.z.Lookup(ctx, state, qname)
+		m.Answer, m.Ns, m.Extra, result = z.z.Lookup(ctx, state, qname)
 		h.zMu.RUnlock()
 
 		// record type exists for this name (NODATA).
