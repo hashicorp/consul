@@ -53,7 +53,7 @@ $ git clone https://github.com/hashicorp/consul-helm.git
 $ cd consul-helm
 
 # Checkout a tagged version
-$ git checkout v0.1.0
+$ git checkout v0.8.1
 
 # Run Helm
 $ helm install --dry-run ./
