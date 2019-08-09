@@ -947,8 +947,6 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 	assert.Len(nodes, 1)
 	assert.Equal(structs.ServiceKindConnectProxy, nodes[0].ServiceKind)
 	assert.Equal(args.Service.Proxy, nodes[0].ServiceProxy)
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	assert.Equal(args.Service.Proxy.DestinationServiceName, nodes[0].ServiceProxyDestination)
 }
 
 // Test that the Connect-compatible endpoints can be queried for a

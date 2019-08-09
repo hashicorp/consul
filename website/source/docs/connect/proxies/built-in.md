@@ -12,10 +12,7 @@ Consul comes with a built-in L4 proxy for testing and development with Consul
 Connect.
 
 Below is a complete example of all the configuration options available
-for the built-in proxy. Note that only the `service.connect.proxy.config` and
-`service.connect.proxy.upsteams[].config` maps are being described here, the
-rest of the service definition is shown for context but is [described
-elsewhere](/docs/connect/proxies.html#managed-proxies).
+for the built-in proxy.
 
 ~> **Note:** Although you can configure the built-in proxy using configuration
 entries, it doesn't have the L7 capability necessary for the observability

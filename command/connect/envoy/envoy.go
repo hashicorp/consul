@@ -12,7 +12,6 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	proxyAgent "github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
@@ -212,20 +211,13 @@ func (c *cmd) Run(args []string) int {
 
 	// Load the proxy ID and token from env vars if they're set
 	if c.proxyID == "" {
-		c.proxyID = os.Getenv(proxyAgent.EnvProxyID)
+		c.proxyID = os.Getenv("CONNECT_PROXY_ID")
 	}
 	if c.sidecarFor == "" {
-		c.sidecarFor = os.Getenv(proxyAgent.EnvSidecarFor)
+		c.sidecarFor = os.Getenv("CONNECT_SIDECAR_FOR")
 	}
 	if c.grpcAddr == "" {
 		c.grpcAddr = os.Getenv(api.GRPCAddrEnvName)
-	}
-	if c.http.Token() == "" && c.http.TokenFile() == "" {
-		// Extra check needed since CONSUL_HTTP_TOKEN has not been consulted yet but
-		// calling SetToken with empty will force that to override the
-		if proxyToken := os.Getenv(proxyAgent.EnvProxyToken); proxyToken != "" {
-			c.http.SetToken(proxyToken)
-		}
 	}
 
 	// Setup Consul client

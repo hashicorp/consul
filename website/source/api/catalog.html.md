@@ -498,7 +498,6 @@ $ curl \
     "ServiceTags": [
       "tacos"
     ],
-    "ServiceProxyDestination": "",
     "ServiceProxy": {
         "DestinationServiceName": "",
         "DestinationServiceID": "",
@@ -554,10 +553,6 @@ $ curl \
 
 - `ServiceKind` is the kind of service, usually "". See the Agent
   registration API for more information.
-
-- `ServiceProxyDestination` **Deprecated** this field duplicates
-  `ServiceProxy.DestinationServiceName` for backwards compatibility. It will be
-  removed in a future major version release.
 
 - `ServiceProxy` is the proxy config as specified in
 [Connect Proxies](/docs/connect/proxies.html).

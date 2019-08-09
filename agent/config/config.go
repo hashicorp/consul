@@ -92,8 +92,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"service.proxy.upstreams",
 		"services.proxy.upstreams",
 
-		// Need all the service(s) exceptions also for nested sidecar service except
-		// managed proxy which is explicitly not supported there.
+		// Need all the service(s) exceptions also for nested sidecar service.
 		"service.connect.sidecar_service.checks",
 		"services.connect.sidecar_service.checks",
 		"service.connect.sidecar_service.proxy.upstreams",
@@ -387,10 +386,8 @@ type ServiceDefinition struct {
 	Token             *string                   `json:"token,omitempty" hcl:"token" mapstructure:"token"`
 	Weights           *ServiceWeights           `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
 	EnableTagOverride *bool                     `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination *string         `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
-	Proxy            *ServiceProxy   `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-	Connect          *ServiceConnect `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
+	Proxy             *ServiceProxy             `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	Connect           *ServiceConnect           `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
 type CheckDefinition struct {
@@ -424,9 +421,6 @@ type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
 	Native *bool `json:"native,omitempty" hcl:"native" mapstructure:"native"`
 
-	// Proxy configures a connect proxy instance for the service
-	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
 	// along with the application service definition. It's nested nature allows
@@ -435,13 +429,6 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	SidecarService *ServiceDefinition `json:"sidecar_service,omitempty" hcl:"sidecar_service" mapstructure:"sidecar_service"`
-}
-
-type ServiceConnectProxy struct {
-	Command   []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
-	ExecMode  *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	Config    map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
-	Upstreams []Upstream             `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
 }
 
 // ServiceProxy is the additional config needed for a Kind = connect-proxy
@@ -540,39 +527,9 @@ type AutoEncrypt struct {
 type Connect struct {
 	// Enabled opts the agent into connect. It should be set on all clients and
 	// servers in a cluster for correct connect operation.
-	Enabled       *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	Proxy         ConnectProxy           `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-	ProxyDefaults ConnectProxyDefaults   `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
-	CAProvider    *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
-	CAConfig      map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
-}
-
-// ConnectProxy is the agent-global connect proxy configuration.
-type ConnectProxy struct {
-	// Consul will not execute managed proxies if its EUID is 0 (root).
-	// If this is true, then Consul will execute proxies if Consul is
-	// running as root. This is not recommended.
-	AllowManagedRoot *bool `json:"allow_managed_root" hcl:"allow_managed_root" mapstructure:"allow_managed_root"`
-
-	// AllowManagedAPIRegistration enables managed proxy registration
-	// via the agent HTTP API. If this is false, only file configurations
-	// can be used.
-	AllowManagedAPIRegistration *bool `json:"allow_managed_api_registration" hcl:"allow_managed_api_registration" mapstructure:"allow_managed_api_registration"`
-}
-
-// ConnectProxyDefaults is the agent-global defaults for managed Connect proxies.
-type ConnectProxyDefaults struct {
-	// ExecMode is used where a registration doesn't include an exec_mode.
-	// Defaults to daemon.
-	ExecMode *string `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	// DaemonCommand is used to start proxy in exec_mode = daemon if not specified
-	// at registration time.
-	DaemonCommand []string `json:"daemon_command,omitempty" hcl:"daemon_command" mapstructure:"daemon_command"`
-	// ScriptCommand is used to start proxy in exec_mode = script if not specified
-	// at registration time.
-	ScriptCommand []string `json:"script_command,omitempty" hcl:"script_command" mapstructure:"script_command"`
-	// Config is merged into an Config specified at registration time.
-	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Enabled    *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	CAProvider *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
+	CAConfig   map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
 }
 
 // SOA is the configuration of SOA for DNS

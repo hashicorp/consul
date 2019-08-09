@@ -42,12 +42,10 @@ type CatalogService struct {
 	ServicePort              int
 	ServiceWeights           Weights
 	ServiceEnableTagOverride bool
-	// DEPRECATED (ProxyDestination) - remove the next comment!
-	// We forgot to ever add ServiceProxyDestination here so no need to deprecate!
-	ServiceProxy *AgentServiceConnectProxyConfig
-	CreateIndex  uint64
-	Checks       HealthChecks
-	ModifyIndex  uint64
+	ServiceProxy             *AgentServiceConnectProxyConfig
+	CreateIndex              uint64
+	Checks                   HealthChecks
+	ModifyIndex              uint64
 }
 
 type CatalogNode struct {

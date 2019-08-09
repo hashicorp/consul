@@ -308,37 +308,6 @@ curl localhost:8500/v1/agent/health/service/name/web
             "Meta": null,
             "Port": 80,
             "EnableTagOverride": false,
-            "ProxyDestination": "",
-            "Connect": {
-                "Native": false,
-                "Proxy": null
-            },
-            "CreateIndex": 0,
-            "ModifyIndex": 0
-        }
-    ],
-    "passing": [
-        {
-            "ID": "web1",
-            "Service": "web",
-            "Tags": [
-                "rails"
-            ],
-            "Address": "",
-            "TaggedAddresses": {
-              "lan": {
-                "address": "127.0.0.1",
-                "port": 8000
-              },
-              "wan": {
-                "address": "198.18.0.53",
-                "port": 80
-              }
-            },
-            "Meta": null,
-            "Port": 80,
-            "EnableTagOverride": false,
-            "ProxyDestination": "",
             "Connect": {
                 "Native": false,
                 "Proxy": null
@@ -390,7 +359,6 @@ curl localhost:8500/v1/agent/health/service/id/web2
         "Meta": null,
         "Port": 80,
         "EnableTagOverride": false,
-        "ProxyDestination": "",
         "Connect": {
             "Native": false,
             "Proxy": null
@@ -438,7 +406,6 @@ curl localhost:8500/v1/agent/health/service/id/web1
         "Meta": null,
         "Port": 80,
         "EnableTagOverride": false,
-        "ProxyDestination": "",
         "Connect": {
             "Native": false,
             "Proxy": null
@@ -522,12 +489,6 @@ service definition keys for compatibility with the config file format.
   services that are [Connect-capable](/docs/connect/index.html)
   proxies representing another service or "mesh-gateway" for instances of
   a [mesh gateway](/docs/connect/mesh_gateway.html)
-
-- `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
-  was used for "connect-proxy" `Kind` services however the equivalent field is
-  now in `Proxy.DestinationServiceName`. Registrations using this field will
-  continue to work until some later major version where this will be removed
-  entirely. It's strongly recommended to switch to using the new field.
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
   Connect proxy instance. This is only valid if `Kind == "connect-proxy"` or

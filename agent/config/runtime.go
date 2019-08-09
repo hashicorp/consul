@@ -531,16 +531,6 @@ type RuntimeConfig struct {
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
 
-	// ConnectProxyBindMinPort is the inclusive start of the range of ports
-	// allocated to the agent for starting proxy listeners on where no explicit
-	// port is specified.
-	ConnectProxyBindMinPort int
-
-	// ConnectProxyBindMaxPort is the inclusive end of the range of ports
-	// allocated to the agent for starting proxy listeners on where no explicit
-	// port is specified.
-	ConnectProxyBindMaxPort int
-
 	// ConnectSidecarMinPort is the inclusive start of the range of ports
 	// allocated to the agent for asigning to sidecar services where no port is
 	// specified.
@@ -551,46 +541,11 @@ type RuntimeConfig struct {
 	// specified
 	ConnectSidecarMaxPort int
 
-	// ConnectProxyAllowManagedRoot is true if Consul can execute managed
-	// proxies when running as root (EUID == 0).
-	ConnectProxyAllowManagedRoot bool
-
-	// ConnectProxyAllowManagedAPIRegistration enables managed proxy registration
-	// via the agent HTTP API. If this is false, only file configurations
-	// can be used.
-	ConnectProxyAllowManagedAPIRegistration bool
-
-	// ConnectProxyDefaultExecMode is used where a registration doesn't include an
-	// exec_mode. Defaults to daemon.
-	ConnectProxyDefaultExecMode string
-
-	// ConnectProxyDefaultDaemonCommand is used to start proxy in exec_mode =
-	// daemon if not specified at registration time.
-	ConnectProxyDefaultDaemonCommand []string
-
-	// ConnectProxyDefaultScriptCommand is used to start proxy in exec_mode =
-	// script if not specified at registration time.
-	ConnectProxyDefaultScriptCommand []string
-
-	// ConnectProxyDefaultConfig is merged with any config specified at
-	// registration time to allow global control of defaults.
-	ConnectProxyDefaultConfig map[string]interface{}
-
 	// ConnectCAProvider is the type of CA provider to use with Connect.
 	ConnectCAProvider string
 
 	// ConnectCAConfig is the config to use for the CA provider.
 	ConnectCAConfig map[string]interface{}
-
-	// ConnectTestDisableManagedProxies is not exposed to public config but is
-	// used by TestAgent to prevent self-executing the test binary in the
-	// background if a managed proxy is created for a test. The only place we
-	// actually want to test processes really being spun up and managed is in
-	// `agent/proxy` and it does it at a lower level. Note that this still allows
-	// registering managed proxies via API and other methods, and still creates
-	// all the agent state for them, just doesn't actually start external
-	// processes up.
-	ConnectTestDisableManagedProxies bool
 
 	// ConnectTestCALeafRootChangeSpread is used to control how long the CA leaf
 	// cache with spread CSRs over when a root change occurs. For now we don't

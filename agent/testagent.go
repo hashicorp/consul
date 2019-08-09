@@ -377,9 +377,6 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 		fmt.Println("WARNING:", w)
 	}
 
-	// Disable connect proxy execution since it causes all kinds of problems with
-	// self-executing tests etc.
-	cfg.ConnectTestDisableManagedProxies = true
 	// Effectively disables the delay after root rotation before requesting CSRs
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.

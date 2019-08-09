@@ -673,10 +673,8 @@ type ServiceNode struct {
 	ServiceMeta              map[string]string
 	ServicePort              int
 	ServiceEnableTagOverride bool
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ServiceProxyDestination string `bexpr:"-"`
-	ServiceProxy            ConnectProxyConfig
-	ServiceConnect          ServiceConnect
+	ServiceProxy             ConnectProxyConfig
+	ServiceConnect           ServiceConnect
 
 	RaftIndex `bexpr:"-"`
 }
@@ -714,10 +712,8 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceMeta:              nsmeta,
 		ServiceWeights:           s.ServiceWeights,
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
-		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-		ServiceProxyDestination: s.ServiceProxyDestination,
-		ServiceProxy:            s.ServiceProxy,
-		ServiceConnect:          s.ServiceConnect,
+		ServiceProxy:             s.ServiceProxy,
+		ServiceConnect:           s.ServiceConnect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -817,29 +813,10 @@ type NodeService struct {
 	Weights           *Weights
 	EnableTagOverride bool
 
-	// ProxyDestination is DEPRECATED in favor of Proxy.DestinationServiceName.
-	// It's retained since this struct is used to parse input for
-	// /catalog/register but nothing else internal should use it - once
-	// request/config definitions are passes all internal uses of NodeService
-	// should have this empty and use the Proxy.DestinationServiceNames field
-	// below.
-	//
-	// It used to store the name of the service that this service is a Connect
-	// proxy for. This is only valid if Kind is "connect-proxy". The destination
-	// may be a service that isn't present in the catalog. This is expected and
-	// allowed to allow for proxies to come up earlier than their target services.
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination string `bexpr:"-"`
-
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
-	// a proxy service definition and is distinct from but shares some fields with
-	// the Connect.Proxy which configures a managed proxy as part of the actual
-	// service's definition. This duplication is ugly but seemed better than the
-	// alternative which was to re-use the same struct fields for both cases even
-	// though the semantics are different and the non-shred fields make no sense
-	// in the other case. ProxyConfig may be a more natural name here, but it's
-	// confusing for the UX because one of the fields in ConnectProxyConfig is
+	// a proxy service definition. ProxyConfig may be a more natural name here, but
+	// it's confusing for the UX because one of the fields in ConnectProxyConfig is
 	// also called just "Config"
 	Proxy ConnectProxyConfig
 
@@ -890,12 +867,6 @@ type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
 	Native bool `json:",omitempty"`
 
-	// DEPRECATED(managed-proxies) - Remove with the rest of managed proxies
-	// Proxy configures a connect proxy instance for the service. This is
-	// only used for agent service definitions and is invalid for non-agent
-	// (catalog API) definitions.
-	Proxy *ServiceDefinitionConnectProxy `json:",omitempty" bexpr:"-"`
-
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
 	// along with the application service definition. It's nested nature allows
@@ -927,13 +898,6 @@ func (s *NodeService) Validate() error {
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {
-		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-		// Fixup legacy requests that specify the ProxyDestination still
-		if s.ProxyDestination != "" && s.Proxy.DestinationServiceName == "" {
-			s.Proxy.DestinationServiceName = s.ProxyDestination
-			s.ProxyDestination = ""
-		}
-
 		if strings.TrimSpace(s.Proxy.DestinationServiceName) == "" {
 			result = multierror.Append(result, fmt.Errorf(
 				"Proxy.DestinationServiceName must be non-empty for Connect proxy "+
@@ -996,10 +960,6 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf("Mesh Gateways cannot have a sidecar service defined"))
 		}
 
-		if s.Connect.Proxy != nil {
-			result = multierror.Append(result, fmt.Errorf("The Connect.Proxy configuration is invalid for Mesh Gateways"))
-		}
-
 		if s.Proxy.DestinationServiceName != "" {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.DestinationServiceName configuration is invalid for Mesh Gateways"))
 		}
@@ -1032,10 +992,6 @@ func (s *NodeService) Validate() error {
 			if s.Connect.SidecarService.Connect.SidecarService != nil {
 				result = multierror.Append(result, fmt.Errorf(
 					"A SidecarService cannot have a nested SidecarService"))
-			}
-			if s.Connect.SidecarService.Connect.Proxy != nil {
-				result = multierror.Append(result, fmt.Errorf(
-					"A SidecarService cannot have a managed proxy"))
 			}
 		}
 	}
@@ -1091,7 +1047,6 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		!reflect.DeepEqual(s.ServiceMeta, other.ServiceMeta) ||
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
-		s.ServiceProxyDestination != other.ServiceProxyDestination ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
 		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) {
 		return false
@@ -1111,11 +1066,6 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 			theWeights = *s.Weights
 		}
 	}
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	legacyProxyDest := s.Proxy.DestinationServiceName
-	if legacyProxyDest == "" {
-		legacyProxyDest = s.ProxyDestination
-	}
 	return &ServiceNode{
 		// Skip ID, see ServiceNode definition.
 		Node: node,
@@ -1132,7 +1082,6 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceWeights:           theWeights,
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
-		ServiceProxyDestination:  legacyProxyDest,
 		ServiceConnect:           s.Connect,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,

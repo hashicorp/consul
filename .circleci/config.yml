@@ -102,7 +102,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
       - run: |
-          PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname)
+          PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
 
       - store_test_results:

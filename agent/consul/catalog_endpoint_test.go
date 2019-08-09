@@ -363,39 +363,6 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
-// DEPRECATED (ProxyDestination) - remove this whole test case when removing
-// ProxyDestination
-func TestCatalog_Register_DeprecatedConnectProxy(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	args := structs.TestRegisterRequestProxy(t)
-	args.Service.ProxyDestination = "legacy"
-	args.Service.Proxy = structs.ConnectProxyConfig{}
-
-	// Register
-	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
-
-	// List
-	req := structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: args.Service.Service,
-	}
-	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
-	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.ProxyDestination, v.ServiceProxy.DestinationServiceName)
-}
-
 // Test an invalid ConnectProxy. We don't need to exhaustively test because
 // this is all tested in structs on the Validate method.
 func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
@@ -419,7 +386,7 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 }
 
 // Test that write is required for the proxy destination to register a proxy.
-func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
+func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)

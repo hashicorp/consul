@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/proxyprocess"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
@@ -241,14 +240,10 @@ type Agent struct {
 	// the configuration directly.
 	tokens *token.Store
 
-	// proxyManager is the proxy process manager for managed Connect proxies.
-	proxyManager *proxyprocess.Manager
-
 	// proxyConfig is the manager for proxy service (Kind = connect-proxy)
 	// configuration state. This ensures all state needed by a proxy registration
 	// is maintained in cache and handles pushing updates to that state into XDS
-	// server to be pushed out to Envoy. This is NOT related to managed proxies
-	// directly.
+	// server to be pushed out to Envoy.
 	proxyConfig *proxycfg.Manager
 
 	// serviceManager is the manager for combining local service registrations with
@@ -325,37 +320,11 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
 		TaggedAddresses:     map[string]string{},
-		ProxyBindMinPort:    cfg.ConnectProxyBindMinPort,
-		ProxyBindMaxPort:    cfg.ConnectProxyBindMaxPort,
 	}
 	for k, v := range cfg.TaggedAddresses {
 		lc.TaggedAddresses[k] = v
 	}
 	return lc
-}
-
-func (a *Agent) setupProxyManager() error {
-	acfg, err := a.config.APIConfig(true)
-	if err != nil {
-		return fmt.Errorf("[INFO] agent: Connect managed proxies are disabled due to providing an invalid HTTP configuration")
-	}
-	a.proxyManager = proxyprocess.NewManager()
-	a.proxyManager.AllowRoot = a.config.ConnectProxyAllowManagedRoot
-	a.proxyManager.State = a.State
-	a.proxyManager.Logger = a.logger
-	if a.config.DataDir != "" {
-		// DataDir is required for all non-dev mode agents, but we want
-		// to allow setting the data dir for demos and so on for the agent,
-		// so do the check above instead.
-		a.proxyManager.DataDir = filepath.Join(a.config.DataDir, "proxy")
-
-		// Restore from our snapshot (if it exists)
-		if err := a.proxyManager.Restore(a.proxyManager.SnapshotPath()); err != nil {
-			a.logger.Printf("[WARN] agent: error restoring proxy state: %s", err)
-		}
-	}
-	a.proxyManager.ProxyEnv = acfg.GenerateEnv()
-	return nil
 }
 
 func (a *Agent) Start() error {
@@ -454,25 +423,11 @@ func (a *Agent) Start() error {
 	if err := a.loadServices(c); err != nil {
 		return err
 	}
-	if err := a.loadProxies(c); err != nil {
-		return err
-	}
 	if err := a.loadChecks(c, nil); err != nil {
 		return err
 	}
 	if err := a.loadMetadata(c); err != nil {
 		return err
-	}
-
-	// create the proxy process manager and start it. This is purposely
-	// done here after the local state above is loaded in so we can have
-	// a more accurate initial state view.
-	if !c.ConnectTestDisableManagedProxies {
-		if err := a.setupProxyManager(); err != nil {
-			a.logger.Printf(err.Error())
-		} else {
-			go a.proxyManager.Run()
-		}
 	}
 
 	// Start the proxy config manager.
@@ -1662,24 +1617,6 @@ func (a *Agent) ShutdownAgent() error {
 		a.proxyConfig.Close()
 	}
 
-	// Stop the proxy process manager
-	if a.proxyManager != nil {
-		// If persistence is disabled (implies DevMode but a subset of DevMode) then
-		// don't leave the proxies running since the agent will not be able to
-		// recover them later.
-		if a.config.DataDir == "" {
-			a.logger.Printf("[WARN] agent: dev mode disabled persistence, killing " +
-				"all proxies since we can't recover them")
-			if err := a.proxyManager.Kill(); err != nil {
-				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
-			}
-		} else {
-			if err := a.proxyManager.Close(); err != nil {
-				a.logger.Printf("[WARN] agent: error shutting down proxy manager: %s", err)
-			}
-		}
-	}
-
 	// Stop the cache background work
 	if a.cache != nil {
 		a.cache.Close()
@@ -2017,44 +1954,6 @@ func (a *Agent) purgeService(serviceID string) error {
 	return nil
 }
 
-// persistedProxy is used to wrap a proxy definition and bundle it with an Proxy
-// token so we can continue to authenticate the running proxy after a restart.
-type persistedProxy struct {
-	ProxyToken string
-	Proxy      *structs.ConnectManagedProxy
-
-	// Set to true when the proxy information originated from the agents configuration
-	// as opposed to API registration.
-	FromFile bool
-}
-
-// persistProxy saves a proxy definition to a JSON file in the data dir
-func (a *Agent) persistProxy(proxy *local.ManagedProxy, FromFile bool) error {
-	proxyPath := filepath.Join(a.config.DataDir, proxyDir,
-		stringHash(proxy.Proxy.ProxyService.ID))
-
-	wrapped := persistedProxy{
-		ProxyToken: proxy.ProxyToken,
-		Proxy:      proxy.Proxy,
-		FromFile:   FromFile,
-	}
-	encoded, err := json.Marshal(wrapped)
-	if err != nil {
-		return err
-	}
-
-	return file.WriteAtomic(proxyPath, encoded)
-}
-
-// purgeProxy removes a persisted proxy definition file from the data dir
-func (a *Agent) purgeProxy(proxyID string) error {
-	proxyPath := filepath.Join(a.config.DataDir, proxyDir, stringHash(proxyID))
-	if _, err := os.Stat(proxyPath); err == nil {
-		return os.Remove(proxyPath)
-	}
-	return nil
-}
-
 // persistCheck saves a check definition to the local agent's state directory
 func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckType) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(check.CheckID))
@@ -2303,17 +2202,6 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 			continue
 		}
 		checkIDs = append(checkIDs, id)
-	}
-
-	// Remove the associated managed proxy if it exists
-	// This has to be DONE before purging configuration as might might have issues
-	// With ACLs otherwise
-	for proxyID, p := range a.State.Proxies() {
-		if p.Proxy.TargetServiceID == serviceID {
-			if err := a.removeProxyLocked(proxyID, true); err != nil {
-				return err
-			}
-		}
 	}
 
 	// Remove service immediately
@@ -2682,105 +2570,6 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 	return nil
 }
 
-// addProxyLocked adds a new local Connect Proxy instance to be managed by the agent.
-//
-// This assumes that the agent's proxyLock is already held
-//
-// It REQUIRES that the service that is being proxied is already present in the
-// local state. Note that this is only used for agent-managed proxies so we can
-// ensure that we always make this true. For externally managed and registered
-// proxies we explicitly allow the proxy to be registered first to make
-// bootstrap ordering of a new service simpler but the same is not true here
-// since this is only ever called when setting up a _managed_ proxy which was
-// registered as part of a service registration either from config or HTTP API
-// call.
-//
-// The restoredProxyToken argument should only be used when restoring proxy
-// definitions from disk; new proxies must leave it blank to get a new token
-// assigned. We need to restore from disk to enable to continue authenticating
-// running proxies that already had that credential injected.
-func (a *Agent) addProxyLocked(proxy *structs.ConnectManagedProxy, persist, FromFile bool,
-	restoredProxyToken string, source configSource) error {
-	// Lookup the target service token in state if there is one.
-	token := a.State.ServiceToken(proxy.TargetServiceID)
-
-	// Copy the basic proxy structure so it isn't modified w/ defaults
-	proxyCopy := *proxy
-	proxy = &proxyCopy
-	if err := a.applyProxyDefaults(proxy); err != nil {
-		return err
-	}
-
-	// Add the proxy to local state first since we may need to assign a port which
-	// needs to be coordinate under state lock. AddProxy will generate the
-	// NodeService for the proxy populated with the allocated (or configured) port
-	// and an ID, but it doesn't add it to the agent directly since that could
-	// deadlock and we may need to coordinate adding it and persisting etc.
-	proxyState, err := a.State.AddProxy(proxy, token, restoredProxyToken)
-	if err != nil {
-		return err
-	}
-	proxyService := proxyState.Proxy.ProxyService
-
-	// Register proxy TCP check. The built in proxy doesn't listen publically
-	// until it's loaded certs so this ensures we won't route traffic until it's
-	// ready.
-	proxyCfg, err := a.applyProxyConfigDefaults(proxyState.Proxy)
-	if err != nil {
-		return err
-	}
-	chkAddr := a.resolveProxyCheckAddress(proxyCfg)
-	chkTypes := []*structs.CheckType{}
-	if chkAddr != "" {
-		bindPort, ok := proxyCfg["bind_port"].(int)
-		if !ok {
-			return fmt.Errorf("Cannot convert bind_port=%v to an int for creating TCP Check for address %s", proxyCfg["bind_port"], chkAddr)
-		}
-		chkTypes = []*structs.CheckType{
-			&structs.CheckType{
-				Name:     "Connect Proxy Listening",
-				TCP:      ipaddr.FormatAddressPort(chkAddr, bindPort),
-				Interval: 10 * time.Second,
-			},
-		}
-	}
-
-	err = a.addServiceLocked(proxyService, chkTypes, persist, token, source)
-	if err != nil {
-		// Remove the state too
-		a.State.RemoveProxy(proxyService.ID)
-		return err
-	}
-
-	// Persist the proxy
-	if persist && a.config.DataDir != "" {
-		return a.persistProxy(proxyState, FromFile)
-	}
-	return nil
-}
-
-// AddProxy adds a new local Connect Proxy instance to be managed by the agent.
-//
-// It REQUIRES that the service that is being proxied is already present in the
-// local state. Note that this is only used for agent-managed proxies so we can
-// ensure that we always make this true. For externally managed and registered
-// proxies we explicitly allow the proxy to be registered first to make
-// bootstrap ordering of a new service simpler but the same is not true here
-// since this is only ever called when setting up a _managed_ proxy which was
-// registered as part of a service registration either from config or HTTP API
-// call.
-//
-// The restoredProxyToken argument should only be used when restoring proxy
-// definitions from disk; new proxies must leave it blank to get a new token
-// assigned. We need to restore from disk to enable to continue authenticating
-// running proxies that already had that credential injected.
-func (a *Agent) AddProxy(proxy *structs.ConnectManagedProxy, persist, FromFile bool,
-	restoredProxyToken string, source configSource) error {
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
-	return a.addProxyLocked(proxy, persist, FromFile, restoredProxyToken, source)
-}
-
 // resolveProxyCheckAddress returns the best address to use for a TCP check of
 // the proxy's public listener. It expects the input to already have default
 // values populated by applyProxyConfigDefaults. It may return an empty string
@@ -2817,218 +2606,6 @@ func (a *Agent) resolveProxyCheckAddress(proxyCfg map[string]interface{}) string
 
 	// Default to localhost
 	return "127.0.0.1"
-}
-
-// applyProxyConfigDefaults takes a *structs.ConnectManagedProxy and returns
-// it's Config map merged with any defaults from the Agent's config. It would be
-// nicer if this were defined as a method on structs.ConnectManagedProxy but we
-// can't do that because ot the import cycle it causes with agent/config.
-func (a *Agent) applyProxyConfigDefaults(p *structs.ConnectManagedProxy) (map[string]interface{}, error) {
-	if p == nil || p.ProxyService == nil {
-		// Should never happen but protect from panic
-		return nil, fmt.Errorf("invalid proxy state")
-	}
-
-	// Lookup the target service
-	target := a.State.Service(p.TargetServiceID)
-	if target == nil {
-		// Can happen during deregistration race between proxy and scheduler.
-		return nil, fmt.Errorf("unknown target service ID: %s", p.TargetServiceID)
-	}
-
-	// Merge globals defaults
-	config := make(map[string]interface{})
-	for k, v := range a.config.ConnectProxyDefaultConfig {
-		if _, ok := config[k]; !ok {
-			config[k] = v
-		}
-	}
-
-	// Copy config from the proxy
-	for k, v := range p.Config {
-		config[k] = v
-	}
-
-	// Set defaults for anything that is still not specified but required.
-	// Note that these are not included in the content hash. Since we expect
-	// them to be static in general but some like the default target service
-	// port might not be. In that edge case services can set that explicitly
-	// when they re-register which will be caught though.
-	if _, ok := config["bind_port"]; !ok {
-		config["bind_port"] = p.ProxyService.Port
-	}
-	if _, ok := config["bind_address"]; !ok {
-		// Default to binding to the same address the agent is configured to
-		// bind to.
-		config["bind_address"] = a.config.BindAddr.String()
-	}
-	if _, ok := config["local_service_address"]; !ok {
-		// Default to localhost and the port the service registered with
-		config["local_service_address"] = fmt.Sprintf("127.0.0.1:%d", target.Port)
-	}
-
-	// Basic type conversions for expected types.
-	if raw, ok := config["bind_port"]; ok {
-		switch v := raw.(type) {
-		case float64:
-			// Common since HCL/JSON parse as float64
-			config["bind_port"] = int(v)
-
-			// NOTE(mitchellh): No default case since errors and validation
-			// are handled by the ServiceDefinition.Validate function.
-		}
-	}
-
-	return config, nil
-}
-
-// applyProxyDefaults modifies the given proxy by applying any configured
-// defaults, such as the default execution mode, command, etc.
-func (a *Agent) applyProxyDefaults(proxy *structs.ConnectManagedProxy) error {
-	// Set the default exec mode
-	if proxy.ExecMode == structs.ProxyExecModeUnspecified {
-		mode, err := structs.NewProxyExecMode(a.config.ConnectProxyDefaultExecMode)
-		if err != nil {
-			return err
-		}
-
-		proxy.ExecMode = mode
-	}
-	if proxy.ExecMode == structs.ProxyExecModeUnspecified {
-		proxy.ExecMode = structs.ProxyExecModeDaemon
-	}
-
-	// Set the default command to the globally configured default
-	if len(proxy.Command) == 0 {
-		switch proxy.ExecMode {
-		case structs.ProxyExecModeDaemon:
-			proxy.Command = a.config.ConnectProxyDefaultDaemonCommand
-
-		case structs.ProxyExecModeScript:
-			proxy.Command = a.config.ConnectProxyDefaultScriptCommand
-		}
-	}
-
-	// If there is no globally configured default we need to get the
-	// default command so we can do "consul connect proxy"
-	if len(proxy.Command) == 0 {
-		command, err := defaultProxyCommand(a.config)
-		if err != nil {
-			return err
-		}
-
-		proxy.Command = command
-	}
-
-	return nil
-}
-
-// removeProxyLocked stops and removes a local proxy instance.
-//
-// It is assumed that this function is called while holding the proxyLock already
-func (a *Agent) removeProxyLocked(proxyID string, persist bool) error {
-	// Validate proxyID
-	if proxyID == "" {
-		return fmt.Errorf("proxyID missing")
-	}
-
-	// Remove the proxy from the local state
-	p, err := a.State.RemoveProxy(proxyID)
-	if err != nil {
-		return err
-	}
-
-	// Remove the proxy service as well. The proxy ID is also the ID
-	// of the servie, but we might as well use the service pointer.
-	if err := a.removeServiceLocked(p.Proxy.ProxyService.ID, persist); err != nil {
-		return err
-	}
-
-	if persist && a.config.DataDir != "" {
-		return a.purgeProxy(proxyID)
-	}
-
-	return nil
-}
-
-// RemoveProxy stops and removes a local proxy instance.
-func (a *Agent) RemoveProxy(proxyID string, persist bool) error {
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
-	return a.removeProxyLocked(proxyID, persist)
-}
-
-// verifyProxyToken takes a token and attempts to verify it against the
-// targetService name. If targetProxy is specified, then the local proxy token
-// must exactly match the given proxy ID. cert, config, etc.).
-//
-// The given token may be a local-only proxy token or it may be an ACL token. We
-// will attempt to verify the local proxy token first.
-//
-// The effective ACL token is returned along with a boolean which is true if the
-// match was against a proxy token rather than an ACL token, and any error. In
-// the case the token matches a proxy token, then the ACL token used to register
-// that proxy's target service is returned for use in any RPC calls the proxy
-// needs to make on behalf of that service. If the token was an ACL token
-// already then it is always returned. Provided error is nil, a valid ACL token
-// is always returned.
-func (a *Agent) verifyProxyToken(token, targetService,
-	targetProxy string) (string, bool, error) {
-	// If we specify a target proxy, we look up that proxy directly. Otherwise,
-	// we resolve with any proxy we can find.
-	var proxy *local.ManagedProxy
-	if targetProxy != "" {
-		proxy = a.State.Proxy(targetProxy)
-		if proxy == nil {
-			return "", false, fmt.Errorf("unknown proxy service ID: %q", targetProxy)
-		}
-
-		// If the token DOESN'T match, then we reset the proxy which will
-		// cause the logic below to fall back to normal ACLs. Otherwise,
-		// we keep the proxy set because we also have to verify that the
-		// target service matches on the proxy.
-		if token != proxy.ProxyToken {
-			proxy = nil
-		}
-	} else {
-		proxy = a.resolveProxyToken(token)
-	}
-
-	// The existence of a token isn't enough, we also need to verify
-	// that the service name of the matching proxy matches our target
-	// service.
-	if proxy != nil {
-		// Get the target service since we only have the name. The nil
-		// check below should never be true since a proxy token always
-		// represents the existence of a local service.
-		target := a.State.Service(proxy.Proxy.TargetServiceID)
-		if target == nil {
-			return "", false, fmt.Errorf("proxy target service not found: %q",
-				proxy.Proxy.TargetServiceID)
-		}
-
-		if target.Service != targetService {
-			return "", false, acl.ErrPermissionDenied
-		}
-
-		// Resolve the actual ACL token used to register the proxy/service and
-		// return that for use in RPC calls.
-		return a.State.ServiceToken(proxy.Proxy.TargetServiceID), true, nil
-	}
-
-	// Doesn't match, we have to do a full token resolution. The required
-	// permission for any proxy-related endpoint is service:write, since
-	// to register a proxy you require that permission and sensitive data
-	// is usually present in the configuration.
-	rule, err := a.resolveToken(token)
-	if err != nil {
-		return "", false, err
-	}
-	if rule != nil && !rule.ServiceWrite(targetService, nil) {
-		return "", false, acl.ErrPermissionDenied
-	}
-
-	return token, false, nil
 }
 
 func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
@@ -3455,107 +3032,6 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
-// loadPersistedProxies will load connect proxy definitions from their
-// persisted state on disk and return a slice of them
-//
-// This does not add them to the local
-func (a *Agent) loadPersistedProxies() (map[string]persistedProxy, error) {
-	persistedProxies := make(map[string]persistedProxy)
-
-	proxyDir := filepath.Join(a.config.DataDir, proxyDir)
-	files, err := ioutil.ReadDir(proxyDir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("Failed reading proxies dir %q: %s", proxyDir, err)
-		}
-	}
-
-	for _, fi := range files {
-		// Skip all dirs
-		if fi.IsDir() {
-			continue
-		}
-
-		// Skip all partially written temporary files
-		if strings.HasSuffix(fi.Name(), "tmp") {
-			return nil, fmt.Errorf("Ignoring temporary proxy file %v", fi.Name())
-		}
-
-		// Open the file for reading
-		file := filepath.Join(proxyDir, fi.Name())
-		fh, err := os.Open(file)
-		if err != nil {
-			return nil, fmt.Errorf("failed opening proxy file %q: %s", file, err)
-		}
-
-		// Read the contents into a buffer
-		buf, err := ioutil.ReadAll(fh)
-		fh.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed reading proxy file %q: %s", file, err)
-		}
-
-		// Try decoding the proxy definition
-		var p persistedProxy
-		if err := json.Unmarshal(buf, &p); err != nil {
-			return nil, fmt.Errorf("Failed decoding proxy file %q: %s", file, err)
-		}
-		svcID := p.Proxy.TargetServiceID
-
-		persistedProxies[svcID] = p
-	}
-
-	return persistedProxies, nil
-}
-
-// loadProxies will load connect proxy definitions from configuration and
-// persisted definitions on disk, and load them into the local agent.
-func (a *Agent) loadProxies(conf *config.RuntimeConfig) error {
-	persistedProxies, persistenceErr := a.loadPersistedProxies()
-
-	for _, svc := range conf.Services {
-		if svc.Connect != nil {
-			proxy, err := svc.ConnectManagedProxy()
-			if err != nil {
-				return fmt.Errorf("failed adding proxy: %s", err)
-			}
-			if proxy == nil {
-				continue
-			}
-			restoredToken := ""
-			if persisted, ok := persistedProxies[proxy.TargetServiceID]; ok {
-				restoredToken = persisted.ProxyToken
-			}
-
-			if err := a.addProxyLocked(proxy, true, true, restoredToken, ConfigSourceLocal); err != nil {
-				return fmt.Errorf("failed adding proxy: %s", err)
-			}
-		}
-	}
-
-	for _, persisted := range persistedProxies {
-		proxyID := persisted.Proxy.ProxyService.ID
-		if persisted.FromFile && a.State.Proxy(proxyID) == nil {
-			// Purge proxies that were configured previously but are no longer in the config
-			a.logger.Printf("[DEBUG] agent: purging stale persisted proxy %q", proxyID)
-			if err := a.purgeProxy(proxyID); err != nil {
-				return fmt.Errorf("failed purging proxy %q: %v", proxyID, err)
-			}
-		} else if !persisted.FromFile {
-			if a.State.Proxy(proxyID) == nil {
-				a.logger.Printf("[DEBUG] agent: restored proxy definition %q", proxyID)
-				if err := a.addProxyLocked(persisted.Proxy, false, false, persisted.ProxyToken, ConfigSourceLocal); err != nil {
-					return fmt.Errorf("failed adding proxy %q: %v", proxyID, err)
-				}
-			} else {
-				a.logger.Printf("[WARN] agent: proxy definition %q was overwritten by a proxy definition within a config file", proxyID)
-			}
-		}
-	}
-
-	return persistenceErr
-}
-
 type persistedTokens struct {
 	Replication string `json:"replication,omitempty"`
 	AgentMaster string `json:"agent_master,omitempty"`
@@ -3638,16 +3114,6 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 	}
 
 	return persistenceErr
-}
-
-// unloadProxies will deregister all proxies known to the local agent.
-func (a *Agent) unloadProxies() error {
-	for id := range a.State.Proxies() {
-		if err := a.removeProxyLocked(id, false); err != nil {
-			return fmt.Errorf("Failed deregistering proxy '%s': %s", id, err)
-		}
-	}
-	return nil
 }
 
 // snapshotCheckState is used to snapshot the current state of the health
@@ -3785,9 +3251,6 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	// First unload all checks, services, and metadata. This lets us begin the reload
 	// with a clean slate.
-	if err := a.unloadProxies(); err != nil {
-		return fmt.Errorf("Failed unloading proxies: %s", err)
-	}
 	if err := a.unloadServices(); err != nil {
 		return fmt.Errorf("Failed unloading services: %s", err)
 	}
@@ -3808,9 +3271,6 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Reload service/check definitions and metadata.
 	if err := a.loadServices(newCfg); err != nil {
 		return fmt.Errorf("Failed reloading services: %s", err)
-	}
-	if err := a.loadProxies(newCfg); err != nil {
-		return fmt.Errorf("Failed reloading proxies: %s", err)
 	}
 	if err := a.loadChecks(newCfg, snap); err != nil {
 		return fmt.Errorf("Failed reloading checks: %s", err)
@@ -3977,22 +3437,4 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
-}
-
-// defaultProxyCommand returns the default Connect managed proxy command.
-func defaultProxyCommand(agentCfg *config.RuntimeConfig) ([]string, error) {
-	// Get the path to the current executable. This is cached once by the
-	// library so this is effectively just a variable read.
-	execPath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	// "consul connect proxy" default value for managed daemon proxy
-	cmd := []string{execPath, "connect", "proxy"}
-
-	if agentCfg != nil && agentCfg.LogLevel != "INFO" {
-		cmd = append(cmd, "-log-level", agentCfg.LogLevel)
-	}
-	return cmd, nil
 }

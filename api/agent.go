@@ -30,23 +30,6 @@ const (
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 )
 
-// ProxyExecMode is the execution mode for a managed Connect proxy.
-type ProxyExecMode string
-
-const (
-	// ProxyExecModeDaemon indicates that the proxy command should be long-running
-	// and should be started and supervised by the agent until it's target service
-	// is deregistered.
-	ProxyExecModeDaemon ProxyExecMode = "daemon"
-
-	// ProxyExecModeScript indicates that the proxy command should be invoke to
-	// completion on each change to the configuration of lifecycle event. The
-	// script typically fetches the config and certificates from the agent API and
-	// then configures an externally managed daemon, perhaps starting and stopping
-	// it if necessary.
-	ProxyExecModeScript ProxyExecMode = "script"
-)
-
 // UpstreamDestType is the type of upstream discovery mechanism.
 type UpstreamDestType string
 
@@ -90,13 +73,11 @@ type AgentService struct {
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
-	CreateIndex       uint64 `json:",omitempty" bexpr:"-"`
-	ModifyIndex       uint64 `json:",omitempty" bexpr:"-"`
-	ContentHash       string `json:",omitempty" bexpr:"-"`
-	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty" bexpr:"-"`
-	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
-	Connect          *AgentServiceConnect            `json:",omitempty"`
+	CreateIndex       uint64                          `json:",omitempty" bexpr:"-"`
+	ModifyIndex       uint64                          `json:",omitempty" bexpr:"-"`
+	ContentHash       string                          `json:",omitempty" bexpr:"-"`
+	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect           *AgentServiceConnect            `json:",omitempty"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -109,17 +90,7 @@ type AgentServiceChecksInfo struct {
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
 	Native         bool                      `json:",omitempty"`
-	Proxy          *AgentServiceConnectProxy `json:",omitempty" bexpr:"-"`
 	SidecarService *AgentServiceRegistration `json:",omitempty" bexpr:"-"`
-}
-
-// AgentServiceConnectProxy represents the Connect Proxy configuration of a
-// service.
-type AgentServiceConnectProxy struct {
-	ExecMode  ProxyExecMode          `json:",omitempty"`
-	Command   []string               `json:",omitempty"`
-	Config    map[string]interface{} `json:",omitempty" bexpr:"-"`
-	Upstreams []Upstream             `json:",omitempty"`
 }
 
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
@@ -176,10 +147,8 @@ type AgentServiceRegistration struct {
 	Weights           *AgentWeights             `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
-	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty"`
-	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
-	Connect          *AgentServiceConnect            `json:",omitempty"`
+	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect           *AgentServiceConnect            `json:",omitempty"`
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -284,12 +253,8 @@ type ConnectProxyConfig struct {
 	TargetServiceID   string
 	TargetServiceName string
 	ContentHash       string
-	// DEPRECATED(managed-proxies) - this struct is re-used for sidecar configs
-	// but they don't need ExecMode or Command
-	ExecMode  ProxyExecMode          `json:",omitempty"`
-	Command   []string               `json:",omitempty"`
-	Config    map[string]interface{} `bexpr:"-"`
-	Upstreams []Upstream
+	Config            map[string]interface{} `bexpr:"-"`
+	Upstreams         []Upstream
 }
 
 // Upstream is the response structure for a proxy upstream configuration.
@@ -818,31 +783,6 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *Qu
 	qm.RequestTime = rtt
 
 	var out LeafCert
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-	return &out, qm, nil
-}
-
-// ConnectProxyConfig gets the configuration for a local managed proxy instance.
-//
-// Note that this uses an unconventional blocking mechanism since it's
-// agent-local state. That means there is no persistent raft index so we block
-// based on object hash instead.
-func (a *Agent) ConnectProxyConfig(proxyServiceID string, q *QueryOptions) (*ConnectProxyConfig, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/connect/proxy/"+proxyServiceID)
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	var out ConnectProxyConfig
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
