@@ -116,12 +116,12 @@ module('Integration | Adapter | token', function(hooks) {
       .split('\n')[0];
     assert.equal(actual, expected);
   });
-  test('requestForClone returns the correct url', function(assert) {
+  test('requestForCloneRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/token/${id}/clone?dc=${dc}`;
     const actual = adapter
-      .requestForClone(
+      .requestForCloneRecord(
         client.url,
         {},
         {

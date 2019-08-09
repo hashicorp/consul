@@ -28,6 +28,8 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
+  // TODO: Why are we using 2 different headers here for
+  // create and update?
   requestForCreateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}

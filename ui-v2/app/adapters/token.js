@@ -1,6 +1,5 @@
 import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import { SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
@@ -33,6 +32,7 @@ export default Adapter.extend({
     // TODO: here we check data['Rules'] not serialized['Rules']
     // data.Rules is not undefined, and serialized.Rules is not null
     // revisit this at some point we should probably use serialized here
+
     // If a token has Rules, use the old API
     if (typeof data['Rules'] !== 'undefined') {
       // https://www.consul.io/api/acl/legacy.html#update-acl-token
@@ -64,7 +64,7 @@ export default Adapter.extend({
     `;
   },
   // TODO: We should probably call this requestForCloneRecord
-  requestForClone: function(request, serialized, unserialized) {
+  requestForCloneRecord: function(request, serialized, unserialized) {
     // this uses snapshots
     const id = unserialized[SLUG_KEY];
     const dc = unserialized[DATACENTER_KEY];
@@ -77,53 +77,35 @@ export default Adapter.extend({
   },
   // TODO: self doesn't get passed a snapshot right now
   // ideally it would just for consistency
-  // thing is its probably not the same shape as a 'Token'
-  // we should probably at least pass a null id as the third argument
-  self: function(store, type, unserialized) {
-    const client = get(this, 'client');
-    const adapter = this;
-    const serializer = store.serializerFor(type.modelName);
-    // const unserialized = snapshot.attributes();
-    const serialized = unserialized; //serializer.serialize(snapshot, {});
-
-    return client
-      .request(function(request) {
+  // thing is its probably not the same shape as a 'Token',
+  // plus we can't create Snapshots as they are private, see services/store.js
+  self: function(store, type, id, unserialized) {
+    return this.request(
+      function(adapter, request, serialized, unserialized) {
         return adapter.requestForSelf(request, serialized, unserialized);
-      })
-      .catch(function(e) {
-        return adapter.error(e);
-      })
-      .then(function(response) {
-        // TODO: When HTTPAdapter:responder changes, this will also need to change
+      },
+      function(serializer, response, serialized, unserialized) {
         return serializer.respondForQueryRecord(response, serialized, unserialized);
-      });
-    // TODO: Potentially add specific serializer errors here
-    // .catch(function(e) {
-    //   return Promise.reject(e);
-    // });
+      },
+      unserialized,
+      type.modelName
+    );
   },
   clone: function(store, type, id, snapshot) {
-    const client = get(this, 'client');
-    const adapter = this;
-    const serializer = store.serializerFor(type.modelName);
-    const unserialized = snapshot.attributes();
-    const serialized = serializer.serialize(snapshot, {});
-    return client
-      .request(function(request) {
-        return adapter.requestForClone(request, serialized, unserialized);
-      })
-      .catch(function(e) {
-        return adapter.error(e);
-      })
-      .then(function(response) {
-        // TODO: When HTTPAdapter:responder changes, this will also need to change
+    return this.request(
+      function(adapter, request, serialized, unserialized) {
+        return adapter.requestForCloneRecord(request, serialized, unserialized);
+      },
+      function(serializer, response, serialized, unserialized) {
+        // here we just have to pass through the dc (like when querying)
+        // eventually the id is created with this dc value and the id talen from the
+        // json response of `acls/token/*/clone`
         return serializer.respondForQueryRecord(response, {
           [API_DATACENTER_KEY]: unserialized[SLUG_KEY],
         });
-      });
-    // TODO: Potentially add specific serializer errors here
-    // .catch(function(e) {
-    //   return Promise.reject(e);
-    // });
+      },
+      snapshot,
+      type.modelName
+    );
   },
 });

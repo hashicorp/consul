@@ -1,5 +1,4 @@
 import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
-import { get } from '@ember/object';
 import { SLUG_KEY } from 'consul-ui/models/acl';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
@@ -53,12 +52,15 @@ export default Adapter.extend({
     `;
   },
   clone: function(store, type, id, snapshot) {
-    const serializer = store.serializerFor(type.modelName);
-    const unserialized = this.snapshotToJSON(snapshot, type);
-    const serialized = serializer.serialize(snapshot, {});
-    return get(this, 'client')
-      .request(request => this.requestForClone(request, serialized, unserialized))
-      .catch(e => adapter.error(e))
-      .then(respond => serializer.respondForQueryRecord(respond, serialized, unserialized));
+    return this.request(
+      function(adapter, request, serialized, unserialized) {
+        return adapter.requestForCloneRecord(request, serialized, unserialized);
+      },
+      function(serializer, response, serialized, unserialized) {
+        return serializer.respondForCreateRecord(response, serialized, unserialized);
+      },
+      snapshot,
+      type.modelName
+    );
   },
 });
