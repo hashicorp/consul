@@ -17,6 +17,7 @@ message SubscribeRequest {
     string Key = 2;
     string Token = 3;
     uint64 Index = 4;
+    string Filter = 5;
 }
 
 message Event {

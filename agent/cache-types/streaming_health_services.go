@@ -29,9 +29,10 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 	}
 
 	subscribeReq := stream.SubscribeRequest{
-		Topic: stream.Topic_ServiceHealth,
-		Key:   reqReal.ServiceName,
-		Index: reqReal.MinQueryIndex,
+		Topic:  stream.Topic_ServiceHealth,
+		Key:    reqReal.ServiceName,
+		Index:  reqReal.MinQueryIndex,
+		Filter: reqReal.Filter,
 	}
 	handler := healthServicesHandler{
 		state: make(map[string]structs.CheckServiceNode),

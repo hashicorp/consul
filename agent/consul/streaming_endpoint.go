@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
+	bexpr "github.com/hashicorp/go-bexpr"
 )
 
 type ConsulGRPCAdapter struct {
@@ -31,7 +32,16 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	if err != nil {
 		return err
 	}
-	filt := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
+	aclFilter := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
+
+	// Create the boolean expression filter.
+	var eval *bexpr.Evaluator
+	if req.Filter != "" {
+		eval, err = bexpr.CreateEvaluator(req.Filter, nil)
+		if err != nil {
+			return fmt.Errorf("Failed to create boolean expression evaluator: %v", err)
+		}
+	}
 
 	// Send an initial snapshot of the state via events if the requested index
 	// is lower than the last sent index of the topic.
@@ -42,10 +52,24 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 		// Wait for the events to come in and forward them to the client.
 		for event := range snapshotCh {
+			// Filter events by ACL rules.
 			event.SetACLRules()
-			if !filt.allowEvent(event) {
+			if !aclFilter.allowEvent(event) {
 				continue
 			}
+
+			// Apply boolean expression filtering.
+			if eval != nil {
+				allow, err := eval.Evaluate(event.FilterObject())
+				if err != nil {
+					return err
+				}
+				if !allow {
+					continue
+				}
+			}
+
+			// Send the event.
 			if err := server.Send(&event); err != nil {
 				return err
 			}
@@ -73,10 +97,25 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 			if !ok {
 				return fmt.Errorf("handler could not keep up with events")
 			}
+
+			// Filter events by ACL rules.
 			event.SetACLRules()
-			if !filt.allowEvent(event) {
+			if !aclFilter.allowEvent(event) {
 				continue
 			}
+
+			// Apply boolean expression filtering.
+			if eval != nil {
+				allow, err := eval.Evaluate(event.FilterObject())
+				if err != nil {
+					return err
+				}
+				if !allow {
+					continue
+				}
+			}
+
+			// Send the event.
 			if err := server.Send(&event); err != nil {
 				return err
 			}
