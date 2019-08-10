@@ -23,6 +23,7 @@ BUG FIXES:
 * connect: ensure intention replication continues to work when the replication ACL token changes [[GH-6288](https://github.com/hashicorp/consul/issues/6288)]
 * command: ensure that the json form of config entries can be submitted with 'consul config write' [[GH-6290](https://github.com/hashicorp/consul/issues/6290)]
 * connect: allow mesh gateways to use central config [[GH-6302](https://github.com/hashicorp/consul/issues/6302)]
+* api: Fix a bug where the service tagged addresses were not being returned through the `v1/agent/service/:service` api. [[GH-6299](https://github.com/hashicorp/consul/issues/6299)]
 
 ## 1.6.0-beta3 (July 26, 2019)
 
