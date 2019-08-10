@@ -244,6 +244,102 @@ func TestStreaming_Subscribe(t *testing.T) {
 	}
 }
 
+func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, server := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer server.Shutdown()
+	codec := rpcClient(t, server)
+	defer codec.Close()
+
+	dir2, client := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	// Try to join
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	joinLAN(t, client, server)
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	serverMeta := client.routers.FindServer()
+	require.NotNil(serverMeta)
+
+	// Register a dummy node with our service on it.
+	{
+		req := &structs.RegisterRequest{
+			Node:       "node1",
+			Address:    "3.4.5.6",
+			Datacenter: "dc1",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "3.4.5.6",
+				Port:    8080,
+			},
+		}
+		var out struct{}
+		require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
+	}
+
+	// Start a Subscribe call to our streaming endpoint.
+	conn, err := client.grpcClient.GRPCConn(nil)
+	require.NoError(err)
+
+	streamClient := stream.NewConsulClient(conn)
+
+	var index uint64
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.NoError(err)
+
+		// Start a goroutine to read updates off the stream.
+		eventCh := make(chan *stream.Event, 0)
+		go testSendEvents(t, eventCh, streamHandle)
+
+		var snapshotEvents []*stream.Event
+		for i := 0; i < 2; i++ {
+			select {
+			case event := <-eventCh:
+				snapshotEvents = append(snapshotEvents, event)
+			case <-time.After(3 * time.Second):
+				t.Fatalf("did not receive events past %d", len(snapshotEvents))
+			}
+		}
+
+		// Save the index from the event
+		index = snapshotEvents[0].Index
+	}
+
+	// Start another Subscribe call passing the index from the last event.
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
+			Index: index,
+		})
+		require.NoError(err)
+
+		// Start a goroutine to read updates off the stream.
+		eventCh := make(chan *stream.Event, 0)
+		go testSendEvents(t, eventCh, streamHandle)
+
+		// Wait and make sure there aren't any events coming. The server shouldn't send
+		// a snapshot and we haven't made any updates to the catalog that would trigger
+		// more events.
+		select {
+		case event := <-eventCh:
+			t.Fatalf("got another event: %v", event)
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+}
+
 func TestStreaming_Subscribe_FilterACL(t *testing.T) {
 	t.Parallel()
 

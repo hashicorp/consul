@@ -26,9 +26,6 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		return fmt.Errorf("only ServiceHealth topic is supported")
 	}
 
-	snapshotCh := make(chan stream.Event, 32)
-	go snapshotFunc(server.Context(), snapshotCh, req.Key)
-
 	// Resolve the token and create the ACL filter.
 	rule, err := h.srv.ResolveToken(req.Token)
 	if err != nil {
@@ -36,24 +33,32 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	}
 	filt := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
 
-	// Wait for the events to come in and forward them to the client.
-	for event := range snapshotCh {
-		event.SetACLRules()
-		if !filt.allowEvent(event) {
-			continue
+	// Send an initial snapshot of the state via events if the requested index
+	// is lower than the last sent index of the topic.
+	lastSentIndex := state.LastTopicIndex(req.Topic)
+	if req.Index < lastSentIndex {
+		snapshotCh := make(chan stream.Event, 32)
+		go snapshotFunc(server.Context(), snapshotCh, req.Key)
+
+		// Wait for the events to come in and forward them to the client.
+		for event := range snapshotCh {
+			event.SetACLRules()
+			if !filt.allowEvent(event) {
+				continue
+			}
+			if err := server.Send(&event); err != nil {
+				return err
+			}
 		}
-		if err := server.Send(&event); err != nil {
+
+		// Send a marker that this is the end of the snapshot.
+		endSnapshotEvent := stream.Event{
+			Topic:   req.Topic,
+			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
+		}
+		if err := server.Send(&endSnapshotEvent); err != nil {
 			return err
 		}
-	}
-
-	// Send a marker that this is the end of the snapshot.
-	endSnapshotEvent := stream.Event{
-		Topic:   req.Topic,
-		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
-	}
-	if err := server.Send(&endSnapshotEvent); err != nil {
-		return err
 	}
 
 	// Register a subscription on this topic/key with the FSM.

@@ -9,6 +9,7 @@ import (
 
 type EventPublisher struct {
 	listeners map[stream.Topic]map[*stream.SubscribeRequest]chan stream.Event
+	lastIndex map[stream.Topic]uint64
 	staged    []stream.Event
 	lock      sync.RWMutex
 }
@@ -16,6 +17,7 @@ type EventPublisher struct {
 func NewEventPublisher() *EventPublisher {
 	return &EventPublisher{
 		listeners: make(map[stream.Topic]map[*stream.SubscribeRequest]chan stream.Event),
+		lastIndex: make(map[stream.Topic]uint64),
 	}
 }
 
@@ -56,9 +58,21 @@ func (e *EventPublisher) Commit() {
 				delete(e.listeners[subscription.Topic], subscription)
 			}
 		}
+
+		// Update the last published index for the topic.
+		if event.Index > e.lastIndex[event.Topic] {
+			e.lastIndex[event.Topic] = event.Index
+		}
 	}
 
 	e.staged = nil
+}
+
+// LastTopicIndex returns the index of the last event published for the topic.
+func (e *EventPublisher) LastTopicIndex(topic stream.Topic) uint64 {
+	e.lock.RLock()
+	defer e.lock.RUnlock()
+	return e.lastIndex[topic]
 }
 
 func (e *EventPublisher) Subscribe(subscription *stream.SubscribeRequest) <-chan stream.Event {

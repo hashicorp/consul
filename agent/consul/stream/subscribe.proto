@@ -16,6 +16,7 @@ message SubscribeRequest {
     Topic Topic = 1;
     string Key = 2;
     string Token = 3;
+    uint64 Index = 4;
 }
 
 message Event {
