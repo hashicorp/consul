@@ -38,9 +38,6 @@ func TestStreaming_Subscribe(t *testing.T) {
 	joinLAN(t, client, server)
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	serverMeta := client.routers.FindServer()
-	require.NotNil(serverMeta)
-
 	// Register a dummy node with a service we don't care about, to make sure
 	// we don't see updates for it.
 	{
@@ -263,9 +260,6 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 	joinLAN(t, client, server)
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	serverMeta := client.routers.FindServer()
-	require.NotNil(serverMeta)
-
 	// Register a dummy node with our service on it.
 	{
 		req := &structs.RegisterRequest{
@@ -394,9 +388,6 @@ node "%s" {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &regArg, nil))
-
-	serverMeta := client.routers.FindServer()
-	require.NotNil(serverMeta)
 
 	// Set up the gRPC client.
 	conn, err := client.grpcClient.GRPCConn(nil)
@@ -588,9 +579,6 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 	joinLAN(t, client, server)
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	serverMeta := client.routers.FindServer()
-	require.NotNil(serverMeta)
-
 	// Register a dummy node with our service on it.
 	{
 		req := &structs.RegisterRequest{
@@ -665,4 +653,72 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 		// Make sure the snapshot events come back with no issues.
 		require.Len(snapshotEvents, 2)
 	}
+}
+
+func TestStreaming_Filter(t *testing.T) {
+	t.Parallel()
+
+	dir1, server := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer server.Shutdown()
+	codec := rpcClient(t, server)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+
+	// Prep the cluster with some data we can use in our filters.
+	registerTestCatalogEntries(t, codec)
+
+	// Set up a test function for reading some snapshot events from subscribe to test
+	// with different filters.
+	testSubscribe := func(t *testing.T, req stream.SubscribeRequest, numEvents int) []*stream.Event {
+		conn, err := server.GRPCConn()
+		require.NoError(t, err)
+
+		streamClient := stream.NewConsulClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		streamHandle, err := streamClient.Subscribe(ctx, &req)
+		require.NoError(t, err)
+
+		// Start a goroutine to read updates off the stream.
+		eventCh := make(chan *stream.Event, 0)
+		go testSendEvents(t, eventCh, streamHandle)
+
+		var snapshotEvents []*stream.Event
+		for i := 0; i < numEvents+1; i++ {
+			select {
+			case event := <-eventCh:
+				if !event.GetEndOfSnapshot() {
+					snapshotEvents = append(snapshotEvents, event)
+				}
+			case <-time.After(3 * time.Second):
+				t.Fatalf("did not receive events past %d (filter %q)", len(snapshotEvents), req.Filter)
+			}
+		}
+
+		return snapshotEvents
+	}
+
+	t.Run("ServiceNodes", func(t *testing.T) {
+		req := stream.SubscribeRequest{
+			Topic:  stream.Topic_ServiceHealth,
+			Key:    "redis",
+			Filter: "Service.Meta.version == 2",
+		}
+
+		events := testSubscribe(t, req, 1)
+		require.Len(t, events, 1)
+
+		req.Key = "web"
+		req.Filter = "Node.Meta.os == linux"
+		events = testSubscribe(t, req, 2)
+		require.Len(t, events, 2)
+		require.Equal(t, "baz", events[0].GetServiceHealth().ServiceNode.Node.Node)
+		require.Equal(t, "baz", events[1].GetServiceHealth().ServiceNode.Node.Node)
+
+		req.Filter = "Node.Meta.os == linux and Service.Meta.version == 1"
+		events = testSubscribe(t, req, 1)
+		require.Len(t, events, 1)
+	})
 }
