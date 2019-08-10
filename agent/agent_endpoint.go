@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
@@ -288,43 +286,9 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 				return "", nil, acl.ErrPermissionDenied
 			}
 
-			var connect *api.AgentServiceConnect
-			var proxy *api.AgentServiceConnectProxyConfig
-
-			if svc.Connect.Native {
-				connect = &api.AgentServiceConnect{
-					Native: svc.Connect.Native,
-				}
-			}
-
-			if svc.Kind == structs.ServiceKindConnectProxy ||
-				svc.Kind == structs.ServiceKindMeshGateway {
-
-				proxy = svc.Proxy.ToAPI()
-			}
-
-			var weights api.AgentWeights
-			if svc.Weights != nil {
-				err := mapstructure.Decode(svc.Weights, &weights)
-				if err != nil {
-					return "", nil, err
-				}
-			}
-
 			// Calculate the content hash over the response, minus the hash field
-			reply := &api.AgentService{
-				Kind:              api.ServiceKind(svc.Kind),
-				ID:                svc.ID,
-				Service:           svc.Service,
-				Tags:              svc.Tags,
-				Meta:              svc.Meta,
-				Port:              svc.Port,
-				Address:           svc.Address,
-				EnableTagOverride: svc.EnableTagOverride,
-				Weights:           weights,
-				Proxy:             proxy,
-				Connect:           connect,
-			}
+			aSvc := buildAgentService(svc)
+			reply := &aSvc
 
 			rawHash, err := hashstructure.Hash(reply, nil)
 			if err != nil {
