@@ -821,6 +821,8 @@ func (s *Server) setupGRPC() error {
 		conns: make(chan net.Conn),
 	}
 
+	// We don't need to pass tls.Config to the server since it's multiplexed
+	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer()
 	stream.RegisterConsulServer(srv, &ConsulGRPCAdapter{Health{s}})
 
@@ -828,7 +830,8 @@ func (s *Server) setupGRPC() error {
 	s.GRPCListener = lis
 
 	// Set up a gRPC client connection to the above listener.
-	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithDialer(dialGRPC), grpc.WithDisableRetry())
+	dialer := newDialer(s.config.UseTLS, s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
+	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithDialer(dialer), grpc.WithDisableRetry())
 	if err != nil {
 		return err
 	}
