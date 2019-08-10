@@ -557,3 +557,112 @@ func testSendEvents(t *testing.T, ch chan *stream.Event, handle stream.Consul_Su
 		ch <- event
 	}
 }
+
+func TestStreaming_TLSEnabled(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, conf1 := testServerConfig(t)
+	conf1.VerifyIncoming = true
+	conf1.VerifyOutgoing = true
+	configureTLS(conf1)
+	server, err := newServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer server.Shutdown()
+
+	dir2, conf2 := testClientConfig(t)
+	conf2.VerifyOutgoing = true
+	configureTLS(conf2)
+	client, err := NewClient(conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	// Try to join
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	joinLAN(t, client, server)
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	serverMeta := client.routers.FindServer()
+	require.NotNil(serverMeta)
+
+	// Register a dummy node with our service on it.
+	{
+		req := &structs.RegisterRequest{
+			Node:       "node1",
+			Address:    "3.4.5.6",
+			Datacenter: "dc1",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "3.4.5.6",
+				Port:    8080,
+			},
+		}
+		var out struct{}
+		require.NoError(server.RPC("Catalog.Register", &req, &out))
+	}
+
+	// Start a Subscribe call to our streaming endpoint from the client.
+	{
+		conn, err := client.grpcClient.GRPCConn(nil)
+		require.NoError(err)
+
+		streamClient := stream.NewConsulClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.NoError(err)
+
+		// Start a goroutine to read updates off the stream.
+		eventCh := make(chan *stream.Event, 0)
+		go testSendEvents(t, eventCh, streamHandle)
+
+		var snapshotEvents []*stream.Event
+		for i := 0; i < 2; i++ {
+			select {
+			case event := <-eventCh:
+				snapshotEvents = append(snapshotEvents, event)
+			case <-time.After(3 * time.Second):
+				t.Fatalf("did not receive events past %d", len(snapshotEvents))
+			}
+		}
+
+		// Make sure the snapshot events come back with no issues.
+		require.Len(snapshotEvents, 2)
+	}
+
+	// Start a Subscribe call to our streaming endpoint from the server's loopback client.
+	{
+		conn, err := server.GRPCConn()
+		require.NoError(err)
+
+		streamClient := stream.NewConsulClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.NoError(err)
+
+		// Start a goroutine to read updates off the stream.
+		eventCh := make(chan *stream.Event, 0)
+		go testSendEvents(t, eventCh, streamHandle)
+
+		var snapshotEvents []*stream.Event
+		for i := 0; i < 2; i++ {
+			select {
+			case event := <-eventCh:
+				snapshotEvents = append(snapshotEvents, event)
+			case <-time.After(3 * time.Second):
+				t.Fatalf("did not receive events past %d", len(snapshotEvents))
+			}
+		}
+
+		// Make sure the snapshot events come back with no issues.
+		require.Len(snapshotEvents, 2)
+	}
+}
