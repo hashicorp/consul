@@ -300,6 +300,10 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 	return nil
 }
 
+func (s *Store) LastTopicIndex(topic stream.Topic) uint64 {
+	return s.publisher.LastTopicIndex(topic)
+}
+
 func (s *Store) Subscribe(subscription *stream.SubscribeRequest) <-chan stream.Event {
 	return s.publisher.Subscribe(subscription)
 }
