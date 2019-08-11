@@ -52,8 +52,8 @@ Example chart usage:
 $ git clone https://github.com/hashicorp/consul-helm.git
 $ cd consul-helm
 
-# Checkout a tagged version
-$ git checkout v0.1.0
+# Checkout the most recently tagged version
+$ git checkout $(git describe --abbrev=0 --tags)
 
 # Run Helm
 $ helm install --dry-run ./
