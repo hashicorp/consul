@@ -176,56 +176,76 @@ func TestIntentionValidate(t *testing.T) {
 func TestIntentionPrecedenceSorter(t *testing.T) {
 	cases := []struct {
 		Name     string
-		Input    [][]string // SrcNS, SrcN, DstNS, DstN
+		Input    [][]string // SrcType, SrcNS, SrcN, DstNS, DstN
 		Expected [][]string // Same structure as Input
 	}{
 		{
 			"exhaustive list",
 			[][]string{
-				{"*", "*", "exact", "*"},
-				{"*", "*", "*", "*"},
-				{"exact", "*", "exact", "exact"},
-				{"*", "*", "exact", "exact"},
-				{"exact", "exact", "*", "*"},
-				{"exact", "exact", "exact", "exact"},
-				{"exact", "exact", "exact", "*"},
-				{"exact", "*", "exact", "*"},
-				{"exact", "*", "*", "*"},
+				{"consul", "*", "*", "exact", "*"},
+				{"consul", "*", "*", "*", "*"},
+				{"consul", "exact", "*", "exact", "exact"},
+				{"consul", "*", "*", "exact", "exact"},
+				{"consul", "exact", "exact", "*", "*"},
+				{"consul", "exact", "exact", "exact", "exact"},
+				{"consul", "exact", "exact", "exact", "*"},
+				{"consul", "exact", "*", "exact", "*"},
+				{"consul", "exact", "*", "*", "*"},
+				{"external-trust-domain", "exact", "spiffe://trust.domain", "*", "*"},
+				{"external-trust-domain", "exact", "spiffe://trust.domain", "exact", "exact"},
+				{"external-trust-domain", "exact", "spiffe://trust.domain", "exact", "*"},
+				{"external-uri", "exact", "spiffe://trust.domain/path", "*", "*"},
+				{"external-uri", "exact", "spiffe://trust.domain/path", "exact", "exact"},
+				{"external-uri", "exact", "spiffe://trust.domain/path", "exact", "*"},
 			},
 			[][]string{
-				{"exact", "exact", "exact", "exact"},
-				{"exact", "*", "exact", "exact"},
-				{"*", "*", "exact", "exact"},
-				{"exact", "exact", "exact", "*"},
-				{"exact", "*", "exact", "*"},
-				{"*", "*", "exact", "*"},
-				{"exact", "exact", "*", "*"},
-				{"exact", "*", "*", "*"},
-				{"*", "*", "*", "*"},
+				{"consul", "exact", "exact", "exact", "exact"},
+				{"external-uri", "exact", "spiffe://trust.domain/path", "exact", "exact"},
+				{"external-trust-domain", "exact", "spiffe://trust.domain", "exact", "exact"},
+				{"consul", "exact", "*", "exact", "exact"},
+				{"consul", "*", "*", "exact", "exact"},
+				{"consul", "exact", "exact", "exact", "*"},
+				{"external-uri", "exact", "spiffe://trust.domain/path", "exact", "*"},
+				{"external-trust-domain", "exact", "spiffe://trust.domain", "exact", "*"},
+				{"consul", "exact", "*", "exact", "*"},
+				{"consul", "*", "*", "exact", "*"},
+				{"consul", "exact", "exact", "*", "*"},
+				{"external-uri", "exact", "spiffe://trust.domain/path", "*", "*"},
+				{"external-trust-domain", "exact", "spiffe://trust.domain", "*", "*"},
+				{"consul", "exact", "*", "*", "*"},
+				{"consul", "*", "*", "*", "*"},
 			},
 		},
 		{
 			"tiebreak deterministically",
 			[][]string{
-				{"a", "*", "a", "b"},
-				{"a", "*", "a", "a"},
-				{"b", "a", "a", "a"},
-				{"a", "b", "a", "a"},
-				{"a", "a", "b", "a"},
-				{"a", "a", "a", "b"},
-				{"a", "a", "a", "a"},
+				{"consul", "a", "*", "a", "b"},
+				{"consul", "a", "*", "a", "a"},
+				{"consul", "b", "a", "a", "a"},
+				{"consul", "a", "b", "a", "a"},
+				{"consul", "a", "a", "b", "a"},
+				{"consul", "a", "a", "a", "b"},
+				{"consul", "a", "a", "a", "a"},
+				{"external-trust-domain", "a", "spiffe://a", "a", "a"},
+				{"external-trust-domain", "a", "spiffe://b", "a", "a"},
+				{"external-uri", "a", "spiffe://a/a", "a", "a"},
+				{"external-uri", "a", "spiffe://a/b", "a", "a"},
 			},
 			[][]string{
 				// Exact matches first in lexicographical order (arbitrary but
 				// deterministic)
-				{"a", "a", "a", "a"},
-				{"a", "a", "a", "b"},
-				{"a", "a", "b", "a"},
-				{"a", "b", "a", "a"},
-				{"b", "a", "a", "a"},
+				{"consul", "a", "a", "a", "a"},
+				{"consul", "a", "a", "a", "b"},
+				{"consul", "a", "a", "b", "a"},
+				{"consul", "a", "b", "a", "a"},
+				{"consul", "b", "a", "a", "a"},
+				{"external-uri", "a", "spiffe://a/a", "a", "a"},
+				{"external-uri", "a", "spiffe://a/b", "a", "a"},
+				{"external-trust-domain", "a", "spiffe://a", "a", "a"},
+				{"external-trust-domain", "a", "spiffe://b", "a", "a"},
 				// Wildcards next, lexicographical
-				{"a", "*", "a", "a"},
-				{"a", "*", "a", "b"},
+				{"consul", "a", "*", "a", "a"},
+				{"consul", "a", "*", "a", "b"},
 			},
 		},
 	}
@@ -237,10 +257,11 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			var input Intentions
 			for _, v := range tc.Input {
 				input = append(input, &Intention{
-					SourceNS:        v[0],
-					SourceName:      v[1],
-					DestinationNS:   v[2],
-					DestinationName: v[3],
+					SourceType:      IntentionSourceType(v[0]),
+					SourceNS:        v[1],
+					SourceName:      v[2],
+					DestinationNS:   v[3],
+					DestinationName: v[4],
 				})
 			}
 
@@ -256,6 +277,7 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			var actual [][]string
 			for _, v := range input {
 				actual = append(actual, []string{
+					string(v.SourceType),
 					v.SourceNS,
 					v.SourceName,
 					v.DestinationNS,

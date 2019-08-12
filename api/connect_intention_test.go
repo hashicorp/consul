@@ -179,7 +179,7 @@ func testIntention() *Intention {
 		SourceName:      "api",
 		DestinationNS:   "eng",
 		DestinationName: "db",
-		Precedence:      9,
+		Precedence:      15,
 		Action:          IntentionActionAllow,
 		SourceType:      IntentionSourceConsul,
 		Meta:            map[string]string{},

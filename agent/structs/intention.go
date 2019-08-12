@@ -179,11 +179,11 @@ func (x *Intention) UpdatePrecedence() {
 	var max int
 	switch x.countExact(x.DestinationNS, x.DestinationName) {
 	case 2:
-		max = 9
+		max = 15
 	case 1:
-		max = 6
+		max = 10
 	case 0:
-		max = 3
+		max = 5
 	default:
 		// This shouldn't be possible, just set it to zero
 		x.Precedence = 0
@@ -191,9 +191,9 @@ func (x *Intention) UpdatePrecedence() {
 	}
 
 	// Given the maximum, the exact value is determined based on the
-	// number of source exact values.
-	countSrc := x.countExact(x.SourceNS, x.SourceName)
-	x.Precedence = max - (2 - countSrc)
+	// number of source exact values in combination with the src type.
+	countSrc := x.srcPrecedence(x.SourceType, x.SourceNS, x.SourceName)
+	x.Precedence = max - (4 - countSrc)
 }
 
 // countExact counts the number of exact values (not wildcards) in
@@ -212,6 +212,33 @@ func (x *Intention) countExact(ns, n string) int {
 	}
 
 	return 2
+}
+
+// srcPrecedence returns a precedence value based on the srcType, namespace
+// and name.
+func (x *Intention) srcPrecedence(srcType IntentionSourceType, ns string, n string) int {
+	// ExternalTrustDomain and ExternalURI don't support wildcards so they are
+	// given higher precedence than anything using a wildcard.
+	// Non-wildcard Consul sources are given highest precedence as an arbitrary
+	// decision. It's arbitrary because an intention with an external source
+	// won't also match a Consul-source intention.
+	// ExternalURI is given higher precedence than ExternalTrustDomain because
+	// it's a more exact match.
+	switch {
+	case srcType == IntentionSourceConsul && ns == IntentionWildcard:
+		return 0
+	case srcType == IntentionSourceConsul && n == IntentionWildcard:
+		return 1
+	case srcType == IntentionSourceExternalTrustDomain:
+		return 2
+	case srcType == IntentionSourceExternalURI:
+		return 3
+	case srcType == IntentionSourceConsul:
+		return 4
+	default:
+		// Shouldn't be possible.
+		return 0
+	}
 }
 
 // GetACLPrefix returns the prefix to look up the ACL policy for this

@@ -20,6 +20,7 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	// Create some intentions.
 	ixn1 := &structs.Intention{
 		ID:              testUUID(),
+		SourceType:      structs.IntentionSourceConsul,
 		SourceNS:        "default",
 		SourceName:      "web",
 		DestinationNS:   "default",
@@ -28,6 +29,7 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	}
 	ixn2 := &structs.Intention{
 		ID:              testUUID(),
+		SourceType:      structs.IntentionSourceConsul,
 		SourceNS:        "default",
 		SourceName:      "db",
 		DestinationNS:   "default",
@@ -37,6 +39,7 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	}
 	ixn3 := &structs.Intention{
 		ID:              testUUID(),
+		SourceType:      structs.IntentionSourceConsul,
 		SourceNS:        "default",
 		SourceName:      "foo",
 		DestinationNS:   "default",
@@ -90,12 +93,13 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	intentions := structs.Intentions{
 		&structs.Intention{
 			ID:              ixn1.ID,
+			SourceType:      structs.IntentionSourceConsul,
 			SourceNS:        "default",
 			SourceName:      "web",
 			DestinationNS:   "default",
 			DestinationName: "db",
 			Meta:            map[string]string{},
-			Precedence:      9,
+			Precedence:      15,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 3,
@@ -103,12 +107,13 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 		},
 		&structs.Intention{
 			ID:              ixn3.ID,
+			SourceType:      structs.IntentionSourceConsul,
 			SourceNS:        "default",
 			SourceName:      "foo",
 			DestinationNS:   "default",
 			DestinationName: "*",
 			Meta:            map[string]string{},
-			Precedence:      6,
+			Precedence:      10,
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 3,
 				ModifyIndex: 3,

@@ -93,10 +93,10 @@ top to bottom, with larger numbers being evaluated first.
 
 | Source Name | Destination Name | Precedence |
 | ----------- | ---------------- | ---------- |
-| Exact       | Exact            | 9          |
-| `*`         | Exact            | 8          |
-| Exact       | `*`              | 6          |
-| `*`         | `*`              | 5          |
+| Exact       | Exact            | 15         |
+| `*`         | Exact            | 12         |
+| Exact       | `*`              | 10         |
+| `*`         | `*`              | 7          |
 
 The precedence value can be read from the [API](/api/connect/intentions.html)
 after an intention is created.
@@ -109,11 +109,9 @@ source name. In practice, this is a moot point since authorizing a connection
 has an exact source and destination value so its impossible for two
 valid non-wildcard intentions to match.
 
-The numbers in the table above are not stable. Their ordering will remain
-fixed but the actual number values may change in the future.
-The numbers are non-contiguous because there are
-some unused values in the middle in preparation for a future version of
-Consul supporting namespaces.
+~> **NOTE:** The numbers in the table above are not stable. Their ordering will remain
+  fixed but the actual number values may change in the future.
+  The numbers are non-contiguous to make way for future features.
 
 ## Intention Management Permissions
 
