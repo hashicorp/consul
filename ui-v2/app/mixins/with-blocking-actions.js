@@ -20,7 +20,7 @@ export default Mixin.create({
   _feedback: service('feedback'),
   init: function() {
     this._super(...arguments);
-    const feedback = get(this, '_feedback');
+    const feedback = this._feedback;
     const route = this;
     set(this, 'feedback', {
       execute: function(cb, type, error) {
@@ -69,13 +69,11 @@ export default Mixin.create({
       return this.afterUpdate(...arguments);
     },
     create: function(item) {
-      return get(this, 'feedback').execute(
+      return this.feedback.execute(
         () => {
-          return get(this, 'repo')
-            .persist(item)
-            .then(item => {
-              return this.afterCreate(...arguments);
-            });
+          return this.repo.persist(item).then(item => {
+            return this.afterCreate(...arguments);
+          });
         },
         'create',
         (type, e) => {
@@ -84,13 +82,11 @@ export default Mixin.create({
       );
     },
     update: function(item) {
-      return get(this, 'feedback').execute(
+      return this.feedback.execute(
         () => {
-          return get(this, 'repo')
-            .persist(item)
-            .then(() => {
-              return this.afterUpdate(...arguments);
-            });
+          return this.repo.persist(item).then(() => {
+            return this.afterUpdate(...arguments);
+          });
         },
         'update',
         (type, e) => {
@@ -99,13 +95,11 @@ export default Mixin.create({
       );
     },
     delete: function(item) {
-      return get(this, 'feedback').execute(
+      return this.feedback.execute(
         () => {
-          return get(this, 'repo')
-            .remove(item)
-            .then(() => {
-              return this.afterDelete(...arguments);
-            });
+          return this.repo.remove(item).then(() => {
+            return this.afterDelete(...arguments);
+          });
         },
         'delete',
         (type, e) => {

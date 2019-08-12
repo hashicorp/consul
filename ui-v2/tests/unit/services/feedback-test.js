@@ -1,12 +1,12 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupTest } from 'ember-qunit';
 
-moduleFor('service:feedback', 'Unit | Service | feedback', {
-  // Specify the other units that are required for this test.
-  needs: ['service:logger', 'service:flashMessages'],
-});
+module('Unit | Service | feedback', function(hooks) {
+  setupTest(hooks);
 
-// Replace this with your real tests.
-test('it exists', function(assert) {
-  let service = this.subject();
-  assert.ok(service);
+  // Replace this with your real tests.
+  test('it exists', function(assert) {
+    let service = this.owner.lookup('service:feedback');
+    assert.ok(service);
+  });
 });

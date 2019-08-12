@@ -7,8 +7,8 @@ export default Route.extend({
   repo: service('repository/service'),
   proxyRepo: service('repository/proxy'),
   model: function(params) {
-    const repo = get(this, 'repo');
-    const proxyRepo = get(this, 'proxyRepo');
+    const repo = this.repo;
+    const proxyRepo = this.proxyRepo;
     const dc = this.modelFor('dc').dc.Name;
     return hash({
       item: repo.findInstanceBySlug(params.id, params.node, params.name, dc),

@@ -25,7 +25,7 @@ export default Component.extend(WithListeners, {
 
   didInsertElement: function() {
     this._super(...arguments);
-    const clipboard = get(this, 'clipboard').execute(
+    const clipboard = this.clipboard.execute(
       this.delegateClickEvent ? `#${this.elementId}` : this.element
     );
     ['success', 'error'].map(event => {

@@ -16,13 +16,13 @@ export default Controller.extend(WithEventSource, {
     if (e.target.readyState === 1) {
       // OPEN
       if (get(e, 'error.errors.firstObject.status') === '404') {
-        get(this, 'notify').add({
+        this.notify.add({
           destroyOnClick: false,
           sticky: true,
           type: 'warning',
           action: 'update',
         });
-        const proxy = get(this, 'proxy');
+        const proxy = this.proxy;
         if (proxy) {
           proxy.close();
         }

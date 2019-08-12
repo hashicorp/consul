@@ -13,7 +13,7 @@ export default SingleRoute.extend(WithTokenActions, {
       return hash({
         ...model,
         ...{
-          token: get(this, 'settings').findBySlug('token'),
+          token: this.settings.findBySlug('token'),
         },
       });
     });

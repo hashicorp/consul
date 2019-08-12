@@ -16,7 +16,7 @@ export default Controller.extend(WithSearching, {
   },
   searchable: computed('items', function() {
     return get(this, 'searchables.role')
-      .add(get(this, 'items'))
+      .add(this.items)
       .search(get(this, this.searchParams.role));
   }),
   actions: {},

@@ -39,7 +39,7 @@ export default Mixin.create({
         set(this, key, obj[key] != '' ? obj[key] : null);
       });
       set(this, 'filters', {
-        ...this.get('filters'),
+        ...this.filters,
         ...obj,
       });
     },

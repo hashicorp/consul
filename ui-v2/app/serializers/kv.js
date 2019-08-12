@@ -12,7 +12,7 @@ export default Serializer.extend({
   // TODO: Would undefined be better instead of null?
   serialize: function(snapshot, options) {
     const value = snapshot.attr('Value');
-    return typeof value === 'string' ? get(this, 'decoder').execute(value) : null;
+    return typeof value === 'string' ? this.decoder.execute(value) : null;
   },
   respondForQueryRecord: function(respond, query) {
     return this._super(cb => respond((headers, body) => cb(headers, removeNull(body[0]))), query);

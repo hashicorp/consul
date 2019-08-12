@@ -8,7 +8,7 @@ export default Serializer.extend({
       case 'findAll':
         return payload.map(item => {
           return {
-            [get(this, 'primaryKey')]: item,
+            [this.primaryKey]: item,
           };
         });
     }

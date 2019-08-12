@@ -15,7 +15,7 @@ const isOutside = function(element, e, doc = document) {
 };
 
 const handler = function(e) {
-  const el = get(this, 'element');
+  const el = this.element;
   if (isOutside(el, e)) {
     this.onblur(e);
   }
@@ -30,14 +30,14 @@ export default Mixin.create({
   onblur: function() {},
   didInsertElement: function() {
     this._super(...arguments);
-    const doc = get(this, 'dom').document();
+    const doc = this.dom.document();
     next(this, () => {
       doc.addEventListener('click', this.handler);
     });
   },
   willDestroyElement: function() {
     this._super(...arguments);
-    const doc = get(this, 'dom').document();
+    const doc = this.dom.document();
     doc.removeEventListener('click', this.handler);
   },
 });

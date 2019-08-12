@@ -17,27 +17,25 @@ export default ChildSelectorComponent.extend({
   policy: alias('policyForm.data'),
   init: function() {
     this._super(...arguments);
-    this.policyForm = get(this, 'formContainer').form('policy');
+    this.policyForm = this.formContainer.form('policy');
     this.source = new EventSource();
   },
   actions: {
     reset: function(e) {
       this._super(...arguments);
-      get(this, 'policyForm').clear({ Datacenter: get(this, 'dc') });
+      this.policyForm.clear({ Datacenter: this.dc });
     },
     dispatch: function(type, data) {
       this.source.dispatchEvent({ type: type, data: data });
     },
     change: function() {
-      const event = get(this, 'dom').normalizeEvent(...arguments);
+      const event = this.dom.normalizeEvent(...arguments);
       const target = event.target;
       switch (target.name) {
         case 'role[state]':
           set(this, 'state', target.value);
           if (target.value === 'policy') {
-            get(this, 'dom')
-              .component('.code-editor', target.nextElementSibling)
-              .didAppear();
+            this.dom.component('.code-editor', target.nextElementSibling).didAppear();
           }
           break;
         default:

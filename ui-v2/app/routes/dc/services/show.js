@@ -13,8 +13,8 @@ export default Route.extend({
     },
   },
   model: function(params) {
-    const repo = get(this, 'repo');
-    const settings = get(this, 'settings');
+    const repo = this.repo;
+    const settings = this.settings;
     const dc = this.modelFor('dc').dc.Name;
     return hash({
       item: repo.findBySlug(params.name, dc),

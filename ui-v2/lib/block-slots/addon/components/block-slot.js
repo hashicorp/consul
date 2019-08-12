@@ -1,3 +1,4 @@
+import { readOnly } from '@ember/object/computed';
 import Component from '@ember/component';
 import { isPresent } from '@ember/utils';
 import { get, set, computed, defineProperty } from '@ember/object';
@@ -32,7 +33,7 @@ const BlockSlot = Component.extend({
       if (isTargetSlotYielding && isPresent(yieldSlot._blockParams)) {
         // p0 p1 p2...
         yieldSlot._blockParams.forEach((param, index) => {
-          defineProperty(this, `p${index}`, computed.readOnly(`_yieldSlot._blockParams.${index}`));
+          defineProperty(this, `p${index}`, readOnly(`_yieldSlot._blockParams.${index}`));
         });
       }
     }

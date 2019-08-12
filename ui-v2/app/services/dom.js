@@ -29,10 +29,10 @@ export default Service.extend({
     $_ = getComponentFactory(getOwner(this));
   },
   document: function() {
-    return get(this, 'doc');
+    return this.doc;
   },
   viewport: function() {
-    return get(this, 'win');
+    return this.win;
   },
   // TODO: should this be here? Needs a better name at least
   clickFirstAnchor: clickFirstAnchor,
@@ -41,15 +41,15 @@ export default Service.extend({
   normalizeEvent: normalizeEvent,
   listeners: createListeners,
   root: function() {
-    return get(this, 'doc').documentElement;
+    return this.doc.documentElement;
   },
   // TODO: Should I change these to use the standard names
   // even though they don't have a standard signature (querySelector*)
   elementById: function(id) {
-    return get(this, 'doc').getElementById(id);
+    return this.doc.getElementById(id);
   },
   elementsByTagName: function(name, context) {
-    context = typeof context === 'undefined' ? get(this, 'doc') : context;
+    context = typeof context === 'undefined' ? this.doc : context;
     return context.getElementsByTagName(name);
   },
   elements: function(selector, context) {

@@ -15,7 +15,7 @@ export default Route.extend(WithIntentionActions, {
   },
   model: function(params) {
     return hash({
-      items: get(this, 'repo').findAllByDatacenter(this.modelFor('dc').dc.Name),
+      items: this.repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
     });
   },
   setupController: function(controller, model) {
