@@ -1,72 +1,84 @@
 {{#app-view class="node list"}}
-    {{#block-slot 'header'}}
-        <h1>
-            Nodes <em>{{format-number items.length}} total</em>
-        </h1>
-        <label for="toolbar-toggle"></label>
-    {{/block-slot}}
-    {{#block-slot 'toolbar'}}
+  {{#block-slot 'header'}}
+    <h1>
+      Nodes <em>{{format-number items.length}} total</em>
+    </h1>
+    <label for="toolbar-toggle"></label>
+  {{/block-slot}}
+  {{#block-slot 'toolbar'}}
 {{#if (gt items.length 0) }}
-        {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) search=s status=filters.status onchange=(action 'filter')}}
+    {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) search=s status=filters.status onchange=(action 'filter')}}
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot 'content'}}
+  {{/block-slot}}
+  {{#block-slot 'content'}}
 {{#if (gt unhealthy.length 0) }}
-        <div class="unhealthy">
-            <h2>Unhealthy Nodes</h2>
-            <div>
-                {{! think about 2 differing views here }}
-                <ul>
-                  {{#changeable-set dispatcher=searchableUnhealthy}}
-                    {{#block-slot 'set' as |unhealthy|}}
-                      {{#each unhealthy as |item|}}
-                          {{healthchecked-resource
-                              tagName='li'
-                              data-test-node=item.Node
-                              href=(href-to 'dc.nodes.show' item.Node)
-                              name=item.Node
-                              address=item.Address
-                              checks=item.Checks
-                          }}
-                      {{/each}}
+      <div class="unhealthy">
+        <h2>Unhealthy Nodes</h2>
+        <div>
+          {{! think about 2 differing views here }}
+          <ul>
+            {{#changeable-set dispatcher=searchableUnhealthy}}
+              {{#block-slot 'set' as |unhealthy|}}
+                {{#each unhealthy as |item|}}
+                  {{#healthchecked-resource
+                      tagName='li'
+                      data-test-node=item.Node
+                      href=(href-to 'dc.nodes.show' item.Node)
+                      name=item.Node
+                      address=item.Address
+                      checks=item.Checks
+                  }}
+                    {{#block-slot 'icon'}}
+                      {{#if (eq item.Address leader.Address)}}
+                        <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
+                      {{/if}}
                     {{/block-slot}}
-                    {{#block-slot 'empty'}}
-                      <p>
-                        There are no unhealthy nodes for that search.
-                      </p>
-                    {{/block-slot}}
-                  {{/changeable-set}}
-                </ul>
-            </div>
-        </div>
-{{/if}}
-{{#if (gt healthy.length 0) }}
-        <div class="healthy">
-            <h2>Healthy Nodes</h2>
-            {{#changeable-set dispatcher=searchableHealthy}}
-              {{#block-slot 'set' as |healthy|}}
-                {{#list-collection cellHeight=92 items=healthy as |item index|}}
-                    {{healthchecked-resource
-                        data-test-node=item.Node
-                        href=(href-to 'dc.nodes.show' item.Node)
-                        name=item.Node
-                        address=item.Address
-                        checks=item.Checks
-                    }}
-                {{/list-collection}}
+                  {{/healthchecked-resource}}
+                {{/each}}
               {{/block-slot}}
               {{#block-slot 'empty'}}
                 <p>
-                  There are no healthy nodes for that search.
+                  There are no unhealthy nodes for that search.
                 </p>
               {{/block-slot}}
             {{/changeable-set}}
+          </ul>
         </div>
+      </div>
+{{/if}}
+{{#if (gt healthy.length 0) }}
+      <div class="healthy">
+        <h2>Healthy Nodes</h2>
+        {{#changeable-set dispatcher=searchableHealthy}}
+          {{#block-slot 'set' as |healthy|}}
+            {{#list-collection cellHeight=92 items=healthy as |item index|}}
+              {{#healthchecked-resource
+                  data-test-node=item.Node
+                  href=(href-to 'dc.nodes.show' item.Node)
+                  name=item.Node
+                  address=item.Address
+                  checks=item.Checks
+              }}
+                {{#block-slot 'icon'}}
+                  {{#if (eq item.Address leader.Address)}}
+                    <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
+                  {{/if}}
+                {{/block-slot}}
+              {{/healthchecked-resource}}
+            {{/list-collection}}
+          {{/block-slot}}
+          {{#block-slot 'empty'}}
+            <p>
+              There are no healthy nodes for that search.
+            </p>
+          {{/block-slot}}
+        {{/changeable-set}}
+      </div>
 {{/if}}
 {{#if (and (eq healthy.length 0) (eq unhealthy.length 0)) }}
-    <p>
-        There are no nodes.
-    </p>
+      <p>
+          There are no nodes.
+      </p>
 {{/if}}
-    {{/block-slot}}
+  {{/block-slot}}
 {{/app-view}}

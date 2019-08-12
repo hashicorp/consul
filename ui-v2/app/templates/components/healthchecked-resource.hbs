@@ -1,5 +1,5 @@
 {{#stats-card}}
-  {{#block-slot 'icon'}}{{#if false}}<span data-tooltip="Leader">Leader</span>{{/if}}{{/block-slot}}
+  {{#block-slot 'icon'}}{{yield}}{{/block-slot}}
   {{#block-slot 'mini-stat'}}
     {{#if (eq checks.length 0)}}
       <span class="zero" data-tooltip="This node has no registered healthchecks">{{checks.length}}</span>
