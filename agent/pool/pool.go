@@ -296,7 +296,6 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 
 	var hc HalfCloser
 
-	// Cast to TCPConn
 	if tcp, ok := conn.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
 		tcp.SetNoDelay(true)
