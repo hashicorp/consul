@@ -18,7 +18,7 @@ const confirm = function() {
   if (this._isRegistered('dialog')) {
     set(this, 'confirming', true);
   } else {
-    this.confirm
+    this._confirm
       .execute(this.message)
       .then(confirmed => {
         if (confirmed) {
@@ -32,7 +32,7 @@ const confirm = function() {
 };
 export default Component.extend(SlotsMixin, {
   classNameBindings: ['confirming'],
-  confirm: service('confirm'),
+  _confirm: service('confirm'),
   error: service('error'),
   classNames: ['with-confirmation'],
   message: 'Are you sure?',
