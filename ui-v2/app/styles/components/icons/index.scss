@@ -119,36 +119,6 @@
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="13" xmlns="http://www.w3.org/2000/svg"><path d="M4.779 1H1.8c-.439 0-.8.37-.8.833v9.334c0 .463.361.833.8.833h10.4c.439 0 .8-.37.8-.833V3.833C13 3.37 12.639 3 12.2 3H6.35a.5.5 0 0 1-.42-.228L4.78 1z" stroke="%23BBC4D2" fill="none"/></svg>');
   background-color: $color-transparent;
 }
-%with-magnifier {
-  position: relative;
-}
-%with-magnifier::before {
-  @extend %pseudo-icon;
-  cursor: pointer; // autosearch
-  top: 50%;
-  left: 50%;
-  margin-left: -0.2em;
-  margin-top: -0.2em;
-  font-size: 3em;
-  width: 0.35em;
-  height: 0.35em;
-  border: 0.05em solid;
-  border-radius: 0.35em;
-  border-color: currentColor;
-  background-color: $color-transparent;
-}
-%with-magnifier::after {
-  @extend %pseudo-icon;
-  font-size: 3em;
-  top: 50%;
-  left: 50%;
-  margin-top: 0.13em;
-  margin-left: 0.07em;
-  border-width: 0;
-  width: 0.18em;
-  height: 0.05em;
-  transform: rotate(45deg);
-}
 %with-exit::after {
   @extend %pseudo-icon-bg-img;
   top: 3px;
