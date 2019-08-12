@@ -39,7 +39,7 @@ require (
 	github.com/openzipkin/zipkin-go-opentracing v0.3.5 // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
-	github.com/prometheus/client_golang v1.0.0
+	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common v0.6.0
 	github.com/sirupsen/logrus v1.4.2 // indirect
