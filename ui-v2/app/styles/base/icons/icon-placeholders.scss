@@ -422,6 +422,10 @@
   @extend %with-icon;
   background-image: $search-svg;
 }
+%with-search-color-icon {
+  @extend %with-icon;
+  background-image: $search-color-svg;
+}
 
 %with-service-identity-icon {
   @extend %with-icon;

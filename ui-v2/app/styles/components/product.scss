@@ -40,12 +40,13 @@ html.template-loading main > div {
 }
 /* toggleable toolbar for short screens */
 [for='toolbar-toggle'] {
-  @extend %with-magnifier;
+  @extend %with-search-color-icon;
+  background-position: 0 4px;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
   color: $blue-500;
-  width: 20px;
-  height: 20px;
-  margin-left: 15px;
-  top: -3px;
 }
 #toolbar-toggle {
   display: none;
