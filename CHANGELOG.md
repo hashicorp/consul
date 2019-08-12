@@ -1,4 +1,7 @@
 ## UNRELEASED
+FEATURES:
+
+* agent: add `local-only` parameter to operator/keyring list requests to force queries to only hit local servers. [[GH-6279](https://github.com/hashicorp/consul/pull/6279)]
 
 ## 1.5.3 (July 25, 2019)
 
