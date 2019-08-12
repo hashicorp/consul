@@ -3,6 +3,7 @@ package consul
 import (
 	"encoding/base64"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -10,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -287,7 +288,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 
 	// 3 responses (one from each DC LAN, one from WAN) in two-node cluster
 	if len(out2.Responses) != 3 {
-		t.Fatalf("bad: %#v", out)
+		t.Fatalf("bad: %#v", out2)
 	}
 	wanResp, lanResp = 0, 0
 	for _, resp := range out2.Responses {
@@ -299,6 +300,120 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	}
 	if lanResp != 2 || wanResp != 1 {
 		t.Fatalf("should have two lan and one wan response")
+	}
+}
+
+func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
+	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Start a second agent to test cross-dc queries
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.Datacenter = "dc2"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+
+	// --
+	// Try request with `LocalOnly` set to true
+	var out structs.KeyringResponses
+	req := structs.KeyringRequest{
+		Operation: structs.KeyringList,
+		LocalOnly: true,
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// 1 response (from this DC LAN)
+	if len(out.Responses) != 1 {
+		t.Fatalf("expected num responses to be 1, got %d; out is: %#v", len(out.Responses), out)
+	}
+	wanResp, lanResp := 0, 0
+	for _, resp := range out.Responses {
+		if resp.WAN {
+			wanResp++
+		} else {
+			lanResp++
+		}
+	}
+	if lanResp != 1 || wanResp != 0 {
+		t.Fatalf("should have 1 lan and 0 wan response, got (lan=%d) (wan=%d)", lanResp, wanResp)
+	}
+
+	// --
+	// Try same request again but with `LocalOnly` set to false
+	req.LocalOnly = false
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// 3 responses (one from each DC LAN, one from WAN)
+	if len(out.Responses) != 3 {
+		t.Fatalf("expected num responses to be 3, got %d; out is: %#v", len(out.Responses), out)
+	}
+	wanResp, lanResp = 0, 0
+	for _, resp := range out.Responses {
+		if resp.WAN {
+			wanResp++
+		} else {
+			lanResp++
+		}
+	}
+	if lanResp != 2 || wanResp != 1 {
+		t.Fatalf("should have 2 lan and 1 wan response, got (lan=%d) (wan=%d)", lanResp, wanResp)
+	}
+}
+
+func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
+	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Try request with `LocalOnly` set to true
+	var out structs.KeyringResponses
+	req := structs.KeyringRequest{
+		Operation: structs.KeyringRemove,
+		LocalOnly: true,
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out)
+	if err == nil {
+		t.Fatalf("expected an error")
+	}
+	if !strings.Contains(err.Error(), "LocalOnly") {
+		t.Fatalf("expected error to contain string 'LocalOnly'. Got: %v", err)
 	}
 }
 

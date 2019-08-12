@@ -143,6 +143,10 @@ type QueryOptions struct {
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
+	// LocalOnly is used in keyring list operation to force the keyring
+	// query to only hit local servers (no WAN traffic).
+	LocalOnly bool
+
 	// Connect filters prepared query execution to only include Connect-capable
 	// services. This currently affects prepared query execution.
 	Connect bool
@@ -654,6 +658,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
+	}
+	if q.LocalOnly {
+		r.params.Set("local-only", fmt.Sprintf("%t", q.LocalOnly))
 	}
 	if q.Connect {
 		r.params.Set("connect", "true")

@@ -16,7 +16,8 @@ more details on the gossip protocol and its use.
 ## List Gossip Encryption Keys
 
 This endpoint lists the gossip encryption keys installed on both the WAN and LAN
-rings of every known datacenter.
+rings of every known datacenter, unless otherwise specified with the `local-only` 
+query parameter (see below).
 
 If ACLs are enabled, the client will need to supply an ACL Token with `keyring`
 read privileges.
@@ -41,6 +42,9 @@ The table below shows this endpoint's support for
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
   This is specified as part of the URL as a query parameter.
+- `local-only` `(bool: false)` - Setting `local-only` to true will force keyring 
+  list queries to only hit local servers (no WAN traffic). This flag can only be set
+  for list queries. It is specified as part of the URL as a query parameter.
 
 ### Sample Request
 

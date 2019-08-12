@@ -1579,6 +1579,7 @@ type KeyringRequest struct {
 	Datacenter  string
 	Forwarded   bool
 	RelayFactor uint8
+	LocalOnly   bool
 	QueryOptions
 }
 

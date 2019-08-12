@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/memberlist"
+	"github.com/stretchr/testify/require"
 )
 
 func checkForKey(key string, keyring *memberlist.Keyring) error {
@@ -331,4 +332,11 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+}
+
+func TestValidateLocalOnly(t *testing.T) {
+	require.NoError(t, ValidateLocalOnly(false, false))
+	require.NoError(t, ValidateLocalOnly(true, true))
+
+	require.Error(t, ValidateLocalOnly(true, false))
 }
