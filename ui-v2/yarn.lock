@@ -880,9 +880,9 @@
     js-yaml "^3.13.1"
 
 "@hashicorp/consul-api-double@^2.0.1":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.3.0.tgz#1163f6dacb29d43d8dac4d1473263c257321682a"
-  integrity sha512-wbaOyOoA1X5Ur7Gj4VSZkor1zuJ2+GTbavPJGtpZZXd6CtL3RXC4HaldruBIF79j3lBXVgS/Y9ETMfGLdoAYgA==
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.5.0.tgz#d9540a38ee652d55ed90956850c9e5cbcde89454"
+  integrity sha512-RZcVIPQ4M4TZzFe2mWm7M5w28yOIpVgiYZI5ax+JG0Yr5TVbhJPMxhdb1es73cILuqIi9Fr+73OJ5IAospgPBw==
 
 "@hashicorp/ember-cli-api-double@^2.0.0":
   version "2.0.0"
