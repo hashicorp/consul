@@ -9,7 +9,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.1.0
 	github.com/Azure/go-autorest/autorest/to v0.2.0 // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
-	github.com/aws/aws-sdk-go v1.21.2
+	github.com/aws/aws-sdk-go v1.22.3
 	github.com/caddyserver/caddy v1.0.1
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible
