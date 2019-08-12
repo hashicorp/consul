@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+* connect: remove deprecated managed proxies and ProxyDestination config [[GH-6220](https://github.com/hashicorp/consul/pull/6220)]
+
 FEATURES:
 
 * connect: expose an API endpoint to compile the discovery chain [[GH-6248](https://github.com/hashicorp/consul/issues/6248)]
