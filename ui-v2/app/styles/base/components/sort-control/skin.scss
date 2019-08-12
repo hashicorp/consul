@@ -1,0 +1,17 @@
+%sort-control input {
+  display: none;
+}
+%sort-control label {
+  @extend %user-select-none;
+  cursor: pointer;
+}
+%sort-control input[type='checkbox'] + label::after {
+  @extend %as-pseudo;
+  opacity: 0.7;
+}
+%sort-control input[type='checkbox'] + label::after {
+  @extend %with-arrow-down-icon;
+}
+%sort-control input[type='checkbox']:checked + label::after {
+  @extend %with-arrow-up-icon;
+}
