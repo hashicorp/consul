@@ -73,6 +73,25 @@ func (op *Operator) LicenseGetSigned(q *QueryOptions) (string, error) {
 	return string(data), nil
 }
 
+// LicenseReset will reset the license to the builtin one if it is still valid.
+// If the builtin license is invalid, the current license stays active.
+func (op *Operator) LicenseReset(opts *WriteOptions) (*LicenseReply, error) {
+	var reply LicenseReply
+	r := op.c.newRequest("DELETE", "/v1/operator/license")
+	r.setWriteOptions(opts)
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if err := decodeBody(resp, &reply); err != nil {
+		return nil, err
+	}
+
+	return &reply, nil
+}
+
 func (op *Operator) LicensePut(license string, opts *WriteOptions) (*LicenseReply, error) {
 	var reply LicenseReply
 	r := op.c.newRequest("PUT", "/v1/operator/license")
