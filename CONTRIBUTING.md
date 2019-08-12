@@ -29,14 +29,18 @@ tests to assert your change is working properly and is thoroughly covered.
 First, please [search](https://github.com/coredns/coredns/search?q=&type=Issues&utf8=%E2%9C%93) with
 a variety of keywords to ensure your suggestion/proposal is new.
 
-Please also check for existing pull requests to see if someone is already working on this. We want to avoid duplication of effort.
+Please also check for existing pull requests to see if someone is already working on this. We want
+to avoid duplication of effort.
 
-If the proposal is new and no one has opened pull request yet, you may open either an issue or a pull request for discussion and feedback.
+If the proposal is new and no one has opened pull request yet, you may open either an issue or a
+pull request for discussion and feedback.
 
 If you are going to spend significant time implementing code for a pull request, best to open an
 issue first and "claim" it and get feedback before you invest a lot of time.
 
-**If someone already opened a pull request, but you think the pull request has stalled and you would like to open another pull request for the same or similar feature, get some of the maintainers (see [OWNERS](OWNERS)) involved to resolve the situation and move things forward.**
+**If someone already opened a pull request, but you think the pull request has stalled and you would
+like to open another pull request for the same or similar feature, get some of the maintainers (see
+[OWNERS](OWNERS)) involved to resolve the situation and move things forward.**
 
 If possible make a pull request as small as possible, or submit multiple pull request to complete a
 feature. Smaller means: easier to understand and review. This in turn means things can be merged
@@ -44,13 +48,16 @@ faster.
 
 ## New Plugins
 
-A new plugin is (usually) about 1000 lines of Go. This includes tests and some plugin boiler
-plate. This is a considerable amount of code and will take time to review. To prevent too much back and
-forth it is advisable to start with the plugin's `README.md`; This will be its main documentation and will help
-nail down the correct name of the plugin and its various config options.
+A new plugin is (usually) about 1000 lines of Go. This includes tests and some plugin boiler plate.
+This is a considerable amount of code and will take time to review. To prevent too much back and
+forth it is advisable to start with the plugin's `README.md`; This will be its main documentation
+and will help nail down the correct name of the plugin and its various config options.
 
-From there it can work its way through the rest (`setup.go`, the `ServeDNS` handler function,
-etc.). Doing this will help the reviewers, as each chunk of code is relatively small.
+From there it can work its way through the rest (`setup.go`, the `ServeDNS` handler function, etc.).
+Doing this will help the reviewers, as each chunk of code is relatively small.
+
+Also read [plugin.md](https://raw.githubusercontent.com/coredns/coredns/master/plugin.md) for
+advice on how to write a plugin.
 
 ## Updating Dependencies
 

@@ -117,6 +117,16 @@ The `fallthrough` directive should optionally accept a list of zones. Only queri
 in one of those zones should be allowed to fallthrough. See `plugin/pkg/fallthrough` for the
 implementation.
 
+## General Guidelines
+
+Some general guidelines:
+
+* logging time duration should be done in seconds (call the `Seconds()` method on any duration).
+* keep logging to a minimum.
+* call the main config parse function just `parse`.
+* try to minimize the number of knobs in the configuration.
+* use `plugin.Error()` to wrap errors returned from the `setup` function.
+
 ## Qualifying for Main Repo
 
 Plugins for CoreDNS can live out-of-tree, `plugin.cfg` defaults to CoreDNS' repo but other
