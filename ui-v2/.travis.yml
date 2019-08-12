@@ -1,0 +1,27 @@
+---
+language: node_js
+node_js:
+  - "6"
+
+sudo: false
+dist: trusty
+
+addons:
+  chrome: stable
+
+cache:
+  directories:
+    - $HOME/.npm
+
+env:
+  global:
+    # See https://git.io/vdao3 for details.
+    - JOBS=1
+
+before_install:
+  - npm config set spin false
+
+script:
+  - npm run lint:hbs
+  - npm run lint:js
+  - npm test
