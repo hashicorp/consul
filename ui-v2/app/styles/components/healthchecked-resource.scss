@@ -2,7 +2,6 @@
 .healthchecked-resource > div {
   @extend %stats-card;
 }
-
 %tooltip-below::after {
   top: calc(100% - 8px);
   bottom: auto;
@@ -12,6 +11,8 @@
 %tooltip-below::before {
   top: calc(100% + 4px);
   bottom: auto;
+  /*TODO: This should probably go into base*/
+  line-height: 1em;
 }
 %tooltip-left::before {
   right: 0;
@@ -21,8 +22,6 @@
 }
 %stats-card-icon {
   @extend %tooltip-below;
-  /*TODO: This should probably go into base*/
-  line-height: 1em;
 }
 %stats-card-icon:first-child::before {
   right: 0;
