@@ -109,9 +109,6 @@ func (f *Forward) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 		opts := f.opts
 		for {
 			ret, err = proxy.Connect(ctx, state, opts)
-			if err == nil {
-				break
-			}
 			if err == ErrCachedClosed { // Remote side closed conn, can only happen with TCP.
 				continue
 			}
