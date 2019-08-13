@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.41.0 // indirect
+	contrib.go.opencensus.io/exporter/ocagent v0.4.12 // indirect
 	github.com/Azure/azure-sdk-for-go v31.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.8.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.1.0
@@ -22,7 +23,6 @@ require (
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/golang/protobuf v1.3.2
-	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190307220656-fe1ba5ce12dd // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
@@ -33,6 +33,8 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/miekg/dns v1.1.15
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5
@@ -54,7 +56,7 @@ require (
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
-	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 // indirect
 	google.golang.org/genproto v0.0.0-20190701230453-710ae3a149df // indirect
 	google.golang.org/grpc v1.22.0
