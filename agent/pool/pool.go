@@ -2,6 +2,7 @@ package pool
 
 import (
 	"container/list"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -257,11 +258,8 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int, useTLS bool) (
 	return nil, fmt.Errorf("rpc error: lead thread didn't get connection")
 }
 
-// HalfCloser is an interface that exposes a TCP half-close. We need this
-// because we want to expose the raw TCP connection underlying a TLS one in a
-// way that's hard to screw up and use for anything else. There's a change
-// brewing that will allow us to use the TLS connection for this instead -
-// https://go-review.googlesource.com/#/c/25159/.
+// HalfCloser is an interface that exposes a TCP half-close without exposing
+// the underlying TLS or raw TCP connection.
 type HalfCloser interface {
 	CloseWrite() error
 }
@@ -296,11 +294,13 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 		return nil, nil, err
 	}
 
-	// Cast to TCPConn
 	var hc HalfCloser
+
 	if tcp, ok := conn.(*net.TCPConn); ok {
 		tcp.SetKeepAlive(true)
 		tcp.SetNoDelay(true)
+
+		// Expose TCPConn CloseWrite method on HalfCloser
 		hc = tcp
 	}
 
@@ -319,6 +319,11 @@ func DialTimeoutWithRPCType(dc string, addr net.Addr, src *net.TCPAddr, timeout 
 			return nil, nil, err
 		}
 		conn = tlsConn
+
+		// If this is a tls.Conn, expose HalfCloser to caller
+		if tlsConn, ok := conn.(*tls.Conn); ok {
+			hc = tlsConn
+		}
 	}
 
 	return conn, hc, nil

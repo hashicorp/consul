@@ -130,6 +130,15 @@ func ParseRelayFactor(n int) (uint8, error) {
 	return uint8(n), nil
 }
 
+// ValidateLocalOnly validates the local-only flag, requiring that it only be
+// set for list requests.
+func ValidateLocalOnly(local bool, list bool) error {
+	if local && !list {
+		return fmt.Errorf("local-only can only be set for list requests")
+	}
+	return nil
+}
+
 // ListKeys lists out all keys installed on the collective Consul cluster. This
 // includes both servers and clients in all DC's.
 func (a *Agent) ListKeys(token string, relayFactor uint8) (*structs.KeyringResponses, error) {

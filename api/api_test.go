@@ -702,6 +702,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		WaitTime:          100 * time.Second,
 		Token:             "12345",
 		Near:              "nodex",
+		LocalOnly:         true,
 	}
 	r.setQueryOptions(q)
 
@@ -724,6 +725,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		t.Fatalf("bad: %v", r.header)
 	}
 	if r.params.Get("near") != "nodex" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("local-only") != "true" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	assert.Equal("", r.header.Get("Cache-Control"))

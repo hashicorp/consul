@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
@@ -276,15 +277,46 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 		"asdf": "Error parsing relay factor",
 	}
 	for relayFactor, errString := range cases {
-		req, _ := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+		req, err := http.NewRequest("GET", "/v1/operator/keyring?relay-factor="+relayFactor, nil)
+		require.NoError(t, err)
 		resp := httptest.NewRecorder()
-		_, err := a.srv.OperatorKeyringEndpoint(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+		_, err = a.srv.OperatorKeyringEndpoint(resp, req)
+		require.Error(t, err, "tc: "+relayFactor)
+		require.Contains(t, err.Error(), errString, "tc: "+relayFactor)
+	}
+}
+
+func TestOperator_Keyring_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key := "H3/9gBxcKKRf45CaI2DlRg=="
+	a := NewTestAgent(t, t.Name(), `
+		encrypt = "`+key+`"
+	`)
+	defer a.Shutdown()
+
+	cases := []struct {
+		description string
+		method      string
+		local       interface{}
+		ok          bool
+	}{
+		{"all ok", "GET", true, true},
+		{"garbage local-only value", "GET", "garbage", false},
+		{"wrong method (DELETE)", "DELETE", true, false},
+	}
+
+	for _, tc := range cases {
+		url := fmt.Sprintf("/v1/operator/keyring?local-only=%v", tc.local)
+		req, err := http.NewRequest(tc.method, url, nil)
+		require.NoError(t, err, "tc: "+tc.description)
+
+		resp := httptest.NewRecorder()
+		_, err = a.srv.OperatorKeyringEndpoint(resp, req)
+		if tc.ok {
+			require.NoError(t, err, "tc: "+tc.description)
 		}
-		body := resp.Body.String()
-		if !strings.Contains(body, errString) {
-			t.Fatalf("bad: %v", body)
+		if !tc.ok {
+			require.Error(t, err, "tc: "+tc.description)
 		}
 	}
 }

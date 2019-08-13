@@ -178,11 +178,20 @@ func (m *Internal) KeyringOperation(
 		}
 	}
 
-	// Only perform WAN keyring querying and RPC forwarding once
-	if !args.Forwarded && m.srv.serfWAN != nil {
-		args.Forwarded = true
-		m.executeKeyringOp(args, reply, true)
-		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
+	// Validate use of local-only
+	if args.LocalOnly && args.Operation != structs.KeyringList {
+		// Error aggressively to be clear about LocalOnly behavior
+		return fmt.Errorf("argument error: LocalOnly can only be used for List operations")
+	}
+
+	// args.LocalOnly should always be false for non-GET requests
+	if !args.LocalOnly {
+		// Only perform WAN keyring querying and RPC forwarding once
+		if !args.Forwarded && m.srv.serfWAN != nil {
+			args.Forwarded = true
+			m.executeKeyringOp(args, reply, true)
+			return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
+		}
 	}
 
 	// Query the LAN keyring of this node's DC
