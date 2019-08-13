@@ -11,7 +11,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
-	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -54,8 +53,6 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 		var providers []credentials.Provider
 		var fall fall.F
 
-		up := upstream.New()
-
 		refresh := time.Duration(1) * time.Minute // default update frequency to 1 minute
 
 		args := c.RemainingArgs()
@@ -63,14 +60,14 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 		for i := 0; i < len(args); i++ {
 			parts := strings.SplitN(args[i], ":", 2)
 			if len(parts) != 2 {
-				return c.Errf("invalid zone '%s'", args[i])
+				return plugin.Error("route53", c.Errf("invalid zone '%s'", args[i]))
 			}
 			dns, hostedZoneID := parts[0], parts[1]
 			if dns == "" || hostedZoneID == "" {
-				return c.Errf("invalid zone '%s'", args[i])
+				return plugin.Error("route53", c.Errf("invalid zone '%s'", args[i]))
 			}
 			if _, ok := keyPairs[args[i]]; ok {
-				return c.Errf("conflict zone '%s'", args[i])
+				return plugin.Error("route53", c.Errf("conflict zone '%s'", args[i]))
 			}
 
 			keyPairs[args[i]] = struct{}{}
@@ -82,7 +79,7 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 			case "aws_access_key":
 				v := c.RemainingArgs()
 				if len(v) < 2 {
-					return c.Errf("invalid access key '%v'", v)
+					return plugin.Error("route53", c.Errf("invalid access key '%v'", v))
 				}
 				providers = append(providers, &credentials.StaticProvider{
 					Value: credentials.Value{
@@ -112,16 +109,16 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 					}
 					refresh, err = time.ParseDuration(refreshStr)
 					if err != nil {
-						return c.Errf("Unable to parse duration: '%v'", err)
+						return plugin.Error("route53", c.Errf("Unable to parse duration: '%v'", err))
 					}
 					if refresh <= 0 {
-						return c.Errf("refresh interval must be greater than 0: %s", refreshStr)
+						return plugin.Error("route53", c.Errf("refresh interval must be greater than 0: %s", refreshStr))
 					}
 				} else {
-					return c.ArgErr()
+					return plugin.Error("route53", c.ArgErr())
 				}
 			default:
-				return c.Errf("unknown property '%s'", c.Val())
+				return plugin.Error("route53", c.Errf("unknown property '%s'", c.Val()))
 			}
 		}
 		providers = append(providers, &credentials.EnvProvider{}, sharedProvider, &ec2rolecreds.EC2RoleProvider{
@@ -129,13 +126,13 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 		})
 		client := f(credentials.NewChainCredentials(providers))
 		ctx := context.Background()
-		h, err := New(ctx, client, keys, up, refresh)
+		h, err := New(ctx, client, keys, refresh)
 		if err != nil {
-			return c.Errf("failed to create Route53 plugin: %v", err)
+			return plugin.Error("route53", c.Errf("failed to create Route53 plugin: %v", err))
 		}
 		h.Fall = fall
 		if err := h.Run(ctx); err != nil {
-			return c.Errf("failed to initialize Route53 plugin: %v", err)
+			return plugin.Error("route53", c.Errf("failed to initialize Route53 plugin: %v", err))
 		}
 		dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 			h.Next = next

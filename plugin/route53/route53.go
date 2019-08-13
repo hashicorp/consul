@@ -46,11 +46,11 @@ type zone struct {
 type zones map[string][]*zone
 
 // New reads from the keys map which uses domain names as its key and hosted
-// zone id lists as its values, validates that each domain name/zone id pair does
-// exist, and returns a new *Route53. In addition to this, upstream is passed
-// for doing recursive queries against CNAMEs.
-// Returns error if it cannot verify any given domain name/zone id pair.
-func New(ctx context.Context, c route53iface.Route53API, keys map[string][]string, up *upstream.Upstream, refresh time.Duration) (*Route53, error) {
+// zone id lists as its values, validates that each domain name/zone id pair
+// does exist, and returns a new *Route53. In addition to this, upstream is use
+// for doing recursive queries against CNAMEs. Returns error if it cannot
+// verify any given domain name/zone id pair.
+func New(ctx context.Context, c route53iface.Route53API, keys map[string][]string, refresh time.Duration) (*Route53, error) {
 	zones := make(map[string][]*zone, len(keys))
 	zoneNames := make([]string, 0, len(keys))
 	for dns, hostedZoneIDs := range keys {
@@ -72,7 +72,7 @@ func New(ctx context.Context, c route53iface.Route53API, keys map[string][]strin
 		client:    c,
 		zoneNames: zoneNames,
 		zones:     zones,
-		upstream:  up,
+		upstream:  upstream.New(),
 		refresh:   refresh,
 	}, nil
 }
