@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.0-rc1 (August 13, 2019)
 
 BREAKING CHANGES:
 
