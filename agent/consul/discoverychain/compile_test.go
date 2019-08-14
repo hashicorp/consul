@@ -64,6 +64,7 @@ func TestCompile(t *testing.T) {
 		"redirect to missing subset":              testcase_RedirectToMissingSubset(),
 		"resolver with failover and external sni": testcase_Resolver_ExternalSNI_FailoverNotAllowed(),
 		"resolver with subsets and external sni":  testcase_Resolver_ExternalSNI_SubsetsNotAllowed(),
+		"resolver with redirect and external sni": testcase_Resolver_ExternalSNI_RedirectNotAllowed(),
 
 		// overrides
 		"resolver with protocol from override":         testcase_ResolverProtocolOverride(),
@@ -1514,6 +1515,29 @@ func testcase_Resolver_ExternalSNI_SubsetsNotAllowed() compileTestCase {
 	return compileTestCase{
 		entries:        entries,
 		expectErr:      `service "main" has an external SNI set; cannot define subsets for external services`,
+		expectGraphErr: true,
+	}
+}
+
+func testcase_Resolver_ExternalSNI_RedirectNotAllowed() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(&structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "main",
+		ExternalSNI: "main.some.other.service.mesh",
+	})
+	entries.AddResolvers(&structs.ServiceResolverConfigEntry{
+		Kind:           "service-resolver",
+		Name:           "main",
+		ConnectTimeout: 33 * time.Second,
+		Redirect: &structs.ServiceResolverRedirect{
+			Datacenter: "dc2",
+		},
+	})
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      `service "main" has an external SNI set; cannot define redirects for external services`,
 		expectGraphErr: true,
 	}
 }

@@ -821,6 +821,14 @@ RESOLVE_AGAIN:
 
 	// If using external SNI the service is fundamentally external.
 	if target.External {
+		if resolver.Redirect != nil {
+			return nil, &structs.ConfigEntryGraphError{
+				Message: fmt.Sprintf(
+					"service %q has an external SNI set; cannot define redirects for external services",
+					target.Service,
+				),
+			}
+		}
 		if len(resolver.Subsets) > 0 {
 			return nil, &structs.ConfigEntryGraphError{
 				Message: fmt.Sprintf(
