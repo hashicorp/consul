@@ -270,7 +270,7 @@ As long as there are enough servers in the cluster to maintain [quorum](/docs/in
 * `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
 * `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the cluster until they stabilize.
 
-If the container running the currently-elected Consul server leader is stopped, a leader election will be triggered. This event will cause a new Consul server in the cluster to assume leadership.
+If the container running the currently-elected Consul server leader is stopped, a leader election will be triggered.
 
 When a previously stopped server container is restarted using `docker start <container_id>`,  and it is configured to obtain a new IP, autopilot will add it back to the set of Raft peers with the same node-id and the new IP address, after which it can participate as a server again.
 
