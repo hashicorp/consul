@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"net/url"
 	"strings"
@@ -30,6 +31,7 @@ type ConsulProvider struct {
 	clusterID string
 	isRoot    bool
 	spiffeID  *connect.SpiffeIDSigning
+	logger    *log.Logger
 
 	sync.RWMutex
 }
@@ -657,4 +659,16 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
+}
+
+// SetLogger implements the NeedsLogger interface so the provider can log important messages.
+func (c *ConsulProvider) SetLogger(logger *log.Logger) {
+	c.logger = logger
+}
+
+// Printf sends output to the configured Logger, if one exists.
+func (c *ConsulProvider) Printf(format string, v ...interface{}) {
+	if c.logger != nil {
+		c.logger.Printf(format, v...)
+	}
 }
