@@ -293,7 +293,7 @@ Users running the Consul Enterprise Docker containers can run the [consul snapsh
 
 ### Environment Variables
 
-You can also add configuration by passing the configuration JSON via environment variable `CONSUL_LOCAL_CONFIG`. 
+You can add configuration by passing the configuration JSON via the environment variable `CONSUL_LOCAL_CONFIG`. 
 
 ```sh
 $ docker run \
