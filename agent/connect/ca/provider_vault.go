@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -367,6 +368,11 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	}
 
 	return xcCert, nil
+}
+
+// MinimumLeafTTL returns the shortest validity period supported by this provider.
+func (v *VaultProvider) MinimumLeafTTL() time.Duration {
+	return 1 * time.Hour
 }
 
 // Cleanup unmounts the configured intermediate PKI backend. It's fine to tear

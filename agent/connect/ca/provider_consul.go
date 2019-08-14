@@ -573,6 +573,11 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	return buf.String(), nil
 }
 
+// MinimumLeafTTL returns the shortest validity period supported by this provider.
+func (c *ConsulProvider) MinimumLeafTTL() time.Duration {
+	return 1 * time.Hour
+}
+
 // getState returns the current provider state from the state delegate, and returns
 // ErrNotInitialized if no entry is found.
 func (c *ConsulProvider) getState() (uint64, *structs.CAConsulProviderState, error) {
