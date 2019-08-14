@@ -7,17 +7,15 @@ import test from 'ember-sinon-qunit/test-support/test';
 
 module('Unit | Utility | dom/event-source/blocking', function() {
   const createEventSource = function() {
-    return class {
-      constructor(cb) {
-        this.readyState = 1;
-        this.source = cb;
-        this.source.apply(this, arguments);
-      }
-      addEventListener() {}
-      removeEventListener() {}
-      dispatchEvent() {}
-      close() {}
+    const EventSource = function(cb) {
+      this.readyState = 1;
+      this.source = cb;
     };
+    const o = EventSource.prototype;
+    ['addEventListener', 'removeEventListener', 'dispatchEvent', 'close'].forEach(function(item) {
+      o[item] = function() {};
+    });
+    return EventSource;
   };
   const createPromise = function(resolve = function() {}) {
     class PromiseMock {

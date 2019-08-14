@@ -4,17 +4,16 @@ import test from 'ember-sinon-qunit/test-support/test';
 
 module('Unit | Utility | dom/event-source/openable', function() {
   const createEventSource = function() {
-    return class {
-      constructor(cb) {
-        this.readyState = 1;
-        this.source = cb;
-        this.source.apply(this, arguments);
-      }
-      addEventListener() {}
-      removeEventListener() {}
-      dispatchEvent() {}
-      close() {}
+    const EventSource = function(cb) {
+      this.readyState = 1;
+      this.source = cb;
+      this.source.apply(this, arguments);
     };
+    const o = EventSource.prototype;
+    ['addEventListener', 'removeEventListener', 'dispatchEvent', 'close'].forEach(function(item) {
+      o[item] = function() {};
+    });
+    return EventSource;
   };
   test('it creates an Openable class implementing EventSource', function(assert) {
     const EventSource = createEventSource();
@@ -23,7 +22,7 @@ module('Unit | Utility | dom/event-source/openable', function() {
     const source = new OpenableEventSource(function() {});
     assert.ok(source instanceof EventSource);
   });
-  test('it reopens the event source when reopen is called', function(assert) {
+  test('it reopens the event source when open is called', function(assert) {
     const callable = this.stub();
     const EventSource = createEventSource();
     const OpenableEventSource = domEventSourceOpenable(EventSource);

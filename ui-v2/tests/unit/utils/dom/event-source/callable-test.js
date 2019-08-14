@@ -4,11 +4,12 @@ import test from 'ember-sinon-qunit/test-support/test';
 
 module('Unit | Utility | dom/event-source/callable', function() {
   const createEventTarget = function() {
-    return class {
-      addEventListener() {}
-      removeEventListener() {}
-      dispatchEvent() {}
-    };
+    const EventTarget = function(cb) {};
+    const o = EventTarget.prototype;
+    ['addEventListener', 'removeEventListener', 'dispatchEvent'].forEach(function(item) {
+      o[item] = function() {};
+    });
+    return EventTarget;
   };
   const createPromise = function() {
     class PromiseMock {
