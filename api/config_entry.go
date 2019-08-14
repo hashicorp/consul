@@ -61,6 +61,7 @@ type ServiceConfigEntry struct {
 	Name        string
 	Protocol    string
 	MeshGateway MeshGatewayConfig
+	ExternalSNI string
 	CreateIndex uint64
 	ModifyIndex uint64
 }

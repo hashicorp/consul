@@ -244,6 +244,11 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-chain-external-sni",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
+			setup:  nil,
+		},
+		{
 			name:   "connect-proxy-with-chain-and-overrides",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
 			setup:  nil,

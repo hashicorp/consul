@@ -46,6 +46,7 @@ func TestCompile(t *testing.T) {
 		"datacenter failover with mesh gateways":           testcase_DatacenterFailover_WithMeshGateways(),
 		"noop split to resolver with default subset":       testcase_NoopSplit_WithDefaultSubset(),
 		"resolver with default subset":                     testcase_Resolve_WithDefaultSubset(),
+		"default resolver with external sni":               testcase_DefaultResolver_ExternalSNI(),
 		"resolver with no entries and inferring defaults":  testcase_DefaultResolver(),
 		"default resolver with proxy defaults":             testcase_DefaultResolver_WithProxyDefaults(),
 		"service redirect to service with default resolver is not a default chain": testcase_RedirectToDefaultResolverIsNotDefaultChain(),
@@ -1433,6 +1434,37 @@ func testcase_Resolve_WithDefaultSubset() compileTestCase {
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect}
+}
+
+func testcase_DefaultResolver_ExternalSNI() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(&structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "main",
+		ExternalSNI: "main.some.other.service.mesh",
+	})
+
+	expect := &structs.CompiledDiscoveryChain{
+		Protocol:  "tcp",
+		StartNode: "resolver:main.default.dc1",
+		Nodes: map[string]*structs.DiscoveryGraphNode{
+			"resolver:main.default.dc1": &structs.DiscoveryGraphNode{
+				Type: structs.DiscoveryGraphNodeTypeResolver,
+				Name: "main.default.dc1",
+				Resolver: &structs.DiscoveryResolver{
+					Default:        true,
+					ConnectTimeout: 5 * time.Second,
+					Target:         "main.default.dc1",
+				},
+			},
+		},
+		Targets: map[string]*structs.DiscoveryTarget{
+			"main.default.dc1": newTarget("main", "", "default", "dc1", func(t *structs.DiscoveryTarget) {
+				t.SNI = "main.some.other.service.mesh"
+			}),
+		},
+	}
+	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
 }
 
 func testcase_MultiDatacenterCanary() compileTestCase {

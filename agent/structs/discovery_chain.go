@@ -160,6 +160,10 @@ type DiscoveryTarget struct {
 
 	MeshGateway MeshGatewayConfig     `json:",omitempty"`
 	Subset      ServiceResolverSubset `json:",omitempty"`
+
+	// SNI if set is the sni field to use when addressing this set of
+	// endpoints. If not configured then the default should be used.
+	SNI string `json:",omitempty"`
 }
 
 func NewDiscoveryTarget(service, serviceSubset, namespace, datacenter string) *DiscoveryTarget {

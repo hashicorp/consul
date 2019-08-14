@@ -187,4 +187,5 @@ type DiscoveryTarget struct {
 
 	MeshGateway MeshGatewayConfig
 	Subset      ServiceResolverSubset
+	SNI         string
 }

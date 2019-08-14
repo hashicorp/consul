@@ -235,15 +235,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"Kind": "service-defaults",
 				"Name": "main",
 				"Protocol": "http",
+				"ExternalSNI": "abc-123",
 				"MeshGateway": {
 					"Mode": "remote"
 				}
 			}
 			`,
 			expect: &ServiceConfigEntry{
-				Kind:     "service-defaults",
-				Name:     "main",
-				Protocol: "http",
+				Kind:        "service-defaults",
+				Name:        "main",
+				Protocol:    "http",
+				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},

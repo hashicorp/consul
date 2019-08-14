@@ -813,9 +813,21 @@ RESOLVE_AGAIN:
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
 
+	usingExternalSNI := false
+	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil && serviceDefault.ExternalSNI != "" {
+		// Explicitly set the SNI value.
+		target.SNI = serviceDefault.ExternalSNI
+		usingExternalSNI = true
+	}
+
 	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
 	if target.Datacenter == c.useInDatacenter {
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
+
+	} else if usingExternalSNI {
+		// Bypass mesh gateways if external SNI is configured.
+		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
+
 	} else {
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil {
