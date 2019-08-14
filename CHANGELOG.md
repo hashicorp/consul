@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+SECURITY:
+
+* Updated to compile with Go 1.12.8 which mitigates CVE-2019-9512 and CVE-2019-9514 for the builtin HTTP server
+
 BUG FIXES:
 
 * agent: blocking central config RPCs iterations should not interfere with each other [[GH-6316](https://github.com/hashicorp/consul/issues/6316)]
