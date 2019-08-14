@@ -224,9 +224,16 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		return fmt.Errorf("error getting intermediate cert: %v", err)
 	}
 
+	// Check if the configured leaf cert TTL would be less than allowed by the provider.
+	// If so, abort with an error. Also, grab the configured PK type for later use when
+	// creating CSRs.
 	commonConfig, err := conf.GetCommonConfig()
 	if err != nil {
 		return err
+	}
+	if commonConfig.LeafCertTTL < provider.MinimumLeafTTL() {
+		return fmt.Errorf("configured leaf TTL of %v is less than provider minimum of %v",
+			commonConfig.LeafCertTTL, provider.MinimumLeafTTL())
 	}
 	rootCA.PrivateKeyType = commonConfig.PrivateKeyType
 	rootCA.PrivateKeyBits = commonConfig.PrivateKeyBits
