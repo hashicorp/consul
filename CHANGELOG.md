@@ -1,3 +1,9 @@
+## UNRELEASED
+
+BUG FIXES:
+
+* agent: blocking central config RPCs iterations should not interfere with each other [[GH-6316](https://github.com/hashicorp/consul/issues/6316)]
+
 ## 1.6.0-rc1 (August 13, 2019)
 
 BREAKING CHANGES:
