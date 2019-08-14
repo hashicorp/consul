@@ -83,7 +83,7 @@ server-1  172.17.0.2:8301  alive     server  1.4.4  2         dc1  <all>
 
 ## Configure and Run a Consul Client
 
-Next, deploy a containerized Consul client and instruct it to join the server by giving it the server's IP address. Do not use detached mode, so you can see the startup output. 
+Next, deploy a containerized Consul client and instruct it to join the server by giving it the server's IP address. Do not use detached mode, so you can reference the client logs during later steps. 
 
 ```sh
 $ docker run \
