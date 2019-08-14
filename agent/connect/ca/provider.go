@@ -2,6 +2,7 @@ package ca
 
 import (
 	"crypto/x509"
+	"time"
 )
 
 //go:generate mockery -name Provider -inpkg
@@ -68,6 +69,11 @@ type Provider interface {
 	// Issuer related fields changed as necessary. The resulting certificate is
 	// returned as a PEM formatted string.
 	CrossSignCA(*x509.Certificate) (string, error)
+
+	// MinimumLeafTTL must return the shortest validity period supported by the
+	// provider. If Consul is configured with a LeafCertTTL value less than the
+	// minimum, it will cause an error.
+	MinimumLeafTTL() time.Duration
 
 	// Cleanup performs any necessary cleanup that should happen when the provider
 	// is shut down permanently, such as removing a temporary PKI backend in Vault
