@@ -2,9 +2,11 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"log"
 	"net"
 	"os"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -126,6 +128,10 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.NotifyShutdown = returnPortsFn
 
 	return dir, config
+}
+
+func MakeMeATestServer(t *testing.T) (string, *Server) {
+	return testServer(t)
 }
 
 func testServer(t *testing.T) (string, *Server) {
@@ -1076,4 +1082,25 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+}
+
+func TestServer_CALogging(t *testing.T) {
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
+	s1, err := NewServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	if _, ok := s1.caProvider.(ca.NeedsLogger); !ok {
+		t.Fatalf("provider does not implement NeedsLogger")
+	}
+
+	v := reflect.ValueOf(s1.caProvider).Elem().FieldByName("logger")
+	if v.IsNil() {
+		t.Fatalf("provider logger is nil")
+	}
 }
