@@ -43,7 +43,7 @@ First, pull the latest image. You will use Consul's official Docker image in thi
 $ docker pull consul
 ```
 
-Check the image was downloaded by listing all your docker images and looking for Consul image.
+Check the image was downloaded by listing Docker images that match `consul`.
 
 ```sh
 $ docker image ls
