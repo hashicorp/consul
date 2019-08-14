@@ -46,7 +46,7 @@ $ docker pull consul
 Check the image was downloaded by listing Docker images that match `consul`.
 
 ```sh
-$ docker image ls
+$ docker images -f 'reference=consul'
 REPOSITORY     TAG      IMAGE ID        CREATED             SIZE
 consul         latest   c836e84db154     4 days ago         107MB
 ```
