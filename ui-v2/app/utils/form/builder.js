@@ -5,13 +5,16 @@ import lookupValidator from 'ember-changeset-validations';
 // Keep these here for now so forms are easy to make
 // TODO: Probably move this to utils/form/parse-element-name
 import parseElementName from 'consul-ui/utils/get-form-name-property';
+// TODO: Currently supporting ember-data nicely like this
+// Unfortunately since post-ember 2.18, the only way to get this to work
+// is to hang stuff off the prototype (which then makes it available everywhere)
+// we should either try and figure out another way of doing this, or move this code
+// somewhere where it is more 'global' like an initializer
+Changeset.prototype.isSaving = computed('data.isSaving', function() {
+  return this.data.isSaving;
+});
 const defaultChangeset = function(data, validators) {
-  const changeset = new Changeset(data, lookupValidator(validators), validators);
-  // TODO: Currently supporting ember-data nicely like this
-  changeset.isSaving = computed('data.isSaving', function() {
-    return get(this, 'data.isSaving');
-  });
-  return changeset;
+  return new Changeset(data, lookupValidator(validators), validators);
 };
 /**
  * Form builder/Form factory
