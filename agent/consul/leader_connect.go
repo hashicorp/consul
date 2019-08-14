@@ -158,6 +158,11 @@ func (s *Server) initializeCA() error {
 	}
 	s.setCAProvider(provider, nil)
 
+	// If the provider implements NeedsLogger, we give it our logger.
+	if needsLogger, ok := provider.(ca.NeedsLogger); ok {
+		needsLogger.SetLogger(s.logger)
+	}
+
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
