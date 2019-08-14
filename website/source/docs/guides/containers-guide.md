@@ -146,7 +146,7 @@ $ docker exec fox consul reload
 Configuration reload triggered
 ```
 
-If you go back to the terminal window where you started the client, you should see logs showing that the Consul received the hangup signal, is reloading its configuration, and has synced the counting service.
+If you go back to the terminal window where you started the client, you should see logs showing that the Consul client received the hangup signal, reloaded its configuration, and synced the counting service.
 
 ```sh
 2019/07/01 21:49:49 [INFO] agent: Caught signal:  hangup
