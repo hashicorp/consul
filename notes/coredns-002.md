@@ -77,7 +77,7 @@ CoreDNS is a DNS server that chains plugins, where each plugin implements a DNS 
 * plugin/dnssec: replaced go-cache with golang-lru in dnssec. Also adds a `cache_capacity`.
   option in dnssec plugin so that the capacity of the LRU cache could be specified in the config
   file.
-* plugin/logging: allow a response classs to be specified on log on responses matching the name *and*
+* plugin/logging: allow a response class to be specified on log on responses matching the name *and*
   the response class. For instance only log denials for example.com:
 
     ~~~ corefile
