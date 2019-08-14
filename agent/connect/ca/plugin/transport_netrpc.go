@@ -3,7 +3,9 @@ package plugin
 import (
 	"crypto/x509"
 	"net/rpc"
+	"time"
 
+	durpb "github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/agent/connect/ca"
 )
 
@@ -78,6 +80,12 @@ func (p *providerPluginRPCServer) CrossSignCA(args *CrossSignCARequest, resp *Cr
 
 	resp.CrtPem, err = p.impl.CrossSignCA(crt)
 	return err
+}
+
+func (p *providerPluginRPCServer) MinimumLeafTTL(args struct{}, resp *MinimumLeafTTLResponse) error {
+	ttl := p.impl.MinimumLeafTTL()
+	resp.Ttl = durpb.DurationProto(ttl)
+	return nil
 }
 
 func (p *providerPluginRPCServer) Cleanup(struct{}, *struct{}) error {
@@ -161,6 +169,13 @@ func (p *providerPluginRPCClient) CrossSignCA(crt *x509.Certificate) (string, er
 		Crt: crt.Raw,
 	}, &resp)
 	return resp.CrtPem, err
+}
+
+func (p *providerPluginRPCClient) MinimumLeafTTL() time.Duration {
+	var resp MinimumLeafTTLResponse
+	_ = p.client.Call("Plugin.MinimumLeafTTL", struct{}{}, &resp)
+	ttl, _ := durpb.DurationFromProto(resp.Ttl)
+	return ttl
 }
 
 func (p *providerPluginRPCClient) Cleanup() error {
