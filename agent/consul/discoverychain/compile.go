@@ -813,19 +813,38 @@ RESOLVE_AGAIN:
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
 
-	usingExternalSNI := false
 	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil && serviceDefault.ExternalSNI != "" {
 		// Explicitly set the SNI value.
 		target.SNI = serviceDefault.ExternalSNI
-		usingExternalSNI = true
+		target.External = true
+	}
+
+	// If using external SNI the service is fundamentally external.
+	if target.External {
+		if len(resolver.Subsets) > 0 {
+			return nil, &structs.ConfigEntryGraphError{
+				Message: fmt.Sprintf(
+					"service %q has an external SNI set; cannot define subsets for external services",
+					target.Service,
+				),
+			}
+		}
+		if len(resolver.Failover) > 0 {
+			return nil, &structs.ConfigEntryGraphError{
+				Message: fmt.Sprintf(
+					"service %q has an external SNI set; cannot define failover for external services",
+					target.Service,
+				),
+			}
+		}
 	}
 
 	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
 	if target.Datacenter == c.useInDatacenter {
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
 
-	} else if usingExternalSNI {
-		// Bypass mesh gateways if external SNI is configured.
+	} else if target.External {
+		// Bypass mesh gateways if it is an external service.
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
 
 	} else {

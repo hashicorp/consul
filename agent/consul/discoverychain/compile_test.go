@@ -55,13 +55,15 @@ func TestCompile(t *testing.T) {
 		"multi dc canary":            testcase_MultiDatacenterCanary(),
 
 		// various errors
-		"splitter requires valid protocol": testcase_SplitterRequiresValidProtocol(),
-		"router requires valid protocol":   testcase_RouterRequiresValidProtocol(),
-		"split to unsplittable protocol":   testcase_SplitToUnsplittableProtocol(),
-		"route to unroutable protocol":     testcase_RouteToUnroutableProtocol(),
-		"failover crosses protocols":       testcase_FailoverCrossesProtocols(),
-		"redirect crosses protocols":       testcase_RedirectCrossesProtocols(),
-		"redirect to missing subset":       testcase_RedirectToMissingSubset(),
+		"splitter requires valid protocol":        testcase_SplitterRequiresValidProtocol(),
+		"router requires valid protocol":          testcase_RouterRequiresValidProtocol(),
+		"split to unsplittable protocol":          testcase_SplitToUnsplittableProtocol(),
+		"route to unroutable protocol":            testcase_RouteToUnroutableProtocol(),
+		"failover crosses protocols":              testcase_FailoverCrossesProtocols(),
+		"redirect crosses protocols":              testcase_RedirectCrossesProtocols(),
+		"redirect to missing subset":              testcase_RedirectToMissingSubset(),
+		"resolver with failover and external sni": testcase_Resolver_ExternalSNI_FailoverNotAllowed(),
+		"resolver with subsets and external sni":  testcase_Resolver_ExternalSNI_SubsetsNotAllowed(),
 
 		// overrides
 		"resolver with protocol from override":         testcase_ResolverProtocolOverride(),
@@ -1461,10 +1463,59 @@ func testcase_DefaultResolver_ExternalSNI() compileTestCase {
 		Targets: map[string]*structs.DiscoveryTarget{
 			"main.default.dc1": newTarget("main", "", "default", "dc1", func(t *structs.DiscoveryTarget) {
 				t.SNI = "main.some.other.service.mesh"
+				t.External = true
 			}),
 		},
 	}
 	return compileTestCase{entries: entries, expect: expect, expectIsDefault: true}
+}
+
+func testcase_Resolver_ExternalSNI_FailoverNotAllowed() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(&structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "main",
+		ExternalSNI: "main.some.other.service.mesh",
+	})
+	entries.AddResolvers(&structs.ServiceResolverConfigEntry{
+		Kind:           "service-resolver",
+		Name:           "main",
+		ConnectTimeout: 33 * time.Second,
+		Failover: map[string]structs.ServiceResolverFailover{
+			"*": {Service: "backup"},
+		},
+	})
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      `service "main" has an external SNI set; cannot define failover for external services`,
+		expectGraphErr: true,
+	}
+}
+
+func testcase_Resolver_ExternalSNI_SubsetsNotAllowed() compileTestCase {
+	entries := newEntries()
+	entries.AddServices(&structs.ServiceConfigEntry{
+		Kind:        structs.ServiceDefaults,
+		Name:        "main",
+		ExternalSNI: "main.some.other.service.mesh",
+	})
+	entries.AddResolvers(&structs.ServiceResolverConfigEntry{
+		Kind:           "service-resolver",
+		Name:           "main",
+		ConnectTimeout: 33 * time.Second,
+		Subsets: map[string]structs.ServiceResolverSubset{
+			"canary": {
+				Filter: "Service.Meta.version == canary",
+			},
+		},
+	})
+
+	return compileTestCase{
+		entries:        entries,
+		expectErr:      `service "main" has an external SNI set; cannot define subsets for external services`,
+		expectGraphErr: true,
+	}
 }
 
 func testcase_MultiDatacenterCanary() compileTestCase {

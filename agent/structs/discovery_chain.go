@@ -163,7 +163,8 @@ type DiscoveryTarget struct {
 
 	// SNI if set is the sni field to use when addressing this set of
 	// endpoints. If not configured then the default should be used.
-	SNI string `json:",omitempty"`
+	SNI      string `json:",omitempty"`
+	External bool   `json:",omitempty"`
 }
 
 func NewDiscoveryTarget(service, serviceSubset, namespace, datacenter string) *DiscoveryTarget {
