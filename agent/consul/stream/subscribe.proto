@@ -48,6 +48,6 @@ enum CatalogOp {
 
 message ServiceHealthUpdate {
     CatalogOp Op = 1;
-    CheckServiceNode ServiceNode = 2;
+    CheckServiceNode CheckServiceNode = 2;
 }
 
