@@ -293,7 +293,7 @@ func init() {
 			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
 		{"consul.datacenter",
 			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
-		{"consul.visibility",
+		{"consul.routing_type",
 			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)}, // internal:true/false would be idea
 		{"consul.trust_domain",
 			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
