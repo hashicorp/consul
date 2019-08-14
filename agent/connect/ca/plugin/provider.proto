@@ -12,6 +12,8 @@ syntax = "proto3";
 
 option go_package = "github.com/hashicorp/consul/agent/connect/ca/plugin";
 
+import "google/protobuf/duration.proto";
+
 package plugin;
 
 service CA {
@@ -25,6 +27,7 @@ service CA {
     rpc Sign(SignRequest) returns (SignResponse);
     rpc SignIntermediate(SignIntermediateRequest) returns (SignIntermediateResponse);
     rpc CrossSignCA(CrossSignCARequest) returns (CrossSignCAResponse);
+    rpc MinimumLeafTTL(Empty) returns (MinimumLeafTTLResponse);
     rpc Cleanup(Empty) returns (Empty);
 }
 
@@ -77,6 +80,10 @@ message SignIntermediateResponse {
 
 message CrossSignCAResponse {
     string crt_pem = 1;
+}
+
+message MinimumLeafTTLResponse {
+    google.protobuf.Duration ttl = 1;
 }
 
 // Protobufs doesn't allow no req/resp so in the cases where there are
