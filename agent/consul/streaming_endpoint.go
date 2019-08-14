@@ -3,7 +3,9 @@ package consul
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	bexpr "github.com/hashicorp/go-bexpr"
 )
@@ -26,6 +28,8 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	default:
 		return fmt.Errorf("only ServiceHealth topic is supported")
 	}
+
+	metrics.IncrCounter([]string{"subscribe", strings.ToLower(req.Topic.String())}, 1)
 
 	// Resolve the token and create the ACL filter.
 	rule, err := h.srv.ResolveToken(req.Token)
@@ -50,27 +54,9 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		snapshotCh := make(chan stream.Event, 32)
 		go snapshotFunc(server.Context(), snapshotCh, req.Key)
 
-		// Wait for the events to come in and forward them to the client.
+		// Wait for the events to come in and send them to the client.
 		for event := range snapshotCh {
-			// Filter events by ACL rules.
-			event.SetACLRules()
-			if !aclFilter.allowEvent(event) {
-				continue
-			}
-
-			// Apply boolean expression filtering.
-			if eval != nil {
-				allow, err := eval.Evaluate(event.FilterObject())
-				if err != nil {
-					return err
-				}
-				if !allow {
-					continue
-				}
-			}
-
-			// Send the event.
-			if err := server.Send(&event); err != nil {
+			if err := sendEvent(event, aclFilter, eval, server); err != nil {
 				return err
 			}
 		}
@@ -94,31 +80,43 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		case <-server.Context().Done():
 			return nil
 		case event, ok := <-eventCh:
+			// If the channel was closed, that means the state store filled it up
+			// faster than we could pull events out.
 			if !ok {
 				return fmt.Errorf("handler could not keep up with events")
 			}
 
-			// Filter events by ACL rules.
-			event.SetACLRules()
-			if !aclFilter.allowEvent(event) {
-				continue
-			}
-
-			// Apply boolean expression filtering.
-			if eval != nil {
-				allow, err := eval.Evaluate(event.FilterObject())
-				if err != nil {
-					return err
-				}
-				if !allow {
-					continue
-				}
-			}
-
-			// Send the event.
-			if err := server.Send(&event); err != nil {
+			if err := sendEvent(event, aclFilter, eval, server); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+// sendEvent sends the given event along the stream if it passes ACL and boolean
+// filtering.
+func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator, server stream.Consul_SubscribeServer) error {
+	// Filter events by ACL rules.
+	event.SetACLRules()
+	if !aclFilter.allowEvent(event) {
+		return nil
+	}
+
+	// Apply boolean expression filtering.
+	if eval != nil {
+		allow, err := eval.Evaluate(event.FilterObject())
+		if err != nil {
+			return err
+		}
+		if !allow {
+			return nil
+		}
+	}
+
+	// Send the event.
+	if err := server.Send(&event); err != nil {
+		return err
+	}
+
+	return nil
 }
