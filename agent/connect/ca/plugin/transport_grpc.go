@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"time"
 
+	durpb "github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"google.golang.org/grpc"
 )
@@ -79,6 +81,11 @@ func (p *providerPluginGRPCServer) CrossSignCA(_ context.Context, req *CrossSign
 
 	crtPEM, err := p.impl.CrossSignCA(crt)
 	return &CrossSignCAResponse{CrtPem: crtPEM}, err
+}
+
+func (p *providerPluginGRPCServer) MinimumLeafTTL(context.Context, *Empty) (*MinimumLeafTTLResponse, error) {
+	ttl := p.impl.MinimumLeafTTL()
+	return &MinimumLeafTTLResponse{Ttl: durpb.DurationProto(ttl)}, nil
 }
 
 func (p *providerPluginGRPCServer) Cleanup(context.Context, *Empty) (*Empty, error) {
@@ -190,6 +197,12 @@ func (p *providerPluginGRPCClient) CrossSignCA(crt *x509.Certificate) (string, e
 	}
 
 	return resp.CrtPem, nil
+}
+
+func (p *providerPluginGRPCClient) MinimumLeafTTL() time.Duration {
+	resp, _ := p.client.MinimumLeafTTL(p.doneCtx, &Empty{})
+	min, _ := durpb.DurationFromProto(resp.Ttl)
+	return min
 }
 
 func (p *providerPluginGRPCClient) Cleanup() error {
