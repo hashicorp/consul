@@ -10,17 +10,17 @@ func (e *Event) SetACLRules() {
 		if health == nil {
 			return
 		}
-		if health.ServiceNode != nil {
-			if health.ServiceNode.Node != nil {
+		if health.CheckServiceNode != nil {
+			if health.CheckServiceNode.Node != nil {
 				rules = append(rules, &ACLRule{
 					Resource: ACLResource_NodeACL,
-					Segment:  health.ServiceNode.Node.Node,
+					Segment:  health.CheckServiceNode.Node.Node,
 				})
 			}
-			if health.ServiceNode.Service != nil {
+			if health.CheckServiceNode.Service != nil {
 				rules = append(rules, &ACLRule{
 					Resource: ACLResource_ServiceACL,
-					Segment:  health.ServiceNode.Service.Service,
+					Segment:  health.CheckServiceNode.Service.Service,
 				})
 			}
 		}

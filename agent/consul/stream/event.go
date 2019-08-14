@@ -9,7 +9,7 @@ func (e *Event) FilterObject() interface{} {
 
 	switch e.Payload.(type) {
 	case *Event_ServiceHealth:
-		return e.GetServiceHealth().ServiceNode
+		return e.GetServiceHealth().CheckServiceNode
 	default:
 		return nil
 	}

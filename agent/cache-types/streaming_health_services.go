@@ -60,12 +60,12 @@ type healthServicesHandler struct {
 // HandleEvent updates the handler's state based on register/deregister events.
 func (h *healthServicesHandler) HandleEvent(event *stream.Event) {
 	serviceHealth := event.GetServiceHealth()
-	node := serviceHealth.ServiceNode
+	node := serviceHealth.CheckServiceNode
 	id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 
 	switch serviceHealth.Op {
 	case stream.CatalogOp_Register:
-		checkServiceNode := stream.FromCheckServiceNode(serviceHealth.ServiceNode)
+		checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
 		h.state[id] = checkServiceNode
 	case stream.CatalogOp_Deregister:
 		delete(h.state, id)

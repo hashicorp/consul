@@ -55,8 +55,8 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 
 		event.Payload = &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
-				Op:          stream.CatalogOp_Register,
-				ServiceNode: stream.ToCheckServiceNode(&n),
+				Op:               stream.CatalogOp_Register,
+				CheckServiceNode: stream.ToCheckServiceNode(&n),
 			},
 		}
 
@@ -89,7 +89,7 @@ func (s *Store) DeregistrationEvents(tx *memdb.Txn, idx uint64, node string) ([]
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Deregister,
-					ServiceNode: &stream.CheckServiceNode{
+					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{Node: node},
 					},
 				},
