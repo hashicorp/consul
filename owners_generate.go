@@ -43,7 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	// sort it and format it
 	list := []string{}
 	for k := range o {
