@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -249,6 +250,26 @@ func TestProvider_CrossSignCA(t *testing.T) {
 		actual, err = p.CrossSignCA(crt)
 		require.Error(err)
 		require.Contains(err.Error(), "hello")
+		m.AssertExpectations(t)
+	})
+}
+
+func TestProvider_MinimumLeafTTL(t *testing.T) {
+	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
+		require := require.New(t)
+		foo := 1 * time.Hour
+
+		// Try with no error
+		m.On("MinimumLeafTTL").Once().Return(foo)
+		actual := p.MinimumLeafTTL()
+		require.Equal(foo, actual)
+		m.AssertExpectations(t)
+
+		// Try with an error
+		m.Mock = mock.Mock{}
+		m.On("MinimumLeafTTL").Once().Return(3 * time.Hour)
+		actual = p.MinimumLeafTTL()
+		require.NotEqual(foo, actual)
 		m.AssertExpectations(t)
 	})
 }
