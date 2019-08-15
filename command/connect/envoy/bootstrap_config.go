@@ -281,26 +281,25 @@ func init() {
 	// - cluster.v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 	// - cluster.f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 	const PART = `[^.]+`
-	const MAYBEPART = `[^.]*`
 	rules := [][]string{
 		{"consul.custom_hash",
-			fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.service_subset",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.service",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.namespace",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.datacenter",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.routing_type",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)}, // internal:true/false would be idea
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)}, // internal:true/false would be idea
 		{"consul.trust_domain",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.target",
-			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 		{"consul.full_target",
-			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`, MAYBEPART, MAYBEPART, PART, PART, PART, PART, PART)},
+			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
 	}
 
 	for _, rule := range rules {
