@@ -231,7 +231,11 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	if err != nil {
 		return err
 	}
-	if commonConfig.LeafCertTTL < provider.MinimumLeafTTL() {
+	if commonConfig.LeafCertTTL.Seconds() == 0 {
+		commonConfig.LeafCertTTL = provider.MinimumLeafTTL()
+		s.logger.Printf("[WARN] leaf TTL not configured, setting to provider minimum of %v",
+			provider.MinimumLeafTTL())
+	} else if commonConfig.LeafCertTTL < provider.MinimumLeafTTL() {
 		return fmt.Errorf("configured leaf TTL of %v is less than provider minimum of %v",
 			commonConfig.LeafCertTTL, provider.MinimumLeafTTL())
 	}
