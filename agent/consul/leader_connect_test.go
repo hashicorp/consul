@@ -78,6 +78,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	require.Equal(roots1[0].RootCert, roots2[0].RootCert)
 	require.Equal(1, len(roots1))
 	require.Equal(len(roots1), len(roots2))
+	require.Empty(roots1[0].IntermediateCerts)
+	require.NotEmpty(roots2[0].IntermediateCerts)
 
 	// Have secondary sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
