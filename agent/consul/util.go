@@ -322,6 +322,14 @@ func ServersGetACLMode(members []serf.Member, leader string, datacenter string) 
 				continue
 			}
 
+			if parts.Status != serf.StatusAlive && parts.Status != serf.StatusFailed {
+				// ignore any server that isn't alive or failed. We are considering failed
+				// because in this state there is a reasonable expectation that they could
+				// become stable again. Also autopilot should remove dead servers if they
+				// are truly gone.
+				continue
+			}
+
 			numServers += 1
 
 			if memberAddr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String(); memberAddr == leader {
