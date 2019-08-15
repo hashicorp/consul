@@ -68,7 +68,7 @@ const (
 	podModeDisabled = "disabled"
 	// podModeVerified is where Pod requests are answered only if they exist
 	podModeVerified = "verified"
-	// podModeInsecure is where pod requests are answered without verfying they exist
+	// podModeInsecure is where pod requests are answered without verifying they exist
 	podModeInsecure = "insecure"
 	// DNSSchemaVersion is the schema version: https://github.com/kubernetes/dns/blob/master/docs/specification.md
 	DNSSchemaVersion = "1.0.1"
