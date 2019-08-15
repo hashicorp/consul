@@ -42,7 +42,7 @@ plane with Consul operating as the control plane.
 
 Proxies provide excellent solutions to layer 7 concerns such as path-based
 routing, tracing and telemetry, and more. By supporting a pluggable data plane model, the right proxy can be
-deployed as needed. For non-performance critical layer 4 applications, the [built-in proxy](https://www.consul.io/docs/connect/proxies/built-in.html)
+deployed as needed.
 could be used. For performance critical applications or those
 that utilize layey 7 functionality, Envoy can be used.
 
