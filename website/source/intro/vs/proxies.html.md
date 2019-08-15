@@ -10,7 +10,7 @@ description: |-
 
 Modern service proxies provide high-level service routing, authentication,
 telemetry, and more for microservice and cloud environments. Envoy is
-a popular and feature rich proxy which Consul [integrates with](https://www.consul.io/docs/connect/proxies/envoy.html) but that is often
+a popular and feature-rich proxy that is often
 utilized without Consul or something like it.
 
 Proxies require a rich set of configuration to operate since backend
