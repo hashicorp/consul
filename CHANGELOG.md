@@ -5,6 +5,10 @@ SECURITY:
 * Updated to compile with Go 1.12.8 which mitigates CVE-2019-9512 and CVE-2019-9514 for the builtin HTTP server
 * Updated the google.golang.org/grpc dependency to v1.23.0 to mitigate CVE-2019-9512, CVE-2019-9514, and CVE-2019-9515 for the gRPC server.
 
+IMPROVEMENTS:
+
+* xds: improve how envoy metrics are emitted [[GH-6312](https://github.com/hashicorp/consul/issues/6312)]
+
 BUG FIXES:
 
 * agent: blocking central config RPCs iterations should not interfere with each other [[GH-6316](https://github.com/hashicorp/consul/issues/6316)]
