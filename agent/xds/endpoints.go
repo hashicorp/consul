@@ -9,6 +9,7 @@ import (
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/gogo/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -38,8 +39,6 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.UpstreamEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
-	// TODO(rb): should naming from 1.5 -> 1.6 for clusters remain unchanged?
-
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
 
@@ -51,7 +50,12 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		if chain == nil {
 			// We ONLY want this branch for prepared queries.
 
-			clusterName := UpstreamSNI(&u, "", cfgSnap)
+			dc := u.Datacenter
+			if dc == "" {
+				dc = cfgSnap.Datacenter
+			}
+			clusterName := connect.UpstreamSNI(&u, "", dc, cfgSnap.Roots.TrustDomain)
+
 			endpoints, ok := cfgSnap.ConnectProxy.UpstreamEndpoints[id]
 			if ok {
 				la := makeLoadAssignment(
@@ -77,8 +81,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 				target := chain.Targets[targetID]
 
-				sni := TargetSNI(target, cfgSnap)
-				clusterName := CustomizeClusterName(sni, chain)
+				clusterName := CustomizeClusterName(target.Name, chain)
 
 				// Determine if we have to generate the entire cluster differently.
 				failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
@@ -151,7 +154,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// generate the endpoints for the gateways in the remote datacenters
 	for dc, endpoints := range cfgSnap.MeshGateway.GatewayGroups {
-		clusterName := DatacenterSNI(dc, cfgSnap)
+		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 		la := makeLoadAssignment(
 			clusterName,
 			[]loadAssignmentEndpointGroup{
@@ -164,7 +167,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// generate the endpoints for the local service groups
 	for svc, endpoints := range cfgSnap.MeshGateway.ServiceGroups {
-		clusterName := ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap)
+		clusterName := connect.ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		la := makeLoadAssignment(
 			clusterName,
 			[]loadAssignmentEndpointGroup{
@@ -178,7 +181,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	// generate the endpoints for the service subsets
 	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
 		for subsetName, subset := range resolver.Subsets {
-			clusterName := ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap)
+			clusterName := connect.ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 			endpoints := cfgSnap.MeshGateway.ServiceGroups[svc]
 

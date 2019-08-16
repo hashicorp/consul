@@ -11,6 +11,7 @@ func TestCompileConfigEntries(
 	serviceName string,
 	evaluateInNamespace string,
 	evaluateInDatacenter string,
+	evaluateInTrustDomain string,
 	useInDatacenter string,
 	setup func(req *CompileRequest),
 	entries ...structs.ConfigEntry,
@@ -20,11 +21,12 @@ func TestCompileConfigEntries(
 	set.AddEntries(entries...)
 
 	req := CompileRequest{
-		ServiceName:          serviceName,
-		EvaluateInNamespace:  evaluateInNamespace,
-		EvaluateInDatacenter: evaluateInDatacenter,
-		UseInDatacenter:      useInDatacenter,
-		Entries:              set,
+		ServiceName:           serviceName,
+		EvaluateInNamespace:   evaluateInNamespace,
+		EvaluateInDatacenter:  evaluateInDatacenter,
+		EvaluateInTrustDomain: evaluateInTrustDomain,
+		UseInDatacenter:       useInDatacenter,
+		Entries:               set,
 	}
 	if setup != nil {
 		setup(&req)

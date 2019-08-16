@@ -839,7 +839,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		entries = append(entries, additionalEntries...)
 	}
 
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", "dc1", compileSetup, entries...)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
 
 	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,

@@ -151,6 +151,8 @@ type DiscoveryFailover struct {
 // config entry to execute a catalog query to generate a list of service
 // instances during discovery.
 type DiscoveryTarget struct {
+	// ID is a unique identifier for referring to this target in a compiled
+	// chain. It should be treated as a per-compile opaque string.
 	ID string `json:",omitempty"`
 
 	Service       string `json:",omitempty"`
@@ -161,10 +163,17 @@ type DiscoveryTarget struct {
 	MeshGateway MeshGatewayConfig     `json:",omitempty"`
 	Subset      ServiceResolverSubset `json:",omitempty"`
 
-	// SNI if set is the sni field to use when addressing this set of
-	// endpoints. If not configured then the Connect default should be used.
-	SNI      string `json:",omitempty"`
-	External bool   `json:",omitempty"`
+	// External is true if this target is outside of this consul cluster.
+	External bool `json:",omitempty"`
+
+	// SNI is the sni field to use when connecting to this set of endpoints
+	// over TLS.
+	SNI string `json:",omitempty"`
+
+	// Name is the unique name for this target for use when generating load
+	// balancer objects.  This has a structure similar to SNI, but will not be
+	// affected by SNI customizations.
+	Name string `json:",omitempty"`
 }
 
 func NewDiscoveryTarget(service, serviceSubset, namespace, datacenter string) *DiscoveryTarget {

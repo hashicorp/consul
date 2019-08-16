@@ -20,6 +20,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -293,7 +294,12 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 
 	upstreamID := u.Identifier()
 
-	sni := UpstreamSNI(u, "", cfgSnap)
+	dc := u.Datacenter
+	if dc == "" {
+		dc = cfgSnap.Datacenter
+	}
+	sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
+
 	clusterName := CustomizeClusterName(sni, chain)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
@@ -343,7 +349,7 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
 	// We need 1 Filter Chain per datacenter
 	for dc := range cfgSnap.MeshGateway.GatewayGroups {
-		clusterName := DatacenterSNI(dc, cfgSnap)
+		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 		filterName := fmt.Sprintf("%s_%s", name, dc)
 		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote_")
 		if err != nil {
