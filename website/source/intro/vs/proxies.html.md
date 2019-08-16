@@ -10,7 +10,8 @@ description: |-
 
 Modern service proxies provide high-level service routing, authentication,
 telemetry, and more for microservice and cloud environments. Envoy is
-a popular and feature rich proxy.
+a popular and feature-rich proxy that is often
+used on its own. Consul [integrates with Envoy](https://www.consul.io/docs/connect/proxies/envoy.html) to simplify its configuration. 
 
 Proxies require a rich set of configuration to operate since backend
 addresses, frontend listeners, routes, filters, telemetry shipping, and
@@ -33,23 +34,20 @@ access graph, but still requires a proxy to exist in the data path. As a
 control plane, Consul integrates with many data plane solutions including
 Envoy, HAProxy, Nginx, and more.
 
-Consul provides a built-in proxy written in Go. This trades performance
-for ease of use: by being built-in to Consul, users of Consul can get
-started with solutions such as Connect without needing to install other
-software. But the built-in proxy isn't meant to compete on features or
-performance with dedicated proxy solutions such as Envoy. Consul enables
+The [Consul Envoy integration](https://www.consul.io/docs/connect/proxies/envoy.html)
+is currently the primary way to utilize advanced layer 7 features provided
+by Consul. In addition to Envoy, Consul enables
 third party proxies to integrate with Connect and provide the data
 plane with Consul operating as the control plane.
 
-The Connect feature of Consul operates at layer 4 by authorizing a TLS
-connection to succeed or fail. Proxies provide excellent solutions to
-layer 7 concerns such as path-based routing, tracing and telemetry, and
-more. Consul encourages using any proxy that provides the featureset required
-by the user.
+Proxies provide excellent solutions to layer 7 concerns such as path-based
+routing, tracing and telemetry, and more. By supporting a pluggable data plane model, the right proxy can be
+deployed as needed.
+For performance-critical applications or those
+that utilize layey 7 functionality, Envoy can be used. For non-performance critical layer 4 applications, you can use Consul's [built-in proxy](https://www.consul.io/docs/connect/proxies/built-in.html) for convenience.
 
-Further, by supporting a pluggable data plane model, the right proxy can be
-deployed as needed. For non-performance critical applications, the built-in
-proxy can be used. For performance critical applications, Envoy can be used.
 For some applications that may require hardware, a hardware load balancer
-such an F5 appliance may be deployed. Consul provides an API for all of these
-solutions to be integrated.
+such an F5 appliance may be deployed. Consul encourages this use of the right
+proxy for the scenario and treats hardware load balancers as swappable components that can be run
+alongside other proxies, assuming they integrate with the [necessary APIs](https://www.consul.io/docs/connect/proxies/integrate.html)
+for Connect.
