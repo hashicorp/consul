@@ -27,7 +27,7 @@ type ToFunc func(interface{}) interface{}
 // Empty is an empty struct.
 type Empty struct{}
 
-// GetObjectKind implementss the ObjectKind interface as a noop.
+// GetObjectKind implements the ObjectKind interface as a noop.
 func (e *Empty) GetObjectKind() schema.ObjectKind { return schema.EmptyObjectKind }
 
 // GetGenerateName implements the metav1.Object interface.
