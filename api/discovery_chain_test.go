@@ -7,6 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testClusterID is the Consul cluster ID for testing.
+const testClusterID = "11111111-2222-3333-4444-555555555555"
+
 func TestAPI_DiscoveryChain_Get(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -43,6 +46,8 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc1",
+						SNI:        "web.default.dc1.internal." + testClusterID + ".consul",
+						Name:       "web.default.dc1.internal." + testClusterID + ".consul",
 					},
 				},
 			},
@@ -81,6 +86,8 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc2",
+						SNI:        "web.default.dc2.internal." + testClusterID + ".consul",
+						Name:       "web.default.dc2.internal." + testClusterID + ".consul",
 					},
 				},
 			},
@@ -125,6 +132,8 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 						Service:    "web",
 						Namespace:  "default",
 						Datacenter: "dc1",
+						SNI:        "web.default.dc1.internal." + testClusterID + ".consul",
+						Name:       "web.default.dc1.internal." + testClusterID + ".consul",
 					},
 				},
 			},
@@ -171,6 +180,8 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 						MeshGateway: MeshGatewayConfig{
 							Mode: MeshGatewayModeLocal,
 						},
+						SNI:  "web.default.dc2.internal." + testClusterID + ".consul",
+						Name: "web.default.dc2.internal." + testClusterID + ".consul",
 					},
 				},
 			},
