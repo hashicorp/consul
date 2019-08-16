@@ -50,7 +50,7 @@ func CustomizeClusterName(sni string, chain *structs.CompiledDiscoveryChain) str
 	if chain == nil || chain.CustomizationHash == "" {
 		return sni
 	}
-	// Use a colon to delimit this prefix instead of a dot to avoid a
+	// Use a tilde to delimit this prefix instead of a dot to avoid a
 	// theoretical collision problem with subsets.
-	return fmt.Sprintf("%s:%s", chain.CustomizationHash, sni)
+	return fmt.Sprintf("%s~%s", chain.CustomizationHash, sni)
 }
