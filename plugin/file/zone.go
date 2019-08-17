@@ -155,7 +155,7 @@ func (z *Zone) TransferAllowed(state request.Request) bool {
 }
 
 // All returns all records from the zone, the first record will be the SOA record,
-// otionally followed by all RRSIG(SOA)s.
+// optionally followed by all RRSIG(SOA)s.
 func (z *Zone) All() []dns.RR {
 	records := []dns.RR{}
 	z.RLock()
