@@ -6,14 +6,18 @@
 
 ## Description
 
-The clouddns plugin is useful for serving zones from resource record
-sets in GCP clouddns. This plugin supports all [Google Cloud DNS records](https://cloud.google.com/dns/docs/overview#supported_dns_record_types).
-The clouddns plugin can be used when coredns is deployed on GCP or elsewhere.
+The clouddns plugin is useful for serving zones from resource record sets in GCP clouddns.
+This plugin supports all [Google Cloud DNS records](https://cloud.google.com/dns/docs/overview#supported_dns_record_types).
+The clouddns plugin can be used when coredns is deployed on GCP or elsewhere. Note that
+this plugin access the the resource records through Google Cloud API. For records in a
+privately hosted zone, it is not necessary to place CoreDNS and this plugin in associated
+VPC network. In fact the private hosted zone could be created without any associated VPC
+and this plugin could still access the resource records under the hosted zone.
 
 ## Syntax
 
 ~~~ txt
-clouddns [ZONE:PROJECT_NAME:HOSTED_ZONE_NAME...] {
+clouddns [ZONE:PROJECT_ID:HOSTED_ZONE_NAME...] {
     credentials [FILENAME]
     fallthrough [ZONES...]
 }
@@ -23,12 +27,14 @@ clouddns [ZONE:PROJECT_NAME:HOSTED_ZONE_NAME...] {
     domains (private vs. public hosted zone), CoreDNS does the lookup in the given order here.
     Therefore, for a non-existing resource record, SOA response will be from the rightmost zone.
 
+*   **PROJECT_ID** the project ID of the Google Cloud project.
+
 *   **HOSTED_ZONE_NAME** the name of the hosted zone that contains the resource record sets to be
     accessed.
 
 *   `credentials` is used for reading the credential file.
 
-*   **FILENAME** GCP credentials file path.
+*   **FILENAME** GCP credentials file path (normally a .json file).
 
 *   `fallthrough` If zone matches and no record can be generated, pass request to the next plugin.
     If **[ZONES...]** is omitted, then fallthrough happens for all zones for which the plugin is
@@ -43,7 +49,7 @@ Enable clouddns with implicit GCP credentials and resolve CNAMEs via 10.0.0.1:
 
 ~~~ txt
 . {
-	clouddns example.org.:gcp-example-project:example-zone
+    clouddns example.org.:gcp-example-project:example-zone
     forward . 10.0.0.1
 }
 ~~~
@@ -53,7 +59,7 @@ Enable clouddns with fallthrough:
 ~~~ txt
 . {
     clouddns example.org.:gcp-example-project:example-zone clouddns example.com.:gcp-example-project:example-zone-2 {
-      fallthrough example.gov.
+        fallthrough example.gov.
     }
 }
 ~~~
