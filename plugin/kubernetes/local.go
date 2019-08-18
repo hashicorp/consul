@@ -21,7 +21,8 @@ func localPodIP() net.IP {
 	return nil
 }
 
-func (k *Kubernetes) localNodeName() string {
+// LocalNodeName is exclusively used in federation plugin, will be deprecated later.
+func (k *Kubernetes) LocalNodeName() string {
 	localIP := k.interfaceAddrsFunc()
 	if localIP == nil {
 		return ""
