@@ -30,7 +30,7 @@ Back to the release.
 * gRPC and TLS are made first class citizens. See [the zone
   specification](https://github.com/coredns/coredns/blob/master/README.md#zone-specification) on how
   to use it. TL;DR using `grpc://` makes the server talk gRPC. The `tls` directive is used to
-  specify TLS certifcates.
+  specify TLS certificates.
 * Zipkin tracing can be enabled for all plugin.
 
 # Plugins
