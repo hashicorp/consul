@@ -1,5 +1,6 @@
 dist: xenial
-
+services:
+  - docker
 language: go
 go:
   - "1.12.x"
@@ -18,10 +19,16 @@ branches:
   - master
 
 env:
-  - TEST_TYPE=coverage
-  - TEST_TYPE=integration
-  - TEST_TYPE=core
-  - TEST_TYPE=plugin
+  global:
+    # This is FUZZIT_API_KEY
+    - secure: "IGpZAyt1e5BZ1C4LeJG+GrgFZzaBQkJ3BX/+MwWN85aJSDk5gwThS53OCr/7RFgBKBgP9xBv9i9hAv0PxVaRE0ETIzjc0rQzceJIWiYKfFYQyscFahKfSiGsWP32rMlU3K67tA7yITS+Z8mMyVH9Ndr1Fg9AmLL+WfATdrd6dP8hzsUpaghKlnJee9TycrfamDpISzecdOY9xzxcwRyphZxuCc/n236Nt7f7Ccz0zx/Qa5igX6mjKZpUyBpS2u02GmNJTfc3W5SbTRP5bSJ+ozSkZZyG3tTpYmeN87AQJ/oG7rUEzqGLt78i7jSYAXghJZT06H/fHFsOKssCj1m0hYiarnGoGzXScLDqp2fpkyzilsUT+W0VgXTy2Nq+88Sideiy6UwDwpqHr5ktyoYFeSVB/aCTJl5oxDxBqs9dfeJSEAy7/AYy8kJoIE/yPYsBnGw10CAED4Rf5mfDgstkZRBdAO0xLBihkPsgza2975DVf27YSjJZ4eKrnR+G/aNCKycLQvWD/5c2bcLCJqyz0uMLQC/4LspS9b5bAKurzqFRdrD5q78NDcbodHelc7zBlFrRwGFCUjXTbQoU6r+1FA8y2Z+n1bd7mIF1JBVHurYAygyYXOcry870hyucGojonvdgBvHp6txeYyPU14VvTNwkF2mddpBCvoSTSPZ5X64="
+  matrix:
+    - TEST_TYPE=coverage
+    - TEST_TYPE=integration
+    - TEST_TYPE=core
+    - TEST_TYPE=plugin
+    - TEST_TYPE=fuzzit FUZZIT_TYPE=local-regression
+    - TEST_TYPE=fuzzit FUZZIT_TYPE=fuzzing
 
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
