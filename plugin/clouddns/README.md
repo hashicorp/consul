@@ -2,17 +2,18 @@
 
 ## Name
 
-*clouddns* - enables serving zone data from GCP clouddns.
+*clouddns* - enables serving zone data from GCP Cloud DNS.
 
 ## Description
 
-The clouddns plugin is useful for serving zones from resource record sets in GCP clouddns.
-This plugin supports all [Google Cloud DNS records](https://cloud.google.com/dns/docs/overview#supported_dns_record_types).
-The clouddns plugin can be used when coredns is deployed on GCP or elsewhere. Note that
-this plugin access the the resource records through Google Cloud API. For records in a
-privately hosted zone, it is not necessary to place CoreDNS and this plugin in associated
-VPC network. In fact the private hosted zone could be created without any associated VPC
-and this plugin could still access the resource records under the hosted zone.
+The *clouddns* plugin is useful for serving zones from resource record
+sets in GCP Cloud DNS. This plugin supports all [Google Cloud DNS
+records](https://cloud.google.com/dns/docs/overview#supported_dns_record_types). This plugin can
+be used when CoreDNS is deployed on GCP or elsewhere. Note that this plugin accesses the resource
+records through the Google Cloud API. For records in a privately hosted zone, it is not necessary to
+place CoreDNS and this plugin in the associated VPC network. In fact the private hosted zone could
+be created without any associated VPC and this plugin could still access the resource records under
+the hosted zone.
 
 ## Syntax
 
