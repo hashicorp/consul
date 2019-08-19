@@ -5,6 +5,11 @@ SECURITY:
 * Updated to compile with Go 1.12.8 which mitigates CVE-2019-9512 and CVE-2019-9514 for the builtin HTTP server
 * Updated the google.golang.org/grpc dependency to v1.23.0 to mitigate CVE-2019-9512, CVE-2019-9514, and CVE-2019-9515 for the gRPC server.
 
+FEATURES:
+
+* connect: generate the full SNI names for discovery targets in the compiler rather than in the xds package [[GH-6340](https://github.com/hashicorp/consul/issues/6340)]
+* connect: introduce ExternalSNI field on service-defaults [[GH-6324](https://github.com/hashicorp/consul/issues/6324)]
+
 IMPROVEMENTS:
 
 * xds: improve how envoy metrics are emitted [[GH-6312](https://github.com/hashicorp/consul/issues/6312)]
