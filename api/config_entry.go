@@ -53,15 +53,15 @@ const (
 // services
 type MeshGatewayConfig struct {
 	// Mode is the mode that should be used for the upstream connection.
-	Mode MeshGatewayMode
+	Mode MeshGatewayMode `json:",omitempty"`
 }
 
 type ServiceConfigEntry struct {
 	Kind        string
 	Name        string
-	Protocol    string
-	MeshGateway MeshGatewayConfig
-	ExternalSNI string
+	Protocol    string            `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	ExternalSNI string            `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -85,8 +85,8 @@ func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
 type ProxyConfigEntry struct {
 	Kind        string
 	Name        string
-	Config      map[string]interface{}
-	MeshGateway MeshGatewayConfig
+	Config      map[string]interface{} `json:",omitempty"`
+	MeshGateway MeshGatewayConfig      `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }

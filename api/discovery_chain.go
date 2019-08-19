@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -167,6 +168,42 @@ type DiscoveryResolver struct {
 	ConnectTimeout time.Duration
 	Target         string
 	Failover       *DiscoveryFailover
+}
+
+func (r *DiscoveryResolver) MarshalJSON() ([]byte, error) {
+	type Alias DiscoveryResolver
+	exported := &struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: r.ConnectTimeout.String(),
+		Alias:          (*Alias)(r),
+	}
+	if r.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (r *DiscoveryResolver) UnmarshalJSON(data []byte) error {
+	type Alias DiscoveryResolver
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if r.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // compiled form of ServiceResolverFailover
