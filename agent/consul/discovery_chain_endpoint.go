@@ -19,6 +19,11 @@ type DiscoveryChain struct {
 }
 
 func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs.DiscoveryChainResponse) error {
+	// Exit early if Connect hasn't been enabled.
+	if !c.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	if done, err := c.srv.forward("DiscoveryChain.Get", args, args, reply); done {
 		return err
 	}
@@ -57,7 +62,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 				return err
 			}
 
-			_, _, config, err := state.CARootsAndConfig(ws)
+			_, config, err := state.CAConfig(ws)
 			if err != nil {
 				return err
 			} else if config == nil {
