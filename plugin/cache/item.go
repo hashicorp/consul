@@ -54,7 +54,7 @@ func (i *item) toMsg(m *dns.Msg, now time.Time) *dns.Msg {
 	m1 := new(dns.Msg)
 	m1.SetReply(m)
 
-	// Set this to true as some DNS clients disgard the *entire* packet when it's non-authoritative.
+	// Set this to true as some DNS clients discard the *entire* packet when it's non-authoritative.
 	// This is probably not according to spec, but the bit itself is not super useful as this point, so
 	// just set it to true.
 	m1.Authoritative = true
