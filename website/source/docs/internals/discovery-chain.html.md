@@ -18,7 +18,7 @@ passes through three distinct stages: routing, splitting, and resolution. Each
 of these stages is controlled by a set of [configuration
 entries](/docs/agent/config_entries.html).
 
--> **NOTE** The discovery chain is only used to discover
+-> **Note** - The discovery chain is only used to discover
 [Connect](/docs/connect/index.html) proxy upstreams.
 
 ## Configuration
