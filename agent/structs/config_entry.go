@@ -79,11 +79,7 @@ func (e *ServiceConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ServiceDefaults
-	if e.Protocol == "" {
-		e.Protocol = DefaultServiceProtocol
-	} else {
-		e.Protocol = strings.ToLower(e.Protocol)
-	}
+	e.Protocol = strings.ToLower(e.Protocol)
 
 	return nil
 }

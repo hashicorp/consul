@@ -23,11 +23,13 @@ func TestConfigEntry_Apply(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
+	updated := &structs.ServiceConfigEntry{
+		Name: "foo",
+	}
+
 	args := structs.ConfigEntryRequest{
 		Datacenter: "dc1",
-		Entry: &structs.ServiceConfigEntry{
-			Name: "foo",
-		},
+		Entry:      updated,
 	}
 	out := false
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
@@ -42,13 +44,17 @@ func TestConfigEntry_Apply(t *testing.T) {
 	require.Equal("foo", serviceConf.Name)
 	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
 
+	updated = &structs.ServiceConfigEntry{
+		Name: "foo",
+		MeshGateway: structs.MeshGatewayConfig{
+			Mode: structs.MeshGatewayModeLocal,
+		},
+	}
+
 	args = structs.ConfigEntryRequest{
 		Datacenter: "dc1",
 		Op:         structs.ConfigEntryUpsertCAS,
-		Entry: &structs.ServiceConfigEntry{
-			Name:     "foo",
-			Protocol: "tcp",
-		},
+		Entry:      updated,
 	}
 
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
@@ -64,9 +70,10 @@ func TestConfigEntry_Apply(t *testing.T) {
 
 	serviceConf, ok = entry.(*structs.ServiceConfigEntry)
 	require.True(ok)
-	require.Equal("foo", serviceConf.Name)
-	require.Equal("tcp", serviceConf.Protocol)
-	require.Equal(structs.ServiceDefaults, serviceConf.Kind)
+
+	updated.Kind = structs.ServiceDefaults    // the server adds this
+	updated.RaftIndex = serviceConf.RaftIndex // these will always be different
+	require.Equal(updated, serviceConf)
 }
 
 func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
