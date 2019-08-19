@@ -501,6 +501,13 @@ jobs:
       ENVOY_VERSIONS: "1.10.0"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
+  envoy-integration-test-1.11.1:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.11.1"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
   # This job merges master into the 'current' branch (${CIRCLE_BRANCH}) specified
   # in the branch filtering of the workflow
   merge-master:
