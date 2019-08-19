@@ -10,7 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.3.0
 	github.com/Azure/go-autorest/autorest/to v0.2.0 // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
-	github.com/aws/aws-sdk-go v1.22.3
+	github.com/aws/aws-sdk-go v1.23.3
 	github.com/caddyserver/caddy v1.0.3
 	github.com/coredns/federation v0.0.0-20190818181423-e032b096babe
 	github.com/coreos/bbolt v1.3.2 // indirect
