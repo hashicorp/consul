@@ -16,9 +16,11 @@ set.
 The service discovery process can be modeled as a "discovery chain" which
 passes through three distinct stages: routing, splitting, and resolution. Each
 of these stages is controlled by a set of [configuration
-entries](/docs/agent/config_entries.html).
+entries](/docs/agent/config_entries.html). By configuring different phases of
+the discovery chain a user can control how proxy upstreams are ultimately
+resolved to specific instances for load balancing.
 
--> **Note** - The discovery chain is only used to discover
+-> **Note** - The discovery chain is currently only used to discover
 [Connect](/docs/connect/index.html) proxy upstreams.
 
 ## Configuration
