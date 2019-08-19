@@ -162,7 +162,7 @@ type DiscoveryTarget struct {
 	Subset      ServiceResolverSubset `json:",omitempty"`
 
 	// SNI if set is the sni field to use when addressing this set of
-	// endpoints. If not configured then the default should be used.
+	// endpoints. If not configured then the Connect default should be used.
 	SNI      string `json:",omitempty"`
 	External bool   `json:",omitempty"`
 }
