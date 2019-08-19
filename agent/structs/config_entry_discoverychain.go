@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"regexp"
@@ -317,6 +318,42 @@ type ServiceRouteDestination struct {
 	RetryOnStatusCodes []uint32 `json:",omitempty"`
 }
 
+func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
+	type Alias ServiceRouteDestination
+	exported := &struct {
+		RequestTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		RequestTimeout: e.RequestTimeout.String(),
+		Alias:          (*Alias)(e),
+	}
+	if e.RequestTimeout == 0 {
+		exported.RequestTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
+	type Alias ServiceRouteDestination
+	aux := &struct {
+		RequestTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.RequestTimeout != "" {
+		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (d *ServiceRouteDestination) HasRetryFeatures() bool {
 	return d.NumRetries > 0 || d.RetryOnConnectFailure || len(d.RetryOnStatusCodes) > 0
 }
@@ -561,6 +598,42 @@ type ServiceResolverConfigEntry struct {
 	ConnectTimeout time.Duration `json:",omitempty"`
 
 	RaftIndex
+}
+
+func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
+	type Alias ServiceResolverConfigEntry
+	exported := &struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: e.ConnectTimeout.String(),
+		Alias:          (*Alias)(e),
+	}
+	if e.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
+	type Alias ServiceResolverConfigEntry
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (e *ServiceResolverConfigEntry) SubsetExists(name string) bool {

@@ -1,12 +1,15 @@
 package api
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type ServiceRouterConfigEntry struct {
 	Kind string
 	Name string
 
-	Routes []ServiceRoute
+	Routes []ServiceRoute `json:",omitempty"`
 
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -64,11 +67,47 @@ type ServiceRouteDestination struct {
 	RetryOnStatusCodes    []uint32      `json:",omitempty"`
 }
 
+func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
+	type Alias ServiceRouteDestination
+	exported := &struct {
+		RequestTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		RequestTimeout: e.RequestTimeout.String(),
+		Alias:          (*Alias)(e),
+	}
+	if e.RequestTimeout == 0 {
+		exported.RequestTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
+	type Alias ServiceRouteDestination
+	aux := &struct {
+		RequestTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.RequestTimeout != "" {
+		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type ServiceSplitterConfigEntry struct {
 	Kind string
 	Name string
 
-	Splits []ServiceSplit
+	Splits []ServiceSplit `json:",omitempty"`
 
 	CreateIndex uint64
 	ModifyIndex uint64
@@ -98,6 +137,42 @@ type ServiceResolverConfigEntry struct {
 
 	CreateIndex uint64
 	ModifyIndex uint64
+}
+
+func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
+	type Alias ServiceResolverConfigEntry
+	exported := &struct {
+		ConnectTimeout string `json:",omitempty"`
+		*Alias
+	}{
+		ConnectTimeout: e.ConnectTimeout.String(),
+		Alias:          (*Alias)(e),
+	}
+	if e.ConnectTimeout == 0 {
+		exported.ConnectTimeout = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
+	type Alias ServiceResolverConfigEntry
+	aux := &struct {
+		ConnectTimeout string
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.ConnectTimeout != "" {
+		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string        { return e.Kind }
