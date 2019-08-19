@@ -43,7 +43,7 @@ var (
 // when setting up the CA during establishLeadership
 func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
 	state := s.fsm.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +326,7 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 			return err
 		}
 
-		_, config, err := state.CAConfig()
+		_, config, err := state.CAConfig(nil)
 		if err != nil {
 			return err
 		}
@@ -475,7 +475,7 @@ func (s *Server) pruneCARoots() error {
 		return err
 	}
 
-	_, caConf, err := state.CAConfig()
+	_, caConf, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -743,7 +743,7 @@ func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs
 	}
 
 	clusterID := strings.Split(roots.TrustDomain, ".")[0]
-	_, conf, err := s.fsm.State().CAConfig()
+	_, conf, err := s.fsm.State().CAConfig(nil)
 	if err != nil {
 		return err
 	}

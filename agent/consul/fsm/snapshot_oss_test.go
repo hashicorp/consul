@@ -473,7 +473,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Equal("bar", state.RootCert)
 
 	// Verify CA configuration is restored.
-	_, caConf, err := fsm2.state.CAConfig()
+	_, caConf, err := fsm2.state.CAConfig(nil)
 	require.NoError(err)
 	assert.Equal(caConfig, caConf)
 
@@ -594,7 +594,7 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 
 	// Make sure there's no entry in the CA config table.
 	state := fsm2.State()
-	idx, config, err := state.CAConfig()
+	idx, config, err := state.CAConfig(nil)
 	require.NoError(err)
 	require.Equal(uint64(0), idx)
 	if config != nil {

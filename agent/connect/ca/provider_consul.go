@@ -607,7 +607,7 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 // generateCA makes a new root CA using the current private key
 func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
 	state := c.Delegate.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return "", err
 	}

@@ -108,11 +108,11 @@ func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
 }
 
 // CAConfig is used to get the current CA configuration.
-func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
+func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.caConfigTxn(tx, nil)
+	return s.caConfigTxn(tx, ws)
 }
 
 func (s *Store) caConfigTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {

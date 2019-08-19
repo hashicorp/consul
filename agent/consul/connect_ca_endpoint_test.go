@@ -52,7 +52,7 @@ func TestConnectCARoots(t *testing.T) {
 	ok, err := state.CARootSetCAS(idx, idx, []*structs.CARoot{ca1, ca2})
 	assert.True(ok)
 	require.NoError(err)
-	_, caCfg, err := state.CAConfig()
+	_, caCfg, err := state.CAConfig(nil)
 	require.NoError(err)
 
 	// Request
