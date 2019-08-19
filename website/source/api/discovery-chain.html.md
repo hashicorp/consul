@@ -18,7 +18,8 @@ proxy](/docs/connect/proxies.html) implementation. This is a key component of
 [L7 Traffic Management](/docs/connect/l7-traffic-management.html).
 
 ~> This is a low-level API primarily targeted at external connect proxy
-implementations.
+implementations. Future high-level proxy integration APIs may obviate the need
+for this API over time.
 
 ## Read Compiled Discovery Chain
 
