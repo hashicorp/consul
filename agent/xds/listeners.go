@@ -378,13 +378,16 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) (proto.Message, error) {
-	// TODO(rb): make the listener escape hatch work again
 	cfg, err := ParseUpstreamConfigNoDefaults(u.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
 		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
 			u.Identifier(), err)
+	}
+	if cfg.ListenerJSON != "" {
+		s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
+			u.Identifier(), "envoy_listener_json", chain.ServiceName)
 	}
 
 	addr := u.LocalBindAddress
