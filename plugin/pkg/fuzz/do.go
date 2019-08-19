@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Do will fuzz p - used by gofuzz. See Maefile.fuzz for comments and context.
+// Do will fuzz p - used by gofuzz. See Makefile.fuzz for comments and context.
 func Do(p plugin.Handler, data []byte) int {
 	ctx := context.TODO()
 	ret := 1

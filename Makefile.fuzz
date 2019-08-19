@@ -1,5 +1,7 @@
 # Makefile for fuzzing
 #
+# With https://app.fuzzit.dev/ we are continuously fuzzing CoreDNS.
+#
 # Use go-fuzz and needs the tools installed. For each fuzz.go in a plugin's directory
 # you can start the fuzzing with: make -f Makefile.fuzz <plugin>
 # e.g.
@@ -9,11 +11,13 @@
 # Each plugin that wants to join the fuzzing fray only needs to add a fuzz.go that calls
 # the plugins's ServeDNS and used the plugin/pkg/fuzz for the Do function.
 #
-# Installing go-fuzz
-#$ go get github.com/dvyukov/go-fuzz/go-fuzz
-#$ go get github.com/dvyukov/go-fuzz/go-fuzz-build
+# Installing go-fuzz is very tricky because it does not support Go modules, see the `Makefile`
+# for the current trickery. The following may do the trick:
+#
+# GO111MODULE=off go get github.com/dvyukov/go-fuzz/go-fuzz-build
 
 REPO:="github.com/coredns/coredns"
+FUZZIT:=v2.4.28
 # set LIBFUZZER=YES to build libfuzzer compatible targets
 
 FUZZ:=$(dir $(wildcard plugin/*/fuzz.go)) # plugin/cache/
@@ -22,7 +26,9 @@ PLUGINS:=$(foreach f,$(PLUGINS),$(subst /, ,$(f))) # > cache
 
 .PHONY: echo
 echo:
-	@echo fuzz targets: $(PLUGINS)
+	@echo $(PLUGINS) corefile
+
+all: $(PLUGINS) corefile
 
 .PHONY: $(PLUGINS)
 $(PLUGINS): echo
@@ -34,7 +40,6 @@ else
 	go-fuzz -bin=./$(@)-fuzz.zip -workdir=fuzz/$(@)
 endif
 
-
 .PHONY: corefile
 corefile:
 ifeq ($(LIBFUZZER), YES)
@@ -45,7 +50,8 @@ else
 	go-fuzz -bin=./test-fuzz.zip -workdir=fuzz/$(@)
 endif
 
-
+fuzzit:
+	wget -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/$(FUZZIT)/fuzzit_Linux_x86_64 && chmod +x fuzzit
 
 .PHONY: clean
 clean:
