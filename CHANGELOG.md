@@ -12,6 +12,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* connect: ensure time.Duration fields retain their human readable forms in the API [[GH-6348](https://github.com/hashicorp/consul/issues/6348)]
 * xds: improve how envoy metrics are emitted [[GH-6312](https://github.com/hashicorp/consul/issues/6312)]
 
 BUG FIXES:
