@@ -321,7 +321,11 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 		if err != nil {
 			return fmt.Errorf("failed service lookup: %s", err)
 		}
+
 		if existing == nil || !(existing.(*structs.ServiceNode).ToNodeService()).IsSame(req.Service) {
+			if existing != nil && req.Service.EnableTagOverride && req.FromAgent {
+				copy(req.Service.Tags, (existing.(*structs.ServiceNode).ToNodeService()).Tags)
+			}
 			if err := s.ensureServiceTxn(tx, idx, req.Node, req.Service); err != nil {
 				return fmt.Errorf("failed inserting service: %s", err)
 

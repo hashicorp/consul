@@ -262,6 +262,9 @@ type RegisterRequest struct {
 	// node portion of this update will not apply.
 	SkipNodeUpdate bool
 
+	// Check whether the request created from client agent
+	FromAgent bool
+
 	WriteRequest
 }
 

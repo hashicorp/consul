@@ -1378,6 +1378,7 @@ func (l *State) syncService(id string) error {
 		NodeMeta:        l.metadata,
 		Service:         l.services[id].Service,
 		WriteRequest:    structs.WriteRequest{Token: l.serviceToken(id)},
+		FromAgent:       true,
 	}
 
 	// Backwards-compatibility for Consul < 0.5
@@ -1431,6 +1432,7 @@ func (l *State) syncCheck(id types.CheckID) error {
 		NodeMeta:        l.metadata,
 		Check:           c.Check,
 		WriteRequest:    structs.WriteRequest{Token: l.checkToken(id)},
+		FromAgent:       true,
 	}
 
 	// Pull in the associated service if any
@@ -1473,6 +1475,7 @@ func (l *State) syncNodeInfo() error {
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
 		WriteRequest:    structs.WriteRequest{Token: l.tokens.AgentToken()},
+		FromAgent:       true,
 	}
 	var out struct{}
 	err := l.Delegate.RPC("Catalog.Register", &req, &out)
