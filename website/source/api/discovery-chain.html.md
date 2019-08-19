@@ -98,7 +98,7 @@ The table below shows this endpoint's support for
 
 ### Sample Compilations
 
-#### Multi Datacenter Failover
+#### Multi-Datacenter Failover
 
 Config entries defined:
 
