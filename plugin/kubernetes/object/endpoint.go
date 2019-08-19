@@ -43,7 +43,7 @@ type EndpointPort struct {
 // EndpointsKey return a string using for the index.
 func EndpointsKey(name, namespace string) string { return name + "." + namespace }
 
-// ToEndpoints converts an api.Service to a *Service.
+// ToEndpoints converts an api.Endpoints to a *Endpoints.
 func ToEndpoints(obj interface{}) interface{} {
 	end, ok := obj.(*api.Endpoints)
 	if !ok {
