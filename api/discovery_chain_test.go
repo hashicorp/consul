@@ -8,6 +8,8 @@ import (
 )
 
 // testClusterID is the Consul cluster ID for testing.
+//
+// NOTE: this is explicitly duplicated from agent/connect:TestClusterID
 const testClusterID = "11111111-2222-3333-4444-555555555555"
 
 func TestAPI_DiscoveryChain_Get(t *testing.T) {
