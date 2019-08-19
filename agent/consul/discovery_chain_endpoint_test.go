@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -46,6 +47,13 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		// clear fields that we don't care about
 		resp.QueryMeta = structs.QueryMeta{}
 		return &resp, nil
+	}
+
+	newTarget := func(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, datacenter)
+		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
+		t.Name = t.SNI
+		return t
 	}
 
 	// ==== compiling the default chain (no config entries)
@@ -94,7 +102,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				},
 			},
 			Targets: map[string]*structs.DiscoveryTarget{
-				"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+				"web.default.dc1": newTarget("web", "", "default", "dc1"),
 			},
 		},
 	}
@@ -187,7 +195,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+					"web.default.dc1": newTarget("web", "", "default", "dc1"),
 				},
 			},
 		}

@@ -19,6 +19,8 @@ import (
 )
 
 // TestClusterID is the Consul cluster ID for testing.
+//
+// NOTE: this is duplicated in the api package as testClusterID
 const TestClusterID = "11111111-2222-3333-4444-555555555555"
 
 // testCACounter is just an atomically incremented counter for creating

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -96,11 +97,12 @@ func TestCompile(t *testing.T) {
 			}
 
 			req := CompileRequest{
-				ServiceName:          "main",
-				EvaluateInNamespace:  "default",
-				EvaluateInDatacenter: "dc1",
-				UseInDatacenter:      "dc1",
-				Entries:              tc.entries,
+				ServiceName:           "main",
+				EvaluateInNamespace:   "default",
+				EvaluateInDatacenter:  "dc1",
+				EvaluateInTrustDomain: "trustdomain.consul",
+				UseInDatacenter:       "dc1",
+				Entries:               tc.entries,
 			}
 			if tc.setup != nil {
 				tc.setup(&req)
@@ -2197,6 +2199,8 @@ func newEntries() *structs.DiscoveryChainConfigEntries {
 
 func newTarget(service, serviceSubset, namespace, datacenter string, modFn func(t *structs.DiscoveryTarget)) *structs.DiscoveryTarget {
 	t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, datacenter)
+	t.SNI = connect.TargetSNI(t, "trustdomain.consul")
+	t.Name = t.SNI
 	if modFn != nil {
 		modFn(t)
 	}

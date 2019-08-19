@@ -124,7 +124,7 @@ func (s *ConnectCA) ConfigurationGet(
 	}
 
 	state := s.srv.fsm.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// Exit early if it's a no-op change
 	state := s.srv.fsm.State()
-	confIdx, config, err := state.CAConfig()
+	confIdx, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func (s *ConnectCA) Sign(
 
 	// Verify that the CSR entity is in the cluster's trust domain
 	state := s.srv.fsm.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}

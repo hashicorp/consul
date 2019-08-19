@@ -21,7 +21,7 @@ func (c *consulCAMockDelegate) State() *state.Store {
 }
 
 func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) error {
-	idx, _, err := c.state.CAConfig()
+	idx, _, err := c.state.CAConfig(nil)
 	if err != nil {
 		return err
 	}

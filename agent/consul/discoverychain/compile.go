@@ -5,16 +5,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
 
 type CompileRequest struct {
-	ServiceName          string
-	EvaluateInNamespace  string
-	EvaluateInDatacenter string
-	UseInDatacenter      string // where the results will be used from
+	ServiceName           string
+	EvaluateInNamespace   string
+	EvaluateInDatacenter  string
+	EvaluateInTrustDomain string
+	UseInDatacenter       string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
 	// resolver in the compiled chain.
@@ -53,11 +55,12 @@ type CompileRequest struct {
 // valid.
 func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	var (
-		serviceName          = req.ServiceName
-		evaluateInNamespace  = req.EvaluateInNamespace
-		evaluateInDatacenter = req.EvaluateInDatacenter
-		useInDatacenter      = req.UseInDatacenter
-		entries              = req.Entries
+		serviceName           = req.ServiceName
+		evaluateInNamespace   = req.EvaluateInNamespace
+		evaluateInDatacenter  = req.EvaluateInDatacenter
+		evaluateInTrustDomain = req.EvaluateInTrustDomain
+		useInDatacenter       = req.UseInDatacenter
+		entries               = req.Entries
 	)
 	if serviceName == "" {
 		return nil, fmt.Errorf("serviceName is required")
@@ -67,6 +70,9 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	}
 	if evaluateInDatacenter == "" {
 		return nil, fmt.Errorf("evaluateInDatacenter is required")
+	}
+	if evaluateInTrustDomain == "" {
+		return nil, fmt.Errorf("evaluateInTrustDomain is required")
 	}
 	if useInDatacenter == "" {
 		return nil, fmt.Errorf("useInDatacenter is required")
@@ -79,6 +85,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		serviceName:            serviceName,
 		evaluateInNamespace:    evaluateInNamespace,
 		evaluateInDatacenter:   evaluateInDatacenter,
+		evaluateInTrustDomain:  evaluateInTrustDomain,
 		useInDatacenter:        useInDatacenter,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
@@ -114,6 +121,7 @@ type compiler struct {
 	serviceName            string
 	evaluateInNamespace    string
 	evaluateInDatacenter   string
+	evaluateInTrustDomain  string
 	useInDatacenter        string
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
@@ -601,6 +609,14 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 		defaultIfEmpty(datacenter, c.evaluateInDatacenter),
 	)
 
+	// Set default connect SNI. This will be overridden later if the service
+	// has an explicit SNI value configured in service-defaults.
+	t.SNI = connect.TargetSNI(t, c.evaluateInTrustDomain)
+
+	// Use the same representation for the name. This will NOT be overridden
+	// later.
+	t.Name = t.SNI
+
 	prev, ok := c.loadedTargets[t.ID]
 	if ok {
 		return prev
@@ -814,7 +830,7 @@ RESOLVE_AGAIN:
 	target.Subset = resolver.Subsets[target.ServiceSubset]
 
 	if serviceDefault := c.entries.GetService(target.Service); serviceDefault != nil && serviceDefault.ExternalSNI != "" {
-		// Explicitly set the SNI value.
+		// Override the default SNI value.
 		target.SNI = serviceDefault.ExternalSNI
 		target.External = true
 	}

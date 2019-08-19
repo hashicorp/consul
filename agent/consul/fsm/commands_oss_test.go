@@ -1252,7 +1252,7 @@ func TestFSM_CAConfig(t *testing.T) {
 	}
 
 	// Verify key is set directly in the state store.
-	_, config, err := fsm.state.CAConfig()
+	_, config, err := fsm.state.CAConfig(nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1285,7 +1285,7 @@ func TestFSM_CAConfig(t *testing.T) {
 		t.Fatalf("bad: %v", resp)
 	}
 
-	_, config, err = fsm.state.CAConfig()
+	_, config, err = fsm.state.CAConfig(nil)
 	assert.Nil(err)
 	if config.Provider != "static" {
 		t.Fatalf("bad: %v", config.Provider)

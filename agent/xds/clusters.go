@@ -16,6 +16,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -88,7 +89,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 	// generate the remote dc clusters
 	for dc, _ := range cfgSnap.MeshGateway.GatewayGroups {
-		clusterName := DatacenterSNI(dc, cfgSnap)
+		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 
 		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
@@ -99,7 +100,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 	// generate the per-service clusters
 	for svc, _ := range cfgSnap.MeshGateway.ServiceGroups {
-		clusterName := ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap)
+		clusterName := connect.ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
@@ -111,7 +112,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	// generate the service subset clusters
 	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
 		for subsetName, _ := range resolver.Subsets {
-			clusterName := ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap)
+			clusterName := connect.ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 			if err != nil {
@@ -172,19 +173,12 @@ func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycf
 	var c *envoy.Cluster
 	var err error
 
-	ns := "default"
-	if upstream.DestinationNamespace != "" {
-		ns = upstream.DestinationNamespace
+	dc := upstream.Datacenter
+	if dc == "" {
+		dc = cfgSnap.Datacenter
 	}
-	dc := cfgSnap.Datacenter
-	if upstream.Datacenter != "" {
-		dc = upstream.Datacenter
-	}
+	sni := connect.UpstreamSNI(&upstream, "", dc, cfgSnap.Roots.TrustDomain)
 
-	sni := ServiceSNI(upstream.DestinationName, "", ns, dc, cfgSnap)
-	if upstream.DestinationType == "prepared_query" {
-		sni = QuerySNI(upstream.DestinationName, dc, cfgSnap)
-	}
 	cfg, err := ParseUpstreamConfig(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -269,8 +263,8 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		// Determine if we have to generate the entire cluster differently.
 		failoverThroughMeshGateway := chain.WillFailoverThroughMeshGateway(node)
 
-		sni := TargetSNI(target, cfgSnap)
-		clusterName := CustomizeClusterName(sni, chain)
+		sni := target.SNI
+		clusterName := CustomizeClusterName(target.Name, chain)
 
 		if failoverThroughMeshGateway {
 			actualTargetID := firstHealthyTarget(
@@ -282,7 +276,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 
 			if actualTargetID != targetID {
 				actualTarget := chain.Targets[actualTargetID]
-				sni = TargetSNI(actualTarget, cfgSnap)
+				sni = actualTarget.SNI
 			}
 		}
 
@@ -321,15 +315,10 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 
-		finalSNI := sni
-		if target.SNI != "" {
-			finalSNI = target.SNI
-		}
-
 		// Enable TLS upstream with the configured client certificate.
 		c.TlsContext = &envoyauth.UpstreamTlsContext{
 			CommonTlsContext: makeCommonTLSContext(cfgSnap),
-			Sni:              finalSNI,
+			Sni:              sni,
 		}
 
 		out = append(out, c)

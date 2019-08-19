@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -20,6 +21,13 @@ func TestDiscoveryChainRead(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	newTarget := func(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, datacenter)
+		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
+		t.Name = t.SNI
+		return t
+	}
 
 	for _, method := range []string{"GET", "POST"} {
 		require.True(t, t.Run(method+": error on no service name", func(t *testing.T) {
@@ -79,7 +87,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+					"web.default.dc1": newTarget("web", "", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -122,7 +130,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc2": structs.NewDiscoveryTarget("web", "", "default", "dc2"),
+					"web.default.dc2": newTarget("web", "", "default", "dc2"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -174,7 +182,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+					"web.default.dc1": newTarget("web", "", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -238,8 +246,8 @@ func TestDiscoveryChainRead(t *testing.T) {
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": structs.NewDiscoveryTarget("web", "", "default", "dc1"),
-					"web.default.dc2": structs.NewDiscoveryTarget("web", "", "default", "dc2"),
+					"web.default.dc1": newTarget("web", "", "default", "dc1"),
+					"web.default.dc2": newTarget("web", "", "default", "dc2"),
 				},
 			}
 			if !reflect.DeepEqual(expect, value.Chain) {
@@ -250,7 +258,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 	// TODO(namespaces): add a test
 
-	expectTarget_DC2 := structs.NewDiscoveryTarget("web", "", "default", "dc2")
+	expectTarget_DC2 := newTarget("web", "", "default", "dc2")
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
 	}
@@ -276,7 +284,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"web.default.dc1":   structs.NewDiscoveryTarget("web", "", "default", "dc1"),
+			"web.default.dc1":   newTarget("web", "", "default", "dc1"),
 			expectTarget_DC2.ID: expectTarget_DC2,
 		},
 	}

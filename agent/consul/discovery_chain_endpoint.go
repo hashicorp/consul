@@ -1,11 +1,13 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,6 +19,11 @@ type DiscoveryChain struct {
 }
 
 func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs.DiscoveryChainResponse) error {
+	// Exit early if Connect hasn't been enabled.
+	if !c.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	if done, err := c.srv.forward("DiscoveryChain.Get", args, args, reply); done {
 		return err
 	}
@@ -55,11 +62,28 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 				return err
 			}
 
+			_, config, err := state.CAConfig(ws)
+			if err != nil {
+				return err
+			} else if config == nil {
+				return errors.New("no cluster ca config setup")
+			}
+
+			// Build TrustDomain based on the ClusterID stored.
+			signingID := connect.SpiffeIDSigningForCluster(config)
+			if signingID == nil {
+				// If CA is bootstrapped at all then this should never happen but be
+				// defensive.
+				return errors.New("no cluster trust domain setup")
+			}
+			currentTrustDomain := signingID.Host()
+
 			// Then we compile it into something useful.
 			chain, err := discoverychain.Compile(discoverychain.CompileRequest{
 				ServiceName:            args.Name,
 				EvaluateInNamespace:    evalNS,
 				EvaluateInDatacenter:   evalDC,
+				EvaluateInTrustDomain:  currentTrustDomain,
 				UseInDatacenter:        c.srv.config.Datacenter,
 				OverrideMeshGateway:    args.OverrideMeshGateway,
 				OverrideProtocol:       args.OverrideProtocol,
