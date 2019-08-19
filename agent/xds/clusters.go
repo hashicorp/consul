@@ -321,10 +321,15 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 
+		finalSNI := sni
+		if target.SNI != "" {
+			finalSNI = target.SNI
+		}
+
 		// Enable TLS upstream with the configured client certificate.
 		c.TlsContext = &envoyauth.UpstreamTlsContext{
 			CommonTlsContext: makeCommonTLSContext(cfgSnap),
-			Sni:              sni,
+			Sni:              finalSNI,
 		}
 
 		out = append(out, c)

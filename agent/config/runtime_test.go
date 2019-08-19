@@ -2783,6 +2783,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							"kind": "service-defaults",
 							"name": "web",
 							"protocol": "http",
+							"external_sni": "abc-123",
 							"mesh_gateway": {
 								"mode": "remote"
 							}
@@ -2796,6 +2797,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						kind = "service-defaults"
 						name = "web"
 						protocol = "http"
+						external_sni = "abc-123"
 						mesh_gateway {
 							mode = "remote"
 						}
@@ -2805,9 +2807,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:     structs.ServiceDefaults,
-						Name:     "web",
-						Protocol: "http",
+						Kind:        structs.ServiceDefaults,
+						Name:        "web",
+						Protocol:    "http",
+						ExternalSNI: "abc-123",
 						MeshGateway: structs.MeshGatewayConfig{
 							Mode: structs.MeshGatewayModeRemote,
 						},
@@ -2825,6 +2828,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							"Kind": "service-defaults",
 							"Name": "web",
 							"Protocol": "http",
+							"ExternalSNI": "abc-123",
 							"MeshGateway": {
 								"Mode": "remote"
 							}
@@ -2838,6 +2842,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 						Kind = "service-defaults"
 						Name = "web"
 						Protocol = "http"
+						ExternalSNI = "abc-123"
 						MeshGateway {
 							Mode = "remote"
 						}
@@ -2847,9 +2852,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 					&structs.ServiceConfigEntry{
-						Kind:     structs.ServiceDefaults,
-						Name:     "web",
-						Protocol: "http",
+						Kind:        structs.ServiceDefaults,
+						Name:        "web",
+						Protocol:    "http",
+						ExternalSNI: "abc-123",
 						MeshGateway: structs.MeshGatewayConfig{
 							Mode: structs.MeshGatewayModeRemote,
 						},

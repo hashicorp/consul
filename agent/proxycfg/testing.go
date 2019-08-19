@@ -592,6 +592,10 @@ func TestConfigSnapshotDiscoveryChain(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "simple")
 }
 
+func TestConfigSnapshotDiscoveryChainExternalSNI(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "external-sni")
+}
+
 func TestConfigSnapshotDiscoveryChainWithOverrides(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "simple-with-overrides")
 }
@@ -658,6 +662,19 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		fallthrough
 	case "simple":
 		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				ConnectTimeout: 33 * time.Second,
+			},
+		)
+	case "external-sni":
+		entries = append(entries,
+			&structs.ServiceConfigEntry{
+				Kind:        structs.ServiceDefaults,
+				Name:        "db",
+				ExternalSNI: "db.some.other.service.mesh",
+			},
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
@@ -858,6 +875,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	switch variation {
 	case "simple-with-overrides":
 	case "simple":
+	case "external-sni":
 	case "failover":
 		snap.ConnectProxy.WatchedUpstreamEndpoints["db"]["fail.default.dc1"] =
 			TestUpstreamNodesAlternate(t)
