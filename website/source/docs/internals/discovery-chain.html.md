@@ -217,3 +217,14 @@ A single node in the compiled discovery chain.
   to use when connecting to this target's service instances.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
+
+- `External` `(bool: false)` - True if this target is outside of this consul cluster.
+
+- `SNI` `(string)` - This value should be used as the
+  [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value when
+  connecting to this set of endpoints over TLS.
+
+- `Name` `(string)` - The unique name for this target for use when generating
+  load balancer objects. This has a structure similar to [SNI](#sni), but will
+  not be affected by SNI customizations such as
+  [`ExternalSNI`](/docs/agent/config-entries/service-defaults.html#externalsni).

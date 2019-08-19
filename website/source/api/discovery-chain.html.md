@@ -98,6 +98,10 @@ The table below shows this endpoint's support for
 
 ### Sample Compilations
 
+Full documentation for the output fields is found on the [discovery chain
+internals](http://localhost:4567/docs/internals/discovery-chain.html#compileddiscoverychain)
+page.
+
 #### Multi-Datacenter Failover
 
 Config entries defined:
@@ -134,7 +138,7 @@ Response:
                 "Type": "resolver",
                 "Name": "web.default.dc1",
                 "Resolver": {
-                    "ConnectTimeout": 15000000000,
+                    "ConnectTimeout": "15s",
                     "Target": "web.default.dc1",
                     "Failover": {
                         "Targets": [
@@ -152,7 +156,9 @@ Response:
                 "Namespace": "default",
                 "Datacenter": "dc1",
                 "MeshGateway": {},
-                "Subset": {}
+                "Subset": {},
+                "SNI": "web.default.dc1.internal.47e25151-6212-ba25-8b7e-81adbbbab461.consul",
+                "Name": "web.default.dc1.internal.47e25151-6212-ba25-8b7e-81adbbbab461.consul"
             },
             "web.default.dc3": {
                 "ID": "web.default.dc3",
@@ -160,7 +166,9 @@ Response:
                 "Namespace": "default",
                 "Datacenter": "dc3",
                 "MeshGateway": {},
-                "Subset": {}
+                "Subset": {},
+                "SNI": "web.default.dc3.internal.47e25151-6212-ba25-8b7e-81adbbbab461.consul",
+                "Name": "web.default.dc3.internal.47e25151-6212-ba25-8b7e-81adbbbab461.consul"
             },
             "web.default.dc4": {
                 "ID": "web.default.dc4",
@@ -168,7 +176,9 @@ Response:
                 "Namespace": "default",
                 "Datacenter": "dc4",
                 "MeshGateway": {},
-                "Subset": {}
+                "Subset": {},
+                "SNI": "web.default.dc4.internal.47e25151-6212-ba25-8b7e-81adbbbab461.consul",
+                "Name": "web.default.dc4.internal.47e25151-6212-ba25-8b7e-81adbbbab461.consul"
             }
         }
     }
@@ -218,7 +228,7 @@ Response:
                 "Type": "resolver",
                 "Name": "web.default.dc2",
                 "Resolver": {
-                    "ConnectTimeout": 7000000000,
+                    "ConnectTimeout": "7s",
                     "Target": "web.default.dc2"
                 }
             }
@@ -232,7 +242,9 @@ Response:
                 "MeshGateway": {
                     "Mode": "remote"
                 },
-                "Subset": {}
+                "Subset": {},
+                "SNI": "web.default.dc2.internal.59c17fd4-8dfa-f54a-ae71-855b26faf637.consul",
+                "Name": "web.default.dc2.internal.59c17fd4-8dfa-f54a-ae71-855b26faf637.consul"
             }
         }
     }
@@ -295,7 +307,7 @@ Response:
                 "Type": "resolver",
                 "Name": "v1.web.default.dc2",
                 "Resolver": {
-                    "ConnectTimeout": 5000000000,
+                    "ConnectTimeout": "5s",
                     "Target": "v1.web.default.dc2"
                 }
             },
@@ -303,7 +315,7 @@ Response:
                 "Type": "resolver",
                 "Name": "v2.web.default.dc2",
                 "Resolver": {
-                    "ConnectTimeout": 5000000000,
+                    "ConnectTimeout": "5s",
                     "Target": "v2.web.default.dc2"
                 }
             },
@@ -332,7 +344,9 @@ Response:
                 "MeshGateway": {},
                 "Subset": {
                     "Filter": "Service.Meta.version == v1"
-                }
+                },
+                "SNI": "v1.web.default.dc2.internal.6c9594ec-d798-28b9-d084-aa03e81cf078.consul",
+                "Name": "v1.web.default.dc2.internal.6c9594ec-d798-28b9-d084-aa03e81cf078.consul"
             },
             "v2.web.default.dc2": {
                 "ID": "v2.web.default.dc2",
@@ -343,7 +357,9 @@ Response:
                 "MeshGateway": {},
                 "Subset": {
                     "Filter": "Service.Meta.version == v2"
-                }
+                },
+                "SNI": "v2.web.default.dc2.internal.6c9594ec-d798-28b9-d084-aa03e81cf078.consul",
+                "Name": "v2.web.default.dc2.internal.6c9594ec-d798-28b9-d084-aa03e81cf078.consul"
             }
         }
     }
@@ -427,8 +443,8 @@ Response:
                 "Type": "resolver",
                 "Name": "admin.default.dc1",
                 "Resolver": {
+                    "ConnectTimeout": "5s",
                     "Default": true,
-                    "ConnectTimeout": 5000000000,
                     "Target": "admin.default.dc1"
                 }
             },
@@ -436,7 +452,7 @@ Response:
                 "Type": "resolver",
                 "Name": "canary.web.default.dc1",
                 "Resolver": {
-                    "ConnectTimeout": 5000000000,
+                    "ConnectTimeout": "5s",
                     "Target": "canary.web.default.dc1"
                 }
             },
@@ -444,7 +460,7 @@ Response:
                 "Type": "resolver",
                 "Name": "web.default.dc1",
                 "Resolver": {
-                    "ConnectTimeout": 5000000000,
+                    "ConnectTimeout": "5s",
                     "Target": "web.default.dc1"
                 }
             },
@@ -460,9 +476,9 @@ Response:
                                 }
                             },
                             "Destination": {
+                                "RequestTimeout": "15s",
                                 "Service": "admin",
-                                "PrefixRewrite": "/",
-                                "RequestTimeout": 15000000000
+                                "PrefixRewrite": "/"
                             }
                         },
                         "NextNode": "resolver:admin.default.dc1"
@@ -515,7 +531,9 @@ Response:
                 "Namespace": "default",
                 "Datacenter": "dc1",
                 "MeshGateway": {},
-                "Subset": {}
+                "Subset": {},
+                "SNI": "admin.default.dc1.internal.fce8a058-0981-2c04-d23c-b7375af64ce8.consul",
+                "Name": "admin.default.dc1.internal.fce8a058-0981-2c04-d23c-b7375af64ce8.consul"
             },
             "canary.web.default.dc1": {
                 "ID": "canary.web.default.dc1",
@@ -526,7 +544,9 @@ Response:
                 "MeshGateway": {},
                 "Subset": {
                     "Filter": "Service.Meta.flavor == canary"
-                }
+                },
+                "SNI": "canary.web.default.dc1.internal.fce8a058-0981-2c04-d23c-b7375af64ce8.consul",
+                "Name": "canary.web.default.dc1.internal.fce8a058-0981-2c04-d23c-b7375af64ce8.consul"
             },
             "web.default.dc1": {
                 "ID": "web.default.dc1",
@@ -534,7 +554,9 @@ Response:
                 "Namespace": "default",
                 "Datacenter": "dc1",
                 "MeshGateway": {},
-                "Subset": {}
+                "Subset": {},
+                "SNI": "web.default.dc1.internal.fce8a058-0981-2c04-d23c-b7375af64ce8.consul",
+                "Name": "web.default.dc1.internal.fce8a058-0981-2c04-d23c-b7375af64ce8.consul"
             }
         }
     }
