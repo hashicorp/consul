@@ -10,6 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.3.0
 	github.com/Azure/go-autorest/autorest/to v0.2.0 // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
+	github.com/apache/thrift v0.12.0 // indirect
 	github.com/aws/aws-sdk-go v1.23.3
 	github.com/caddyserver/caddy v1.0.3
 	github.com/coredns/federation v0.0.0-20190818181423-e032b096babe
@@ -73,4 +74,4 @@ require (
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
 
-replace github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.15
+replace github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.16
