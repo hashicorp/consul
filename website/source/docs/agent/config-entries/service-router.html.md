@@ -98,6 +98,28 @@ routes = [
 ]
 ```
 
+Re-route a gRPC method to another service. Since gRPC method calls [are just
+HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md) we can use an http path match rule to re-route traffic:
+
+```hcl
+kind = "service-router"
+name = "billing"
+routes = [
+  {
+    match {
+      http {
+        path_exact = "/mycompany.BillingService/GenerateInvoice"
+      }
+    }
+
+    destination {
+      service = "invoice-generator"
+    }
+  },
+  # NOTE: a default catch-all will send unmatched traffic to "billing"
+]
+```
+
 ## Available Fields
 
 - `Kind` - Must be set to `service-router`
