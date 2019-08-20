@@ -50,7 +50,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	// Send an initial snapshot of the state via events if the requested index
 	// is lower than the last sent index of the topic.
 	lastSentIndex := state.LastTopicIndex(req.Topic)
-	if req.Index < lastSentIndex {
+	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
 		go snapshotFunc(server.Context(), snapshotCh, req.Key)
 
