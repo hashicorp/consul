@@ -123,7 +123,11 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		}
 		name = strings.Replace(name, "/", "_", -1)
 		d, err := ioutil.TempDir(TempDir, name)
-		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
+		// Convert windows style path to posix style path
+		// to avoid illegal char escape error when hcl
+		// parsing.
+		d = filepath.ToSlash(d)
+		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", d, err))
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
