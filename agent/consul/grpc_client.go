@@ -75,7 +75,11 @@ func newDialer(useTLS bool, datacenter string, wrapper tlsutil.DCWrapper) func(s
 		}
 
 		// Check if TLS is enabled
-		if useTLS && wrapper != nil {
+		if useTLS {
+			if wrapper == nil {
+				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
+			}
+
 			// Switch the connection into TLS mode
 			if _, err := conn.Write([]byte{byte(pool.RPCTLS)}); err != nil {
 				conn.Close()
