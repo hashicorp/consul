@@ -131,124 +131,128 @@ routes = [
   stops further evaluation. Traffic that fails to match any of the provided
   routes will be routed to the default service.
 
-  - `Match` `(ServiceRouteMatch: <optional>)` - A set of criteria that can
-    match incoming L7 requests. If empty or omitted it acts as a catch-all.
+    - `Match` `(ServiceRouteMatch: <optional>)` - A set of criteria that can
+      match incoming L7 requests. If empty or omitted it acts as a catch-all.
 
-    - `HTTP` `(ServiceRouteHTTPMatch: <optional>)` - A set of http-specific match criteria.
+        - `HTTP` `(ServiceRouteHTTPMatch: <optional>)` - A set of
+          [http-specific match criteria](#serviceroutehttpmatch).
 
-      - `PathExact` `(string: "")` - Exact path to match on the HTTP request path.
+    - `Destination` `(ServiceRouteDestination: <optional>)` - Controls [how to
+      proxy](#serviceroutedestination) the actual matching request to a
+      service.
 
-            At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
+### `ServiceRouteHTTPMatch`
 
-      - `PathPrefix` `(string: "")` - Path prefix to match on the HTTP request path.
+- `PathExact` `(string: "")` - Exact path to match on the HTTP request path.
 
-            At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
+    At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
 
-      - `PathRegex` `(string: "")` - Regular expression to match on the HTTP
-        request path.
-        
-            The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
-      
-            At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
+- `PathPrefix` `(string: "")` - Path prefix to match on the HTTP request path.
 
-      - `Header` `(array<ServiceRouteHTTPMatchHeader>)` - A set of criteria
-        that can match on HTTP request headers. If more than one is configured
-        all must match for the overall match to apply.
+      At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
 
-        - `Name` `(string: <required>)` - Name of the header to match on.
+- `PathRegex` `(string: "")` - Regular expression to match on the HTTP
+  request path.
 
-        - `Present` `(bool: false)` - Match if the header with the given name
-          is present with any value.
+      The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
 
-            At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or
-            `Present` may be configured.
+      At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
 
-        - `Exact` `(string: "")` - Match if the header with the given name is
-          this value.
+- `Header` `(array<ServiceRouteHTTPMatchHeader>)` - A set of criteria that can
+  match on HTTP request headers. If more than one is configured all must match
+  for the overall match to apply.
 
-            At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or
-            `Present` may be configured.
+    - `Name` `(string: <required>)` - Name of the header to match on.
 
-        - `Prefix` `(string: "")` - Match if the header with the given name has
-          this prefix.
+    - `Present` `(bool: false)` - Match if the header with the given name is
+      present with any value.
 
-            At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or
-            `Present` may be configured.
+        At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present`
+        may be configured.
 
-        - `Suffix` `(string: "")` - Match if the header with the given name has
-          this suffix.
+    - `Exact` `(string: "")` - Match if the header with the given name is this
+      value.
 
-            At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or
-            `Present` may be configured.
+        At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present`
+        may be configured.
 
-        - `Regex` `(string: "")` - Match if the header with the given name
-          matches this pattern.
+    - `Prefix` `(string: "")` - Match if the header with the given name has
+      this prefix.
 
-            The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+        At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present`
+        may be configured.
 
-            At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or
-            `Present` may be configured.
+    - `Suffix` `(string: "")` - Match if the header with the given name has
+      this suffix.
 
-        - `Invert` `(bool: false)` - Inverts the logic of the match.
+        At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present`
+        may be configured.
 
-      - `QueryParam` `(array<ServiceRouteHTTPMatchQueryParam>)` - A set of
-        criteria that can match on HTTP query parameters. If more than one is
-        configured all must match for the overall match to apply.
+    - `Regex` `(string: "")` - Match if the header with the given name matches
+      this pattern.
 
-        - `Name` `(string: <required>)` - The name of the query parameter to
-          match on.
+        The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
 
-        - `Present` `(bool: false)` - Match if the query parameter with the given name
-          is present with any value.
+        At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present`
+        may be configured.
 
-            At most only one of `Exact`, `Regex`, or `Present` may be configured.
+    - `Invert` `(bool: false)` - Inverts the logic of the match.
 
-        - `Exact` `(string: "")` - Match if the query parameter with the given
-          name is this value.
+- `QueryParam` `(array<ServiceRouteHTTPMatchQueryParam>)` - A set of criteria
+  that can match on HTTP query parameters. If more than one is configured all
+  must match for the overall match to apply.
 
-            At most only one of `Exact`, `Regex`, or `Present` may be configured.
-        
-        - `Regex` `(string: "")` - Match if the query parameter with the given
-          name matches this pattern.
+    - `Name` `(string: <required>)` - The name of the query parameter to match on.
 
-            The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
+    - `Present` `(bool: false)` - Match if the query parameter with the given
+      name is present with any value.
 
-            At most only one of `Exact`, `Regex`, or `Present` may be configured.
+        At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
-      - `Methods` `(array<string>)` - A list of HTTP methods for which this match 
-        applies. If unspecified all http methods are matched.
+    - `Exact` `(string: "")` - Match if the query parameter with the given name
+      is this value.
 
-  - `Destination` `(ServiceRouteDestination: <optional>)` - Controls how to
-    proxy the actual matching request to a service.
+        At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
-      - `Service` `(string: "")` - The service to resolve instead of the default
-        service. If empty then the default service name is used.
+    - `Regex` `(string: "")` - Match if the query parameter with the given name
+      matches this pattern.
 
-      - `ServiceSubset` `(string: "")` - A named subset of the given service to
-        resolve instead of one defined as that service's `DefaultSubset`. If
-        empty the default subset is used.
+        The syntax when using the Envoy proxy is [documented here](https://en.cppreference.com/w/cpp/regex/ecmascript).
 
-      - `Namespace` `(string: "")` - The namespace to resolve the service from
-        instead of the current namespace. If empty the current namespace is
-        assumed.
+        At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
-      - `PrefixRewrite` `(string: "")` - Defines how to rewrite the http request
-        path before proxying it to its final destination.
+- `Methods` `(array<string>)` - A list of HTTP methods for which this match
+  applies. If unspecified all http methods are matched.
 
-            This requires that either `Match.HTTP.PathPrefix` or
-            `Match.HTTP.PathExact` be configured on this route.
+### `ServiceRouteDestination`
 
-      - `RequestTimeout` `(duration: 0s)` - The total amount of time permitted
-        for the entire downstream request (and retries) to be processed.
+- `Service` `(string: "")` - The service to resolve instead of the default
+  service. If empty then the default service name is used.
 
-      - `NumRetries` `(int: 0)` - The number of times to retry the request when a
-        retryable result occurs.
+- `ServiceSubset` `(string: "")` - A named subset of the given service to
+  resolve instead of one defined as that service's `DefaultSubset`. If empty
+  the default subset is used.
 
-      - `RetryOnConnectFailure` `(bool: false)` - Allows for connection failure
-        errors to trigger a retry.
+- `Namespace` `(string: "")` - The namespace to resolve the service from
+  instead of the current namespace. If empty the current namespace is assumed.
 
-      - `RetryOnStatusCodes` `(array<int>)` - A flat list of http response status
-        codes that are eligible for retry.
+- `PrefixRewrite` `(string: "")` - Defines how to rewrite the http request path
+  before proxying it to its final destination.
+
+      This requires that either `Match.HTTP.PathPrefix` or
+      `Match.HTTP.PathExact` be configured on this route.
+
+- `RequestTimeout` `(duration: 0s)` - The total amount of time permitted for
+  the entire downstream request (and retries) to be processed.
+
+- `NumRetries` `(int: 0)` - The number of times to retry the request when a
+  retryable result occurs.
+
+- `RetryOnConnectFailure` `(bool: false)` - Allows for connection failure
+  errors to trigger a retry.
+
+- `RetryOnStatusCodes` `(array<int>)` - A flat list of http response status
+  codes that are eligible for retry.
 
 ## ACLs
 
