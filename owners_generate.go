@@ -70,7 +70,7 @@ var Owners = []string{`
 	return
 }
 
-// owners parses a owner file without knowning a whole lot about its structure.
+// owners parses a owner file without knowing a whole lot about its structure.
 func owners(path string, owners map[string]struct{}) (map[string]struct{}, error) {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
