@@ -18,10 +18,6 @@ Consul can configure Envoy sidecars to proxy http/1.1, http2 or gRPC traffic at
 L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
 could only proxy tcp at L4.
 
-As an interim solution, you can add [custom Envoy configuration](#advanced-configuration)
-in the [proxy service definition](/docs/connect/registration/service-registration.html) allowing
-you to use the more powerful features of Envoy.
-
 Configuration of some [L7 features](/docs/connect/l7-traffic-management.html)
 is possible via [configuration entries](/docs/agent/config_entries.html). If
 you wish to use an Envoy feature not currently exposed through these config
