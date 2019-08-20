@@ -19,6 +19,10 @@ type ConfigEntry struct {
 
 // Apply does an upsert of the given config entry.
 func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error {
+	// Ensure that all config entry writes go to the primary datacenter. These will then
+	// be replicated to all the other datacenters.
+	args.Datacenter = c.srv.config.PrimaryDatacenter
+
 	if done, err := c.srv.forward("ConfigEntry.Apply", args, args, reply); done {
 		return err
 	}
@@ -181,6 +185,10 @@ func (c *ConfigEntry) ListAll(args *structs.DCSpecificRequest, reply *structs.In
 
 // Delete deletes a config entry.
 func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) error {
+	// Ensure that all config entry writes go to the primary datacenter. These will then
+	// be replicated to all the other datacenters.
+	args.Datacenter = c.srv.config.PrimaryDatacenter
+
 	if done, err := c.srv.forward("ConfigEntry.Delete", args, args, reply); done {
 		return err
 	}
