@@ -146,14 +146,6 @@ name = "web"
   - `Datacenters` `(array<string>)` - A fixed list of datacenters to try during
     failover.
 
-  - `OverprovisioningFactor` `(int: 0)` - OverprovisioningFactor is a pass
-    through for envoy's
-    [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/v1.10.0/intro/arch_overview/load_balancing/priority)
-    value.
-
-        If omitted the overprovisioning factor value will be set so high as to
-        imply binary failover (all or nothing).
-
 ## Service Subsets
 
 A service subset assigns a concrete name to a specific subset of discoverable
