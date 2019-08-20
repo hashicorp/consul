@@ -44,7 +44,7 @@ Proxies provide excellent solutions to layer 7 concerns such as path-based
 routing, tracing and telemetry, and more. By supporting a pluggable data plane model, the right proxy can be
 deployed as needed.
 For performance-critical applications or those
-that utilize layey 7 functionality, Envoy can be used. For non-performance critical layer 4 applications, you can use Consul's [built-in proxy](https://www.consul.io/docs/connect/proxies/built-in.html) for convenience.
+that utilize layer 7 functionality, Envoy can be used. For non-performance critical layer 4 applications, you can use Consul's [built-in proxy](https://www.consul.io/docs/connect/proxies/built-in.html) for convenience.
 
 For some applications that may require hardware, a hardware load balancer
 such an F5 appliance may be deployed. Consul encourages this use of the right
