@@ -369,6 +369,23 @@ func (s *Store) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, struc
 		return nil, errors
 	}
 
+	events, err := s.TxnEvents(tx, idx, ops)
+	if err != nil {
+		return nil, structs.TxnErrors{
+			{
+				What: err.Error(),
+			},
+		}
+	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return nil, structs.TxnErrors{
+			{
+				What: err.Error(),
+			},
+		}
+	}
+
 	tx.Commit()
 	return results, nil
 }
