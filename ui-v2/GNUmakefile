@@ -22,6 +22,9 @@ test: deps
 test-view: deps
 	yarn run test:view
 
+test-parallel: deps
+	yarn run test:parallel
+
 lint: deps
 	yarn run lint:js
 
