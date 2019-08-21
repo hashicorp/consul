@@ -6,7 +6,9 @@ description: |-
   The service discovery process can be modeled as a "discovery chain" which passes through three distinct stages: routing, splitting, and resolution. Each of these stages is controlled by a set of configuration entries.
 ---
 
-# Discovery Chain <sup>beta</sup>
+-> **1.6.0+:**  This feature is available in Consul versions 1.6.0 and newer.
+
+# Discovery Chain
 
 ~> This topic is part of a [low-level API](/api/discovery-chain.html)
 primarily targeted at developers building external [Connect proxy

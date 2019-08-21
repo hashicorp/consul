@@ -24,13 +24,13 @@ Name = "<name of entry>"
 
 The supported `Kind` names for configuration entries are:
 
-* [`service-router` <sup>(beta)</sup>](/docs/agent/config-entries/service-router.html) - defines
+* [`service-router`](/docs/agent/config-entries/service-router.html) - defines
 where to send layer 7 traffic based on the HTTP route
 
-* [`service-splitter` <sup>(beta)</sup>](/docs/agent/config-entries/service-splitter.html) - defines
+* [`service-splitter`](/docs/agent/config-entries/service-splitter.html) - defines
 how to divide requests for a single HTTP route based on percentages
 
-* [`service-resolver` <sup>(beta)</sup>](/docs/agent/config-entries/service-resolver.html) - matches
+* [`service-resolver`](/docs/agent/config-entries/service-resolver.html) - matches
 service instances with a specific Connect upstream discovery requests
 
 * [`service-defaults`](/docs/agent/config-entries/service-defaults.html) - configures

@@ -6,7 +6,9 @@ description: |-
   The /discovery-chain endpoints are for interacting with the discovery chain.
 ---
 
-# Discovery Chain HTTP Endpoint <sup>beta</sup>
+-> **1.6.0+:**  The discovery chain API is available in Consul versions 1.6.0 and newer.
+
+# Discovery Chain HTTP Endpoint
 
 ~> This is a low-level API primarily targeted at developers building external
 [Connect proxy integrations](/docs/connect/proxies/integrate.html). Future

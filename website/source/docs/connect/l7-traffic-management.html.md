@@ -1,17 +1,14 @@
 ---
 layout: "docs"
-page_title: "Connect - L7 Traffic Management (beta)"
+page_title: "Connect - L7 Traffic Management"
 sidebar_current: "docs-connect-l7_traffic_management"
 description: |-
   Layer 7 traffic management allows operators to divide L7 traffic between different subsets of service instances when using Connect.
 ---
 
-# L7 Traffic Management <sup>(beta)</sup>
+-> **1.6.0+:**  This feature is available in Consul versions 1.6.0 and newer.
 
--> **Note:** This feature is not compatible with the 
-[built-in proxy](/docs/connect/proxies/built-in.html),
-[native proxies](/docs/connect/native.html),
-and some [Envoy proxy escape hatches](/docs/connect/proxies/envoy.html#escape-hatch-overrides).
+# L7 Traffic Management
 
 Layer 7 traffic management allows operators to divide L7 traffic between
 different
@@ -24,6 +21,11 @@ Canary testing, A/B tests, blue/green deploys, and soft multi-tenancy
 (prod/qa/staging sharing compute resources) all require some mechanism of
 carving out portions of the Consul catalog smaller than the level of a single
 service and configuring when that subset should receive traffic.
+
+-> **Note:** This feature is not compatible with the 
+[built-in proxy](/docs/connect/proxies/built-in.html),
+[native proxies](/docs/connect/native.html),
+and some [Envoy proxy escape hatches](/docs/connect/proxies/envoy.html#escape-hatch-overrides).
 
 ## Stages
 

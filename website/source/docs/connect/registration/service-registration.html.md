@@ -187,7 +187,7 @@ followed by documentation for each attribute.
    for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
 
 
-### Mesh Gateway Configuration Reference <sup>(beta)</sup>
+### Mesh Gateway Configuration Reference
 
 The following examples show all possible mesh gateway configurations.
 

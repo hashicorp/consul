@@ -49,9 +49,9 @@ config {
   * [Envoy](/docs/connect/proxies/envoy.html#bootstrap-configuration)
   * [Consul's built-in proxy](/docs/connect/proxies/built-in.html)
 
-- `MeshGateway` <sup>(beta)</sup> `(MeshGatewayConfig: <optional>)` - Controls the default
+- `MeshGateway` `(MeshGatewayConfig: <optional>)` - Controls the default
   [mesh gateway configuration](/docs/connect/mesh_gateway.html#connect-proxy-configuration)
-  for all proxies.
+  for all proxies. Added in v1.6.0.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.
 
