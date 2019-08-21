@@ -107,7 +107,7 @@ func (h *CloudDNS) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 	}
 
-	z, ok := h.zones[zName] // ok true if we are authoritive for the zone
+	z, ok := h.zones[zName] // ok true if we are authoritative for the zone
 	if !ok || z == nil {
 		return dns.RcodeServerFailure, nil
 	}
