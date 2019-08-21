@@ -105,7 +105,7 @@ export default function(EventSource, backoff = create5xxBackoff()) {
             return throttledResolve(result);
           });
       },
-      configuration,
+      config,
     ]);
     if (typeof currentEvent !== 'undefined') {
       this.currentEvent = currentEvent;

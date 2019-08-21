@@ -1,7 +1,6 @@
 import { module } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import test from 'ember-sinon-qunit/test-support/test';
-import { getOwner } from '@ember/application';
 import Route from 'consul-ui/routes/dc/acls/tokens/index';
 
 import Mixin from 'consul-ui/mixins/token/with-actions';

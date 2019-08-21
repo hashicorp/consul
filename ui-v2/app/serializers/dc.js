@@ -1,5 +1,4 @@
 import Serializer from './application';
-import { get } from '@ember/object';
 
 export default Serializer.extend({
   primaryKey: 'Name',

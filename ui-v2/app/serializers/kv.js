@@ -1,6 +1,5 @@
 import Serializer from './application';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
 import removeNull from 'consul-ui/utils/remove-null';

@@ -1,5 +1,4 @@
 import Service from '@ember/service';
-import { get } from '@ember/object';
 
 import Clipboard from 'clipboard';
 

@@ -1,5 +1,4 @@
 import Adapter from 'ember-data/adapter';
-import { get } from '@ember/object';
 import {
   AbortError,
   TimeoutError,

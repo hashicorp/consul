@@ -1,7 +1,6 @@
 import Component from '@ember/component';
 import SlotsMixin from 'block-slots';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import WithListeners from 'consul-ui/mixins/with-listeners';
 // match anything that isn't a [ or ] into multiple groups

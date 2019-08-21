@@ -2,7 +2,6 @@ import Controller from '@ember/controller';
 import Component from '@ember/component';
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 
 export default Mixin.create({
   dom: service('dom'),

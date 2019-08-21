@@ -1,5 +1,4 @@
 import Service, { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import lint from 'consul-ui/utils/editor/lint';
 const MODES = [
   {

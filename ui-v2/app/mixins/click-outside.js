@@ -1,7 +1,6 @@
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
 import { next } from '@ember/runloop';
-import { get } from '@ember/object';
 
 // TODO: Potentially move this to dom service
 const isOutside = function(element, e, doc = document) {

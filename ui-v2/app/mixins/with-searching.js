@@ -1,6 +1,6 @@
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import WithListeners from 'consul-ui/mixins/with-listeners';
 /**
  * WithSearching mostly depends on a `searchParams` object which must be set
