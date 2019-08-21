@@ -98,8 +98,8 @@ routes = [
 ]
 ```
 
-Re-route a gRPC method to another service. Since gRPC method calls [are just
-HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md) we can use an http path match rule to re-route traffic:
+Re-route a gRPC method to another service. Since gRPC method calls [are
+HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
 
 ```hcl
 kind = "service-router"
@@ -138,7 +138,7 @@ routes = [
           [http-specific match criteria](#serviceroutehttpmatch).
 
     - `Destination` `(ServiceRouteDestination: <optional>)` - Controls [how to
-      proxy](#serviceroutedestination) the actual matching request to a
+      proxy](#serviceroutedestination) the matching request(s) to a
       service.
 
 ### `ServiceRouteHTTPMatch`
@@ -162,7 +162,7 @@ routes = [
   match on HTTP request headers. If more than one is configured all must match
   for the overall match to apply.
 
-    - `Name` `(string: <required>)` - Name of the header to match on.
+    - `Name` `(string: <required>)` - Name of the header to match.
 
     - `Present` `(bool: false)` - Match if the header with the given name is
       present with any value.
@@ -230,13 +230,13 @@ routes = [
   service. If empty then the default service name is used.
 
 - `ServiceSubset` `(string: "")` - A named subset of the given service to
-  resolve instead of one defined as that service's `DefaultSubset`. If empty
+  resolve instead of the one defined as that service's `DefaultSubset`. If empty,
   the default subset is used.
 
 - `Namespace` `(string: "")` - The namespace to resolve the service from
   instead of the current namespace. If empty the current namespace is assumed.
 
-- `PrefixRewrite` `(string: "")` - Defines how to rewrite the http request path
+- `PrefixRewrite` `(string: "")` - Defines how to rewrite the HTTP request path
   before proxying it to its final destination.
 
       This requires that either `Match.HTTP.PathPrefix` or
