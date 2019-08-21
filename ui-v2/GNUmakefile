@@ -26,6 +26,9 @@ build-ci: deps
 build: deps
 	yarn run build
 
+build-ci: deps
+	yarn run build:ci --output-path=dist
+
 start: deps
 	yarn run start
 
