@@ -184,7 +184,7 @@ func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 		case "endpoint":
 			args := c.RemainingArgs()
 			if len(args) > 0 {
-				// Multiple endoints are deprecated but still could be specified,
+				// Multiple endpoints are deprecated but still could be specified,
 				// only the first one be used, though
 				k8s.APIServerList = args
 				if len(args) > 1 {

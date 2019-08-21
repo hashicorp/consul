@@ -8,7 +8,7 @@
 
 By enabling *metadata* any plugin that implements [metadata.Provider
 interface](https://godoc.org/github.com/coredns/coredns/plugin/metadata#Provider) will be called for
-each DNS query, at beginning of the process for that query, in order to add it's own meta data to
+each DNS query, at beginning of the process for that query, in order to add its own meta data to
 context.
 
 The meta data collected will be available for all plugins, via the Context parameter provided in the

@@ -28,7 +28,7 @@ Refused queries are properly logged and exported if metrics are enabled.
 * *auto*: numerous bugfixes.
 * *file*: fix data race in reload process and also reload a zone when it is `mv`ed (newly created) into place.
   Also rewrite the zone lookup algorithm and be more standards compliant, esp. in the area of DNSSEC, wildcards and empty-non-terminals; handle secure delegations.
-* *kubernetes*: vender the k8s dependency and updates to be compatible with Kubernetes 1.4 and 1.5.
+* *kubernetes*: vendor the k8s dependency and updates to be compatible with Kubernetes 1.4 and 1.5.
    Multiple cleanups and fixes. Kubernetes services can now be resolved.
 
 # Contributors

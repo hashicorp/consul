@@ -69,7 +69,7 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 	//
 	// Main for-loop handles delegation and finding or not finding the qname.
 	// If found we check if it is a CNAME/DNAME and do CNAME processing
-	// We also check if we have type and do a nodata resposne.
+	// We also check if we have type and do a nodata response.
 	//
 	// If not found, we check the potential wildcard, and use that for further processing.
 	// If not found and no wildcard we will process this as an NXDOMAIN response.
@@ -169,7 +169,7 @@ func (z *Zone) Lookup(ctx context.Context, state request.Request, qname string) 
 			return nil, ret, nil, NoData
 		}
 
-		// Additional section processing for MX, SRV. Check response and see if any of the names are in baliwick -
+		// Additional section processing for MX, SRV. Check response and see if any of the names are in bailiwick -
 		// if so add IP addresses to the additional section.
 		additional := z.additionalProcessing(rrs, do)
 

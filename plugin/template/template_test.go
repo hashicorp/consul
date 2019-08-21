@@ -421,7 +421,7 @@ func TestHandler(t *testing.T) {
 	}
 }
 
-// TestMultiSection verfies that a corefile with multiple but different template sections works
+// TestMultiSection verifies that a corefile with multiple but different template sections works
 func TestMultiSection(t *testing.T) {
 	ctx := context.TODO()
 

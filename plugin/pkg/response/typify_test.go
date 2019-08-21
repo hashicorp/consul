@@ -49,7 +49,7 @@ func TestTypifyRRSIG(t *testing.T) {
 }
 
 func TestTypifyImpossible(t *testing.T) {
-	// create impossible message that denies it's own existence
+	// create impossible message that denies its own existence
 	m := new(dns.Msg)
 	m.SetQuestion("bar.www.example.org.", dns.TypeAAAA)
 	m.Rcode = dns.RcodeNameError                                                      // name does not exist

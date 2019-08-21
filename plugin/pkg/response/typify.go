@@ -15,7 +15,7 @@ const (
 	NoError Type = iota
 	// NameError is a NXDOMAIN in header, SOA in auth.
 	NameError
-	// ServerError is a set of errors we want to cache, for now it containers SERVFAIL and NOTIMPL.
+	// ServerError is a set of errors we want to cache, for now it contains SERVFAIL and NOTIMPL.
 	ServerError
 	// NoData indicates name found, but not the type: NOERROR in header, SOA in auth.
 	NoData

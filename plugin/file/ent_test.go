@@ -55,7 +55,6 @@ func TestLookupEnt(t *testing.T) {
 	}
 }
 
-// fdjfdjkf
 const dbMiekENTNL = `; File written on Sat Apr  2 16:43:11 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu
 miek.nl.		1800	IN SOA	linode.atoom.net. miek.miek.nl. (

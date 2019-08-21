@@ -71,7 +71,7 @@ func TestSecondaryZoneTransfer(t *testing.T) {
 	m.SetQuestion("example.org.", dns.TypeSOA)
 
 	var r *dns.Msg
-	// This is now async; we we need to wait for it to be transferred.
+	// This is now async; we need to wait for it to be transferred.
 	for i := 0; i < 10; i++ {
 		r, err = dns.Exchange(m, udp)
 		if len(r.Answer) != 0 {

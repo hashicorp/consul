@@ -13,7 +13,7 @@ will not be queried again.
 
 Each Server Block that enables the *ready* plugin will have the plugins *in that server block*
 report readiness into the /ready endpoint that runs on the same port. This also means that the
-*same* plugin with different configurations (in potentialy *different* Server Blocks) will have
+*same* plugin with different configurations (in potentially *different* Server Blocks) will have
 their readiness reported as the union of their respective readinesses.
 
 ## Syntax

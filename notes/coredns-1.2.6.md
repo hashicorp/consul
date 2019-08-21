@@ -27,7 +27,7 @@ kernels.
 
 *  [*cache*](/plugins/cache) got some minor optimizations.
 
-*  [*errors*](/plugins/errors) (and *log*) gotten a new option (`consolidate`) to suppress loging.
+*  [*errors*](/plugins/errors) (and *log*) gotten a new option (`consolidate`) to suppress logging.
 
 *  [*hosts*](/plugins/hosts) will now read the `hosts` file without holding a write lock.
 

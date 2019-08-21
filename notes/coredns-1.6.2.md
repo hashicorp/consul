@@ -12,7 +12,7 @@ The CoreDNS team has released
 
 This is a bug fix release, but it also features a new plugin called [*azure*](/plugins/azure).
 
-It's compiled with Go 1.12.8 that incorperates fixes for HTTP/2 that may impact you if you use
+It's compiled with Go 1.12.8 that incorporates fixes for HTTP/2 that may impact you if you use
 [DoH](https://tools.ietf.org/html/rfc8484).
 
 # Plugins

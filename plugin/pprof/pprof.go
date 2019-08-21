@@ -1,4 +1,4 @@
-// Package pprof implement a debug endpoint for getting profiles using the
+// Package pprof implements a debug endpoint for getting profiles using the
 // go pprof tooling.
 package pprof
 

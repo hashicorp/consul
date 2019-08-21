@@ -7,7 +7,7 @@
 ## Description
 
 This is useful for retrieving version or author information from the server by querying a TXT record
-for a special domainname in the CH class.
+for a special domain name in the CH class.
 
 ## Syntax
 

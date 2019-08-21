@@ -3,7 +3,7 @@ Package autopath implements autopathing. This is a hack; it shortcuts the
 client's search path resolution by performing these lookups on the server...
 
 The server has a copy (via AutoPathFunc) of the client's search path and on
-receiving a query it first establish if the suffix matches the FIRST configured
+receiving a query it first establishes if the suffix matches the FIRST configured
 element. If no match can be found the query will be forwarded up the plugin
 chain without interference (iff 'fallthrough' has been set).
 

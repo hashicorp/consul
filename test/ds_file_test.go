@@ -8,7 +8,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Using miek.nl here because this is the easiest zone to get access to and it's masters
+// Using miek.nl here because this is the easiest zone to get access to and its masters
 // run both NSD and BIND9, making checks like "what should we actually return" super easy.
 var dsTestCases = []mtest.Case{
 	{

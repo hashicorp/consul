@@ -179,7 +179,7 @@ func (k *Kubernetes) getClientConfig() (*rest.Config, error) {
 	}
 
 	// Connect to API from out of cluster
-	// Only the first one is used. We will deprecated multiple endpoints later.
+	// Only the first one is used. We will deprecate multiple endpoints later.
 	clusterinfo.Server = k.APIServerList[0]
 
 	if len(k.APICertAuth) > 0 {

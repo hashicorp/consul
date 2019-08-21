@@ -9,7 +9,7 @@
 # 	make -f Makefile.fuzz forward
 #
 # Each plugin that wants to join the fuzzing fray only needs to add a fuzz.go that calls
-# the plugins's ServeDNS and used the plugin/pkg/fuzz for the Do function.
+# the plugin's ServeDNS and used the plugin/pkg/fuzz for the Do function.
 #
 # Installing go-fuzz is very tricky because it does not support Go modules, see the `Makefile`
 # for the current trickery. The following may do the trick:

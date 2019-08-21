@@ -7,7 +7,7 @@ import (
 	"github.com/coredns/coredns/plugin/file"
 )
 
-// Zones maps zone names to a *Zone. This keep track of what we zones we have loaded at
+// Zones maps zone names to a *Zone. This keeps track of what zones we have loaded at
 // any one time.
 type Zones struct {
 	Z     map[string]*file.Zone // A map mapping zone (origin) to the Zone's data.
@@ -56,7 +56,7 @@ func (z *Zones) Add(zo *file.Zone, name string) {
 	z.Unlock()
 }
 
-// Remove removes the zone named name from z. It also stop the zone's reload goroutine.
+// Remove removes the zone named name from z. It also stops the zone's reload goroutine.
 func (z *Zones) Remove(name string) {
 	z.Lock()
 

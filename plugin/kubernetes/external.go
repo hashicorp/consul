@@ -21,7 +21,7 @@ func (k *Kubernetes) External(state request.Request) ([]msg.Service, int) {
 	if last < 0 {
 		return nil, dns.RcodeServerFailure
 	}
-	// We dealing with a fairly normal domain name here, but; we still need to have the service
+	// We are dealing with a fairly normal domain name here, but we still need to have the service
 	// and the namespace:
 	// service.namespace.<base>
 	//
@@ -86,7 +86,7 @@ func (k *Kubernetes) External(state request.Request) ([]msg.Service, int) {
 // ExternalAddress returns the external service address(es) for the CoreDNS service.
 func (k *Kubernetes) ExternalAddress(state request.Request) []dns.RR {
 	// This is probably wrong, because of all the fallback behavior of k.nsAddr, i.e. can get
-	// an address that isn't reacheable from outside the cluster.
+	// an address that isn't reachable from outside the cluster.
 	rrs := []dns.RR{k.nsAddr()}
 	return rrs
 }

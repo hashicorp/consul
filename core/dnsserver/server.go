@@ -259,7 +259,7 @@ func (s *Server) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			// The type is DS, keep the handler, but keep on searching as maybe we are serving
 			// the parent as well and the DS should be routed to it - this will probably *misroute* DS
 			// queries to a possibly grand parent, but there is no way for us to know at this point
-			// if there is an actually delegation from grandparent -> parent -> zone.
+			// if there is an actual delegation from grandparent -> parent -> zone.
 			// In all fairness: direct DS queries should not be needed.
 			dshandler = h
 		}

@@ -84,7 +84,7 @@ func NextOrFailure(name string, next Handler, ctx context.Context, w dns.Respons
 }
 
 // ClientWrite returns true if the response has been written to the client.
-// Each plugin to adhire to this protocol.
+// Each plugin to adhere to this protocol.
 func ClientWrite(rcode int) bool {
 	switch rcode {
 	case dns.RcodeServerFailure:

@@ -44,7 +44,7 @@ net {
 }
 ~~~
 
-Doing this is supported but both endponts ":8080" and ":8081" will export the exact same health.
+Doing this is supported but both endpoints ":8080" and ":8081" will export the exact same health.
 
 ## Metrics
 
