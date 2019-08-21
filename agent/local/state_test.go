@@ -28,7 +28,10 @@ import (
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
 	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -261,7 +264,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 	assert := assert.New(t)
 	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -419,7 +425,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 func TestAgent_ServiceWatchCh(t *testing.T) {
 	t.Parallel()
 	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -504,7 +513,10 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
 	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -769,7 +781,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		acl_master_token = "root"
 		acl_default_policy = "deny"
 		acl_enforce_version_8 = true`}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -916,7 +931,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
 	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1115,7 +1133,10 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		acl_master_token = "root"
 		acl_default_policy = "deny"
 		acl_enforce_version_8 = true`}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, dc)
@@ -1383,7 +1404,10 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name(), HCL: `
 		check_update_interval = "500ms"
 	`}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1574,7 +1598,10 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		node_meta {
 			somekey = "somevalue"
 		}`}
-	a.Start(t)
+	err := a.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

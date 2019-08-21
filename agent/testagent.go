@@ -26,8 +26,6 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-
-	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -93,15 +91,23 @@ type TestAgent struct {
 }
 
 // NewTestAgent returns a started agent with the given name and
-// configuration. It fails the test if the Agent could not be started. The
-// caller should call Shutdown() to stop the agent and remove temporary
-// directories.
+// configuration. It fails the test if the Agent could not be started.
+// The caller should call Shutdown() to stop the agent and remove
+// temporary directories.
 func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 	a := &TestAgent{Name: name, HCL: hcl}
-	a.Start(t)
+
+	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		if err := a.Start(); err != nil {
+			a.Shutdown()
+			r.Fatal(err)
+		}
+	})
+
 	return a
 }
 
+// TODO: testing.T should be removed as a parameter, as it is not being used.
 func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
 	a, err := New(c, nil)
@@ -111,10 +117,12 @@ func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 	return a, nil
 }
 
-// Start starts a test agent. It fails the test if the agent could not be started.
-func (a *TestAgent) Start(t *testing.T) *TestAgent {
-	require := require.New(t)
-	require.Nil(a.Agent, "TestAgent already started")
+// Start starts a test agent. It returns an error if the agent could not be started.
+func (a *TestAgent) Start() (err error) {
+	if a.Agent != nil {
+		return fmt.Errorf("TestAgent already started")
+	}
+
 	var hclDataDir string
 	if a.DataDir == "" {
 		name := "agent"
@@ -123,79 +131,97 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 		}
 		name = strings.Replace(name, "/", "_", -1)
 		d, err := ioutil.TempDir(TempDir, name)
-		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
+		if err != nil {
+			return fmt.Errorf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err)
+		}
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
-	var id string
-	for i := 10; i >= 0; i-- {
-		a.Config = TestConfig(
-			randomPortsSource(a.UseTLS),
-			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
-			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-		)
-		id = string(a.Config.NodeID)
+	a.Config = TestConfig(
+		randomPortsSource(a.UseTLS),
+		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
+		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
+	)
+	id := string(a.Config.NodeID)
 
-		// write the keyring
-		if a.Key != "" {
-			writeKey := func(key, filename string) {
-				path := filepath.Join(a.Config.DataDir, filename)
-				err := initKeyring(path, key)
-				require.NoError(err, fmt.Sprintf("Error creating keyring %s: %s", path, err))
-			}
-			writeKey(a.Key, SerfLANKeyring)
-			writeKey(a.Key, SerfWANKeyring)
+	// write the keyring
+	if a.Key != "" {
+		writeKey := func(key, filename string) error {
+			path := filepath.Join(a.Config.DataDir, filename)
+			err := initKeyring(path, key)
+			return fmt.Errorf("Error creating keyring %s: %s", path, err)
 		}
-
-		logOutput := a.LogOutput
-		if logOutput == nil {
-			logOutput = os.Stderr
+		err = writeKey(a.Key, SerfLANKeyring)
+		if err != nil {
+			return err
 		}
-		agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
-
-		agent, err := New(a.Config, agentLogger)
-		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
-
-		agent.LogOutput = logOutput
-		agent.LogWriter = a.LogWriter
-		agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
-		// we need the err var in the next exit condition
-		if err := agent.Start(); err == nil {
-			a.Agent = agent
-			break
-		} else if i == 0 {
-			require.Fail("%s %s Error starting agent: %s", id, a.Name, err)
-		} else if a.ExpectConfigError {
-			// Panic the error since this can be caught if needed. Pretty gross way to
-			// detect errors but enough for now and this is a tiny edge case that I'd
-			// otherwise not have a way to test at all...
-			panic(err)
-		} else {
-			agent.ShutdownAgent()
-			agent.ShutdownEndpoints()
-			wait := time.Duration(rand.Int31n(2000)) * time.Millisecond
-			fmt.Println(id, a.Name, "retrying in", wait)
-			time.Sleep(wait)
+		err = writeKey(a.Key, SerfWANKeyring)
+		if err != nil {
+			return err
 		}
+	}
 
-		// Clean out the data dir if we are responsible for it before we
-		// try again, since the old ports may have gotten written to
-		// the data dir, such as in the Raft configuration.
-		if a.DataDir != "" {
-			if err := os.RemoveAll(a.DataDir); err != nil {
-				require.Fail("%s %s Error resetting data dir: %s", id, a.Name, err)
-			}
+	logOutput := a.LogOutput
+	if logOutput == nil {
+		logOutput = os.Stderr
+	}
+	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+	agent, err := New(a.Config, agentLogger)
+	if err != nil {
+		return fmt.Errorf("Error creating agent: %s", err)
+	}
+
+	agent.LogOutput = logOutput
+	agent.LogWriter = a.LogWriter
+	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
+
+	if err := agent.Start(); err != nil {
+		agent.ShutdownAgent()
+		agent.ShutdownEndpoints()
+
+		if a.ExpectConfigError {
+			return fmt.Errorf("a.ExpectConfigError: %v", err)
+		}
+		return fmt.Errorf("%s %s Error starting agent: %s", id, a.Name, err)
+	}
+
+	a.Agent = agent
+
+	// Clean out the data dir if we are responsible for it before we
+	// try again, since the old ports may have gotten written to
+	// the data dir, such as in the Raft configuration.
+	if a.DataDir != "" {
+		if err := os.RemoveAll(a.DataDir); err != nil {
+			return fmt.Errorf("%s %s Error resetting data dir: %s", id, a.Name, err)
 		}
 	}
 
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
+	err = a.waitForUp()
+	if err != nil {
+		return err
+	}
+
+	a.dns = a.dnsServers[0]
+	a.srv = a.httpServers[0]
+	return nil
+}
+
+// waitForUp waits for leader election, or waits for the agent HTTP
+// endpoint to start responding, depending on the agent config.
+func (a *TestAgent) waitForUp() error {
+	timer := retry.TwoSeconds()
+	deadline := time.Now().Add(timer.Timeout)
+
+	var retErr error
 	var out structs.IndexedNodes
-	retry.Run(t, func(r *retry.R) {
+	for ; !time.Now().After(deadline); time.Sleep(timer.Wait) {
 		if len(a.httpServers) == 0 {
-			r.Fatal(a.Name, "waiting for server")
+			retErr = fmt.Errorf("%s: waiting for server", a.Name)
+			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
 			// Ensure we have a leader and a node registration.
@@ -207,26 +233,34 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 				},
 			}
 			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
-				r.Fatal(a.Name, "Catalog.ListNodes failed:", err)
+				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
+				continue // fail, try again
 			}
 			if !out.QueryMeta.KnownLeader {
-				r.Fatal(a.Name, "No leader")
+				retErr = fmt.Errorf("%s: No leader", a.Name)
+				continue // fail, try again
 			}
 			if out.Index == 0 {
-				r.Fatal(a.Name, ": Consul index is 0")
+				retErr = fmt.Errorf("%s: Consul index is 0", a.Name)
+				continue // fail, try again
 			}
+			return nil // success
 		} else {
-			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-			resp := httptest.NewRecorder()
-			_, err := a.httpServers[0].AgentSelf(resp, req)
-			if err != nil || resp.Code != 200 {
-				r.Fatal(a.Name, "failed OK response", err)
+			req, err := http.NewRequest("GET", "/v1/agent/self", nil)
+			if err != nil {
+				return err // this will never change upon retry
 			}
+			resp := httptest.NewRecorder()
+			_, err = a.httpServers[0].AgentSelf(resp, req)
+			if err != nil || resp.Code != 200 {
+				retErr = fmt.Errorf("%s: failed OK response: %v", a.Name, err)
+				continue
+			}
+			return nil // success
 		}
-	})
-	a.dns = a.dnsServers[0]
-	a.srv = a.httpServers[0]
-	return a
+	}
+
+	return fmt.Errorf("unavailable. last error: %v", retErr)
 }
 
 // Shutdown stops the agent and removes the data directory if it is
