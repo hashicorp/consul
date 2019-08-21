@@ -45,7 +45,7 @@ test-parallel: deps
 	yarn run test:parallel
 
 lint: deps
-	yarn run lint:js
+	yarn run lint:hbs && yarn run lint:js
 
 format: deps
 	yarn run format:js
