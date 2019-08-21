@@ -180,6 +180,7 @@ defaults that are inherited by all services.
 
 - `protocol` - The protocol the service speaks. Connect's Envoy integration
   currently supports the following `protocol` values:
+
   - `tcp` - Unless otherwise specified this is the default, which causes Envoy
     to proxy at L4. This provides all the security benefits of Connect's mTLS
     and works for any TCP-based protocol. Load-balancing and metrics are
@@ -199,10 +200,22 @@ defaults that are inherited by all services.
     filter](https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
+
+    -> **Note:** The protocol of a service should ideally be configured via the
+    [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
+    field of a
+    [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+    config entry for the service. Configuring it in a
+    proxy config will not fully enable some [L7
+    features](/docs/connect/l7-traffic-management.html).
+    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+
 - `bind_address` - Override the address Envoy's public listener binds to. By
   default Envoy will bind to the service address or 0.0.0.0 if there is not explicit address on the service registration.
+
 - `bind_port` - Override the port Envoy's public listener binds to. By default
   Envoy will bind to the service port.
+
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
