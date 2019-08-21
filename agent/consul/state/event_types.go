@@ -37,64 +37,25 @@ func (s *Store) RegistrationEvents(tx *memdb.Txn, idx uint64, node, service stri
 	return checkServiceNodesToServiceHealth(idx, nodes, nil, nil), nil
 }
 
-// checkServiceNodesToServiceHealth converts a list of CheckServiceNodes to
-// ServiceHealth events for streaming. If a non-nil channel and context are passed,
-// the events will be sent to the channel instead of appended to a slice.
-func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNodes,
-	ctx context.Context, eventCh chan stream.Event) []stream.Event {
+// TxnEvents returns the stream.Events that correspond to a Txn operation.
+func (s *Store) TxnEvents(tx *memdb.Txn, idx uint64, ops structs.TxnOps) ([]stream.Event, error) {
 	var events []stream.Event
-	for _, n := range nodes {
-		event := stream.Event{
-			Topic: stream.Topic_ServiceHealth,
-			Index: idx,
-		}
 
-		if n.Service != nil {
-			event.Key = n.Service.Service
-		}
-
-		event.Payload = &stream.Event_ServiceHealth{
-			ServiceHealth: &stream.ServiceHealthUpdate{
-				Op:               stream.CatalogOp_Register,
-				CheckServiceNode: stream.ToCheckServiceNode(&n),
-			},
-		}
-
-		// Send the event on the channel if one was provided.
-		if eventCh != nil {
-			select {
-			case <-ctx.Done():
-				return nil
-			case eventCh <- event:
-			}
-		} else {
-			events = append(events, event)
-		}
+	// Get the ServiceHealth events.
+	serviceHealth, err := txnServiceHealthEvents(s, tx, idx, ops)
+	if err != nil {
+		return nil, err
 	}
+	events = append(events, serviceHealth...)
 
-	if eventCh != nil {
-		close(eventCh)
-	}
-
-	return events
+	return events, nil
 }
 
 // DeregistrationEvents returns stream.Events that correspond to a catalog
 // deregister operation.
 func (s *Store) DeregistrationEvents(tx *memdb.Txn, idx uint64, node string) ([]stream.Event, error) {
 	events := []stream.Event{
-		stream.Event{
-			Topic: stream.Topic_ServiceHealth,
-			Index: idx,
-			Payload: &stream.Event_ServiceHealth{
-				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Deregister,
-					CheckServiceNode: &stream.CheckServiceNode{
-						Node: &stream.Node{Node: node},
-					},
-				},
-			},
-		},
+		serviceHealthDeregisterEvent(idx, node),
 	}
 
 	return events, nil
