@@ -148,8 +148,10 @@ func (a *TestAgent) Start() (err error) {
 	if a.Key != "" {
 		writeKey := func(key, filename string) error {
 			path := filepath.Join(a.Config.DataDir, filename)
-			err := initKeyring(path, key)
-			return fmt.Errorf("Error creating keyring %s: %s", path, err)
+			if err := initKeyring(path, key); err != nil {
+				return fmt.Errorf("Error creating keyring %s: %s", path, err)
+			}
+			return nil
 		}
 		err = writeKey(a.Key, SerfLANKeyring)
 		if err != nil {
@@ -181,21 +183,31 @@ func (a *TestAgent) Start() (err error) {
 		agent.ShutdownEndpoints()
 
 		if a.ExpectConfigError {
-			return fmt.Errorf("a.ExpectConfigError: %v", err)
+			// Panic the error since this can be caught if needed. Pretty gross way to
+			// detect errors but enough for now and this is a tiny edge case that I'd
+			// otherwise not have a way to test at all...
+			//
+			// TODO(sadams): This can be refactored away by returning an
+			// error here instead of panicing, removing the `ExpectConfigError`
+			// field from `TestAgent`, and having the test that uses this
+			// (TestAgent_ConnectClusterIDConfig) check for an error instead of
+			// catching a panic.
+			panic(err)
 		}
+
+		// Clean out the data dir if we are responsible for it before we
+		// try again, since the old ports may have gotten written to
+		// the data dir, such as in the Raft configuration.
+		if a.DataDir != "" {
+			if err := os.RemoveAll(a.DataDir); err != nil {
+				return fmt.Errorf("%s %s Error resetting data dir: %s", id, a.Name, err)
+			}
+		}
+
 		return fmt.Errorf("%s %s Error starting agent: %s", id, a.Name, err)
 	}
 
 	a.Agent = agent
-
-	// Clean out the data dir if we are responsible for it before we
-	// try again, since the old ports may have gotten written to
-	// the data dir, such as in the Raft configuration.
-	if a.DataDir != "" {
-		if err := os.RemoveAll(a.DataDir); err != nil {
-			return fmt.Errorf("%s %s Error resetting data dir: %s", id, a.Name, err)
-		}
-	}
 
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
