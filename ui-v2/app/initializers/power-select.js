@@ -1,4 +1,3 @@
-import { get } from '@ember/object';
 export function initialize(application) {
   const PowerSelectComponent = application.resolveRegistration('component:power-select');
   PowerSelectComponent.reopen({

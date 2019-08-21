@@ -1,6 +1,6 @@
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 /** With Blocking Actions
  * This mixin contains common write actions (Create Update Delete) for routes.
  * It could also be an Route to extend but decoration seems to be more sense right now.

@@ -1,6 +1,6 @@
 import ChildSelectorComponent from './child-selector';
 import { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import { alias } from '@ember/object/computed';
 
 import { CallableEventSource as EventSource } from 'consul-ui/utils/dom/event-source';

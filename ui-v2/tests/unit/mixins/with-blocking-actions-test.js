@@ -1,7 +1,6 @@
 import { module, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import test from 'ember-sinon-qunit/test-support/test';
-import { getOwner } from '@ember/application';
 import Route from '@ember/routing/route';
 import Mixin from 'consul-ui/mixins/with-blocking-actions';
 

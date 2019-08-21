@@ -1,5 +1,4 @@
 import Route from '@ember/routing/route';
-import { get } from '@ember/object';
 import { assert } from '@ember/debug';
 import { Promise, hash } from 'rsvp';
 export default Route.extend({

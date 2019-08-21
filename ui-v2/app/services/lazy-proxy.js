@@ -1,5 +1,4 @@
 import Service from '@ember/service';
-import { get } from '@ember/object';
 
 export default Service.extend({
   shouldProxy: function(content, method) {
