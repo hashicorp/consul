@@ -201,7 +201,7 @@ defaults that are inherited by all services.
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
 
-    -> **Note:** The protocol of a service should ideally be configured via the
+    ~> **Note:** The protocol of a service should ideally be configured via the
     [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
     field of a
     [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
@@ -230,7 +230,7 @@ definition](/docs/connect/registration/service-registration.html) or
 - `protocol` - Same as above in main config but affects the listener setup for
   the upstream.
 
-    -> **Note:** The protocol of a service should ideally be configured via the
+    ~> **Note:** The protocol of a service should ideally be configured via the
     [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
     field of a
     [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
@@ -243,7 +243,7 @@ definition](/docs/connect/registration/service-registration.html) or
   connections before timing out. Defaults to 5000
   (5 seconds).
 
-    -> **Note:** The connection timeout for a service should ideally be
+    ~> **Note:** The connection timeout for a service should ideally be
     configured via the
     [`connect_timeout`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
     field of a
