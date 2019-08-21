@@ -38,43 +38,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "ginkgo -cover -r -v -skipPackage=pb,test -outputdir=./ | tee ginkgo.output\ncat ginkgo.output 2\u003e\u00261 | go-junit-report \u003e test.xml\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml",
-						"properties": null
-					},
-					{
-						"name": "Build",
-						"definition": "Build",
-						"command": "go build -o ((application.name))",
-						"properties": null
-					},
-					{
-						"name": "Lint",
-						"definition": "Lint",
-						"command": "set +e; gometalinter ./... --cyclo-over=10 --line-length=120 --deadline=180s --vendored-linters  --checkstyle --skip=test --skip=mock --skip=vendor --exclude=_test.go --exclude=.pb.go \u003e report.xml; set -e",
-						"properties": null
-					},
-					{
-						"name": "GetTools",
-						"definition": "GetTools",
-						"command": "go get github.com/axw/gocov/gocov\ngo get github.com/AlekSi/gocov-xml\ngo get -u github.com/jstemmer/go-junit-report\ncp ${GOPATH}/bin/gocov* ${GOPATH}/bin/go-junit-report .",
-						"properties": null
-					},
-					{
-						"name": "Build Instrumented",
-						"definition": "Build Instrumented",
-						"command": "go test -c -coverpkg=all -covermode=count -o ((application.name))-instrumented",
-						"properties": null
-					},
-					{
-						"name": "Build Isolation Test",
-						"definition": "Build Isolation Test",
-						"command": "cd test/isolation\ngo test -c -coverpkg=all -covermode=count -o ((application.name))-isolation.test",
-						"properties": null
-					},
-					{
-						"name": "Build Integration Test",
-						"definition": "Build Integration Test",
-						"command": "cd test/integration\ngo test -c -coverpkg=all -covermode=count -o ((application.name))-integration.test",
+						"command": "ginkgo -cover -r -v  -outputdir=./ | tee ginkgo.output\ncat ginkgo.output 2\u003e\u00261 | go-junit-report \u003e test.xml\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml",
 						"properties": null
 					}
 				],
