@@ -252,7 +252,7 @@ definition](/docs/connect/registration/service-registration.html) or
     proxy upstream config will override any values defined in config entries.
     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
-### Mesh Gateway Options <sup>(beta)</sup>
+### Mesh Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration.html), or defined in

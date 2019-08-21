@@ -1,12 +1,14 @@
 ---
 layout: "docs"
-page_title: "Configuration Entry Kind: Service Router (beta)"
+page_title: "Configuration Entry Kind: Service Router"
 sidebar_current: "docs-agent-cfg_entries-service_router"
 description: |-
   The service-router config entry kind controls Connect traffic routing and manipulation at networking layer 7 (e.g. HTTP).
 ---
 
-# Service Router <sup>(beta)</sup>
+-> **1.6.0+:**  This config entry is available in Consul versions 1.6.0 and newer.
+
+# Service Router
 
 The `service-router` config entry kind controls Connect traffic routing and
 manipulation at networking layer 7 (e.g. HTTP).

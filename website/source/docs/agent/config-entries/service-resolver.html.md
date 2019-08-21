@@ -1,12 +1,14 @@
 ---
 layout: "docs"
-page_title: "Configuration Entry Kind: Service Resolver (beta)"
+page_title: "Configuration Entry Kind: Service Resolver"
 sidebar_current: "docs-agent-cfg_entries-service_resolver"
 description: |-
   The `service-resolver` config entry kind controls which service instances should satisfy Connect upstream discovery requests for a given service name.
 ---
 
-# Service Resolver <sup>(beta)</sup>
+-> **1.6.0+:**  This config entry is available in Consul versions 1.6.0 and newer.
+
+# Service Resolver
 
 The `service-resolver` config entry kind controls which service instances
 should satisfy Connect upstream discovery requests for a given service name.
