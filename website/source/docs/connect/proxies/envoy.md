@@ -395,7 +395,7 @@ definition](/docs/connect/registration/service-registration.html) or
 [`service-router`](/docs/agent/config-entries/service-router.html),
 [`service-splitter`](/docs/agent/config-entries/service-splitter.html), or
 [`service-resolver`](/docs/agent/config-entries/service-resolver.html) config
-entry exists for a service these escape hatches are ignored and will log a
+entry exists for a service the below escape hatches are ignored and will log a
 warning.
 
 - `envoy_listener_json` - Specifies a complete
