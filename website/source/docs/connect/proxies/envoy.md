@@ -18,13 +18,13 @@ Consul can configure Envoy sidecars to proxy http/1.1, http2 or gRPC traffic at
 L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
 could only proxy tcp at L4.
 
-Currently configuration of additional L7 features is limited, however we have
-plans to support a wider range of features in the next major release
-cycle.
-
-As an interim solution, you can add [custom Envoy configuration](#custom-configuration)
-in the [proxy service definition](/docs/connect/registration/service-registration.html) allowing
-you to use the more powerful features of Envoy.
+Configuration of some [L7 features](/docs/connect/l7-traffic-management.html)
+is possible via [configuration entries](/docs/agent/config_entries.html). If
+you wish to use an Envoy feature not currently exposed through these config
+entries as an interim solution, you can add [custom Envoy
+configuration](#advanced-configuration) in the [proxy service
+definition](/docs/connect/registration/service-registration.html) allowing you
+to use the more powerful features of Envoy.
 
 ~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy.html)
    Envoy must be run with the `--max-obj-name-len` option set to `256` or greater.
@@ -180,6 +180,7 @@ defaults that are inherited by all services.
 
 - `protocol` - The protocol the service speaks. Connect's Envoy integration
   currently supports the following `protocol` values:
+
   - `tcp` - Unless otherwise specified this is the default, which causes Envoy
     to proxy at L4. This provides all the security benefits of Connect's mTLS
     and works for any TCP-based protocol. Load-balancing and metrics are
@@ -199,10 +200,22 @@ defaults that are inherited by all services.
     filter](https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
+
+    ~> **Note:** The protocol of a service should ideally be configured via the
+    [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
+    field of a
+    [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+    config entry for the service. Configuring it in a
+    proxy config will not fully enable some [L7
+    features](/docs/connect/l7-traffic-management.html).
+    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+
 - `bind_address` - Override the address Envoy's public listener binds to. By
   default Envoy will bind to the service address or 0.0.0.0 if there is not explicit address on the service registration.
+
 - `bind_port` - Override the port Envoy's public listener binds to. By default
   Envoy will bind to the service port.
+
 - `local_connect_timeout_ms` - The number of milliseconds allowed to make
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
@@ -216,9 +229,28 @@ definition](/docs/connect/registration/service-registration.html) or
 
 - `protocol` - Same as above in main config but affects the listener setup for
   the upstream.
+
+    ~> **Note:** The protocol of a service should ideally be configured via the
+    [`protocol`](/docs/agent/config-entries/service-defaults.html#protocol)
+    field of a
+    [`service-defaults`](/docs/agent/config-entries/service-defaults.html)
+    config entry for the upstream destination service. Configuring it in a
+    proxy upstream config will not fully enable some [L7
+    features](/docs/connect/l7-traffic-management.html).
+    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000
   (5 seconds).
+
+    ~> **Note:** The connection timeout for a service should ideally be
+    configured via the
+    [`connect_timeout`](/docs/agent/config-entries/service-resolver.html#connecttimeout)
+    field of a
+    [`service-resolver`](/docs/agent/config-entries/service-resolver.html)
+    config entry for the upstream destination service. Configuring it in a
+    proxy upstream config will override any values defined in config entries.
+    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 ### Mesh Gateway Options <sup>(beta)</sup>
 
@@ -358,6 +390,13 @@ The following configuration items may be overridden directly in the
 `proxy.upstreams[].config` field of a [proxy service
 definition](/docs/connect/registration/service-registration.html) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service.html) block.
+
+~> **Note:** - When a
+[`service-router`](/docs/agent/config-entries/service-router.html),
+[`service-splitter`](/docs/agent/config-entries/service-splitter.html), or
+[`service-resolver`](/docs/agent/config-entries/service-resolver.html) config
+entry exists for a service the below escape hatches are ignored and will log a
+warning.
 
 - `envoy_listener_json` - Specifies a complete
   [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)

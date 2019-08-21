@@ -235,6 +235,10 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
 			upstream.Identifier(), err)
 	}
+	if cfg.ClusterJSON != "" {
+		s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
+			upstream.Identifier(), "envoy_cluster_json", chain.ServiceName)
+	}
 
 	if chain == nil {
 		panic("chain must be provided")

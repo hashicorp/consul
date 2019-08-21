@@ -9,8 +9,9 @@ description: |-
 # L7 Traffic Management <sup>(beta)</sup>
 
 -> **Note:** This feature is not compatible with the 
-[built-in proxy](/docs/connect/proxies/built-in.html)
-or [native proxies](/docs/connect/native.html).
+[built-in proxy](/docs/connect/proxies/built-in.html),
+[native proxies](/docs/connect/native.html),
+and some [Envoy proxy escape hatches](/docs/connect/proxies/envoy.html#escape-hatch-overrides).
 
 Layer 7 traffic management allows operators to divide L7 traffic between
 different

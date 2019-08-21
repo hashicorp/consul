@@ -17,10 +17,14 @@ type ProxyConfig struct {
 	// validation context will be injected overriding any TLS settings present. An
 	// AuthZ filter will also be prepended to each filterChain provided to enforce
 	// Connect's access control.
+	//
+	// Note: This escape hatch is compatible with the discovery chain.
 	PublicListenerJSON string `mapstructure:"envoy_public_listener_json"`
 
 	// LocalClusterJSON is a complete override ("escape hatch") for the
 	// local application cluster.
+	//
+	// Note: This escape hatch is compatible with the discovery chain.
 	LocalClusterJSON string `mapstructure:"envoy_local_cluster_json"`
 
 	// LocalConnectTimeoutMs is the number of milliseconds to timeout making a new
@@ -105,11 +109,17 @@ func ParseMeshGatewayConfig(m map[string]interface{}) (MeshGatewayConfig, error)
 type UpstreamConfig struct {
 	// ListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
 	ListenerJSON string `mapstructure:"envoy_listener_json"`
 
 	// ClusterJSON is a complete override ("escape hatch") for the upstream's
 	// cluster. The Connect client TLS certificate and context will be injected
 	// overriding any TLS settings present.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
 	ClusterJSON string `mapstructure:"envoy_cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
