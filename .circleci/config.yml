@@ -579,7 +579,7 @@ jobs:
                 \"attachments\": [ \
                   { \
                     \"fallback\": \"Nightly Master Merge Failed!\", \
-                    \"text\": \"Nightly *master* merge into *${CIRCLE_BRANCH}* failed!\n\nBuild Log: ${CIRCLE_BUILD_URL}\n\nAttempted merge from: https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/tree/${git_merge_branch}\n\nThere may be a merge conflict to resolve.\", \
+                    \"text\": \"Nightly *master* merge into *${CIRCLE_BRANCH}* failed!\n\nBuild Log: ${CIRCLE_BUILD_URL}\n\n*master* merge CI pipeline jobs failed:\n${unsuccessful_builds}\", \
                     \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
                     \"ts\": \"$(date +%s)\", \
                     \"color\": \"danger\" \
