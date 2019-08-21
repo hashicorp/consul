@@ -44,10 +44,19 @@ export default Mixin.create(WithListeners, {
           // setProperties will be called the next time we enter the Route so this
           // is ok for what we need and means that the above conditional works
           // as expected (see 'here' comment above)
-          // delete this[prop];
-          // TODO: Check that nulling this out instead of deleting is fine
-          // pretty sure it is as above is just a falsey check
-          set(this, prop, null);
+
+          // ember 3 upgrade extra note:
+          // in an ember 2.18 world this used to be `delete this[prop]`
+          // to entirely reset everything instead of nulling out
+          // at some point after 2.18 this delete seems to cause problems
+          // probably due how Proxies work.
+          // whilst setting something to 'no set' usually feels a bit strange
+          // its the closest we can get to a `delete` here, unless ember has
+          // some special way of delete things entirely
+          // null also works as the logic related to this is just a falsey check
+          // but setting something to undefined is closer to delete
+
+          set(this, prop, undefined);
         }
       });
     }
