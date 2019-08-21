@@ -29,7 +29,7 @@ Fixed:
 
 ### New
 
-* *reverse* plugin: allows CoreDNS to respond dynamicly to an PTR request and the related
+* *reverse* plugin: allows CoreDNS to respond dynamically to an PTR request and the related
   A/AAAA request.
 
 ### Improvements/changes
