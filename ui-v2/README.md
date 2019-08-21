@@ -17,6 +17,8 @@ You will need the following things properly installed on your computer.
 * `cd ui-v2`
 * `yarn install`
 
+All tooling scripts below primarily use `make` which in turn call node package scripts.
+
 ## Running / Development
 
 The source code comes with a small server that runs enough of the consul API
@@ -63,7 +65,16 @@ Please note: You do not need to run `make start-api`/`yarn run start:api` to run
 
 ### Linting
 
+`make lint` currently runs linting on the majority of js files and hbs files (using `ember-template-lint`).
+
+See `.eslintrc.js` and `.eslintignore` for specific configuration.
+
 ### Building
+
+* `make build` builds the UI for production usage (env=production)
+* `make build-ci` builds the UI for CI/test usage (env=test)
+
+Static files are built into ./dist
 
 #### Running Tests in Parallel
 Alternatively, `ember-exam` can be used to split the tests across multiple browser instances for faster results. Most options are the same as `ember test`. To see a full list of options, run `ember exam --help`.
