@@ -760,6 +760,9 @@ default will automatically work with some tooling.
 
 *   <a name="autopilot"></a><a href="#autopilot">`autopilot`</a> Added in Consul 0.8, this object
     allows a number of sub-keys to be set which can configure operator-friendly settings for Consul servers.
+    When these keys are provided as configuration, they will only be respected on bootstrapping. If they are not
+    provided, the defaults will be used. In order to change the value of these options after bootstrapping, you will
+    need to use the [Consul Operator Autopilot](https://www.consul.io/docs/commands/operator/autopilot.html) command.
     For more information about Autopilot, see the [Autopilot Guide](https://learn.hashicorp.com/consul/day-2-operations/autopilot).
 
     The following sub-keys are available:
@@ -790,6 +793,10 @@ default will automatically work with some tooling.
       If set to `true`, this setting will disable Autopilot's upgrade migration strategy in Consul Enterprise of waiting
       until enough newer-versioned servers have been added to the cluster before promoting any of them to voters. Defaults
       to `false`.
+
+    * <a name="upgrade_version_tag"></a><a href="#upgrade_version_tag">`upgrade_version_tag`</a> - (Enterprise-only)
+      The node_meta tag to use for version info when performing upgrade migrations. If this is not set, the Consul
+      version will be used.
 
 * <a name="auto_encrypt"></a><a href="#auto_encrypt">`auto_encrypt`</a>
     This object allows setting options for the `auto_encrypt` feature.
