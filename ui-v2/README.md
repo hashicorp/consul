@@ -72,12 +72,12 @@ Alternatively, `ember-exam` can be used to split the tests across multiple brows
 
 To quickly run the tests across 4 parallel browser instances:
 ```sh
-yarn test-parallel
+make test-parallel
 ```
 
 To run manually:
 ```sh
-$ EMBER_EXAM_PARALLEL=true ember exam --split <num> --parallel
+$ EMBER_EXAM_PARALLEL=true ./node_modules/.bin/ember exam --split <num> --parallel
 ```
 
 More ways to split tests can be found in the [ember-exam README.md](https://github.com/trentmwillis/ember-exam/blob/master/README.md).
