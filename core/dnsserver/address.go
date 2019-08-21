@@ -3,7 +3,6 @@ package dnsserver
 import (
 	"fmt"
 	"net"
-	"net/url"
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
@@ -53,13 +52,7 @@ func normalizeZone(str string) (zoneAddr, error) {
 		}
 	}
 
-	z := zoneAddr{Zone: dns.Fqdn(host), Port: port, Transport: trans, IPNet: ipnet}
-	_, err = url.ParseRequestURI(z.String())
-	if err != nil {
-		return zoneAddr{}, err
-	}
-
-	return z, nil
+	return zoneAddr{Zone: dns.Fqdn(host), Port: port, Transport: trans, IPNet: ipnet}, nil
 }
 
 // SplitProtocolHostPort splits a full formed address like "dns://[::1]:53" into parts.
