@@ -224,6 +224,7 @@ definition](/docs/connect/registration/service-registration.html) or
     config entry for the upstream destination service. Configuring it in a
     proxy upstream config will not fully enable some [L7
     features](/docs/connect/l7-traffic-management.html).
+    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000
@@ -236,6 +237,7 @@ definition](/docs/connect/registration/service-registration.html) or
     [`service-resolver`](/docs/agent/config-entries/service-resolver.html)
     config entry for the upstream destination service. Configuring it in a
     proxy upstream config will override any values defined in config entries.
+    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 ### Mesh Gateway Options <sup>(beta)</sup>
 
