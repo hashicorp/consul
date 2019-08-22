@@ -87,6 +87,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"watches",
 		"service.connect.proxy.config.upstreams", // Deprecated
 		"services.connect.proxy.config.upstreams", // Deprecated
+		"services.connect.proxy.config.expose.paths",
 		"service.connect.proxy.upstreams",
 		"services.connect.proxy.upstreams",
 		"service.proxy.upstreams",
