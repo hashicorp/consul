@@ -29,7 +29,7 @@ func Domain(s string) string {
 	return dnsutil.Join(l[1 : len(l)-1]...)
 }
 
-// PathWithWildcard ascts as Path, but if a name contains wildcards (* or any), the name will be
+// PathWithWildcard acts as Path, but if a name contains wildcards (* or any), the name will be
 // chopped of before the (first) wildcard, and we do a higher level search and
 // later find the matching names.  So service.*.skydns.local, will look for all
 // services under skydns.local and will later check for names that match
