@@ -18,6 +18,7 @@ message SubscribeRequest {
     string Token = 3;
     uint64 Index = 4;
     string Filter = 5;
+    Filters TopicFilters = 6;
 }
 
 message Event {
@@ -25,10 +26,16 @@ message Event {
     string Key = 2;
     uint64 Index = 3;
     repeated ACLRule RequiredACLs = 4;
+    Operation Op = 5;
     oneof Payload {
-        ServiceHealthUpdate ServiceHealth = 5;
-        bool EndOfSnapshot = 6;
+        ServiceHealthUpdate ServiceHealth = 6;
+        bool EndOfSnapshot = 7;
     }
+}
+
+enum Operation {
+    Upsert = 0;
+    Delete = 1;
 }
 
 enum ACLResource {
@@ -41,13 +48,11 @@ message ACLRule {
     string Segment = 2; 
 }
 
-enum CatalogOp {
-    Register = 0;
-    Deregister = 1;
-}
-
 message ServiceHealthUpdate {
-    CatalogOp Op = 1;
-    CheckServiceNode CheckServiceNode = 2;
+    CheckServiceNode CheckServiceNode = 1;
 }
 
+message Filters {
+    bool Connect = 1;
+    repeated string Tags = 2;
+}

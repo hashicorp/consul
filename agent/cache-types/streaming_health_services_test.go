@@ -22,10 +22,10 @@ func TestStreamingHealthServices(t *testing.T) {
 		{
 			Topic: stream.Topic_ServiceHealth,
 			Index: 1,
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
-					ServiceNode: &stream.CheckServiceNode{
+					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:    "node1",
 							Address: "1.2.3.4",
@@ -41,10 +41,10 @@ func TestStreamingHealthServices(t *testing.T) {
 		{
 			Topic: stream.Topic_ServiceHealth,
 			Index: 2,
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
-					ServiceNode: &stream.CheckServiceNode{
+					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:    "node2",
 							Address: "2.3.4.5",
@@ -105,10 +105,10 @@ func TestStreamingHealthServices(t *testing.T) {
 	client.QueueEvents(&stream.Event{
 		Topic: stream.Topic_ServiceHealth,
 		Index: 3,
+		Op:    stream.Operation_Upsert,
 		Payload: &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
-				Op: stream.CatalogOp_Register,
-				ServiceNode: &stream.CheckServiceNode{
+				CheckServiceNode: &stream.CheckServiceNode{
 					Node: &stream.Node{
 						Node:    "node1",
 						Address: "1.2.3.4",

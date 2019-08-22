@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -17,18 +16,6 @@ type ConsulGRPCAdapter struct {
 // Subscribe opens a long-lived gRPC stream which sends an initial snapshot
 // of state for the requested topic, then only sends updates.
 func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
-	// Start fetching the initial snapshot.
-	state := h.srv.fsm.State()
-
-	var snapshotFunc func(context.Context, chan stream.Event, string) error
-	switch req.Topic {
-	case stream.Topic_ServiceHealth:
-		snapshotFunc = state.ServiceHealthSnapshot
-
-	default:
-		return fmt.Errorf("only ServiceHealth topic is supported")
-	}
-
 	metrics.IncrCounter([]string{"subscribe", strings.ToLower(req.Topic.String())}, 1)
 
 	// Resolve the token and create the ACL filter.
@@ -37,6 +24,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		return err
 	}
 	aclFilter := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
+	eventFilter := req.EventFilter()
 
 	// Create the boolean expression filter.
 	var eval *bexpr.Evaluator
@@ -49,26 +37,29 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 	// Send an initial snapshot of the state via events if the requested index
 	// is lower than the last sent index of the topic.
+	state := h.srv.fsm.State()
 	lastSentIndex := state.LastTopicIndex(req.Topic)
+	sent := make(map[string]struct{})
 	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
-		go snapshotFunc(server.Context(), snapshotCh, req.Key)
+		go state.GetTopicSnapshot(server.Context(), snapshotCh, req)
 
 		// Wait for the events to come in and send them to the client.
 		for event := range snapshotCh {
-			if err := sendEvent(event, aclFilter, eval, server); err != nil {
+			event.SetACLRules()
+			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
 		}
+	}
 
-		// Send a marker that this is the end of the snapshot.
-		endSnapshotEvent := stream.Event{
-			Topic:   req.Topic,
-			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
-		}
-		if err := server.Send(&endSnapshotEvent); err != nil {
-			return err
-		}
+	// Send a marker that the snapshot is finished.
+	endSnapshotEvent := stream.Event{
+		Topic:   req.Topic,
+		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
+	}
+	if err := server.Send(&endSnapshotEvent); err != nil {
+		return err
 	}
 
 	// Register a subscription on this topic/key with the FSM.
@@ -86,31 +77,55 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 				return fmt.Errorf("handler could not keep up with events")
 			}
 
-			if err := sendEvent(event, aclFilter, eval, server); err != nil {
+			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-// sendEvent sends the given event along the stream if it passes ACL and boolean
-// filtering.
-func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator, server stream.Consul_SubscribeServer) error {
-	// Filter events by ACL rules.
-	event.SetACLRules()
-	if !aclFilter.allowEvent(event) {
-		return nil
+// sendEvent sends the given event along the stream if it passes ACL, boolean, and
+// any topic-specific filtering.
+func sendEvent(event stream.Event, eventFilter stream.EventFilterFunc, aclFilter *aclFilter,
+	eval *bexpr.Evaluator, sent map[string]struct{}, server stream.Consul_SubscribeServer) error {
+	allowEvent := true
+
+	// Check if the event should be filtered based on the request type.
+	if eventFilter != nil && !eventFilter(event) {
+		allowEvent = false
 	}
 
-	// Apply boolean expression filtering.
+	// Filter by ACL rules.
+	if !aclFilter.allowEvent(event) {
+		allowEvent = false
+	}
+
+	// Apply the user's boolean expression filtering.
 	if eval != nil {
 		allow, err := eval.Evaluate(event.FilterObject())
 		if err != nil {
 			return err
 		}
 		if !allow {
+			allowEvent = false
+		}
+	}
+
+	// If the event would be filtered but the agent needs to know about
+	// the delete, change the operation to delete and send the event
+	// before removing the ID from the sent map.
+	id := event.ID()
+	if !allowEvent {
+		if _, ok := sent[id]; ok {
+			event.Op = stream.Operation_Delete
+			delete(sent, id)
+		} else {
+			// If the event should be filtered and the agent doesn't know about it,
+			// just return early and don't send anything.
 			return nil
 		}
+	} else {
+		sent[id] = struct{}{}
 	}
 
 	// Send the event.

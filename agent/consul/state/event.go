@@ -44,6 +44,7 @@ func (e *EventPublisher) Commit() {
 	defer e.lock.Unlock()
 
 	for _, event := range e.staged {
+		event.SetACLRules()
 		for subscription, listener := range e.listeners[event.Topic] {
 			// If this event doesn't pertain to the subset this subscription is listening for,
 			// skip sending it. We'll probably need more nuanced logic here later.

@@ -745,6 +745,36 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 	}
 }
 
+// serviceTagFilter returns true (should filter) if the given service node
+// doesn't contain the given tag.
+func serviceTagFilter(tags []string, expected string) bool {
+	tag := strings.ToLower(expected)
+
+	// Look for the lower cased version of the tag.
+	for _, t := range tags {
+		if strings.ToLower(t) == tag {
+			return false
+		}
+	}
+
+	// If we didn't hit the tag above then we should filter.
+	return true
+}
+
+// ServiceTagsFilter returns true (should filter) if the given set of tags
+// doesn't contain the expected set of tags.
+func ServiceTagsFilter(tags, expected []string) bool {
+	for _, tag := range expected {
+		if serviceTagFilter(tags, tag) {
+			// If any one of the expected tags was not found, filter the service
+			return true
+		}
+	}
+
+	// If all tags were found, don't filter the service
+	return false
+}
+
 // Weights represent the weight used by DNS for a given status
 type Weights struct {
 	Passing int

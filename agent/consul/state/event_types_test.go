@@ -81,9 +81,9 @@ func TestRegistrationEvents(t *testing.T) {
 		stream.Event{
 			Index: 2,
 			Key:   "api",
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:      "node1",
@@ -124,9 +124,9 @@ func TestRegistrationEvents(t *testing.T) {
 		stream.Event{
 			Index: 2,
 			Key:   "redis",
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:      "node1",
@@ -376,9 +376,9 @@ func TestTxnEvents(t *testing.T) {
 		stream.Event{
 			Index: 2,
 			Key:   "svc1",
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:      "node1",
@@ -408,9 +408,9 @@ func TestTxnEvents(t *testing.T) {
 		stream.Event{
 			Index: 2,
 			Key:   "svc2",
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:      "node2",
@@ -439,9 +439,9 @@ func TestTxnEvents(t *testing.T) {
 		},
 		stream.Event{
 			Index: 2,
+			Op:    stream.Operation_Delete,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Deregister,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node: "node3",
@@ -452,9 +452,9 @@ func TestTxnEvents(t *testing.T) {
 		},
 		stream.Event{
 			Index: 2,
+			Op:    stream.Operation_Delete,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Deregister,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node: "node4",
@@ -466,9 +466,9 @@ func TestTxnEvents(t *testing.T) {
 		stream.Event{
 			Index: 2,
 			Key:   "svc5",
+			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:      "node5",

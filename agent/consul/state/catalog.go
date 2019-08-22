@@ -1117,7 +1117,7 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
 		serviceExists = true
-		if !serviceTagsFilter(svc, tags) {
+		if !structs.ServiceTagsFilter(svc.ServiceTags, tags) {
 			results = append(results, svc)
 		}
 	}
@@ -1131,36 +1131,6 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string
 	idx := maxIndexForService(tx, service, serviceExists, false)
 
 	return idx, results, nil
-}
-
-// serviceTagFilter returns true (should filter) if the given service node
-// doesn't contain the given tag.
-func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
-	tag = strings.ToLower(tag)
-
-	// Look for the lower cased version of the tag.
-	for _, t := range sn.ServiceTags {
-		if strings.ToLower(t) == tag {
-			return false
-		}
-	}
-
-	// If we didn't hit the tag above then we should filter.
-	return true
-}
-
-// serviceTagsFilter returns true (should filter) if the given service node
-// doesn't contain the given set of tags.
-func serviceTagsFilter(sn *structs.ServiceNode, tags []string) bool {
-	for _, tag := range tags {
-		if serviceTagFilter(sn, tag) {
-			// If any one of the expected tags was not found, filter the service
-			return true
-		}
-	}
-
-	// If all tags were found, don't filter the service
-	return false
 }
 
 // ServiceAddressNodes returns the nodes associated with a given service, filtering
@@ -2120,7 +2090,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		svc := service.(*structs.ServiceNode)
 		serviceExists = true
-		if !serviceTagsFilter(svc, tags) {
+		if !structs.ServiceTagsFilter(svc.ServiceTags, tags) {
 			results = append(results, svc)
 		}
 	}

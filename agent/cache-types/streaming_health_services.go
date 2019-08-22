@@ -3,9 +3,8 @@ package cachetype
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul/stream"
-
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -33,6 +32,10 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 		Key:    reqReal.ServiceName,
 		Index:  reqReal.MinQueryIndex,
 		Filter: reqReal.Filter,
+		TopicFilters: &stream.Filters{
+			Connect: reqReal.Connect,
+			Tags:    reqReal.ServiceTags,
+		},
 	}
 	handler := healthServicesHandler{
 		state: make(map[string]structs.CheckServiceNode),
@@ -63,11 +66,11 @@ func (h *healthServicesHandler) HandleEvent(event *stream.Event) {
 	node := serviceHealth.CheckServiceNode
 	id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 
-	switch serviceHealth.Op {
-	case stream.CatalogOp_Register:
+	switch event.Op {
+	case stream.Operation_Upsert:
 		checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
 		h.state[id] = checkServiceNode
-	case stream.CatalogOp_Deregister:
+	case stream.Operation_Delete:
 		delete(h.state, id)
 	}
 }
