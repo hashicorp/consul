@@ -38,7 +38,7 @@
 					{
 						"name": "Get Dependencies",
 						"definition": "Get Dependencies",
-						"command": "go get -u -d ./...",
+						"command": "go get -d ./...",
 						"properties": null
 					},
 					{
