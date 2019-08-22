@@ -4,6 +4,7 @@
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "altStatName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
@@ -12,7 +13,7 @@
           }
         }
       },
-      "connectTimeout": "2.345s",
+      "connectTimeout": "5s",
       "tlsContext": {
         "commonTlsContext": {
           "tlsParams": {
@@ -38,6 +39,11 @@
       },
       "outlierDetection": {
 
+      },
+      "commonLbConfig": {
+        "healthyPanicThreshold": {
+
+        }
       }
     },
     {

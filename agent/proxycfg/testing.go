@@ -559,6 +559,12 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 // TestConfigSnapshot returns a fully populated snapshot
 func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
+
+	// no entries implies we'll get a default chain
+	dbChain := discoverychain.TestCompileConfigEntries(
+		t, "db", "default", "dc1",
+		connect.TestClusterID+".consul", "dc1", nil)
+
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: "web-sidecar-proxy",
@@ -578,9 +584,16 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		Roots: roots,
 		ConnectProxy: configSnapshotConnectProxy{
 			Leaf: leaf,
+			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+				"db": dbChain,
+			},
 			UpstreamEndpoints: map[string]structs.CheckServiceNodes{
-				"db":                       TestUpstreamNodes(t),
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
+			},
+			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+				"db": map[string]structs.CheckServiceNodes{
+					"db.default.dc1": TestUpstreamNodes(t),
+				},
 			},
 		},
 		Datacenter: "dc1",
@@ -644,6 +657,10 @@ func TestConfigSnapshotDiscoveryChainWithEntries(t testing.T, additionalEntries 
 	return testConfigSnapshotDiscoveryChain(t, "simple", additionalEntries...)
 }
 
+func TestConfigSnapshotDiscoveryChainDefault(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "default")
+}
+
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
@@ -653,6 +670,8 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
 	switch variation {
+	case "default":
+		// no config entries
 	case "simple-with-overrides":
 		compileSetup = func(req *discoverychain.CompileRequest) {
 			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
@@ -873,6 +892,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	}
 
 	switch variation {
+	case "default":
 	case "simple-with-overrides":
 	case "simple":
 	case "external-sni":

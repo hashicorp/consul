@@ -67,6 +67,17 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "custom-upstream-default-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainDefault,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: false,
+					})
+			},
+		},
+		{
 			name:               "custom-upstream-typed",
 			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream",
@@ -281,7 +292,11 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 				"outlierDetection": {
 
 				},
-				"connectTimeout": "1s",
+				"altStatName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+				"commonLbConfig": {
+					"healthyPanicThreshold": {}
+				},
+				"connectTimeout": "5s",
 				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
@@ -381,7 +396,7 @@ var customAppClusterJSONTpl = `{
 	"tlsContext": {{ .TLSContext }},
 	{{- end }}
 	"name": "{{ .Name }}",
-	"connectTimeout": "5s",
+	"connectTimeout": "15s",
 	"hosts": [
 		{
 			"socketAddress": {
