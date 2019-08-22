@@ -341,8 +341,6 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		defaultCluster := out[0]
 
 		// Overlay what the user provided.
-		escapeHatchCluster.Name = defaultCluster.Name
-		escapeHatchCluster.AltStatName = defaultCluster.AltStatName
 		escapeHatchCluster.TlsContext = defaultCluster.TlsContext
 
 		out = []*envoy.Cluster{escapeHatchCluster}
