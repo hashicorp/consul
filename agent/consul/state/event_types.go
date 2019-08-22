@@ -2,16 +2,31 @@ package state
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
 
+// GetTopicSnapshot returns a snapshot of the given topic based on the SubscribeRequest.
+func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
+	var snapshotFunc func(context.Context, chan stream.Event, *stream.SubscribeRequest) error
+	switch req.Topic {
+	case stream.Topic_ServiceHealth:
+		snapshotFunc = s.ServiceHealthSnapshot
+
+	default:
+		return fmt.Errorf("only the ServiceHealth topic is supported")
+	}
+
+	return snapshotFunc(ctx, eventCh, req)
+}
+
 // ServiceHealthSnapshot returns stream.Events that provide a snapshot of the
 // current state.
-func (s *Store) ServiceHealthSnapshot(ctx context.Context, eventCh chan stream.Event, service string) error {
-	idx, nodes, err := s.CheckServiceNodes(nil, service)
+func (s *Store) ServiceHealthSnapshot(ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
+	idx, nodes, err := s.CheckServiceNodes(nil, req.Key)
 	if err != nil {
 		return err
 	}

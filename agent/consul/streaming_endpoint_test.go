@@ -116,10 +116,10 @@ func TestStreaming_Subscribe(t *testing.T) {
 	expected := []*stream.Event{
 		{
 			Key: "redis",
+			Op:  stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
-					ServiceNode: &stream.CheckServiceNode{
+					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:       "node1",
 							Datacenter: "dc1",
@@ -138,10 +138,10 @@ func TestStreaming_Subscribe(t *testing.T) {
 		},
 		{
 			Key: "redis",
+			Op:  stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
-					ServiceNode: &stream.CheckServiceNode{
+					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:       "node2",
 							Datacenter: "dc1",
@@ -166,9 +166,9 @@ func TestStreaming_Subscribe(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		// Fix up the index
 		expected[i].Index = snapshotEvents[i].Index
-		node := expected[i].GetServiceHealth().ServiceNode
-		node.Node.RaftIndex = snapshotEvents[i].GetServiceHealth().ServiceNode.Node.RaftIndex
-		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().ServiceNode.Service.RaftIndex
+		node := expected[i].GetServiceHealth().CheckServiceNode
+		node.Node.RaftIndex = snapshotEvents[i].GetServiceHealth().CheckServiceNode.Node.RaftIndex
+		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().CheckServiceNode.Service.RaftIndex
 		expected[i].SetACLRules()
 	}
 	verify.Values(t, "", snapshotEvents, expected)
@@ -188,10 +188,10 @@ func TestStreaming_Subscribe(t *testing.T) {
 	case event := <-eventCh:
 		expected := &stream.Event{
 			Key: "redis",
+			Op:  stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
-					Op: stream.CatalogOp_Register,
-					ServiceNode: &stream.CheckServiceNode{
+					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:       "node2",
 							Datacenter: "dc1",
@@ -224,10 +224,10 @@ func TestStreaming_Subscribe(t *testing.T) {
 		expected.SetACLRules()
 		// Fix up the index
 		expected.Index = event.Index
-		node := expected.GetServiceHealth().ServiceNode
-		node.Node.RaftIndex = event.GetServiceHealth().ServiceNode.Node.RaftIndex
-		node.Service.RaftIndex = event.GetServiceHealth().ServiceNode.Service.RaftIndex
-		node.Checks[0].RaftIndex = event.GetServiceHealth().ServiceNode.Checks[0].RaftIndex
+		node := expected.GetServiceHealth().CheckServiceNode
+		node.Node.RaftIndex = event.GetServiceHealth().CheckServiceNode.Node.RaftIndex
+		node.Service.RaftIndex = event.GetServiceHealth().CheckServiceNode.Service.RaftIndex
+		node.Checks[0].RaftIndex = event.GetServiceHealth().CheckServiceNode.Checks[0].RaftIndex
 		verify.Values(t, "", event, expected)
 	case <-time.After(3 * time.Second):
 		t.Fatal("never got event")
@@ -322,6 +322,15 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 		// Start a goroutine to read updates off the stream.
 		eventCh := make(chan *stream.Event, 0)
 		go testSendEvents(t, eventCh, streamHandle)
+
+		// We should only get an empty snapshot and a single "end of snapshot"
+		// message to denote it.
+		select {
+		case event := <-eventCh:
+			require.True(event.GetEndOfSnapshot())
+		case <-time.After(500 * time.Millisecond):
+			t.Fatalf("never got event")
+		}
 
 		// Wait and make sure there aren't any events coming. The server shouldn't send
 		// a snapshot and we haven't made any updates to the catalog that would trigger
@@ -421,8 +430,8 @@ node "%s" {
 			}
 		}
 		require.Len(snapshotEvents, 2)
-		require.Equal("foo", snapshotEvents[0].GetServiceHealth().ServiceNode.Service.Service)
-		require.Equal(server.config.NodeName, snapshotEvents[0].GetServiceHealth().ServiceNode.Node.Node)
+		require.Equal("foo", snapshotEvents[0].GetServiceHealth().CheckServiceNode.Service.Service)
+		require.Equal(server.config.NodeName, snapshotEvents[0].GetServiceHealth().CheckServiceNode.Node.Node)
 		require.True(snapshotEvents[1].GetEndOfSnapshot())
 
 		// Update the service with a new port to trigger a new event.
@@ -447,7 +456,7 @@ node "%s" {
 
 		select {
 		case event := <-eventCh:
-			service := event.GetServiceHealth().ServiceNode.Service
+			service := event.GetServiceHealth().CheckServiceNode.Service
 			require.Equal("foo", service.Service)
 			require.Equal(1234, service.Port)
 		case <-time.After(5 * time.Second):
@@ -714,8 +723,8 @@ func TestStreaming_Filter(t *testing.T) {
 		req.Filter = "Node.Meta.os == linux"
 		events = testSubscribe(t, req, 2)
 		require.Len(t, events, 2)
-		require.Equal(t, "baz", events[0].GetServiceHealth().ServiceNode.Node.Node)
-		require.Equal(t, "baz", events[1].GetServiceHealth().ServiceNode.Node.Node)
+		require.Equal(t, "baz", events[0].GetServiceHealth().CheckServiceNode.Node.Node)
+		require.Equal(t, "baz", events[1].GetServiceHealth().CheckServiceNode.Node.Node)
 
 		req.Filter = "Node.Meta.os == linux and Service.Meta.version == 1"
 		events = testSubscribe(t, req, 1)
