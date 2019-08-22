@@ -53,19 +53,16 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
-		var chain *structs.CompiledDiscoveryChain
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
-		}
 
-		if chain == nil {
-			upstreamCluster, err := s.makeUpstreamCluster(u, cfgSnap)
+		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+			upstreamCluster, err := s.makeUpstreamClusterForPreparedQuery(u, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
 			clusters = append(clusters, upstreamCluster)
 
 		} else {
+			chain := cfgSnap.ConnectProxy.DiscoveryChain[id]
 			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, cfgSnap)
 			if err != nil {
 				return nil, err
@@ -169,7 +166,7 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 	return c, err
 }
 
-func (s *Server) makeUpstreamCluster(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
@@ -228,6 +225,10 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
+	if chain == nil {
+		panic("chain must be provided")
+	}
+
 	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -235,13 +236,20 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
 			upstream.Identifier(), err)
 	}
-	if cfg.ClusterJSON != "" {
-		s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
-			upstream.Identifier(), "envoy_cluster_json", chain.ServiceName)
-	}
 
-	if chain == nil {
-		panic("chain must be provided")
+	var escapeHatchCluster *envoy.Cluster
+	if cfg.ClusterJSON != "" {
+		if chain.IsDefault() {
+			// If you haven't done anything to setup the discovery chain, then
+			// you can use the envoy_cluster_json escape hatch.
+			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
+				upstream.Identifier(), "envoy_cluster_json", chain.ServiceName)
+		}
 	}
 
 	id := upstream.Identifier()
@@ -250,8 +258,6 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		// this should not happen
 		return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 	}
-
-	// TODO(rb): make escape hatches work with chains
 
 	var out []*envoy.Cluster
 
@@ -326,6 +332,20 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		out = append(out, c)
+	}
+
+	if escapeHatchCluster != nil {
+		if len(out) != 1 {
+			panic("chain must have one node")
+		}
+		defaultCluster := out[0]
+
+		// Overlay what the user provided.
+		escapeHatchCluster.Name = defaultCluster.Name
+		escapeHatchCluster.AltStatName = defaultCluster.AltStatName
+		escapeHatchCluster.TlsContext = defaultCluster.TlsContext
+
+		out = []*envoy.Cluster{escapeHatchCluster}
 	}
 
 	return out, nil
