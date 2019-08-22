@@ -37,7 +37,7 @@ func TestParseRequest(t *testing.T) {
 		}
 		rs := r.String()
 		if rs != tc.expected {
-			t.Errorf("Test %d, expected (stringyfied) recordRequest: %s, got %s", i, tc.expected, rs)
+			t.Errorf("Test %d, expected (stringified) recordRequest: %s, got %s", i, tc.expected, rs)
 		}
 	}
 }
