@@ -21,6 +21,7 @@ BUG FIXES:
 * acl: Fixed a bug that could prevent transition from legacy ACL mode to new ACL mode [[GH-6332](https://github.com/hashicorp/consul/pull/6332)
 * config: Ensure that all config entry writes are transparently forwarded to the primary datacneter. [[GH-6327](https://github.com/hashicorp/consul/issues/6327)]
 * connect: updating a service-defaults config entry should leave an unset protocol alone [[GH-6342](https://github.com/hashicorp/consul/issues/6342)]
+* connect: allow 'envoy_cluster_json' escape hatch to continue to function [[GH-6378](https://github.com/hashicorp/consul/issues/6378)]
 
 ## 1.6.0-rc1 (August 13, 2019)
 
