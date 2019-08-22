@@ -70,7 +70,7 @@ func (dio *dnstapIO) newConnect() error {
 	return dio.enc.resetWriter(dio.conn)
 }
 
-// Connect connects to the dnstop endpoint.
+// Connect connects to the dnstap endpoint.
 func (dio *dnstapIO) Connect() {
 	if err := dio.newConnect(); err != nil {
 		log.Error("No connection to dnstap endpoint")
