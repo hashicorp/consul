@@ -226,7 +226,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
 	if chain == nil {
-		panic("chain must be provided")
+		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain")
 	}
 
 	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
@@ -336,7 +336,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 
 	if escapeHatchCluster != nil {
 		if len(out) != 1 {
-			panic("chain must have one node")
+			return nil, fmt.Errorf("cannot inject escape hatch cluster when discovery chain had no nodes")
 		}
 		defaultCluster := out[0]
 
