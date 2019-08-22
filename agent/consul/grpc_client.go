@@ -20,17 +20,17 @@ const (
 )
 
 type GRPCClient struct {
-	grpcConns     map[string]*grpc.ClientConn
-	grpcConnsLock sync.RWMutex
-	routers       *router.Manager
-	tlsWrap       tlsutil.DCWrapper
+	grpcConns       map[string]*grpc.ClientConn
+	grpcConnsLock   sync.RWMutex
+	routers         *router.Manager
+	tlsConfigurator *tlsutil.Configurator
 }
 
-func NewGRPCClient(logger *log.Logger, routers *router.Manager, tlsWrap tlsutil.DCWrapper) *GRPCClient {
+func NewGRPCClient(logger *log.Logger, routers *router.Manager, tlsConfigurator *tlsutil.Configurator) *GRPCClient {
 	return &GRPCClient{
-		grpcConns: make(map[string]*grpc.ClientConn),
-		routers:   routers,
-		tlsWrap:   tlsWrap,
+		grpcConns:       make(map[string]*grpc.ClientConn),
+		routers:         routers,
+		tlsConfigurator: tlsConfigurator,
 	}
 }
 
@@ -55,7 +55,7 @@ func (c *GRPCClient) GRPCConn(server *metadata.Server) (*grpc.ClientConn, error)
 	c.grpcConnsLock.Lock()
 	defer c.grpcConnsLock.Unlock()
 
-	dialer := newDialer(server.UseTLS, server.Datacenter, c.tlsWrap)
+	dialer := newDialer(server.UseTLS, server.Datacenter, c.tlsConfigurator.OutgoingRPCWrapper())
 	co, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithDialer(dialer), grpc.WithDisableRetry())
 	if err != nil {
 		return nil, err
