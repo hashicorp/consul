@@ -44,7 +44,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "set -x\n\nginkgo -cover -r -v  -outputdir=\"${BUILD_LOGS_DIR}\" | tee \"${BUILD_LOGS_DIR}/ginkgo.output\"\nrc=${PIPESTATUS[0]}\n\necho \"Exited ginkgo with status of ${rc}, output is in ${BUILD_LOGS_DIR}/ginkgo.output\"\ncat \"${BUILD_LOGS_DIR}/ginkgo.output\" | go-junit-report \u003e test.xml\n\necho \"Found the file\"\n\ngocov convert \"${BUILD_LOGS_DIR}/*.coverprofile\" | gocov-xml \u003e coverage.xml\n\nls -l \"${BUILD_LOGS_DIR}/ginkgo.output\"\n\nexit ${rc}",
+						"command": "set -x\n\nginkgo -cover -r -v  -outputdir=\"${BUILD_LOGS_DIR}\" | tee \"${BUILD_LOGS_DIR}/ginkgo.output\"\nrc=${PIPESTATUS[0]}\n\necho \"Exited ginkgo with status of ${rc}, output is in ${BUILD_LOGS_DIR}/ginkgo.output\"\ncat \"${BUILD_LOGS_DIR}/ginkgo.output\" | go-junit-report \u003e test.xml\n\necho \"Found the file\"\n\ngocov convert \"${BUILD_LOGS_DIR}/*.coverprofile\" | gocov-xml \u003e coverage.xml\n\nls -l \"${BUILD_LOGS_DIR}\"\n\nexit ${rc}",
 						"properties": null
 					}
 				],
