@@ -1114,8 +1114,8 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 
 	if rt.AutoEncryptAllowTLS {
-		if !rt.VerifyIncoming {
-			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, TLS must be configured in order to work properly.")
+		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
+			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc must be enabled.")
 		}
 	}
 

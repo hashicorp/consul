@@ -2714,6 +2714,79 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "auto_encrypt.allow works implies connect",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "verify_incoming": true,
+			  "auto_encrypt": { "allow_tls": true }
+			}`},
+			hcl: []string{`
+			  verify_incoming = true
+			  auto_encrypt { allow_tls = true }
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.VerifyIncoming = true
+				rt.AutoEncryptAllowTLS = true
+				rt.ConnectEnabled = true
+			},
+		},
+		{
+			desc: "auto_encrypt.allow works with verify_incoming",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "verify_incoming": true,
+			  "auto_encrypt": { "allow_tls": true }
+			}`},
+			hcl: []string{`
+			  verify_incoming = true
+			  auto_encrypt { allow_tls = true }
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.VerifyIncoming = true
+				rt.AutoEncryptAllowTLS = true
+				rt.ConnectEnabled = true
+			},
+		},
+		{
+			desc: "auto_encrypt.allow works with verify_incoming_rpc",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "verify_incoming_rpc": true,
+			  "auto_encrypt": { "allow_tls": true }
+			}`},
+			hcl: []string{`
+			  verify_incoming_rpc = true
+			  auto_encrypt { allow_tls = true }
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.VerifyIncomingRPC = true
+				rt.AutoEncryptAllowTLS = true
+				rt.ConnectEnabled = true
+			},
+		},
+		{
+			desc: "auto_encrypt.allow fails without verify_incoming or verify_incoming_rpc",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "auto_encrypt": { "allow_tls": true }
+			}`},
+			hcl: []string{`
+			  auto_encrypt { allow_tls = true }
+			`},
+			err: "if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc must be enabled.",
+		},
+		{
 			desc: "test connect vault provider configuration",
 			args: []string{
 				`-data-dir=` + dataDir,
