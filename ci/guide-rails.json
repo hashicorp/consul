@@ -38,7 +38,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "set +o pipefail\n\nginkgo -cover -r -v  -outputdir=./ | tee ginkgo.output\nrc=${PIPESTATUS[0]}\n\ncat ginkgo.output | go-junit-report \u003e test.xml \u0026\u0026\n\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\n\nexit ${rc}",
+						"command": "set +o pipefail\n\nginkgo -cover -r -v  -outputdir=./ | tee ginkgo.output\nrc=${PIPESTATUS[0]}\n\ncat ginkgo.output | go-junit-report \u003e test.xml\n\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\n\nexit ${rc}",
 						"properties": null
 					}
 				],
