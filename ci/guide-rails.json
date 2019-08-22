@@ -44,7 +44,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "ginkgo -cover -r -v  -outputdir=./ | tee ${BUIILD_LOGS_DIR}/ginkgo.output\nrc=${PIPESTATUS[0]}\n\ncat ${BUIILD_LOGS_DIR}/ginkgo.output | go-junit-report \u003e test.xml\n\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\n\nexit ${rc}",
+						"command": "ginkgo -cover -r -v  -outputdir=\"${BUIILD_LOGS_DIR}\" | tee \"${BUIILD_LOGS_DIR}/ginkgo.output\"\nrc=${PIPESTATUS[0]}\n\ncat \"${BUIILD_LOGS_DIR}/ginkgo.output\" | go-junit-report \u003e test.xml\n\ngocov convert \"${BUIILD_LOGS_DIR}/*.coverprofile\" | gocov-xml \u003e coverage.xml\n\nexit ${rc}",
 						"properties": null
 					}
 				],
