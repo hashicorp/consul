@@ -121,6 +121,9 @@ func missingPortError(host string, err error) bool {
 func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	host, _, err := net.SplitHostPort(rawHost)
 	if err != nil {
+		// In case we encounter this error, we proceed with the
+		// rawHost. This is fine since -start-join and -retry-join
+		// take only hosts anyways and this is an expected case.
 		if missingPortError(rawHost, err) {
 			host = rawHost
 		} else {
