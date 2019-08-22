@@ -292,7 +292,11 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 				"outlierDetection": {
 
 				},
-				"connectTimeout": "1s",
+				"altStatName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+				"commonLbConfig": {
+					"healthyPanicThreshold": {}
+				},
+				"connectTimeout": "5s",
 				"tlsContext": ` + expectedUpstreamTLSContextJSON(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
