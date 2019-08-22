@@ -113,8 +113,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	}
 }
 
-// resolveAddr is used to resolve the host into IPs, port, and error.
-// If no port is given, use the default
+// resolveAddr is used to resolve the host into IPs and error.
 func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	host, _, err := net.SplitHostPort(rawHost)
 	if err != nil && err.Error() != fmt.Sprintf("address %s: missing port in address", rawHost) {
