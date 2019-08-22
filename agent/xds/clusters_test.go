@@ -67,6 +67,17 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "custom-upstream-default-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainDefault,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: false,
+					})
+			},
+		},
+		{
 			name:               "custom-upstream-typed",
 			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream",

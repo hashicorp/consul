@@ -657,6 +657,10 @@ func TestConfigSnapshotDiscoveryChainWithEntries(t testing.T, additionalEntries 
 	return testConfigSnapshotDiscoveryChain(t, "simple", additionalEntries...)
 }
 
+func TestConfigSnapshotDiscoveryChainDefault(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "default")
+}
+
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
@@ -666,6 +670,8 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
 	switch variation {
+	case "default":
+		// no config entries
 	case "simple-with-overrides":
 		compileSetup = func(req *discoverychain.CompileRequest) {
 			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
@@ -886,6 +892,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	}
 
 	switch variation {
+	case "default":
 	case "simple-with-overrides":
 	case "simple":
 	case "external-sni":
