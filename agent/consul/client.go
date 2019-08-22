@@ -186,7 +186,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	go c.routers.Start()
 
 	// Start GRPC client.
-	c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator.OutgoingRPCWrapper())
+	c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator)
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
