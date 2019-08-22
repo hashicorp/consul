@@ -1,7 +1,7 @@
 import { readOnly } from '@ember/object/computed';
 import Component from '@ember/component';
 import { isPresent } from '@ember/utils';
-import { get, set, computed, defineProperty } from '@ember/object';
+import { set, defineProperty } from '@ember/object';
 import layout from '../templates/components/block-slot';
 import Slots from '../mixins/slots';
 import YieldSlot from './yield-slot';
@@ -39,12 +39,11 @@ const BlockSlot = Component.extend({
     }
   },
   willDestroyElement: function() {
-    const slottedComponent = get(this, 'slottedComponent');
-    if (slottedComponent) {
+    if (this.slottedComponent) {
       // Deactivate the yield slot using the slots interface when the block
       // is destroyed to allow the yield slot default {{else}} to take effect
       // dynamically
-      slottedComponent._deactivateSlot(this._name);
+      this.slottedComponent._deactivateSlot(this._name);
     }
   },
 });
