@@ -30,6 +30,12 @@
 				"segment_type": "build",
 				"job_steps": [
 					{
+						"name": "Echo Env",
+						"definition": "Echo Env",
+						"command": "env | sort",
+						"properties": null
+					},
+					{
 						"name": "Get Dependencies",
 						"definition": "Get Dependencies",
 						"command": "go get -t -d ./...",
@@ -38,7 +44,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "set +o pipefail\n\nginkgo -cover -r -v  -outputdir=./ | tee ${BUIILD_LOGS_DIR}/ginkgo.output\nrc=${PIPESTATUS[0]}\n\ncat ${BUIILD_LOGS_DIR}/ginkgo.output | go-junit-report \u003e test.xml\n\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\n\nexit ${rc}",
+						"command": "ginkgo -cover -r -v  -outputdir=./ | tee ${BUIILD_LOGS_DIR}/ginkgo.output\nrc=${PIPESTATUS[0]}\n\ncat ${BUIILD_LOGS_DIR}/ginkgo.output | go-junit-report \u003e test.xml\n\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\n\nexit ${rc}",
 						"properties": null
 					}
 				],
@@ -106,6 +112,7 @@
 					}
 				},
 				"cache_info": {
+					"enabled": true,
 					"paths": [
 						"((gopath))"
 					]
