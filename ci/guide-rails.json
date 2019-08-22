@@ -44,7 +44,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "set -x\nginkgo -cover -r -v  -outputdir=./ | tee ginkgo.output\nrc=${PIPESTATUS[0]}\necho \"Exited ginkgo with status of ${rc}\"\ncp ginkgo.output \"${BUILD_LOGS_DIR}/.\"\ncat ginkgo.output | go-junit-report \u003e test.xml\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\ncp *.coverprofile coverage.xml \"${BUILD_LOGS_DIR}/.\"\nexit ${rc}",
+						"command": "set -x\nginkgo -cover -r -v  -outputdir=./ | tee ginkgo.output\nrc=${PIPESTATUS[0]}\necho \"Exited ginkgo with status of ${rc}\"\ncp ginkgo.output \"${BUILD_LOGS_DIR}/.\"\ncat ginkgo.output | go-junit-report \u003e test.xml\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\ncp *.coverprofile coverage.xml test.xml \"${BUILD_LOGS_DIR}/.\"\nexit ${rc}",
 						"properties": null
 					}
 				],
