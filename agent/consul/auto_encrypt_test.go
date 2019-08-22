@@ -67,3 +67,13 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 		})
 	}
 }
+
+func TestAutoEncrypt_missingPortError(t *testing.T) {
+	host := "127.0.0.1"
+	_, _, err := net.SplitHostPort(host)
+	require.True(t, missingPortError(host, err))
+
+	host = "127.0.0.1:1234"
+	_, _, err = net.SplitHostPort(host)
+	require.False(t, missingPortError(host, err))
+}
