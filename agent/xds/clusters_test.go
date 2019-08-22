@@ -392,7 +392,7 @@ var customAppClusterJSONTpl = `{
 	"tlsContext": {{ .TLSContext }},
 	{{- end }}
 	"name": "{{ .Name }}",
-	"connectTimeout": "5s",
+	"connectTimeout": "15s",
 	"hosts": [
 		{
 			"socketAddress": {

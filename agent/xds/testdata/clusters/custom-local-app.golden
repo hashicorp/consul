@@ -88,7 +88,7 @@
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
       "name": "mylocal",
-      "connectTimeout": "5s",
+      "connectTimeout": "15s",
       "hosts": [
         {
           "socketAddress": {
