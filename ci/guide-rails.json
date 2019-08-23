@@ -32,7 +32,43 @@
 					{
 						"name": "Get Dependencies",
 						"definition": "Get Dependencies",
-						"command": "go get -d ./...",
+						"command": "make update-vendor",
+						"properties": null
+					},
+					{
+						"name": "Git Diff",
+						"definition": "Git Diff",
+						"command": "if ! git diff --exit-code; then\n  echo \"Git directory has vendor changes\"\n  exit 1\nfi",
+						"properties": null
+					},
+					{
+						"name": "Lint-Consul-Retry",
+						"definition": "Lint-Consul-Retry",
+						"command": "go get -u github.com/hashicorp/lint-consul-retry \u0026\u0026 lint-consul-retry",
+						"properties": null
+					},
+					{
+						"name": "Update modules",
+						"definition": "Update modules",
+						"command": "go mod download",
+						"properties": null
+					},
+					{
+						"name": "Go Fmt",
+						"definition": "Go Fmt",
+						"command": "files=$(go fmt ./...)\nif [ -n \"$files\" ]; then\n  echo \"The following file(s) do not conform to go fmt:\"\n  echo \"$files\"\n  exit 1\nfi",
+						"properties": null
+					},
+					{
+						"name": "Go Vet",
+						"definition": "Go Vet",
+						"command": "go vet ./...",
+						"properties": null
+					},
+					{
+						"name": "Dev Build",
+						"definition": "Dev Build",
+						"command": "make dev",
 						"properties": null
 					},
 					{
