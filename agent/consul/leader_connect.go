@@ -382,11 +382,13 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 
 		var intermediatePEM string
 		if err := s.forwardDC("ConnectCA.SignIntermediate", s.config.PrimaryDatacenter, s.generateCASignRequest(csr), &intermediatePEM); err != nil {
-			return err
+			// this is a failure in the primary and shouldn't be capable of erroring out our establishing leadership
+			s.logger.Printf("[WARN] connect: Primary datacenter refused to sign our intermediate CA certificate: %v", err)
+			return nil
 		}
 
 		if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert); err != nil {
-			return err
+			return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 		}
 
 		// Append the new intermediate to our local active root entry.
