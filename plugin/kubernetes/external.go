@@ -85,8 +85,10 @@ func (k *Kubernetes) External(state request.Request) ([]msg.Service, int) {
 
 // ExternalAddress returns the external service address(es) for the CoreDNS service.
 func (k *Kubernetes) ExternalAddress(state request.Request) []dns.RR {
-	// This is probably wrong, because of all the fallback behavior of k.nsAddr, i.e. can get
-	// an address that isn't reachable from outside the cluster.
-	rrs := []dns.RR{k.nsAddr()}
-	return rrs
+	// If CoreDNS is running inside the Kubernetes cluster: k.nsAddrs() will return the external IPs of the services
+	// targeting the CoreDNS Pod.
+	// If CoreDNS is running outside of the Kubernetes cluster: k.nsAddrs() will return the first non-loopback IP
+	// address seen on the local system it is running on. This could be the wrong answer if coredns is using the *bind*
+	// plugin to bind to a different IP address.
+	return k.nsAddrs(true, state.Zone)
 }

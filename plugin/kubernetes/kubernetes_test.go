@@ -327,7 +327,7 @@ func TestServicesAuthority(t *testing.T) {
 
 		state := request.Request{
 			Req:  &dns.Msg{Question: []dns.Question{{Name: test.qname, Qtype: test.qtype}}},
-			Zone: "interwebs.test.", // must match from k.Zones[0]
+			Zone: k.Zones[0],
 		}
 		svcs, e := k.Services(context.TODO(), state, false, plugin.Options{})
 		if e != nil {

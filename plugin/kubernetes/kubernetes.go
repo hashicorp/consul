@@ -107,25 +107,33 @@ func (k *Kubernetes) Services(ctx context.Context, state request.Request, exact 
 
 	case dns.TypeNS:
 		// We can only get here if the qname equals the zone, see ServeDNS in handler.go.
-		ns := k.nsAddr()
-		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl}
-		return []msg.Service{svc}, nil
+		nss := k.nsAddrs(false, state.Zone)
+		var svcs []msg.Service
+		for _, ns := range nss {
+			if ns.Header().Rrtype == dns.TypeA {
+				svcs = append(svcs, msg.Service{Host: ns.(*dns.A).A.String(), Key: msg.Path(ns.Header().Name, coredns), TTL: k.ttl})
+				continue
+			}
+			if ns.Header().Rrtype == dns.TypeAAAA {
+				svcs = append(svcs, msg.Service{Host: ns.(*dns.AAAA).AAAA.String(), Key: msg.Path(ns.Header().Name, coredns), TTL: k.ttl})
+			}
+		}
+		return svcs, nil
 	}
 
 	if isDefaultNS(state.Name(), state.Zone) {
-		ns := k.nsAddr()
-
-		isIPv4 := ns.A.To4() != nil
-
-		if !((state.QType() == dns.TypeA && isIPv4) || (state.QType() == dns.TypeAAAA && !isIPv4)) {
-			// NODATA
-			return nil, nil
+		nss := k.nsAddrs(false, state.Zone)
+		var svcs []msg.Service
+		for _, ns := range nss {
+			if ns.Header().Rrtype == dns.TypeA && state.QType() == dns.TypeA {
+				svcs = append(svcs, msg.Service{Host: ns.(*dns.A).A.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl})
+				continue
+			}
+			if ns.Header().Rrtype == dns.TypeAAAA && state.QType() == dns.TypeAAAA {
+				svcs = append(svcs, msg.Service{Host: ns.(*dns.AAAA).AAAA.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl})
+			}
 		}
-
-		// If this is an A request for "ns.dns", respond with a "fake" record for coredns.
-		// SOA records always use this hardcoded name
-		svc := msg.Service{Host: ns.A.String(), Key: msg.Path(state.QName(), coredns), TTL: k.ttl}
-		return []msg.Service{svc}, nil
+		return svcs, nil
 	}
 
 	s, e := k.Records(ctx, state, false)

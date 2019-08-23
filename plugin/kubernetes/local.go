@@ -12,11 +12,14 @@ func localPodIP() net.IP {
 
 	for _, addr := range addrs {
 		ip, _, _ := net.ParseCIDR(addr.String())
-		ip = ip.To4()
-		if ip == nil || ip.IsLoopback() {
-			continue
+		ip4 := ip.To4()
+		if ip4 != nil && !ip4.IsLoopback() {
+			return ip4
 		}
-		return ip
+		ip6 := ip.To16()
+		if ip6 != nil && !ip6.IsLoopback() {
+			return ip6
+		}
 	}
 	return nil
 }
