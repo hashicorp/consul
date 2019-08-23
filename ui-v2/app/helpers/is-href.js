@@ -1,3 +1,5 @@
+/*eslint ember/no-observers: "warn"*/
+// TODO: Remove ^
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
 import { observer } from '@ember/object';
