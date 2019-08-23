@@ -185,6 +185,8 @@ export default Service.extend({
         // temporarily reset the headers/content-type so it works the same
         // as previously, should be able to remove this once the data layer
         // rewrite is over and we can assert sending via form-encoded is fine
+        // also see adapters/kv content-types in requestForCreate/UpdateRecord
+        // also see https://github.com/hashicorp/consul/issues/3804
         options.contentType = 'application/json; charset=utf-8';
         headers['Content-Type'] = options.contentType;
         //
