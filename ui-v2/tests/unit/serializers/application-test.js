@@ -37,7 +37,7 @@ module('Unit | Serializer | application', function(hooks) {
     const expected = {
       'primary-key-name': 'name',
     };
-    const actual = serializer.respondForDeleteRecord(respond, { Name: 'name', dc: 'dc-1' });
+    const actual = serializer.respondForDeleteRecord(respond, {}, { Name: 'name', dc: 'dc-1' });
     assert.deepEqual(actual, expected);
     // assert.ok(adapter.uidForURL.calledOnce);
   });

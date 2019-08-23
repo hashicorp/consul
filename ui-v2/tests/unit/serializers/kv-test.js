@@ -43,6 +43,7 @@ module('Unit | Serializer | kv', function(hooks) {
           const body = true;
           return cb(headers, body);
         },
+        {},
         {
           Key: uid,
           Datacenter: dc,
@@ -72,6 +73,7 @@ module('Unit | Serializer | kv', function(hooks) {
           };
           return cb(headers, body);
         },
+        {},
         {
           Key: uid,
           Datacenter: dc,

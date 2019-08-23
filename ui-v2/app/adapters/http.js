@@ -1,4 +1,5 @@
 import Adapter from 'ember-data/adapter';
+import { get } from '@ember/object';
 import {
   AbortError,
   TimeoutError,
@@ -10,12 +11,47 @@ import {
   InvalidError,
   AdapterError,
 } from 'ember-data/adapters/errors';
-import { get } from '@ember/object';
 
+// TODO: This is a little skeleton cb function
+// is to be replaced soon with something slightly more involved
+const responder = function(response) {
+  return response;
+};
+const read = function(adapter, serializer, client, type, query) {
+  return client
+    .request(function(request) {
+      return adapter[`requestFor${type}`](request, query);
+    })
+    .catch(function(e) {
+      return adapter.error(e);
+    })
+    .then(function(response) {
+      return serializer[`respondFor${type}`](responder(response), query);
+    });
+  // TODO: Potentially add specific serializer errors here
+  // .catch(function(e) {
+  //   return Promise.reject(e);
+  // });
+};
+const write = function(adapter, serializer, client, type, snapshot) {
+  const unserialized = snapshot.attributes();
+  const serialized = serializer.serialize(snapshot, {});
+  return client
+    .request(function(request) {
+      return adapter[`requestFor${type}`](request, serialized, unserialized);
+    })
+    .catch(function(e) {
+      return adapter.error(e);
+    })
+    .then(function(response) {
+      return serializer[`respondFor${type}`](responder(response), serialized, unserialized);
+    });
+  // TODO: Potentially add specific serializer errors here
+  // .catch(function(e) {
+  //   return Promise.reject(e);
+  // });
+};
 export default Adapter.extend({
-  snapshotToJSON: function(snapshot, type, options) {
-    return snapshot.attributes();
-  },
   error: function(err) {
     const errors = [
       {
@@ -62,51 +98,45 @@ export default Adapter.extend({
     throw error;
   },
   query: function(store, type, query) {
-    const serializer = store.serializerFor(type.modelName);
-    return get(this, 'client')
-      .request(request => this.requestForQuery(request, query))
-      .catch(e => this.error(e))
-      .then(respond => serializer.respondForQuery(respond, query, type));
+    return read(this, store.serializerFor(type.modelName), get(this, 'client'), 'Query', query);
   },
   queryRecord: function(store, type, query) {
-    const serializer = store.serializerFor(type.modelName);
-    return get(this, 'client')
-      .request(request => this.requestForQueryRecord(request, query))
-      .catch(e => this.error(e))
-      .then(respond => serializer.respondForQueryRecord(respond, query));
+    return read(
+      this,
+      store.serializerFor(type.modelName),
+      get(this, 'client'),
+      'QueryRecord',
+      query
+    );
   },
   findAll: function(store, type) {
-    const serializer = store.serializerFor(type.modelName);
-    return get(this, 'client')
-      .request(request => this.requestForFindAll(request))
-      .catch(e => this.error(e))
-      .then(respond => serializer.respondForFindAll(respond));
+    return read(this, store.serializerFor(type.modelName), get(this, 'client'), 'FindAll');
   },
   createRecord: function(store, type, snapshot) {
-    const serializer = store.serializerFor(type.modelName);
-    const unserialized = this.snapshotToJSON(snapshot, type);
-    const serialized = serializer.serialize(snapshot, {});
-    return get(this, 'client')
-      .request(request => this.requestForCreateRecord(request, unserialized), serialized)
-      .catch(e => this.error(e))
-      .then(respond => serializer.respondForCreateRecord(respond, unserialized, type));
+    return write(
+      this,
+      store.serializerFor(type.modelName),
+      get(this, 'client'),
+      'CreateRecord',
+      snapshot
+    );
   },
   updateRecord: function(store, type, snapshot) {
-    const serializer = store.serializerFor(type.modelName);
-    const unserialized = this.snapshotToJSON(snapshot, type);
-    const serialized = serializer.serialize(snapshot, {});
-    return get(this, 'client')
-      .request(request => this.requestForUpdateRecord(request, unserialized), serialized)
-      .catch(e => this.error(e))
-      .then(respond => serializer.respondForUpdateRecord(respond, unserialized, type));
+    return write(
+      this,
+      store.serializerFor(type.modelName),
+      get(this, 'client'),
+      'UpdateRecord',
+      snapshot
+    );
   },
   deleteRecord: function(store, type, snapshot) {
-    const serializer = store.serializerFor(type.modelName);
-    const unserialized = this.snapshotToJSON(snapshot, type);
-    const serialized = serializer.serialize(snapshot, {});
-    return get(this, 'client')
-      .request(request => this.requestForDeleteRecord(request, unserialized), serialized)
-      .catch(e => this.error(e))
-      .then(respond => serializer.respondForDeleteRecord(respond, unserialized, type));
+    return write(
+      this,
+      store.serializerFor(type.modelName),
+      get(this, 'client'),
+      'DeleteRecord',
+      snapshot
+    );
   },
 });

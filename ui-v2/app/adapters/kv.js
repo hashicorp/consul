@@ -28,19 +28,25 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForCreateRecord: function(request, data) {
+  // TODO: Should we replace text/plain here with x-www-form-encoded?
+  // See https://github.com/hashicorp/consul/issues/3804
+  requestForCreateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-      Content-Type: application/x-www-form-urlencoded
+      Content-Type: text/plain; charset=utf-8
+
+      ${serialized}
     `;
   },
-  requestForUpdateRecord: function(request, data) {
+  requestForUpdateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
-      Content-Type: application/x-www-form-urlencoded
+      Content-Type: text/plain; charset=utf-8
+
+      ${serialized}
     `;
   },
-  requestForDeleteRecord: function(request, data) {
+  requestForDeleteRecord: function(request, serialized, data) {
     let recurse;
     if (isFolder(data[SLUG_KEY])) {
       recurse = null;

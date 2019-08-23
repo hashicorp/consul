@@ -47,11 +47,15 @@ module('Integration | Adapter | kv', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/kv/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForCreateRecord(client.url, {
-        Datacenter: dc,
-        Key: id,
-        Value: '',
-      })
+      .requestForCreateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          Key: id,
+          Value: '',
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -60,11 +64,15 @@ module('Integration | Adapter | kv', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/kv/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForUpdateRecord(client.url, {
-        Datacenter: dc,
-        Key: id,
-        Value: '',
-      })
+      .requestForUpdateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          Key: id,
+          Value: '',
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -72,10 +80,14 @@ module('Integration | Adapter | kv', function(hooks) {
     const adapter = this.owner.lookup('adapter:kv');
     const client = this.owner.lookup('service:client/http');
     const expected = `DELETE /v1/kv/${id}?dc=${dc}`;
-    const actual = adapter.requestForDeleteRecord(client.url, {
-      Datacenter: dc,
-      Key: id,
-    });
+    const actual = adapter.requestForDeleteRecord(
+      client.url,
+      {},
+      {
+        Datacenter: dc,
+        Key: id,
+      }
+    );
     assert.equal(actual, expected);
   });
   test('requestForDeleteRecord returns the correct url/method for folders', function(assert) {
@@ -83,10 +95,14 @@ module('Integration | Adapter | kv', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const folder = `${id}/`;
     const expected = `DELETE /v1/kv/${folder}?dc=${dc}&recurse`;
-    const actual = adapter.requestForDeleteRecord(client.url, {
-      Datacenter: dc,
-      Key: folder,
-    });
+    const actual = adapter.requestForDeleteRecord(
+      client.url,
+      {},
+      {
+        Datacenter: dc,
+        Key: folder,
+      }
+    );
     assert.equal(actual, expected);
   });
 });

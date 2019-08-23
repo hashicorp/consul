@@ -37,7 +37,7 @@ export default Serializer.extend({
       attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body))
     );
   },
-  respondForCreateRecord: function(respond, data) {
+  respondForCreateRecord: function(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
@@ -49,7 +49,7 @@ export default Serializer.extend({
       return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
     });
   },
-  respondForUpdateRecord: function(respond, data) {
+  respondForUpdateRecord: function(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
@@ -60,7 +60,7 @@ export default Serializer.extend({
       return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
     });
   },
-  respondForDeleteRecord: function(respond, data) {
+  respondForDeleteRecord: function(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {

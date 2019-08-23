@@ -21,17 +21,21 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForCreateRecord: function(request, data) {
+  requestForCreateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/acl/policy?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+
+      ${serialized}
     `;
   },
-  requestForUpdateRecord: function(request, data) {
+  requestForUpdateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/acl/policy/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+
+      ${serialized}
     `;
   },
-  requestForDeleteRecord: function(request, data) {
+  requestForDeleteRecord: function(request, serialized, data) {
     return request`
       DELETE /v1/acl/policy/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;

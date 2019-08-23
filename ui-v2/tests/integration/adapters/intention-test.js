@@ -37,10 +37,14 @@ module('Integration | Adapter | intention', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `POST /v1/connect/intentions?dc=${dc}`;
     const actual = adapter
-      .requestForCreateRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForCreateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -49,10 +53,14 @@ module('Integration | Adapter | intention', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/connect/intentions/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForUpdateRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForUpdateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -61,10 +69,14 @@ module('Integration | Adapter | intention', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `DELETE /v1/connect/intentions/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForDeleteRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForDeleteRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
