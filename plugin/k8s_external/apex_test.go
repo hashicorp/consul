@@ -59,7 +59,7 @@ var testsApex = []test.Case{
 			test.NS("example.com.	5	IN	NS	ns1.dns.example.com."),
 		},
 		Extra: []dns.RR{
-			test.A("example.com.	5	IN	A	127.0.0.1"),
+			test.A("ns1.dns.example.com.	5	IN	A	127.0.0.1"),
 		},
 	},
 	{

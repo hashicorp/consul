@@ -20,7 +20,7 @@ func (e *External) serveApex(state request.Request) (int, error) {
 		addr := e.externalAddrFunc(state)
 		for _, rr := range addr {
 			rr.Header().Ttl = e.ttl
-			rr.Header().Name = state.QName()
+			rr.Header().Name = dnsutil.Join("ns1", e.apex, state.QName())
 			m.Extra = append(m.Extra, rr)
 		}
 	default:
