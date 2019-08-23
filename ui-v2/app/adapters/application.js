@@ -1,7 +1,6 @@
 import Adapter from './http';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
-
 export const DATACENTER_QUERY_PARAM = 'dc';
 export default Adapter.extend({
   repo: service('settings'),
@@ -17,9 +16,8 @@ export default Adapter.extend({
     let unserialized, serialized;
     const serializer = store.serializerFor(modelName);
     // workable way to decide whether this is a snapshot
-    // essentially 'is attributable'.
     // Snapshot is private so we can't do instanceof here
-    if (typeof obj.attributes === 'function') {
+    if (obj.constructor.name === 'Snapshot') {
       unserialized = obj.attributes();
       serialized = serializer.serialize(obj, {});
     } else {
