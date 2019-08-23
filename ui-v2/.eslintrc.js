@@ -10,7 +10,8 @@ module.exports = {
     browser: true,
   },
   rules: {
-    'no-unused-vars': ['error', { args: 'none' }]
+    'no-unused-vars': ['error', { args: 'none' }],
+    'ember/no-new-mixins': ['warn']
   },
   overrides: [
     // node files

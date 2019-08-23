@@ -1,3 +1,6 @@
+/*eslint ember/require-return-from-computed: "warn"*/
+// TODO: Remove ^
+
 import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
 
