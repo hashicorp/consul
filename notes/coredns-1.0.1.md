@@ -16,7 +16,7 @@ One new plugin was added: *nsid*, that implements [RFC 5001](https://tools.ietf.
 ## Plugins
 * *file* fixes a crash when an request with a DO bit (pretty much the default) hits an unsigned zone. The default configuration should recover the go-routine, but this is nonetheless serious. *file* received some other fixes when returning (secure) delegations.
 * *dnstap* plugin is now 50% faster.
-* *metrics* fixed the start time bucket for duration.
+* *metrics* fixed the start time bucket for the duration.
 
 ## Contributors
 
