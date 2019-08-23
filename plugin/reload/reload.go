@@ -99,7 +99,7 @@ func hook(event caddy.EventName, info interface{}) error {
 					// Let not try to restart with the same file, even though it is wrong.
 					md5sum = s
 					// now lets consider that plugin will not be reload, unless appear in next config file
-					// change status iof usage will be reset in setup if the plugin appears in config file
+					// change status of usage will be reset in setup if the plugin appears in config file
 					r.setUsage(maybeUsed)
 					_, err := instance.Restart(corefile)
 					if err != nil {
