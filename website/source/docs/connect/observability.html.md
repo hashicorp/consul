@@ -18,7 +18,7 @@ to:
 - Define the protocols for each of your services.
 - Define the upstreams for each of your services.
 
-If you are using Envoy as your sidecar proxy, you will need to enable [enable
+If you are using Envoy as your sidecar proxy, you will need to [enable
 gRPC](/docs/agent/options.html#grpc_port) on your client agents. To define the
 metrics destination and service protocol you may want to enable [configuration
 entries](/docs/agent/options.html#config_entries) and [centralized service
