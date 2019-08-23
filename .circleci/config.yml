@@ -20,7 +20,7 @@ references:
     EMAIL: noreply@hashicorp.com
     GIT_AUTHOR_NAME: circleci-consul
     GIT_COMMITTER_NAME: circleci-consul
-    S3_ARTIFACT_BUCKET:  consul-dev-artifacts
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts
 
 jobs:
   # lint consul tests
@@ -39,13 +39,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - consul-modcache-v1-{{ checksum "go.mod" }}
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: go mod download
       - save_cache:
           key: consul-modcache-v1-{{ checksum "go.mod" }}
           paths:
-          - /go/pkg/mod
+            - /go/pkg/mod
       - run:
           name: check go fmt
           command: |
@@ -70,13 +70,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - consul-modcache-v1-{{ checksum "go.mod" }}
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: make update-vendor
       - save_cache:
           key: consul-modcache-v1-{{ checksum "go.mod" }}
           paths:
-          - /go/pkg/mod
+            - /go/pkg/mod
       - run: |
           if ! git diff --exit-code; then
             echo "Git directory has vendor changes"
@@ -89,12 +89,12 @@ jobs:
     parallelism: 4
     environment:
       <<: *ENVIRONMENT
-      GOTAGS: '' # No tags for OSS but there are for enterprise
+      GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
       - restore_cache: # restore cache from dev-build job
           keys:
-          - consul-modcache-v1-{{ checksum "go.mod" }}
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -103,7 +103,7 @@ jobs:
       - run: |
           PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname)
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
-
+          echo "PackageNames: $PACKAGE_NAMES"
       - store_test_results:
           path: /tmp/test-results
       - store_artifacts:
@@ -115,12 +115,12 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
-      GOTAGS: '' # No tags for OSS but there are for enterprise
+      GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
       - restore_cache: # restore cache from dev-build job
           keys:
-          - consul-modcache-v1-{{ checksum "go.mod" }}
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
           at: /go/bin
       - run: mkdir -p $TEST_RESULTS_DIR
@@ -182,13 +182,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - consul-modcache-v1-{{ checksum "go.mod" }}
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run:
           command: make dev
       - save_cache:
           key: consul-modcache-v1-{{ checksum "go.mod" }}
           paths:
-          - /go/pkg/mod
+            - /go/pkg/mod
 
       # save dev build to pass to downstream jobs
       - persist_to_workspace:
@@ -439,8 +439,7 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSIONS: "1.8.0"
-    steps:
-      &ENVOY_INTEGRATION_TEST_STEPS
+    steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
       - attach_workspace:
