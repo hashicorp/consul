@@ -14,6 +14,9 @@ export default function(type, value) {
       case 'instance':
         key = 'CONSUL_NODE_COUNT';
         break;
+      case 'proxy':
+        key = 'CONSUL_PROXY_COUNT';
+        break;
       case 'kv':
         key = 'CONSUL_KV_COUNT';
         break;
