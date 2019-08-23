@@ -48,10 +48,14 @@ module('Integration | Adapter | session', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/session/destroy/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForDeleteRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForDeleteRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });

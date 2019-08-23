@@ -37,10 +37,14 @@ module('Integration | Adapter | acl', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/create?dc=${dc}`;
     const actual = adapter
-      .requestForCreateRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForCreateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -49,10 +53,14 @@ module('Integration | Adapter | acl', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/update?dc=${dc}`;
     const actual = adapter
-      .requestForUpdateRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForUpdateRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
@@ -61,10 +69,14 @@ module('Integration | Adapter | acl', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/destroy/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForDeleteRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForDeleteRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('/n')[0];
     assert.equal(actual, expected);
   });
@@ -73,10 +85,14 @@ module('Integration | Adapter | acl', function(hooks) {
     const client = this.owner.lookup('service:client/http');
     const expected = `PUT /v1/acl/clone/${id}?dc=${dc}`;
     const actual = adapter
-      .requestForCloneRecord(client.url, {
-        Datacenter: dc,
-        ID: id,
-      })
+      .requestForCloneRecord(
+        client.url,
+        {},
+        {
+          Datacenter: dc,
+          ID: id,
+        }
+      )
       .split('\n')[0];
     assert.equal(actual, expected);
   });
