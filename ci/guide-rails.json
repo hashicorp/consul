@@ -112,7 +112,6 @@
 					}
 				},
 				"cache_info": {
-					"enabled": true,
 					"paths": [
 						"((gopath))"
 					]
