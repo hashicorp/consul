@@ -63,7 +63,6 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  // TODO: We should probably call this requestForCloneRecord
   requestForCloneRecord: function(request, serialized, unserialized) {
     // this uses snapshots
     const id = unserialized[SLUG_KEY];
