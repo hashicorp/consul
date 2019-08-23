@@ -30,12 +30,6 @@
 				"segment_type": "build",
 				"job_steps": [
 					{
-						"name": "Echo Env",
-						"definition": "Echo Env",
-						"command": "env | sort",
-						"properties": null
-					},
-					{
 						"name": "Get Dependencies",
 						"definition": "Get Dependencies",
 						"command": "go get -d ./...",
@@ -44,7 +38,7 @@
 					{
 						"name": "Unit Tests and Coverage",
 						"definition": "Unit Tests and Coverage",
-						"command": "set -x\n\nginkgo -cover -r -v  -outputdir=./ agent/... | tee ginkgo.output\nrc=${PIPESTATUS[0]}\n\necho \"Exited ginkgo with status of ${rc}\"\ncp ginkgo.output \"${BUILD_LOGS_DIR}/.\"\ncp *.coverprofile \"${BUILD_LOGS_DIR}/.\"\n\ncat ginkgo.output | go-junit-report \u003e test.xml\ncp test.xml \"${BUILD_LOGS_DIR}/.\"\n\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\ncp coverage.xml \"${BUILD_LOGS_DIR}/.\"\n\nexit ${rc}",
+						"command": "ginkgo -cover -r -v  -outputdir=./ agent/... | tee ginkgo.output\n\n# Record the return value of ginkgo, tee masks it\nrc=${PIPESTATUS[0]}\n\ncp ginkgo.output \"${BUILD_LOGS_DIR}/.\"\ncp *.coverprofile \"${BUILD_LOGS_DIR}/.\"\ncat ginkgo.output | go-junit-report \u003e test.xml\ncp test.xml \"${BUILD_LOGS_DIR}/.\"\ngocov convert *.coverprofile | gocov-xml \u003e coverage.xml\ncp coverage.xml \"${BUILD_LOGS_DIR}/.\"\nexit ${rc} # return the exit value of ginkgo",
 						"properties": null
 					}
 				],
