@@ -178,7 +178,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// actually resend all blocked types on the new "version" anyway since it
 	// doesn't know _what_ changed. We could do something trivial but let's
 	// simulate a leaf cert expiring and being rotated.
-	snap.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
+	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
 
 	// All 3 response that have something to return should return with new version
@@ -222,7 +222,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Change config again and make sure it's delivered to everyone!
-	snap.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
+	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 7))
@@ -236,7 +236,7 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 		"resources": [
 			{
 				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-				"clusterName": "db",
+				"clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"endpoints": [
 					{
 						"lbEndpoints": [
@@ -245,7 +245,7 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 									"address": {
 										"socketAddress": {
 											"address": "10.10.1.1",
-											"portValue": 0
+											"portValue": 8080
 										}
 									}
 								},
@@ -257,7 +257,41 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 									"address": {
 										"socketAddress": {
 											"address": "10.10.1.2",
-											"portValue": 0
+											"portValue": 8080
+										}
+									}
+								},
+								"healthStatus": "HEALTHY",
+								"loadBalancingWeight": 1
+							}
+						]
+					}
+				]
+			},
+			{
+				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+				"clusterName": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+				"endpoints": [
+					{
+						"lbEndpoints": [
+							{
+								"endpoint": {
+									"address": {
+										"socketAddress": {
+											"address": "10.10.1.1",
+											"portValue": 8080
+										}
+									}
+								},
+								"healthStatus": "HEALTHY",
+								"loadBalancingWeight": 1
+							},
+							{
+								"endpoint": {
+									"address": {
+										"socketAddress": {
+											"address": "10.10.1.2",
+											"portValue": 8080
 										}
 									}
 								},
@@ -274,15 +308,15 @@ func expectEndpointsJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token stri
 	}`
 }
 
-func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	return expectedTLSContextJSON(t, snap, false)
+func expectedUpstreamTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, sni string) string {
+	return expectedTLSContextJSON(t, snap, false, sni)
 }
 
 func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	return expectedTLSContextJSON(t, snap, true)
+	return expectedTLSContextJSON(t, snap, true, "")
 }
 
-func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, requireClientCert bool) string {
+func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 	reqClient := ""
@@ -290,16 +324,23 @@ func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, require
 		reqClient = `,
 		"requireClientCertificate": true`
 	}
+
+	upstreamSNI := ""
+	if sni != "" {
+		upstreamSNI = `,
+		"sni": "` + sni + `"`
+	}
+
 	return `{
 		"commonTlsContext": {
 			"tlsParams": {},
 			"tlsCertificates": [
 				{
 					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.Leaf.CertPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.ConnectProxy.Leaf.CertPEM, "\n", "\\n", -1) + `"
 					},
 					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.Leaf.PrivateKeyPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.ConnectProxy.Leaf.PrivateKeyPEM, "\n", "\\n", -1) + `"
 					}
 				}
 			],
@@ -310,6 +351,7 @@ func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, require
 			}
 		}
 		` + reqClient + `
+		` + upstreamSNI + `
 	}`
 }
 

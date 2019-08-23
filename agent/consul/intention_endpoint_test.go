@@ -67,6 +67,7 @@ func TestIntentionApply_new(t *testing.T) {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		actual.Hash = ixn.Intention.Hash
 		ixn.Intention.UpdatePrecedence()
 		assert.Equal(ixn.Intention, actual)
 	}
@@ -222,6 +223,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		actual.Hash = ixn.Intention.Hash
 		ixn.Intention.UpdatePrecedence()
 		assert.Equal(ixn.Intention, actual)
 	}
@@ -381,6 +383,7 @@ service "foo" {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
+		actual.Hash = ixn.Intention.Hash
 		ixn.Intention.UpdatePrecedence()
 		assert.Equal(ixn.Intention, actual)
 	}

@@ -65,8 +65,7 @@ td strong,
 %breadcrumbs li > *,
 %action-group-action,
 %tab-nav,
-%tooltip-bubble,
-%type-icon {
+%tooltip-bubble {
   font-weight: $typo-weight-medium;
 }
 
@@ -113,7 +112,7 @@ caption,
 %tooltip-bubble,
 %healthchecked-resource strong,
 %footer,
-%type-icon {
+%app-view h1 span.kind-proxy {
   font-size: $typo-size-700;
 }
 %toggle label span {

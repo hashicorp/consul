@@ -166,19 +166,15 @@ func waitForNewACLs(t *testing.T, server *Server) {
 	require.False(t, server.UseLegacyACLs(), "Server cannot use new ACLs")
 }
 
-func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType) {
-	var (
-		replTyp structs.ACLReplicationType
-		running bool
-	)
+func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
 	retry.Run(t, func(r *retry.R) {
-		replTyp, running = server.getACLReplicationStatusRunningType()
-		require.Equal(r, expectedReplicationType, replTyp, "Server not running new replicator yet")
-		require.True(r, running, "Server not running new replicator yet")
+		status := server.getACLReplicationStatus()
+		require.Equal(r, expectedReplicationType, status.ReplicationType, "Server not running new replicator yet")
+		require.True(r, status.Running, "Server not running new replicator yet")
+		require.True(r, status.ReplicatedIndex >= minPolicyIndex, "Server hasn't replicated enough policies")
+		require.True(r, status.ReplicatedTokenIndex >= minTokenIndex, "Server hasn't replicated enough tokens")
+		require.True(r, status.ReplicatedRoleIndex >= minRoleIndex, "Server hasn't replicated enough roles")
 	})
-
-	require.Equal(t, expectedReplicationType, replTyp, "Server not running new replicator yet")
-	require.True(t, running, "Server not running new replicator yet")
 }
 
 func seeEachOther(a, b []serf.Member, addra, addrb string) bool {
@@ -493,6 +489,49 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 		},
 	}
 
+	registerTestCatalogEntriesMap(t, codec, registrations)
+}
+
+func registerTestCatalogEntriesMeshGateway(t *testing.T, codec rpc.ClientCodec) {
+	t.Helper()
+
+	registrations := map[string]*structs.RegisterRequest{
+		"Service mg-gw": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "gateway",
+			ID:         types.NodeID("72e18a4c-85ec-4520-978f-2fc0378b06aa"),
+			Address:    "10.1.2.3",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mg-gw-01",
+				Service: "mg-gw",
+				Port:    8443,
+				Address: "198.18.1.4",
+			},
+		},
+		"Service web-proxy": &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "proxy",
+			ID:         types.NodeID("2d31602c-3291-4f94-842d-446bc2f945ce"),
+			Address:    "10.1.2.4",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-proxy",
+				Service: "web-proxy",
+				Port:    8443,
+				Address: "198.18.1.5",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+				},
+			},
+		},
+	}
+
+	registerTestCatalogEntriesMap(t, codec, registrations)
+}
+
+func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registrations map[string]*structs.RegisterRequest) {
+	t.Helper()
 	for name, reg := range registrations {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
 		require.NoError(t, err, "Failed catalog registration %q: %v", name, err)

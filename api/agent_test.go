@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -179,6 +180,12 @@ func TestAPI_AgentServices(t *testing.T) {
 		Name: "foo",
 		ID:   "foo",
 		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
 		Port: 8000,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
@@ -265,144 +272,6 @@ func TestAPI_AgentServicesWithFilter(t *testing.T) {
 	require.Len(t, services, 1)
 	_, ok := services["foo2"]
 	require.True(t, ok)
-}
-
-func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	agent := c.Agent()
-
-	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
-		Check: &AgentServiceCheck{
-			TTL: "15s",
-		},
-		Connect: &AgentServiceConnect{
-			Proxy: &AgentServiceConnectProxy{
-				ExecMode: ProxyExecModeScript,
-				Command:  []string{"foo.rb"},
-				Config: map[string]interface{}{
-					"foo": "bar",
-				},
-				Upstreams: []Upstream{{
-					DestinationType: "prepared_query",
-					DestinationName: "bar",
-					LocalBindPort:   9191,
-				}},
-			},
-		},
-	}
-	if err := agent.ServiceRegister(reg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	services, err := agent.Services()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, ok := services["foo"]; !ok {
-		t.Fatalf("missing service: %v", services)
-	}
-	checks, err := agent.Checks()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	chk, ok := checks["service:foo"]
-	if !ok {
-		t.Fatalf("missing check: %v", checks)
-	}
-
-	// Checks should default to critical
-	if chk.Status != HealthCritical {
-		t.Fatalf("Bad: %#v", chk)
-	}
-
-	// Proxy config should be correct
-	require.Equal(t, reg.Connect, services["foo"].Connect)
-
-	if err := agent.ServiceDeregister("foo"); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-}
-
-func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	agent := c.Agent()
-	s.WaitForSerfCheck(t)
-
-	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
-		Check: &AgentServiceCheck{
-			TTL: "15s",
-		},
-		Connect: &AgentServiceConnect{
-			Proxy: &AgentServiceConnectProxy{
-				ExecMode: ProxyExecModeScript,
-				Command:  []string{"foo.rb"},
-				Config: map[string]interface{}{
-					"foo": "bar",
-					"upstreams": []interface{}{
-						map[string]interface{}{
-							"destination_type":   "prepared_query",
-							"destination_name":   "bar",
-							"local_bind_port":    9191,
-							"connect_timeout_ms": 1000,
-						},
-					},
-				},
-			},
-		},
-	}
-	if err := agent.ServiceRegister(reg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	services, err := agent.Services()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, ok := services["foo"]; !ok {
-		t.Fatalf("missing service: %v", services)
-	}
-	checks, err := agent.Checks()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	chk, ok := checks["service:foo"]
-	if !ok {
-		t.Fatalf("missing check: %v", checks)
-	}
-
-	// Checks should default to critical
-	if chk.Status != HealthCritical {
-		t.Fatalf("Bad: %#v", chk)
-	}
-
-	// Proxy config should be present in response, minus the upstreams
-	delete(reg.Connect.Proxy.Config, "upstreams")
-	// Upstreams should be translated into proper field
-	reg.Connect.Proxy.Upstreams = []Upstream{{
-		DestinationType: "prepared_query",
-		DestinationName: "bar",
-		LocalBindPort:   9191,
-		Config: map[string]interface{}{
-			"connect_timeout_ms": float64(1000),
-		},
-	}}
-	require.Equal(t, reg.Connect, services["foo"].Connect)
-
-	if err := agent.ServiceDeregister("foo"); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 }
 
 func TestAPI_AgentServices_SidecarService(t *testing.T) {
@@ -605,6 +474,16 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	reg2 := &AgentServiceRegistration{
 		Name: "foo2",
 		Port: 8000,
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "192.168.0.43",
+				Port:    8000,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
 	}
 	if err := agent.ServiceRegister(reg1); err != nil {
 		t.Fatalf("err: %v", err)
@@ -631,6 +510,13 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	if services["foo2"].Address != "" {
 		t.Fatalf("missing Address field in service foo2: %v", services)
 	}
+	require.NotNil(t, services["foo2"].TaggedAddresses)
+	require.Contains(t, services["foo2"].TaggedAddresses, "lan")
+	require.Contains(t, services["foo2"].TaggedAddresses, "wan")
+	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Address, "192.168.0.43")
+	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Port, 8000)
+	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
+	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -755,12 +641,13 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "ad8c7a278470d1e8",
+		ContentHash: "6b13684bfe179e67",
 		Port:        8000,
 		Weights: AgentWeights{
 			Passing: 1,
 			Warning: 1,
 		},
+		Meta: map[string]string{},
 	}
 	require.Equal(expect, got)
 	require.Equal(expect.ContentHash, qm.LastContentHash)
@@ -1516,55 +1403,6 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
 }
 
-func TestAPI_AgentConnectProxyConfig(t *testing.T) {
-	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		// Force auto port range to 1 port so we have deterministic response.
-		c.Ports.ProxyMinPort = 20000
-		c.Ports.ProxyMaxPort = 20000
-	})
-	defer s.Stop()
-
-	agent := c.Agent()
-	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
-		Connect: &AgentServiceConnect{
-			Proxy: &AgentServiceConnectProxy{
-				Command: []string{"consul", "connect", "proxy"},
-				Config: map[string]interface{}{
-					"foo": "bar",
-				},
-				Upstreams: testUpstreams(t),
-			},
-		},
-	}
-	if err := agent.ServiceRegister(reg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	config, qm, err := agent.ConnectProxyConfig("foo-proxy", nil)
-	require.NoError(t, err)
-	expectConfig := &ConnectProxyConfig{
-		ProxyServiceID:    "foo-proxy",
-		TargetServiceID:   "foo",
-		TargetServiceName: "foo",
-		ContentHash:       "acdf5eb6f5794a14",
-		ExecMode:          "daemon",
-		Command:           []string{"consul", "connect", "proxy"},
-		Config: map[string]interface{}{
-			"bind_address":          "127.0.0.1",
-			"bind_port":             float64(20000),
-			"foo":                   "bar",
-			"local_service_address": "127.0.0.1:8000",
-		},
-		Upstreams: testExpectUpstreamsWithDefaults(t, reg.Connect.Proxy.Upstreams),
-	}
-	require.Equal(t, expectConfig, config)
-	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)
-}
-
 func TestAPI_AgentHealthService(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -1661,4 +1499,71 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID2), "I am good :)")
 	require.Nil(t, err)
 	requireServiceHealthName(t, testServiceName, HealthPassing, true)
+}
+
+func TestAgentService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		as   AgentService
+	}{
+		{
+			"nil",
+			AgentService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			AgentService{
+				TaggedAddresses: make(map[string]ServiceAddress),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		name := tc.name
+		as := tc.as
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(as)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
+}
+
+func TestAgentService_Register_MeshGateway(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := AgentServiceRegistration{
+		Kind:    ServiceKindMeshGateway,
+		Name:    "mesh-gateway",
+		Address: "10.1.2.3",
+		Port:    8443,
+		Proxy: &AgentServiceConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+
+	err := agent.ServiceRegister(&reg)
+	require.NoError(t, err)
+
+	svc, _, err := agent.Service("mesh-gateway", nil)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, ServiceKindMeshGateway, svc.Kind)
+	require.NotNil(t, svc.Proxy)
+	require.Contains(t, svc.Proxy.Config, "foo")
+	require.Equal(t, "bar", svc.Proxy.Config["foo"])
 }

@@ -12,8 +12,12 @@ import (
 )
 
 const (
-	ServiceDefaults   string = "service-defaults"
-	ProxyDefaults     string = "proxy-defaults"
+	ServiceDefaults string = "service-defaults"
+	ProxyDefaults   string = "proxy-defaults"
+	ServiceRouter   string = "service-router"
+	ServiceSplitter string = "service-splitter"
+	ServiceResolver string = "service-resolver"
+
 	ProxyConfigGlobal string = "global"
 )
 
@@ -24,10 +28,40 @@ type ConfigEntry interface {
 	GetModifyIndex() uint64
 }
 
+type MeshGatewayMode string
+
+const (
+	// MeshGatewayModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence
+	MeshGatewayModeDefault MeshGatewayMode = ""
+
+	// MeshGatewayModeNone represents that the Upstream Connect connections
+	// should be direct and not flow through a mesh gateway.
+	MeshGatewayModeNone MeshGatewayMode = "none"
+
+	// MeshGatewayModeLocal represents that the Upstrea Connect connections
+	// should be made to a mesh gateway in the local datacenter. This is
+	MeshGatewayModeLocal MeshGatewayMode = "local"
+
+	// MeshGatewayModeRemote represents that the Upstream Connect connections
+	// should be made to a mesh gateway in a remote datacenter.
+	MeshGatewayModeRemote MeshGatewayMode = "remote"
+)
+
+// MeshGatewayConfig controls how Mesh Gateways are used for upstream Connect
+// services
+type MeshGatewayConfig struct {
+	// Mode is the mode that should be used for the upstream connection.
+	Mode MeshGatewayMode `json:",omitempty"`
+}
+
 type ServiceConfigEntry struct {
 	Kind        string
 	Name        string
-	Protocol    string
+	Protocol    string            `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	ExternalSNI string            `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -51,7 +85,8 @@ func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
 type ProxyConfigEntry struct {
 	Kind        string
 	Name        string
-	Config      map[string]interface{}
+	Config      map[string]interface{} `json:",omitempty"`
+	MeshGateway MeshGatewayConfig      `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -80,14 +115,35 @@ type rawEntryListResponse struct {
 func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	switch kind {
 	case ServiceDefaults:
-		return &ServiceConfigEntry{Name: name}, nil
+		return &ServiceConfigEntry{Kind: kind, Name: name}, nil
 	case ProxyDefaults:
-		return &ProxyConfigEntry{Name: name}, nil
+		return &ProxyConfigEntry{Kind: kind, Name: name}, nil
+	case ServiceRouter:
+		return &ServiceRouterConfigEntry{Kind: kind, Name: name}, nil
+	case ServiceSplitter:
+		return &ServiceSplitterConfigEntry{Kind: kind, Name: name}, nil
+	case ServiceResolver:
+		return &ServiceResolverConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
 }
 
+func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
+	return makeConfigEntry(kind, name)
+}
+
+// DecodeConfigEntry will decode the result of using json.Unmarshal of a config
+// entry into a map[string]interface{}.
+//
+// Important caveats:
+//
+// - This will NOT work if the map[string]interface{} was produced using HCL
+// decoding as that requires more extensive parsing to work around the issues
+// with map[string][]interface{} that arise.
+//
+// - This will only decode fields using their camel case json field
+// representations.
 func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	var entry ConfigEntry
 
@@ -132,7 +188,19 @@ func DecodeConfigEntryFromJSON(data []byte) (ConfigEntry, error) {
 	return DecodeConfigEntry(raw)
 }
 
-// Config can be used to query the Config endpoints
+func decodeConfigEntrySlice(raw []map[string]interface{}) ([]ConfigEntry, error) {
+	var entries []ConfigEntry
+	for _, rawEntry := range raw {
+		entry, err := DecodeConfigEntry(rawEntry)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, nil
+}
+
+// ConfigEntries can be used to query the Config endpoints
 type ConfigEntries struct {
 	c *Client
 }
@@ -195,13 +263,9 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 		return nil, nil, err
 	}
 
-	var entries []ConfigEntry
-	for _, rawEntry := range raw {
-		entry, err := DecodeConfigEntry(rawEntry)
-		if err != nil {
-			return nil, nil, err
-		}
-		entries = append(entries, entry)
+	entries, err := decodeConfigEntrySlice(raw)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return entries, qm, nil

@@ -27,6 +27,11 @@ type BootstrapTplArgs struct {
 	// TLS is enabled.
 	AgentCAFile string
 
+	// AgentSocket is the path to a Unix Socket for communicating with the
+	// local agent's gRPC endpoint. Disabled if the empty (the default),
+	// but overrides AgentAddress and AgentPort if set.
+	AgentSocket string
+
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
 	// "/dev/null". By default it will use "/dev/null".
@@ -122,12 +127,20 @@ const bootstrapTemplate = `{
         {{- end }}
         "http2_protocol_options": {},
         "hosts": [
+	  {{- if .AgentSocket -}}
+          {
+            "pipe": {
+              "path": "{{ .AgentSocket }}"
+            }
+          }
+	  {{- else -}}
           {
             "socket_address": {
               "address": "{{ .AgentAddress }}",
               "port_value": {{ .AgentPort }}
             }
           }
+	  {{- end -}}
         ]
       }
       {{- if .StaticClustersJSON -}}

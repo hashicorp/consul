@@ -166,9 +166,6 @@ func defaultServerConfig() *TestServerConfig {
 				// const TestClusterID causes import cycle so hard code it here.
 				"cluster_id": "11111111-2222-3333-4444-555555555555",
 			},
-			"proxy": map[string]interface{}{
-				"allow_managed_api_registration": true,
-			},
 		},
 	}
 }

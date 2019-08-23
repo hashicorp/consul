@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.12.1
+    go: &GOLANG_IMAGE circleci/golang:1.12.8
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
     ember: &EMBER_IMAGE circleci/node:8-browsers
 
@@ -87,7 +87,7 @@ jobs:
   go-test:
     docker:
       - image: *GOLANG_IMAGE
-    parallelism: 4
+    parallelism: 8
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -102,7 +102,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
       - run: |
-          PACKAGE_NAMES=$(go list ./... | grep -v github.com/hashicorp/consul/agent/proxyprocess | circleci tests split --split-by=timings --timings-type=classname)
+          PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
 
       - store_test_results:
@@ -143,6 +143,7 @@ jobs:
     environment: &build-env
       <<: *ENVIRONMENT
       GOXPARALLEL: 2 # CircleCI containers are 2 CPU x 4GB RAM
+    resource_class: large
     steps:
       - checkout
       - run: make tools
@@ -497,6 +498,13 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSIONS: "1.10.0"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
+  envoy-integration-test-1.11.1:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.11.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # This job merges master into the 'current' branch (${CIRCLE_BRANCH}) specified

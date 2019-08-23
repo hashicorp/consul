@@ -20,8 +20,8 @@ To ensure that services only allow external connections established via
 the Connect protocol, you should configure all services to only accept connections on a loopback address.
 
 ~> **Deprecation Note:** Managed Proxies are a deprecated method for deploying
-sidecar proxies, as of Consul 1.3. See [managed proxy
-deprecation](/docs/connect/proxies/managed-deprecated.html) for  more
+sidecar proxies, and have been removed in Consul 1.6. See [managed proxy
+deprecation](/docs/connect/proxies/managed-deprecated.html) for more
 information. If you are using managed proxies we strongly recommend that you
 switch service definitions for registering proxies.
 

@@ -1011,8 +1011,7 @@ These metrics give insight into the health of the cluster as a whole.
 ## Connect Built-in Proxy Metrics
 
 Consul Connect's built-in proxy is by default configured to log metrics to the
-same sink as the agent that starts it when running as a [managed
-proxy](/docs/connect/proxies.html#managed-proxies).
+same sink as the agent that starts it.
 
 When running in this mode it emits some basic metrics. These will be expanded
 upon in the future.
