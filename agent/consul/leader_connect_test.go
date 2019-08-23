@@ -484,10 +484,10 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
 
 	// create some tokens
-	replToken1, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read"`)
+	replToken1, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read" operator = "write"`)
 	require.NoError(err)
 
-	replToken2, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read"`)
+	replToken2, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read" operator = "write"`)
 	require.NoError(err)
 
 	// dc2 as a secondary DC
