@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.0 (August 23, 2019)
 
 SECURITY:
 
