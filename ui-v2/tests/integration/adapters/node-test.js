@@ -32,4 +32,13 @@ module('Integration | Adapter | node', function(hooks) {
       });
     });
   });
+  test('requestForQueryLeader returns the correct url', function(assert) {
+    const adapter = this.owner.lookup('adapter:node');
+    const client = this.owner.lookup('service:client/http');
+    const expected = `GET /v1/status/leader?dc=${dc}`;
+    const actual = adapter.requestForQueryLeader(client.url, {
+      dc: dc,
+    });
+    assert.equal(actual, expected);
+  });
 });
