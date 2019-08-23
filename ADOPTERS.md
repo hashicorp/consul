@@ -9,7 +9,7 @@
 * [Z Lab](https://zlab.co.jp) uses CoreDNS in production combination with Consul and Kubernetes Clusters.
 * [Serpro/estaleiro](estaleiro.serpro.gov.br) uses CoreDNS as Kubernetes' DNS Server, in production with tuned Kubernetes plugin options
 * [Lumo](https://thinklumo.com) uses CoreDNS as Kubernetes' DNS Server, in production and lab with default configuration
-* [Booming Games](https://booming-games.com) uses CoreDNS in multiple Kubernetes clusters, with Federation plugin. expect going to production soon.
+* [Booming Games](https://booming-games.com) uses CoreDNS in multiple Kubernetes clusters, with Federation plugin. expect to go into production soon.
 * [Sodimac](https://www.sodimac.cl) uses CoreDNS with Kubernetes in production with default configuration.
 * [Bose](https://www.bose.com/) uses CoreDNS with Kubernetes in production on very large cluster (over 250 nodes)
 * [farmotive](https://farmotive.io) uses CoreDNS in Kubernetes using default configuration, in its Lab. Expect to be in production soon.
