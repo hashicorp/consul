@@ -32,7 +32,7 @@
 					{
 						"name": "Get Dependencies",
 						"definition": "Get Dependencies",
-						"command": "make update-vendor",
+						"command": "sudo apt-get install build-essential\nmake update-vendor",
 						"properties": null
 					},
 					{
