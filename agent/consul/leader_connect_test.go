@@ -471,6 +471,8 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
+		// set the build to ensure all the version checks pass and enable all the connect features that operate cross-dc
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -482,10 +484,10 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
 
 	// create some tokens
-	replToken1, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read"`)
+	replToken1, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read" operator = "write"`)
 	require.NoError(err)
 
-	replToken2, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read"`)
+	replToken2, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `acl = "read" operator = "write"`)
 	require.NoError(err)
 
 	// dc2 as a secondary DC
@@ -496,6 +498,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 		c.ACLTokenReplication = false
+		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
