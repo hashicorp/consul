@@ -11,7 +11,12 @@ import (
 )
 
 // Do will fuzz p - used by gofuzz. See Makefile.fuzz for comments and context.
-func Do(p plugin.Handler, data []byte) int {
+func Do(p plugin.Handler, fn SetupFunc, data []byte) int {
+	if fn != nil {
+		if err := fn(); err != nil {
+			panic("fuzz: " + err.Error())
+		}
+	}
 	ctx := context.TODO()
 	r := new(dns.Msg)
 	if err := r.Unpack(data); err != nil {

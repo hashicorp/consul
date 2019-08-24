@@ -17,5 +17,5 @@ func Fuzz(data []byte) int {
 	}
 	r := Rewrite{Rules: rules}
 
-	return fuzz.Do(r, data)
+	return fuzz.Do(r, nil, data)
 }

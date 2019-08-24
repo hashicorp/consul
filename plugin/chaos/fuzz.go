@@ -9,5 +9,5 @@ import (
 // Fuzz fuzzes cache.
 func Fuzz(data []byte) int {
 	c := Chaos{}
-	return fuzz.Do(c, data)
+	return fuzz.Do(c, nil, data)
 }
