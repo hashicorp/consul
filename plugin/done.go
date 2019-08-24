@@ -10,5 +10,4 @@ func Done(ctx context.Context) bool {
 	default:
 		return false
 	}
-	return false
 }

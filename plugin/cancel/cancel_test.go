@@ -34,7 +34,6 @@ func (s sleepPlugin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 			return 0, nil
 		}
 	}
-	return 0, nil
 }
 
 func TestCancel(t *testing.T) {

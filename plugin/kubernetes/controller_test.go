@@ -78,7 +78,7 @@ func generateEndpoints(cidr string, client kubernetes.Interface) {
 			},
 		}
 		ep.ObjectMeta.Name = "svc" + strconv.Itoa(count)
-		_, err = client.CoreV1().Endpoints("testns").Create(ep)
+		client.CoreV1().Endpoints("testns").Create(ep)
 		count++
 	}
 }
