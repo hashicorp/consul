@@ -9,5 +9,5 @@ import (
 // Fuzz fuzzes cache.
 func Fuzz(data []byte) int {
 	w := Whoami{}
-	return fuzz.Do(w, nil, data)
+	return fuzz.Do(w, data)
 }
