@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
 
@@ -71,18 +72,12 @@ const testZone = "secondary.miek.nl."
 func TestShouldTransfer(t *testing.T) {
 	soa := soa{250}
 
-	dns.HandleFunc(testZone, soa.Handler)
-	defer dns.HandleRemove(testZone)
-
-	s, addrstr, err := test.TCPServer("127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
-	}
-	defer s.Shutdown()
+	s := dnstest.NewServer(soa.Handler)
+	defer s.Close()
 
 	z := NewZone("testzone", "test")
 	z.origin = testZone
-	z.TransferFrom = []string{addrstr}
+	z.TransferFrom = []string{s.Addr}
 
 	// when we have a nil SOA (initial state)
 	should, err := z.shouldTransfer()
@@ -115,21 +110,14 @@ func TestShouldTransfer(t *testing.T) {
 func TestTransferIn(t *testing.T) {
 	soa := soa{250}
 
-	dns.HandleFunc(testZone, soa.Handler)
-	defer dns.HandleRemove(testZone)
-
-	s, addrstr, err := test.TCPServer("127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("Unable to run test server: %v", err)
-	}
-	defer s.Shutdown()
+	s := dnstest.NewServer(soa.Handler)
+	defer s.Close()
 
 	z := new(Zone)
 	z.origin = testZone
-	z.TransferFrom = []string{addrstr}
+	z.TransferFrom = []string{s.Addr}
 
-	err = z.TransferIn()
-	if err != nil {
+	if err := z.TransferIn(); err != nil {
 		t.Fatalf("Unable to run TransferIn: %v", err)
 	}
 	if z.Apex.SOA.String() != fmt.Sprintf("%s	3600	IN	SOA	bla. bla. 250 0 0 0 0", testZone) {
