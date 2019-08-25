@@ -33,20 +33,20 @@ all: $(PLUGINS) corefile
 .PHONY: $(PLUGINS)
 $(PLUGINS): echo
 ifeq ($(LIBFUZZER), YES)
-	go-fuzz-build -tags fuzz -libfuzzer -o $(@).a ./plugin/$(@)
+	go-fuzz-build -libfuzzer -o $(@).a ./plugin/$(@)
 	clang -fsanitize=fuzzer $(@).a -o $(@)
 else
-	go-fuzz-build -tags fuzz $(REPO)/plugin/$(@)
+	go-fuzz-build $(REPO)/plugin/$(@)
 	go-fuzz -bin=./$(@)-fuzz.zip -workdir=fuzz/$(@)
 endif
 
 .PHONY: corefile
 corefile:
 ifeq ($(LIBFUZZER), YES)
-	go-fuzz-build -tags fuzz -libfuzzer -o $(@).a ./test
+	go-fuzz-build -libfuzzer -o $(@).a ./test
 	clang -fsanitize=fuzzer $(@).a -o $(@)
 else
-	go-fuzz-build -tags fuzz $(REPO)/test
+	go-fuzz-build $(REPO)/test
 	go-fuzz -bin=./test-fuzz.zip -workdir=fuzz/$(@)
 endif
 

@@ -1,4 +1,4 @@
-// +build fuzz
+// +build gofuzz
 
 package file
 
