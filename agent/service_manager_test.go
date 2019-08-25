@@ -167,6 +167,71 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 	}, sidecarService)
 }
 
+func TestServiceManager_RegisterMeshGateway(t *testing.T) {
+	require := require.New(t)
+
+	a := NewTestAgent(t, t.Name(), "enable_central_service_config = true")
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a global proxy and service config
+	{
+		args := &structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Config: map[string]interface{}{
+					"foo": 1,
+				},
+			},
+		}
+		var out bool
+		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
+	}
+	{
+		args := &structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "mesh-gateway",
+				Protocol: "http",
+			},
+		}
+		var out bool
+		require.NoError(a.RPC("ConfigEntry.Apply", args, &out))
+	}
+
+	// Now register a mesh-gateway.
+	svc := &structs.NodeService{
+		Kind:    structs.ServiceKindMeshGateway,
+		ID:      "mesh-gateway",
+		Service: "mesh-gateway",
+		Port:    443,
+	}
+
+	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+
+	// Verify gateway got global config loaded
+	gateway := a.State.Service("mesh-gateway")
+	require.NotNil(gateway)
+	require.Equal(&structs.NodeService{
+		Kind:    structs.ServiceKindMeshGateway,
+		ID:      "mesh-gateway",
+		Service: "mesh-gateway",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo":      int64(1),
+				"protocol": "http",
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 1,
+			Warning: 1,
+		},
+	}, gateway)
+}
+
 func TestServiceManager_Disabled(t *testing.T) {
 	require := require.New(t)
 

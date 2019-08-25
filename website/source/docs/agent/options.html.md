@@ -242,7 +242,7 @@ will exit with an error at startup.
 
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
-  network traffic. This key must be 16-bytes that are Base64-encoded. The
+  network traffic. This key must be 32-bytes that are Base64-encoded. The
   easiest way to create an encryption key is to use
   [`consul keygen`](/docs/commands/keygen.html). All
   nodes within a cluster must share the same encryption key to communicate.
@@ -455,7 +455,7 @@ will exit with an error at startup.
   the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
   readable to the agent. Starting with Consul version 0.7.0 and later, the Web UI assets are included in the binary so this flag is no longer necessary; specifying only the `-ui` flag is enough to enable the Web UI. Specifying both the '-ui' and '-ui-dir' flags will result in an error.
 
-* <a name="_ui_content_path"></a><a href="#_ui_content_path">`-ui-content-path`</a> - This flag provides the option to change the path the Consul UI loads from and will be displayed in the browser. By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics, `-`, and `_` are allowed in a custom path. `/v1/` is not allowed as it would overwrite the API endpoint. 
+* <a name="_ui_content_path"></a><a href="#_ui_content_path">`-ui-content-path`</a> - This flag provides the option to change the path the Consul UI loads from and will be displayed in the browser. By default, the path is `/ui/`, for example `http://localhost:8500/ui/`. Only alphanumerics, `-`, and `_` are allowed in a custom path. `/v1/` is not allowed as it would overwrite the API endpoint.
 
 ## <a name="configuration_files"></a>Configuration Files
 
@@ -625,7 +625,7 @@ default will automatically work with some tooling.
         ACLs are enabled. This token may be provided later using the [agent token API](/api/agent.html#update-acl-tokens)
         on each server. This token must have at least "read" permissions on ACL data but if ACL
         token replication is enabled then it must have "write" permissions. This also enables
-        Connect replication in Consul Enterprise, for which the token will require both operator
+        Connect replication, for which the token will require both operator
         "write" and intention "read" permissions for replicating CA and Intention data.
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
@@ -805,7 +805,7 @@ default will automatically work with some tooling.
 
     * <a name="allow_tls"></a><a href="#allow_tls">`allow_tls`</a> (Defaults to `false`) This option enables `auto_encrypt` on the servers and allows them to automatically distribute certificates from the Connect CA to the clients. If enabled, the server can accept incoming connections from both the built-in CA and the Connect CA, as well as their certificates. Note, the server will only present the built-in CA and certificate, which the client can verify using the CA it received from `auto_encrypt` endpoint. If disabled, a client configured with `auto_encrypt.tls` will be unable to start.
 
-    * <a name="tls"></a><a href="#tls">`tls`</a> (Defaults to `false`) Allows the client to request the Connect CA and certificates from the servers, for encrypting RPC communication. The client will make the request to any servers listed in the `-join` or `-retry-join` option. This requires that every server to have `auto_encrypt.allow_tls` enabled. When both `auto_encrypt` options are used, it allows clients to receive certificates that are generated on the servers. If the `-server-port` is not the default one, it has to be provided to the client as well. Usually this is discovered through LAN gossip, but `auto_encrypt` provision happens before the information can be distributed through gossip. The most secure `auto_encrypt` setup is when the client is provided with the built-in CA, `verify_server_hostname` is turned on, and when an ACL token with `node.write` permissions is setup. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted. 
+    * <a name="tls"></a><a href="#tls">`tls`</a> (Defaults to `false`) Allows the client to request the Connect CA and certificates from the servers, for encrypting RPC communication. The client will make the request to any servers listed in the `-join` or `-retry-join` option. This requires that every server to have `auto_encrypt.allow_tls` enabled. When both `auto_encrypt` options are used, it allows clients to receive certificates that are generated on the servers. If the `-server-port` is not the default one, it has to be provided to the client as well. Usually this is discovered through LAN gossip, but `auto_encrypt` provision happens before the information can be distributed through gossip. The most secure `auto_encrypt` setup is when the client is provided with the built-in CA, `verify_server_hostname` is turned on, and when an ACL token with `node.write` permissions is setup. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted.
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -947,34 +947,6 @@ default will automatically work with some tooling.
           multiple cores available since it is simpler to reason about limiting
           CSR resources this way without artificially slowing down rotations.
           Added in 1.4.1.
-
-        * <a name="connect_proxy"></a><a href="#connect_proxy">`proxy`</a>
-          [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This
-          object allows setting options for the Connect proxies. The following
-          sub-keys are available:
-          * <a name="connect_proxy_allow_managed_registration"></a><a
-            href="#connect_proxy_allow_managed_registration">`allow_managed_api_registration`</a>
-            [**Deprecated**](/docs/connect/proxies/managed-deprecated.html)
-            Allows managed proxies to be configured with services that are
-            registered via the Agent HTTP API. Enabling this would allow anyone
-            with permission to register a service to define a command to execute
-            for the proxy. By default, this is false to protect against
-            arbitrary process execution.
-          * <a name="connect_proxy_allow_managed_root"></a><a
-            href="#connect_proxy_allow_managed_root">`allow_managed_root`</a>
-            [**Deprecated**](/docs/connect/proxies/managed-deprecated.html)
-            Allows Consul to start managed proxies if Consul is running as root
-            (EUID of the process is zero). We recommend running Consul as a
-            non-root user. By default, this is false to protect inadvertently
-            running external processes as root.
-        * <a name="connect_proxy_defaults"></a><a
-          href="#connect_proxy_defaults">`proxy_defaults`</a>
-          [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) This
-          object configures the default proxy settings for service definitions
-          with [managed proxies](/docs/connect/proxies/managed-deprecated.html)
-          (now deprecated). It accepts the fields `exec_mode`, `daemon_command`,
-          and `config`. These are used as default values for the respective
-          fields in the service definition.
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).
@@ -1398,8 +1370,6 @@ default will automatically work with some tooling.
       to disable. **Note**: this will disable WAN federation which is not recommended. Various catalog and WAN related
       endpoints will return errors or empty results. TCP and UDP.
     * <a name="server_rpc_port"></a><a href="#server_rpc_port">`server`</a> - Server RPC address. Default 8300. TCP only.
-    * <a name="proxy_min_port"></a><a href="#proxy_min_port">`proxy_min_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Minimum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20000.
-    * <a name="proxy_max_port"></a><a href="#proxy_max_port">`proxy_max_port`</a> [**Deprecated**](/docs/connect/proxies/managed-deprecated.html) - Maximum port number to use for automatically assigned [managed proxies](/docs/connect/proxies/managed-deprecated.html). Default 20255.
     * <a name="sidecar_min_port"></a><a
       href="#sidecar_min_port">`sidecar_min_port`</a> - Inclusive minimum port
       number to use for automatically assigned [sidecar service

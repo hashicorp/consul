@@ -1,0 +1,7 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+  "nonce": "00000001"
+}

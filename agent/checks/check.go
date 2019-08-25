@@ -343,15 +343,10 @@ func (c *CheckHTTP) Start() {
 			Timeout:   10 * time.Second,
 			Transport: trans,
 		}
-
-		// For long (>10s) interval checks the http timeout is 10s, otherwise the
-		// timeout is the interval. This means that a check *should* return
-		// before the next check begins.
-		if c.Timeout > 0 && c.Timeout < c.Interval {
+		if c.Timeout > 0 {
 			c.httpClient.Timeout = c.Timeout
-		} else if c.Interval < 10*time.Second {
-			c.httpClient.Timeout = c.Interval
 		}
+
 		if c.OutputMaxSize < 1 {
 			c.OutputMaxSize = DefaultBufSize
 		}
@@ -482,15 +477,12 @@ func (c *CheckTCP) Start() {
 
 	if c.dialer == nil {
 		// Create the socket dialer
-		c.dialer = &net.Dialer{DualStack: true}
-
-		// For long (>10s) interval checks the socket timeout is 10s, otherwise
-		// the timeout is the interval. This means that a check *should* return
-		// before the next check begins.
-		if c.Timeout > 0 && c.Timeout < c.Interval {
+		c.dialer = &net.Dialer{
+			Timeout:   10 * time.Second,
+			DualStack: true,
+		}
+		if c.Timeout > 0 {
 			c.dialer.Timeout = c.Timeout
-		} else if c.Interval < 10*time.Second {
-			c.dialer.Timeout = c.Interval
 		}
 	}
 

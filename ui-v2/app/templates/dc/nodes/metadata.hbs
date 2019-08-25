@@ -1,0 +1,27 @@
+{{#if item.Meta}}
+  {{#with (object-entries item.Meta) as |meta|}}
+    {{#tabular-collection
+        data-test-metadata
+        items=meta as |item index|
+    }}
+        {{#block-slot 'header'}}
+            <th>Key</th>
+            <th>Value</th>
+        {{/block-slot}}
+        {{#block-slot 'row'}}
+            <td>
+              <span>
+                {{object-at 0 item}}
+              </span>
+            </td>
+            <td>
+              <span>{{object-at 1 item}}</span>
+            </td>
+        {{/block-slot}}
+    {{/tabular-collection}}
+  {{/with}}
+{{else}}
+  <p>
+    This node has no meta data.
+  </p>
+{{/if}}

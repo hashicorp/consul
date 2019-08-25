@@ -18,6 +18,15 @@ load helpers
   assert_proxy_presents_cert_uri localhost:21001 s2
 }
 
+@test "s2 proxy should be healthy" {
+  assert_service_has_healthy_instances s2 1
+}
+
+@test "s1 upstream should have healthy endpoints for s2" {
+  # protocol is configured in an upstream override so the cluster name is customized here
+  assert_upstream_has_endpoints_in_status 127.0.0.1:19000 1a47f6e1~s2.default.primary HEALTHY 1
+}
+
 @test "s1 upstream should NOT be able to connect to s2" {
   run retry_default must_fail_http_connection localhost:5000
 

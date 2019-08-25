@@ -1,14 +1,17 @@
 package consul
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"os"
-	"reflect"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -1066,148 +1069,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	}
 }
 
-func TestLeader_CARootPruning(t *testing.T) {
-	t.Parallel()
-
-	caRootPruneInterval = 200 * time.Millisecond
-
-	require := require.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
-	// Get the current root
-	rootReq := &structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var rootList structs.IndexedCARoots
-	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
-	oldRoot := rootList.Roots[0]
-
-	// Update the provider config to use a new private key, which should
-	// cause a rotation.
-	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
-	newConfig := &structs.CAConfiguration{
-		Provider: "consul",
-		Config: map[string]interface{}{
-			"LeafCertTTL":    "500ms",
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"SkipValidate":   true,
-		},
-	}
-	{
-		args := &structs.CARequest{
-			Datacenter: "dc1",
-			Config:     newConfig,
-		}
-		var reply interface{}
-
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
-	}
-
-	// Should have 2 roots now.
-	_, roots, err := s1.fsm.State().CARoots(nil)
-	require.NoError(err)
-	require.Len(roots, 2)
-
-	time.Sleep(2 * time.Second)
-
-	// Now the old root should be pruned.
-	_, roots, err = s1.fsm.State().CARoots(nil)
-	require.NoError(err)
-	require.Len(roots, 1)
-	require.True(roots[0].Active)
-	require.NotEqual(roots[0].ID, oldRoot.ID)
-}
-
-func TestLeader_PersistIntermediateCAs(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
-
-	joinLAN(t, s2, s1)
-	joinLAN(t, s3, s1)
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Get the current root
-	rootReq := &structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var rootList structs.IndexedCARoots
-	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
-
-	// Update the provider config to use a new private key, which should
-	// cause a rotation.
-	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
-	newConfig := &structs.CAConfiguration{
-		Provider: "consul",
-		Config: map[string]interface{}{
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
-		},
-	}
-	{
-		args := &structs.CARequest{
-			Datacenter: "dc1",
-			Config:     newConfig,
-		}
-		var reply interface{}
-
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
-	}
-
-	// Get the active root before leader change.
-	_, root := s1.getCAProvider()
-	require.Len(root.IntermediateCerts, 1)
-
-	// Force a leader change and make sure the root CA values are preserved.
-	s1.Leave()
-	s1.Shutdown()
-
-	retry.Run(t, func(r *retry.R) {
-		var leader *Server
-		for _, s := range []*Server{s2, s3} {
-			if s.IsLeader() {
-				leader = s
-				break
-			}
-		}
-		if leader == nil {
-			r.Fatal("no leader")
-		}
-
-		_, newLeaderRoot := leader.getCAProvider()
-		if !reflect.DeepEqual(newLeaderRoot, root) {
-			r.Fatalf("got %v, want %v", newLeaderRoot, root)
-		}
-	})
-}
-
 func TestLeader_ACLUpgrade(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1303,46 +1164,52 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 	})
 }
 
-func TestLeader_ParseCARoot(t *testing.T) {
-	type test struct {
-		pem           string
-		expectedError bool
-	}
-	tests := []test{
-		{"", true},
-		{`-----BEGIN CERTIFICATE-----
-MIIDHDCCAsKgAwIBAgIQS+meruRVzrmVwEhXNrtk9jAKBggqhkjOPQQDAjCBuTEL
-MAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2Nv
-MRowGAYDVQQJExExMDEgU2Vjb25kIFN0cmVldDEOMAwGA1UEERMFOTQxMDUxFzAV
-BgNVBAoTDkhhc2hpQ29ycCBJbmMuMUAwPgYDVQQDEzdDb25zdWwgQWdlbnQgQ0Eg
-MTkzNzYxNzQwMjcxNzUxOTkyMzAyMzE1NDkxNjUzODYyMzAwNzE3MB4XDTE5MDQx
-MjA5MTg0NVoXDTIwMDQxMTA5MTg0NVowHDEaMBgGA1UEAxMRY2xpZW50LmRjMS5j
-b25zdWwwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS2UroGUh5k7eR//iPsn9ne
-CMCVsERnjqQnK6eDWnM5kTXgXcPPe5pcAS9xs0g8BZ+oVsJSc7sH6RYvX+gw6bCl
-o4IBRjCCAUIwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggr
-BgEFBQcDATAMBgNVHRMBAf8EAjAAMGgGA1UdDgRhBF84NDphNDplZjoxYTpjODo1
-MzoxMDo1YTpjNTplYTpjZTphYTowZDo2ZjpjOTozODozZDphZjo0NTphZTo5OTo4
-YzpiYjoyNzpiYzpiMzpmYTpmMDozMToxNDo4ZTozNDBqBgNVHSMEYzBhgF8yYTox
-MjpjYTo0Mzo0NzowODpiZjoxYTo0Yjo4MTpkNDo2MzowNTo1ODowZToxYzo3Zjoy
-NTo0ZjozNDpmNDozYjpmYzo5YTpkNzo4Mjo2YjpkYzpmODo3YjphMTo5ZDAtBgNV
-HREEJjAkghFjbGllbnQuZGMxLmNvbnN1bIIJbG9jYWxob3N0hwR/AAABMAoGCCqG
-SM49BAMCA0gAMEUCIHcLS74KSQ7RA+edwOprmkPTh1nolwXz9/y9CJ5nMVqEAiEA
-h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
------END CERTIFICATE-----`, false},
-	}
-	for _, test := range tests {
-		root, err := parseCARoot(test.pem, "consul", "cluster")
-		if err == nil && test.expectedError {
-			require.Error(t, err)
-		}
-		if test.pem != "" {
-			rootCert, err := connect.ParseCert(test.pem)
-			require.NoError(t, err)
+func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
+	t.Parallel()
 
-			// just to make sure these two are not the same
-			require.NotEqual(t, rootCert.AuthorityKeyId, rootCert.SubjectKeyId)
+	pr, pw := io.Pipe()
+	defer pw.Close()
 
-			require.Equal(t, connect.HexString(rootCert.SubjectKeyId), root.SigningKeyID)
+	ch := make(chan string, 1)
+	go func() {
+		defer pr.Close()
+		scan := bufio.NewScanner(pr)
+		for scan.Scan() {
+			line := scan.Text()
+
+			if strings.Contains(line, "consul: failed to establish leadership") {
+				ch <- ""
+				return
+			}
+			if strings.Contains(line, "connect: initialized primary datacenter") {
+				ch <- "leadership should not have gotten here if config entries properly failed"
+				return
+			}
 		}
-	}
+
+		if scan.Err() != nil {
+			ch <- fmt.Sprintf("ERROR: %v", scan.Err())
+		} else {
+			ch <- "should not get here"
+		}
+	}()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.LogOutput = io.MultiWriter(pw, testutil.TestWriter(t))
+		c.Build = "1.6.0"
+		c.ConfigEntryBootstrap = []structs.ConfigEntry{
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "web",
+				Splits: []structs.ServiceSplit{
+					{Weight: 100, Service: "web"},
+				},
+			},
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	result := <-ch
+	require.Empty(t, result)
 }

@@ -26,6 +26,8 @@ type cmd struct {
 }
 
 func (c *cmd) init() {
+	// TODO(rb): needs a way to print the metadata so you know the modify index to use for 'config write -cas'
+
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.kind, "kind", "", "The kind of configuration to read.")
 	c.flags.StringVar(&c.name, "name", "", "The name of configuration to read.")

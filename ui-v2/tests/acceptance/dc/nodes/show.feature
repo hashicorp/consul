@@ -19,6 +19,9 @@ Feature: dc / nodes / show: Show node
 
     When I click lockSessions on the tabs
     And I see lockSessionsIsSelected on the tabs
+
+    When I click metaData on the tabs
+    And I see metaDataIsSelected on the tabs
   Scenario: Given 1 node all the tabs are visible and clickable and the RTT one isn't there
     Given 1 node models from yaml
     ---

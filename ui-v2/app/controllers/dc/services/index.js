@@ -57,7 +57,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
     // take that off 50% (100% / number of fluid columns)
     // also we added a Type column which we've currently fixed to 100px
     // so again divide that by 2 and take it off each fluid column
-    return htmlSafe(`width: calc(50% - 50px - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
+    return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
   }),
   maxPassing: computed('items.[]', function() {
     return max(get(this, 'items'), 'ChecksPassing');

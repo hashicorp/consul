@@ -45,31 +45,16 @@ proxy configuration needed.
    using `unix:///path/to/socket` if the [agent is configured to
    listen](/docs/agent/options.html#addresses) that way.
 
--> **Note:** gRPC uses the same TLS
-   settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
-   as well.
+  -> **Note:** gRPC uses the same TLS
+    settings as the HTTPS API. If HTTPS is enabled then gRPC will require HTTPS
+    as well.
 
    <%= partial "docs/commands/http_api_options_client" %>
 
-#### Envoy Options
+#### Envoy Options for both Sidecars and Gateways
 
-* `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
-  this proxy will represent. The target service doesn't need to exist on the
-  local agent yet but a [sidecar proxy
-  registration](/docs/connect/registration/service-registration.html) with
-  `proxy.destination_service_id` equal to the passed value must be present. If
-  multiple proxy registrations targeting the same local service instance are
-  present the command will error and `-proxy-id` should be used instead.
-
-* `-proxy-id` - The [proxy
-  service](/docs/connect/registration/service-registration.html) ID on the
-  local agent. This must already be present on the local agent.
-
--> **Note:** If ACLs are enabled, a token granting `service:write` for the
-  _target_ service (configured in `proxy.destination_service_name`) must be
-  passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
-  This token authorizes the proxy to obtain TLS certificates representing the
-  target service.
+ * `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration.html) ID on the
+   local agent. This must already be present on the local agent.
 
  * `-envoy-binary` - The full path to a specific Envoy binary to exec. By
    default the current `$PATH` is searched for `envoy`.
@@ -82,17 +67,65 @@ proxy configuration needed.
    bootstrap config to stdout in JSON protobuf form. This can be directed to a
    file and used to start Envoy with `envoy -c bootstrap.json`.
 
-~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
-ACL token from `-token` or the environment and so should be handled as a secret.
-This token grants the identity of any service it has `service:write` permission
-for and so can be used to access any upstream service that that service is
-allowed to access by [Connect intentions](/docs/connect/intentions.html).
+    ~> **Security Note:** If ACLs are enabled the bootstrap JSON will contain the
+      ACL token from `-token` or the environment and so should be handled as a secret.
+      This token grants the identity of any service it has `service:write` permission
+      for and so can be used to access any upstream service that that service is
+      allowed to access by [Connect intentions](/docs/connect/intentions.html).
 
  * `-- [pass-through options]` - Any options given after a double dash are passed
    directly through to the `envoy` invocation. See [Envoy's
    documentation](https://www.envoyproxy.io/docs) for more details. The command
    always specifies `--config-file` and `--v2-config-only` and by default passes
    `--disable-hot-restart` see [hot restart](#hot-restart).
+
+#### Envoy Sidecar Proxy Options
+
+* `-sidecar-for` - The _ID_ (not name if they differ) of the service instance
+  this proxy will represent. The target service doesn't need to exist on the
+  local agent yet but a [sidecar proxy
+  registration](/docs/connect/registration/service-registration.html) with
+  `proxy.destination_service_id` equal to the passed value must be present. If
+  multiple proxy registrations targeting the same local service instance are
+  present the command will error and `-proxy-id` should be used instead.
+
+ -> **Note:** If ACLs are enabled, a token granting `service:write` for the
+    _target_ service (configured in `proxy.destination_service_name`) must be
+    passed using the `-token` option or `CONSUL_HTTP_TOKEN` environment variable.
+    This token authorizes the proxy to obtain TLS certificates representing the
+    target service.
+
+#### Envoy Mesh Gateway Options
+
+* `-mesh-gateway` - Flag to indicate that Envoy should be configured as a Mesh
+  Gateway. If multiple mesh gateways are managed by the same local agent then
+  `-proxy-id` should be used as well to specify the instance this represents.
+
+* `-register` - Indicates that the mesh gateway service should be registered
+  with the local agent instead of expecting it to already exist. This flag
+  is unused for traditional sidecar proxies.
+
+* `-address` - The address to advertise for services within the local datacenter
+  to use to reach the mesh gateway instance. This flag is used in combination with
+  `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
+  templates.
+
+* `-wan-address` - The address to advertise for services within remote datacenters
+  to use to reach the mesh gateway instance. This flag is used in combination with
+  `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
+  templates.
+
+* `-service` - The name of the mesh gateway service to register. This flag is used
+  in combination with `-register`.
+
+* `-deregister-after-critical` - The amount of time the gateway services health check can
+  be failing before being deregistered. This flag is used in combination with `-register`
+
+-> **Note:** If ACLs are enabled, a token granting `service:write` for the
+   mesh gateway's service name must be passed using the `-token` option or
+   `CONSUL_HTTP_TOKEN` environment variable. This token authorizes the proxy
+   to obtain receive and route communications for other Connect services but
+   does not allow decrypting any of their communications.
 
 ## Examples
 
@@ -108,6 +141,8 @@ service {
 }
 ```
 
+### Basic Sidecar Proxy
+
 The sidecar Envoy process can be started with.
 
 ```text
@@ -118,6 +153,8 @@ This example assumes that the correct [environment variables](#api-options) are
 used to set the local agent connection information and ACL token, or that the
 agent is using all-default configuration.
 
+### Additional Envoy Arguments
+
 To pass additional arguments directly to Envoy, for example output logging
 level, you can use:
 
@@ -125,12 +162,24 @@ level, you can use:
 $ consul connect envoy -sidecar-for web -- -l debug
 ```
 
+### Multiple Proxy Instances
+
 To run multiple different proxy instances on the same host, you will
 need to use `-admin-bind` on all but one to ensure they don't attempt to bind to
 the same port as in the following example.
 
 ```text
 $ consul connect envoy -sidecar-for db -admin-bind localhost:19001
+```
+
+### Mesh Gateways
+
+The mesh gateway Envoy process can be started with.
+
+```sh
+$ consul connect envoy -mesh-gateway -register \
+  -address '{{ GetInterfaceIP "eth0" }}:8443' \
+  -wan-address '{{ GetInterfaceIP "eth1" }}:8443'
 ```
 
 ## Exec Security Details

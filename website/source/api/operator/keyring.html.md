@@ -62,9 +62,9 @@ $ curl \
     "Datacenter": "dc1",
     "Segment": "",
     "Keys": {
-      "0eK8RjnsGC/+I1fJErQsBA==": 1,
-      "G/3/L4yOw3e5T7NTvuRi9g==": 1,
-      "z90lFx3sZZLtTOkutXcwYg==": 1
+      "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=": 1,
+      "ZWTL+bgjHyQPhJRKcFe3ccirc2SFHmc/Nw67l8NQfdk=": 1,
+      "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4=": 1
     },
     "NumNodes": 1
   },
@@ -73,9 +73,9 @@ $ curl \
     "Datacenter": "dc1",
     "Segment": "",
     "Keys": {
-      "0eK8RjnsGC/+I1fJErQsBA==": 1,
-      "G/3/L4yOw3e5T7NTvuRi9g==": 1,
-      "z90lFx3sZZLtTOkutXcwYg==": 1
+      "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=": 1,
+      "ZWTL+bgjHyQPhJRKcFe3ccirc2SFHmc/Nw67l8NQfdk=": 1,
+      "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4=": 1
     },
     "NumNodes": 1
   }
@@ -126,7 +126,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
-  "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+  "Key": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 }
 ```
 
@@ -172,7 +172,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
- "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+ "Key": "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4="
 }
 ```
 
@@ -217,7 +217,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
- "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+ "Key": "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4="
 }
 ```
 

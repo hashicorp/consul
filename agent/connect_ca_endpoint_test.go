@@ -73,6 +73,8 @@ func TestConnectCAConfig(t *testing.T) {
 		RotationPeriod: 90 * 24 * time.Hour,
 	}
 	expected.LeafCertTTL = 72 * time.Hour
+	expected.PrivateKeyType = connect.DefaultPrivateKeyType
+	expected.PrivateKeyBits = connect.DefaultPrivateKeyBits
 
 	// Get the initial config.
 	{
@@ -107,6 +109,7 @@ func TestConnectCAConfig(t *testing.T) {
 	// The config should be updated now.
 	{
 		expected.RotationPeriod = time.Hour
+
 		req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.ConnectCAConfiguration(resp, req)

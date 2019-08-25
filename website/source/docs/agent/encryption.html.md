@@ -20,13 +20,13 @@ starting the Consul agent. The key can be set via the `encrypt` parameter.
 
 ~> **WAN Joined Datacenters Note:** If using multiple WAN joined datacenters, be sure to use _the same encryption key_ in all datacenters.
 
-The key must be 16-bytes, Base64 encoded. As a convenience, Consul provides the
+The key must be 32-bytes, Base64 encoded. As a convenience, Consul provides the
 [`consul keygen`](/docs/commands/keygen.html) command to generate a
 cryptographically suitable key:
 
 ```text
 $ consul keygen
-cg8StVXbQJ0gPvMd9o7yrg==
+pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=
 ```
 
 With that key, you can enable encryption on the agent. If encryption is enabled,
@@ -34,7 +34,7 @@ the output of [`consul agent`](/docs/commands/agent.html) will include "Encrypt:
 
 ```text
 $ cat encrypt.json
-{"encrypt": "cg8StVXbQJ0gPvMd9o7yrg=="}
+{"encrypt": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="}
 
 $ consul agent -data-dir=/tmp/consul -config-file=encrypt.json
 ==> WARNING: LAN keyring exists but -encrypt given, using keyring

@@ -363,39 +363,6 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 	assert.Equal(args.Service.Proxy.DestinationServiceName, v.ServiceProxy.DestinationServiceName)
 }
 
-// DEPRECATED (ProxyDestination) - remove this whole test case when removing
-// ProxyDestination
-func TestCatalog_Register_DeprecatedConnectProxy(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	args := structs.TestRegisterRequestProxy(t)
-	args.Service.ProxyDestination = "legacy"
-	args.Service.Proxy = structs.ConnectProxyConfig{}
-
-	// Register
-	var out struct{}
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
-
-	// List
-	req := structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: args.Service.Service,
-	}
-	var resp structs.IndexedServiceNodes
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &req, &resp))
-	assert.Len(resp.ServiceNodes, 1)
-	v := resp.ServiceNodes[0]
-	assert.Equal(structs.ServiceKindConnectProxy, v.ServiceKind)
-	assert.Equal(args.Service.ProxyDestination, v.ServiceProxy.DestinationServiceName)
-}
-
 // Test an invalid ConnectProxy. We don't need to exhaustively test because
 // this is all tested in structs on the Validate method.
 func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
@@ -419,7 +386,7 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 }
 
 // Test that write is required for the proxy destination to register a proxy.
-func TestCatalog_Register_ConnectProxy_ACLProxyDestination(t *testing.T) {
+func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -1712,6 +1679,87 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	if len(out.ServiceNodes) != 0 {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+	}
+	var out structs.IndexedServiceNodes
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+
+	fooAddress := "10.1.2.3"
+	fooPort := 1111
+	fooTaggedAddresses := map[string]structs.ServiceAddress{
+		"lan": structs.ServiceAddress{
+			Address: "10.1.2.3",
+			Port:    fooPort,
+		},
+		"wan": structs.ServiceAddress{
+			Address: "198.18.1.2",
+			Port:    fooPort,
+		},
+	}
+	barAddress := "10.1.2.3"
+	barPort := 2222
+	barTaggedAddresses := map[string]structs.ServiceAddress{
+		"lan": structs.ServiceAddress{
+			Address: "10.1.2.3",
+			Port:    barPort,
+		},
+		"wan": structs.ServiceAddress{
+			Address: "198.18.2.3",
+			Port:    barPort,
+		},
+	}
+	bazAddress := "192.168.1.35"
+	bazPort := 2222
+	bazTaggedAddresses := map[string]structs.ServiceAddress{
+		"lan": structs.ServiceAddress{
+			Address: "192.168.1.35",
+			Port:    barPort,
+		},
+		"wan": structs.ServiceAddress{
+			Address: "198.18.2.4",
+			Port:    barPort,
+		},
+	}
+
+	// Just add a node
+	require.NoError(t, s1.fsm.State().EnsureNode(1, &structs.Node{Node: "node", Address: "127.0.0.1"}))
+	require.NoError(t, s1.fsm.State().EnsureService(2, "node", &structs.NodeService{ID: "foo", Service: "db", Address: fooAddress, TaggedAddresses: fooTaggedAddresses, Port: fooPort}))
+	require.NoError(t, s1.fsm.State().EnsureService(2, "node", &structs.NodeService{ID: "bar", Service: "db", Address: barAddress, TaggedAddresses: barTaggedAddresses, Port: barPort}))
+	require.NoError(t, s1.fsm.State().EnsureService(2, "node", &structs.NodeService{ID: "baz", Service: "db", Address: bazAddress, TaggedAddresses: bazTaggedAddresses, Port: bazPort}))
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+	require.Len(t, out.ServiceNodes, 3)
+
+	// Try with an address that would match foo & bar
+	args.ServiceAddress = "10.1.2.3"
+	out = structs.IndexedServiceNodes{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+	require.Len(t, out.ServiceNodes, 2)
+	for _, sn := range out.ServiceNodes {
+		require.True(t, sn.ServiceID == "foo" || sn.ServiceID == "bar")
+	}
+
+	// Try with an address that would match just bar
+	args.ServiceAddress = "198.18.2.3"
+	out = structs.IndexedServiceNodes{}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out))
+	require.Len(t, out.ServiceNodes, 1)
+	require.Equal(t, "bar", out.ServiceNodes[0].ServiceID)
 }
 
 // TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat asserts the compatibility between <=v1.2.3 agents and >=v1.3.0 servers

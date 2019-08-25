@@ -823,69 +823,6 @@ func TestConnectLeafWatch(t *testing.T) {
 	wg.Wait()
 }
 
-func TestConnectProxyConfigWatch(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	// Register a local agent service with a managed proxy
-	reg := &api.AgentServiceRegistration{
-		Name: "web",
-		Port: 8080,
-		Connect: &api.AgentServiceConnect{
-			Proxy: &api.AgentServiceConnectProxy{
-				Config: map[string]interface{}{
-					"foo": "bar",
-				},
-			},
-		},
-	}
-	agent := c.Agent()
-	err := agent.ServiceRegister(reg)
-	require.NoError(t, err)
-
-	invoke := makeInvokeCh()
-	plan := mustParse(t, `{"type":"connect_proxy_config", "proxy_service_id":"web-proxy"}`)
-	plan.HybridHandler = func(blockParamVal watch.BlockingParamVal, raw interface{}) {
-		if raw == nil {
-			return // ignore
-		}
-		v, ok := raw.(*api.ConnectProxyConfig)
-		if !ok || v == nil {
-			return // ignore
-		}
-		invoke <- nil
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(20 * time.Millisecond)
-
-		// Change the proxy's config
-		reg.Connect.Proxy.Config["foo"] = "buzz"
-		reg.Connect.Proxy.Config["baz"] = "qux"
-		err := agent.ServiceRegister(reg)
-		require.NoError(t, err)
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	plan.Stop()
-	wg.Wait()
-}
-
 func TestAgentServiceWatch(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

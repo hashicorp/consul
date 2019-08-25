@@ -78,11 +78,15 @@ those endpoints.
 <Selector> is empty
 <Selector> is not empty
 
-// Contains checks
+// Contains checks or Substring Matching
 <Value> in <Selector>
 <Value> not in <Selector>
 <Selector> contains <Value>
 <Selector> not contains <Value>
+
+// Regular Expression Matching
+<Selector> matches <Value>
+<Selector> not matches <Value>
 ```
 
 ### Selectors
@@ -268,7 +272,6 @@ curl -X GET localhost:8500/v1/catalog/service/api-internal
         },
         "ServicePort": 9090,
         "ServiceEnableTagOverride": false,
-        "ServiceProxyDestination": "",
         "ServiceProxy": {},
         "ServiceConnect": {},
         "CreateIndex": 30,
@@ -301,7 +304,6 @@ curl -X GET localhost:8500/v1/catalog/service/api-internal
         },
         "ServicePort": 9090,
         "ServiceEnableTagOverride": false,
-        "ServiceProxyDestination": "",
         "ServiceProxy": {},
         "ServiceConnect": {},
         "CreateIndex": 29,
@@ -331,7 +333,6 @@ curl -X GET localhost:8500/v1/catalog/service/api-internal
         },
         "ServicePort": 9090,
         "ServiceEnableTagOverride": false,
-        "ServiceProxyDestination": "",
         "ServiceProxy": {},
         "ServiceConnect": {},
         "CreateIndex": 28,
@@ -377,7 +378,6 @@ curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=
         },
         "ServicePort": 9090,
         "ServiceEnableTagOverride": false,
-        "ServiceProxyDestination": "",
         "ServiceProxy": {},
         "ServiceConnect": {},
         "CreateIndex": 29,

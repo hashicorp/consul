@@ -131,7 +131,7 @@ func (m *Manager) syncState() {
 	// Traverse the local state and ensure all proxy services are registered
 	services := m.State.Services()
 	for svcID, svc := range services {
-		if svc.Kind != structs.ServiceKindConnectProxy {
+		if svc.Kind != structs.ServiceKindConnectProxy && svc.Kind != structs.ServiceKindMeshGateway {
 			continue
 		}
 		// TODO(banks): need to work out when to default some stuff. For example
@@ -139,9 +139,8 @@ func (m *Manager) syncState() {
 		// default to the port of the sidecar service, but only if it's already
 		// registered and once we get past here, we don't have enough context to
 		// know that so we'd need to set it here if not during registration of the
-		// proxy service. Sidecar Service and managed proxies in the interim can
-		// do that, but we should validate more generally that that is always
-		// true.
+		// proxy service. Sidecar Service in the interim can do that, but we should
+		// validate more generally that that is always true.
 		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svcID))
 		if err != nil {
 			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
@@ -168,7 +167,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 			return nil
 		}
 
-		// We are updating the proxy, close it's old state
+		// We are updating the proxy, close its old state
 		state.Close()
 	}
 
