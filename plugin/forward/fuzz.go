@@ -22,7 +22,7 @@ func init() {
 
 // Fuzz fuzzes forward.
 func Fuzz(data []byte) int {
-	return fuzz.Do(f, nil, data)
+	return fuzz.Do(f, data)
 }
 
 type r struct{}

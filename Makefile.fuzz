@@ -51,7 +51,7 @@ else
 endif
 
 fuzzit:
-	wget -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/$(FUZZIT)/fuzzit_Linux_x86_64 && chmod +x fuzzit
+	wget --quiet -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/$(FUZZIT)/fuzzit_Linux_x86_64 && chmod +x fuzzit
 
 .PHONY: clean
 clean:
