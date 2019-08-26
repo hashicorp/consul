@@ -233,4 +233,4 @@ issue, instead send your report privately to `security@coredns.io`. Security rep
 appreciated and we will publicly thank you for it.
 
 Please consult [security vulnerability disclosures and security fix and release process
-document](https://github.com/coredns/coredns/blob/master/SECURITY-RELEASE-PROCESS.md)
+document](https://github.com/coredns/coredns/blob/master/SECURITY.md)
