@@ -9,7 +9,7 @@ author = "coredns"
 +++
 
 We are pleased to announce the [release](https://github.com/coredns/coredns/releases/tag/v1.0.2) of CoreDNS-1.0.2!
-This release can be summerized as "help external plugin developers" as most changes are geared
+This release can be summarized as "help external plugin developers" as most changes are geared
 towards exposing CoreDNS functionality to make this as easy as possible. Is also a fairly small
 release.
 
