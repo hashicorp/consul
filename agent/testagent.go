@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
@@ -149,7 +150,7 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 
 		logOutput := a.LogOutput
 		if logOutput == nil {
-			logOutput = os.Stderr
+			logOutput = testutil.TestWriter(t)
 		}
 		agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 
