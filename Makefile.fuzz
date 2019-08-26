@@ -17,7 +17,7 @@
 # GO111MODULE=off go get github.com/dvyukov/go-fuzz/go-fuzz-build
 
 REPO:="github.com/coredns/coredns"
-FUZZIT:=v2.4.28
+FUZZIT:=v2.4.35
 # set LIBFUZZER=YES to build libfuzzer compatible targets
 
 FUZZ:=$(dir $(wildcard plugin/*/fuzz.go)) # plugin/cache/

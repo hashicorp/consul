@@ -55,7 +55,7 @@ ifeq ($(TEST_TYPE),fuzzit)
 		LIBFUZZER=YES $(MAKE) -f Makefile.fuzz all; \
 		$(MAKE) -sf Makefile.fuzz fuzzit; \
 		for i in `$(MAKE) -sf Makefile.fuzz echo`; do echo $$i; \
-			./fuzzit create job --type $(FUZZIT_TYPE) coredns/$$i ./$$i; \
+			./fuzzit create job --if-not-exists --type $(FUZZIT_TYPE) coredns/$$i ./$$i; \
 		done; \
 	fi;
 endif
