@@ -42,7 +42,7 @@ func (h *health) OnStartup() error {
 	h.mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		// We're always healthy.
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "OK")
+		io.WriteString(w, http.StatusText(http.StatusOK))
 		return
 	})
 

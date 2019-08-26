@@ -110,7 +110,7 @@ func TestReloadMetricsHealth(t *testing.T) {
 	}
 	ok, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	if string(ok) != "OK" {
+	if string(ok) != http.StatusText(http.StatusOK) {
 		t.Errorf("Failed to receive OK, got %s", ok)
 	}
 

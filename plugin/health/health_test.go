@@ -31,7 +31,7 @@ func TestHealth(t *testing.T) {
 	}
 	response.Body.Close()
 
-	if string(content) != "OK" {
+	if string(content) != http.StatusText(http.StatusOK) {
 		t.Errorf("Invalid response body: expecting 'OK', got '%s'", string(content))
 	}
 }
