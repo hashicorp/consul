@@ -20,9 +20,10 @@ type cmd struct {
 	flags *flag.FlagSet
 	// configFormat forces all config files to be interpreted as this
 	// format independent of their extension.
-	configFormat string
-	quiet        bool
-	help         string
+	configFormat     string
+	quiet            bool
+	checkServiceName bool
+	help             string
 }
 
 func (c *cmd) init() {
@@ -31,6 +32,8 @@ func (c *cmd) init() {
 		"Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	c.flags.BoolVar(&c.quiet, "quiet", false,
 		"When given, a successful run will produce no output.")
+	c.flags.BoolVar(&c.checkServiceName, "verify-service-name", false,
+		"When given, verify service name if it meets the condition of RFC-952 and RFC-1123 for successful dns resolution.")
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -51,7 +54,16 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	b, err := config.NewBuilder(config.Flags{ConfigFiles: configFiles, ConfigFormat: &c.configFormat})
+	var tv bool
+	if c.checkServiceName {
+		tv = true
+	}
+	b, err := config.NewBuilder(config.Flags{
+		ConfigFiles:  configFiles,
+		ConfigFormat: &c.configFormat,
+		Config:       config.Config{VerifyServiceName: &tv},
+	})
+
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1

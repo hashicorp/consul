@@ -111,4 +111,5 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.UIContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
 	add(&f.Config.UIDir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
+	add(&f.Config.VerifyServiceName, "verify-service-name", "When given, verify service name if it meets the condition of RFC-952 and RFC-1123 for successful dns resolution.")
 }

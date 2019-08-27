@@ -894,6 +894,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyIncomingRPC:                b.boolVal(c.VerifyIncomingRPC),
 		VerifyOutgoing:                   verifyOutgoing,
 		VerifyServerHostname:             verifyServerName,
+		VerifyServiceName:                b.boolVal(c.VerifyServiceName),
 		Watches:                          c.Watches,
 	}
 
@@ -1024,6 +1025,16 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			keyfileWAN := filepath.Join(rt.DataDir, SerfWANKeyring)
 			if _, err := os.Stat(keyfileWAN); err == nil {
 				b.warn("WARNING: WAN keyring exists but -encrypt given, using keyring")
+			}
+		}
+	}
+
+	if rt.VerifyServiceName {
+		rule := `^[a-zA-Z0-9\-\.]$`
+		r := regexp.MustCompile(rule)
+		for _, s := range rt.Services {
+			if !r.MatchString(s.Name) {
+				return fmt.Errorf("service name %v is not valid, use hostname that matches with %v for successful dns resolution", s.Name, rule)
 			}
 		}
 	}

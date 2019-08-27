@@ -1451,6 +1451,11 @@ type RuntimeConfig struct {
 	// hcl: verify_server_hostname = (true|false)
 	VerifyServerHostname bool
 
+	// VerifyServiceName is used to enable verification of service name.
+	// This ensures that the service name, which used for dns resolution later
+	// meets the condition of RFC-952 and RFC-1123.
+	VerifyServiceName bool
+
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.

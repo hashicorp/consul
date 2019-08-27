@@ -278,6 +278,7 @@ type Config struct {
 	VerifyIncomingRPC                *bool                    `json:"verify_incoming_rpc,omitempty" hcl:"verify_incoming_rpc" mapstructure:"verify_incoming_rpc"`
 	VerifyOutgoing                   *bool                    `json:"verify_outgoing,omitempty" hcl:"verify_outgoing" mapstructure:"verify_outgoing"`
 	VerifyServerHostname             *bool                    `json:"verify_server_hostname,omitempty" hcl:"verify_server_hostname" mapstructure:"verify_server_hostname"`
+	VerifyServiceName                *bool                    `json:"verify_service_name,omitempty" hcl:"verify_service_name" mapstructure:"verify_service_name"`
 	Watches                          []map[string]interface{} `json:"watches,omitempty" hcl:"watches" mapstructure:"watches"`
 
 	// This isn't used by Consul but we've documented a feature where users
