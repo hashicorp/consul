@@ -10,7 +10,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/caddyserver/caddy"
-	etcdcv3 "github.com/coreos/etcd/clientv3"
+	etcdcv3 "go.etcd.io/etcd/clientv3"
 )
 
 var log = clog.NewWithPlugin("etcd")

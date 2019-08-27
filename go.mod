@@ -15,7 +15,6 @@ require (
 	github.com/caddyserver/caddy v1.0.3
 	github.com/coredns/federation v0.0.0-20190818181423-e032b096babe
 	github.com/coreos/bbolt v1.3.2 // indirect
-	github.com/coreos/etcd v3.3.15+incompatible
 	github.com/coreos/go-systemd v0.0.0-20190212144455-93d5ec2c7f76 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/dnstap/golang-dnstap v0.0.0-20170829151710-2cf77a2b5e11
@@ -42,7 +41,7 @@ require (
 	github.com/spf13/cobra v0.0.5 // indirect
 	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
-	go.etcd.io/etcd v0.0.0-20190823073701-67d0c21bb04c // indirect
+	go.etcd.io/etcd v0.0.0-20190823073701-67d0c21bb04c
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 // indirect

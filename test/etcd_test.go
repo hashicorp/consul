@@ -11,8 +11,8 @@ import (
 	"github.com/coredns/coredns/plugin/etcd"
 	"github.com/coredns/coredns/plugin/etcd/msg"
 
-	etcdcv3 "github.com/coreos/etcd/clientv3"
 	"github.com/miekg/dns"
+	etcdcv3 "go.etcd.io/etcd/clientv3"
 )
 
 func etcdPlugin() *etcd.Etcd {
