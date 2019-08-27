@@ -13,8 +13,9 @@ import (
 
 // CreateCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
-func CreateCSR(uri CertURI, privateKey crypto.Signer, extensions ...pkix.Extension) (string, error) {
+func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer, extensions ...pkix.Extension) (string, error) {
 	template := &x509.CertificateRequest{
+		Subject:            pkix.Name{CommonName: commonName},
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 		ExtraExtensions:    extensions,
@@ -37,13 +38,13 @@ func CreateCSR(uri CertURI, privateKey crypto.Signer, extensions ...pkix.Extensi
 
 // CreateCSR returns a CA CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
-func CreateCACSR(uri CertURI, privateKey crypto.Signer) (string, error) {
+func CreateCACSR(uri CertURI, commonName string, privateKey crypto.Signer) (string, error) {
 	ext, err := CreateCAExtension()
 	if err != nil {
 		return "", err
 	}
 
-	return CreateCSR(uri, privateKey, ext)
+	return CreateCSR(uri, commonName, privateKey, ext)
 }
 
 // CreateCAExtension creates a pkix.Extension for the x509 Basic Constraints

@@ -79,7 +79,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	provider := &ConsulProvider{Delegate: delegate}
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.Configure(conf.ClusterID, "dc1", "consul", true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
 	root, err := provider.ActiveRoot()
@@ -110,7 +110,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	provider := &ConsulProvider{Delegate: delegate}
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.Configure(conf.ClusterID, "dc1", "consul", true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
 	root, err := provider.ActiveRoot()
@@ -127,7 +127,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	provider := &ConsulProvider{Delegate: delegate}
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.Configure(conf.ClusterID, "dc1", "consul", true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
 	spiffeService := &connect.SpiffeIDService{
@@ -139,7 +139,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 	// Generate a leaf cert for the service.
 	{
-		raw, _ := connect.TestCSR(t, spiffeService)
+		raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.dc1.consul.")
 
 		csr, err := connect.ParseCSR(raw)
 		require.NoError(err)
@@ -149,8 +149,8 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.Equal(parsed.Subject.CommonName, "foo")
+		require.Equal(spiffeService.URI(), parsed.URIs[0])
+		require.Equal("node1.foo.service.dc1.consul.", parsed.Subject.CommonName)
 		require.Equal(uint64(2), parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -163,7 +163,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	// the serial number is incremented.
 	spiffeService.Service = "bar"
 	{
-		raw, _ := connect.TestCSR(t, spiffeService)
+		raw, _ := connect.TestCSR(t, spiffeService, "node1.bar.service.dc1.consul.")
 
 		csr, err := connect.ParseCSR(raw)
 		require.NoError(err)
@@ -173,8 +173,8 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.Equal(parsed.Subject.CommonName, "bar")
+		require.Equal(spiffeService.URI(), parsed.URIs[0])
+		require.Equal("node1.bar.service.dc1.consul.", parsed.Subject.CommonName)
 		require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -189,7 +189,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	}
 	// Generate a leaf cert for an agent.
 	{
-		raw, _ := connect.TestCSR(t, spiffeAgent)
+		raw, _ := connect.TestCSR(t, spiffeAgent, "uuid.agent.dc1.consul.")
 
 		csr, err := connect.ParseCSR(raw)
 		require.NoError(err)
@@ -200,7 +200,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
 		require.Equal(spiffeAgent.URI(), parsed.URIs[0])
-		require.Equal("uuid", parsed.Subject.CommonName)
+		require.Equal("uuid.agent.dc1.consul.", parsed.Subject.CommonName)
 		require.Equal(uint64(2), parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -218,14 +218,14 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	conf1 := testConsulCAConfig()
 	delegate1 := newMockDelegate(t, conf1)
 	provider1 := &ConsulProvider{Delegate: delegate1}
-	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
+	require.NoError(provider1.Configure(conf1.ClusterID, "dc1", "consul", true, conf1.Config))
 	require.NoError(provider1.GenerateRoot())
 
 	conf2 := testConsulCAConfig()
 	conf2.CreateIndex = 10
 	delegate2 := newMockDelegate(t, conf2)
 	provider2 := &ConsulProvider{Delegate: delegate2}
-	require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config))
+	require.NoError(provider2.Configure(conf2.ClusterID, "dc2", "consul", true, conf2.Config))
 	require.NoError(provider2.GenerateRoot())
 
 	testCrossSignProviders(t, provider1, provider2)
@@ -274,7 +274,7 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 		Datacenter: "dc1",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.dc1.consul.")
 
 	leafCsr, err := connect.ParseCSR(raw)
 	require.NoError(err)
@@ -310,14 +310,14 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 	conf1 := testConsulCAConfig()
 	delegate1 := newMockDelegate(t, conf1)
 	provider1 := &ConsulProvider{Delegate: delegate1}
-	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
+	require.NoError(provider1.Configure(conf1.ClusterID, "dc1", "consul", true, conf1.Config))
 	require.NoError(provider1.GenerateRoot())
 
 	conf2 := testConsulCAConfig()
 	conf2.CreateIndex = 10
 	delegate2 := newMockDelegate(t, conf2)
 	provider2 := &ConsulProvider{Delegate: delegate2}
-	require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config))
+	require.NoError(provider2.Configure(conf2.ClusterID, "dc1", "consul", false, conf2.Config))
 
 	testSignIntermediateCrossDC(t, provider1, provider2)
 }
@@ -347,7 +347,7 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 		Datacenter: "dc1",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.dc1.consul.")
 
 	leafCsr, err := connect.ParseCSR(raw)
 	require.NoError(err)
@@ -392,7 +392,7 @@ func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 	require.NotNil(providerState)
 
 	provider := &ConsulProvider{Delegate: delegate}
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+	require.NoError(provider.Configure(conf.ClusterID, "dc1", "consul", true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
 	// After running Configure, the old ID entry should be gone.
