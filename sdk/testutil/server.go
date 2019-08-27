@@ -104,6 +104,7 @@ type TestServerConfig struct {
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
+	ReturnPorts         func()                 `json:"-"`
 }
 
 type TestACLs struct {
@@ -138,7 +139,8 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
-	ports := freeport.Get(6)
+	ports := freeport.MustTake(6)
+
 	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
@@ -166,6 +168,9 @@ func defaultServerConfig() *TestServerConfig {
 				// const TestClusterID causes import cycle so hard code it here.
 				"cluster_id": "11111111-2222-3333-4444-555555555555",
 			},
+		},
+		ReturnPorts: func() {
+			freeport.Return(ports)
 		},
 	}
 }
@@ -244,6 +249,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	cfg := defaultServerConfig()
+
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -251,6 +257,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
@@ -258,6 +265,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	log.Printf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
@@ -278,6 +286,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
@@ -319,6 +328,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
+	defer s.Config.ReturnPorts()
 	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process

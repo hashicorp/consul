@@ -22,7 +22,9 @@ func TestProxy_public(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	ports := freeport.GetT(t, 1)
+
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
 
 	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
