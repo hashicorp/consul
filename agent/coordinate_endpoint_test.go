@@ -63,6 +63,10 @@ func TestCoordinate_Datacenters(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	if resp.Code != http.StatusOK {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+
 	maps := obj.([]structs.DatacenterMap)
 	if len(maps) != 1 ||
 		maps[0].Datacenter != "dc1" ||
@@ -85,6 +89,10 @@ func TestCoordinate_Nodes(t *testing.T) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
 			r.Fatalf("err: %v", err)
+		}
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("bad: %v", resp.Code)
 		}
 
 		// Check that coordinates are empty before registering a node
@@ -144,6 +152,10 @@ func TestCoordinate_Nodes(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 
+		if resp.Code != http.StatusOK {
+			t.Fatalf("bad: %v", resp.Code)
+		}
+
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
 			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
@@ -163,6 +175,10 @@ func TestCoordinate_Nodes(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 
+		if resp.Code != http.StatusOK {
+			t.Fatalf("bad: %v", resp.Code)
+		}
+
 		coordinates, ok := obj.(structs.Coordinates)
 		if !ok {
 			r.Fatalf("expected: structs.Coordinates, received: %+v", obj)
@@ -178,6 +194,10 @@ func TestCoordinate_Nodes(t *testing.T) {
 		obj, err := a.srv.CoordinateNodes(resp, req)
 		if err != nil {
 			r.Fatalf("err: %v", err)
+		}
+
+		if resp.Code != http.StatusOK {
+			t.Fatalf("bad: %v", resp.Code)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
@@ -220,6 +240,7 @@ func TestCoordinate_Node(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
 	if resp.Code != http.StatusNotFound {
 		t.Fatalf("bad: %v", resp.Code)
 	}
@@ -269,6 +290,10 @@ func TestCoordinate_Node(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	if resp.Code != http.StatusOK {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+
 	coordinates := obj.(structs.Coordinates)
 	if len(coordinates) != 1 ||
 		coordinates[0].Node != "foo" {
@@ -292,6 +317,10 @@ func TestCoordinate_Node(t *testing.T) {
 	obj, err = a.srv.CoordinateNode(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("bad: %v", resp.Code)
 	}
 
 	coordinates = obj.(structs.Coordinates)
@@ -342,6 +371,11 @@ func TestCoordinate_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("bad: %v", resp.Code)
+	}
+
 	time.Sleep(300 * time.Millisecond)
 
 	// Query back and check the coordinates are present.
