@@ -227,9 +227,8 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 
 // TestCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
-func TestCSR(t testing.T, uri CertURI, commonName string) (string, string) {
+func TestCSR(t testing.T, uri CertURI) (string, string) {
 	template := &x509.CertificateRequest{
-		Subject:            pkix.Name{CommonName: commonName},
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 	}

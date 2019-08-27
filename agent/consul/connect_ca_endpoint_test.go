@@ -246,7 +246,7 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	{
 		// Generate a CSR and request signing
 		spiffeId := connect.TestSpiffeIDService(t, "web")
-		csr, _ := connect.TestCSR(t, spiffeId, "node1.web.service.dc1.consul.")
+		csr, _ := connect.TestCSR(t, spiffeId)
 		args := &structs.CASignRequest{
 			Datacenter: "dc1",
 			CSR:        csr,
@@ -309,7 +309,7 @@ func TestConnectCASign(t *testing.T) {
 
 	// Generate a CSR and request signing
 	spiffeId := connect.TestSpiffeIDService(t, "web")
-	csr, _ := connect.TestCSR(t, spiffeId, "node1.web.service.dc1.consul.")
+	csr, _ := connect.TestCSR(t, spiffeId)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
 		CSR:        csr,
@@ -319,7 +319,7 @@ func TestConnectCASign(t *testing.T) {
 
 	// Generate a second CSR and request signing
 	spiffeId2 := connect.TestSpiffeIDService(t, "web2")
-	csr, _ = connect.TestCSR(t, spiffeId2, "node1.web2.service.dc1.consul.")
+	csr, _ = connect.TestCSR(t, spiffeId2)
 	args = &structs.CASignRequest{
 		Datacenter: "dc1",
 		CSR:        csr,
@@ -366,7 +366,7 @@ func BenchmarkConnectCASign(b *testing.B) {
 
 	// Generate a CSR and request signing
 	spiffeID := connect.TestSpiffeIDService(b, "web")
-	csr, _ := connect.TestCSR(b, spiffeID, "node1.web.service.dc1.consul.")
+	csr, _ := connect.TestCSR(b, spiffeID)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
 		CSR:        csr,
@@ -406,7 +406,7 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 
 	// Generate a CSR and request signing a few times in a loop.
 	spiffeID := connect.TestSpiffeIDService(t, "web")
-	csr, _ := connect.TestCSR(t, spiffeID, "node1.web.service.dc1.consul.")
+	csr, _ := connect.TestCSR(t, spiffeID)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
 		CSR:        csr,
@@ -460,7 +460,7 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 
 	// Generate a CSR and request signing a few times in a loop.
 	spiffeID := connect.TestSpiffeIDService(t, "web")
-	csr, _ := connect.TestCSR(t, spiffeID, "node1.web.service.dc1.consul.")
+	csr, _ := connect.TestCSR(t, spiffeID)
 	args := &structs.CASignRequest{
 		Datacenter: "dc1",
 		CSR:        csr,
@@ -625,7 +625,7 @@ func TestConnectCASignValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			csr, _ := connect.TestCSR(t, tt.id, "")
+			csr, _ := connect.TestCSR(t, tt.id)
 			args := &structs.CASignRequest{
 				Datacenter:   "dc1",
 				CSR:          csr,
