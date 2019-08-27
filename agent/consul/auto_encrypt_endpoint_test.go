@@ -69,13 +69,14 @@ func TestAutoEncryptSign(t *testing.T) {
 				Datacenter: "dc1",
 				Agent:      "uuid",
 			}
+			commonName := fmt.Sprintf("%s.agent.%s.%s", id.Agent, id.Datacenter, "consul")
 
 			// Create a new private key
 			pk, _, err := connect.GeneratePrivateKey()
 			require.NoError(t, err, info)
 
 			// Create a CSR.
-			csr, err := connect.CreateCSR(id, pk)
+			csr, err := connect.CreateCSR(id, commonName, pk)
 			require.NoError(t, err, info)
 			require.NotEmpty(t, csr, info)
 			args := &structs.CASignRequest{

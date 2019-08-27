@@ -86,7 +86,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		Datacenter: "primary",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.primary.consul.")
 
 	leafCsr, err := connect.ParseCSR(raw)
 	require.NoError(err)
@@ -216,7 +216,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		Datacenter: "dc1",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.primary.consul.")
 
 	leafCsr, err := connect.ParseCSR(raw)
 	require.NoError(err)
@@ -434,7 +434,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		Datacenter: "dc1",
 		Service:    "foo",
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
+	raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.primary.consul.")
 
 	leafCsr, err := connect.ParseCSR(raw)
 	require.NoError(t, err)
