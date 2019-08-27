@@ -77,7 +77,7 @@
     "ember-composable-helpers": "^2.1.0",
     "ember-computed-style": "^0.3.0",
     "ember-data": "~3.8.0",
-    "ember-exam": "^2.0.1",
+    "ember-exam": "^4.0.0",
     "ember-export-application-global": "^2.0.0",
     "ember-href-to": "^3.1.0",
     "ember-inflector": "^3.0.0",
