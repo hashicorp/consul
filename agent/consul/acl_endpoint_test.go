@@ -844,6 +844,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -871,6 +872,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -914,6 +916,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -959,6 +962,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1070,6 +1074,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.Len(t, token.Roles, 0)
 		require.Equal(t, "updated token", token.Description)
 		require.True(t, token.Local)
@@ -1168,6 +1173,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
 				require.NoError(t, err)
 				token := tokenResp.Token
+				require.NotNil(t, token)
 				require.ElementsMatch(t, req.ACLToken.ServiceIdentities, token.ServiceIdentities)
 			} else {
 				require.NotNil(t, err)
@@ -1199,6 +1205,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
+		require.NotNil(t, token)
 		require.Len(t, token.ServiceIdentities, 1)
 	})
 
@@ -1232,6 +1239,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
+		require.NotNil(t, token)
 		require.Len(t, token.ServiceIdentities, 1)
 		svcid := token.ServiceIdentities[0]
 		require.Equal(t, "example", svcid.ServiceName)
@@ -1356,6 +1364,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		expectExpTime := resp.CreateTime.Add(4 * time.Second)
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1388,6 +1397,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1437,6 +1447,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description-1")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1464,6 +1475,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description-2")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1558,6 +1570,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.Equal(t, req.ACLToken.AccessorID, token.AccessorID)
 		require.Equal(t, req.ACLToken.SecretID, token.SecretID)
 		require.Equal(t, token.Description, "foobar")
