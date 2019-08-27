@@ -48,7 +48,7 @@ func testVaultClusterWithConfig(t *testing.T, isRoot bool, rawConf map[string]in
 
 	require := require.New(t)
 	provider := &VaultProvider{}
-	require.NoError(provider.Configure("asdf", "dc1", "consul", isRoot, conf))
+	require.NoError(provider.Configure("asdf", isRoot, conf))
 	if isRoot {
 		require.NoError(provider.GenerateRoot())
 		_, err := provider.GenerateIntermediate()
@@ -120,7 +120,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		require.NoError(err)
 		require.True(parsed.IsCA)
 		require.Len(parsed.URIs, 1)
-		require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", provider.clusterID))
+		require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", provider.clusterId))
 	}
 }
 
@@ -149,7 +149,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	// Generate a leaf cert for the service.
 	var firstSerial uint64
 	{
-		raw, _ := connect.TestCSR(t, spiffeService, "node1.foo.service.dc1.consul.")
+		raw, _ := connect.TestCSR(t, spiffeService)
 
 		csr, err := connect.ParseCSR(raw)
 		require.NoError(err)
@@ -159,7 +159,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
-		require.Equal(spiffeService.URI(), parsed.URIs[0])
+		require.Equal(parsed.URIs[0], spiffeService.URI())
 		firstSerial = parsed.SerialNumber.Uint64()
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -172,7 +172,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	// the serial number is unique.
 	spiffeService.Service = "bar"
 	{
-		raw, _ := connect.TestCSR(t, spiffeService, "node1.bar.service.dc1.consul.")
+		raw, _ := connect.TestCSR(t, spiffeService)
 
 		csr, err := connect.ParseCSR(raw)
 		require.NoError(err)
@@ -182,7 +182,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 		parsed, err := connect.ParseCert(cert)
 		require.NoError(err)
-		require.Equal(spiffeService.URI(), parsed.URIs[0])
+		require.Equal(parsed.URIs[0], spiffeService.URI())
 		require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
 
 		// Ensure the cert is valid now and expires within the correct limit.
@@ -233,7 +233,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider2 := &ConsulProvider{Delegate: delegate}
-		require.NoError(provider2.Configure(conf.ClusterID, "dc2", "consul", false, conf.Config))
+		require.NoError(provider2.Configure(conf.ClusterID, false, conf.Config))
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
 	}
@@ -243,7 +243,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider1 := &ConsulProvider{Delegate: delegate}
-		require.NoError(provider1.Configure(conf.ClusterID, "dc1", "consul", true, conf.Config))
+		require.NoError(provider1.Configure(conf.ClusterID, true, conf.Config))
 		require.NoError(provider1.GenerateRoot())
 
 		provider2, core, listener := testVaultClusterWithConfig(t, false, nil)

@@ -12,8 +12,7 @@ import (
 type Provider interface {
 	// Configure initializes the provider based on the given cluster ID, root status
 	// and configuration values.
-	Configure(clusterId string, datacenterName string, dnsDomain string,
-		isRoot bool, rawConfig map[string]interface{}) error
+	Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error
 
 	// GenerateRoot causes the creation of a new root certificate for this provider.
 	// This can also be a no-op if a root certificate already exists for the given

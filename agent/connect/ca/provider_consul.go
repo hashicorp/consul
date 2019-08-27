@@ -28,8 +28,6 @@ type ConsulProvider struct {
 	config    *structs.ConsulCAProviderConfig
 	id        string
 	clusterID string
-	dcName    string
-	domain    string
 	isRoot    bool
 	spiffeID  *connect.SpiffeIDSigning
 
@@ -42,8 +40,7 @@ type ConsulProviderStateDelegate interface {
 }
 
 // Configure sets up the provider using the given configuration.
-func (c *ConsulProvider) Configure(clusterID string, datacenterName string, dnsDomain string,
-	isRoot bool, rawConfig map[string]interface{}) error {
+func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}) error {
 	// Parse the raw config and update our ID.
 	config, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
@@ -52,15 +49,9 @@ func (c *ConsulProvider) Configure(clusterID string, datacenterName string, dnsD
 	c.config = config
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
 	c.id = strings.Replace(fmt.Sprintf("% x", hash), " ", ":", -1)
+	c.clusterID = clusterID
 	c.isRoot = isRoot
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})
-	c.dcName = datacenterName
-	c.domain = dnsDomain
-
-	c.clusterID = clusterID
-	if len(c.clusterID) > 8 {
-		c.clusterID = c.clusterID[:8]
-	}
 
 	// Exit early if the state store has an entry for this provider's config.
 	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
@@ -198,8 +189,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	commonName := fmt.Sprintf("intermediate.ca.%s.%s.%s", c.clusterID, c.dcName, c.domain)
-	csr, err := connect.CreateCACSR(c.spiffeID, commonName, signer)
+	csr, err := connect.CreateCACSR(c.spiffeID, signer)
 	if err != nil {
 		return "", err
 	}
@@ -354,22 +344,22 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", err
 	}
 
-	//// Parse the SPIFFE ID
-	//spiffeId, err := connect.ParseCertURI(csr.URIs[0])
-	//if err != nil {
-	//	return "", err
-	//}
+	// Parse the SPIFFE ID
+	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
+	if err != nil {
+		return "", err
+	}
 
-	//subjectName := ""
-	//switch id := spiffeId.(type) {
-	//case *connect.SpiffeIDService:
-	//	subjectName = fmt.Sprintf("%s.%s.service.%s.%s", id.Host, id.Service, id.Datacenter, c.domain)
-	//case *connect.SpiffeIDAgent:
-	//	subjectName = fmt.Sprintf("%s.agent.%s.%s", id.Agent, id.Datacenter, c.domain)
-	//default:
-	//	return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
-	//}
-	//
+	subject := ""
+	switch id := spiffeId.(type) {
+	case *connect.SpiffeIDService:
+		subject = id.Service
+	case *connect.SpiffeIDAgent:
+		subject = id.Agent
+	default:
+		return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
+	}
+
 	// Parse the CA cert
 	certPEM, err := c.ActiveIntermediate()
 	if err != nil {
@@ -389,7 +379,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               csr.Subject,
+		Subject:               pkix.Name{CommonName: subject},
 		URIs:                  csr.URIs,
 		Signature:             csr.Signature,
 		SignatureAlgorithm:    csr.SignatureAlgorithm,
@@ -627,7 +617,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 		return "", fmt.Errorf("error parsing private key %q: %s", privateKey, err)
 	}
 
-	commonName := fmt.Sprintf("root.ca.%s.%s.%s", c.clusterID, c.dcName, c.domain)
+	name := fmt.Sprintf("Consul CA %d", sn)
 
 	// The URI (SPIFFE compatible) for the cert
 	id := connect.SpiffeIDSigningForCluster(config)
@@ -641,7 +631,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
 		SerialNumber:          serialNum,
-		Subject:               pkix.Name{CommonName: commonName},
+		Subject:               pkix.Name{CommonName: name},
 		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |

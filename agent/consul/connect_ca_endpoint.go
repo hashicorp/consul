@@ -176,7 +176,7 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
-	if err := newProvider.Configure(args.Config.ClusterID, s.srv.config.Datacenter, s.srv.config.Domain, true, args.Config.Config); err != nil {
+	if err := newProvider.Configure(args.Config.ClusterID, true, args.Config.Config); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := newProvider.GenerateRoot(); err != nil {
