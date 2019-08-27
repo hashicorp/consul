@@ -92,7 +92,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		}
 
 		if resp.Code != http.StatusOK {
-			t.Fatalf("bad: %v", resp.Code)
+			r.Fatalf("bad: %v", resp.Code)
 		}
 
 		// Check that coordinates are empty before registering a node
@@ -153,7 +153,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		}
 
 		if resp.Code != http.StatusOK {
-			t.Fatalf("bad: %v", resp.Code)
+			r.Fatalf("bad: %v", resp.Code)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
@@ -176,7 +176,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		}
 
 		if resp.Code != http.StatusOK {
-			t.Fatalf("bad: %v", resp.Code)
+			r.Fatalf("bad: %v", resp.Code)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
@@ -197,7 +197,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		}
 
 		if resp.Code != http.StatusOK {
-			t.Fatalf("bad: %v", resp.Code)
+			r.Fatalf("bad: %v", resp.Code)
 		}
 
 		coordinates, ok := obj.(structs.Coordinates)
