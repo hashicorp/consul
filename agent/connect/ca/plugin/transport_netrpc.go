@@ -15,7 +15,7 @@ type providerPluginRPCServer struct {
 }
 
 func (p *providerPluginRPCServer) Configure(args *ConfigureRPCRequest, _ *struct{}) error {
-	return p.impl.Configure(args.ClusterId, args.IsRoot, args.RawConfig)
+	return p.impl.Configure(args.ClusterId, args.DatacenterName, args.DNSDomain, args.IsRoot, args.RawConfig)
 }
 
 func (p *providerPluginRPCServer) GenerateRoot(struct{}, *struct{}) error {
@@ -95,12 +95,16 @@ type providerPluginRPCClient struct {
 
 func (p *providerPluginRPCClient) Configure(
 	clusterId string,
+	datacenterName string,
+	dnsDomain string,
 	isRoot bool,
 	rawConfig map[string]interface{}) error {
 	return p.client.Call("Plugin.Configure", &ConfigureRPCRequest{
-		ClusterId: clusterId,
-		IsRoot:    isRoot,
-		RawConfig: rawConfig,
+		ClusterId:      clusterId,
+		DatacenterName: datacenterName,
+		DNSDomain:      dnsDomain,
+		IsRoot:         isRoot,
+		RawConfig:      rawConfig,
 	}, &struct{}{})
 }
 
@@ -174,9 +178,11 @@ var _ ca.Provider = &providerPluginRPCClient{}
 // Structs for net/rpc request and response
 
 type ConfigureRPCRequest struct {
-	ClusterId string
-	IsRoot    bool
-	RawConfig map[string]interface{}
+	ClusterId      string
+	DatacenterName string
+	DNSDomain      string
+	IsRoot         bool
+	RawConfig      map[string]interface{}
 }
 
 type SetIntermediateRPCRequest struct {
