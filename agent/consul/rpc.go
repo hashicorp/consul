@@ -315,7 +315,11 @@ func (s *Server) getLeader() (bool, *metadata.Server) {
 func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
 	manager, server, ok := s.router.FindRoute(dc)
 	if !ok {
-		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found", dc)
+		if s.router.IsDatacenterDefined(dc) {
+			s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q temporary failure", dc)
+			return structs.ErrDCNotAvailable
+		}
+		s.logger.Printf("[DEBUG] consul.rpc: RPC request for DC %q, no such DC", dc)
 		return structs.ErrNoDCPath
 	}
 

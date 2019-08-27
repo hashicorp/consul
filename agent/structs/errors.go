@@ -8,6 +8,7 @@ import (
 const (
 	errNoLeader                   = "No cluster leader"
 	errNoDCPath                   = "No path to datacenter"
+	errDCNotAvailable             = "Remote DC is temporary unavailable"
 	errNoServers                  = "No known Consul servers"
 	errNotReadyForConsistentReads = "Not ready to serve consistent reads"
 	errSegmentsNotSupported       = "Network segments are not supported in this version of Consul"
@@ -22,6 +23,7 @@ var (
 	ErrNotReadyForConsistentReads = errors.New(errNotReadyForConsistentReads)
 	ErrSegmentsNotSupported       = errors.New(errSegmentsNotSupported)
 	ErrRPCRateExceeded            = errors.New(errRPCRateExceeded)
+	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
 )
 
 func IsErrNoLeader(err error) bool {
