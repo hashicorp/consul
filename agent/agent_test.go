@@ -1229,8 +1229,11 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	testCtx, testCancel := context.WithCancel(context.Background())
 	defer testCancel()
 
-	testHTTPServer := launchHTTPCheckServer(t, testCtx)
-	defer testHTTPServer.Close()
+	testHTTPServer, returnPort := launchHTTPCheckServer(t, testCtx)
+	defer func() {
+		testHTTPServer.Close()
+		returnPort()
+	}()
 
 	registerServicesAndChecks := func(t *testing.T, a *TestAgent) {
 		// add one persistent service with a simple check
@@ -1338,8 +1341,8 @@ node_name = "` + a.Config.NodeName + `"
 	}
 }
 
-func launchHTTPCheckServer(t *testing.T, ctx context.Context) *httptest.Server {
-	ports := freeport.GetT(t, 1)
+func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Server, returnPortsFn func()) {
+	ports := freeport.MustTake(1)
 	port := ports[0]
 
 	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
@@ -1353,12 +1356,12 @@ func launchHTTPCheckServer(t *testing.T, ctx context.Context) *httptest.Server {
 		_, _ = w.Write([]byte("OK\n"))
 	})
 
-	srv := &httptest.Server{
+	srv = &httptest.Server{
 		Listener: listener,
 		Config:   &http.Server{Handler: handler},
 	}
 	srv.Start()
-	return srv
+	return srv, func() { freeport.Return(ports) }
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {

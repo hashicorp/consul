@@ -738,6 +738,7 @@ func TestParseWait(t *testing.T) {
 		t.Fatalf("Bad: %v", b)
 	}
 }
+
 func TestPProfHandlers_EnableDebug(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
@@ -751,6 +752,7 @@ func TestPProfHandlers_EnableDebug(t *testing.T) {
 
 	require.Equal(http.StatusOK, resp.Code)
 }
+
 func TestPProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)

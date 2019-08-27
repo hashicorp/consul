@@ -52,6 +52,10 @@ type TestAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
+	// returnPortsFn will put the ports claimed for the test back into the
+	// general freeport pool
+	returnPortsFn func()
+
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
 	LogOutput io.Writer
@@ -150,11 +154,20 @@ func (a *TestAgent) Start() (err error) {
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
+	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
+	a.returnPortsFn = returnPortsFn
 	a.Config = TestConfig(
-		randomPortsSource(a.UseTLS),
+		portsConfig,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
+
+	defer func() {
+		if err != nil && a.returnPortsFn != nil {
+			a.returnPortsFn()
+			a.returnPortsFn = nil
+		}
+	}()
 
 	// write the keyring
 	if a.Key != "" {
@@ -286,6 +299,14 @@ func (a *TestAgent) Shutdown() error {
 		return nil
 	}
 
+	// Return ports last of all
+	defer func() {
+		if a.returnPortsFn != nil {
+			a.returnPortsFn()
+			a.returnPortsFn = nil
+		}
+	}()
+
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
 	if err := a.Agent.ShutdownAgent(); err != nil {
@@ -350,27 +371,32 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(tls bool) config.Source {
-	ports := freeport.Get(6)
+func randomPortsSource(tls bool) (src config.Source, returnPortsFn func()) {
+	ports := freeport.MustTake(6)
+
+	var http, https int
 	if tls {
-		ports[1] = -1
+		http = -1
+		https = ports[2]
 	} else {
-		ports[2] = -1
+		http = ports[1]
+		https = -1
 	}
+
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",
 		Data: `
 			ports = {
 				dns = ` + strconv.Itoa(ports[0]) + `
-				http = ` + strconv.Itoa(ports[1]) + `
-				https = ` + strconv.Itoa(ports[2]) + `
+				http = ` + strconv.Itoa(http) + `
+				https = ` + strconv.Itoa(https) + `
 				serf_lan = ` + strconv.Itoa(ports[3]) + `
 				serf_wan = ` + strconv.Itoa(ports[4]) + `
 				server = ` + strconv.Itoa(ports[5]) + `
 			}
 		`,
-	}
+	}, func() { freeport.Return(ports) }
 }
 
 func NodeID() string {
