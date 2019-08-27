@@ -1,5 +1,13 @@
 ## UNRELEASED
 
+IMPROVEMENTS
+
+* auto_encrypt: verify_incoming_rpc is good enough for auto_encrypt.allow_tls [[GH-6376](https://github.com/hashicorp/consul/pull/6376)]
+
+BUG FIXES
+
+* make sure auto_encrypt has private key type and bits [[GH-6392](https://github.com/hashicorp/consul/pull/6392)]
+
 ## 1.6.0 (August 23, 2019)
 
 SECURITY:
