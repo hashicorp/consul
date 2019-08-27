@@ -68,6 +68,10 @@ BUG FIXES:
 * server: if inserting bootstrap config entries fails don't silence the errors [[GH-6256](https://github.com/hashicorp/consul/issues/6256)]
 * snapshot: fix TCP half-close implementation for TLS connections [[GH-6216](https://github.com/hashicorp/consul/pull/6216)]
 
+KNOWN ISSUES
+
+* auto_encrypt: clients with auto_encrypt enabled won't be able to start because of [[GH-6391](https://github.com/hashicorp/consul/issues/6391)]. There is a fix, but it came too late and we couldn't include it in the release. It will be part of 1.6.1 and we recommend that if you are using auto_encrypt you postpone the update.
+
 ## 1.5.3 (July 25, 2019)
 
 IMPROVEMENTS:
