@@ -9,10 +9,6 @@
 export default function(ComputedProperty) {
   return function() {
     const args = [...arguments];
-    const cp = new ComputedProperty(args.pop());
-    if (args.length > 0) {
-      cp.property(...args);
-    }
-    return cp;
+    return new ComputedProperty(...args);
   };
 }
