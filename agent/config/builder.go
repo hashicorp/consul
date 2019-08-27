@@ -1030,7 +1030,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 
 	if rt.VerifyServiceName {
-		rule := `^[a-zA-Z0-9\-\.]$`
+		rule := `^[a-zA-Z0-9-.]+$`
 		r := regexp.MustCompile(rule)
 		for _, s := range rt.Services {
 			if !r.MatchString(s.Name) {
