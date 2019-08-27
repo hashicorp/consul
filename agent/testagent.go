@@ -165,7 +165,7 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 			a.Agent = agent
 			break
 		} else if i == 0 {
-			require.Fail("%s %s Error starting agent: %s", id, a.Name, err)
+			require.Failf("%s %s Error starting agent: %s", id, a.Name, err)
 		} else if a.ExpectConfigError {
 			// Panic the error since this can be caught if needed. Pretty gross way to
 			// detect errors but enough for now and this is a tiny edge case that I'd

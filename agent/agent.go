@@ -1654,8 +1654,10 @@ func (a *Agent) ShutdownEndpoints() {
 	}
 
 	for _, srv := range a.dnsServers {
-		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
-		srv.Shutdown()
+		if srv.Server != nil {
+			a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
+			srv.Shutdown()
+		}
 	}
 	a.dnsServers = nil
 
