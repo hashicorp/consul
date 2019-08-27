@@ -5762,6 +5762,7 @@ func TestSanitize(t *testing.T) {
 		"VerifyIncomingRPC": false,
 		"VerifyOutgoing": false,
 		"VerifyServerHostname": false,
+		"VerifyServiceName": false,
 		"Version": "",
 		"VersionPrerelease": "",
 		"Watches": [],
