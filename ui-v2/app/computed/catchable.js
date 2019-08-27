@@ -1,4 +1,3 @@
-import ComputedProperty from '@ember/object/computed';
 import { computed as computedPropertyFactory } from '@ember/object';
 
 export const computed = function() {
