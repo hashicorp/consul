@@ -55,15 +55,15 @@
     "clipboard": "^2.0.4",
     "ember-auto-import": "^1.4.0",
     "ember-changeset-validations": "^2.1.0",
-    "ember-cli": "~3.8.0",
+    "ember-cli": "~3.12.0",
     "ember-cli-app-version": "^3.2.0",
     "ember-cli-autoprefixer": "^0.8.1",
-    "ember-cli-babel": "^7.1.2",
+    "ember-cli-babel": "^7.7.3",
     "ember-cli-code-coverage": "^1.0.0-beta.4",
     "ember-cli-dependency-checker": "^3.1.0",
     "ember-cli-eslint": "^5.1.0",
     "ember-cli-flash": "^1.6.3",
-    "ember-cli-htmlbars": "^3.0.0",
+    "ember-cli-htmlbars": "^3.0.1",
     "ember-cli-htmlbars-inline-precompile": "^2.1.0",
     "ember-cli-inject-live-reload": "^2.0.1",
     "ember-cli-page-object": "^1.15.0-beta.2",
@@ -76,7 +76,7 @@
     "ember-collection": "^1.0.0-alpha.9",
     "ember-composable-helpers": "^2.1.0",
     "ember-computed-style": "^0.3.0",
-    "ember-data": "~3.8.0",
+    "ember-data": "~3.12.0",
     "ember-exam": "^4.0.0",
     "ember-export-application-global": "^2.0.0",
     "ember-href-to": "^3.1.0",
@@ -89,10 +89,11 @@
     "ember-qunit": "^4.5.1",
     "ember-resolver": "^5.0.1",
     "ember-sinon-qunit": "^3.4.0",
-    "ember-source": "~3.8.0",
+    "ember-source": "~3.12.0",
     "ember-test-selectors": "^2.1.0",
     "ember-truth-helpers": "^2.0.0",
     "eslint-plugin-ember": "^7.0.0",
+    "eslint-plugin-node": "^9.0.1",
     "husky": "^3.0.4",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^3.13.1",
@@ -106,7 +107,7 @@
     "text-encoding": "^0.7.0"
   },
   "engines": {
-    "node": "6.* || 8.* || >= 10.*"
+    "node": "8.* || >= 10.*"
   },
   "ember-addon": {
     "paths": [
