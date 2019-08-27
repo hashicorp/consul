@@ -114,5 +114,8 @@
       "lib/block-slots",
       "lib/commands"
     ]
+  },
+  "dependencies": {
+    "ember-cli-update": "^0.41.0"
   }
 }
