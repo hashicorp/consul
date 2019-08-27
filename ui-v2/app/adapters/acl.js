@@ -56,8 +56,8 @@ export default Adapter.extend({
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForCloneRecord(request, serialized, unserialized);
       },
-      function(serializer, response, serialized, unserialized) {
-        return serializer.respondForCreateRecord(response, serialized, unserialized);
+      function(serializer, respond, serialized, unserialized) {
+        return serializer.respondForCreateRecord(respond, serialized, unserialized);
       },
       snapshot,
       type.modelName

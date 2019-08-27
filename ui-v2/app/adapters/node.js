@@ -27,8 +27,8 @@ export default Adapter.extend({
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForQueryLeader(request, serialized, unserialized);
       },
-      function(serializer, response, serialized, unserialized) {
-        return serializer.respondForQueryLeader(response, serialized, unserialized);
+      function(serializer, respond, serialized, unserialized) {
+        return serializer.respondForQueryLeader(respond, serialized, unserialized);
       },
       snapshot,
       type.modelName
