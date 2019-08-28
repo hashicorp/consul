@@ -9,7 +9,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Hexdump converts the dns message m to a hex dump Whireshark can import.
+// Hexdump converts the dns message m to a hex dump Wireshark can import.
 // See https://www.wireshark.org/docs/man-pages/text2pcap.html.
 // This output looks like this:
 //
