@@ -163,12 +163,19 @@ func TestValidateCommand_VerifyServiceName(t *testing.T) {
 
 		ui := cli.NewMockUi()
 		cmd := New(ui)
-		args := []string{"-verify-service-name", td}
 
+		args := []string{"-verify-service-name", td}
 		errorMessage := `Config validation failed: service name "` + in +
 			`" will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.`
 		code := cmd.Run(args)
 		require.Equal(t, 1, code, errorMessage, ui.ErrorWriter.String())
 		require.Equal(t, "", ui.OutputWriter.String())
+
+		ui = cli.NewMockUi()
+		cmd = New(ui)
+		args = []string{td}
+		code = cmd.Run(args)
+		require.Equal(t, 0, code)
+		t.Log(ui.ErrorWriter.String())
 	}
 }

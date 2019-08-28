@@ -3453,6 +3453,19 @@ func TestAgent_RegisterService_InvalidServiceName(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "will not be discoverable via DNS due to invalid characters")
 	}
+
+	a2 := NewTestAgent(t, t.Name(), "")
+	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+	for _, in := range invalidNames {
+		args := &structs.ServiceDefinition{
+			Name: in,
+		}
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+
+		obj, err := a.srv.AgentRegisterService(nil, req)
+		require.NoError(t, err)
+	}
 }
 
 func TestAgent_DeregisterService(t *testing.T) {
