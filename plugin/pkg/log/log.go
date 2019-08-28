@@ -14,7 +14,6 @@ import (
 	golog "log"
 	"os"
 	"sync"
-	"time"
 )
 
 // D controls whether we should output debug logs. If true, we do, once set
@@ -41,17 +40,14 @@ func (d *d) Value() bool {
 	return b
 }
 
-// RFC3339Milli doesn't exist, invent it here.
-func clock() string { return time.Now().Format("2006-01-02T15:04:05.000Z07:00") }
-
 // logf calls log.Printf prefixed with level.
 func logf(level, format string, v ...interface{}) {
-	golog.Print(clock(), level, fmt.Sprintf(format, v...))
+	golog.Print(level, fmt.Sprintf(format, v...))
 }
 
 // log calls log.Print prefixed with level.
 func log(level string, v ...interface{}) {
-	golog.Print(clock(), level, fmt.Sprint(v...))
+	golog.Print(level, fmt.Sprint(v...))
 }
 
 // Debug is equivalent to log.Print(), but prefixed with "[DEBUG] ". It only outputs something
@@ -102,9 +98,9 @@ func Fatalf(format string, v ...interface{}) { logf(fatal, format, v...); os.Exi
 func Discard() { golog.SetOutput(ioutil.Discard) }
 
 const (
-	debug   = " [DEBUG] "
-	err     = " [ERROR] "
-	fatal   = " [FATAL] "
-	info    = " [INFO] "
-	warning = " [WARNING] "
+	debug   = "[DEBUG] "
+	err     = "[ERROR] "
+	fatal   = "[FATAL] "
+	info    = "[INFO] "
+	warning = "[WARNING] "
 )
