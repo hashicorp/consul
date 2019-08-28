@@ -29,7 +29,7 @@ import (
 
 // InvalidDNSRe matches with names which will not be discoverable via DNS.
 var InvalidDNSRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
-	
+
 // MaxDNSLabelLength is the max length of discoverable name.
 const MaxDNSLabelLength = 63
 

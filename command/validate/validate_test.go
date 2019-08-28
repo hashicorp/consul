@@ -148,8 +148,8 @@ func TestValidateCommand_VerifyServiceName(t *testing.T) {
 	t.Parallel()
 
 	serviceName := "docker|build"
-	errorMessage := `Config validation failed: service name "`+serviceName+
-	`" will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.`
+	errorMessage := `Config validation failed: service name "` + serviceName +
+		`" will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.`
 
 	td := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(td)

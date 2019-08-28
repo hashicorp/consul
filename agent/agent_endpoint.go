@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
-	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
@@ -828,8 +828,8 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	if s.agent.config.VerifyServiceName {
 		if config.InvalidDNSRe.MatchString(args.Name) {
 			return nil, fmt.Errorf("service name %q will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.", args.Name)
+				"via DNS due to invalid characters. Valid characters include "+
+				"all alpha-numerics and dashes.", args.Name)
 		}
 	}
 

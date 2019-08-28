@@ -57,7 +57,7 @@ func (c *cmd) Run(args []string) int {
 	b, err := config.NewBuilder(config.Flags{
 		ConfigFiles:  configFiles,
 		ConfigFormat: &c.configFormat,
-		Config:       config.Config{VerifyServiceName: & c.checkServiceName},
+		Config:       config.Config{VerifyServiceName: &c.checkServiceName},
 	})
 
 	if err != nil {
