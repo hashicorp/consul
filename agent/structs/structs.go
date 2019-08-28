@@ -1122,6 +1122,14 @@ type HealthCheckDefinition struct {
 	OutputMaxSize                  uint                `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
 	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
+	ScriptArgs                     []string            `json:",omitempty"`
+	DockerContainerID              string              `json:",omitempty"`
+	Shell                          string              `json:",omitempty"`
+	GRPC                           string              `json:",omitempty"`
+	GRPCUseTLS                     bool                `json:",omitempty"`
+	AliasNode                      string              `json:",omitempty"`
+	AliasService                   string              `json:",omitempty"`
+	TTL                            time.Duration       `json:",omitempty"`
 }
 
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {

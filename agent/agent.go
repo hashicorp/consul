@@ -20,7 +20,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
@@ -42,8 +42,8 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	multierror "github.com/hashicorp/go-multierror"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -1806,7 +1806,7 @@ func (a *Agent) ResumeSync() {
 
 // syncPausedCh returns either a channel or nil. If nil sync is not paused. If
 // non-nil, the channel will be closed when sync resumes.
-func (a *Agent) syncPausedCh() <-chan struct{} {
+func (a *Agent) SyncPausedCh() <-chan struct{} {
 	a.syncMu.Lock()
 	defer a.syncMu.Unlock()
 	return a.syncCh
@@ -2076,7 +2076,7 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 	}
 
 	// cleanup, store the ids of services and checks that weren't previously
-	// registered so we clean them up if somthing fails halfway through the
+	// registered so we clean them up if something fails halfway through the
 	// process.
 	var cleanupServices []string
 	var cleanupChecks []types.CheckID
@@ -2367,6 +2367,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			ttl := &checks.CheckTTL{
 				Notify:        a.State,
 				CheckID:       check.CheckID,
+				ServiceID:     check.ServiceID,
 				TTL:           chkType.TTL,
 				Logger:        a.logger,
 				OutputMaxSize: maxOutputSize,
@@ -2397,6 +2398,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			http := &checks.CheckHTTP{
 				Notify:          a.State,
 				CheckID:         check.CheckID,
+				ServiceID:       check.ServiceID,
 				HTTP:            chkType.HTTP,
 				Header:          chkType.Header,
 				Method:          chkType.Method,
@@ -2421,12 +2423,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			tcp := &checks.CheckTCP{
-				Notify:   a.State,
-				CheckID:  check.CheckID,
-				TCP:      chkType.TCP,
-				Interval: chkType.Interval,
-				Timeout:  chkType.Timeout,
-				Logger:   a.logger,
+				Notify:    a.State,
+				CheckID:   check.CheckID,
+				ServiceID: check.ServiceID,
+				TCP:       chkType.TCP,
+				Interval:  chkType.Interval,
+				Timeout:   chkType.Timeout,
+				Logger:    a.logger,
 			}
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
@@ -2450,6 +2453,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			grpc := &checks.CheckGRPC{
 				Notify:          a.State,
 				CheckID:         check.CheckID,
+				ServiceID:       check.ServiceID,
 				GRPC:            chkType.GRPC,
 				Interval:        chkType.Interval,
 				Timeout:         chkType.Timeout,
@@ -2483,6 +2487,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			dockerCheck := &checks.CheckDocker{
 				Notify:            a.State,
 				CheckID:           check.CheckID,
+				ServiceID:         check.ServiceID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
 				ScriptArgs:        chkType.ScriptArgs,
@@ -2509,6 +2514,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			monitor := &checks.CheckMonitor{
 				Notify:        a.State,
 				CheckID:       check.CheckID,
+				ServiceID:     check.ServiceID,
 				ScriptArgs:    chkType.ScriptArgs,
 				Interval:      chkType.Interval,
 				Timeout:       chkType.Timeout,
@@ -2551,6 +2557,16 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("Check type is not valid")
 		}
 
+		// Notify channel that watches for service state changes
+		// This is a non-blocking send to avoid synchronizing on a large number of check updates
+		s := a.State.ServiceState(check.ServiceID)
+		if s != nil && !s.Deleted {
+			select {
+			case s.WatchCh <- struct{}{}:
+			default:
+			}
+		}
+
 		if chkType.DeregisterCriticalServiceAfter > 0 {
 			timeout := chkType.DeregisterCriticalServiceAfter
 			if timeout < a.config.CheckDeregisterIntervalMin {
@@ -2583,6 +2599,22 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
+	// Notify channel that watches for service state changes
+	// This is a non-blocking send to avoid synchronizing on a large number of check updates
+	var svcID string
+	for _, c := range a.State.Checks() {
+		if c.CheckID == checkID {
+			svcID = c.ServiceID
+		}
+	}
+	s := a.State.ServiceState(svcID)
+	if s != nil && !s.Deleted {
+		select {
+		case s.WatchCh <- struct{}{}:
+		default:
+		}
+	}
+
 	a.cancelCheckMonitors(checkID)
 	a.State.RemoveCheck(checkID)
 
@@ -2596,6 +2628,21 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 	}
 	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
+}
+
+func (a *Agent) ServiceHTTPChecks(serviceID string) []structs.CheckType {
+	var chkTypes = make([]structs.CheckType, 0)
+	for _, c := range a.checkHTTPs {
+		if c.ServiceID == serviceID {
+			chkTypes = append(chkTypes, c.CheckType())
+		}
+	}
+	for _, c := range a.checkGRPCs {
+		if c.ServiceID == serviceID {
+			chkTypes = append(chkTypes, c.CheckType())
+		}
+	}
+	return chkTypes
 }
 
 // resolveProxyCheckAddress returns the best address to use for a TCP check of
@@ -3465,4 +3512,16 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
+
+	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{
+		Agent: a,
+	}, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+}
+
+func (a *Agent) LocalState() *local.State {
+	return a.State
 }
