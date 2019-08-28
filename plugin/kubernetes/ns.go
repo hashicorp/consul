@@ -14,7 +14,7 @@ func isDefaultNS(name, zone string) bool {
 }
 
 // nsAddrs returns the A or AAAA records for the CoreDNS service in the cluster. If the service cannot be found,
-// it returns a record for the the local address of the machine we're running on.
+// it returns a record for the local address of the machine we're running on.
 func (k *Kubernetes) nsAddrs(external bool, zone string) []dns.RR {
 	var (
 		svcNames []string
