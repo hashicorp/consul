@@ -1344,7 +1344,7 @@ func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash stri
 		// case it's likely that local state just got unloaded and may or may not be
 		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
 		// typical config reloads.
-		if syncPauseCh := s.agent.syncPausedCh(); syncPauseCh != nil {
+		if syncPauseCh := s.agent.SyncPausedCh(); syncPauseCh != nil {
 			select {
 			case <-syncPauseCh:
 			case <-timeout.C:
