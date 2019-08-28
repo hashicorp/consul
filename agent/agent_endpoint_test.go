@@ -3463,7 +3463,7 @@ func TestAgent_RegisterService_InvalidServiceName(t *testing.T) {
 		}
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 
-		_, err := a.srv.AgentRegisterService(nil, req)
+		_, err := a2.srv.AgentRegisterService(nil, req)
 		require.NoError(t, err)
 	}
 }
