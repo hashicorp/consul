@@ -3437,14 +3437,22 @@ func TestAgent_RegisterService_InvalidServiceName(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	args := &structs.ServiceDefinition{
-		Name: "docker|build",
+	invalidNames := []string{
+		"docker|build",
+		"docker.build",
+		"docker_build",
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 
-	_, err := a.srv.AgentRegisterService(nil, req)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "will not be discoverable via DNS due to invalid characters")
+	for _, in := range invalidNames {
+		args := &structs.ServiceDefinition{
+			Name: in,
+		}
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	
+		_, err := a.srv.AgentRegisterService(nil, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "will not be discoverable via DNS due to invalid characters")
+	}
 }
 
 func TestAgent_DeregisterService(t *testing.T) {
