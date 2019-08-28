@@ -3918,13 +3918,24 @@ func (a *Agent) registerCache() {
 		RefreshTimeout: 10 * time.Minute,
 	})
 
-	a.cache.RegisterType(cachetype.StreamingHealthServicesName, &cachetype.StreamingHealthServices{
-		Client: a.streamClient,
-	}, &cache.RegisterOptions{
-		Refresh:        true,
-		RefreshTimer:   0 * time.Second,
-		RefreshTimeout: 10 * time.Minute,
-	})
+	if a.config.EnableBackendStreaming {
+		a.cache.RegisterType(cachetype.StreamingHealthServicesName, &cachetype.StreamingHealthServices{
+			Client: a.streamClient,
+		}, &cache.RegisterOptions{
+			Refresh:        true,
+			RefreshTimer:   0 * time.Second,
+			RefreshTimeout: 10 * time.Minute,
+		})
+	} else {
+		a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
+			RPC: a,
+		}, &cache.RegisterOptions{
+			// Maintain a blocking query, retry dropped connections quickly
+			Refresh:        true,
+			RefreshTimer:   0 * time.Second,
+			RefreshTimeout: 10 * time.Minute,
+		})
+	}
 
 	a.cache.RegisterType(cachetype.PreparedQueryName, &cachetype.PreparedQuery{
 		RPC: a,
