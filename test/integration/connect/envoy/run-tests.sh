@@ -64,7 +64,7 @@ function command_error {
   # printf '%s\n' "${BASH_LINENO[@]}"
 }
 
-trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
+trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
 # Cleanup from any previous unclean runs.
 docker-compose down -v --remove-orphans
