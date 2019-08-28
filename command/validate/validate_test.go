@@ -143,3 +143,27 @@ func TestValidateCommand_Quiet(t *testing.T) {
 	require.Equalf(t, 0, code, "return code - expected: 0, bad: %d, %s", code, ui.ErrorWriter.String())
 	require.Equal(t, "", ui.OutputWriter.String())
 }
+
+func TestValidateCommand_VerifyServiceName(t *testing.T) {
+	t.Parallel()
+
+	serviceName := "docker|build"
+	errorMessage := `Config validation failed: service name "`+serviceName+
+	`" will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.`
+
+	td := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(td)
+
+	fp := filepath.Join(td, "config.json")
+	err := ioutil.WriteFile(fp, []byte(`{"bind_addr":"10.0.0.1", "services": [{"name":"`+serviceName+`"}], "data_dir":"`+td+`"}`), 0644)
+
+	require.Nilf(t, err, "err: %s", err)
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+	args := []string{"-verify-service-name", td}
+
+	code := cmd.Run(args)
+	require.Equal(t, 1, code, errorMessage, ui.ErrorWriter.String())
+	require.Equal(t, "", ui.OutputWriter.String())
+}

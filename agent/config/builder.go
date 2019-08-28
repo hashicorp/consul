@@ -27,6 +27,12 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// InvalidDNSRe matches with names which will not be discoverable via DNS.
+var InvalidDNSRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
+	
+// MaxDNSLabelLength is the max length of discoverable name.
+const MaxDNSLabelLength = 63
+
 // Builder constructs a valid runtime configuration from multiple
 // configuration sources.
 //
@@ -1030,11 +1036,15 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 
 	if rt.VerifyServiceName {
-		rule := `^[a-zA-Z0-9-.]+$`
-		r := regexp.MustCompile(rule)
 		for _, s := range rt.Services {
-			if !r.MatchString(s.Name) {
-				return fmt.Errorf("service name %v is not valid, use hostname that matches with %v for successful dns resolution", s.Name, rule)
+			if InvalidDNSRe.MatchString(s.Name) {
+				return fmt.Errorf("service name %q will not be discoverable "+
+					"via DNS due to invalid characters. Valid characters include "+
+					"all alpha-numerics and dashes.", s.Name)
+			} else if len(s.Name) > MaxDNSLabelLength {
+				return fmt.Errorf("service name %q will not be discoverable "+
+					"via DNS due to it being too long. Valid lengths are between "+
+					"1 and 63 bytes.", s.Name)
 			}
 		}
 	}

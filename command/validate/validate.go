@@ -54,14 +54,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var tv bool
-	if c.checkServiceName {
-		tv = true
-	}
 	b, err := config.NewBuilder(config.Flags{
 		ConfigFiles:  configFiles,
 		ConfigFormat: &c.configFormat,
-		Config:       config.Config{VerifyServiceName: &tv},
+		Config:       config.Config{VerifyServiceName: & c.checkServiceName},
 	})
 
 	if err != nil {

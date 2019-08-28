@@ -1454,6 +1454,7 @@ type RuntimeConfig struct {
 	// VerifyServiceName is used to enable verification of service name.
 	// This ensures that the service name, which used for dns resolution later
 	// meets the condition of RFC-952 and RFC-1123.
+	// When given, verify service name if it is discoverable via DNS.
 	VerifyServiceName bool
 
 	// Watches are used to monitor various endpoints and to invoke a

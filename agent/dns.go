@@ -37,11 +37,7 @@ const (
 	staleCounterThreshold = 5 * time.Second
 
 	defaultMaxUDPSize = 512
-
-	MaxDNSLabelLength = 63
 )
-
-var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 type dnsSOAConfig struct {
 	Refresh uint32 // 3600 by default
@@ -487,7 +483,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int
 	for _, o := range out.Nodes {
 		name, addr, dc := o.Node.Node, o.Node.Address, o.Node.Datacenter
 
-		if InvalidDnsRe.MatchString(name) {
+		if config.InvalidDNSRe.MatchString(name) {
 			d.logger.Printf("[WARN] dns: Skipping invalid node %q for NS records", name)
 			continue
 		}

@@ -3431,6 +3431,22 @@ func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterService_InvalidServiceName(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "verify_service_name = true")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.ServiceDefinition{
+		Name: "docker|build",
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+
+	_, err := a.srv.AgentRegisterService(nil, req)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "will not be discoverable via DNS due to invalid characters")
+}
+
 func TestAgent_DeregisterService(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")

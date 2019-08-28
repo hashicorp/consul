@@ -6519,7 +6519,7 @@ func TestDNSInvalidRegex(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			if got, want := InvalidDnsRe.MatchString(test.in), test.invalid; got != want {
+			if got, want := config.InvalidDNSRe.MatchString(test.in), test.invalid; got != want {
 				t.Fatalf("Expected %v to return %v", test.in, want)
 			}
 		})

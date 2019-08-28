@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/debug"
@@ -822,6 +823,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing service name")
 		return nil, nil
+	}
+
+	if s.agent.config.VerifyServiceName {
+		if config.InvalidDNSRe.MatchString(args.Name) {
+			return nil, fmt.Errorf("service name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", args.Name)
+		}
 	}
 
 	// Check the service address here and in the catalog RPC endpoint

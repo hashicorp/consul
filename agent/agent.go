@@ -334,11 +334,11 @@ func (a *Agent) Start() error {
 	c := a.config
 
 	// Warn if the node name is incompatible with DNS
-	if InvalidDnsRe.MatchString(a.config.NodeName) {
+	if config.InvalidDNSRe.MatchString(a.config.NodeName) {
 		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", a.config.NodeName)
-	} else if len(a.config.NodeName) > MaxDNSLabelLength {
+	} else if len(a.config.NodeName) > config.MaxDNSLabelLength {
 		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", a.config.NodeName)
@@ -2125,11 +2125,11 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if InvalidDnsRe.MatchString(service.Service) {
+	if config.InvalidDNSRe.MatchString(service.Service) {
 		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.", service.Service)
-	} else if len(service.Service) > MaxDNSLabelLength {
+	} else if len(service.Service) > config.MaxDNSLabelLength {
 		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", service.Service)
@@ -2137,11 +2137,11 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if InvalidDnsRe.MatchString(tag) {
+		if config.InvalidDNSRe.MatchString(tag) {
 			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.", tag)
-		} else if len(tag) > MaxDNSLabelLength {
+		} else if len(tag) > config.MaxDNSLabelLength {
 			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
 				"1 and 63 bytes.", tag)
