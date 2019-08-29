@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,7 +18,7 @@ const (
 	retryJitterWindow = 30 * time.Second
 )
 
-func (c *Client) RequestAutoEncryptCerts(servers []string, defaultPort int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
+func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token string, interruptCh chan struct{}) (*structs.SignedResponse, string, error) {
 	errFn := func(err error) (*structs.SignedResponse, string, error) {
 		return nil, "", err
 	}
@@ -47,8 +46,20 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, defaultPort int, toke
 		Agent:      string(c.config.NodeName),
 	}
 
+	conf, err := c.config.CAConfig.GetCommonConfig()
+	if err != nil {
+		return errFn(err)
+	}
+
+	if conf.PrivateKeyType == "" {
+		conf.PrivateKeyType = connect.DefaultPrivateKeyType
+	}
+	if conf.PrivateKeyBits == 0 {
+		conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
+	}
+
 	// Create a new private key
-	pk, pkPEM, err := connect.GeneratePrivateKey()
+	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(conf.PrivateKeyType, conf.PrivateKeyBits)
 	if err != nil {
 		return errFn(err)
 	}
@@ -82,7 +93,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, defaultPort int, toke
 		// Translate host to net.TCPAddr to make life easier for
 		// RPCInsecure.
 		for _, s := range servers {
-			ips, port, err := resolveAddr(s, defaultPort, c.logger)
+			ips, err := resolveAddr(s, c.logger)
 			if err != nil {
 				c.logger.Printf("[WARN] agent: AutoEncrypt resolveAddr failed: %v", err)
 				continue
@@ -114,29 +125,26 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, defaultPort int, toke
 	}
 }
 
-// resolveAddr is used to resolve the host into IPs, port, and error.
-// If no port is given, use the default
-func resolveAddr(rawHost string, defaultPort int, logger *log.Logger) ([]net.IP, int, error) {
-	host, splitPort, err := net.SplitHostPort(rawHost)
-	if err != nil && err.Error() != fmt.Sprintf("address %s: missing port in address", rawHost) {
-		return nil, defaultPort, err
-	}
+func missingPortError(host string, err error) bool {
+	return err != nil && err.Error() == fmt.Sprintf("address %s: missing port in address", host)
+}
 
-	// SplitHostPort returns empty host and splitPort on missingPort err,
-	// so those are set to defaults
-	var port int
+// resolveAddr is used to resolve the host into IPs and error.
+func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
+	host, _, err := net.SplitHostPort(rawHost)
 	if err != nil {
-		host = rawHost
-		port = defaultPort
-	} else {
-		port, err = strconv.Atoi(splitPort)
-		if err != nil {
-			port = defaultPort
+		// In case we encounter this error, we proceed with the
+		// rawHost. This is fine since -start-join and -retry-join
+		// take only hosts anyways and this is an expected case.
+		if missingPortError(rawHost, err) {
+			host = rawHost
+		} else {
+			return nil, err
 		}
 	}
 
 	if ip := net.ParseIP(host); ip != nil {
-		return []net.IP{ip}, port, nil
+		return []net.IP{ip}, nil
 	}
 
 	// First try TCP so we have the best chance for the largest list of
@@ -145,7 +153,7 @@ func resolveAddr(rawHost string, defaultPort int, logger *log.Logger) ([]net.IP,
 	if ips, err := tcpLookupIP(host, logger); err != nil {
 		logger.Printf("[DEBUG] agent: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
 	} else if len(ips) > 0 {
-		return ips, port, nil
+		return ips, nil
 	}
 
 	// If TCP didn't yield anything then use the normal Go resolver which
@@ -153,9 +161,9 @@ func resolveAddr(rawHost string, defaultPort int, logger *log.Logger) ([]net.IP,
 	// indicates it was truncated.
 	ips, err := net.LookupIP(host)
 	if err != nil {
-		return nil, port, err
+		return nil, err
 	}
-	return ips, port, nil
+	return ips, nil
 }
 
 // tcpLookupIP is a helper to initiate a TCP-based DNS lookup for the given host.

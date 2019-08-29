@@ -480,6 +480,7 @@ func TestAPI_LockMonitorRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	pair.Value = []byte{1}
 	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -496,6 +497,7 @@ func TestAPI_LockMonitorRetry(t *testing.T) {
 	mutex.Lock()
 	errors = 10
 	mutex.Unlock()
+	pair.Value = []byte{2}
 	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -6,7 +6,9 @@
 *.test
 .DS_Store
 .fseventsd
+.envrc
 .vagrant/
+.idea/
 /pkg
 Thumbs.db
 bin/

@@ -255,8 +255,8 @@ func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64
 		}
 		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
 			lindex = idx.Value
-			ws.Add(ch)
 		}
+		ws.Add(ch)
 	}
 	return lindex
 }

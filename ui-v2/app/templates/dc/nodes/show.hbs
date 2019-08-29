@@ -20,6 +20,7 @@
                              'Services'
     (if tomography.distances 'Round Trip Time' '')
                              'Lock Sessions'
+                             'Meta Data'
               )
             )
             selected=selectedTab
@@ -52,6 +53,7 @@
                             (hash id=(slugify 'Services') partial='dc/nodes/services')
    (if tomography.distances (hash id=(slugify 'Round Trip Time') partial='dc/nodes/rtt') '')
                             (hash id=(slugify 'Lock Sessions') partial='dc/nodes/sessions')
+                            (hash id=(slugify 'Meta Data') partial='dc/nodes/metadata')
                 )
             ) as |panel|
         }}

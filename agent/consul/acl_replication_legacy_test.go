@@ -375,7 +375,7 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 	// legacy replication isn't meddling.
 	waitForNewACLs(t, s1)
 	waitForNewACLs(t, s2)
-	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// Create a bunch of new tokens.
 	var id string

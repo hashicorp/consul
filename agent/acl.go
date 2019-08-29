@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
@@ -60,18 +59,6 @@ func (a *Agent) initializeACLs() error {
 		return err
 	}
 	a.aclMasterAuthorizer = master
-	return nil
-}
-
-// resolveProxyToken attempts to resolve an ACL ID to a local proxy token.
-// If a local proxy isn't found with that token, nil is returned.
-func (a *Agent) resolveProxyToken(id string) *local.ManagedProxy {
-	for _, p := range a.State.Proxies() {
-		if p.ProxyToken == id {
-			return p
-		}
-	}
-
 	return nil
 }
 

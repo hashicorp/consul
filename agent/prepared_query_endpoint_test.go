@@ -514,37 +514,41 @@ func TestPreparedQuery_Execute(t *testing.T) {
 						"wan": "127.0.0.2",
 					},
 				}
+				nodesResponse[0].Service = &structs.NodeService{
+					Service: "foo",
+					Address: "10.0.1.1",
+					Port:    8080,
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"wan": structs.ServiceAddress{
+							Address: "198.18.0.1",
+							Port:    80,
+						},
+					},
+				}
 				reply.Nodes = nodesResponse
 				reply.Datacenter = "dc2"
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		require.NoError(t, a.registerEndpoint("PreparedQuery", &m))
 
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.PreparedQuerySpecific(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp.Code != 200 {
-			t.Fatalf("bad code: %d", resp.Code)
-		}
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.Code)
 		r, ok := obj.(structs.PreparedQueryExecuteResponse)
-		if !ok {
-			t.Fatalf("unexpected: %T", obj)
-		}
-		if r.Nodes == nil || len(r.Nodes) != 1 {
-			t.Fatalf("bad: %v", r)
-		}
+		require.True(t, ok, "unexpected: %T", obj)
+		require.NotNil(t, r.Nodes)
+		require.Len(t, r.Nodes, 1)
 
 		node := r.Nodes[0]
-		if node.Node.Address != "127.0.0.2" {
-			t.Fatalf("bad: %v", node.Node)
-		}
+		require.NotNil(t, node.Node)
+		require.Equal(t, "127.0.0.2", node.Node.Address)
+		require.NotNil(t, node.Service)
+		require.Equal(t, "198.18.0.1", node.Service.Address)
+		require.Equal(t, 80, node.Service.Port)
 	})
 
 	// Ensure WAN translation doesn't occur for the local DC.

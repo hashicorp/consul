@@ -38,7 +38,7 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	// For now only sidecar proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
-	if !service.IsSidecarProxy() {
+	if !service.IsSidecarProxy() && !service.IsMeshGateway() {
 		return s.agent.addServiceInternal(service, chkTypes, persist, token, source)
 	}
 
@@ -344,7 +344,7 @@ func (s *serviceConfigWatch) updateRegistration(registration *serviceRegistratio
 // mergeServiceConfig returns the final effective config for the watched service,
 // including the latest known global defaults from the servers.
 func (s *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) {
-	if s.defaults == nil || !s.registration.service.IsSidecarProxy() {
+	if s.defaults == nil || (!s.registration.service.IsSidecarProxy() && !s.registration.service.IsMeshGateway()) {
 		return s.registration.service, nil
 	}
 
@@ -362,6 +362,11 @@ func (s *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) 
 	if err := mergo.Merge(&ns.Proxy.Config, s.defaults.ProxyConfig); err != nil {
 		return nil, err
 	}
+
+	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+		ns.Proxy.MeshGateway.Mode = s.defaults.MeshGateway.Mode
+	}
+
 	// Merge upstream defaults if there were any returned
 	for i := range ns.Proxy.Upstreams {
 		// Get a pointer not a value copy of the upstream struct
@@ -369,6 +374,12 @@ func (s *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) 
 		if us.DestinationType != "" && us.DestinationType != structs.UpstreamDestTypeService {
 			continue
 		}
+
+		// default the upstreams gateway mode if it didn't specify one
+		if us.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			us.MeshGateway.Mode = ns.Proxy.MeshGateway.Mode
+		}
+
 		usCfg, ok := s.defaults.UpstreamConfigs[us.DestinationName]
 		if !ok {
 			// No config defaults to merge
