@@ -18,11 +18,11 @@ func TestProvider_Configure(t *testing.T) {
 		require := require.New(t)
 
 		// Basic configure
-		m.On("Configure", "foo", false, map[string]interface{}{
+		m.On("Configure", "foo", "foo", "consul", false, map[string]interface{}{
 			"string": "bar",
 			"number": float64(42), // because json
 		}).Once().Return(nil)
-		require.NoError(p.Configure("foo", false, map[string]interface{}{
+		require.NoError(p.Configure("foo", "foo", "consul", false, map[string]interface{}{
 			"string": "bar",
 			"number": float64(42),
 		}))
@@ -30,8 +30,8 @@ func TestProvider_Configure(t *testing.T) {
 
 		// Try with an error
 		m.Mock = mock.Mock{}
-		m.On("Configure", "foo", false, map[string]interface{}{}).Once().Return(errors.New("hello world"))
-		err := p.Configure("foo", false, map[string]interface{}{})
+		m.On("Configure", "foo", "foo", "consul", false, map[string]interface{}{}).Once().Return(errors.New("hello world"))
+		err := p.Configure("foo", "foo", "consul", false, map[string]interface{}{})
 		require.Error(err)
 		require.Contains(err.Error(), "hello")
 		m.AssertExpectations(t)
@@ -42,7 +42,7 @@ func TestProvider_GenerateRoot(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
-		// Try cleanup with no error
+		// Try with no error
 		m.On("GenerateRoot").Once().Return(nil)
 		require.NoError(p.GenerateRoot())
 		m.AssertExpectations(t)
@@ -61,7 +61,7 @@ func TestProvider_ActiveRoot(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
-		// Try cleanup with no error
+		// Try with no error
 		m.On("ActiveRoot").Once().Return("foo", nil)
 		actual, err := p.ActiveRoot()
 		require.NoError(err)
@@ -82,7 +82,7 @@ func TestProvider_GenerateIntermediateCSR(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
-		// Try cleanup with no error
+		// Try with no error
 		m.On("GenerateIntermediateCSR").Once().Return("foo", nil)
 		actual, err := p.GenerateIntermediateCSR()
 		require.NoError(err)
@@ -103,7 +103,7 @@ func TestProvider_SetIntermediate(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
-		// Try cleanup with no error
+		// Try with no error
 		m.On("SetIntermediate", "foo", "bar").Once().Return(nil)
 		err := p.SetIntermediate("foo", "bar")
 		require.NoError(err)
@@ -123,7 +123,7 @@ func TestProvider_ActiveIntermediate(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
-		// Try cleanup with no error
+		// Try with no error
 		m.On("ActiveIntermediate").Once().Return("foo", nil)
 		actual, err := p.ActiveIntermediate()
 		require.NoError(err)
@@ -144,7 +144,7 @@ func TestProvider_GenerateIntermediate(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
-		// Try cleanup with no error
+		// Try with no error
 		m.On("GenerateIntermediate").Once().Return("foo", nil)
 		actual, err := p.GenerateIntermediate()
 		require.NoError(err)
@@ -166,7 +166,7 @@ func TestProvider_Sign(t *testing.T) {
 		require := require.New(t)
 
 		// Create a CSR
-		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDService(t, "web"))
+		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDService(t, "web"), "node1.web.service.dc1.consul.")
 		block, _ := pem.Decode([]byte(csrPEM))
 		csr, err := x509.ParseCertificateRequest(block.Bytes)
 		require.NoError(err)
@@ -197,7 +197,7 @@ func TestProvider_SignIntermediate(t *testing.T) {
 		require := require.New(t)
 
 		// Create a CSR
-		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDService(t, "web"))
+		csrPEM, _ := connect.TestCSR(t, connect.TestSpiffeIDService(t, "web"), "node1.web.service.dc1.consul.")
 		block, _ := pem.Decode([]byte(csrPEM))
 		csr, err := x509.ParseCertificateRequest(block.Bytes)
 		require.NoError(err)

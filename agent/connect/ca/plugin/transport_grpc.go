@@ -20,7 +20,7 @@ func (p *providerPluginGRPCServer) Configure(_ context.Context, req *ConfigureRe
 		return nil, err
 	}
 
-	return &Empty{}, p.impl.Configure(req.ClusterId, req.IsRoot, rawConfig)
+	return &Empty{}, p.impl.Configure(req.ClusterId, req.DatacenterName, req.DnsDomain, req.IsRoot, rawConfig)
 }
 
 func (p *providerPluginGRPCServer) GenerateRoot(context.Context, *Empty) (*Empty, error) {
@@ -95,6 +95,8 @@ type providerPluginGRPCClient struct {
 
 func (p *providerPluginGRPCClient) Configure(
 	clusterId string,
+	datacenterName string,
+	dnsDomain string,
 	isRoot bool,
 	rawConfig map[string]interface{}) error {
 	config, err := json.Marshal(rawConfig)
@@ -103,9 +105,11 @@ func (p *providerPluginGRPCClient) Configure(
 	}
 
 	_, err = p.client.Configure(p.doneCtx, &ConfigureRequest{
-		ClusterId: clusterId,
-		IsRoot:    isRoot,
-		Config:    config,
+		ClusterId:      clusterId,
+		DatacenterName: datacenterName,
+		DnsDomain:      dnsDomain,
+		IsRoot:         isRoot,
+		Config:         config,
 	})
 	return p.err(err)
 }

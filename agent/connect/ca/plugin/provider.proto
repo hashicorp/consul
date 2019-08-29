@@ -30,8 +30,10 @@ service CA {
 
 message ConfigureRequest {
     string cluster_id = 1;
-    bool is_root = 2;
-    bytes config = 3; // JSON-encoded structure
+    string datacenter_name = 2;
+    string dns_domain = 3;
+    bool is_root = 4;
+    bytes config = 5; // JSON-encoded structure
 }
 
 message SetIntermediateRequest {

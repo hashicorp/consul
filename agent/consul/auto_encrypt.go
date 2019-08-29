@@ -65,7 +65,8 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	commonName := fmt.Sprintf("%s.agent.%s.%s", id.Agent, id.Datacenter, c.config.Domain)
+	csr, err := connect.CreateCSR(id, commonName, pk)
 	if err != nil {
 		return errFn(err)
 	}
