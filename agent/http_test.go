@@ -748,7 +748,7 @@ func TestPProfHandlers_EnableDebug(t *testing.T) {
 	defer a.Shutdown()
 
 	resp := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
+	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
 
 	a.srv.Handler.ServeHTTP(resp, req)
 
