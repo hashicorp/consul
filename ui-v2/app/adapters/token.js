@@ -83,8 +83,8 @@ export default Adapter.extend({
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForSelf(request, serialized, unserialized);
       },
-      function(serializer, response, serialized, unserialized) {
-        return serializer.respondForQueryRecord(response, serialized, unserialized);
+      function(serializer, respond, serialized, unserialized) {
+        return serializer.respondForQueryRecord(respond, serialized, unserialized);
       },
       unserialized,
       type.modelName
@@ -95,11 +95,11 @@ export default Adapter.extend({
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForCloneRecord(request, serialized, unserialized);
       },
-      function(serializer, response, serialized, unserialized) {
+      function(serializer, respond, serialized, unserialized) {
         // here we just have to pass through the dc (like when querying)
         // eventually the id is created with this dc value and the id talen from the
         // json response of `acls/token/*/clone`
-        return serializer.respondForQueryRecord(response, {
+        return serializer.respondForQueryRecord(respond, {
           [API_DATACENTER_KEY]: unserialized[SLUG_KEY],
         });
       },

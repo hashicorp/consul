@@ -25,4 +25,22 @@ export default Serializer.extend({
       query
     );
   },
+  respondForQueryLeader: function(respond, query) {
+    // don't call super here we don't care about
+    // ids/fingerprinting
+    return respond(function(headers, body) {
+      // This response/body is just an ip:port like `"10.0.0.1:8500"`
+      // split it and make it look like a `C`onsul.`R`esponse
+      // popping off the end for ports should cover us for IPv6 addresses
+      // as we should always get a `address:port` or `[a:dd:re:ss]:port` combo
+      const temp = body.split(':');
+      const port = temp.pop();
+      const address = temp.join(':');
+      // The string input `10.0.0.1:8500` would be transformed to...
+      return {
+        Address: address,
+        Port: port,
+      };
+    });
+  },
 });

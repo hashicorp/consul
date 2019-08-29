@@ -56,4 +56,28 @@ module('Integration | Serializer | node', function(hooks) {
       assert.deepEqual(actual, expected);
     });
   });
+  test('respondForQueryLeader returns the correct data', function(assert) {
+    const serializer = this.owner.lookup('serializer:node');
+    const dc = 'dc-1';
+    const request = {
+      url: `/v1/status/leader?dc=${dc}`,
+    };
+    return get(request.url).then(function(payload) {
+      const expected = {
+        Address: '211.245.86.75',
+        Port: '8500',
+      };
+      const actual = serializer.respondForQueryLeader(
+        function(cb) {
+          const headers = {};
+          const body = payload;
+          return cb(headers, body);
+        },
+        {
+          dc: dc,
+        }
+      );
+      assert.deepEqual(actual, expected);
+    });
+  });
 });

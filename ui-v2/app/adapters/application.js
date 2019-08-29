@@ -32,9 +32,9 @@ export default Adapter.extend({
       .catch(function(e) {
         return adapter.error(e);
       })
-      .then(function(response) {
+      .then(function(respond) {
         // TODO: When HTTPAdapter:responder changes, this will also need to change
-        return resp(serializer, response, serialized, unserialized);
+        return resp(serializer, respond, serialized, unserialized);
       });
     // TODO: Potentially add specific serializer errors here
     // .catch(function(e) {
