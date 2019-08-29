@@ -1,6 +1,5 @@
 @import './icons/index';
 @import '../base/components/table/index';
-@import './type-icon/index';
 table {
   @extend %table, %table-flex;
 }
@@ -22,11 +21,6 @@ html.template-service.template-list main th:first-child {
 
 td.folder {
   @extend %with-folder;
-}
-td .kind-proxy {
-  @extend %type-icon, %with-proxy;
-  text-indent: -9000px !important;
-  width: 24px;
 }
 table:not(.sessions) tbody tr {
   cursor: pointer;

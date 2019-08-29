@@ -79,104 +79,6 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 	}
 }
 
-func TestAgentConfigWatcherManagedProxy(t *testing.T) {
-	t.Parallel()
-
-	a := agent.NewTestAgent(t, "agent_smith", `
-	connect {
-		enabled = true
-		proxy {
-			allow_managed_api_registration = true
-		}
-	}
-	`)
-	defer a.Shutdown()
-
-	client := a.Client()
-	agent := client.Agent()
-
-	// Register a local agent service with a managed proxy
-	reg := &api.AgentServiceRegistration{
-		Name: "web",
-		Port: 8080,
-		Connect: &api.AgentServiceConnect{
-			Proxy: &api.AgentServiceConnectProxy{
-				Config: map[string]interface{}{
-					"bind_address":          "10.10.10.10",
-					"bind_port":             1010,
-					"local_service_address": "127.0.0.1:5000",
-					"handshake_timeout_ms":  999,
-				},
-				Upstreams: []api.Upstream{
-					{
-						DestinationName: "db",
-						LocalBindPort:   9191,
-					},
-				},
-			},
-		},
-	}
-	err := agent.ServiceRegister(reg)
-	require.NoError(t, err)
-
-	w, err := NewAgentConfigWatcher(client, "web-proxy",
-		log.New(os.Stderr, "", log.LstdFlags))
-	require.NoError(t, err)
-
-	cfg := testGetConfigValTimeout(t, w, 500*time.Millisecond)
-
-	expectCfg := &Config{
-		ProxiedServiceName:      "web",
-		ProxiedServiceNamespace: "default",
-		PublicListener: PublicListenerConfig{
-			BindAddress:           "10.10.10.10",
-			BindPort:              1010,
-			LocalServiceAddress:   "127.0.0.1:5000",
-			HandshakeTimeoutMs:    999,
-			LocalConnectTimeoutMs: 1000, // from applyDefaults
-		},
-		Upstreams: []UpstreamConfig{
-			{
-				DestinationName:      "db",
-				DestinationNamespace: "default",
-				DestinationType:      "service",
-				LocalBindPort:        9191,
-				LocalBindAddress:     "127.0.0.1",
-			},
-		},
-	}
-
-	assert.Equal(t, expectCfg, cfg)
-
-	// Now keep watching and update the config.
-	go func() {
-		// Wait for watcher to be watching
-		time.Sleep(20 * time.Millisecond)
-		reg.Connect.Proxy.Upstreams = append(reg.Connect.Proxy.Upstreams,
-			api.Upstream{
-				DestinationName:  "cache",
-				LocalBindPort:    9292,
-				LocalBindAddress: "127.10.10.10",
-			})
-		reg.Connect.Proxy.Config["local_connect_timeout_ms"] = 444
-		err := agent.ServiceRegister(reg)
-		require.NoError(t, err)
-	}()
-
-	cfg = testGetConfigValTimeout(t, w, 2*time.Second)
-
-	expectCfg.Upstreams = append(expectCfg.Upstreams, UpstreamConfig{
-		DestinationName:      "cache",
-		DestinationNamespace: "default",
-		DestinationType:      "service",
-		LocalBindPort:        9292,
-		LocalBindAddress:     "127.10.10.10",
-	})
-	expectCfg.PublicListener.LocalConnectTimeoutMs = 444
-
-	assert.Equal(t, expectCfg, cfg)
-}
-
 func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	t.Parallel()
 
@@ -186,7 +88,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	client := a.Client()
 	agent := client.Agent()
 
-	// Register a local agent service with a managed proxy
+	// Register a local agent service with a sidecar proxy
 	reg := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8080,

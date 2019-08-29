@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/stretchr/testify/require"
@@ -149,7 +150,7 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 
 		logOutput := a.LogOutput
 		if logOutput == nil {
-			logOutput = os.Stderr
+			logOutput = testutil.TestWriter(t)
 		}
 		agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 
@@ -165,7 +166,7 @@ func (a *TestAgent) Start(t *testing.T) *TestAgent {
 			a.Agent = agent
 			break
 		} else if i == 0 {
-			require.Fail("%s %s Error starting agent: %s", id, a.Name, err)
+			require.Failf("%s %s Error starting agent: %s", id, a.Name, err)
 		} else if a.ExpectConfigError {
 			// Panic the error since this can be caught if needed. Pretty gross way to
 			// detect errors but enough for now and this is a tiny edge case that I'd
@@ -377,9 +378,6 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 		fmt.Println("WARNING:", w)
 	}
 
-	// Disable connect proxy execution since it causes all kinds of problems with
-	// self-executing tests etc.
-	cfg.ConnectTestDisableManagedProxies = true
 	// Effectively disables the delay after root rotation before requesting CSRs
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.

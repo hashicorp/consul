@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/connect"
 	"log"
 	"net"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	agConnect "github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 )

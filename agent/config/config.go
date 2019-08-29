@@ -70,7 +70,7 @@ func Parse(data string, format string) (c Config, err error) {
 	// []map[string]interface{} or are arrays of structs which
 	// encoding/json will decode to []map[string]interface{}. Therefore,
 	// we need to be able to specify exceptions for this mapping. The
-	// patchSliceOfMaps() implements that mapping. All fields of type
+	// PatchSliceOfMaps() implements that mapping. All fields of type
 	// []map[string]interface{} are mapped to map[string]interface{} if
 	// it contains at most one value. If there is more than one value it
 	// panics. To define exceptions one can specify the nested field
@@ -78,7 +78,7 @@ func Parse(data string, format string) (c Config, err error) {
 	//
 	// todo(fs): There might be an easier way to achieve the same thing
 	// todo(fs): but this approach works for now.
-	m := patchSliceOfMaps(raw, []string{
+	m := lib.PatchSliceOfMaps(raw, []string{
 		"checks",
 		"segments",
 		"service.checks",
@@ -92,14 +92,13 @@ func Parse(data string, format string) (c Config, err error) {
 		"service.proxy.upstreams",
 		"services.proxy.upstreams",
 
-		// Need all the service(s) exceptions also for nested sidecar service except
-		// managed proxy which is explicitly not supported there.
+		// Need all the service(s) exceptions also for nested sidecar service.
 		"service.connect.sidecar_service.checks",
 		"services.connect.sidecar_service.checks",
 		"service.connect.sidecar_service.proxy.upstreams",
 		"services.connect.sidecar_service.proxy.upstreams",
-
-		"config_entries.bootstrap",
+	}, []string{
+		"config_entries.bootstrap", // completely ignore this tree (fixed elsewhere)
 	})
 
 	// There is a difference of representation of some fields depending on
@@ -121,6 +120,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"scriptargs":                     "args",
 		"serviceid":                      "service_id",
 		"tlsskipverify":                  "tls_skip_verify",
+		"config_entries.bootstrap":       "",
 	})
 
 	var md mapstructure.Metadata
@@ -134,6 +134,7 @@ func Parse(data string, format string) (c Config, err error) {
 	if err := d.Decode(m); err != nil {
 		return Config{}, err
 	}
+
 	for _, k := range md.Unused {
 		err = multierror.Append(err, fmt.Errorf("invalid config key %s", k))
 	}
@@ -366,23 +367,27 @@ type ServiceWeights struct {
 	Warning *int `json:"warning,omitempty" hcl:"warning" mapstructure:"warning"`
 }
 
+type ServiceAddress struct {
+	Address *string `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	Port    *int    `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+}
+
 type ServiceDefinition struct {
-	Kind              *string           `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
-	ID                *string           `json:"id,omitempty" hcl:"id" mapstructure:"id"`
-	Name              *string           `json:"name,omitempty" hcl:"name" mapstructure:"name"`
-	Tags              []string          `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
-	Address           *string           `json:"address,omitempty" hcl:"address" mapstructure:"address"`
-	Meta              map[string]string `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
-	Port              *int              `json:"port,omitempty" hcl:"port" mapstructure:"port"`
-	Check             *CheckDefinition  `json:"check,omitempty" hcl:"check" mapstructure:"check"`
-	Checks            []CheckDefinition `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
-	Token             *string           `json:"token,omitempty" hcl:"token" mapstructure:"token"`
-	Weights           *ServiceWeights   `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
-	EnableTagOverride *bool             `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
-	// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-	ProxyDestination *string         `json:"proxy_destination,omitempty" hcl:"proxy_destination" mapstructure:"proxy_destination"`
-	Proxy            *ServiceProxy   `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-	Connect          *ServiceConnect `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
+	Kind              *string                   `json:"kind,omitempty" hcl:"kind" mapstructure:"kind"`
+	ID                *string                   `json:"id,omitempty" hcl:"id" mapstructure:"id"`
+	Name              *string                   `json:"name,omitempty" hcl:"name" mapstructure:"name"`
+	Tags              []string                  `json:"tags,omitempty" hcl:"tags" mapstructure:"tags"`
+	Address           *string                   `json:"address,omitempty" hcl:"address" mapstructure:"address"`
+	TaggedAddresses   map[string]ServiceAddress `json:"tagged_addresses,omitempty" hcl:"tagged_addresses" mapstructure:"tagged_addresses"`
+	Meta              map[string]string         `json:"meta,omitempty" hcl:"meta" mapstructure:"meta"`
+	Port              *int                      `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+	Check             *CheckDefinition          `json:"check,omitempty" hcl:"check" mapstructure:"check"`
+	Checks            []CheckDefinition         `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
+	Token             *string                   `json:"token,omitempty" hcl:"token" mapstructure:"token"`
+	Weights           *ServiceWeights           `json:"weights,omitempty" hcl:"weights" mapstructure:"weights"`
+	EnableTagOverride *bool                     `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
+	Proxy             *ServiceProxy             `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
+	Connect           *ServiceConnect           `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
 }
 
 type CheckDefinition struct {
@@ -416,9 +421,6 @@ type ServiceConnect struct {
 	// Native is true when this service can natively understand Connect.
 	Native *bool `json:"native,omitempty" hcl:"native" mapstructure:"native"`
 
-	// Proxy configures a connect proxy instance for the service
-	Proxy *ServiceConnectProxy `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-
 	// SidecarService is a nested Service Definition to register at the same time.
 	// It's purely a convenience mechanism to allow specifying a sidecar service
 	// along with the application service definition. It's nested nature allows
@@ -427,13 +429,6 @@ type ServiceConnect struct {
 	// result is identical to just making a second service registration via any
 	// other means.
 	SidecarService *ServiceDefinition `json:"sidecar_service,omitempty" hcl:"sidecar_service" mapstructure:"sidecar_service"`
-}
-
-type ServiceConnectProxy struct {
-	Command   []string               `json:"command,omitempty" hcl:"command" mapstructure:"command"`
-	ExecMode  *string                `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	Config    map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
-	Upstreams []Upstream             `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
 }
 
 // ServiceProxy is the additional config needed for a Kind = connect-proxy
@@ -470,6 +465,9 @@ type ServiceProxy struct {
 	// Upstreams describes any upstream dependencies the proxy instance should
 	// setup.
 	Upstreams []Upstream `json:"upstreams,omitempty" hcl:"upstreams" mapstructure:"upstreams"`
+
+	// Mesh Gateway Configuration
+	MeshGateway *MeshGatewayConfig `json:"mesh_gateway,omitempty" hcl:"mesh_gateway" mapstructure:"mesh_gateway"`
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -505,6 +503,14 @@ type Upstream struct {
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
 	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+
+	// Mesh Gateway Configuration
+	MeshGateway *MeshGatewayConfig `json:"mesh_gateway,omitempty" hcl:"mesh_gateway" mapstructure:"mesh_gateway"`
+}
+
+type MeshGatewayConfig struct {
+	// Mesh Gateway Mode
+	Mode *string `json:"mode,omitempty" hcl:"mode" mapstructure:"mode"`
 }
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.
@@ -521,39 +527,9 @@ type AutoEncrypt struct {
 type Connect struct {
 	// Enabled opts the agent into connect. It should be set on all clients and
 	// servers in a cluster for correct connect operation.
-	Enabled       *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
-	Proxy         ConnectProxy           `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
-	ProxyDefaults ConnectProxyDefaults   `json:"proxy_defaults,omitempty" hcl:"proxy_defaults" mapstructure:"proxy_defaults"`
-	CAProvider    *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
-	CAConfig      map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
-}
-
-// ConnectProxy is the agent-global connect proxy configuration.
-type ConnectProxy struct {
-	// Consul will not execute managed proxies if its EUID is 0 (root).
-	// If this is true, then Consul will execute proxies if Consul is
-	// running as root. This is not recommended.
-	AllowManagedRoot *bool `json:"allow_managed_root" hcl:"allow_managed_root" mapstructure:"allow_managed_root"`
-
-	// AllowManagedAPIRegistration enables managed proxy registration
-	// via the agent HTTP API. If this is false, only file configurations
-	// can be used.
-	AllowManagedAPIRegistration *bool `json:"allow_managed_api_registration" hcl:"allow_managed_api_registration" mapstructure:"allow_managed_api_registration"`
-}
-
-// ConnectProxyDefaults is the agent-global defaults for managed Connect proxies.
-type ConnectProxyDefaults struct {
-	// ExecMode is used where a registration doesn't include an exec_mode.
-	// Defaults to daemon.
-	ExecMode *string `json:"exec_mode,omitempty" hcl:"exec_mode" mapstructure:"exec_mode"`
-	// DaemonCommand is used to start proxy in exec_mode = daemon if not specified
-	// at registration time.
-	DaemonCommand []string `json:"daemon_command,omitempty" hcl:"daemon_command" mapstructure:"daemon_command"`
-	// ScriptCommand is used to start proxy in exec_mode = script if not specified
-	// at registration time.
-	ScriptCommand []string `json:"script_command,omitempty" hcl:"script_command" mapstructure:"script_command"`
-	// Config is merged into an Config specified at registration time.
-	Config map[string]interface{} `json:"config,omitempty" hcl:"config" mapstructure:"config"`
+	Enabled    *bool                  `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
+	CAProvider *string                `json:"ca_provider,omitempty" hcl:"ca_provider" mapstructure:"ca_provider"`
+	CAConfig   map[string]interface{} `json:"ca_config,omitempty" hcl:"ca_config" mapstructure:"ca_config"`
 }
 
 // SOA is the configuration of SOA for DNS

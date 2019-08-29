@@ -135,7 +135,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	// NewTestAgent setup a CA already by default
 
-	// Register a local agent service with a managed proxy
+	// Register a local agent service
 	reg := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8080,

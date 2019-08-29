@@ -6,7 +6,14 @@ import (
 	"net"
 
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+)
+
+var (
+	// minMultiDCConnectVersion is the minimum version in order to support multi-DC Connect
+	// features.
+	minMultiDCConnectVersion = version.Must(version.NewVersion("1.6.0"))
 )
 
 type EnterpriseServer struct{}
@@ -29,8 +36,4 @@ func (s *Server) handleEnterpriseRPCConn(rtype pool.RPCType, conn net.Conn, isTL
 
 func (s *Server) enterpriseStats() map[string]map[string]string {
 	return nil
-}
-
-func (s *Server) intentionReplicationEnabled() bool {
-	return false
 }

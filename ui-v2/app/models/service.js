@@ -17,6 +17,7 @@ export default Model.extend({
   ExternalSources: attr(),
   Meta: attr(),
   Address: attr('string'),
+  TaggedAddresses: attr(),
   Port: attr('number'),
   EnableTagOverride: attr('boolean'),
   CreateIndex: attr('number'),

@@ -63,8 +63,7 @@ td strong,
 %breadcrumbs li > *,
 %action-group-action,
 %tab-nav,
-%tooltip-bubble,
-%type-icon {
+%tooltip-bubble {
   font-weight: $typo-weight-medium;
 }
 
@@ -110,7 +109,7 @@ caption,
 %tooltip-bubble,
 %stats-card header a span,
 %footer,
-%type-icon {
+%app-view h1 span.kind-proxy {
   font-size: $typo-size-700;
 }
 %toggle label span {

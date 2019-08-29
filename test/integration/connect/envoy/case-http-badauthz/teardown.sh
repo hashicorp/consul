@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eEuo pipefail
 
 # Remove deny intention
-docker_consul intention delete s1 s2
+docker_consul primary intention delete s1 s2

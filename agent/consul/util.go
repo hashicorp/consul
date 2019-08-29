@@ -276,9 +276,33 @@ func runtimeStats() map[string]string {
 // ServersMeetMinimumVersion returns whether the given alive servers are at least on the
 // given Consul version
 func ServersMeetMinimumVersion(members []serf.Member, minVersion *version.Version) bool {
+	return ServersMeetRequirements(members, func(srv *metadata.Server) bool {
+		return srv.Status != serf.StatusAlive || !srv.Build.LessThan(minVersion)
+	})
+}
+
+// ServersMeetMinimumVersion returns whether the given alive servers from a particular
+// datacenter are at least on the given Consul version. This requires at least 1 alive server in the DC
+func ServersInDCMeetMinimumVersion(members []serf.Member, datacenter string, minVersion *version.Version) (bool, bool) {
+	found := false
+	ok := ServersMeetRequirements(members, func(srv *metadata.Server) bool {
+		if srv.Status != serf.StatusAlive || srv.Datacenter != datacenter {
+			return true
+		}
+
+		found = true
+		return !srv.Build.LessThan(minVersion)
+	})
+
+	return ok, found
+}
+
+// ServersMeetRequirements returns whether the given server members meet the requirements as defined by the
+// callback function
+func ServersMeetRequirements(members []serf.Member, meetsRequirements func(*metadata.Server) bool) bool {
 	for _, member := range members {
-		if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
-			if parts.Build.LessThan(minVersion) {
+		if valid, parts := metadata.IsConsulServer(member); valid {
+			if !meetsRequirements(parts) {
 				return false
 			}
 		}
@@ -295,6 +319,14 @@ func ServersGetACLMode(members []serf.Member, leader string, datacenter string) 
 		if valid, parts := metadata.IsConsulServer(member); valid {
 
 			if datacenter != "" && parts.Datacenter != datacenter {
+				continue
+			}
+
+			if parts.Status != serf.StatusAlive && parts.Status != serf.StatusFailed {
+				// ignore any server that isn't alive or failed. We are considering failed
+				// because in this state there is a reasonable expectation that they could
+				// become stable again. Also autopilot should remove dead servers if they
+				// are truly gone.
 				continue
 			}
 

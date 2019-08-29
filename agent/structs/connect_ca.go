@@ -102,6 +102,10 @@ type CARoot struct {
 	// active root.
 	RotatedOutAt time.Time `json:"-"`
 
+	// Type of private key used to create the CA cert.
+	PrivateKeyType string
+	PrivateKeyBits int
+
 	RaftIndex
 }
 
@@ -277,6 +281,9 @@ type CommonCAProviderConfig struct {
 	// immediately in the RPC goroutine. This is 0 by default and CSRMaxPerSecond
 	// is used. This is ignored if CSRMaxPerSecond is non-zero.
 	CSRMaxConcurrent int
+
+	PrivateKeyType string
+	PrivateKeyBits int
 }
 
 func (c CommonCAProviderConfig) Validate() error {
@@ -290,6 +297,19 @@ func (c CommonCAProviderConfig) Validate() error {
 
 	if c.LeafCertTTL > 365*24*time.Hour {
 		return fmt.Errorf("leaf cert TTL must be less than 1 year")
+	}
+
+	switch c.PrivateKeyType {
+	case "ec":
+		if c.PrivateKeyBits != 224 && c.PrivateKeyBits != 256 && c.PrivateKeyBits != 384 && c.PrivateKeyBits != 521 {
+			return fmt.Errorf("ECDSA key length must be one of (224, 256, 384, 521) bits")
+		}
+	case "rsa":
+		if c.PrivateKeyBits != 2048 && c.PrivateKeyBits != 4096 {
+			return fmt.Errorf("RSA key length must be 2048 or 4096 bits")
+		}
+	default:
+		return fmt.Errorf("private key type must be either 'ecdsa' or 'rsa'")
 	}
 
 	return nil

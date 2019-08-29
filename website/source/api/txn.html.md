@@ -95,7 +95,7 @@ The table below shows this endpoint's support for
 
   - `Verb` `(string: <required>)` - Specifies the type of operation to perform.
 
-  - `Service` `(Service: <required>)` - Specifies the check to use
+  - `Check` `(Service: <required>)` - Specifies the check to use
   for the operation. See the [catalog endpoint](/api/catalog.html#parameters) for the fields in this object.
 
   Please see the table below for available verbs.

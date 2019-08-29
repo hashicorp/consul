@@ -326,7 +326,7 @@ func TestACLReplication_Tokens(t *testing.T) {
 	// legacy replication isn't meddling.
 	waitForNewACLs(t, s1)
 	waitForNewACLs(t, s2)
-	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// Create a bunch of new tokens and policies
 	var tokens structs.ACLTokens
@@ -508,7 +508,7 @@ func TestACLReplication_Policies(t *testing.T) {
 	// legacy replication isn't meddling.
 	waitForNewACLs(t, s1)
 	waitForNewACLs(t, s2)
-	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies)
+	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Create a bunch of new policies
 	var policies structs.ACLPolicies
@@ -775,7 +775,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 	// legacy replication isn't meddling.
 	waitForNewACLs(t, s1)
 	waitForNewACLs(t, s2)
-	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	const (
 		numItems             = 50

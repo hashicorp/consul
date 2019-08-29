@@ -51,6 +51,38 @@ export default Adapter.extend({
     // TODO: private..
     return this._makeRequest(request);
   },
+  urlForRequest: function({ type, snapshot, requestType }) {
+    switch (requestType) {
+      case 'queryLeader':
+        return this.urlForQueryLeader(snapshot, type.modelName);
+    }
+    return this._super(...arguments);
+  },
+  urlForQueryLeader: function(query, modelName) {
+    // https://www.consul.io/api/status.html#get-raft-leader
+    return this.appendURL('status/leader', [], this.cleanQuery(query));
+  },
+  isQueryLeader: function(url, method) {
+    return url.pathname === this.parseURL(this.urlForQueryLeader({})).pathname;
+  },
+  queryLeader: function(store, modelClass, id, snapshot) {
+    const params = {
+      store: store,
+      type: modelClass,
+      id: id,
+      snapshot: snapshot,
+      requestType: 'queryLeader',
+    };
+    // _requestFor is private... but these methods aren't, until they disappear..
+    const request = {
+      method: this.methodForRequest(params),
+      url: this.urlForRequest(params),
+      headers: this.headersForRequest(params),
+      data: this.dataForRequest(params),
+    };
+    // TODO: private..
+    return this._makeRequest(request);
+  },
   handleBatchResponse: function(url, response, primary, slug) {
     const dc = url.searchParams.get(API_DATACENTER_KEY) || '';
     return response.map((item, i, arr) => {

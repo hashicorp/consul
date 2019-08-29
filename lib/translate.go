@@ -18,14 +18,13 @@ import (
 // recursing into any key matching the left hand side. In this case the left
 // hand side must use periods to specify a full path e.g.
 // `connect.proxy.config`. The path must be the canonical key names (i.e.
-// CamelCase) AFTER translation so ExecMode not exec_mode. These are still match
+// CamelCase) AFTER translation so NodeName not node_name. These are still match
 // in a case-insensitive way.
 //
 // This is needed for example because parts of the Service Definition are
 // "opaque" maps of metadata or config passed to another process or component.
 // If we allow translation to recurse we might mangle the "opaque" keys given
-// where the clash with key names in other parts of the definition (and they do
-// in practice with deprecated managed proxy upstreams) :sob:
+// where the clash with key names in other parts of the definition :sob:
 //
 // Example:
 //   m - TranslateKeys(m, map[string]string{

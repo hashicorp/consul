@@ -3,6 +3,7 @@ package connect
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
@@ -97,6 +98,7 @@ func ParseCSR(pemValue string) (*x509.CertificateRequest, error) {
 func KeyId(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
 	case *ecdsa.PublicKey:
+	case *rsa.PublicKey:
 	default:
 		return nil, fmt.Errorf("invalid key type: %T", raw)
 	}

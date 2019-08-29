@@ -151,7 +151,7 @@ Add this configuration to the `consul.hcl` configuration file:
 ```hcl
 datacenter = "dc1"
 data_dir = "/opt/consul"
-encrypt = "Luj2FZWwlt8475wD1WtwUQ=="
+encrypt = "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 ```
 
 - [`datacenter`](/docs/agent/options.html#_datacenter) - The datacenter in which the agent is running.
