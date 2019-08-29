@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/raft"
 )
 
 const (
@@ -106,8 +105,8 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 		if size, err := strconv.Atoi(sizeStr); err != nil {
 			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
 			return nil, 0, false
-		} else if size > raft.SuggestedMaxDataSize {
-			fmt.Fprintf(resp, "Request body too large, max size: %d bytes", raft.SuggestedMaxDataSize)
+		} else if size > int(s.agent.config.KVMaxValueSize) {
+			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", s.agent.config.KVMaxValueSize)
 			return nil, 0, false
 		}
 	}
