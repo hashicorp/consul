@@ -406,7 +406,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 				continue
 			}
 
-			if parts.HasLeft() {
+			if m.Status == serf.StatusLeft {
 				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
 					m.Name, areaID)
 				continue

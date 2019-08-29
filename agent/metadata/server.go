@@ -64,10 +64,6 @@ func (s *Server) String() string {
 	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, networkStr, addrStr, s.Datacenter)
 }
 
-func (s *Server) HasLeft() bool {
-	return s.Status == serf.StatusLeft
-}
-
 var versionFormat = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 // IsConsulServer returns true if a serf member is a consul server
