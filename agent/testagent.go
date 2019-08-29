@@ -348,7 +348,7 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 			bootstrap = true
 			server = true
 			node_id = "` + nodeID + `"
-			node_name = "Node ` + nodeID + `"
+			node_name = "Node-` + nodeID + `"
 			connect {
 				enabled = true
 				ca_config {
