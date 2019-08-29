@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/raft"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
@@ -580,15 +579,6 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 	// a panic. The EOF response is the same behavior as an empty reader.
 	if req.Body == nil {
 		return io.EOF
-	}
-
-	sizeStr := req.Header.Get("Content-Length")
-	if sizeStr != "" {
-		if size, err := strconv.Atoi(sizeStr); err != nil {
-			return err
-		} else if size > raft.SuggestedMaxDataSize {
-			return BadRequestError{Reason: fmt.Sprintf("request body too large, max size: %d bytes", raft.SuggestedMaxDataSize)}
-		}
 	}
 
 	var raw interface{}
