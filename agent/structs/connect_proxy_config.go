@@ -3,10 +3,19 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
+
+const (
+	defaultExposePort     = 21500
+	defaultExposeProtocol = "http1.1"
+)
+
+var allowedExposeProtocols = map[string]bool{"http1.1": true, "http2": true, "grpc": true}
 
 type MeshGatewayMode string
 
@@ -311,4 +320,72 @@ func UpstreamFromAPI(u api.Upstream) Upstream {
 		LocalBindPort:        u.LocalBindPort,
 		Config:               u.Config,
 	}
+}
+
+// ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
+// Users can expose individual paths and/or all HTTP/GRPC paths for checks.
+type ExposeConfig struct {
+	// Checks defines whether paths associated with Consul checks will be exposed.
+	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
+	Checks bool `mapstructure:"checks"`
+
+	// Port defines the port of the proxy's listener for exposed paths.
+	Port int `mapstructure:"port"`
+
+	// Paths is the list of paths exposed through the proxy.
+	Paths []Path `mapstructure:"paths"`
+}
+
+type Path struct {
+	// Path is the path to expose through the proxy, ie. "/metrics."
+	Path string `mapstructure:"path"`
+
+	// Port is the port that the service is listening on for the given path.
+	Port int `mapstructure:"port"`
+
+	// Protocol describes the upstream's service protocol.
+	// Valid values are "http1.1", "http2" and "grpc". Defaults to "http1.1".
+	Protocol string `mapstructure:"protocol"`
+
+	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
+	TLSSkipVerify bool `mapstructure:"tls_skip_verify"`
+
+	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
+	CAFile string `mapstructure:"ca_file"`
+
+	// CACert contains the PEM encoded CA file read from CAFile
+	CACert string
+}
+
+// Finalize validates ExposeConfig and sets default values
+func (e *ExposeConfig) Finalize() error {
+	if e.Port < 0 || e.Port > 65535 {
+		return fmt.Errorf("invalid port: %d", e.Port)
+	}
+	if e.Port == 0 {
+		e.Port = defaultExposePort
+	}
+
+	var known = make(map[string]bool)
+	for _, path := range e.Paths {
+		if seen := known[path.Path]; seen {
+			return fmt.Errorf("duplicate paths exposed")
+		}
+		known[path.Path] = true
+
+		b, err := ioutil.ReadFile(path.CAFile)
+		if err != nil {
+			return fmt.Errorf("failed to read '%s': %v", path.CAFile, err)
+		}
+		path.CACert = string(b)
+
+		path.Protocol = strings.ToLower(path.Protocol)
+		if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
+			return fmt.Errorf("protocol '%s' not recognized for path: %s", path.Protocol, path.Path)
+		}
+		if path.Protocol == "" {
+			path.Protocol = defaultExposeProtocol
+		}
+	}
+	return nil
 }
