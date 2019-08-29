@@ -406,6 +406,12 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 				continue
 			}
 
+			if parts.HasLeft() {
+				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
+					m.Name, areaID)
+				continue
+			}
+
 			existing := index[parts.Datacenter]
 			if parts.Datacenter == r.localDatacenter {
 				// Everything in the local datacenter looks like zero RTT.
