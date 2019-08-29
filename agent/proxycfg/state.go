@@ -29,6 +29,7 @@ const (
 	serviceListWatchID               = "service-list"
 	datacentersWatchID               = "datacenters"
 	serviceResolversWatchID          = "service-resolvers"
+	svcChecksWatchIDPrefix           = cachetype.ServiceHTTPChecksName + ":"
 	serviceIDPrefix                  = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix            = string(structs.UpstreamDestTypePreparedQuery) + ":"
 	defaultPreparedQueryPollInterval = 30 * time.Second
@@ -215,6 +216,14 @@ func (s *state) initWatchesConnectProxy() error {
 		return err
 	}
 
+	// Watch for service check updates
+	err = s.cache.Notify(s.ctx, cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecksRequest{
+		ServiceID: s.proxyCfg.DestinationServiceID,
+	}, svcChecksWatchIDPrefix+s.proxyCfg.DestinationServiceID, s.ch)
+	if err != nil {
+		return err
+	}
+
 	// TODO(namespaces): pull this from something like s.source.Namespace?
 	currentNamespace := "default"
 
@@ -353,6 +362,7 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 		snap.ConnectProxy.WatchedGateways = make(map[string]map[string]context.CancelFunc)
 		snap.ConnectProxy.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+		snap.ConnectProxy.WatchedServiceChecks = make(map[string][]structs.CheckType)
 
 		snap.ConnectProxy.UpstreamEndpoints = make(map[string]structs.CheckServiceNodes) // TODO(rb): deprecated
 	case structs.ServiceKindMeshGateway:
@@ -540,6 +550,14 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		}
 		pq := strings.TrimPrefix(u.CorrelationID, "upstream:")
 		snap.ConnectProxy.UpstreamEndpoints[pq] = resp.Nodes
+
+	case strings.HasPrefix(u.CorrelationID, svcChecksWatchIDPrefix):
+		resp, ok := u.Result.(*[]structs.CheckType)
+		if !ok {
+			return fmt.Errorf("invalid type for service checks response: %T, want: *[]structs.CheckType", u.Result)
+		}
+		svcID := strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix)
+		snap.ConnectProxy.WatchedServiceChecks[svcID] = *resp
 
 	default:
 		return errors.New("unknown correlation ID")
