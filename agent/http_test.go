@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
@@ -1213,6 +1214,65 @@ func TestAllowedNets(t *testing.T) {
 			t.Fatalf("expected ForbiddenError but got: %s", err)
 		}
 	}
+}
+
+func TestDecodeBody_RequestBodySize(t *testing.T) {
+	// Too big
+	{
+		var out []string
+		var body bytes.Buffer
+
+		// Doesn't matter what the request body size actually is, as we only
+		// check 'Content-Length' header anyway.
+		_, err := body.WriteString(`["hello", "hello"]`)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		contentLength := strconv.Itoa(raft.SuggestedMaxDataSize + 100)
+
+		req := httptest.NewRequest("POST", "http://foo.com", &body)
+		req.Header.Add("Content-Length", contentLength)
+
+		err = decodeBody(req, &out, nil)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if reqErr, ok := err.(BadRequestError); !ok {
+			t.Fatalf("expected BadRequestError, got %v", err)
+		} else if !strings.Contains(reqErr.Reason, "max size") {
+			t.Fatalf("expected 'max size' to be in error string, got %v", err)
+		}
+	}
+
+	// OK
+	{
+		tests := []string{"", "18", strconv.Itoa(raft.SuggestedMaxDataSize)}
+
+		for _, size := range tests {
+			t.Run("contentLength: "+size, func(t *testing.T) {
+				var out []string
+				var body bytes.Buffer
+
+				// Doesn't matter what the request body size actually is, as we only
+				// check 'Content-Length' header anyway.
+				_, err := body.WriteString(`["hello", "hello"]`)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				req := httptest.NewRequest("POST", "http://foo.com", &body)
+				req.Header.Add("Content-Length", size)
+
+				if err = decodeBody(req, &out, nil); err != nil {
+					t.Fatal(err)
+				}
+			})
+
+		}
+
+	}
+
 }
 
 // assertIndex tests that X-Consul-Index is set and non-zero
