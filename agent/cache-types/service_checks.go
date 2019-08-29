@@ -55,7 +55,7 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 
 	var wait time.Duration
 
-	// Adjust wait based on documented limits: https://www.consul.io/api/features/blocking.html
+	// Adjust wait based on documented limits and add some jitter: https://www.consul.io/api/features/blocking.html
 	switch wait = reqReal.MaxQueryTime; {
 	case wait == 0*time.Second:
 		wait = 5 * time.Minute
@@ -83,7 +83,7 @@ WATCH_LOOP:
 
 		resp = c.Agent.ServiceHTTPChecks(reqReal.ServiceID)
 
-		hash, err := hashChecks(resp)
+		hash, err = hashChecks(resp)
 		if err != nil {
 			return result, fmt.Errorf("Internal cache failure: %v", err)
 		}

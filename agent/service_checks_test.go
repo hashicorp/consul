@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+// Integration test for ServiceHTTPChecks cache-type
+// Placed in agent pkg rather than cache-types to avoid circular dependency when importing agent.TestAgent
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	t.Parallel()
 
@@ -63,12 +65,12 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	var val cache.UpdateEvent
 	select {
 	case val = <-ch:
-		t.Fatal("unexpected cache update, wanted HTTP checks, got TTL")
+		t.Fatal("got cache update for TTL check, expected timeout")
 	case <-time.After(100 * time.Millisecond):
 	}
 
-	// Adding service with HTTP check should lead notification for check
-	if err := a.AddService(&service, chkTypes[0:1], false, "", ConfigSourceLocal); err != nil {
+	// Adding service with HTTP checks should lead notification for them
+	if err := a.AddService(&service, chkTypes[0:2], false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("failed to add service: %v", err)
 	}
 
@@ -80,33 +82,9 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 
 	got, ok := val.Result.(*[]structs.CheckType)
 	if !ok {
-		t.Fatalf("notified of result of wrong type, got %T, want []structs.CheckType", got)
+		t.Fatalf("notified of result of wrong type, got %T, want *[]structs.CheckType", got)
 	}
-	want := chkTypes[0:1]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
-	}
-
-	// Adding GRPC check should lead to a notification from the cache with both checks
-	hc := structs.HealthCheck{
-		CheckID:   chkTypes[1].CheckID,
-		ServiceID: service.ID,
-	}
-	if err := a.AddCheck(&hc, chkTypes[1], false, "", ConfigSourceLocal); err != nil {
-		t.Fatalf("failed to add service: %v", err)
-	}
-
-	select {
-	case val = <-ch:
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("didn't get cache update event")
-	}
-
-	got, ok = val.Result.(*[]structs.CheckType)
-	if !ok {
-		t.Fatalf("notified of result of wrong type, got %T, want []structs.CheckType", got)
-	}
-	want = chkTypes[0:2]
+	want := chkTypes[0:2]
 	for i, c := range *got {
 		require.Equal(t, c, *want[i])
 	}
@@ -124,29 +102,10 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 
 	got, ok = val.Result.(*[]structs.CheckType)
 	if !ok {
-		t.Fatalf("notified of result of wrong type, got %T, want []structs.CheckType", got)
+		t.Fatalf("notified of result of wrong type, got %T, want *[]structs.CheckType", got)
 	}
 	want = chkTypes[0:1]
 	for i, c := range *got {
 		require.Equal(t, c, *want[i])
-	}
-
-	// Removing the HTTP check should leave an empty list
-	if err := a.RemoveCheck(chkTypes[0].CheckID, false); err != nil {
-		t.Fatalf("failed to remove check: %v", err)
-	}
-
-	select {
-	case val = <-ch:
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("didn't get cache update event")
-	}
-
-	got, ok = val.Result.(*[]structs.CheckType)
-	if !ok {
-		t.Fatalf("notified of result of wrong type, got %T, want []structs.CheckType", got)
-	}
-	if len(*got) != 0 {
-		t.Fatalf("expected empty result, got: %+v", got)
 	}
 }
