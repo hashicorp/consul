@@ -123,6 +123,19 @@ func (a *TestAgent) Start() (err error) {
 		return fmt.Errorf("TestAgent already started")
 	}
 
+	id := string(a.Config.NodeID)
+
+	var cleanupTmpDir = func() {
+		// Clean out the data dir if we are responsible for it before we
+		// try again, since the old ports may have gotten written to
+		// the data dir, such as in the Raft configuration.
+		if a.DataDir != "" {
+			if err := os.RemoveAll(a.DataDir); err != nil {
+				fmt.Printf("%s %s Error resetting data dir: %s", id, a.Name, err)
+			}
+		}
+	}
+
 	var hclDataDir string
 	if a.DataDir == "" {
 		name := "agent"
@@ -142,23 +155,23 @@ func (a *TestAgent) Start() (err error) {
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
-	id := string(a.Config.NodeID)
 
 	// write the keyring
 	if a.Key != "" {
 		writeKey := func(key, filename string) error {
 			path := filepath.Join(a.Config.DataDir, filename)
 			if err := initKeyring(path, key); err != nil {
+				cleanupTmpDir()
 				return fmt.Errorf("Error creating keyring %s: %s", path, err)
 			}
 			return nil
 		}
-		err = writeKey(a.Key, SerfLANKeyring)
-		if err != nil {
+		if err = writeKey(a.Key, SerfLANKeyring); err != nil {
+			cleanupTmpDir()
 			return err
 		}
-		err = writeKey(a.Key, SerfWANKeyring)
-		if err != nil {
+		if err = writeKey(a.Key, SerfWANKeyring); err != nil {
+			cleanupTmpDir()
 			return err
 		}
 	}
@@ -171,6 +184,7 @@ func (a *TestAgent) Start() (err error) {
 
 	agent, err := New(a.Config, agentLogger)
 	if err != nil {
+		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
@@ -179,6 +193,7 @@ func (a *TestAgent) Start() (err error) {
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	if err := agent.Start(); err != nil {
+		cleanupTmpDir()
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()
 
@@ -195,15 +210,6 @@ func (a *TestAgent) Start() (err error) {
 			panic(err)
 		}
 
-		// Clean out the data dir if we are responsible for it before we
-		// try again, since the old ports may have gotten written to
-		// the data dir, such as in the Raft configuration.
-		if a.DataDir != "" {
-			if err := os.RemoveAll(a.DataDir); err != nil {
-				return fmt.Errorf("%s %s Error resetting data dir: %s", id, a.Name, err)
-			}
-		}
-
 		return fmt.Errorf("%s %s Error starting agent: %s", id, a.Name, err)
 	}
 
@@ -212,8 +218,9 @@ func (a *TestAgent) Start() (err error) {
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
-	err = a.waitForUp()
-	if err != nil {
+	if err := a.waitForUp(); err != nil {
+		cleanupTmpDir()
+		a.Shutdown()
 		return err
 	}
 
