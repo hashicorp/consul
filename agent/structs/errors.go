@@ -8,7 +8,7 @@ import (
 const (
 	errNoLeader                   = "No cluster leader"
 	errNoDCPath                   = "No path to datacenter"
-	errDCNotAvailable             = "Remote DC is temporary unavailable"
+	errDCNotAvailable             = "Remote DC has no server currently reachable"
 	errNoServers                  = "No known Consul servers"
 	errNotReadyForConsistentReads = "Not ready to serve consistent reads"
 	errSegmentsNotSupported       = "Network segments are not supported in this version of Consul"

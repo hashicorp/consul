@@ -316,7 +316,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	manager, server, ok := s.router.FindRoute(dc)
 	if !ok {
 		if s.router.HasDatacenter(dc) {
-			s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q temporary failure", dc)
+			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
 			return structs.ErrDCNotAvailable
 		}
 		s.logger.Printf("[WARN] consul.rpc: RPC request for unkown DC %q", dc)
