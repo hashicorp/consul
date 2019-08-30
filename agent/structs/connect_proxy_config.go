@@ -118,6 +118,9 @@ type ConnectProxyConfig struct {
 
 	// MeshGateway defines the mesh gateway configuration for this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+
+	// Expose defines whether checks or paths are exposed through the proxy
+	Expose ExposeConfig `json:",omitempty"`
 }
 
 func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {

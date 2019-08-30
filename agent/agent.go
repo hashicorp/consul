@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -2408,6 +2409,16 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				OutputMaxSize:   maxOutputSize,
 				TLSClientConfig: tlsClientConfig,
 			}
+
+			if service.Proxy.Expose.Checks {
+				addr, err := httpInjectAddr(http.HTTP, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
+				if err != nil {
+					// The only way to get here is if the regex pattern fails to compile, which it shouldn't
+					return fmt.Errorf("failed to inject proxy addr into HTTP target")
+				}
+				http.ProxyHTTP = addr
+			}
+
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
 
@@ -3524,4 +3535,35 @@ func (a *Agent) registerCache() {
 
 func (a *Agent) LocalState() *local.State {
 	return a.State
+}
+
+// httpInjectAddr injects a port then an IP into a URL
+func httpInjectAddr(url string, ip string, port int) (string, error) {
+	pattern := "^(http[s]?://)(\\[.*?\\]|\\[?[\\w\\-\\.]+)(:\\d+)?([^?]*)(\\?.*)?$"
+	r, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", err
+	}
+	portRepl := fmt.Sprintf("${1}${2}:%d${4}${5}", port)
+	out := r.ReplaceAllString(url, portRepl)
+
+	// Ensure that ipv6 addr is enclosed in brackets (RFC 3986)
+	ip = fixIPv6(ip)
+	addrRepl := fmt.Sprintf("${1}%s${3}${4}${5}", ip)
+	out = r.ReplaceAllString(out, addrRepl)
+
+	return out, nil
+}
+
+func fixIPv6(address string) string {
+	if strings.Count(address, ":") < 2 {
+		return address
+	}
+	if !strings.HasSuffix(address, "]") {
+		address = address + "]"
+	}
+	if !strings.HasPrefix(address, "[") {
+		address = "[" + address
+	}
+	return address
 }

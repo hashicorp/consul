@@ -325,6 +325,10 @@ type CheckHTTP struct {
 	stop       bool
 	stopCh     chan struct{}
 	stopLock   sync.Mutex
+
+	// Set if checks are exposed through Connect proxies
+	// If set, this is the target of check()
+	ProxyHTTP string
 }
 
 func (c *CheckHTTP) CheckType() structs.CheckType {
@@ -406,7 +410,12 @@ func (c *CheckHTTP) check() {
 		method = "GET"
 	}
 
-	req, err := http.NewRequest(method, c.HTTP, nil)
+	target := c.HTTP
+	if c.ProxyHTTP != "" {
+		target = c.HTTP
+	}
+
+	req, err := http.NewRequest(method, target, nil)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
@@ -446,7 +455,7 @@ func (c *CheckHTTP) check() {
 	}
 
 	// Format the response body
-	result := fmt.Sprintf("HTTP %s %s: %s Output: %s", method, c.HTTP, resp.Status, output.String())
+	result := fmt.Sprintf("HTTP %s %s: %s Output: %s", method, target, resp.Status, output.String())
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
