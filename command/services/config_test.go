@@ -64,6 +64,21 @@ func TestStructsToAgentService(t *testing.T) {
 			},
 		},
 		{
+			"Service with a check id",
+			&structs.ServiceDefinition{
+				Name: "web",
+				Check: structs.CheckType{
+					CheckID: "ping",
+				},
+			},
+			&api.AgentServiceRegistration{
+				Name: "web",
+				Check: &api.AgentServiceCheck{
+					CheckID: "ping",
+				},
+			},
+		},
+		{
 			"Service with checks",
 			&structs.ServiceDefinition{
 				Name: "web",
