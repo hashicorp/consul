@@ -2413,7 +2413,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			if service.Proxy.Expose.Checks {
 				addr, err := httpInjectAddr(http.HTTP, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
 				if err != nil {
-					// The only way to get here is if the regex pattern fails to compile, which it shouldn't
+					// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
 					return fmt.Errorf("failed to inject proxy addr into HTTP target")
 				}
 				http.ProxyHTTP = addr
@@ -2471,6 +2471,16 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Logger:          a.logger,
 				TLSClientConfig: tlsClientConfig,
 			}
+
+			if service.Proxy.Expose.Checks {
+				addr, err := grpcInjectAddr(grpc.GRPC, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
+				if err != nil {
+					// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
+					return fmt.Errorf("failed to inject proxy addr into GRPC target")
+				}
+				grpc.ProxyGRPC = addr
+			}
+
 			grpc.Start()
 			a.checkGRPCs[check.CheckID] = grpc
 
@@ -3535,6 +3545,22 @@ func (a *Agent) registerCache() {
 
 func (a *Agent) LocalState() *local.State {
 	return a.State
+}
+
+// grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]
+func grpcInjectAddr(existing string, ip string, port int) (string, error) {
+	pattern := "(.*)((?::)(?:[0-9]+))(.*)$"
+	r, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", err
+	}
+	portRepl := fmt.Sprintf("${1}:%d${3}", port)
+	out := r.ReplaceAllString(existing, portRepl)
+
+	addrRepl := fmt.Sprintf("%s${2}${3}", ip)
+	out = r.ReplaceAllString(out, addrRepl)
+
+	return out, nil
 }
 
 // httpInjectAddr injects a port then an IP into a URL
