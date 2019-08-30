@@ -3350,3 +3350,110 @@ func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	defer a.Shutdown()
 	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }
+
+func TestAgent_httpInjectAddr(t *testing.T) {
+	tt := []struct {
+		name string
+		url  string
+		ip   string
+		port int
+		want string
+	}{
+		// TODO(freddy): IPv6 checks
+		{
+			name: "localhost health",
+			url:  "http://localhost:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "http://192.168.0.0:9090/health",
+		},
+		{
+			name: "https localhost health",
+			url:  "https://localhost:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv4 health",
+			url:  "https://127.0.0.1:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv4 without path",
+			url:  "https://127.0.0.1:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090",
+		},
+		{
+			name: "https ipv6 health",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv6 with zone",
+			url:  "https://[::FFFF:C0A8:1%1]:5000/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv6 literal",
+			url:  "https://[::FFFF:192.168.0.1]:5000/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv6 without path",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090",
+		},
+		{
+			name: "ipv6 injected into ipv6 url",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "https://[::FFFF:C0A8:1]:9090",
+		},
+		{
+			name: "ipv6 with brackets injected into ipv6 url",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000",
+			ip:   "[::FFFF:C0A8:1]",
+			port: 9090,
+			want: "https://[::FFFF:C0A8:1]:9090",
+		},
+		{
+			name: "short domain health",
+			url:  "http://i.co:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "http://192.168.0.0:9090/health",
+		},
+		{
+			name: "nested url in query",
+			url:  "http://my.corp.com:8080/health?from=http://google.com:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "http://192.168.0.0:9090/health?from=http://google.com:8080",
+		},
+	}
+	for _, tt := range tt {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := httpInjectAddr(tt.url, tt.ip, tt.port)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
