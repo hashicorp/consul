@@ -154,36 +154,27 @@ func (z *Zone) TransferAllowed(state request.Request) bool {
 	return false
 }
 
-// All returns all records from the zone, the first record will be the SOA record,
-// optionally followed by all RRSIG(SOA)s.
-func (z *Zone) All() []dns.RR {
-	records := []dns.RR{}
+// ApexIfDefined returns the apex nodes from z. The SOA record is the first record, if it does not exist, an error is returned.
+func (z *Zone) ApexIfDefined() ([]dns.RR, error) {
 	z.RLock()
-	allNodes := z.Tree.All()
-	z.RUnlock()
-
-	for _, a := range allNodes {
-		records = append(records, a.All()...)
+	defer z.RUnlock()
+	if z.Apex.SOA == nil {
+		return nil, fmt.Errorf("no SOA")
 	}
 
-	z.RLock()
-	if len(z.Apex.SIGNS) > 0 {
-		records = append(z.Apex.SIGNS, records...)
-	}
-	if len(z.Apex.NS) > 0 {
-		records = append(z.Apex.NS, records...)
-	}
+	rrs := []dns.RR{z.Apex.SOA}
 
 	if len(z.Apex.SIGSOA) > 0 {
-		records = append(z.Apex.SIGSOA, records...)
+		rrs = append(rrs, z.Apex.SIGSOA...)
+	}
+	if len(z.Apex.NS) > 0 {
+		rrs = append(rrs, z.Apex.NS...)
+	}
+	if len(z.Apex.SIGNS) > 0 {
+		rrs = append(rrs, z.Apex.SIGNS...)
 	}
 
-	if z.Apex.SOA != nil {
-		z.RUnlock()
-		return append([]dns.RR{z.Apex.SOA}, records...)
-	}
-	z.RUnlock()
-	return records
+	return rrs, nil
 }
 
 // NameFromRight returns the labels from the right, staring with the

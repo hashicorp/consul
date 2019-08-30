@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/file/tree"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -35,8 +36,9 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 		}
 	}
 
-	records := x.All()
-	if len(records) == 0 {
+	// get soa and apex
+	apex, err := x.ApexIfDefined()
+	if err != nil {
 		return dns.RcodeServerFailure, nil
 	}
 
@@ -49,23 +51,34 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 		wg.Done()
 	}()
 
-	j, l := 0, 0
-	records = append(records, records[0]) // add closing SOA to the end
-	log.Infof("Outgoing transfer of %d records of zone %s to %s started with %d SOA serial", len(records), x.origin, state.IP(), x.SOASerialIfDefined())
-	for i, r := range records {
-		l += dns.Len(r)
-		if l > transferLength {
-			ch <- &dns.Envelope{RR: records[j:i]}
-			l = 0
-			j = i
+	rrs := []dns.RR{}
+	l := len(apex)
+
+	ch <- &dns.Envelope{RR: apex}
+
+	x.Walk(func(e *tree.Elem, _ map[uint16][]dns.RR) error {
+		rrs = append(rrs, e.All()...)
+		if len(rrs) > 500 {
+			ch <- &dns.Envelope{RR: rrs}
+			l += len(rrs)
+			rrs = []dns.RR{}
 		}
+		return nil
+	})
+
+	if len(rrs) > 0 {
+		ch <- &dns.Envelope{RR: rrs}
+		l += len(rrs)
+		rrs = []dns.RR{}
 	}
-	if j < len(records) {
-		ch <- &dns.Envelope{RR: records[j:]}
-	}
+
+	ch <- &dns.Envelope{RR: []dns.RR{apex[0]}} // closing SOA.
+	l++
+
 	close(ch) // Even though we close the channel here, we still have
 	wg.Wait() // to wait before we can return and close the connection.
 
+	log.Infof("Outgoing transfer of %d records of zone %s to %s done with %d SOA serial", l, x.origin, state.IP(), apex[0].(*dns.SOA).Serial)
 	return dns.RcodeSuccess, nil
 }
 
@@ -103,5 +116,3 @@ func (x Xfr) ServeIxfr(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	}
 	return dns.RcodeServerFailure, nil
 }
-
-const transferLength = 1000 // Start a new envelop after message reaches this size in bytes. Intentionally small to test multi envelope parsing.

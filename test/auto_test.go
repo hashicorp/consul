@@ -129,9 +129,9 @@ func TestAutoAXFR(t *testing.T) {
 		t.Fatalf("Could not get CoreDNS serving instance: %s", err)
 	}
 
-	udp, _ := CoreDNSServerPorts(i, 0)
-	if udp == "" {
-		t.Fatal("Could not get UDP listening port")
+	_, tcp := CoreDNSServerPorts(i, 0)
+	if tcp == "" {
+		t.Fatal("Could not get TCP listening port")
 	}
 	defer i.Stop()
 
@@ -142,14 +142,20 @@ func TestAutoAXFR(t *testing.T) {
 
 	time.Sleep(1100 * time.Millisecond) // wait for it to be picked up
 
+	tr := new(dns.Transfer)
 	m := new(dns.Msg)
 	m.SetAxfr("example.org.")
-	resp, err := dns.Exchange(m, udp)
+	c, err := tr.In(m, tcp)
 	if err != nil {
 		t.Fatal("Expected to receive reply, but didn't")
 	}
-	if len(resp.Answer) != 5 {
-		t.Fatalf("Expected response with %d RRs, got %d", 5, len(resp.Answer))
+	l := 0
+	for e := range c {
+		l += len(e.RR)
+	}
+
+	if l != 5 {
+		t.Fatalf("Expected response with %d RRs, got %d", 5, l)
 	}
 }
 

@@ -30,12 +30,12 @@ func TestWatcher(t *testing.T) {
 
 	a.Walk()
 
-	// example.org and example.com should exist
-	if x := len(a.Zones.Z["example.org."].All()); x != 4 {
-		t.Fatalf("Expected 4 RRs, got %d", x)
+	// example.org and example.com should exist, we have 3 apex rrs and 1 "real" record. All() returns the non-apex ones.
+	if x := len(a.Zones.Z["example.org."].All()); x != 1 {
+		t.Fatalf("Expected 1 RRs, got %d", x)
 	}
-	if x := len(a.Zones.Z["example.com."].All()); x != 4 {
-		t.Fatalf("Expected 4 RRs, got %d", x)
+	if x := len(a.Zones.Z["example.com."].All()); x != 1 {
+		t.Fatalf("Expected 1 RRs, got %d", x)
 	}
 
 	// Now remove one file, rescan and see if it's gone.

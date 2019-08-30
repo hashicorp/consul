@@ -48,8 +48,12 @@ func TestZoneReload(t *testing.T) {
 		t.Fatalf("Failed to lookup, got %d", res)
 	}
 
-	if len(z.All()) != 5 {
-		t.Fatalf("Expected 5 RRs, got %d", len(z.All()))
+	rrs, err := z.ApexIfDefined() // all apex records.
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rrs) != 5 {
+		t.Fatalf("Expected 5 RRs, got %d", len(rrs))
 	}
 	if err := ioutil.WriteFile(fileName, []byte(reloadZone2Test), 0644); err != nil {
 		t.Fatalf("Failed to write new zone data: %s", err)
@@ -57,8 +61,12 @@ func TestZoneReload(t *testing.T) {
 	// Could still be racy, but we need to wait a bit for the event to be seen
 	time.Sleep(1 * time.Second)
 
-	if len(z.All()) != 3 {
-		t.Fatalf("Expected 3 RRs, got %d", len(z.All()))
+	rrs, err = z.ApexIfDefined()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rrs) != 3 {
+		t.Fatalf("Expected 3 RRs, got %d", len(rrs))
 	}
 }
 
