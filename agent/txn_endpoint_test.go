@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -601,4 +602,51 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 		},
 	}
 	verify.Values(t, "", txnResp, expected)
+}
+
+func TestConvertOps_ContentLength(t *testing.T) {
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	jsonBody := `[
+     {
+         "KV": {
+             "Verb": "set",
+             "Key": "key1",
+             "Value": "aGVsbG8gd29ybGQ="
+         }
+     }
+ ]`
+
+	tests := []struct {
+		contentLength string
+		ok            bool
+	}{
+		{"", true},
+		{strconv.Itoa(len(jsonBody)), true},
+		{strconv.Itoa(raft.SuggestedMaxDataSize), true},
+		{strconv.Itoa(raft.SuggestedMaxDataSize + 100), false},
+	}
+
+	for _, tc := range tests {
+		t.Run("contentLength: "+tc.contentLength, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			var body bytes.Buffer
+
+			// Doesn't matter what the request body size actually is, as we only
+			// check 'Content-Length' header in this test anyway.
+			body.WriteString(jsonBody)
+
+			req := httptest.NewRequest("POST", "http://foo.com", &body)
+			req.Header.Add("Content-Length", tc.contentLength)
+
+			_, _, ok := a.srv.convertOps(resp, req)
+			if ok != tc.ok {
+				t.Fatal("ok != tc.ok")
+			}
+
+		})
+
+	}
+
 }
