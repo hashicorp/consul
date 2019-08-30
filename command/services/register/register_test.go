@@ -70,7 +70,7 @@ func TestCommand_File(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui)
 
-	contents := `{ "Service": { "Name": "web" } }`
+	contents := `{ "Service": { "Name": "web", "Check": {"id": "web-check", "tcp": "localhost:80", "interval": "1s"}} }`
 	f := testFile(t, "json")
 	defer os.Remove(f.Name())
 	if _, err := f.WriteString(contents); err != nil {
@@ -90,6 +90,11 @@ func TestCommand_File(t *testing.T) {
 
 	svc := svcs["web"]
 	require.NotNil(svc)
+
+	checks, err := client.Agent().Checks()
+	require.NoError(err)
+	require.Len(checks, 1)
+	require.NotNil(checks["web-check"])
 }
 
 func TestCommand_Flags(t *testing.T) {
