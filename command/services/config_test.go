@@ -49,7 +49,7 @@ func TestStructsToAgentService(t *testing.T) {
 			},
 		},
 		{
-			"Service with a check",
+			"Service has a check with name but no id",
 			&structs.ServiceDefinition{
 				Name: "web",
 				Check: structs.CheckType{
@@ -64,7 +64,7 @@ func TestStructsToAgentService(t *testing.T) {
 			},
 		},
 		{
-			"Service with a check id",
+			"Service has a check with id but no name",
 			&structs.ServiceDefinition{
 				Name: "web",
 				Check: structs.CheckType{
