@@ -356,8 +356,8 @@ func (r *Router) GetDatacenters() []string {
 	return dcs
 }
 
-// IsDatacenterDefined checks whether dc is defined in WAN
-func (r *Router) IsDatacenterDefined(dc string) bool {
+// HasDatacenter checks whether dc is defined in WAN
+func (r *Router) HasDatacenter(dc string) bool {
 	r.RLock()
 	defer r.RUnlock()
 	_, ok := r.managers[dc]
