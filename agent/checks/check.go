@@ -694,6 +694,10 @@ type CheckGRPC struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+
+	// Set if checks are exposed through Connect proxies
+	// If set, this is the target of check()
+	ProxyGRPC string
 }
 
 func (c *CheckGRPC) CheckType() structs.CheckType {
@@ -734,13 +738,18 @@ func (c *CheckGRPC) run() {
 }
 
 func (c *CheckGRPC) check() {
-	err := c.probe.Check()
+	target := c.GRPC
+	if c.ProxyGRPC != "" {
+		target = c.ProxyGRPC
+	}
+
+	err := c.probe.Check(target)
 	if err != nil {
 		c.Logger.Printf("[DEBUG] agent: Check %q failed: %s", c.CheckID, err.Error())
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 	} else {
 		c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", c.GRPC))
+		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", target))
 	}
 }
 

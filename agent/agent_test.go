@@ -3348,6 +3348,105 @@ func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }
 
+func TestAgent_grpcInjectAddr(t *testing.T) {
+	tt := []struct {
+		name string
+		grpc string
+		ip   string
+		port int
+		want string
+	}{
+		{
+			name: "localhost web svc",
+			grpc: "localhost:8080/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "localhost no svc",
+			grpc: "localhost:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090",
+		},
+		{
+			name: "ipv4 web svc",
+			grpc: "127.0.0.1:8080/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "ipv4 no svc",
+			grpc: "127.0.0.1:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090",
+		},
+		{
+			name: "ipv6 no svc",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090",
+		},
+		{
+			name: "ipv6 web svc",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "zone ipv6 web svc",
+			grpc: "::FFFF:C0A8:1%1:5000/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "ipv6 literal web svc",
+			grpc: "::FFFF:192.168.0.1:5000/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "ipv6 injected into ipv6 url",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "::FFFF:C0A8:1:9090",
+		},
+		{
+			name: "ipv6 injected into ipv6 url with svc",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/web",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "::FFFF:C0A8:1:9090/web",
+		},
+		{
+			name: "ipv6 injected into ipv6 url with special",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/service-$name:with@special:Chars",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "::FFFF:C0A8:1:9090/service-$name:with@special:Chars",
+		},
+	}
+	for _, tt := range tt {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := grpcInjectAddr(tt.grpc, tt.ip, tt.port)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAgent_httpInjectAddr(t *testing.T) {
 	tt := []struct {
 		name string
@@ -3356,7 +3455,6 @@ func TestAgent_httpInjectAddr(t *testing.T) {
 		port int
 		want string
 	}{
-		// TODO(freddy): IPv6 checks
 		{
 			name: "localhost health",
 			url:  "http://localhost:8080/health",
