@@ -3,6 +3,7 @@
 IMPROVEMENTS
 
 * auto_encrypt: verify_incoming_rpc is good enough for auto_encrypt.allow_tls [[GH-6376](https://github.com/hashicorp/consul/pull/6376)]
+* connect: Ensure that a secondary CA's intermediate certificate will show in the various API endpoints CA Roots output [[GH-6333](https://github.com/hashicorp/consul/pull/6333)]
 
 BUG FIXES
 
