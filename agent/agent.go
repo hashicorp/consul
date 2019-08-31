@@ -2113,6 +2113,20 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 		}
 	}
 
+	// If a proxy service wishes to expose checks, check targets need to be rerouted to the proxy listener
+	// This needs to be called after chkTypes are added to the agent, to avoid overwriting
+	if service.Proxy.Expose.Checks {
+		err := a.rerouteExposedChecks(
+			service.Proxy.DestinationServiceID, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
+		if err != nil {
+			a.logger.Println("[WARN] failed to reroute L7 checks to exposed proxy listener")
+		}
+	} else {
+		// Reset check targets if proxy was re-registered but no longer wants to expose checks
+		// If the proxy is being registered for the first time then this is a no-op
+		a.resetExposedChecks(service.Proxy.DestinationServiceID)
+	}
+
 	// Persist the service to a file
 	if persist && a.config.DataDir != "" {
 		if err := a.persistService(service); err != nil {
@@ -2223,6 +2237,11 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 	if a.config.EnableCentralServiceConfig {
 		a.serviceManager.RemoveService(serviceID)
 	}
+
+	// Reset the HTTP check targets if they were exposed through a proxy
+	// If this is not a proxy or checks were not exposed then this is a no-op
+	svc := a.State.Service(serviceID)
+	a.resetExposedChecks(svc.Proxy.DestinationServiceID)
 
 	checks := a.State.Checks()
 	var checkIDs []types.CheckID
@@ -3545,6 +3564,54 @@ func (a *Agent) registerCache() {
 
 func (a *Agent) LocalState() *local.State {
 	return a.State
+}
+
+// rerouteExposedChecks will inject proxy address into check targets
+// Future calls to check() will dial the proxy listener
+// The agent stateLock MUST be held for this to be called
+func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string, proxyPort int) error {
+	for _, c := range a.checkHTTPs {
+		if c.ServiceID != serviceID {
+			continue
+		}
+		addr, err := httpInjectAddr(c.HTTP, proxyAddr, proxyPort)
+		if err != nil {
+			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
+			return fmt.Errorf("failed to inject proxy addr into HTTP target")
+		}
+		c.ProxyHTTP = addr
+	}
+	for _, c := range a.checkGRPCs {
+		if c.ServiceID != serviceID {
+			continue
+		}
+		addr, err := grpcInjectAddr(c.GRPC, proxyAddr, proxyPort)
+		if err != nil {
+			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
+			return fmt.Errorf("failed to inject proxy addr into GRPC target")
+		}
+		c.ProxyGRPC = addr
+	}
+	return nil
+}
+
+// resetExposedChecks will set Proxy addr in HTTP checks to empty string
+// Future calls to check() will use the original target c.HTTP or c.GRPC
+// The agent stateLock MUST be held for this to be called
+func (a *Agent) resetExposedChecks(serviceID string) {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+
+	for _, c := range a.checkHTTPs {
+		if c.ServiceID == serviceID {
+			c.ProxyHTTP = ""
+		}
+	}
+	for _, c := range a.checkGRPCs {
+		if c.ServiceID == serviceID {
+			c.ProxyGRPC = ""
+		}
+	}
 }
 
 // grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]
