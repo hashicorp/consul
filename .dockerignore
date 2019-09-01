@@ -10,3 +10,5 @@ test/*
 vendor/*
 build/*
 release/*
+go.sum
+go.mod
