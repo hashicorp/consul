@@ -78,7 +78,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20180614160407-5114a9a81e1b // indirect
 	github.com/kr/text v0.1.0
 	github.com/lib/pq v0.0.0-20180523175426-90697d60dd84 // indirect
-	github.com/miekg/dns v1.0.14
+	github.com/miekg/dns v1.1.16
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.0.0

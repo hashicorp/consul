@@ -1589,7 +1589,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			// If we still have recursors to forward the query to,
 			// we move forward onto the next one else the loop ends
 			continue
-		} else if err == nil || err == dns.ErrTruncated {
+		} else if err == nil {
 			// Compress the response; we don't know if the incoming
 			// response was compressed or not, so by not compressing
 			// we might generate an invalid packet on the way out.

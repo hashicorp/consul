@@ -3302,9 +3302,6 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != dns.ErrTruncated {
-		t.Fatalf("err: %v", err)
-	}
 	if in.Truncated != true {
 		t.Fatalf("err: message should have been truncated %v", in)
 	}
@@ -3987,7 +3984,7 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 								c.Net = protocol
 								m.Compress = compress
 								in, _, err := c.Exchange(m, a.DNSAddr())
-								if err != nil && err != dns.ErrTruncated {
+								if err != nil {
 									t.Fatalf("err: %v", err)
 								}
 
@@ -4068,7 +4065,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4140,7 +4137,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
