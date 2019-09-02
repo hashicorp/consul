@@ -376,11 +376,13 @@ func (e *ExposeConfig) Finalize() error {
 		}
 		known[path.Path] = true
 
-		b, err := ioutil.ReadFile(path.CAFile)
-		if err != nil {
-			return fmt.Errorf("failed to read '%s': %v", path.CAFile, err)
+		if path.CAFile != "" {
+			b, err := ioutil.ReadFile(path.CAFile)
+			if err != nil {
+				return fmt.Errorf("failed to read '%s': %v", path.CAFile, err)
+			}
+			path.CACert = string(b)
 		}
-		path.CACert = string(b)
 
 		path.Protocol = strings.ToLower(path.Protocol)
 		if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
