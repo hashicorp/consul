@@ -12,10 +12,10 @@ import (
 
 const (
 	defaultExposePort     = 21500
-	defaultExposeProtocol = "http1.1"
+	defaultExposeProtocol = "http"
 )
 
-var allowedExposeProtocols = map[string]bool{"http1.1": true, "http2": true, "grpc": true}
+var allowedExposeProtocols = map[string]bool{"http": true, "http2": true, "grpc": true}
 
 type MeshGatewayMode string
 
@@ -347,7 +347,7 @@ type Path struct {
 	Port int `mapstructure:"port"`
 
 	// Protocol describes the upstream's service protocol.
-	// Valid values are "http1.1", "http2" and "grpc". Defaults to "http1.1".
+	// Valid values are "http", "http2" and "grpc". Defaults to "http".
 	Protocol string `mapstructure:"protocol"`
 
 	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
