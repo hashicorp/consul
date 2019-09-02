@@ -3599,9 +3599,6 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string, proxyPo
 // Future calls to check() will use the original target c.HTTP or c.GRPC
 // The agent stateLock MUST be held for this to be called
 func (a *Agent) resetExposedChecks(serviceID string) {
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
-
 	for _, c := range a.checkHTTPs {
 		if c.ServiceID == serviceID {
 			c.ProxyHTTP = ""
