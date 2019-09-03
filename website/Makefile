@@ -1,4 +1,4 @@
-VERSION?="0.3.40"
+VERSION?="0.3.41"
 
 # The volume mounting steps are a way to exclude all the consul docs from being built
 # in the Consul site build process while still including the index.html page that points

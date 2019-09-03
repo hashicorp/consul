@@ -11,8 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/testrpc"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/local"
@@ -1435,21 +1433,34 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	// Update the check output! Should be deferred
 	a.State.UpdateCheck("web", api.HealthPassing, "output")
 
-	// Should not update for 500 milliseconds
-	time.Sleep(250 * time.Millisecond)
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
+	// We are going to wait up to 850ms for the deferred check update to run. The update
+	// can happen any time within: check_update_interval / 2 + random(min: 0, max: check_update_interval)
+	// For this test that means it will get deferred for 250ms - 750ms. We add up to 100ms on top of that to
+	// account for potentially slow tests on a overloaded system.
+	timer := &retry.Timer{Timeout: 850 * time.Millisecond, Wait: 50 * time.Millisecond}
+	start := time.Now()
+	retry.RunWith(timer, t, func(r *retry.R) {
+		cs := a.State.CheckState("web")
+		if cs == nil {
+			r.Fatalf("check is not registered")
+		}
+
+		if cs.DeferCheck != nil {
+			r.Fatalf("Deferred Check timeout not removed yet")
+		}
+	})
+	elapsed := time.Since(start)
+
+	// ensure the check deferral didn't update too fast
+	if elapsed < 240*time.Millisecond {
+		t.Fatalf("early update: elapsed %v\n\n%+v", elapsed, checks)
 	}
 
-	// Verify not updated
-	for _, chk := range checks.HealthChecks {
-		switch chk.CheckID {
-		case "web":
-			if chk.Output != "" {
-				t.Fatalf("early update: %v", chk)
-			}
-		}
+	// ensure the check deferral didn't update too late
+	if elapsed > 850*time.Millisecond {
+		t.Fatalf("late update: elapsed: %v\n\n%+v", elapsed, checks)
 	}
+
 	// Wait for a deferred update. TODO (slackpad) This isn't a great test
 	// because we might be stuck in the random stagger from the full sync
 	// after the leader election (~3 seconds) so it's easy to exceed the
@@ -1459,10 +1470,14 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	// good news is that the later update below should be well past the full
 	// sync so we are getting some coverage. We should rethink this a bit and
 	// rework the deferred update stuff to be more testable.
-	timer := &retry.Timer{Timeout: 6 * time.Second, Wait: 100 * time.Millisecond}
+	//
+	// TODO - figure out why after the deferred check calls TriggerSyncChanges that this
+	// takes so long to happen. I have seen it take upwards of 1.5s before the check gets
+	// synced.
+	timer = &retry.Timer{Timeout: 6 * time.Second, Wait: 100 * time.Millisecond}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-			r.Fatal(err)
+			r.Fatalf("err: %v", err)
 		}
 
 		// Verify updated
@@ -1975,255 +1990,6 @@ func TestState_Notify(t *testing.T) {
 	// Should NOT have a notification
 	assert.Empty(notifyCh)
 	drainCh(notifyCh)
-}
-
-func TestStateProxyManagement(t *testing.T) {
-	t.Parallel()
-
-	state := local.NewState(local.Config{
-		ProxyBindMinPort: 20000,
-		ProxyBindMaxPort: 20001,
-	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
-
-	// Stub state syncing
-	state.TriggerSyncChanges = func() {}
-
-	p1 := structs.ConnectManagedProxy{
-		ExecMode:        structs.ProxyExecModeDaemon,
-		Command:         []string{"consul", "connect", "proxy"},
-		TargetServiceID: "web",
-	}
-
-	require := require.New(t)
-	assert := assert.New(t)
-
-	_, err := state.AddProxy(&p1, "fake-token", "")
-	require.Error(err, "should fail as the target service isn't registered")
-
-	// Sanity check done, lets add a couple of target services to the state
-	err = state.AddService(&structs.NodeService{
-		Service: "web",
-	}, "fake-token-web")
-	require.NoError(err)
-	err = state.AddService(&structs.NodeService{
-		Service: "cache",
-	}, "fake-token-cache")
-	require.NoError(err)
-	require.NoError(err)
-	err = state.AddService(&structs.NodeService{
-		Service: "db",
-	}, "fake-token-db")
-	require.NoError(err)
-
-	// Should work now
-	pstate, err := state.AddProxy(&p1, "fake-token", "")
-	require.NoError(err)
-
-	svc := pstate.Proxy.ProxyService
-	assert.Equal("web-proxy", svc.ID)
-	assert.Equal("web-proxy", svc.Service)
-	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
-	assert.Equal("web", svc.Proxy.DestinationServiceName)
-	assert.Equal("", svc.Address, "should have empty address by default")
-	// Port is non-deterministic but could be either of 20000 or 20001
-	assert.Contains([]int{20000, 20001}, svc.Port)
-
-	{
-		// Re-registering same proxy again should not pick a random port but re-use
-		// the assigned one. It should also keep the same proxy token since we don't
-		// want to force restart for config change.
-		pstateDup, err := state.AddProxy(&p1, "fake-token", "")
-		require.NoError(err)
-		svcDup := pstateDup.Proxy.ProxyService
-
-		assert.Equal("web-proxy", svcDup.ID)
-		assert.Equal("web-proxy", svcDup.Service)
-		assert.Equal(structs.ServiceKindConnectProxy, svcDup.Kind)
-		assert.Equal("web", svcDup.Proxy.DestinationServiceName)
-		assert.Equal("", svcDup.Address, "should have empty address by default")
-		// Port must be same as before
-		assert.Equal(svc.Port, svcDup.Port)
-		// Same ProxyToken
-		assert.Equal(pstate.ProxyToken, pstateDup.ProxyToken)
-	}
-
-	// Let's register a notifier now
-	notifyCh := make(chan struct{}, 1)
-	state.NotifyProxy(notifyCh)
-	defer state.StopNotifyProxy(notifyCh)
-	assert.Empty(notifyCh)
-	drainCh(notifyCh)
-
-	// Second proxy should claim other port
-	p2 := p1
-	p2.TargetServiceID = "cache"
-	pstate2, err := state.AddProxy(&p2, "fake-token", "")
-	require.NoError(err)
-	svc2 := pstate2.Proxy.ProxyService
-	assert.Contains([]int{20000, 20001}, svc2.Port)
-	assert.NotEqual(svc.Port, svc2.Port)
-
-	// Should have a notification
-	assert.NotEmpty(notifyCh)
-	drainCh(notifyCh)
-
-	// Store this for later
-	p2token := state.Proxy(svc2.ID).ProxyToken
-
-	// Third proxy should fail as all ports are used
-	p3 := p1
-	p3.TargetServiceID = "db"
-	_, err = state.AddProxy(&p3, "fake-token", "")
-	require.Error(err)
-
-	// Should have a notification but we'll do nothing so that the next
-	// receive should block (we set cap == 1 above)
-
-	// But if we set a port explicitly it should be OK
-	p3.Config = map[string]interface{}{
-		"bind_port":    1234,
-		"bind_address": "0.0.0.0",
-	}
-	pstate3, err := state.AddProxy(&p3, "fake-token", "")
-	require.NoError(err)
-	svc3 := pstate3.Proxy.ProxyService
-	require.Equal("0.0.0.0", svc3.Address)
-	require.Equal(1234, svc3.Port)
-
-	// Should have a notification
-	assert.NotEmpty(notifyCh)
-	drainCh(notifyCh)
-
-	// Update config of an already registered proxy should work
-	p3updated := p3
-	p3updated.Config["foo"] = "bar"
-	// Setup multiple watchers who should all witness the change
-	gotP3 := state.Proxy(svc3.ID)
-	require.NotNil(gotP3)
-	var ws memdb.WatchSet
-	ws.Add(gotP3.WatchCh)
-	pstate3, err = state.AddProxy(&p3updated, "fake-token", "")
-	require.NoError(err)
-	svc3 = pstate3.Proxy.ProxyService
-	require.Equal("0.0.0.0", svc3.Address)
-	require.Equal(1234, svc3.Port)
-	gotProxy3 := state.Proxy(svc3.ID)
-	require.NotNil(gotProxy3)
-	require.Equal(p3updated.Config, gotProxy3.Proxy.Config)
-	assert.False(ws.Watch(time.After(500*time.Millisecond)),
-		"watch should have fired so ws.Watch should not timeout")
-
-	drainCh(notifyCh)
-
-	// Remove one of the auto-assigned proxies
-	_, err = state.RemoveProxy(svc2.ID)
-	require.NoError(err)
-
-	// Should have a notification
-	assert.NotEmpty(notifyCh)
-	drainCh(notifyCh)
-
-	// Should be able to create a new proxy for that service with the port (it
-	// should have been "freed").
-	p4 := p2
-	pstate4, err := state.AddProxy(&p4, "fake-token", "")
-	require.NoError(err)
-	svc4 := pstate4.Proxy.ProxyService
-	assert.Contains([]int{20000, 20001}, svc2.Port)
-	assert.Equal(svc4.Port, svc2.Port, "should get the same port back that we freed")
-
-	// Remove a proxy that doesn't exist should error
-	_, err = state.RemoveProxy("nope")
-	require.Error(err)
-
-	assert.Equal(&p4, state.Proxy(p4.ProxyService.ID).Proxy,
-		"should fetch the right proxy details")
-	assert.Nil(state.Proxy("nope"))
-
-	proxies := state.Proxies()
-	assert.Len(proxies, 3)
-	assert.Equal(&p1, proxies[svc.ID].Proxy)
-	assert.Equal(&p4, proxies[svc4.ID].Proxy)
-	assert.Equal(&p3, proxies[svc3.ID].Proxy)
-
-	tokens := make([]string, 4)
-	tokens[0] = state.Proxy(svc.ID).ProxyToken
-	// p2 not registered anymore but lets make sure p4 got a new token when it
-	// re-registered with same ID.
-	tokens[1] = p2token
-	tokens[2] = state.Proxy(svc2.ID).ProxyToken
-	tokens[3] = state.Proxy(svc3.ID).ProxyToken
-
-	// Quick check all are distinct
-	for i := 0; i < len(tokens)-1; i++ {
-		assert.Len(tokens[i], 36) // Sanity check for UUIDish thing.
-		for j := i + 1; j < len(tokens); j++ {
-			assert.NotEqual(tokens[i], tokens[j], "tokens for proxy %d and %d match",
-				i+1, j+1)
-		}
-	}
-}
-
-// Tests the logic for retaining tokens and ports through restore (i.e.
-// proxy-service already restored and token passed in externally)
-func TestStateProxyRestore(t *testing.T) {
-	t.Parallel()
-
-	state := local.NewState(local.Config{
-		// Wide random range to make it very unlikely to pass by chance
-		ProxyBindMinPort: 10000,
-		ProxyBindMaxPort: 20000,
-	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
-
-	// Stub state syncing
-	state.TriggerSyncChanges = func() {}
-
-	webSvc := structs.NodeService{
-		Service: "web",
-	}
-
-	p1 := structs.ConnectManagedProxy{
-		ExecMode:        structs.ProxyExecModeDaemon,
-		Command:         []string{"consul", "connect", "proxy"},
-		TargetServiceID: "web",
-	}
-
-	p2 := p1
-
-	require := require.New(t)
-	assert := assert.New(t)
-
-	// Add a target service
-	require.NoError(state.AddService(&webSvc, "fake-token-web"))
-
-	// Add the proxy for first time to get the proper service definition to
-	// register
-	pstate, err := state.AddProxy(&p1, "fake-token", "")
-	require.NoError(err)
-
-	// Now start again with a brand new state
-	state2 := local.NewState(local.Config{
-		// Wide random range to make it very unlikely to pass by chance
-		ProxyBindMinPort: 10000,
-		ProxyBindMaxPort: 20000,
-	}, log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
-
-	// Stub state syncing
-	state2.TriggerSyncChanges = func() {}
-
-	// Register the target service
-	require.NoError(state2.AddService(&webSvc, "fake-token-web"))
-
-	// "Restore" the proxy service
-	require.NoError(state.AddService(p1.ProxyService, "fake-token-web"))
-
-	// Now we can AddProxy with the "restored" token
-	pstate2, err := state.AddProxy(&p2, "fake-token", pstate.ProxyToken)
-	require.NoError(err)
-
-	// Check it still has the same port and token as before
-	assert.Equal(pstate.ProxyToken, pstate2.ProxyToken)
-	assert.Equal(p1.ProxyService.Port, p2.ProxyService.Port)
 }
 
 // Test that alias check is updated after AddCheck, UpdateCheck, and RemoveCheck for the same service id

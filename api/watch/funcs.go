@@ -16,17 +16,16 @@ var watchFuncFactory map[string]watchFactory
 
 func init() {
 	watchFuncFactory = map[string]watchFactory{
-		"key":                  keyWatch,
-		"keyprefix":            keyPrefixWatch,
-		"services":             servicesWatch,
-		"nodes":                nodesWatch,
-		"service":              serviceWatch,
-		"checks":               checksWatch,
-		"event":                eventWatch,
-		"connect_roots":        connectRootsWatch,
-		"connect_leaf":         connectLeafWatch,
-		"connect_proxy_config": connectProxyConfigWatch,
-		"agent_service":        agentServiceWatch,
+		"key":           keyWatch,
+		"keyprefix":     keyPrefixWatch,
+		"services":      servicesWatch,
+		"nodes":         nodesWatch,
+		"service":       serviceWatch,
+		"checks":        checksWatch,
+		"event":         eventWatch,
+		"connect_roots": connectRootsWatch,
+		"connect_leaf":  connectLeafWatch,
+		"agent_service": agentServiceWatch,
 	}
 }
 
@@ -277,33 +276,6 @@ func connectLeafWatch(params map[string]interface{}) (WatcherFunc, error) {
 		}
 
 		return WaitIndexVal(meta.LastIndex), leaf, err
-	}
-	return fn, nil
-}
-
-// connectProxyConfigWatch is used to watch for changes to Connect managed proxy
-// configuration. Note that this state is agent-local so the watch mechanism
-// uses `hash` rather than `index` for deciding whether to block.
-func connectProxyConfigWatch(params map[string]interface{}) (WatcherFunc, error) {
-	// We don't support consistency modes since it's agent local data
-
-	var proxyServiceID string
-	if err := assignValue(params, "proxy_service_id", &proxyServiceID); err != nil {
-		return nil, err
-	}
-
-	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
-		agent := p.client.Agent()
-		opts := makeQueryOptionsWithContext(p, false)
-		defer p.cancelFunc()
-
-		config, _, err := agent.ConnectProxyConfig(proxyServiceID, &opts)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// Return string ContentHash since we don't have Raft indexes to block on.
-		return WaitHashVal(config.ContentHash), config, err
 	}
 	return fn, nil
 }

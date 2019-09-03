@@ -16,7 +16,7 @@ func init() {
 }
 
 func TestLogger(t testing.TB) *log.Logger {
-	return log.New(&testWriter{t}, "test: ", log.LstdFlags)
+	return log.New(&testWriter{t}, t.Name()+": ", log.LstdFlags)
 }
 
 func TestLoggerWithName(t testing.TB, name string) *log.Logger {

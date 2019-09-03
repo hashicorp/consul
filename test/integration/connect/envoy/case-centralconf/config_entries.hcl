@@ -11,16 +11,10 @@ config_entries {
     kind = "service-defaults"
     name = "s1"
     protocol = "http"
-    connect {
-      sidecar_proxy = true
-    }
   }
   bootstrap {
     kind = "service-defaults"
     name = "s2"
     protocol = "http"
-    connect {
-      sidecar_proxy = true
-    }
   }
 }

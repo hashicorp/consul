@@ -1,0 +1,25 @@
+{{#if item.TaggedAddresses }}
+{{#tabular-collection
+    data-test-addresses
+    items=(object-entries item.TaggedAddresses) as |taggedAddress index|
+}}
+    {{#block-slot 'header'}}
+      <th>Tag</th>
+      <th>Address</th>
+    {{/block-slot}}
+    {{#block-slot 'row'}}
+{{#with (object-at 1 taggedAddress) as |address|}}
+      <td>
+        {{object-at 0 taggedAddress}}{{#if (and (eq address.Address item.Address) (eq address.Port item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
+      </td>
+      <td data-test-address>
+        {{address.Address}}:{{address.Port}}
+      </td>
+{{/with}}
+    {{/block-slot}}
+{{/tabular-collection}}
+{{else}}
+  <p>
+    There are no additional addresses.
+  </p>
+{{/if}}

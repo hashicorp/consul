@@ -49,6 +49,17 @@ func hasHotRestartOption(argSets ...[]string) bool {
 	return false
 }
 
+func hasMaxObjNameLenOption(argSets ...[]string) bool {
+	for _, args := range argSets {
+		for _, opt := range args {
+			if opt == "--max-obj-name-len" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	pipeFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
@@ -129,6 +140,9 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []b
 	envoyArgs = append(envoyArgs, "--config-path", pipeFile)
 	if disableHotRestart {
 		envoyArgs = append(envoyArgs, "--disable-hot-restart")
+	}
+	if !hasMaxObjNameLenOption(prefixArgs, suffixArgs) {
+		envoyArgs = append(envoyArgs, "--max-obj-name-len", "256")
 	}
 	envoyArgs = append(envoyArgs, suffixArgs...)
 

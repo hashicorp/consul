@@ -2,17 +2,13 @@ package agent
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
@@ -20,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/debug"
-	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -157,7 +152,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	}
 }
 
-func buildAgentService(s *structs.NodeService, proxies map[string]*local.ManagedProxy) api.AgentService {
+func buildAgentService(s *structs.NodeService) api.AgentService {
 	weights := api.AgentWeights{Passing: 1, Warning: 1}
 	if s.Weights != nil {
 		if s.Weights.Passing > 0 {
@@ -165,6 +160,15 @@ func buildAgentService(s *structs.NodeService, proxies map[string]*local.Managed
 		}
 		weights.Warning = s.Weights.Warning
 	}
+
+	var taggedAddrs map[string]api.ServiceAddress
+	if len(s.TaggedAddresses) > 0 {
+		taggedAddrs = make(map[string]api.ServiceAddress)
+		for k, v := range s.TaggedAddresses {
+			taggedAddrs[k] = v.ToAPIServiceAddress()
+		}
+	}
+
 	as := api.AgentService{
 		Kind:              api.ServiceKind(s.Kind),
 		ID:                s.ID,
@@ -173,6 +177,7 @@ func buildAgentService(s *structs.NodeService, proxies map[string]*local.Managed
 		Meta:              s.Meta,
 		Port:              s.Port,
 		Address:           s.Address,
+		TaggedAddresses:   taggedAddrs,
 		EnableTagOverride: s.EnableTagOverride,
 		CreateIndex:       s.CreateIndex,
 		ModifyIndex:       s.ModifyIndex,
@@ -185,27 +190,15 @@ func buildAgentService(s *structs.NodeService, proxies map[string]*local.Managed
 	if as.Meta == nil {
 		as.Meta = map[string]string{}
 	}
-	// Attach Unmanaged Proxy config if exists
-	if s.Kind == structs.ServiceKindConnectProxy {
+	// Attach Proxy config if exists
+	if s.Kind == structs.ServiceKindConnectProxy ||
+		s.Kind == structs.ServiceKindMeshGateway {
+
 		as.Proxy = s.Proxy.ToAPI()
-		// DEPRECATED (ProxyDestination) - remove this when removing ProxyDestination
-		// Also set the deprecated ProxyDestination
-		as.ProxyDestination = as.Proxy.DestinationServiceName
 	}
 
-	// Attach Connect configs if they exist. We use the actual proxy state since
-	// that may have had defaults filled in compared to the config that was
-	// provided with the service as stored in the NodeService here.
-	if proxy, ok := proxies[s.ID+"-proxy"]; ok {
-		as.Connect = &api.AgentServiceConnect{
-			Proxy: &api.AgentServiceConnectProxy{
-				ExecMode:  api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
-				Command:   proxy.Proxy.Command,
-				Config:    proxy.Proxy.Config,
-				Upstreams: proxy.Proxy.Upstreams.ToAPI(),
-			},
-		}
-	} else if s.Connect.Native {
+	// Attach Connect configs if they exist.
+	if s.Connect.Native {
 		as.Connect = &api.AgentServiceConnect{
 			Native: true,
 		}
@@ -226,8 +219,6 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
-	proxies := s.agent.State.Proxies()
-
 	// Convert into api.AgentService since that includes Connect config but so far
 	// NodeService doesn't need to internally. They are otherwise identical since
 	// that is the struct used in client for reading the one we output here
@@ -236,7 +227,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 
 	// Use empty list instead of nil
 	for id, s := range services {
-		agentService := buildAgentService(s, proxies)
+		agentService := buildAgentService(s)
 		agentSvcs[id] = &agentService
 	}
 
@@ -255,68 +246,6 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
 	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/")
-
-	// DEPRECATED(managed-proxies) - remove this whole hack.
-	//
-	// Support managed proxies until they are removed entirely. Since built-in
-	// proxy will now use this endpoint, in order to not break managed proxies in
-	// the interim until they are removed, we need to mirror the default-setting
-	// behavior they had. Rather than thread that through this whole method as
-	// special cases that need to be unwound later (and duplicate logic in the
-	// proxy config endpoint) just defer to that and then translate the response.
-	if managedProxy := s.agent.State.Proxy(id); managedProxy != nil {
-		// This is for a managed proxy, use the old endpoint's behavior
-		req.URL.Path = "/v1/agent/connect/proxy/" + id
-		obj, err := s.AgentConnectProxyConfig(resp, req)
-		if err != nil {
-			return obj, err
-		}
-		proxyCfg, ok := obj.(*api.ConnectProxyConfig)
-		if !ok {
-			return nil, errors.New("internal error")
-		}
-		// These are all set by defaults so type checks are just sanity checks that
-		// should never fail.
-		port, ok := proxyCfg.Config["bind_port"].(int)
-		if !ok || port < 1 {
-			return nil, errors.New("invalid proxy config")
-		}
-		addr, ok := proxyCfg.Config["bind_address"].(string)
-		if !ok || addr == "" {
-			return nil, errors.New("invalid proxy config")
-		}
-		localAddr, ok := proxyCfg.Config["local_service_address"].(string)
-		if !ok || localAddr == "" {
-			return nil, errors.New("invalid proxy config")
-		}
-		// Old local_service_address was a host:port
-		localAddress, localPortRaw, err := net.SplitHostPort(localAddr)
-		if err != nil {
-			return nil, err
-		}
-		localPort, err := strconv.Atoi(localPortRaw)
-		if err != nil {
-			return nil, err
-		}
-
-		reply := &api.AgentService{
-			Kind:        api.ServiceKindConnectProxy,
-			ID:          proxyCfg.ProxyServiceID,
-			Service:     managedProxy.Proxy.ProxyService.Service,
-			Port:        port,
-			Address:     addr,
-			ContentHash: proxyCfg.ContentHash,
-			Proxy: &api.AgentServiceConnectProxyConfig{
-				DestinationServiceName: proxyCfg.TargetServiceName,
-				DestinationServiceID:   proxyCfg.TargetServiceID,
-				LocalServiceAddress:    localAddress,
-				LocalServicePort:       localPort,
-				Config:                 proxyCfg.Config,
-				Upstreams:              proxyCfg.Upstreams,
-			},
-		}
-		return reply, nil
-	}
 
 	// Maybe block
 	var queryOpts structs.QueryOptions
@@ -357,41 +286,9 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 				return "", nil, acl.ErrPermissionDenied
 			}
 
-			var connect *api.AgentServiceConnect
-			var proxy *api.AgentServiceConnectProxyConfig
-
-			if svc.Connect.Native {
-				connect = &api.AgentServiceConnect{
-					Native: svc.Connect.Native,
-				}
-			}
-
-			if svc.Kind == structs.ServiceKindConnectProxy {
-				proxy = svc.Proxy.ToAPI()
-			}
-
-			var weights api.AgentWeights
-			if svc.Weights != nil {
-				err := mapstructure.Decode(svc.Weights, &weights)
-				if err != nil {
-					return "", nil, err
-				}
-			}
-
 			// Calculate the content hash over the response, minus the hash field
-			reply := &api.AgentService{
-				Kind:              api.ServiceKind(svc.Kind),
-				ID:                svc.ID,
-				Service:           svc.Service,
-				Tags:              svc.Tags,
-				Meta:              svc.Meta,
-				Port:              svc.Port,
-				Address:           svc.Address,
-				EnableTagOverride: svc.EnableTagOverride,
-				Weights:           weights,
-				Proxy:             proxy,
-				Connect:           connect,
-			}
+			aSvc := buildAgentService(svc)
+			reply := &aSvc
 
 			rawHash, err := hashstructure.Hash(reply, nil)
 			if err != nil {
@@ -780,14 +677,13 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 		return nil, &BadRequestError{Reason: "Missing serviceID"}
 	}
 	services := s.agent.State.Services()
-	proxies := s.agent.State.Proxies()
 	for _, service := range services {
 		if service.ID == serviceID {
 			code, status, healthChecks := agentHealthService(serviceID, s)
 			if returnTextPlain(req) {
 				return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
 			}
-			serviceInfo := buildAgentService(service, proxies)
+			serviceInfo := buildAgentService(service)
 			result := &api.AgentServiceChecksInfo{
 				AggregatedStatus: status,
 				Checks:           healthChecks,
@@ -818,11 +714,10 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
 	services := s.agent.State.Services()
 	result := make([]api.AgentServiceChecksInfo, 0, 16)
-	proxies := s.agent.State.Proxies()
 	for _, service := range services {
 		if service.Service == serviceName {
 			scode, sstatus, healthChecks := agentHealthService(service.ID, s)
-			serviceInfo := buildAgentService(service, proxies)
+			serviceInfo := buildAgentService(service)
 			res := api.AgentServiceChecksInfo{
 				AggregatedStatus: sstatus,
 				Checks:           healthChecks,
@@ -861,8 +756,6 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		// and why we should get rid of it.
 		lib.TranslateKeys(rawMap, map[string]string{
 			"enable_tag_override": "EnableTagOverride",
-			// Managed Proxy Config
-			"exec_mode": "ExecMode",
 			// Proxy Upstreams
 			"destination_name":      "DestinationName",
 			"destination_type":      "DestinationType",
@@ -880,6 +773,9 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			// DON'T Recurse into these opaque config maps or we might mangle user's
 			// keys. Note empty canonical is a special sentinel to prevent recursion.
 			"Meta": "",
+
+			"tagged_addresses": "TaggedAddresses",
+
 			// upstreams is an array but this prevents recursion into config field of
 			// any item in the array.
 			"Proxy.Config":                   "",
@@ -889,8 +785,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 
 			// Same exceptions as above, but for a nested sidecar_service note we use
 			// the canonical form SidecarService since that is translated by the time
-			// the lookup here happens. Note that sidecar service doesn't support
-			// managed proxies (connect.proxy).
+			// the lookup here happens.
 			"Connect.SidecarService.Meta":                   "",
 			"Connect.SidecarService.Proxy.Config":           "",
 			"Connect.SidecarService.Proxy.Upstreams.config": "",
@@ -1019,27 +914,20 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		ns.Connect.SidecarService = nil
 	}
 
-	// Get any proxy registrations
-	proxy, err := args.ConnectManagedProxy()
-	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, err.Error())
-		return nil, nil
-	}
-
-	// If we have a proxy, verify that we're allowed to add a proxy via the API
-	if proxy != nil && !s.agent.config.ConnectProxyAllowManagedAPIRegistration {
-		return nil, &BadRequestError{
-			Reason: "Managed proxy registration via the API is disallowed."}
-	}
-
 	// Add the service.
-	if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
-		return nil, err
+	replaceExistingChecks := false
+
+	query := req.URL.Query()
+	if len(query["replace-existing-checks"]) > 0 && (query.Get("replace-existing-checks") == "" || query.Get("replace-existing-checks") == "true") {
+		replaceExistingChecks = true
 	}
-	// Add proxy (which will add proxy service so do it before we trigger sync)
-	if proxy != nil {
-		if err := s.agent.AddProxy(proxy, true, false, "", ConfigSourceRemote); err != nil {
+
+	if replaceExistingChecks {
+		if err := s.agent.AddServiceAndReplaceChecks(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
 			return nil, err
 		}
 	}
@@ -1061,14 +949,6 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 	s.parseToken(req, &token)
 	if err := s.agent.vetServiceUpdate(token, serviceID); err != nil {
 		return nil, err
-	}
-
-	// Verify this isn't a proxy
-	if s.agent.State.Proxy(serviceID) != nil {
-		return nil, &BadRequestError{
-			Reason: "Managed proxy service cannot be deregistered directly. " +
-				"Deregister the service that has a managed proxy to automatically " +
-				"deregister the managed proxy itself."}
 	}
 
 	if err := s.agent.RemoveService(serviceID, true); err != nil {
@@ -1388,26 +1268,12 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	var qOpts structs.QueryOptions
 
 	// Store DC in the ConnectCALeafRequest but query opts separately
-	// Don't resolve a proxy token to a real token that will be
-	// done with a call to verifyProxyToken later along with
-	// other security relevant checks.
-	if done := s.parseWithoutResolvingProxyToken(resp, req, &args.Datacenter, &qOpts); done {
+	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {
 		return nil, nil
 	}
 	args.MinQueryIndex = qOpts.MinQueryIndex
 	args.MaxQueryTime = qOpts.MaxQueryTime
-
-	// Verify the proxy token. This will check both the local proxy token
-	// as well as the ACL if the token isn't local. The checks done in
-	// verifyProxyToken are still relevant because a leaf cert can be cached
-	// verifying the proxy token matches the service id or that a real
-	// acl token still is valid and has ServiceWrite is necessary or
-	// that cached cert is potentially unprotected.
-	effectiveToken, _, err := s.agent.verifyProxyToken(qOpts.Token, serviceName, "")
-	if err != nil {
-		return nil, err
-	}
-	args.Token = effectiveToken
+	args.Token = qOpts.Token
 
 	raw, m, err := s.agent.cache.Get(cachetype.ConnectCALeafName, &args)
 	if err != nil {
@@ -1423,133 +1289,6 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	setIndex(resp, reply.ModifyIndex)
 
 	return reply, nil
-}
-
-// GET /v1/agent/connect/proxy/:proxy_service_id
-//
-// Returns the local proxy config for the identified proxy. Requires token=
-// param with the correct local ProxyToken (not ACL token).
-func (s *HTTPServer) AgentConnectProxyConfig(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Get the proxy ID. Note that this is the ID of a proxy's service instance.
-	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/proxy/")
-
-	// Maybe block
-	var queryOpts structs.QueryOptions
-	if parseWait(resp, req, &queryOpts) {
-		// parseWait returns an error itself
-		return nil, nil
-	}
-
-	// Parse the token - don't resolve a proxy token to a real token
-	// that will be done with a call to verifyProxyToken later along with
-	// other security relevant checks.
-	var token string
-	s.parseTokenWithoutResolvingProxyToken(req, &token)
-
-	// Parse hash specially since it's only this endpoint that uses it currently.
-	// Eventually this should happen in parseWait and end up in QueryOptions but I
-	// didn't want to make very general changes right away.
-	hash := req.URL.Query().Get("hash")
-
-	return s.agentLocalBlockingQuery(resp, hash, &queryOpts,
-		func(ws memdb.WatchSet) (string, interface{}, error) {
-			// Retrieve the proxy specified
-			proxy := s.agent.State.Proxy(id)
-			if proxy == nil {
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp, "unknown proxy service ID: %s", id)
-				return "", nil, nil
-			}
-
-			// Lookup the target service as a convenience
-			target := s.agent.State.Service(proxy.Proxy.TargetServiceID)
-			if target == nil {
-				// Not found since this endpoint is only useful for agent-managed proxies so
-				// service missing means the service was deregistered racily with this call.
-				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp, "unknown target service ID: %s", proxy.Proxy.TargetServiceID)
-				return "", nil, nil
-			}
-
-			// Validate the ACL token - because this endpoint uses data local to a single
-			// agent, this function is responsible for all enforcement regarding
-			// protection of the configuration. verifyProxyToken will match the proxies
-			// token to the correct service or in the case of being provide a real ACL
-			// token it will ensure that the requester has ServiceWrite privileges
-			// for this service.
-			_, isProxyToken, err := s.agent.verifyProxyToken(token, target.Service, id)
-			if err != nil {
-				return "", nil, err
-			}
-
-			// Watch the proxy for changes
-			ws.Add(proxy.WatchCh)
-
-			hash, err := hashstructure.Hash(proxy.Proxy, nil)
-			if err != nil {
-				return "", nil, err
-			}
-			contentHash := fmt.Sprintf("%x", hash)
-
-			// Set defaults
-			config, err := s.agent.applyProxyConfigDefaults(proxy.Proxy)
-			if err != nil {
-				return "", nil, err
-			}
-
-			// Only merge in telemetry config from agent if the requested is
-			// authorized with a proxy token. This prevents us leaking potentially
-			// sensitive config like Circonus API token via a public endpoint. Proxy
-			// tokens are only ever generated in-memory and passed via ENV to a child
-			// proxy process so potential for abuse here seems small. This endpoint in
-			// general is only useful for managed proxies now so it should _always_ be
-			// true that auth is via a proxy token but inconvenient for testing if we
-			// lock it down so strictly.
-			if isProxyToken {
-				// Add telemetry config. Copy the global config so we can customize the
-				// prefix.
-				telemetryCfg := s.agent.config.Telemetry
-				telemetryCfg.MetricsPrefix = telemetryCfg.MetricsPrefix + ".proxy." + target.ID
-
-				// First see if the user has specified telemetry
-				if userRaw, ok := config["telemetry"]; ok {
-					// User specified domething, see if it is compatible with agent
-					// telemetry config:
-					var uCfg lib.TelemetryConfig
-					dec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-						Result: &uCfg,
-						// Make sure that if the user passes something that isn't just a
-						// simple override of a valid TelemetryConfig that we fail so that we
-						// don't clobber their custom config.
-						ErrorUnused: true,
-					})
-					if err == nil {
-						if err = dec.Decode(userRaw); err == nil {
-							// It did decode! Merge any unspecified fields from agent config.
-							uCfg.MergeDefaults(&telemetryCfg)
-							config["telemetry"] = uCfg
-						}
-					}
-					// Failed to decode, just keep user's config["telemetry"] verbatim
-					// with no agent merge.
-				} else {
-					// Add agent telemetry config.
-					config["telemetry"] = telemetryCfg
-				}
-			}
-
-			reply := &api.ConnectProxyConfig{
-				ProxyServiceID:    proxy.Proxy.ProxyService.ID,
-				TargetServiceID:   target.ID,
-				TargetServiceName: target.Service,
-				ContentHash:       contentHash,
-				ExecMode:          api.ProxyExecMode(proxy.Proxy.ExecMode.String()),
-				Command:           proxy.Proxy.Command,
-				Config:            config,
-				Upstreams:         proxy.Proxy.Upstreams.ToAPI(),
-			}
-			return contentHash, reply, nil
-		})
 }
 
 type agentLocalBlockingFunc func(ws memdb.WatchSet) (string, interface{}, error)

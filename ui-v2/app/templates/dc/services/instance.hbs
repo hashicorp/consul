@@ -21,6 +21,8 @@
 {{/with}}
 {{#if (eq item.Kind 'connect-proxy')}}
         <span class="kind-proxy">Proxy</span>
+{{else if (eq item.Kind 'mesh-gateway')}}
+        <span class="kind-proxy">Mesh Gateway</span>
 {{/if}}
       </h1>
       <dl>
@@ -64,10 +66,18 @@
         {{tab-nav
             items=(compact
               (array
-                                    'Service Checks'
-                                    'Node Checks'
-(if (eq item.Kind 'connect-proxy')  'Upstreams' '')
-                                    'Tags'
+                'Service Checks'
+                'Node Checks'
+(if
+  (eq item.Kind 'connect-proxy')
+                'Upstreams' ''
+)
+(if
+  (eq item.Kind 'mesh-gateway')
+                'Addresses' ''
+)
+                'Tags'
+                'Meta Data'
               )
             )
             selected=selectedTab
@@ -75,10 +85,18 @@
         {{#each
             (compact
                 (array
-                                    (hash id=(slugify 'Service Checks') partial='dc/services/servicechecks')
-                                    (hash id=(slugify 'Node Checks') partial='dc/services/nodechecks')
-(if (eq item.Kind 'connect-proxy')  (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') '')
-                                    (hash id=(slugify 'Tags') partial='dc/services/tags')
+                    (hash id=(slugify 'Service Checks') partial='dc/services/servicechecks')
+                    (hash id=(slugify 'Node Checks') partial='dc/services/nodechecks')
+(if
+  (eq item.Kind 'connect-proxy')
+                    (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') ''
+)
+(if
+  (eq item.Kind 'mesh-gateway')
+                    (hash id=(slugify 'Addresses') partial='dc/services/addresses') ''
+)
+                    (hash id=(slugify 'Tags') partial='dc/services/tags')
+                    (hash id=(slugify 'Meta Data') partial='dc/services/metadata')
                 )
             ) as |panel|
         }}

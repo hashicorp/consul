@@ -1,7 +1,9 @@
 package structs
 
 import (
+	"encoding/binary"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -9,6 +11,8 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 const (
@@ -70,7 +74,64 @@ type Intention struct {
 	// or modified.
 	CreatedAt, UpdatedAt time.Time `mapstructure:"-"`
 
+	// Hash of the contents of the intention
+	//
+	// This is needed mainly for replication purposes. When replicating from
+	// one DC to another keeping the content Hash will allow us to detect
+	// content changes more efficiently than checking every single field
+	Hash []byte
+
 	RaftIndex
+}
+
+func (x *Intention) SetHash(force bool) []byte {
+	if force || x.Hash == nil {
+		hash, err := blake2b.New256(nil)
+		if err != nil {
+			panic(err)
+		}
+
+		// Any non-immutable "content" fields should be involved with the
+		// overall hash. The IDs are immutable which is why they aren't here.
+		// The raft indices are metadata similar to the hash which is why they
+		// aren't incorporated. CreateTime is similarly immutable
+		//
+		// The Hash is really only used for replication to determine if a token
+		// has changed and should be updated locally.
+
+		// Write all the user set fields
+		hash.Write([]byte(x.ID))
+		hash.Write([]byte(x.Description))
+		hash.Write([]byte(x.SourceNS))
+		hash.Write([]byte(x.SourceName))
+		hash.Write([]byte(x.DestinationNS))
+		hash.Write([]byte(x.DestinationName))
+		hash.Write([]byte(x.SourceType))
+		hash.Write([]byte(x.Action))
+		hash.Write([]byte(x.DefaultAddr))
+		binary.Write(hash, binary.LittleEndian, x.DefaultPort)
+		binary.Write(hash, binary.LittleEndian, x.Precedence)
+
+		// hashing the metadata
+		var keys []string
+		for k := range x.Meta {
+			keys = append(keys, k)
+		}
+
+		// keep them sorted to ensure hash stability
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			hash.Write([]byte(k))
+			hash.Write([]byte(x.Meta[k]))
+		}
+
+		// Finalize the hash
+		hashVal := hash.Sum(nil)
+
+		x.Hash = hashVal
+	}
+	return x.Hash
 }
 
 // Validate returns an error if the intention is invalid for inserting

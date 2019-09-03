@@ -138,7 +138,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 	// Generate a private key if needed
 	newState := *providerState
 	if c.config.PrivateKey == "" {
-		_, pk, err := connect.GeneratePrivateKey()
+		_, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 		if err != nil {
 			return err
 		}
@@ -184,7 +184,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 	}
 
 	// Create a new private key and CSR.
-	signer, pk, err := connect.GeneratePrivateKey()
+	signer, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 	if err != nil {
 		return "", err
 	}
@@ -607,7 +607,7 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 // generateCA makes a new root CA using the current private key
 func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
 	state := c.Delegate.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return "", err
 	}

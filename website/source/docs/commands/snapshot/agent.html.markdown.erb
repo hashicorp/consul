@@ -218,6 +218,10 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 * `-aws-s3-kms-key` -  Optional Amazon KMS key to use, if this is not set the default KMS master key will be used. Set this if you want to manage key rotation yourself.
 
+   -> When using a S3-compatible storage exposing a self-signed certificate the agent will not be able to perform 
+   the snapshot operations unless the CA used to sign the storage certificate is trusted by the node running 
+   the agent. You can add the CA root certificate to the OS trust store to have Consul trust the storage endpoint.
+   
 #### S3 Required Permissions
 
 Different S3 permissions are required depending on the configuration of the snapshot agent. In particular extra permissions are required when

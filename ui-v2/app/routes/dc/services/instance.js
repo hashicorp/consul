@@ -18,7 +18,8 @@ export default Route.extend({
       // connect-proxy or vice versa so leave as is for now
       return hash({
         proxy:
-          get(model.item, 'Kind') === 'connect-proxy'
+          // proxies and mesh-gateways can't have proxies themselves so don't even look
+          ['connect-proxy', 'mesh-gateway'].includes(get(model.item, 'Kind'))
             ? null
             : proxyRepo.findInstanceBySlug(params.id, params.node, params.name, dc),
         ...model,

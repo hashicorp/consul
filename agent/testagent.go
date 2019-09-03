@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
@@ -94,7 +95,7 @@ type TestAgent struct {
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
 func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
-	a := &TestAgent{Name: name, HCL: hcl}
+	a := &TestAgent{Name: name, HCL: hcl, LogOutput: testutil.TestWriter(t)}
 
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if err := a.Start(); err != nil {
@@ -175,6 +176,8 @@ func (a *TestAgent) Start() (err error) {
 
 	logOutput := a.LogOutput
 	if logOutput == nil {
+		// TODO: move this out of Start() and back into NewTestAgent,
+		// and make `logOutput = testutil.TestWriter(t)`
 		logOutput = os.Stderr
 	}
 	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
@@ -396,7 +399,7 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 			bootstrap = true
 			server = true
 			node_id = "` + nodeID + `"
-			node_name = "Node ` + nodeID + `"
+			node_name = "Node-` + nodeID + `"
 			connect {
 				enabled = true
 				ca_config {
@@ -426,9 +429,6 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 		fmt.Println("WARNING:", w)
 	}
 
-	// Disable connect proxy execution since it causes all kinds of problems with
-	// self-executing tests etc.
-	cfg.ConnectTestDisableManagedProxies = true
 	// Effectively disables the delay after root rotation before requesting CSRs
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.

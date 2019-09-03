@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/mapstructure"
 )
@@ -41,6 +42,8 @@ func ParseConsulCAConfig(raw map[string]interface{}) (*structs.ConsulCAProviderC
 
 func defaultCommonConfig() structs.CommonCAProviderConfig {
 	return structs.CommonCAProviderConfig{
-		LeafCertTTL: 3 * 24 * time.Hour,
+		LeafCertTTL:    3 * 24 * time.Hour,
+		PrivateKeyType: connect.DefaultPrivateKeyType,
+		PrivateKeyBits: connect.DefaultPrivateKeyBits,
 	}
 }

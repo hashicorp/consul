@@ -1,6 +1,10 @@
 package xds
 
 import (
+	"log"
+	"os"
+	"path"
+	"sort"
 	"testing"
 
 	"github.com/mitchellh/copystructure"
@@ -10,7 +14,9 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	testinf "github.com/mitchellh/go-testing-interface"
 )
 
 func Test_makeLoadAssignment(t *testing.T) {
@@ -88,16 +94,19 @@ func Test_makeLoadAssignment(t *testing.T) {
 	testWarningCheckServiceNodes[0].Checks[0].Status = "warning"
 	testWarningCheckServiceNodes[1].Checks[0].Status = "warning"
 
+	// TODO(rb): test onlypassing
 	tests := []struct {
 		name        string
 		clusterName string
-		endpoints   structs.CheckServiceNodes
+		endpoints   []loadAssignmentEndpointGroup
 		want        *envoy.ClusterLoadAssignment
 	}{
 		{
 			name:        "no instances",
 			clusterName: "service:test",
-			endpoints:   structs.CheckServiceNodes{},
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: nil},
+			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
@@ -108,7 +117,9 @@ func Test_makeLoadAssignment(t *testing.T) {
 		{
 			name:        "instances, no weights",
 			clusterName: "service:test",
-			endpoints:   testCheckServiceNodes,
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: testCheckServiceNodes},
+			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
@@ -136,7 +147,9 @@ func Test_makeLoadAssignment(t *testing.T) {
 		{
 			name:        "instances, healthy weights",
 			clusterName: "service:test",
-			endpoints:   testWeightedCheckServiceNodes,
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: testWeightedCheckServiceNodes},
+			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
@@ -164,7 +177,9 @@ func Test_makeLoadAssignment(t *testing.T) {
 		{
 			name:        "instances, warning weights",
 			clusterName: "service:test",
-			endpoints:   testWarningCheckServiceNodes,
+			endpoints: []loadAssignmentEndpointGroup{
+				{Endpoints: testWarningCheckServiceNodes},
+			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
 				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
@@ -192,8 +207,179 @@ func Test_makeLoadAssignment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeLoadAssignment(tt.clusterName, tt.endpoints)
+			got := makeLoadAssignment(
+				tt.clusterName,
+				tt.endpoints,
+				"dc1",
+			)
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_endpointsFromSnapshot(t *testing.T) {
+
+	tests := []struct {
+		name   string
+		create func(t testinf.T) *proxycfg.ConfigSnapshot
+		// Setup is called before the test starts. It is passed the snapshot from
+		// create func and is allowed to modify it in any way to setup the
+		// test input.
+		setup              func(snap *proxycfg.ConfigSnapshot)
+		overrideGoldenName string
+	}{
+		{
+			name:   "defaults",
+			create: proxycfg.TestConfigSnapshot,
+			setup:  nil, // Default snapshot
+		},
+		{
+			name:   "mesh-gateway",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChain,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-chain-external-sni",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-chain-and-overrides",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-chain-and-failover",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughRemoteGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughLocalGateway,
+			setup:  nil,
+		},
+		{
+			name:   "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithDoubleFailoverThroughLocalGatewayTriggered,
+			setup:  nil,
+		},
+		{
+			name:   "splitter-with-resolver-redirect",
+			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
+			setup:  nil,
+		},
+		{
+			name:   "mesh-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
+					"bar": &structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "bar",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+					"foo": &structs.ServiceResolverConfigEntry{
+						Kind: structs.ServiceResolver,
+						Name: "foo",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": structs.ServiceResolverSubset{
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": structs.ServiceResolverSubset{
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+
+			// Sanity check default with no overrides first
+			snap := tt.create(t)
+
+			// We need to replace the TLS certs with deterministic ones to make golden
+			// files workable. Note we don't update these otherwise they'd change
+			// golden files for every test case and so not be any use!
+			if snap.ConnectProxy.Leaf != nil {
+				snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "")
+				snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "")
+			}
+			if snap.Roots != nil {
+				snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "")
+			}
+
+			if tt.setup != nil {
+				tt.setup(snap)
+			}
+
+			// Need server just for logger dependency
+			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+
+			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
+			sort.Slice(endpoints, func(i, j int) bool {
+				return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
+			})
+			require.NoError(err)
+			r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
+			require.NoError(err)
+
+			gotJSON := responseToJSON(t, r)
+
+			gName := tt.name
+			if tt.overrideGoldenName != "" {
+				gName = tt.overrideGoldenName
+			}
+
+			require.JSONEq(golden(t, path.Join("endpoints", gName), gotJSON), gotJSON)
 		})
 	}
 }

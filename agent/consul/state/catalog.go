@@ -102,6 +102,12 @@ func servicesTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer:      &IndexConnectService{},
 			},
+			"kind": &memdb.IndexSchema{
+				Name:         "kind",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer:      &IndexServiceKind{},
+			},
 		},
 	}
 }
@@ -387,7 +393,7 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 			}
 
 			if !(enode.ID == "" && allowClashWithoutID) && nodeHealthy {
-				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+				return fmt.Errorf("Node name %s is reserved by node %s with name %s (%s)", node.Node, enode.ID, enode.Node, enode.Address)
 			}
 		}
 	}
@@ -441,13 +447,13 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
 				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
 				if dupNameError != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
+					return fmt.Errorf("Error while renaming Node ID: %q (%s): %s", node.ID, node.Address, dupNameError)
 				}
 				// We are actually renaming a node, remove its reference first
 				err := s.deleteNodeTxn(tx, idx, n.Node)
 				if err != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
-						node.ID, n.Node, node.Node)
+					return fmt.Errorf("Error while renaming Node ID: %q (%s) from %s to %s",
+						node.ID, node.Address, n.Node, node.Node)
 				}
 			}
 		} else {
@@ -685,6 +691,9 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
+		if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
 	}
 
 	// Do the delete in a separate loop so we don't trash the iterator.
@@ -846,6 +855,9 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.Kind), idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -1147,6 +1159,13 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string) (uint64, 
 		svc := service.(*structs.ServiceNode)
 		if svc.ServiceAddress == address {
 			results = append(results, svc)
+		} else {
+			for _, addr := range svc.ServiceTaggedAddresses {
+				if addr.Address == address {
+					results = append(results, svc)
+					break
+				}
+			}
 		}
 	}
 
@@ -1323,6 +1342,16 @@ func serviceIndexName(name string) string {
 	return fmt.Sprintf("service.%s", name)
 }
 
+func serviceKindIndexName(kind structs.ServiceKind) string {
+	switch kind {
+	case structs.ServiceKindTypical:
+		// needs a special case here
+		return "service_kind.typical"
+	default:
+		return "service_kind." + string(kind)
+	}
+}
+
 // deleteServiceCASTxn is used to try doing a service delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
@@ -1395,6 +1424,10 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	}
 
 	svc := service.(*structs.ServiceNode)
+	if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
 	if remainingService, err := tx.First("services", "service", svc.ServiceName); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
@@ -1445,6 +1478,9 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode).ToNodeService()
 		if err := tx.Insert("index", &IndexEntry{serviceIndexName(svc.Service), idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
+		if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.Kind), idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
 	}
@@ -1535,6 +1571,9 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		} else {
 			// Check has been modified, we trigger a index service change
 			if err = tx.Insert("index", &IndexEntry{serviceIndexName(svc.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
+			if err = tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
 				return fmt.Errorf("failed updating index: %s", err)
 			}
 		}
@@ -1835,6 +1874,16 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 		// When no service is linked to this service, update all services of node
 		if existing.ServiceID != "" {
 			if err = tx.Insert("index", &IndexEntry{serviceIndexName(existing.ServiceName), idx}); err != nil {
+				return fmt.Errorf("failed updating index: %s", err)
+			}
+
+			svcRaw, err := tx.First("services", "id", existing.Node, existing.ServiceID)
+			if err != nil {
+				return fmt.Errorf("failed retrieving service from state store: %v", err)
+			}
+
+			svc := svcRaw.(*structs.ServiceNode)
+			if err := tx.Insert("index", &IndexEntry{serviceKindIndexName(svc.ServiceKind), idx}); err != nil {
 				return fmt.Errorf("failed updating index: %s", err)
 			}
 		} else {
@@ -2148,14 +2197,43 @@ func (s *Store) NodeDump(ws memdb.WatchSet) (uint64, structs.NodeDump, error) {
 	return s.parseNodes(tx, ws, idx, nodes)
 }
 
-func (s *Store) ServiceDump(ws memdb.WatchSet) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	if useKind {
+		return s.serviceDumpKindTxn(tx, ws, kind)
+	} else {
+		return s.serviceDumpAllTxn(tx, ws)
+	}
+}
+
+func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, structs.CheckServiceNodes, error) {
 	// Get the table index
 	idx := maxIndexWatchTxn(tx, ws, "nodes", "services", "checks")
 
 	services, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	var results structs.ServiceNodes
+	for service := services.Next(); service != nil; service = services.Next() {
+		sn := service.(*structs.ServiceNode)
+		results = append(results, sn)
+	}
+
+	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+}
+
+func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind structs.ServiceKind) (uint64, structs.CheckServiceNodes, error) {
+	// unlike when we are dumping all services here we only need to watch the kind specific index entry for changing (or nodes, checks)
+	// updating any services, nodes or checks will bump the appropriate service kind index so there is no need to watch any of the individual
+	// entries
+	idx := maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind))
+
+	// Query the state store for the service.
+	services, err := tx.Get("services", "kind", string(kind))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}

@@ -844,6 +844,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -871,6 +872,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -914,6 +916,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -959,6 +962,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1070,6 +1074,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.Len(t, token.Roles, 0)
 		require.Equal(t, "updated token", token.Description)
 		require.True(t, token.Local)
@@ -1168,6 +1173,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 				tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
 				require.NoError(t, err)
 				token := tokenResp.Token
+				require.NotNil(t, token)
 				require.ElementsMatch(t, req.ACLToken.ServiceIdentities, token.ServiceIdentities)
 			} else {
 				require.NotNil(t, err)
@@ -1199,6 +1205,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
+		require.NotNil(t, token)
 		require.Len(t, token.ServiceIdentities, 1)
 	})
 
@@ -1232,6 +1239,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		tokenResp, err := retrieveTestToken(codec, "root", "dc1", resp.AccessorID)
 		require.NoError(t, err)
 		token := tokenResp.Token
+		require.NotNil(t, token)
 		require.Len(t, token.ServiceIdentities, 1)
 		svcid := token.ServiceIdentities[0]
 		require.Equal(t, "example", svcid.ServiceName)
@@ -1356,6 +1364,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 		expectExpTime := resp.CreateTime.Add(4 * time.Second)
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1388,6 +1397,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "foobar")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1437,6 +1447,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description-1")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1464,6 +1475,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.NotNil(t, token.AccessorID)
 		require.Equal(t, token.Description, "new-description-2")
 		require.Equal(t, token.AccessorID, resp.AccessorID)
@@ -1558,6 +1570,7 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 		require.NoError(t, err)
 		token := tokenResp.Token
 
+		require.NotNil(t, token)
 		require.Equal(t, req.ACLToken.AccessorID, token.AccessorID)
 		require.Equal(t, req.ACLToken.SecretID, token.SecretID)
 		require.Equal(t, token.Description, "foobar")
@@ -5255,6 +5268,22 @@ func upsertTestToken(codec rpc.ClientCodec, masterToken string, datacenter strin
 	return &out, nil
 }
 
+func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLToken, error) {
+	policy, err := upsertTestPolicyWithRules(codec, masterToken, datacenter, rules)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := upsertTestToken(codec, masterToken, datacenter, func(token *structs.ACLToken) {
+		token.Policies = []structs.ACLTokenPolicyLink{{ID: policy.ID}}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
 func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
 	arg := structs.ACLTokenGetRequest{
 		TokenID:      "root",
@@ -5298,6 +5327,18 @@ func retrieveTestToken(codec rpc.ClientCodec, masterToken string, datacenter str
 	return &out, nil
 }
 
+func deleteTestToken(codec rpc.ClientCodec, masterToken string, datacenter string, tokenAccessor string) error {
+	arg := structs.ACLTokenDeleteRequest{
+		Datacenter:   datacenter,
+		TokenID:      tokenAccessor,
+		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	var ignored string
+	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &arg, &ignored)
+	return err
+}
+
 func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, policyID string) error {
 	arg := structs.ACLPolicyDeleteRequest{
 		Datacenter:   datacenter,
@@ -5312,6 +5353,10 @@ func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 
 // upsertTestPolicy creates a policy for testing purposes
 func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRules(codec, masterToken, datacenter, "")
+}
+
+func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
 	// Make sure test policies can't collide
 	policyUnq, err := uuid.GenerateUUID()
 	if err != nil {
@@ -5321,7 +5366,8 @@ func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 	arg := structs.ACLPolicySetRequest{
 		Datacenter: datacenter,
 		Policy: structs.ACLPolicy{
-			Name: fmt.Sprintf("test-policy-%s", policyUnq),
+			Name:  fmt.Sprintf("test-policy-%s", policyUnq),
+			Rules: rules,
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
 	}

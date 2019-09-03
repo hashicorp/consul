@@ -30,8 +30,9 @@ var (
 	// variable points to. Clients need to compare using `err.Error() ==
 	// consul.ErrRateLimited.Error()` which is very sad. Short of replacing our
 	// RPC mechanism it's hard to know how to make that much better though.
-	ErrConnectNotEnabled = errors.New("Connect must be enabled in order to use this endpoint")
-	ErrRateLimited       = errors.New("Rate limit reached, try again later")
+	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
+	ErrRateLimited          = errors.New("Rate limit reached, try again later")
+	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
 )
 
 const (
@@ -123,7 +124,7 @@ func (s *ConnectCA) ConfigurationGet(
 	}
 
 	state := s.srv.fsm.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -156,7 +157,7 @@ func (s *ConnectCA) ConfigurationSet(
 
 	// Exit early if it's a no-op change
 	state := s.srv.fsm.State()
-	confIdx, config, err := state.CAConfig()
+	confIdx, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -315,39 +316,23 @@ func (s *ConnectCA) Roots(
 		return ErrConnectNotEnabled
 	}
 
-	// Load the ClusterID to generate TrustDomain. We do this outside the loop
-	// since by definition this value should be immutable once set for lifetime of
-	// the cluster so we don't need to look it up more than once. We also don't
-	// have to worry about non-atomicity between the config fetch transaction and
-	// the CARoots transaction below since this field must remain immutable. Do
-	// not re-use this state/config for other logic that might care about changes
-	// of config during the blocking query below.
-	{
-		state := s.srv.fsm.State()
-		_, config, err := state.CAConfig()
-		if err != nil {
-			return err
-		}
-
-		// Check CA is actually bootstrapped...
-		if config != nil {
-			// Build TrustDomain based on the ClusterID stored.
-			signingID := connect.SpiffeIDSigningForCluster(config)
-			if signingID == nil {
-				// If CA is bootstrapped at all then this should never happen but be
-				// defensive.
-				return errors.New("no cluster trust domain setup")
-			}
-			reply.TrustDomain = signingID.Host()
-		}
-	}
-
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, roots, err := state.CARoots(ws)
+			index, roots, config, err := state.CARootsAndConfig(ws)
 			if err != nil {
 				return err
+			}
+
+			if config != nil {
+				// Build TrustDomain based on the ClusterID stored.
+				signingID := connect.SpiffeIDSigningForCluster(config)
+				if signingID == nil {
+					// If CA is bootstrapped at all then this should never happen but be
+					// defensive.
+					return errors.New("no cluster trust domain setup")
+				}
+				reply.TrustDomain = signingID.Host()
 			}
 
 			reply.Index, reply.Roots = index, roots
@@ -374,6 +359,8 @@ func (s *ConnectCA) Roots(
 					IntermediateCerts:   r.IntermediateCerts,
 					RaftIndex:           r.RaftIndex,
 					Active:              r.Active,
+					PrivateKeyType:      r.PrivateKeyType,
+					PrivateKeyBits:      r.PrivateKeyBits,
 				}
 
 				if r.Active {
@@ -414,11 +401,13 @@ func (s *ConnectCA) Sign(
 	provider, caRoot := s.srv.getCAProvider()
 	if provider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
+	} else if caRoot == nil {
+		return fmt.Errorf("internal error: CA root is nil")
 	}
 
 	// Verify that the CSR entity is in the cluster's trust domain
 	state := s.srv.fsm.State()
-	_, config, err := state.CAConfig()
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -553,6 +542,53 @@ func (s *ConnectCA) Sign(
 		reply.Agent = agentID.Agent
 		reply.AgentURI = cert.URIs[0].String()
 	}
+
+	return nil
+}
+
+// SignIntermediate signs an intermediate certificate for a remote datacenter.
+func (s *ConnectCA) SignIntermediate(
+	args *structs.CASignRequest,
+	reply *string) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
+	if done, err := s.srv.forward("ConnectCA.SignIntermediate", args, args, reply); done {
+		return err
+	}
+
+	// Verify we are allowed to serve this request
+	if s.srv.config.PrimaryDatacenter != s.srv.config.Datacenter {
+		return ErrNotPrimaryDatacenter
+	}
+
+	// This action requires operator write access.
+	rule, err := s.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if rule != nil && !rule.OperatorWrite() {
+		return acl.ErrPermissionDenied
+	}
+
+	provider, _ := s.srv.getCAProvider()
+	if provider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
+
+	csr, err := connect.ParseCSR(args.CSR)
+	if err != nil {
+		return err
+	}
+
+	cert, err := provider.SignIntermediate(csr)
+	if err != nil {
+		return err
+	}
+
+	*reply = cert
 
 	return nil
 }

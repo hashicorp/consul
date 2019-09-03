@@ -76,7 +76,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		})
 }
 
-func (m *Internal) ServiceDump(args *structs.DCSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
+func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.IndexedCheckServiceNodes) error {
 	if done, err := m.srv.forward("Internal.ServiceDump", args, args, reply); done {
 		return err
 	}
@@ -90,7 +90,7 @@ func (m *Internal) ServiceDump(args *structs.DCSpecificRequest, reply *structs.I
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodes, err := state.ServiceDump(ws)
+			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind)
 			if err != nil {
 				return err
 			}
