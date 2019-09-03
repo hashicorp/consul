@@ -4189,8 +4189,7 @@ func TestAgent_Monitor(t *testing.T) {
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 		HCL:       `node_name = "invalid!"`,
 	}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()

@@ -140,8 +140,7 @@ func TestHTTPServer_H2(t *testing.T) {
 			ca_file = "../test/client_certs/rootca.crt"
 		`,
 	}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
@@ -460,8 +459,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	t.Parallel()
 	buf := new(bytes.Buffer)
 	a := &TestAgent{Name: t.Name(), LogOutput: buf}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
@@ -1289,8 +1287,7 @@ func TestAllowedNets(t *testing.T) {
 		a := &TestAgent{
 			Name: t.Name(),
 		}
-		err := a.Start()
-		if err != nil {
+		if err := a.Start(); err != nil {
 			t.Fatal(err)
 		}
 		defer a.Shutdown()
@@ -1298,7 +1295,7 @@ func TestAllowedNets(t *testing.T) {
 
 		a.config.AllowWriteHTTPFrom = nets
 
-		err = a.srv.checkWriteAccess(&http.Request{
+		err := a.srv.checkWriteAccess(&http.Request{
 			Method:     http.MethodPost,
 			RemoteAddr: fmt.Sprintf("%s:16544", v.ip),
 		})

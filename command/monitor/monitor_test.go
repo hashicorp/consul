@@ -20,8 +20,7 @@ func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 		LogWriter: logWriter,
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 	}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()

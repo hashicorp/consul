@@ -97,8 +97,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 			testFn := func() {
 				a := &TestAgent{Name: "test", HCL: tt.hcl}
 				a.ExpectConfigError = tt.wantPanic
-				err := a.Start()
-				if err != nil {
+				if err := a.Start(); err != nil {
 					t.Fatal(err)
 				}
 				defer a.Shutdown()
@@ -1224,8 +1223,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	`
 	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
 	a.LogOutput = testutil.TestWriter(t)
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dataDir)
@@ -1313,8 +1311,7 @@ node_name = "` + a.Config.NodeName + `"
 		// Reload and retain former NodeID and data directory.
 		a2 := &TestAgent{Name: t.Name(), HCL: futureHCL, DataDir: dataDir}
 		a2.LogOutput = testutil.TestWriter(t)
-		err := a2.Start()
-		if err != nil {
+		if err := a2.Start(); err != nil {
 			t.Fatal(err)
 		}
 		defer a2.Shutdown()
@@ -1598,8 +1595,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 				cert_file = "../test/client_certs/server.crt"
 			` + ca,
 		}
-		err := a.Start()
-		if err != nil {
+		if err := a.Start(); err != nil {
 			t.Fatal(err)
 		}
 		defer a.Shutdown()
@@ -1617,7 +1613,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Interval: 20 * time.Millisecond,
 		}
 
-		err = a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1707,8 +1703,7 @@ func TestAgent_PersistService(t *testing.T) {
 		data_dir = "` + dataDir + `"
 	`
 	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dataDir)
@@ -1776,8 +1771,7 @@ func TestAgent_PersistService(t *testing.T) {
 
 	// Should load it back during later start
 	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err = a2.Start()
-	if err != nil {
+	if err := a2.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a2.Shutdown()
@@ -1886,8 +1880,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 		bootstrap = false
 	`
 	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
@@ -1916,8 +1909,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 			port = 9000
 		}
 	`, DataDir: dataDir}
-	err = a2.Start()
-	if err != nil {
+	if err := a2.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a2.Shutdown()
@@ -1944,8 +1936,7 @@ func TestAgent_PersistProxy(t *testing.T) {
 		data_dir = "` + dataDir + `"
 	`
 	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dataDir)
@@ -1973,7 +1964,7 @@ func TestAgent_PersistProxy(t *testing.T) {
 
 	// Proxy is not persisted unless requested
 	require.NoError(a.AddProxy(proxy, false, false, "", ConfigSourceLocal))
-	_, err = os.Stat(file)
+	_, err := os.Stat(file)
 	require.Error(err, "proxy should not be persisted")
 
 	// Proxy is  persisted if requested
@@ -2007,8 +1998,7 @@ func TestAgent_PersistProxy(t *testing.T) {
 
 	// Should load it back during later start
 	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err = a2.Start()
-	if err != nil {
+	if err := a2.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a2.Shutdown()
@@ -2070,8 +2060,7 @@ func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 		bootstrap = false
 	`
 	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()
@@ -2113,14 +2102,13 @@ func TestAgent_PurgeProxyOnDuplicate(t *testing.T) {
 			}
 		}
 	`, DataDir: dataDir}
-	err = a2.Start()
-	if err != nil {
+	if err := a2.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a2.Shutdown()
 
 	file := filepath.Join(a.Config.DataDir, proxyDir, stringHash(proxyID))
-	_, err = os.Stat(file)
+	_, err := os.Stat(file)
 	require.NoError(err, "Config File based proxies should be persisted too")
 
 	result := a2.State.Proxy(proxyID)
@@ -2138,8 +2126,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		enable_script_checks = true
 	`
 	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dataDir)
@@ -2213,8 +2200,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 
 	// Should load it back during later start
 	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg, DataDir: dataDir}
-	err = a2.Start()
-	if err != nil {
+	if err := a2.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a2.Shutdown()
@@ -3337,8 +3323,7 @@ func TestAgent_reloadWatches(t *testing.T) {
 func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	t.Parallel()
 	a := TestAgent{Name: t.Name(), UseTLS: true}
-	err := a.Start()
-	if err != nil {
+	if err := a.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer a.Shutdown()

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -91,15 +90,14 @@ type TestAgent struct {
 }
 
 // NewTestAgent returns a started agent with the given name and
-// configuration. It fails the test if the Agent could not be started.
-// The caller should call Shutdown() to stop the agent and remove
-// temporary directories.
+// configuration. It fails the test if the Agent could not be started. The
+// caller should call Shutdown() to stop the agent and remove temporary
+// directories.
 func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 	a := &TestAgent{Name: name, HCL: hcl}
 
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if err := a.Start(); err != nil {
-			a.Shutdown()
 			r.Fatal(err)
 		}
 	})
@@ -118,12 +116,11 @@ func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
 }
 
 // Start starts a test agent. It returns an error if the agent could not be started.
+// If no error is returned, the caller must call Shutdown() when finished.
 func (a *TestAgent) Start() (err error) {
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
 	}
-
-	id := string(a.Config.NodeID)
 
 	var cleanupTmpDir = func() {
 		// Clean out the data dir if we are responsible for it before we
@@ -131,7 +128,7 @@ func (a *TestAgent) Start() (err error) {
 		// the data dir, such as in the Raft configuration.
 		if a.DataDir != "" {
 			if err := os.RemoveAll(a.DataDir); err != nil {
-				fmt.Printf("%s %s Error resetting data dir: %s", id, a.Name, err)
+				fmt.Printf("%s Error resetting data dir: %s", a.Name, err)
 			}
 		}
 	}
@@ -191,6 +188,8 @@ func (a *TestAgent) Start() (err error) {
 	agent.LogOutput = logOutput
 	agent.LogWriter = a.LogWriter
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
+
+	id := string(a.Config.NodeID)
 
 	if err := agent.Start(); err != nil {
 		cleanupTmpDir()
@@ -265,10 +264,7 @@ func (a *TestAgent) waitForUp() error {
 			}
 			return nil // success
 		} else {
-			req, err := http.NewRequest("GET", "/v1/agent/self", nil)
-			if err != nil {
-				return err // this will never change upon retry
-			}
+			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
 			_, err = a.httpServers[0].AgentSelf(resp, req)
 			if err != nil || resp.Code != 200 {
