@@ -266,7 +266,7 @@ func (a *TestAgent) waitForUp() error {
 		} else {
 			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
-			_, err = a.httpServers[0].AgentSelf(resp, req)
+			_, err := a.httpServers[0].AgentSelf(resp, req)
 			if err != nil || resp.Code != 200 {
 				retErr = fmt.Errorf("%s: failed OK response: %v", a.Name, err)
 				continue
