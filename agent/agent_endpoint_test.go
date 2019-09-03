@@ -3925,7 +3925,9 @@ func TestAgent_Monitor(t *testing.T) {
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 		HCL:       `node_name = "invalid!"`,
 	}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

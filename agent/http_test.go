@@ -140,7 +140,9 @@ func TestHTTPServer_H2(t *testing.T) {
 			ca_file = "../test/client_certs/rootca.crt"
 		`,
 	}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 
 	// Make an HTTP/2-enabled client, using the API helpers to set
@@ -457,7 +459,9 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	t.Parallel()
 	buf := new(bytes.Buffer)
 	a := &TestAgent{Name: t.Name(), LogOutput: buf}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1192,7 +1196,9 @@ func TestAllowedNets(t *testing.T) {
 		a := &TestAgent{
 			Name: t.Name(),
 		}
-		a.Start(t)
+		if err := a.Start(); err != nil {
+			t.Fatal(err)
+		}
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
