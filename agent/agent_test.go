@@ -66,7 +66,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 		name          string
 		hcl           string
 		wantClusterID string
-		wantPanic     bool
+		wantErr       bool
 	}{
 		{
 			name:          "default TestAgent has fixed cluster id",
@@ -87,30 +87,27 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 	   }
 	 }`,
 			wantClusterID: "",
-			wantPanic:     true,
+			wantErr:       true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Indirection to support panic recovery cleanly
-			testFn := func() {
-				a := NewTestAgentWithFields(t, false, TestAgent{Name: "test", HCL: tt.hcl})
-				a.ExpectConfigError = tt.wantPanic
-				if err := a.Start(); err != nil {
-					t.Fatal(err)
+			a := &TestAgent{Name: tt.name, HCL: tt.hcl}
+			err := a.Start()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
 				}
-				defer a.Shutdown()
-
-				cfg := a.consulConfig()
-				assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
+				return // don't run the rest of the test
 			}
-
-			if tt.wantPanic {
-				require.Panics(t, testFn)
-			} else {
-				testFn()
+			if !tt.wantErr && err != nil {
+				t.Fatal(err)
 			}
+			defer a.Shutdown()
+
+			cfg := a.consulConfig()
+			assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
 		})
 	}
 }
