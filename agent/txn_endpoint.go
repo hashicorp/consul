@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -98,6 +99,18 @@ func isWrite(op api.KVOp) bool {
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
 func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
+
+	sizeStr := req.Header.Get("Content-Length")
+	if sizeStr != "" {
+		if size, err := strconv.Atoi(sizeStr); err != nil {
+			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
+			return nil, 0, false
+		} else if size > int(s.agent.config.KVMaxValueSize) {
+			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", s.agent.config.KVMaxValueSize)
+			return nil, 0, false
+		}
+	}
+
 	// Note the body is in API format, and not the RPC format. If we can't
 	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.

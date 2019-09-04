@@ -2,11 +2,24 @@
 
 IMPROVEMENTS
 
+* agent: Added `replace-existing-checks` param to service registration endpoint to replace existing checks when re-registering a service. [[GH-4905](https://github.com/hashicorp/consul/pull/4905)]
 * auto_encrypt: verify_incoming_rpc is good enough for auto_encrypt.allow_tls [[GH-6376](https://github.com/hashicorp/consul/pull/6376)]
+* connect: Ensure that a secondary CA's intermediate certificate will show in the various API endpoints CA Roots output [[GH-6333](https://github.com/hashicorp/consul/pull/6333)]
+* ui: Reconcile ember-data store [[GH-5745](https://github.com/hashicorp/consul/pull/5745)]
+* ui: Allow text selection of clickable elements and their contents without then jumping the user to the linked page [[GH-5770](https://github.com/hashicorp/consul/pull/5770)]
+* ui: Adds the ability to frontend search instances by address (ip:port) [[GH-5993](https://github.com/hashicorp/consul/pull/5993)]
+* ui: Add CheckID to the output panels of healthchecks  [[GH-6195](https://github.com/hashicorp/consul/pull/6195)]
+* ui: Enable blocking queries by default [[GH-6194](https://github.com/hashicorp/consul/pull/6194)]
 
 BUG FIXES
 
 * make sure auto_encrypt has private key type and bits [[GH-6392](https://github.com/hashicorp/consul/pull/6392)]
+* ui: Show the correct message when a session has been removed from a KV [[GH-6167](https://github.com/hashicorp/consul/pull/6167)]
+* ui: Ensure KV sessions visually aren't shared between multiple KV's [[GH-6166](https://github.com/hashicorp/consul/pull/6166)]
+
+FEATURES
+
+* ui: Add leader icon for node listing view to call out which node is the current leader [[GH-6265](https://github.com/hashicorp/consul/pull/6265)]
 
 ## 1.6.0 (August 23, 2019)
 
