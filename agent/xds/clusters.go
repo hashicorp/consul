@@ -44,7 +44,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Include the "app" cluster for the public listener
-	appCluster, err := s.makeAppCluster(cfgSnap)
+	appCluster, err := s.makeAppCluster(cfgSnap, LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,24 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
+	// Create a new cluster if we need to expose a port that is different from the service port
+	for _, path := range cfgSnap.Proxy.Expose.Paths {
+		if path.LocalPathPort == cfgSnap.Proxy.LocalServicePort {
+			continue
+		}
+		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path), path.Protocol, path.LocalPathPort)
+		if err != nil {
+			s.Logger.Printf("[WARN] envoy: failed to make local cluster for '%s': %s", path.Path, err)
+			continue
+		}
+		clusters = append(clusters, c)
+	}
+
 	return clusters, nil
+}
+
+func makeExposeClusterName(path structs.Path) string {
+	return fmt.Sprintf("exposed_cluster_%d", path.LocalPathPort)
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
@@ -122,7 +139,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return clusters, nil
 }
 
-func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
@@ -143,23 +160,23 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 		addr = "127.0.0.1"
 	}
 	c = &envoy.Cluster{
-		Name:                 LocalAppClusterName,
+		Name:                 name,
 		ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
 		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
 		LoadAssignment: &envoy.ClusterLoadAssignment{
-			ClusterName: LocalAppClusterName,
+			ClusterName: name,
 			Endpoints: []envoyendpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
-						makeEndpoint(LocalAppClusterName,
+						makeEndpoint(name,
 							addr,
-							cfgSnap.Proxy.LocalServicePort),
+							port),
 					},
 				},
 			},
 		},
 	}
-	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" || pathProtocol == "http2" {
 		c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
