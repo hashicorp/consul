@@ -3436,10 +3436,7 @@ func TestAgent_grpcInjectAddr(t *testing.T) {
 	}
 	for _, tt := range tt {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := grpcInjectAddr(tt.grpc, tt.ip, tt.port)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			got := grpcInjectAddr(tt.grpc, tt.ip, tt.port)
 			if got != tt.want {
 				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
 			}
@@ -3542,10 +3539,7 @@ func TestAgent_httpInjectAddr(t *testing.T) {
 	}
 	for _, tt := range tt {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := httpInjectAddr(tt.url, tt.ip, tt.port)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			got := httpInjectAddr(tt.url, tt.ip, tt.port)
 			if got != tt.want {
 				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
 			}
