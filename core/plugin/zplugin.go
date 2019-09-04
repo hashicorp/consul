@@ -5,6 +5,7 @@ package plugin
 import (
 	// Include all plugins.
 	_ "github.com/caddyserver/caddy/onevent"
+	_ "github.com/coredns/coredns/plugin/acl"
 	_ "github.com/coredns/coredns/plugin/any"
 	_ "github.com/coredns/coredns/plugin/auto"
 	_ "github.com/coredns/coredns/plugin/autopath"
