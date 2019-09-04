@@ -338,6 +338,7 @@ func (c *CheckHTTP) CheckType() structs.CheckType {
 		Method:        c.Method,
 		Header:        c.Header,
 		Interval:      c.Interval,
+		ProxyHTTP:     c.ProxyHTTP,
 		Timeout:       c.Timeout,
 		OutputMaxSize: c.OutputMaxSize,
 	}
@@ -702,10 +703,11 @@ type CheckGRPC struct {
 
 func (c *CheckGRPC) CheckType() structs.CheckType {
 	return structs.CheckType{
-		CheckID:  c.CheckID,
-		GRPC:     c.GRPC,
-		Interval: c.Interval,
-		Timeout:  c.Timeout,
+		CheckID:   c.CheckID,
+		GRPC:      c.GRPC,
+		ProxyGRPC: c.ProxyGRPC,
+		Interval:  c.Interval,
+		Timeout:   c.Timeout,
 	}
 }
 

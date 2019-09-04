@@ -74,24 +74,37 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
+	paths := cfgSnap.Proxy.Expose.Paths
+
+	// Add service health checks to the list of paths to create clusters for if needed
+	if cfgSnap.Proxy.Expose.Checks {
+		for _, check := range s.CheckFetcher.ServiceHTTPChecks(cfgSnap.Proxy.DestinationServiceID) {
+			p, err := parseCheckPath(check)
+			if err != nil {
+				s.Logger.Printf("[WARN] envoy: failed to create cluster for check '%s': %v", check.CheckID, err)
+				continue
+			}
+			paths = append(paths, p)
+		}
+	}
+
 	// Create a new cluster if we need to expose a port that is different from the service port
-	for _, path := range cfgSnap.Proxy.Expose.Paths {
+	for _, path := range paths {
 		if path.LocalPathPort == cfgSnap.Proxy.LocalServicePort {
 			continue
 		}
-		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path), path.Protocol, path.LocalPathPort)
+		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path.LocalPathPort), path.Protocol, path.LocalPathPort)
 		if err != nil {
 			s.Logger.Printf("[WARN] envoy: failed to make local cluster for '%s': %s", path.Path, err)
 			continue
 		}
 		clusters = append(clusters, c)
 	}
-
 	return clusters, nil
 }
 
-func makeExposeClusterName(path structs.Path) string {
-	return fmt.Sprintf("exposed_cluster_%d", path.LocalPathPort)
+func makeExposeClusterName(destinationPort int) string {
+	return fmt.Sprintf("exposed_cluster_%d", destinationPort)
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"

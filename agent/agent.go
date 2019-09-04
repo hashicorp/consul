@@ -670,6 +670,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		CfgMgr:       a.proxyConfig,
 		Authz:        a,
 		ResolveToken: a.resolveToken,
+		CheckFetcher: a,
 	}
 	a.xdsServer.Initialize()
 
@@ -3631,6 +3632,7 @@ func (a *Agent) resetExposedChecks(serviceID string) {
 }
 
 // listenerPort allocates a port from the configured range
+// The agent stateLock MUST be held when this is called
 func (a *Agent) listenerPort(svcID, checkID string) (int, error) {
 	key := fmt.Sprintf("%s:%s", svcID, checkID)
 	if a.exposedPorts == nil {
@@ -3646,9 +3648,10 @@ func (a *Agent) listenerPort(svcID, checkID string) (int, error) {
 	}
 
 	var port int
-	for i := a.config.ExposeMinPort; i < a.config.ExposeMaxPort; i++ {
+	for i := 0; i < a.config.ExposeMaxPort-a.config.ExposeMinPort; i++ {
 		port = a.config.ExposeMinPort + i
 		if !allocated[port] {
+			a.exposedPorts[key] = port
 			break
 		}
 	}
@@ -3661,8 +3664,7 @@ func (a *Agent) listenerPort(svcID, checkID string) (int, error) {
 
 // grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]
 func grpcInjectAddr(existing string, ip string, port int) string {
-	pattern := "(.*)((?::)(?:[0-9]+))(.*)$"
-	r := regexp.MustCompile(pattern)
+	r := regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
 
 	portRepl := fmt.Sprintf("${1}:%d${3}", port)
 	out := r.ReplaceAllString(existing, portRepl)
@@ -3675,8 +3677,7 @@ func grpcInjectAddr(existing string, ip string, port int) string {
 
 // httpInjectAddr injects a port then an IP into a URL
 func httpInjectAddr(url string, ip string, port int) string {
-	pattern := "^(http[s]?://)(\\[.*?\\]|\\[?[\\w\\-\\.]+)(:\\d+)?([^?]*)(\\?.*)?$"
-	r := regexp.MustCompile(pattern)
+	r := regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
 
 	portRepl := fmt.Sprintf("${1}${2}:%d${4}${5}", port)
 	out := r.ReplaceAllString(url, portRepl)

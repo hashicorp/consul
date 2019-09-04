@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -73,9 +74,28 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		resources[i+1] = upstreamListener
 	}
 
+	paths := cfgSnap.Proxy.Expose.Paths
+
+	// Add service health checks to the list of paths to create listeners for if needed
+	if cfgSnap.Proxy.Expose.Checks {
+		for _, check := range s.CheckFetcher.ServiceHTTPChecks(cfgSnap.Proxy.DestinationServiceID) {
+			p, err := parseCheckPath(check)
+			if err != nil {
+				s.Logger.Printf("[WARN] envoy: failed to create listener for check '%s': %v", check.CheckID, err)
+				continue
+			}
+			paths = append(paths, p)
+		}
+	}
+
 	// Configure additional listener for exposed check paths
-	for _, path := range cfgSnap.Proxy.Expose.Paths {
-		l, err := s.makeExposedCheckListener(cfgSnap, path)
+	for _, path := range paths {
+		clusterName := LocalAppClusterName
+		if path.LocalPathPort != cfgSnap.Proxy.LocalServicePort {
+			clusterName = makeExposeClusterName(path.LocalPathPort)
+		}
+
+		l, err := s.makeExposedCheckListener(cfgSnap, clusterName, path.Path, path.Protocol, path.ListenerPort)
 		if err != nil {
 			return nil, err
 		}
@@ -85,13 +105,64 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 	return resources, nil
 }
 
+func parseCheckPath(check structs.CheckType) (structs.Path, error) {
+	grpcRE := regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
+	httpRE := regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
+
+	var path structs.Path
+	var err error
+
+	if check.HTTP != "" {
+		path.Protocol = "http"
+
+		matches := httpRE.FindStringSubmatch(check.HTTP)
+		path.Path = matches[4]
+
+		localStr := strings.TrimPrefix(matches[3], ":")
+		path.LocalPathPort, err = strconv.Atoi(localStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.HTTP, err)
+		}
+
+		matches = httpRE.FindStringSubmatch(check.ProxyHTTP)
+
+		listenerStr := strings.TrimPrefix(matches[3], ":")
+		path.ListenerPort, err = strconv.Atoi(listenerStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyHTTP, err)
+		}
+	}
+
+	if check.GRPC != "" {
+		path.Path = "/grpc.health.v1.Health/Check"
+		path.Protocol = "http2"
+
+		matches := grpcRE.FindStringSubmatch(check.GRPC)
+
+		localStr := strings.TrimPrefix(matches[2], ":")
+		path.LocalPathPort, err = strconv.Atoi(localStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.GRPC, err)
+		}
+
+		matches = grpcRE.FindStringSubmatch(check.ProxyGRPC)
+
+		listenerStr := strings.TrimPrefix(matches[2], ":")
+		path.ListenerPort, err = strconv.Atoi(listenerStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyGRPC, err)
+		}
+	}
+	return path, nil
+}
+
 // listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
 func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
 	}
 
 	// TODO - prevent invalid configurations of binding to the same port/addr
@@ -232,7 +303,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
 	}
 
 	if cfg.PublicListenerJSON != "" {
@@ -282,12 +353,12 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	return l, err
 }
 
-func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, path structs.Path) (proto.Message, error) {
+func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster, path, protocol string, port int) (proto.Message, error) {
 	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
 	}
 
 	// No user config, use default listener
@@ -302,17 +373,14 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, path
 
 	// Strip any special characters from path
 	r := regexp.MustCompile(`[^a-zA-Z0-9]+`)
-	strippedPath := r.ReplaceAllString(path.Path, "")
-	listenerName := fmt.Sprintf("exposed_path_listener_%s_%d", strippedPath, path.ListenerPort)
-	l := makeListener(listenerName, addr, path.ListenerPort)
+	strippedPath := r.ReplaceAllString(path, "")
+	listenerName := fmt.Sprintf("exposed_path_%s", strippedPath)
 
-	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
-	clusterName := LocalAppClusterName
-	if path.LocalPathPort != cfgSnap.Proxy.LocalServicePort {
-		clusterName = makeExposeClusterName(path)
-	}
+	l := makeListener(listenerName, addr, port)
 
-	f, err := makeListenerFilter(false, path.Protocol, filterName, clusterName, "", path.Path, true)
+	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, port)
+
+	f, err := makeListenerFilter(false, protocol, filterName, cluster, "", path, true)
 	if err != nil {
 		return nil, err
 	}
