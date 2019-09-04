@@ -1,6 +1,5 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 
 const modelName = 'node';
 export default RepositoryService.extend({
