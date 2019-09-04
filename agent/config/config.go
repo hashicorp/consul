@@ -89,8 +89,12 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.proxy.config.upstreams", // Deprecated
 		"service.connect.proxy.upstreams",
 		"services.connect.proxy.upstreams",
+		"service.connect.proxy.expose.paths",
+		"services.connect.proxy.expose.paths",
 		"service.proxy.upstreams",
 		"services.proxy.upstreams",
+		"service.proxy.expose.paths",
+		"services.proxy.expose.paths",
 
 		// Need all the service(s) exceptions also for nested sidecar service.
 		"service.connect.sidecar_service.checks",

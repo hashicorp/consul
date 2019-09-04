@@ -3,6 +3,9 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -266,6 +269,161 @@ func TestValidateMeshGatewayMode(t *testing.T) {
 				require.Equal(t, tc.expect, got)
 			} else {
 				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestExposeConfig_Finalize(t *testing.T) {
+	t.Parallel()
+
+	tmpDir, err := ioutil.TempDir("", "exposeconfig_")
+	if err != nil {
+		t.Fatalf("failed to create tempdir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile(tmpDir, "CAFile")
+	if err != nil {
+		t.Fatalf("failed to create tempfile: %v", err)
+	}
+	defer tmpFile.Close()
+
+	type fields struct {
+		Checks bool
+		Paths  []Path
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    ExposeConfig
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "duplicate path",
+			fields: fields{
+				Paths: []Path{
+					{
+						LocalPathPort: 80,
+						ListenerPort:  80,
+						Path:          "/metrics",
+					},
+					{
+						LocalPathPort: 80,
+						ListenerPort:  80,
+						Path:          "/metrics",
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "duplicate paths exposed",
+		},
+		{
+			name: "negative listener port",
+			fields: fields{
+				Paths: []Path{
+					{
+						ListenerPort: -1,
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid listener port: -1",
+		},
+		{
+			name: "listener port too large",
+			fields: fields{
+				Paths: []Path{
+					{
+						ListenerPort: 65536,
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid listener port: 65536",
+		},
+		{
+			name: "protocol not supported",
+			fields: fields{
+				Paths: []Path{
+					{
+						Path:          "/metrics",
+						LocalPathPort: 80,
+						ListenerPort:  80,
+						Protocol:      "tcp",
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "protocol 'tcp' not supported for path: /metrics, must be http or http2",
+		},
+		{
+			name: "protocol not supported",
+			fields: fields{
+				Paths: []Path{
+					{
+						Path:          "/metrics",
+						LocalPathPort: 80,
+						ListenerPort:  80,
+						Protocol:      "tcp",
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "protocol 'tcp' not supported for path: /metrics, must be http or http2",
+		},
+		{
+			name: "default to http when no protocol",
+			fields: fields{
+				Paths: []Path{
+					{
+						LocalPathPort: 80,
+						ListenerPort:  80,
+					},
+				},
+			},
+			wantErr: false,
+			want: ExposeConfig{
+				Paths: []Path{
+					{LocalPathPort: 80, ListenerPort: 80, Protocol: "http"},
+				},
+			},
+		},
+		{
+			name: "lowercase protocol",
+			fields: fields{
+				Paths: []Path{
+					{
+						LocalPathPort: 80,
+						ListenerPort:  80,
+						Protocol:      "HTTP2",
+					},
+				},
+			},
+			wantErr: false,
+			want: ExposeConfig{
+				Paths: []Path{
+					{LocalPathPort: 80, ListenerPort: 80, Protocol: "http2"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &ExposeConfig{
+				Checks: tt.fields.Checks,
+				Paths:  tt.fields.Paths,
+			}
+			err := e.Finalize()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Finalize() got error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr && tt.errMsg != err.Error() {
+				t.Errorf("Finalize() got error: '%v', want: '%s'", err, tt.errMsg)
+			}
+			if !tt.wantErr {
+				assert.Equal(t, &tt.want, e)
 			}
 		})
 	}

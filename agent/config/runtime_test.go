@@ -1295,6 +1295,36 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DataDir = dataDir
 			},
 		},
+		{
+			desc: "min/max ports for dynamic exposed listeners",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ports": {
+					"expose_min_port": 1234,
+					"expose_max_port": 5678
+				}
+			}`},
+			hcl: []string{`
+				ports {
+					expose_min_port = 1234
+					expose_max_port = 5678
+				}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.ExposeMinPort = 1234
+				rt.ExposeMaxPort = 5678
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "defaults for dynamic exposed listeners",
+			args: []string{`-data-dir=` + dataDir},
+			patch: func(rt *RuntimeConfig) {
+				rt.ExposeMinPort = 21500
+				rt.ExposeMaxPort = 21755
+				rt.DataDir = dataDir
+			},
+		},
 
 		// ------------------------------------------------------------
 		// precedence rules
@@ -2338,6 +2368,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									}
 								],
 								"proxy": {
+									"expose": {
+										"checks": true,
+										"paths": [
+											{
+												"path": "/health",
+												"local_path_port": 8080,
+												"listener_port": 21500,
+												"protocol": "http"
+											}
+										]
+									},
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2363,6 +2404,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								}
 							]
 							proxy {
+								expose {
+									checks = true
+									paths = [
+										{
+											path = "/health"
+											local_path_port = 8080
+											listener_port = 21500
+											protocol = "http"
+										}
+									]
+								},
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2391,6 +2443,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									},
 								},
 								Proxy: &structs.ConnectProxyConfig{
+									Expose: structs.ExposeConfig{
+										Checks: true,
+										Paths: []structs.Path{
+											{
+												Path:          "/health",
+												LocalPathPort: 8080,
+												ListenerPort:  21500,
+												Protocol:      "http",
+											},
+										},
+									},
 									Upstreams: structs.Upstreams{
 										structs.Upstream{
 											DestinationType: "service",
@@ -2434,6 +2497,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									}
 								],
 								"proxy": {
+									"expose": {
+										"checks": true,
+										"paths": [
+											{
+												"path": "/health",
+												"local_path_port": 8080,
+												"listener_port": 21500,
+												"protocol": "http"
+											}
+										]
+									},
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2459,6 +2533,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								}
 							]
 							proxy {
+								expose {
+									checks = true
+									paths = [
+										{
+											path = "/health"
+											local_path_port = 8080
+											listener_port = 21500
+											protocol = "http"
+										}
+									]
+								},
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2487,6 +2572,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									},
 								},
 								Proxy: &structs.ConnectProxyConfig{
+									Expose: structs.ExposeConfig{
+										Checks: true,
+										Paths: []structs.Path{
+											{
+												Path:          "/health",
+												LocalPathPort: 8080,
+												ListenerPort:  21500,
+												Protocol:      "http",
+											},
+										},
+									},
 									Upstreams: structs.Upstreams{
 										structs.Upstream{
 											DestinationType: "service",
@@ -3627,7 +3723,9 @@ func TestFullConfig(t *testing.T) {
 				"server": 3757,
 				"grpc": 4881,
 				"sidecar_min_port": 8888,
-				"sidecar_max_port": 9999
+				"sidecar_max_port": 9999,
+				"expose_min_port": 1111,
+				"expose_max_port": 2222
 			},
 			"protocol": 30793,
 			"primary_datacenter": "ejtmd43d",
@@ -3871,6 +3969,17 @@ func TestFullConfig(t *testing.T) {
 						"destination_service_name": "6L6BVfgH",
 						"local_service_address": "127.0.0.2",
 						"local_service_port": 23759,
+						"expose": {
+							"checks": true,
+							"paths": [
+								{
+									"path": "/health",
+									"local_path_port": 8080,
+									"listener_port": 21500,
+									"protocol": "http"
+								}
+							]
+						},
 						"upstreams": [
 							{
 								"destination_name": "KPtAj2cb",
@@ -4205,8 +4314,8 @@ func TestFullConfig(t *testing.T) {
 			}
 			pid_file = "43xN80Km"
 			ports {
-				dns = 7001,
-				http = 7999,
+				dns = 7001
+				http = 7999
 				https = 15127
 				server = 3757
 				grpc = 4881
@@ -4214,6 +4323,8 @@ func TestFullConfig(t *testing.T) {
 				proxy_max_port = 3000
 				sidecar_min_port = 8888
 				sidecar_max_port = 9999
+				expose_min_port = 1111
+				expose_max_port = 2222
 			}
 			protocol = 30793
 			primary_datacenter = "ejtmd43d"
@@ -4472,6 +4583,17 @@ func TestFullConfig(t *testing.T) {
 								local_bind_address = "127.24.88.0"
 							},
 						]
+						expose {
+							checks = true
+							paths = [
+								{
+									path = "/health"
+									local_path_port = 8080
+									listener_port = 21500
+									protocol = "http"
+								}
+							]
+						}
 					}
 				},
 				{
@@ -4797,6 +4919,8 @@ func TestFullConfig(t *testing.T) {
 		ConnectEnabled:        true,
 		ConnectSidecarMinPort: 8888,
 		ConnectSidecarMaxPort: 9999,
+		ExposeMinPort:         1111,
+		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
 			"RotationPeriod":   "90h",
@@ -5042,6 +5166,17 @@ func TestFullConfig(t *testing.T) {
 							DestinationName:      "KSd8HsRl",
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
+						},
+					},
+					Expose: structs.ExposeConfig{
+						Checks: true,
+						Paths: []structs.Path{
+							{
+								Path:          "/health",
+								LocalPathPort: 8080,
+								ListenerPort:  21500,
+								Protocol:      "http",
+							},
 						},
 					},
 				},
