@@ -74,6 +74,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
+	cfgSnap.Proxy.Expose.Finalize(s.Logger)
 	paths := cfgSnap.Proxy.Expose.Paths
 
 	// Add service health checks to the list of paths to create clusters for if needed

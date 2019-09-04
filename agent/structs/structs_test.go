@@ -414,6 +414,56 @@ func TestStructs_NodeService_ValidateMeshGateway(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateExposeConfig(t *testing.T) {
+	type testCase struct {
+		Modify func(*NodeService)
+		Err    string
+	}
+	cases := map[string]testCase{
+		"valid": {
+			func(x *NodeService) {},
+			"",
+		},
+		"empty path": {
+			func(x *NodeService) { x.Proxy.Expose.Paths[0].Path = "" },
+			"empty path exposed",
+		},
+		"invalid port negative": {
+			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = -1 },
+			"invalid listener port",
+		},
+		"invalid port too large": {
+			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = 65536 },
+			"invalid listener port",
+		},
+		"duplicate paths": {
+			func(x *NodeService) {
+				x.Proxy.Expose.Paths[0].Path = "/metrics"
+				x.Proxy.Expose.Paths[1].Path = "/metrics"
+			},
+			"duplicate paths exposed",
+		},
+		"protocol not supported": {
+			func(x *NodeService) { x.Proxy.Expose.Paths[0].Protocol = "foo" },
+			"protocol 'foo' not supported for path",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			ns := TestNodeServiceExpose(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			if tc.Err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Contains(t, strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+			}
+		})
+	}
+}
+
 func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 	cases := []struct {
 		Name   string

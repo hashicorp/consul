@@ -3,11 +3,10 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"strings"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"io/ioutil"
+	"log"
 )
 
 const (
@@ -360,36 +359,21 @@ type Path struct {
 }
 
 // Finalize validates ExposeConfig and sets default values
-func (e *ExposeConfig) Finalize() error {
-	var known = make(map[string]bool)
+func (e *ExposeConfig) Finalize(l *log.Logger) {
 	for i := 0; i < len(e.Paths); i++ {
 		path := &e.Paths[i]
 
-		if seen := known[path.Path]; seen {
-			return fmt.Errorf("duplicate paths exposed")
-		}
-		known[path.Path] = true
-
-		if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
-			return fmt.Errorf("invalid listener port: %d", path.ListenerPort)
+		if path.Protocol == "" {
+			path.Protocol = defaultExposeProtocol
 		}
 
 		if path.CAFile != "" {
 			b, err := ioutil.ReadFile(path.CAFile)
 			if err != nil {
-				return fmt.Errorf("failed to read CAFile '%s': %v", path.CAFile, err)
+				l.Printf("[WARN] envoy: failed to read CAFile '%s': %v", path.CAFile, err)
+				continue
 			}
 			path.CACert = string(b)
 		}
-
-		path.Protocol = strings.ToLower(path.Protocol)
-		if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
-			return fmt.Errorf("protocol '%s' not supported for path: %s, must be http or http2",
-				path.Protocol, path.Path)
-		}
-		if path.Protocol == "" {
-			path.Protocol = defaultExposeProtocol
-		}
 	}
-	return nil
 }

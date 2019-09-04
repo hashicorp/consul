@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-bexpr"
+	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
