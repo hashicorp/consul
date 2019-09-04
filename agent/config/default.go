@@ -122,6 +122,8 @@ func DefaultSource() Source {
 			proxy_max_port = 20255
 			sidecar_min_port = 21000
 			sidecar_max_port = 21255
+			expose_min_port = 21500
+			expose_max_port = 21755
 		}
 		telemetry = {
 			metrics_prefix = "consul"
