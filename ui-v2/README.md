@@ -61,6 +61,10 @@ Please note: You do not need to run `make start-api`/`yarn run start:api` to run
 * `make test` or `yarn run test`
 * `make test-view` or `yarn run test:view` to view the tests running in Chrome
 
+### Linting
+
+### Building
+
 #### Running Tests in Parallel
 Alternatively, `ember-exam` can be used to split the tests across multiple browser instances for faster results. Most options are the same as `ember test`. To see a full list of options, run `ember exam --help`.
 
