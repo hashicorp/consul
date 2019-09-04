@@ -2432,7 +2432,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				TLSClientConfig: tlsClientConfig,
 			}
 
-			if service.Proxy.Expose.Checks {
+			if service != nil && service.Proxy.Expose.Checks {
 				port, err := a.listenerPort(service.ID, string(http.CheckID))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
@@ -2495,7 +2495,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				TLSClientConfig: tlsClientConfig,
 			}
 
-			if service.Proxy.Expose.Checks {
+			if service != nil && service.Proxy.Expose.Checks {
 				port, err := a.listenerPort(service.ID, string(grpc.CheckID))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
