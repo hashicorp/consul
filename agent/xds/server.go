@@ -97,6 +97,12 @@ type ConnectAuthz interface {
 	ConnectAuthorize(token string, req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error)
 }
 
+// ServiceChecks is the interface the agent needs to expose
+// for the xDS server to fetch a service's HTTP check definitions
+type HTTPCheckFetcher interface {
+	ServiceHTTPChecks(serviceID string) []structs.CheckType
+}
+
 // ConfigManager is the interface xds.Server requires to consume proxy config
 // updates. It's satisfied normally by the agent's proxycfg.Manager, but allows
 // easier testing without several layers of mocked cache, local state and
@@ -121,6 +127,7 @@ type Server struct {
 	// This is only used during idle periods of stream interactions (i.e. when
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
+	CheckFetcher       HTTPCheckFetcher
 }
 
 // Initialize will finish configuring the Server for first use.
