@@ -88,7 +88,7 @@ func TestCheck(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := NewGrpcHealthProbe(tt.args.target, tt.args.timeout, tt.args.tlsConfig)
-			actualError := probe.Check()
+			actualError := probe.Check(tt.args.target)
 			actuallyHealthy := actualError == nil
 			if tt.healthy != actuallyHealthy {
 				t.Errorf("FAIL: %s. Expected healthy %t, but err == %v", tt.name, tt.healthy, actualError)
