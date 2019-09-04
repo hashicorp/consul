@@ -5,11 +5,6 @@ Feature: dc / list-blocking
   I want to see changes if I change consul externally
   Background:
     Given 1 datacenter model with the value "dc-1"
-    And settings from yaml
-    ---
-    consul:client:
-      blocking: 1
-    ---
   Scenario: Viewing the listing pages
     Given 3 [Model] models
     And a network latency of 100

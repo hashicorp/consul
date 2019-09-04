@@ -1,4 +1,5 @@
-@import './anchors/index';
+@import '../base/components/anchors/index';
+// TODO: This should go, its for links in tables/action-groups
 %main-content a {
   color: $gray-900;
 }

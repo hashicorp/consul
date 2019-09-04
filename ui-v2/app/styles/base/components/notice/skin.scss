@@ -1,0 +1,29 @@
+%notice {
+  border-radius: $decor-radius-100;
+  border-width: 1px;
+}
+%notice-success,
+%notice-info,
+%notice-highlight,
+%notice-error,
+%notice-warning {
+  @extend %notice;
+}
+%notice::before {
+  @extend %as-pseudo;
+}
+%notice-success {
+  @extend %frame-green-500;
+}
+%notice-info {
+  @extend %frame-blue-500;
+}
+%notice-highlight {
+  @extend %frame-gray-800;
+}
+%notice-warning {
+  @extend %frame-yellow-500;
+}
+%notice-error {
+  @extend %frame-red-500;
+}

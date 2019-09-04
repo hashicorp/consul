@@ -1,0 +1,54 @@
+/*%stats-card li:not(:last-child) span {*/
+%stats-card {
+  position: relative;
+}
+%stats-card header a,
+%stats-card header a > * {
+  display: block;
+}
+%stats-card header a > *,
+%stats-card li a > :last-child {
+  /* TODO: %truncate */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+%stats-card header a {
+  padding: 12px 15px;
+}
+%stats-card header > :not(a) {
+  @extend %stats-card-icon;
+}
+%stats-card-icon {
+  display: inline-flex;
+  align-items: center;
+}
+%stats-card-icon:last-child {
+  position: absolute;
+  background-size: 16px;
+  background-position: 5px 5px;
+  font-size: 1.5em;
+  width: 28px;
+  height: 28px;
+  top: calc(-28px / 2);
+  left: 15px;
+  font-size: 0;
+}
+%stats-card-icon:first-child {
+  float: right;
+  padding-left: 30px;
+  height: 16px;
+  margin-top: 15px;
+  margin-right: 15px;
+}
+
+%stats-card li {
+  height: 33px;
+}
+%stats-card li a {
+  display: flex;
+  vertical-align: text-top;
+  align-items: center;
+  padding: 0 15px 0 12px;
+  height: 100%;
+}

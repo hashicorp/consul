@@ -1,4 +1,16 @@
-@import './action-group/index';
+@import '../base/components/action-group/index';
 .action-group {
   @extend %action-group;
+}
+/* This needs to go into table */
+%action-group {
+  position: absolute;
+  top: 8px;
+  right: 15px;
+}
+%action-group ul.above {
+  bottom: 35px;
+}
+%action-group ul:not(.above) {
+  top: 35px;
 }
