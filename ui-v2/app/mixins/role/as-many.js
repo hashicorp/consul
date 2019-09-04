@@ -1,28 +1,33 @@
-import { REQUEST_CREATE, REQUEST_UPDATE } from 'consul-ui/adapters/application';
-
 import Mixin from '@ember/object/mixin';
 
 import minimizeModel from 'consul-ui/utils/minimizeModel';
 
 export default Mixin.create({
-  handleSingleResponse: function(url, response, primary, slug) {
-    ['Roles'].forEach(function(prop) {
-      if (typeof response[prop] === 'undefined' || response[prop] === null) {
-        response[prop] = [];
-      }
-    });
-    return this._super(url, response, primary, slug);
+  // TODO: what about update and create?
+  respondForQueryRecord: function(respond, query) {
+    return this._super(function(cb) {
+      return respond((headers, body) => {
+        body.Roles = typeof body.Roles === 'undefined' || body.Roles === null ? [] : body.Roles;
+        return cb(headers, body);
+      });
+    }, query);
   },
-  dataForRequest: function(params) {
-    const name = params.type.modelName;
+  respondForQuery: function(respond, query) {
+    return this._super(function(cb) {
+      return respond(function(headers, body) {
+        return cb(
+          headers,
+          body.map(function(item) {
+            item.Roles = typeof item.Roles === 'undefined' || item.Roles === null ? [] : item.Roles;
+            return item;
+          })
+        );
+      });
+    }, query);
+  },
+  serialize: function(snapshot, options) {
     const data = this._super(...arguments);
-    switch (params.requestType) {
-      case REQUEST_UPDATE:
-      // falls through
-      case REQUEST_CREATE:
-        data[name].Roles = minimizeModel(data[name].Roles);
-        break;
-    }
+    data.Roles = minimizeModel(data.Roles);
     return data;
   },
 });

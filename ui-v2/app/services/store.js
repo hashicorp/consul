@@ -1,8 +1,8 @@
 import Store from 'ember-data/store';
 
-// TODO: These only exist for ACLs, should probably make sure they fail
-// nicely if you aren't on ACLs for good DX
 export default Store.extend({
+  // TODO: These only exist for ACLs, should probably make sure they fail
+  // nicely if you aren't on ACLs for good DX
   // cloning immediately refreshes the view
   clone: function(modelName, id) {
     // TODO: no normalization, type it properly for the moment
@@ -21,8 +21,11 @@ export default Store.extend({
   self: function(modelName, token) {
     // TODO: no normalization, type it properly for the moment
     const adapter = this.adapterFor(modelName);
-    return adapter.self(this, { modelName: modelName }, token);
+    return adapter.self(this, { modelName: modelName }, token.secret, token);
   },
+  //
+  // TODO: This one is only for nodes, should fail nicely if you call it
+  // for anything other than nodes for good DX
   queryLeader: function(modelName, query) {
     // TODO: no normalization, type it properly for the moment
     const adapter = this.adapterFor(modelName);
