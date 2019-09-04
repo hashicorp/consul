@@ -50,6 +50,32 @@ func TestNodeServiceProxy(t testing.T) *NodeService {
 	}
 }
 
+func TestNodeServiceExpose(t testing.T) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindConnectProxy,
+		Service: "test-svc",
+		Address: "localhost",
+		Port:    8080,
+		Proxy: ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Expose: ExposeConfig{
+				Paths: []Path{
+					{
+						Path:          "/foo",
+						LocalPathPort: 80,
+						ListenerPort:  80,
+					},
+					{
+						Path:          "/bar",
+						LocalPathPort: 80,
+						ListenerPort:  80,
+					},
+				},
+			},
+		},
+	}
+}
+
 // TestNodeServiceMeshGateway returns a *NodeService representing a valid Mesh Gateway
 func TestNodeServiceMeshGateway(t testing.T) *NodeService {
 	return TestNodeServiceMeshGatewayWithAddrs(t,

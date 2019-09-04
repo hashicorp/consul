@@ -1362,9 +1362,6 @@ func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 
 	out.Checks = b.boolVal(v.Checks)
 	out.Paths = b.pathsVal(v.Paths)
-	if err := out.Finalize(); err != nil {
-		b.err = multierror.Append(b.err, err)
-	}
 	return out
 }
 

@@ -74,6 +74,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		resources[i+1] = upstreamListener
 	}
 
+	cfgSnap.Proxy.Expose.Finalize(s.Logger)
 	paths := cfgSnap.Proxy.Expose.Paths
 
 	// Add service health checks to the list of paths to create listeners for if needed

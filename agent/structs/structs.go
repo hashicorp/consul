@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -945,6 +946,35 @@ func (s *NodeService) Validate() error {
 				continue
 			}
 			bindAddrs[addr] = struct{}{}
+		}
+		var known = make(map[string]bool)
+		for _, path := range s.Proxy.Expose.Paths {
+			if path.Path == "" {
+				result = multierror.Append(result, fmt.Errorf("empty path exposed"))
+			}
+
+			if seen := known[path.Path]; seen {
+				result = multierror.Append(result, fmt.Errorf("duplicate paths exposed"))
+			}
+			known[path.Path] = true
+
+			if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
+				result = multierror.Append(result, fmt.Errorf("invalid listener port: %d", path.ListenerPort))
+			}
+
+			if path.CAFile != "" {
+				_, err := os.Stat(path.CAFile)
+				if err != nil {
+					result = multierror.Append(result, fmt.Errorf("failed to find CAFile '%s': %v", path.CAFile, err))
+				}
+			}
+
+			path.Protocol = strings.ToLower(path.Protocol)
+			if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
+				result = multierror.Append(result,
+					fmt.Errorf("protocol '%s' not supported for path: %s, must be http or http2",
+						path.Protocol, path.Path))
+			}
 		}
 	}
 
