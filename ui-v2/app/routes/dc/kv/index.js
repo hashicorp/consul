@@ -25,7 +25,7 @@ export default Route.extend(WithKvActions, {
   model: function(params) {
     let key = params.key || '/';
     const dc = this.modelFor('dc').dc.Name;
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     return hash({
       isLoading: false,
       parent: repo.findBySlug(key, dc),

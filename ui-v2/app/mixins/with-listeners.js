@@ -8,7 +8,7 @@ export default Mixin.create({
   dom: service('dom'),
   init: function() {
     this._super(...arguments);
-    this._listeners = get(this, 'dom').listeners();
+    this._listeners = this.dom.listeners();
     let teardown = ['willDestroy'];
     if (this instanceof Component) {
       teardown = ['willDestroyElement'];

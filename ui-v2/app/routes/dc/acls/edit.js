@@ -11,7 +11,7 @@ export default Route.extend(WithAclActions, {
   model: function(params) {
     return hash({
       isLoading: false,
-      item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
+      item: this.repo.findBySlug(params.id, this.modelFor('dc').dc.Name),
       types: ['management', 'client'],
     });
   },

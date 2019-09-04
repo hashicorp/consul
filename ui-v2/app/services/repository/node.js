@@ -12,6 +12,6 @@ export default RepositoryService.extend({
     const query = {
       dc: dc,
     };
-    return get(this, 'store').queryLeader(this.getModelName(), query);
+    return this.store.queryLeader(this.getModelName(), query);
   },
 });

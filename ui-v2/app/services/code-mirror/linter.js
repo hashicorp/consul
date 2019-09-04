@@ -28,6 +28,6 @@ export default Service.extend({
     return lint(...arguments);
   },
   getEditor: function(element) {
-    return get(this, 'dom').element('textarea + div', element).CodeMirror;
+    return this.dom.element('textarea + div', element).CodeMirror;
   },
 });

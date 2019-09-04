@@ -14,7 +14,7 @@ export default Route.extend(WithPolicyActions, {
     },
   },
   model: function(params) {
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     return hash({
       ...repo.status({
         items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),

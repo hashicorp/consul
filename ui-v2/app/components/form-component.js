@@ -22,7 +22,7 @@ export default Component.extend(WithListeners, SlotsMixin, {
 
   actions: {
     change: function(e, value, item) {
-      let event = get(this, 'dom').normalizeEvent(e, value);
+      let event = this.dom.normalizeEvent(e, value);
       // currently form-components don't deal with deeply nested forms, only top level
       // we therefore grab the end of the nest off here,
       // so role[policy][Rules] will end up as policy[Rules]
@@ -34,11 +34,11 @@ export default Component.extend(WithListeners, SlotsMixin, {
       const prop = matches[matches.length - 1][0];
       let name;
       if (prop.indexOf('[') === -1) {
-        name = `${get(this, 'type')}[${prop}]`;
+        name = `${this.type}[${prop}]`;
       } else {
         name = prop;
       }
-      const form = get(this, 'form');
+      const form = this.form;
       try {
         form.handleEvent(event, name);
         this.onchange({ target: this });

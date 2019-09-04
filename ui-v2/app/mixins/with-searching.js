@@ -22,7 +22,7 @@ export default Mixin.create(WithListeners, {
     this.searchables = {};
     Object.keys(params).forEach(type => {
       const key = params[type];
-      this.searchables[type] = get(this, 'builder').searchable(type);
+      this.searchables[type] = this.builder.searchable(type);
       this.listen(this.searchables[type], 'change', e => {
         const value = e.target.value;
         set(this, key, value === '' ? null : value);

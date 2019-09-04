@@ -5,7 +5,7 @@ import { observer } from '@ember/object';
 export default Helper.extend({
   router: service('router'),
   compute(params) {
-    return this.get('router').isActive(...params);
+    return this.router.isActive(...params);
   },
   onURLChange: observer('router.currentURL', function() {
     this.recompute();

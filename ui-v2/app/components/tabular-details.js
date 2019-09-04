@@ -17,7 +17,7 @@ export default Component.extend(SlotsMixin, {
   }),
   actions: {
     click: function(e) {
-      get(this, 'dom').clickFirstAnchor(e);
+      this.dom.clickFirstAnchor(e);
     },
     change: function(item, items, e) {
       this.onchange(e, item, items);

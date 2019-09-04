@@ -9,7 +9,7 @@ export default Component.extend({
       if (e.target.type === 'checkbox') {
         set(this, 'direction', e.target.checked ? 'desc' : 'asc');
       }
-      this.onchange({ target: { value: `${get(this, 'value')}:${get(this, 'direction')}` } });
+      this.onchange({ target: { value: `${this.value}:${this.direction}` } });
     },
   },
 });

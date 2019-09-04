@@ -12,10 +12,10 @@ export default Component.extend({
   },
   didInsertElement: function() {
     this._super(...arguments);
-    get(this, 'buffer').on('add', this.append);
+    this.buffer.on('add', this.append);
   },
   didDestroyElement: function() {
     this._super(...arguments);
-    get(this, 'buffer').off('add', this.append);
+    this.buffer.off('add', this.append);
   },
 });

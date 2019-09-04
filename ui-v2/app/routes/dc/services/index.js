@@ -16,7 +16,7 @@ export default Route.extend({
     },
   },
   model: function(params) {
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     let terms = params.s || '';
     // we check for the old style `status` variable here
     // and convert it to the new style filter=status:critical

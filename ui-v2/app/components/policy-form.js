@@ -13,7 +13,7 @@ export default FormComponent.extend({
   init: function() {
     this._super(...arguments);
     set(this, 'isScoped', get(this, 'item.Datacenters.length') > 0);
-    set(this, 'datacenters', get(this, 'datacenterRepo').findAll());
+    set(this, 'datacenters', this.datacenterRepo.findAll());
     this.templates = [
       {
         name: 'Policy',
@@ -30,7 +30,7 @@ export default FormComponent.extend({
       try {
         this._super(...arguments);
       } catch (err) {
-        const scoped = get(this, 'isScoped');
+        const scoped = this.isScoped;
         const name = err.target.name;
         switch (name) {
           case 'policy[isScoped]':
@@ -38,7 +38,7 @@ export default FormComponent.extend({
               set(this, 'previousDatacenters', get(this.item, 'Datacenters'));
               set(this.item, 'Datacenters', null);
             } else {
-              set(this.item, 'Datacenters', get(this, 'previousDatacenters'));
+              set(this.item, 'Datacenters', this.previousDatacenters);
               set(this, 'previousDatacenters', null);
             }
             set(this, 'isScoped', !scoped);
@@ -46,7 +46,7 @@ export default FormComponent.extend({
           default:
             this.onerror(err);
         }
-        this.onchange({ target: get(this, 'form') });
+        this.onchange({ target: this.form });
       }
     },
   },

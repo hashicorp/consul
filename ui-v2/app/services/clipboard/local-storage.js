@@ -22,7 +22,7 @@ export default Service.extend({
   key: 'clipboard',
   execute: function(trigger) {
     return new ClipboardCallback(trigger, val => {
-      get(this, 'storage').setItem(get(this, 'key'), val);
+      this.storage.setItem(this.key, val);
     });
   },
 });

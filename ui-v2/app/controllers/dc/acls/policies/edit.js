@@ -5,7 +5,7 @@ export default Controller.extend({
   builder: service('form'),
   init: function() {
     this._super(...arguments);
-    this.form = get(this, 'builder').form('policy');
+    this.form = this.builder.form('policy');
   },
   setProperties: function(model) {
     // essentially this replaces the data with changesets

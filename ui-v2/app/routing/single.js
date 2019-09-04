@@ -8,7 +8,7 @@ export default Route.extend({
     return transition.targetName.split('.').pop() === 'create';
   },
   model: function(params, transition) {
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     assert(
       "`repo` is undefined, please define RepositoryService using `repo: service('repositoryName')`",
       typeof repo !== 'undefined'

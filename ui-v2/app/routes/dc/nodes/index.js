@@ -14,8 +14,8 @@ export default Route.extend({
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
     return hash({
-      items: get(this, 'repo').findAllByDatacenter(dc),
-      leader: get(this, 'repo').findByLeader(dc),
+      items: this.repo.findAllByDatacenter(dc),
+      leader: this.repo.findByLeader(dc),
     });
   },
   setupController: function(controller, model) {
