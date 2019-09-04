@@ -15,14 +15,10 @@ import (
 func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 	t.Parallel()
 	logWriter := logger.NewLogWriter(512)
-	a := &agent.TestAgent{
-		Name:      t.Name(),
+	a := &agent.NewTestAgentWithFields(t, true, TestAgent{
 		LogWriter: logWriter,
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
-	}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	})
 	defer a.Shutdown()
 
 	shutdownCh := make(chan struct{})

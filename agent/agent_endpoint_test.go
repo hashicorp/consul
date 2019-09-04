@@ -3919,15 +3919,11 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 func TestAgent_Monitor(t *testing.T) {
 	t.Parallel()
 	logWriter := logger.NewLogWriter(512)
-	a := &TestAgent{
-		Name:      t.Name(),
+	a := NewTestAgentWithFields(t, true, TestAgent{
 		LogWriter: logWriter,
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 		HCL:       `node_name = "invalid!"`,
-	}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
