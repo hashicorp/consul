@@ -60,6 +60,57 @@ var expectedFieldConfigMeshGatewayConfig bexpr.FieldConfigurations = bexpr.Field
 	},
 }
 
+var expectedFieldConfigExposeConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Checks": &bexpr.FieldConfiguration{
+		StructFieldName:     "Checks",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Paths": &bexpr.FieldConfiguration{
+		StructFieldName:     "Paths",
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty},
+		SubFields:           expectedFieldConfigPaths,
+	},
+}
+
+var expectedFieldConfigPaths bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"ListenerPort": &bexpr.FieldConfiguration{
+		StructFieldName:     "ListenerPort",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Path": &bexpr.FieldConfiguration{
+		StructFieldName:     "Path",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"LocalPathPort": &bexpr.FieldConfiguration{
+		StructFieldName:     "LocalPathPort",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Protocol": &bexpr.FieldConfiguration{
+		StructFieldName:     "Protocol",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"TLSSkipVerify": &bexpr.FieldConfiguration{
+		StructFieldName:     "TLSSkipVerify",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"CAFile": &bexpr.FieldConfiguration{
+		StructFieldName:     "CAFile",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"CACert": &bexpr.FieldConfiguration{
+		StructFieldName:     "CACert",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+}
+
 var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"DestinationType": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationType",
@@ -126,6 +177,10 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 	"MeshGateway": &bexpr.FieldConfiguration{
 		StructFieldName: "MeshGateway",
 		SubFields:       expectedFieldConfigMeshGatewayConfig,
+	},
+	"Expose": &bexpr.FieldConfiguration{
+		StructFieldName: "Expose",
+		SubFields:       expectedFieldConfigExposeConfig,
 	},
 }
 

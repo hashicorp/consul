@@ -5818,6 +5818,8 @@ func TestSanitize(t *testing.T) {
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
+		"ExposeMaxPort": 0,
+		"ExposeMinPort": 0,
 		"GRPCAddrs": [],
 		"GRPCPort": 0,
 		"HTTPAddrs": [
@@ -5898,6 +5900,8 @@ func TestSanitize(t *testing.T) {
 				"Name": "blurb",
 				"Notes": "",
 				"OutputMaxSize": ` + strconv.Itoa(checks.DefaultBufSize) + `,
+				"ProxyGRPC": "",
+				"ProxyHTTP": "",
 				"ScriptArgs": [],
 				"Shell": "",
 				"Status": "",

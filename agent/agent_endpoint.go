@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -769,6 +769,11 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			"local_service_address":    "LocalServiceAddress",
 			// SidecarService
 			"sidecar_service": "SidecarService",
+			// Expose Config
+			"local_path_port": "LocalPathPort",
+			"listener_port":   "ListenerPort",
+			"tls_skip_verify": "TLSSkipVerify",
+			"ca_file":         "CAFile",
 
 			// DON'T Recurse into these opaque config maps or we might mangle user's
 			// keys. Note empty canonical is a special sentinel to prevent recursion.

@@ -56,6 +56,41 @@ type MeshGatewayConfig struct {
 	Mode MeshGatewayMode `json:",omitempty"`
 }
 
+// ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
+// Users can expose individual paths and/or all HTTP/GRPC paths for checks.
+type ExposeConfig struct {
+	// Checks defines whether paths associated with Consul checks will be exposed.
+	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
+	Checks bool `json:",omitempty"`
+
+	// Paths is the list of paths exposed through the proxy.
+	Paths []Path `json:",omitempty"`
+}
+
+type Path struct {
+	// ListenerPort defines the port of the proxy's listener for exposed paths.
+	ListenerPort int `json:",omitempty"`
+
+	// Path is the path to expose through the proxy, ie. "/metrics."
+	Path string `json:",omitempty"`
+
+	// LocalPathPort is the port that the service is listening on for the given path.
+	LocalPathPort int `json:",omitempty"`
+
+	// Protocol describes the upstream's service protocol.
+	// Valid values are "http" and "http2", defaults to "http"
+	Protocol string `json:",omitempty"`
+
+	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
+	TLSSkipVerify bool `json:",omitempty"`
+
+	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
+	CAFile string `json:",omitempty"`
+
+	// CACert contains the PEM encoded CA file read from CAFile
+	CACert string `json:",omitempty"`
+}
+
 type ServiceConfigEntry struct {
 	Kind        string
 	Name        string

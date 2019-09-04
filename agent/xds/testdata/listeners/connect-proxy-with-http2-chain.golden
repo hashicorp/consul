@@ -16,6 +16,7 @@
             {
               "name": "envoy.http_connection_manager",
               "config": {
+                  "codec_type": "HTTP2",
                   "http2_protocol_options": {
                       },
                   "http_filters": [
