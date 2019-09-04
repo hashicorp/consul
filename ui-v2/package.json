@@ -42,14 +42,6 @@
       "git add"
     ]
   },
-  "resolutions": {
-    "handlebars": "^4.1.2",
-    "lodash": "^4.17.13",
-    "lodash.template": "^4.5.0",
-    "lodash.mergewith": "^4.6.2",
-    "lodash.defaultsdeep": "^4.6.1",
-    "jquery": "^3.4.0"
-  },
   "devDependencies": {
     "@babel/core": "^7.2.2",
     "@ember/jquery": "^0.6.0",
@@ -61,8 +53,6 @@
     "broccoli-asset-rev": "^3.0.0",
     "chalk": "^2.4.2",
     "clipboard": "^2.0.4",
-    "dart-sass": "^1.14.1",
-    "ember-ajax": "^5.0.0",
     "ember-auto-import": "^1.4.0",
     "ember-changeset-validations": "^2.1.0",
     "ember-cli": "~3.12.0",
@@ -103,7 +93,6 @@
     "ember-source": "~3.12.0",
     "ember-test-selectors": "^1.0.0",
     "ember-truth-helpers": "^2.0.0",
-    "ember-url": "^0.6.0",
     "eslint-plugin-ember": "^6.2.0",
     "eslint-plugin-node": "^9.0.1",
     "husky": "^1.1.0",
@@ -115,7 +104,6 @@
     "node-sass": "^4.9.3",
     "prettier": "^1.10.2",
     "qunit-dom": "^0.8.4",
-    "svgo": "^1.0.5",
     "text-encoding": "^0.6.4"
   },
   "engines": {
