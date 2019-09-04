@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -14,10 +15,16 @@ import (
 // CreateCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
 func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer, extensions ...pkix.Extension) (string, error) {
+
+	sigAlgo := x509.ECDSAWithSHA256
+	if _, ok := privateKey.(*rsa.PrivateKey); ok {
+		sigAlgo = x509.SHA256WithRSA
+	}
+
 	template := &x509.CertificateRequest{
 		Subject:            pkix.Name{CommonName: commonName},
 		URIs:               []*url.URL{uri.URI()},
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
+		SignatureAlgorithm: sigAlgo,
 		ExtraExtensions:    extensions,
 	}
 

@@ -447,18 +447,21 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 	}
 }
 
-func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string) bool {
+func activeRoot(roots *structs.IndexedCARoots) *structs.CARoot {
 	for _, ca := range roots.Roots {
 		if ca.Active {
-			if ca.SigningKeyID == currentSigningKeyID {
-				return true
-			}
-			// Found the active CA but it has changed
-			return false
+			return ca
 		}
 	}
-	// Shouldn't be possible since at least one root should be active.
-	return false
+	return nil
+}
+
+func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string) bool {
+	ca := activeRoot(roots)
+	if ca == nil {
+		return false
+	}
+	return ca.SigningKeyID == currentSigningKeyID
 }
 
 func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
@@ -501,6 +504,8 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, errors.New("cluster has no CA bootstrapped yet")
 	}
 
+	ca := activeRoot(roots)
+
 	// Build the cert uri
 	var id connect.CertURI
 	var commonName string
@@ -524,7 +529,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a new private key
-	pk, pkPEM, err := connect.GeneratePrivateKey()
+	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(ca.PrivateKeyType, ca.PrivateKeyBits)
 	if err != nil {
 		return result, err
 	}
