@@ -11,11 +11,10 @@ import (
 )
 
 const (
-	defaultExposePort     = 21500
 	defaultExposeProtocol = "http"
 )
 
-var allowedExposeProtocols = map[string]bool{"http": true, "http2": true, "grpc": true}
+var allowedExposeProtocols = map[string]bool{"http": true, "http2": true}
 
 type MeshGatewayMode string
 
@@ -332,22 +331,22 @@ type ExposeConfig struct {
 	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
 	Checks bool `mapstructure:"checks"`
 
-	// Port defines the port of the proxy's listener for exposed paths.
-	Port int `mapstructure:"port"`
-
 	// Paths is the list of paths exposed through the proxy.
 	Paths []Path `mapstructure:"paths"`
 }
 
 type Path struct {
+	// ListenerPort defines the port of the proxy's listener for exposed paths.
+	ListenerPort int `mapstructure:"listener_port"`
+
 	// Path is the path to expose through the proxy, ie. "/metrics."
 	Path string `mapstructure:"path"`
 
-	// Port is the port that the service is listening on for the given path.
-	Port int `mapstructure:"port"`
+	// LocalPathPort is the port that the service is listening on for the given path.
+	LocalPathPort int `mapstructure:"local_path_port"`
 
 	// Protocol describes the upstream's service protocol.
-	// Valid values are "http", "http2" and "grpc". Defaults to "http".
+	// Valid values are "http" and "http2", defaults to "http"
 	Protocol string `mapstructure:"protocol"`
 
 	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
@@ -362,19 +361,18 @@ type Path struct {
 
 // Finalize validates ExposeConfig and sets default values
 func (e *ExposeConfig) Finalize() error {
-	if e.Port < 0 || e.Port > 65535 {
-		return fmt.Errorf("invalid port: %d", e.Port)
-	}
-	if e.Port == 0 {
-		e.Port = defaultExposePort
-	}
-
 	var known = make(map[string]bool)
-	for _, path := range e.Paths {
+	for i := 0; i < len(e.Paths); i++ {
+		path := &e.Paths[i]
+
 		if seen := known[path.Path]; seen {
 			return fmt.Errorf("duplicate paths exposed")
 		}
 		known[path.Path] = true
+
+		if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
+			return fmt.Errorf("invalid port: %d", path.ListenerPort)
+		}
 
 		if path.CAFile != "" {
 			b, err := ioutil.ReadFile(path.CAFile)
@@ -386,7 +384,8 @@ func (e *ExposeConfig) Finalize() error {
 
 		path.Protocol = strings.ToLower(path.Protocol)
 		if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
-			return fmt.Errorf("protocol '%s' not recognized for path: %s", path.Protocol, path.Path)
+			return fmt.Errorf("protocol '%s' not supported for path: %s, must be http or http2",
+				path.Protocol, path.Path)
 		}
 		if path.Protocol == "" {
 			path.Protocol = defaultExposeProtocol

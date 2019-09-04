@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"golang.org/x/time/rate"
 )
@@ -369,6 +369,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	proxyMaxPort := b.portVal("ports.proxy_max_port", c.Ports.ProxyMaxPort)
 	sidecarMinPort := b.portVal("ports.sidecar_min_port", c.Ports.SidecarMinPort)
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
+	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
+	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -376,6 +378,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if sidecarMaxPort < sidecarMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"sidecar_min_port must be less than sidecar_max_port. To disable, set both to zero.")
+	}
+	if exposeMaxPort < exposeMinPort {
+		return RuntimeConfig{}, fmt.Errorf(
+			"expose_min_port must be less than expose_max_port. To disable, set both to zero.")
 	}
 
 	// determine the default bind and advertise address
@@ -804,6 +810,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ConnectCAConfig:                  connectCAConfig,
 		ConnectSidecarMinPort:            sidecarMinPort,
 		ConnectSidecarMaxPort:            sidecarMaxPort,
+		ExposeMinPort:                    exposeMinPort,
+		ExposeMaxPort:                    exposeMaxPort,
 		DataDir:                          b.stringVal(c.DataDir),
 		Datacenter:                       datacenter,
 		DevMode:                          b.boolVal(b.Flags.DevMode),
@@ -1305,6 +1313,7 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
+		Expose:                 b.exposeConfVal(v.Expose),
 	}
 }
 
@@ -1343,6 +1352,35 @@ func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 
 	cfg.Mode = mode
 	return cfg
+}
+
+func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
+	var out structs.ExposeConfig
+	if v == nil {
+		return out
+	}
+
+	out.Checks = b.boolVal(v.Checks)
+	out.Paths = b.pathsVal(v.Paths)
+	if err := out.Finalize(); err != nil {
+		b.err = multierror.Append(b.err, err)
+	}
+	return out
+}
+
+func (b *Builder) pathsVal(v []Path) []structs.Path {
+	paths := make([]structs.Path, len(v))
+	for i, p := range v {
+		paths[i] = structs.Path{
+			ListenerPort:  b.intVal(p.ListenerPort),
+			Path:          b.stringVal(p.Path),
+			LocalPathPort: b.intVal(p.LocalPathPort),
+			Protocol:      b.stringVal(p.Protocol),
+			TLSSkipVerify: b.boolVal(p.TLSSkipVerify),
+			CAFile:        b.stringVal(p.CAFile),
+		}
+	}
+	return paths
 }
 
 func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {

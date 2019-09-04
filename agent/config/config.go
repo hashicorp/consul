@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/lib"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 )
@@ -97,6 +97,8 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.connect.sidecar_service.checks",
 		"service.connect.sidecar_service.proxy.upstreams",
 		"services.connect.sidecar_service.proxy.upstreams",
+		"service.connect.sidecar_service.proxy.expose.paths",
+		"services.connect.sidecar_service.proxy.expose.paths",
 	}, []string{
 		"config_entries.bootstrap", // completely ignore this tree (fixed elsewhere)
 	})
@@ -468,6 +470,9 @@ type ServiceProxy struct {
 
 	// Mesh Gateway Configuration
 	MeshGateway *MeshGatewayConfig `json:"mesh_gateway,omitempty" hcl:"mesh_gateway" mapstructure:"mesh_gateway"`
+
+	// Expose defines whether checks or paths are exposed through the proxy
+	Expose *ExposeConfig `json:"expose,omitempty" hcl:"expose" mapstructure:"expose"`
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -511,6 +516,40 @@ type Upstream struct {
 type MeshGatewayConfig struct {
 	// Mesh Gateway Mode
 	Mode *string `json:"mode,omitempty" hcl:"mode" mapstructure:"mode"`
+}
+
+// ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
+// Users can expose individual paths and/or all HTTP/GRPC paths for checks.
+type ExposeConfig struct {
+	// Checks defines whether paths associated with Consul checks will be exposed.
+	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
+	Checks *bool `json:"checks,omitempty" hcl:"checks" mapstructure:"checks"`
+
+	// Port defines the port of the proxy's listener for exposed paths.
+	Port *int `json:"port,omitempty" hcl:"port" mapstructure:"port"`
+
+	// Paths is the list of paths exposed through the proxy.
+	Paths []Path `json:"paths,omitempty" hcl:"paths" mapstructure:"paths"`
+}
+
+type Path struct {
+	// ListenerPort defines the port of the proxy's listener for exposed paths.
+	ListenerPort *int `json:"listener_port,omitempty" hcl:"listener_port" mapstructure:"listener_port"`
+
+	// Path is the path to expose through the proxy, ie. "/metrics."
+	Path *string `json:"path,omitempty" hcl:"path" mapstructure:"path"`
+
+	// Protocol describes the upstream's service protocol.
+	Protocol *string `json:"protocol,omitempty" hcl:"protocol" mapstructure:"protocol"`
+
+	// LocalPathPort is the port that the service is listening on for the given path.
+	LocalPathPort *int `json:"local_path_port,omitempty" hcl:"local_path_port" mapstructure:"local_path_port"`
+
+	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
+	TLSSkipVerify *bool `json:"tls_skip_verify,omitempty" hcl:"tls_skip_verify" mapstructure:"tls_skip_verify"`
+
+	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
+	CAFile *string `json:"ca_file,omitempty" hcl:"ca_file" mapstructure:"ca_file"`
 }
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.
@@ -606,6 +645,8 @@ type Ports struct {
 	ProxyMaxPort   *int `json:"proxy_max_port,omitempty" hcl:"proxy_max_port" mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `json:"sidecar_min_port,omitempty" hcl:"sidecar_min_port" mapstructure:"sidecar_min_port"`
 	SidecarMaxPort *int `json:"sidecar_max_port,omitempty" hcl:"sidecar_max_port" mapstructure:"sidecar_max_port"`
+	ExposeMinPort  *int `json:"expose_min_port,omitempty" hcl:"expose_min_port" mapstructure:"expose_min_port"`
+	ExposeMaxPort  *int `json:"expose_max_port,omitempty" hcl:"expose_max_port" mapstructure:"expose_max_port"`
 }
 
 type UnixSocket struct {
