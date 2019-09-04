@@ -1,5 +1,5 @@
 import { get as httpGet } from 'consul-ui/tests/helpers/api';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 import measure from 'consul-ui/tests/helpers/measure';
 
 /** Stub an ember-data adapter response using the private method
@@ -16,18 +16,18 @@ import measure from 'consul-ui/tests/helpers/measure';
  */
 const stubAdapterResponse = function(cb, payload, adapter) {
   const payloadClone = JSON.parse(JSON.stringify(payload));
-  const ajax = adapter._ajaxRequest;
-  adapter._ajaxRequest = function(options) {
-    options.success(payloadClone, '200', {
-      status: 200,
-      textStatus: '200',
-      getAllResponseHeaders: function() {
-        return '';
-      },
-    });
-  };
+  const client = get(adapter, 'client');
+  set(adapter, 'client', {
+    request: function(cb) {
+      return cb(function() {
+        return Promise.resolve(function(cb) {
+          return cb({}, payloadClone);
+        });
+      });
+    },
+  });
   return cb(payload).then(function(result) {
-    adapter._ajaxRequest = ajax;
+    set(adapter, 'client', client);
     return result;
   });
 };

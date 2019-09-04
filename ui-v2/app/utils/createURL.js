@@ -1,27 +1,35 @@
-/**
- * Creates a safe url encoded url
- *
- * @param {string[]} encoded - Pre-encoded parts for the url
- * @param {string[]} raw - Possibly unsafe (not encoded) parts for the url
- * @param {object} query - A 'query object' the values of which are possibly unsafe and will be passed through encode
- * @param {function} [encode=encodeURIComponent] - Injectable encode function, defaulting to the browser default encodeURIComponent
- *
- * @example
- * // returns 'a/nice-url/with%20some/non%20encoded?sortBy=the%20name&page=1'
- * createURL(['a/nice-url'], ['with some', 'non encoded'], {sortBy: "the name", page: 1})
- */
-export default function(encoded, raw, query = {}, encode = encodeURIComponent) {
-  return [
-    encoded.concat(raw.map(encode)).join('/'),
-    Object.keys(query)
-      .map(function(key, i, arr) {
-        if (query[key] != null) {
-          return `${encode(key)}=${encode(query[key])}`;
+export default function(encode) {
+  return function(strs, ...values) {
+    return strs
+      .map(function(item, i) {
+        let val = typeof values[i] === 'undefined' ? '' : values[i];
+        switch (true) {
+          case typeof val === 'string':
+            val = encode(val);
+            break;
+          case Array.isArray(val):
+            val = val
+              .map(function(item) {
+                return `${encode(item)}`;
+              }, '')
+              .join('/');
+            break;
+          case typeof val === 'object':
+            val = Object.keys(val)
+              .reduce(function(prev, key) {
+                if (val[key] === null) {
+                  return prev.concat(`${encode(key)}`);
+                } else if (typeof val[key] !== 'undefined') {
+                  return prev.concat(`${encode(key)}=${encode(val[key])}`);
+                }
+                return prev;
+              }, [])
+              .join('&');
+            break;
         }
-        return key;
+        return `${item}${val}`;
       })
-      .join('&'),
-  ]
-    .filter(item => item !== '')
-    .join('?');
+      .join('')
+      .trim();
+  };
 }

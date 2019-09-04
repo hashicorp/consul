@@ -14,6 +14,7 @@ export default function(
     ...deletable({}, 'form > div'),
     use: clickable('[data-test-use]'),
     confirmUse: clickable('button.type-delete'),
+    clone: clickable('[data-test-clone]'),
     policies: policySelector(),
     roles: roleSelector(),
   };
