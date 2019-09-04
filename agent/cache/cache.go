@@ -756,7 +756,7 @@ func (c *Cache) Close() error {
 // AutoEncrypt.TLS is turned on. The cache itself cannot fetch that the first
 // time because it requires a special RPCType. Subsequent runs are fine though.
 func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) error {
-	// Check the type that we're prepolulating
+	// Check the type that we're prepopulating
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
 	c.typesLock.RUnlock()
