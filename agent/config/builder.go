@@ -279,7 +279,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			continue
 		}
 		c2, err := Parse(s.Data, s.Format)
-		if err != nil {
+		if err != nil && rt.IgnoreInvalidCheckFiles == false {
 			return RuntimeConfig{}, fmt.Errorf("Error parsing %s: %s", s.Name, err)
 		}
 
@@ -837,6 +837,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EncryptVerifyOutgoing:            b.boolVal(c.EncryptVerifyOutgoing),
 		GRPCPort:                         grpcPort,
 		GRPCAddrs:                        grpcAddrs,
+		IgnoreInvalidCheckFiles:          b.boolVal(c.IgnoreInvalidCheckFiles),
 		KeyFile:                          b.stringVal(c.KeyFile),
 		KVMaxValueSize:                   b.uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:                   b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
@@ -1086,7 +1087,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// Check for errors in the service definitions
 	for _, s := range rt.Services {
 		if err := s.Validate(); err != nil {
-			return fmt.Errorf("service %q: %s", s.Name, err)
+			if rt.IgnoreInvalidCheckFiles == false { //If set, we're not failing early, so don't return error
+				return fmt.Errorf("service %q: %s", s.Name, err)
+			}
 		}
 	}
 

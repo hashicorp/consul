@@ -793,6 +793,10 @@ type RuntimeConfig struct {
 	// hcl: ports { https = int }
 	HTTPSPort int
 
+	// IgnoreInvalidCheckFiles is the flag used to specify if Consul should ignore badly formatted checks or checks with
+	// invalid params
+	IgnoreInvalidCheckFiles bool
+
 	// KeyFile is used to provide a TLS key that is used for serving TLS
 	// connections. Must be provided to serve TLS connections.
 	//

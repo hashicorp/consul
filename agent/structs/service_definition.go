@@ -128,3 +128,10 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes, err error) {
 	}
 	return checks, nil
 }
+
+func (s *ServiceDefinition) String() string {
+	if s == nil {
+		return "UNKNOWN"
+	}
+	return "(" + s.ID + ":" + s.Name + ")"
+}

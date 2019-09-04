@@ -3287,6 +3287,27 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+		{
+			desc: "-ignore-invalid-check-files passed in CLI",
+			args: []string{
+				`-ignore-invalid-check-files`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.IgnoreInvalidCheckFiles = true
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-ignore-invalid-check-files not passed in CLI",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.IgnoreInvalidCheckFiles = false
+				rt.DataDir = dataDir
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -3696,6 +3717,7 @@ func TestFullConfig(t *testing.T) {
 					"JRCrHZed": "rl0mTx81"
 				}
 			},
+			"ignore_invalid_check_files": true,
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
@@ -4295,6 +4317,7 @@ func TestFullConfig(t *testing.T) {
 					"JRCrHZed" = "rl0mTx81"
 				}
 			}
+			ignore_invalid_check_files = true
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
@@ -4983,6 +5006,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPResponseHeaders:              map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                       []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPSPort:                        15127,
+		IgnoreInvalidCheckFiles:          true,
 		KeyFile:                          "IEkkwgIA",
 		KVMaxValueSize:                   1234567800000000,
 		LeaveDrainTime:                   8265 * time.Second,
@@ -5839,6 +5863,7 @@ func TestSanitize(t *testing.T) {
 		"HTTPResponseHeaders": {},
 		"HTTPSAddrs": [],
 		"HTTPSPort": 0,
+		"IgnoreInvalidCheckFiles": false,
 		"KeyFile": "hidden",
 		"KVMaxValueSize": 1234567800000000,
 		"LeaveDrainTime": "0s",

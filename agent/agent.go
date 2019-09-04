@@ -2388,7 +2388,6 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 			return fmt.Errorf("Check is not valid: %v", err)
 		}
 	}
-
 	// Set default weights if not specified. This is important as it ensures AE
 	// doesn't consider the service different since it has nil weights.
 	if service.Weights == nil {
@@ -2594,7 +2593,8 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 		if chkType.IsScript() {
 			if source == ConfigSourceLocal && !a.config.EnableLocalScriptChecks {
-				return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' or 'enable_local_script_checks' to true")
+				return fmt.Errorf("Scripts are disabled on this agent; to enable, " +
+					"configure 'enable_script_checks' or 'enable_local_script_checks' to true")
 			}
 
 			if source == ConfigSourceRemote && !a.config.EnableRemoteScriptChecks {
@@ -3219,14 +3219,29 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 	}
 
 	// Register the services from config
+	var trimmedServices []*structs.ServiceDefinition
+	a.logger.Printf("[DEBUG] agent: The initial services are: %s", conf.Services)
+	// Go though the services and either return on first error (IgnoreInvalidCheckFiles == false) or continue processing
+	// other checks but leave the bad ones out from any further processing
 	for _, service := range conf.Services {
-		ns := service.NodeService()
-		chkTypes, err := service.CheckTypes()
-		if err != nil {
+		_, err := service.CheckTypes()
+		if err != nil && a.config.IgnoreInvalidCheckFiles == false {
 			return fmt.Errorf("Failed to validate checks for service %q: %v", service.Name, err)
 		}
-
+		// Will reach here if err == nil OR IgnoreInvalidCheckFiles == true.
+		// If err == nil then the other flag is a don't care, so check for that condition first
+		if err == nil {
+			trimmedServices = append(trimmedServices, service)
+		} else {
+			a.logger.Printf("[WARN] agent: Going to skip service %s ", service)
+		}
+	}
+	conf.Services = trimmedServices
+	a.logger.Printf("[DEBUG] agent: After trimming out bad services, the remaining ones are: %s", conf.Services)
+	for _, service := range conf.Services {
 		// Grab and validate sidecar if there is one too
+		ns := service.NodeService()
+		chkTypes, err := service.CheckTypes()
 		sidecar, sidecarChecks, sidecarToken, err := a.sidecarServiceFromNodeService(ns, service.Token)
 		if err != nil {
 			return fmt.Errorf("Failed to validate sidecar for service %q: %v", service.Name, err)
@@ -3249,7 +3264,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 			source:                ConfigSourceLocal,
 		})
 		if err != nil {
-			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
+			if a.config.IgnoreInvalidCheckFiles == false { // Default case
+				return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
+			}
+			// If we are to ignore badly specified check files then we shouldn't return an error but skip this service
+			a.logger.Printf("[WARN] agent: Failed to register service %q with err: %q but continuing with other"+
+				" services because IgnoreInvalidCheckFiles = %v", service.Name, err, a.config.IgnoreInvalidCheckFiles)
+			continue // Don't try its sidecar
 		}
 
 		// If there is a sidecar service, register that too.
