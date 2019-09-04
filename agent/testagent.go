@@ -178,8 +178,6 @@ func (a *TestAgent) Start() (err error) {
 
 	logOutput := a.LogOutput
 	if logOutput == nil {
-		// TODO: move this out of Start() and back into NewTestAgent,
-		// and make `logOutput = testutil.TestWriter(t)`
 		logOutput = os.Stderr
 	}
 	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)

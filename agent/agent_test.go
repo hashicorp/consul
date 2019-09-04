@@ -93,7 +93,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := &TestAgent{Name: tt.name, HCL: tt.hcl}
+			a := &TestAgent{Name: tt.name, HCL: tt.hcl, LogOutput: testutil.TestWriter(t)}
 			err := a.Start()
 			if tt.wantErr {
 				if err == nil {
@@ -1218,10 +1218,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	    enable_central_service_config = false
 		data_dir = "` + dataDir + `"
 	`
-	a := NewTestAgentWithFields(t, false, TestAgent{HCL: cfg, DataDir: dataDir})
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
@@ -1305,11 +1302,7 @@ node_name = "` + a.Config.NodeName + `"
 		t.Helper()
 
 		// Reload and retain former NodeID and data directory.
-		a2 := NewTestAgentWithFields(t, false, TestAgent{HCL: futureHCL, DataDir: dataDir})
-		a2.LogOutput = testutil.TestWriter(t)
-		if err := a2.Start(); err != nil {
-			t.Fatal(err)
-		}
+		a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: futureHCL, DataDir: dataDir})
 		defer a2.Shutdown()
 		a = nil
 
