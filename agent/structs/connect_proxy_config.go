@@ -371,13 +371,13 @@ func (e *ExposeConfig) Finalize() error {
 		known[path.Path] = true
 
 		if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
-			return fmt.Errorf("invalid port: %d", path.ListenerPort)
+			return fmt.Errorf("invalid listener port: %d", path.ListenerPort)
 		}
 
 		if path.CAFile != "" {
 			b, err := ioutil.ReadFile(path.CAFile)
 			if err != nil {
-				return fmt.Errorf("failed to read '%s': %v", path.CAFile, err)
+				return fmt.Errorf("failed to read CAFile '%s': %v", path.CAFile, err)
 			}
 			path.CACert = string(b)
 		}

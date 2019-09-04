@@ -41,6 +41,10 @@ type CheckType struct {
 	Timeout           time.Duration
 	TTL               time.Duration
 
+	// Definition fields used when exposing checks through a proxy
+	ProxyHTTP string
+	ProxyGRPC string
+
 	// DeregisterCriticalServiceAfter, if >0, will cause the associated
 	// service, if any, to be deregistered if this check is critical for
 	// longer than this duration.
