@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -71,6 +72,16 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		}
 		resources[i+1] = upstreamListener
 	}
+
+	// Configure additional listener for exposed check paths
+	for _, path := range cfgSnap.Proxy.Expose.Paths {
+		l, err := s.makeExposedCheckListener(cfgSnap, path)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, l)
+	}
+
 	return resources, nil
 }
 
@@ -253,7 +264,8 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 
 		l = makeListener(PublicListenerName, addr, port)
 
-		filter, err := makeListenerFilter(false, cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
+		filter, err := makeListenerFilter(
+			false, cfg.Protocol, "public_listener", LocalAppClusterName, "", "", true)
 		if err != nil {
 			return nil, err
 		}
@@ -267,6 +279,49 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	}
 
 	err = injectConnectFilters(cfgSnap, token, l)
+	return l, err
+}
+
+func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, path structs.Path) (proto.Message, error) {
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+	}
+
+	// No user config, use default listener
+	addr := cfgSnap.Address
+
+	// Override with bind address if one is set, otherwise default to 0.0.0.0
+	if cfg.BindAddress != "" {
+		addr = cfg.BindAddress
+	} else if addr == "" {
+		addr = "0.0.0.0"
+	}
+
+	// Strip any special characters from path
+	r := regexp.MustCompile(`[^a-zA-Z0-9]+`)
+	strippedPath := r.ReplaceAllString(path.Path, "")
+	listenerName := fmt.Sprintf("exposed_path_listener_%s_%d", strippedPath, path.ListenerPort)
+	l := makeListener(listenerName, addr, path.ListenerPort)
+
+	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
+	clusterName := LocalAppClusterName
+	if path.LocalPathPort != cfgSnap.Proxy.LocalServicePort {
+		clusterName = makeExposeClusterName(path)
+	}
+
+	f, err := makeListenerFilter(false, path.Protocol, filterName, clusterName, "", path.Path, true)
+	if err != nil {
+		return nil, err
+	}
+
+	l.FilterChains = []envoylistener.FilterChain{
+		{
+			Filters: []envoylistener.Filter{f},
+		},
+	}
 	return l, err
 }
 
@@ -303,7 +358,8 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	clusterName := CustomizeClusterName(sni, chain)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)
+	filter, err := makeListenerFilter(
+		false, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +464,8 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		proto = "tcp"
 	}
 
-	filter, err := makeListenerFilter(true, proto, upstreamID, "", "upstream_", false)
+	filter, err := makeListenerFilter(
+		true, proto, upstreamID, "", "upstream_", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -423,14 +480,17 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	return l, nil
 }
 
-func makeListenerFilter(useRDS bool, protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
+func makeListenerFilter(
+	useRDS bool,
+	protocol, filterName, cluster, statPrefix, routePath string, ingress bool) (envoylistener.Filter, error) {
+
 	switch protocol {
 	case "grpc":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, true, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, true, true)
 	case "http2":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, false, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, true)
 	case "http":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, false, false)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, false)
 	case "tcp":
 		fallthrough
 	default:
@@ -471,7 +531,7 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 
 func makeHTTPFilter(
 	useRDS bool,
-	filterName, cluster, statPrefix string,
+	filterName, cluster, statPrefix, routePath string,
 	ingress, grpc, http2 bool,
 ) (envoylistener.Filter, error) {
 	op := envoyhttp.INGRESS
@@ -482,9 +542,14 @@ func makeHTTPFilter(
 	if grpc {
 		proto = "grpc"
 	}
+	codec := envoyhttp.AUTO
+	if grpc || http2 {
+		codec = envoyhttp.HTTP2
+	}
+
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
-		CodecType:  envoyhttp.AUTO,
+		CodecType:  codec,
 		HttpFilters: []*envoyhttp.HttpFilter{
 			&envoyhttp.HttpFilter{
 				Name: "envoy.router",
@@ -517,33 +582,39 @@ func makeHTTPFilter(
 		if cluster == "" {
 			return envoylistener.Filter{}, fmt.Errorf("must specify cluster name when not using RDS")
 		}
+		route := envoyroute.Route{
+			Match: envoyroute.RouteMatch{
+				PathSpecifier: &envoyroute.RouteMatch_Prefix{
+					Prefix: "/",
+				},
+				// TODO(banks) Envoy supports matching only valid GRPC
+				// requests which might be nice to add here for gRPC services
+				// but it's not supported in our current envoy SDK version
+				// although docs say it was supported by 1.8.0. Going to defer
+				// that until we've updated the deps.
+			},
+			Action: &envoyroute.Route_Route{
+				Route: &envoyroute.RouteAction{
+					ClusterSpecifier: &envoyroute.RouteAction_Cluster{
+						Cluster: cluster,
+					},
+				},
+			},
+		}
+		// If a path is provided, do not match on a catch-all prefix
+		if routePath != "" {
+			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: routePath}
+		}
+
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
 				Name: filterName,
 				VirtualHosts: []envoyroute.VirtualHost{
-					envoyroute.VirtualHost{
+					{
 						Name:    filterName,
 						Domains: []string{"*"},
 						Routes: []envoyroute.Route{
-							envoyroute.Route{
-								Match: envoyroute.RouteMatch{
-									PathSpecifier: &envoyroute.RouteMatch_Prefix{
-										Prefix: "/",
-									},
-									// TODO(banks) Envoy supports matching only valid GRPC
-									// requests which might be nice to add here for gRPC services
-									// but it's not supported in our current envoy SDK version
-									// although docs say it was supported by 1.8.0. Going to defer
-									// that until we've updated the deps.
-								},
-								Action: &envoyroute.Route_Route{
-									Route: &envoyroute.RouteAction{
-										ClusterSpecifier: &envoyroute.RouteAction_Cluster{
-											Cluster: cluster,
-										},
-									},
-								},
-							},
+							route,
 						},
 					},
 				},
@@ -557,7 +628,7 @@ func makeHTTPFilter(
 
 	if grpc {
 		// Add grpc bridge before router
-		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{&envoyhttp.HttpFilter{
+		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
 			Name:       "envoy.grpc_http1_bridge",
 			ConfigType: &envoyhttp.HttpFilter_Config{Config: &types.Struct{}},
 		}}, cfg.HttpFilters...)
