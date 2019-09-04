@@ -184,7 +184,7 @@ func (s *Server) initializeCA() error {
 		if err := s.initializeSecondaryProvider(provider, roots); err != nil {
 			return fmt.Errorf("error configuring provider: %v", err)
 		}
-		if err := s.initializeSecondaryCA(provider, roots); err != nil {
+		if err := s.initializeSecondaryCA(provider, conf, roots); err != nil {
 			return err
 		}
 
@@ -284,7 +284,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 // initializeSecondaryCA runs the routine for generating an intermediate CA CSR and getting
 // it signed by the primary DC if the root CA of the primary DC has changed since the last
 // intermediate.
-func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.IndexedCARoots) error {
+func (s *Server) initializeSecondaryCA(provider ca.Provider, conf *structs.CAConfiguration, roots structs.IndexedCARoots) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
 	if err != nil {
 		return err
@@ -313,6 +313,13 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 	if newActiveRoot == nil {
 		return fmt.Errorf("primary datacenter does not have an active root CA for Connect")
 	}
+
+	commonConfig, err := conf.GetCommonConfig()
+	if err != nil {
+		return err
+	}
+	newActiveRoot.PrivateKeyType = commonConfig.PrivateKeyType
+	newActiveRoot.PrivateKeyBits = commonConfig.PrivateKeyBits
 
 	// Update the roots list in the state store if there's a new active root.
 	state := s.fsm.State()
@@ -560,7 +567,7 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 		// Run the secondary CA init routine to see if we need to request a new
 		// intermediate.
 		if s.configuredSecondaryCA() {
-			if err := s.initializeSecondaryCA(provider, roots); err != nil {
+			if err := s.initializeSecondaryCA(provider, s.config.CAConfig, roots); err != nil {
 				return fmt.Errorf("Failed to initialize the secondary CA: %v", err)
 			}
 		}

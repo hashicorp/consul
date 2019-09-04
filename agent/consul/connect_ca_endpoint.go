@@ -193,6 +193,13 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
+	commonConfig, err := args.Config.GetCommonConfig()
+	if err != nil {
+		return err
+	}
+	newActiveRoot.PrivateKeyType = commonConfig.PrivateKeyType
+	newActiveRoot.PrivateKeyBits = commonConfig.PrivateKeyBits
+
 	// Compare the new provider's root CA ID to the current one. If they
 	// match, just update the existing provider with the new config.
 	// If they don't match, begin the root rotation process.

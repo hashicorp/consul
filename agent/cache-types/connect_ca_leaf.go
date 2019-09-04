@@ -504,7 +504,12 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, errors.New("cluster has no CA bootstrapped yet")
 	}
 
+	// Guard against race condition where trust domain has been established, but provider
+	// hasn't returned an active root cert yet.
 	ca := activeRoot(roots)
+	if ca == nil {
+		return result, errors.New("cluster has no root CA certificate yet")
+	}
 
 	// Build the cert uri
 	var id connect.CertURI
