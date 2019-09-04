@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
