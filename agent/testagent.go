@@ -353,6 +353,8 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 				enabled = true
 				ca_config {
 					cluster_id = "` + connect.TestClusterID + `"
+                	private_key_type = "ec"
+					private_key_bits = 256
 				}
 			}
 			performance {
