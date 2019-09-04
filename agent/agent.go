@@ -184,6 +184,9 @@ type Agent struct {
 	// checkAliases maps the check ID to an associated Alias checks
 	checkAliases map[types.CheckID]*checks.CheckAlias
 
+	// exposedPorts tracks listener ports for checks exposed through a proxy
+	exposedPorts map[string]int
+
 	// stateLock protects the agent state
 	stateLock sync.Mutex
 
@@ -2114,10 +2117,9 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 	}
 
 	// If a proxy service wishes to expose checks, check targets need to be rerouted to the proxy listener
-	// This needs to be called after chkTypes are added to the agent, to avoid overwriting
+	// This needs to be called after chkTypes are added to the agent, to avoid being overwritten
 	if service.Proxy.Expose.Checks {
-		err := a.rerouteExposedChecks(
-			service.Proxy.DestinationServiceID, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
+		err := a.rerouteExposedChecks(service.Proxy.DestinationServiceID, service.Proxy.LocalServiceAddress)
 		if err != nil {
 			a.logger.Println("[WARN] failed to reroute L7 checks to exposed proxy listener")
 		}
@@ -2430,11 +2432,12 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if service.Proxy.Expose.Checks {
-				addr, err := httpInjectAddr(http.HTTP, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
+				port, err := a.listenerPort(service.ID, string(http.CheckID))
 				if err != nil {
-					// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
-					return fmt.Errorf("failed to inject proxy addr into HTTP target")
+					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
+					return err
 				}
+				addr := httpInjectAddr(http.HTTP, service.Proxy.LocalServiceAddress, port)
 				http.ProxyHTTP = addr
 			}
 
@@ -2492,11 +2495,12 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if service.Proxy.Expose.Checks {
-				addr, err := grpcInjectAddr(grpc.GRPC, service.Proxy.LocalServiceAddress, service.Proxy.Expose.Port)
+				port, err := a.listenerPort(service.ID, string(grpc.CheckID))
 				if err != nil {
-					// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
-					return fmt.Errorf("failed to inject proxy addr into GRPC target")
+					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
+					return err
 				}
+				addr := grpcInjectAddr(grpc.GRPC, service.Proxy.LocalServiceAddress, port)
 				grpc.ProxyGRPC = addr
 			}
 
@@ -2655,6 +2659,11 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 		}
 	}
 
+	// Delete port from allocated port set
+	// If checks weren't being exposed then this is a no-op
+	portKey := fmt.Sprintf("%s:%s", svcID, checkID)
+	delete(a.exposedPorts, portKey)
+
 	a.cancelCheckMonitors(checkID)
 	a.State.RemoveCheck(checkID)
 
@@ -2666,6 +2675,7 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 			return err
 		}
 	}
+
 	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
 }
@@ -3569,12 +3579,16 @@ func (a *Agent) LocalState() *local.State {
 // rerouteExposedChecks will inject proxy address into check targets
 // Future calls to check() will dial the proxy listener
 // The agent stateLock MUST be held for this to be called
-func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string, proxyPort int) error {
+func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 	for _, c := range a.checkHTTPs {
 		if c.ServiceID != serviceID {
 			continue
 		}
-		addr, err := httpInjectAddr(c.HTTP, proxyAddr, proxyPort)
+		port, err := a.listenerPort(serviceID, string(c.CheckID))
+		if err != nil {
+			return err
+		}
+		addr := httpInjectAddr(c.HTTP, proxyAddr, port)
 		if err != nil {
 			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
 			return fmt.Errorf("failed to inject proxy addr into HTTP target")
@@ -3585,11 +3599,11 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string, proxyPo
 		if c.ServiceID != serviceID {
 			continue
 		}
-		addr, err := grpcInjectAddr(c.GRPC, proxyAddr, proxyPort)
+		port, err := a.listenerPort(serviceID, string(c.CheckID))
 		if err != nil {
-			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
-			return fmt.Errorf("failed to inject proxy addr into GRPC target")
+			return err
 		}
+		addr := grpcInjectAddr(c.GRPC, proxyAddr, port)
 		c.ProxyGRPC = addr
 	}
 	return nil
@@ -3609,31 +3623,61 @@ func (a *Agent) resetExposedChecks(serviceID string) {
 			c.ProxyGRPC = ""
 		}
 	}
+	for k, _ := range a.exposedPorts {
+		if strings.HasPrefix(k, serviceID) {
+			delete(a.exposedPorts, k)
+		}
+	}
+}
+
+// listenerPort allocates a port from the configured range
+func (a *Agent) listenerPort(svcID, checkID string) (int, error) {
+	key := fmt.Sprintf("%s:%s", svcID, checkID)
+	if a.exposedPorts == nil {
+		a.exposedPorts = make(map[string]int)
+	}
+	if p, ok := a.exposedPorts[key]; ok {
+		return p, nil
+	}
+
+	allocated := make(map[int]bool)
+	for _, v := range a.exposedPorts {
+		allocated[v] = true
+	}
+
+	var port int
+	for i := a.config.ExposeMinPort; i < a.config.ExposeMaxPort; i++ {
+		port = a.config.ExposeMinPort + i
+		if !allocated[port] {
+			break
+		}
+	}
+	if port == 0 {
+		return 0, fmt.Errorf("no ports available to expose '%s'", checkID)
+	}
+
+	return port, nil
 }
 
 // grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]
-func grpcInjectAddr(existing string, ip string, port int) (string, error) {
+func grpcInjectAddr(existing string, ip string, port int) string {
 	pattern := "(.*)((?::)(?:[0-9]+))(.*)$"
-	r, err := regexp.Compile(pattern)
-	if err != nil {
-		return "", err
-	}
+	r := regexp.MustCompile(pattern)
+
 	portRepl := fmt.Sprintf("${1}:%d${3}", port)
 	out := r.ReplaceAllString(existing, portRepl)
 
 	addrRepl := fmt.Sprintf("%s${2}${3}", ip)
 	out = r.ReplaceAllString(out, addrRepl)
 
-	return out, nil
+	return out
 }
 
 // httpInjectAddr injects a port then an IP into a URL
-func httpInjectAddr(url string, ip string, port int) (string, error) {
+func httpInjectAddr(url string, ip string, port int) string {
 	pattern := "^(http[s]?://)(\\[.*?\\]|\\[?[\\w\\-\\.]+)(:\\d+)?([^?]*)(\\?.*)?$"
-	r, err := regexp.Compile(pattern)
-	if err != nil {
-		return "", err
-	}
+	r := regexp.MustCompile(pattern)
+
 	portRepl := fmt.Sprintf("${1}${2}:%d${4}${5}", port)
 	out := r.ReplaceAllString(url, portRepl)
 
@@ -3642,7 +3686,7 @@ func httpInjectAddr(url string, ip string, port int) (string, error) {
 	addrRepl := fmt.Sprintf("${1}%s${3}${4}${5}", ip)
 	out = r.ReplaceAllString(out, addrRepl)
 
-	return out, nil
+	return out
 }
 
 func fixIPv6(address string) string {
