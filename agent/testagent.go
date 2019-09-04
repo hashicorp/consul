@@ -45,12 +45,6 @@ type TestAgent struct {
 
 	HCL string
 
-	// ExpectConfigError can be set to prevent the agent retrying Start on errors
-	// and eventually blowing up with runtime.Goexit. This enables tests to assert
-	// that some specific bit of config actually does prevent startup entirely in
-	// a reasonable way without reproducing a lot of the boilerplate here.
-	ExpectConfigError bool
-
 	// Config is the agent configuration. If Config is nil then
 	// TestConfig() is used. If Config.DataDir is set then it is
 	// the callers responsibility to clean up the data directory.
@@ -199,19 +193,6 @@ func (a *TestAgent) Start() (err error) {
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()
 
-		if a.ExpectConfigError {
-			// Panic the error since this can be caught if needed. Pretty gross way to
-			// detect errors but enough for now and this is a tiny edge case that I'd
-			// otherwise not have a way to test at all...
-			//
-			// TODO(sadams): This can be refactored away by returning an
-			// error here instead of panicing, removing the `ExpectConfigError`
-			// field from `TestAgent`, and having the test that uses this
-			// (TestAgent_ConnectClusterIDConfig) check for an error instead of
-			// catching a panic.
-			panic(err)
-		}
-
 		return fmt.Errorf("%s %s Error starting agent: %s", id, a.Name, err)
 	}
 
@@ -293,6 +274,11 @@ func (a *TestAgent) Shutdown() error {
 			os.RemoveAll(a.DataDir)
 		}
 	}()*/
+
+	// already shut down
+	if a.Agent == nil {
+		return nil
+	}
 
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
