@@ -443,6 +443,13 @@ func TestStructs_NodeService_ValidateExposeConfig(t *testing.T) {
 			},
 			"duplicate paths exposed",
 		},
+		"duplicate ports": {
+			func(x *NodeService) {
+				x.Proxy.Expose.Paths[0].ListenerPort = 21600
+				x.Proxy.Expose.Paths[1].ListenerPort = 21600
+			},
+			"duplicate listener ports exposed",
+		},
 		"protocol not supported": {
 			func(x *NodeService) { x.Proxy.Expose.Paths[0].Protocol = "foo" },
 			"protocol 'foo' not supported for path",

@@ -62,13 +62,13 @@ func TestNodeServiceExpose(t testing.T) *NodeService {
 				Paths: []ExposePath{
 					{
 						Path:          "/foo",
-						LocalPathPort: 80,
-						ListenerPort:  80,
+						LocalPathPort: 8080,
+						ListenerPort:  21500,
 					},
 					{
 						Path:          "/bar",
-						LocalPathPort: 80,
-						ListenerPort:  80,
+						LocalPathPort: 8080,
+						ListenerPort:  21501,
 					},
 				},
 			},
