@@ -21,7 +21,7 @@ build-staging: deps
 	yarn run build:staging
 
 build-ci: deps
-	yarn run build-ci --output-path=dist
+	yarn run build:ci --output-path=dist
 
 build: deps
 	yarn run build
