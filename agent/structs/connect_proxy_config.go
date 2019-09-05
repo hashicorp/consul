@@ -147,6 +147,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		Config:                 c.Config,
 		Upstreams:              c.Upstreams.ToAPI(),
 		MeshGateway:            c.MeshGateway.ToAPI(),
+		Expose:                 c.Expose.ToAPI(),
 	}
 }
 
@@ -356,6 +357,33 @@ type Path struct {
 
 	// CACert contains the PEM encoded CA file read from CAFile
 	CACert string
+}
+
+func (e *ExposeConfig) ToAPI() api.ExposeConfig {
+	paths := make([]api.Path, 0)
+	for _, p := range e.Paths {
+		paths = append(paths, p.ToAPI())
+	}
+	if e.Paths == nil {
+		paths = nil
+	}
+
+	return api.ExposeConfig{
+		Checks: e.Checks,
+		Paths:  paths,
+	}
+}
+
+func (p *Path) ToAPI() api.Path {
+	return api.Path{
+		ListenerPort:  p.ListenerPort,
+		Path:          p.Path,
+		LocalPathPort: p.LocalPathPort,
+		Protocol:      p.Protocol,
+		TLSSkipVerify: p.TLSSkipVerify,
+		CAFile:        p.CAFile,
+		CACert:        p.CACert,
+	}
 }
 
 // Finalize validates ExposeConfig and sets default values
