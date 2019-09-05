@@ -3619,7 +3619,7 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 			return err
 		}
 		addr := grpcInjectAddr(c.GRPC, proxyAddr, port)
-		c.ProxyGRPC = addr
+		c.ProxyGRPC = grpcInjectAddr(c.GRPC, proxyAddr, port)
 	}
 	return nil
 }
