@@ -11,8 +11,8 @@ export default Route.extend(WithAclActions, {
   model: function(params) {
     return hash({
       isLoading: false,
-      item: get(this, 'repo').findBySlug(params.id, this.modelFor('dc').dc.Name),
-      items: get(this, 'servicesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
+      item: this.repo.findBySlug(params.id, this.modelFor('dc').dc.Name),
+      items: this.servicesRepo.findAllByDatacenter(this.modelFor('dc').dc.Name),
       intents: ['allow', 'deny'],
     }).then(function(model) {
       return {

@@ -1,5 +1,4 @@
 import Service from '@ember/service';
-import { get } from '@ember/object';
 
 export default Service.extend({
   shouldProxy: function(content, method) {
@@ -7,7 +6,7 @@ export default Service.extend({
   },
   init: function() {
     this._super(...arguments);
-    const content = get(this, 'content');
+    const content = this.content;
     for (let prop in content) {
       if (typeof content[prop] === 'function') {
         if (this.shouldProxy(content, prop)) {

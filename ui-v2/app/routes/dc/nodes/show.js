@@ -19,9 +19,9 @@ export default Route.extend(WithBlockingActions, {
     const dc = this.modelFor('dc').dc.Name;
     const name = params.name;
     return hash({
-      item: get(this, 'repo').findBySlug(name, dc),
-      tomography: get(this, 'coordinateRepo').findAllByNode(name, dc),
-      sessions: get(this, 'sessionRepo').findByNode(name, dc),
+      item: this.repo.findBySlug(name, dc),
+      tomography: this.coordinateRepo.findAllByNode(name, dc),
+      sessions: this.sessionRepo.findByNode(name, dc),
     });
   },
   setupController: function(controller, model) {
@@ -31,8 +31,8 @@ export default Route.extend(WithBlockingActions, {
     invalidateSession: function(item) {
       const dc = this.modelFor('dc').dc.Name;
       const controller = this.controller;
-      const repo = get(this, 'sessionRepo');
-      return get(this, 'feedback').execute(() => {
+      const repo = this.sessionRepo;
+      return this.feedback.execute(() => {
         const node = get(item, 'Node');
         return repo.remove(item).then(() => {
           return repo.findByNode(node, dc).then(function(sessions) {

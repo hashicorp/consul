@@ -1,12 +1,11 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 export default Route.extend({
   repo: service('repository/dc'),
   settings: service('settings'),
   model: function(params) {
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     return hash({
       dcs: repo.findAll(),
     }).then(function(model) {

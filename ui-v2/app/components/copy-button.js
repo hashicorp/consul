@@ -1,5 +1,4 @@
 import Component from '@ember/component';
-import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 import WithListeners from 'consul-ui/mixins/with-listeners';
@@ -25,7 +24,7 @@ export default Component.extend(WithListeners, {
 
   didInsertElement: function() {
     this._super(...arguments);
-    const clipboard = get(this, 'clipboard').execute(
+    const clipboard = this.clipboard.execute(
       this.delegateClickEvent ? `#${this.elementId}` : this.element
     );
     ['success', 'error'].map(event => {

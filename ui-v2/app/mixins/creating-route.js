@@ -10,7 +10,7 @@ import { get } from '@ember/object';
  */
 export default Mixin.create({
   beforeModel: function() {
-    get(this, 'repo').invalidate();
+    this.repo.invalidate();
   },
   deactivate: function() {
     // TODO: This is dependent on ember-changeset

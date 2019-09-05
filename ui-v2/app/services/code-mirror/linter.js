@@ -1,5 +1,4 @@
 import Service, { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import lint from 'consul-ui/utils/editor/lint';
 const MODES = [
   {
@@ -28,6 +27,6 @@ export default Service.extend({
     return lint(...arguments);
   },
   getEditor: function(element) {
-    return get(this, 'dom').element('textarea + div', element).CodeMirror;
+    return this.dom.element('textarea + div', element).CodeMirror;
   },
 });

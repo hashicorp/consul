@@ -1,21 +1,18 @@
-import { moduleForComponent, test, skip } from 'ember-qunit';
+import { module, skip, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('slugify', 'helper:slugify', {
-  integration: true,
+module('helper:slugify', function(hooks) {
+  setupRenderingTest(hooks);
+
+  // Replace this with your real tests.
+  test('it renders', async function(assert) {
+    this.set('inputValue', 'Hi There');
+
+    await render(hbs`{{slugify inputValue}}`);
+
+    assert.dom('*').hasText('hi-there');
+  });
+  skip("it copes with more values such as ' etc");
 });
-
-// Replace this with your real tests.
-test('it renders', function(assert) {
-  this.set('inputValue', 'Hi There');
-
-  this.render(hbs`{{slugify inputValue}}`);
-
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'hi-there'
-  );
-});
-skip("it copes with more values such as ' etc");

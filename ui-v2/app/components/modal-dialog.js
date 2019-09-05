@@ -16,9 +16,9 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   onopen: function() {},
   _open: function(e) {
     set(this, 'checked', true);
-    if (get(this, 'height') === null) {
+    if (this.height === null) {
       if (this.element) {
-        const dialogPanel = get(this, 'dom').element('[role="dialog"] > div > div', this.element);
+        const dialogPanel = this.dom.element('[role="dialog"] > div > div', this.element);
         const rect = dialogPanel.getBoundingClientRect();
         set(this, 'dialog', dialogPanel);
         set(this, 'height', rect.height);
@@ -29,25 +29,21 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   },
   didAppear: function() {
     this._super(...arguments);
-    if (get(this, 'checked')) {
-      get(this, 'dom')
-        .root()
-        .classList.add(...templatize(['with-modal']));
+    if (this.checked) {
+      this.dom.root().classList.add(...templatize(['with-modal']));
     }
   },
   _close: function(e) {
     set(this, 'checked', false);
-    const dialogPanel = get(this, 'dialog');
+    const dialogPanel = this.dialog;
     if (dialogPanel) {
-      const overflowing = get(this, 'overflowingClass');
+      const overflowing = this.overflowingClass;
       if (dialogPanel.classList.contains(overflowing)) {
         dialogPanel.classList.remove(overflowing);
       }
     }
     // TODO: should we make a didDisappear?
-    get(this, 'dom')
-      .root()
-      .classList.remove(...templatize(['with-modal']));
+    this.dom.root().classList.remove(...templatize(['with-modal']));
     this.onclose(e);
   },
   didReceiveAttrs: function() {
@@ -59,11 +55,11 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
     // It's not our usecase just yet, but this should check the state
     // of the thing its linked to, incase that has a `checked` of true
     // right now we know ours is always false.
-    if (get(this, 'name')) {
+    if (this.name) {
       set(this, 'checked', false);
     }
     if (this.element) {
-      if (get(this, 'checked')) {
+      if (this.checked) {
         // TODO: probably need an event here
         // possibly this.element for the target
         // or find the input
@@ -73,7 +69,7 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   },
   didInsertElement: function() {
     this._super(...arguments);
-    if (get(this, 'checked')) {
+    if (this.checked) {
       // TODO: probably need an event here
       // possibly this.element for the target
       // or find the input
@@ -82,16 +78,14 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
   },
   didDestroyElement: function() {
     this._super(...arguments);
-    get(this, 'dom')
-      .root()
-      .classList.remove(...templatize(['with-modal']));
+    this.dom.root().classList.remove(...templatize(['with-modal']));
   },
   resize: function(e) {
-    if (get(this, 'checked')) {
-      const height = get(this, 'height');
+    if (this.checked) {
+      const height = this.height;
       if (height !== null) {
-        const dialogPanel = get(this, 'dialog');
-        const overflowing = get(this, 'overflowingClass');
+        const dialogPanel = this.dialog;
+        const overflowing = this.overflowingClass;
         if (height > e.detail.height) {
           if (!dialogPanel.classList.contains(overflowing)) {
             dialogPanel.classList.add(overflowing);
@@ -114,9 +108,9 @@ export default DomBufferComponent.extend(SlotsMixin, WithResizing, {
       }
     },
     close: function() {
-      const $close = get(this, 'dom').element('#modal_close');
+      const $close = this.dom.element('#modal_close');
       $close.checked = true;
-      const $input = get(this, 'dom').element('input[name="modal"]', this.element);
+      const $input = this.dom.element('input[name="modal"]', this.element);
       $input.onchange({ target: $input });
     },
   },

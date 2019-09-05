@@ -21,8 +21,8 @@ export default Mixin.create(WithBlockingActions, {
   actions: {
     invalidateSession: function(item) {
       const controller = this.controller;
-      const repo = get(this, 'sessionRepo');
-      return get(this, 'feedback').execute(() => {
+      const repo = this.sessionRepo;
+      return this.feedback.execute(() => {
         return repo.remove(item).then(() => {
           const item = get(controller, 'item');
           set(item, 'Session', null);

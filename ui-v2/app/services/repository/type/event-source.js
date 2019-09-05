@@ -6,8 +6,8 @@ import LazyProxyService from 'consul-ui/services/lazy-proxy';
 import { cache as createCache, BlockingEventSource } from 'consul-ui/utils/dom/event-source';
 
 const createProxy = function(repo, find, settings, cache, serialize = JSON.stringify) {
-  const client = get(this, 'client');
-  const store = get(this, 'store');
+  const client = this.client;
+  const store = this.store;
   // custom createEvent, here used to reconcile the ember-data store for each tick
   const createEvent = function(result, configuration) {
     const event = {
@@ -91,10 +91,8 @@ export default LazyProxyService.extend({
     return method.indexOf('find') === 0;
   },
   execute: function(repo, find) {
-    return get(this, 'settings')
-      .findBySlug('client')
-      .then(settings => {
-        return createProxy.bind(this)(repo, find, settings, cache);
-      });
+    return this.settings.findBySlug('client').then(settings => {
+      return createProxy.bind(this)(repo, find, settings, cache);
+    });
   },
 });

@@ -1,6 +1,5 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 
 const modelName = 'node';
 export default RepositoryService.extend({
@@ -12,6 +11,6 @@ export default RepositoryService.extend({
     const query = {
       dc: dc,
     };
-    return get(this, 'store').queryLeader(this.getModelName(), query);
+    return this.store.queryLeader(this.getModelName(), query);
   },
 });

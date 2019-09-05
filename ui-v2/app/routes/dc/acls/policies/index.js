@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 
 import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 
@@ -14,7 +13,7 @@ export default Route.extend(WithPolicyActions, {
     },
   },
   model: function(params) {
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     return hash({
       ...repo.status({
         items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),

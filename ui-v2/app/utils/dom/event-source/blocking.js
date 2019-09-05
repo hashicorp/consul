@@ -68,10 +68,10 @@ export default function(EventSource, backoff = create5xxBackoff()) {
    *   `cursor` - Cursor position of the EventSource
    *   `createEvent` - A data filter, giving you the opportunity to filter or replace the event data, such as removing/replacing records
    */
-  return class extends EventSource {
-    constructor(source, configuration = {}) {
-      const { currentEvent, ...config } = configuration;
-      super(configuration => {
+  const BlockingEventSource = function(source, configuration = {}) {
+    const { currentEvent, ...config } = configuration;
+    EventSource.apply(this, [
+      configuration => {
         const { createEvent, ...superConfiguration } = configuration;
         return source
           .apply(this, [superConfiguration, this])
@@ -104,26 +104,39 @@ export default function(EventSource, backoff = create5xxBackoff()) {
             this.previousEvent = this.currentEvent;
             return throttledResolve(result);
           });
-      }, config);
+      },
+      config,
+    ]);
+    if (typeof currentEvent !== 'undefined') {
+      this.currentEvent = currentEvent;
+    }
+    // only on initialization
+    // if we already have an currentEvent set via configuration
+    // dispatch the event so things are populated immediately
+    this.addEventListener('open', e => {
+      const currentEvent = e.target.getCurrentEvent();
       if (typeof currentEvent !== 'undefined') {
-        this.currentEvent = currentEvent;
+        this.dispatchEvent(currentEvent);
       }
-      // only on initialization
-      // if we already have an currentEvent set via configuration
-      // dispatch the event so things are populated immediately
-      this.addEventListener('open', e => {
-        const currentEvent = e.target.getCurrentEvent();
-        if (typeof currentEvent !== 'undefined') {
-          this.dispatchEvent(currentEvent);
-        }
-      });
-    }
-    // if we are having these props, at least make getters
-    getCurrentEvent() {
-      return this.currentEvent;
-    }
-    getPreviousEvent() {
-      return this.previousEvent;
-    }
+    });
   };
+  BlockingEventSource.prototype = Object.assign(
+    Object.create(EventSource.prototype, {
+      constructor: {
+        value: EventSource,
+        configurable: true,
+        writable: true,
+      },
+    }),
+    {
+      // if we are having these props, at least make getters
+      getCurrentEvent: function() {
+        return this.currentEvent;
+      },
+      getPreviousEvent: function() {
+        return this.previousEvent;
+      },
+    }
+  );
+  return BlockingEventSource;
 }

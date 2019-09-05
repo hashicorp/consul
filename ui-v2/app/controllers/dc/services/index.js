@@ -39,8 +39,8 @@ export default Controller.extend(WithEventSource, WithSearching, {
   },
   searchable: computed('items.[]', function() {
     return get(this, 'searchables.service')
-      .add(get(this, 'items'))
-      .search(get(this, 'terms'));
+      .add(this.items)
+      .search(this.terms);
   }),
   maxWidth: computed('{maxPassing,maxWarning,maxCritical}', function() {
     const PADDING = 32 * 3 + 13;
@@ -49,7 +49,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
     }, PADDING);
   }),
   totalWidth: computed('maxWidth', function() {
-    return widthDeclaration(get(this, 'maxWidth'));
+    return widthDeclaration(this.maxWidth);
   }),
   remainingWidth: computed('maxWidth', function() {
     // maxWidth is the maximum width of the healthchecks column
@@ -57,24 +57,24 @@ export default Controller.extend(WithEventSource, WithSearching, {
     // take that off 50% (100% / number of fluid columns)
     // also we added a Type column which we've currently fixed to 100px
     // so again divide that by 2 and take it off each fluid column
-    return htmlSafe(`width: calc(50% - ${Math.round(get(this, 'maxWidth') / 2)}px)`);
+    return htmlSafe(`width: calc(50% - ${Math.round(this.maxWidth / 2)}px)`);
   }),
   maxPassing: computed('items.[]', function() {
-    return max(get(this, 'items'), 'ChecksPassing');
+    return max(this.items, 'ChecksPassing');
   }),
   maxWarning: computed('items.[]', function() {
-    return max(get(this, 'items'), 'ChecksWarning');
+    return max(this.items, 'ChecksWarning');
   }),
   maxCritical: computed('items.[]', function() {
-    return max(get(this, 'items'), 'ChecksCritical');
+    return max(this.items, 'ChecksCritical');
   }),
   passingWidth: computed('maxPassing', function() {
-    return widthDeclaration(width(get(this, 'maxPassing')));
+    return widthDeclaration(width(this.maxPassing));
   }),
   warningWidth: computed('maxWarning', function() {
-    return widthDeclaration(width(get(this, 'maxWarning')));
+    return widthDeclaration(width(this.maxWarning));
   }),
   criticalWidth: computed('maxCritical', function() {
-    return widthDeclaration(width(get(this, 'maxCritical')));
+    return widthDeclaration(width(this.maxCritical));
   }),
 });

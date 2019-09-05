@@ -1,33 +1,33 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render, find } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('secret-button', 'Integration | Component | secret button', {
-  integration: true,
-});
+module('Integration | Component | secret button', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
+  test('it renders', async function(assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{secret-button}}`);
+    await render(hbs`{{secret-button}}`);
 
-  assert.ok(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Reveal') !== -1
-  );
+    assert.ok(
+      find('*')
+        .textContent.trim()
+        .indexOf('Reveal') !== -1
+    );
 
-  // Template block usage:
-  this.render(hbs`
-    {{#secret-button}}
-    {{/secret-button}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#secret-button}}
+      {{/secret-button}}
+    `);
 
-  assert.ok(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Reveal') !== -1
-  );
+    assert.ok(
+      find('*')
+        .textContent.trim()
+        .indexOf('Reveal') !== -1
+    );
+  });
 });
