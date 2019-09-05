@@ -131,18 +131,14 @@ func TestHTTPServer_H2(t *testing.T) {
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
-	a := &TestAgent{
-		Name:   t.Name(),
+	a := NewTestAgentWithFields(t, true, TestAgent{
 		UseTLS: true,
 		HCL: `
 			key_file = "../test/client_certs/server.key"
 			cert_file = "../test/client_certs/server.crt"
 			ca_file = "../test/client_certs/rootca.crt"
 		`,
-	}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	})
 	defer a.Shutdown()
 
 	// Make an HTTP/2-enabled client, using the API helpers to set
@@ -458,10 +454,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	t.Parallel()
 	buf := new(bytes.Buffer)
-	a := &TestAgent{Name: t.Name(), LogOutput: buf}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := NewTestAgentWithFields(t, true, TestAgent{LogOutput: buf})
 	defer a.Shutdown()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1193,12 +1186,7 @@ func TestAllowedNets(t *testing.T) {
 			nets = append(nets, in)
 		}
 
-		a := &TestAgent{
-			Name: t.Name(),
-		}
-		if err := a.Start(); err != nil {
-			t.Fatal(err)
-		}
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

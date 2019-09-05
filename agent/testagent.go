@@ -89,7 +89,25 @@ type TestAgent struct {
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
 func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
-	a := &TestAgent{Name: name, HCL: hcl, LogOutput: testutil.TestWriter(t)}
+	return NewTestAgentWithFields(t, true, TestAgent{Name: name, HCL: hcl})
+}
+
+// NewTestAgentWithFields takes a TestAgent struct with any number of fields set,
+// and a boolean 'start', which indicates whether or not the TestAgent should
+// be started. If no LogOutput is set, it will automatically be set to
+// testutil.TestWriter(t). Name will default to t.Name() if not specified.
+func NewTestAgentWithFields(t *testing.T, start bool, ta TestAgent) *TestAgent {
+	// copy values
+	a := ta
+	if a.Name == "" {
+		a.Name = t.Name()
+	}
+	if a.LogOutput == nil {
+		a.LogOutput = testutil.TestWriter(t)
+	}
+	if !start {
+		return nil
+	}
 
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		if err := a.Start(); err != nil {
@@ -97,17 +115,7 @@ func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 		}
 	})
 
-	return a
-}
-
-// TODO: testing.T should be removed as a parameter, as it is not being used.
-func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
-	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
-	a, err := New(c, nil)
-	if err != nil {
-		return nil, err
-	}
-	return a, nil
+	return &a
 }
 
 // Start starts a test agent. It returns an error if the agent could not be started.
@@ -170,8 +178,6 @@ func (a *TestAgent) Start() (err error) {
 
 	logOutput := a.LogOutput
 	if logOutput == nil {
-		// TODO: move this out of Start() and back into NewTestAgent,
-		// and make `logOutput = testutil.TestWriter(t)`
 		logOutput = os.Stderr
 	}
 	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
