@@ -3608,7 +3608,7 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
 			return fmt.Errorf("failed to inject proxy addr into HTTP target")
 		}
-		c.ProxyHTTP = addr
+		c.ProxyHTTP = httpInjectAddr(c.HTTP, proxyAddr, port)
 	}
 	for _, c := range a.checkGRPCs {
 		if c.ServiceID != serviceID {
