@@ -61,6 +61,12 @@ func setup(c *caddy.Controller) error {
 		return k
 	})
 
+	// get locally bound addresses
+	c.OnStartup(func() error {
+		k.localIPs = boundIPs(c)
+		return nil
+	})
+
 	return nil
 }
 
@@ -113,7 +119,6 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 func ParseStanza(c *caddy.Controller) (*Kubernetes, error) {
 
 	k8s := New([]string{""})
-	k8s.interfaceAddrsFunc = localPodIP
 	k8s.autoPathSearch = searchFromResolvConf()
 
 	opts := dnsControlOpts{

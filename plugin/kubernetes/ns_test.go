@@ -111,7 +111,7 @@ func TestNsAddrs(t *testing.T) {
 
 	k := New([]string{"inter.webs.test."})
 	k.APIConn = &APIConnTest{}
-	k.interfaceAddrsFunc = func() net.IP { return net.ParseIP("10.244.0.20") }
+	k.localIPs = []net.IP{net.ParseIP("10.244.0.20")}
 
 	cdrs := k.nsAddrs(false, k.Zones[0])
 

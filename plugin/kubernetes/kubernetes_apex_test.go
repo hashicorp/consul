@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"net"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
@@ -63,6 +64,7 @@ func TestServeDNSApex(t *testing.T) {
 	k := New([]string{"cluster.local."})
 	k.APIConn = &APIConnServeTest{}
 	k.Next = test.NextHandler(dns.RcodeSuccess, nil)
+	k.localIPs = []net.IP{net.ParseIP("127.0.0.1")}
 	ctx := context.TODO()
 
 	for i, tc := range kubeApexCases {
@@ -85,7 +87,7 @@ func TestServeDNSApex(t *testing.T) {
 		}
 
 		if err := test.SortAndCheck(resp, tc); err != nil {
-			t.Error(err)
+			t.Errorf("Test %d: %v", i, err)
 		}
 	}
 }
