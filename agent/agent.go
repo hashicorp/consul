@@ -2386,8 +2386,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		// Get the address of the proxy for this service if it exists
 		// Need its config to know whether we should reroute checks to it
 		var proxy *structs.NodeService
-		services := a.State.Services()
-		for _, svc := range services {
+		for _, svc := range a.State.Services() {
 			if svc.Proxy.DestinationServiceID == service.ID {
 				proxy = svc
 			}

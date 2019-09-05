@@ -13,6 +13,8 @@ import (
 // HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
 // to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
 // Docker/Interval or GRPC/Interval or AliasService.
+// Since types like CheckHTTP and CheckGRPC derive from CheckType, there are
+// helper conversion methods that do the reverse conversion. ie. checkHTTP.CheckType()
 type CheckType struct {
 	// fields already embedded in CheckDefinition
 	// Note: CheckType.CheckID == CheckDefinition.ID
