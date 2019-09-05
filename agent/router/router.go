@@ -473,6 +473,12 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 				continue
 			}
 
+			if m.Status == serf.StatusLeft {
+				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
+					m.Name, areaID)
+				continue
+			}
+
 			coord, ok := info.cluster.GetCachedCoordinate(parts.Name)
 			if ok {
 				entry := &structs.Coordinate{
