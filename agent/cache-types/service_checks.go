@@ -16,12 +16,12 @@ import (
 const ServiceHTTPChecksName = "service-http-checks"
 
 type Agent interface {
-	ServiceHTTPChecks(id string) []structs.CheckType
+	ServiceHTTPBasedChecks(id string) []structs.CheckType
 	LocalState() *local.State
 	SyncPausedCh() <-chan struct{}
 }
 
-// ServiceHTTPChecks supports fetching discovering checks in the local state
+// ServiceHTTPBasedChecks supports fetching discovering checks in the local state
 type ServiceHTTPChecks struct {
 	Agent Agent
 }
@@ -81,7 +81,7 @@ WATCH_LOOP:
 		// WatchCh will receive updates on service (de)registrations and check (de)registrations
 		ws.Add(svcState.WatchCh)
 
-		resp = c.Agent.ServiceHTTPChecks(reqReal.ServiceID)
+		resp = c.Agent.ServiceHTTPBasedChecks(reqReal.ServiceID)
 
 		hash, err = hashChecks(resp)
 		if err != nil {
@@ -94,7 +94,7 @@ WATCH_LOOP:
 		}
 
 		// Watch returned false indicating a change was detected, loop and repeat
-		// the call to ServiceHTTPChecks to load the new value.
+		// the call to ServiceHTTPBasedChecks to load the new value.
 		// If agent sync is paused it means local state is being bulk-edited e.g. config reload.
 		if syncPauseCh := c.Agent.SyncPausedCh(); syncPauseCh != nil {
 			// Wait for pause to end or for the timeout to elapse.
@@ -126,7 +126,7 @@ func (c *ServiceHTTPChecks) SupportsBlocking() bool {
 }
 
 // ServiceHTTPChecksRequest is the cache.Request implementation for the
-// ServiceHTTPChecks cache type. This is implemented here and not in structs
+// ServiceHTTPBasedChecks cache type. This is implemented here and not in structs
 // since this is only used for cache-related requests and not forwarded
 // directly to any Consul servers.
 type ServiceHTTPChecksRequest struct {

@@ -149,7 +149,7 @@ func newMockAgent() *mockAgent {
 	return &m
 }
 
-func (m *mockAgent) ServiceHTTPChecks(id string) []structs.CheckType {
+func (m *mockAgent) ServiceHTTPBasedChecks(id string) []structs.CheckType {
 	return m.checks
 }
 

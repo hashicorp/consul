@@ -2389,6 +2389,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		for _, svc := range a.State.Services() {
 			if svc.Proxy.DestinationServiceID == service.ID {
 				proxy = svc
+				break
 			}
 		}
 
@@ -2661,6 +2662,7 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 	for _, c := range a.State.Checks() {
 		if c.CheckID == checkID {
 			svcID = c.ServiceID
+			break
 		}
 	}
 	s := a.State.ServiceState(svcID)
@@ -2673,7 +2675,7 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 
 	// Delete port from allocated port set
 	// If checks weren't being exposed then this is a no-op
-	portKey := fmt.Sprintf("%s:%s", svcID, checkID)
+	portKey := listenerPortKey(svcID, string(checkID))
 	delete(a.exposedPorts, portKey)
 
 	a.cancelCheckMonitors(checkID)
@@ -2692,7 +2694,7 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 	return nil
 }
 
-func (a *Agent) ServiceHTTPChecks(serviceID string) []structs.CheckType {
+func (a *Agent) ServiceHTTPBasedChecks(serviceID string) []structs.CheckType {
 	var chkTypes = make([]structs.CheckType, 0)
 	for _, c := range a.checkHTTPs {
 		if c.ServiceID == serviceID {
@@ -3619,27 +3621,28 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 // Future calls to check() will use the original target c.HTTP or c.GRPC
 // The agent stateLock MUST be held for this to be called
 func (a *Agent) resetExposedChecks(serviceID string) {
+	ids := make([]string, 0)
 	for _, c := range a.checkHTTPs {
 		if c.ServiceID == serviceID {
 			c.ProxyHTTP = ""
+			ids = append(ids, string(c.CheckID))
 		}
 	}
 	for _, c := range a.checkGRPCs {
 		if c.ServiceID == serviceID {
 			c.ProxyGRPC = ""
+			ids = append(ids, string(c.CheckID))
 		}
 	}
-	for k, _ := range a.exposedPorts {
-		if strings.HasPrefix(k, serviceID) {
-			delete(a.exposedPorts, k)
-		}
+	for _, checkID := range ids {
+		delete(a.exposedPorts, listenerPortKey(serviceID, checkID))
 	}
 }
 
 // listenerPort allocates a port from the configured range
 // The agent stateLock MUST be held when this is called
 func (a *Agent) listenerPortLocked(svcID, checkID string) (int, error) {
-	key := fmt.Sprintf("%s:%s", svcID, checkID)
+	key := listenerPortKey(svcID, checkID)
 	if a.exposedPorts == nil {
 		a.exposedPorts = make(map[string]int)
 	}
@@ -3665,6 +3668,10 @@ func (a *Agent) listenerPortLocked(svcID, checkID string) (int, error) {
 	}
 
 	return port, nil
+}
+
+func listenerPortKey(svcID, checkID string) string {
+	return fmt.Sprintf("%s:%s", svcID, checkID)
 }
 
 // grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]

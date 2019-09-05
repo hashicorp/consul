@@ -79,7 +79,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 	// Add service health checks to the list of paths to create listeners for if needed
 	if cfgSnap.Proxy.Expose.Checks {
-		for _, check := range s.CheckFetcher.ServiceHTTPChecks(cfgSnap.Proxy.DestinationServiceID) {
+		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(cfgSnap.Proxy.DestinationServiceID) {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Printf("[WARN] envoy: failed to create listener for check '%s': %v", check.CheckID, err)

@@ -100,7 +100,7 @@ type ConnectAuthz interface {
 // ServiceChecks is the interface the agent needs to expose
 // for the xDS server to fetch a service's HTTP check definitions
 type HTTPCheckFetcher interface {
-	ServiceHTTPChecks(serviceID string) []structs.CheckType
+	ServiceHTTPBasedChecks(serviceID string) []structs.CheckType
 }
 
 // ConfigManager is the interface xds.Server requires to consume proxy config

@@ -3604,7 +3604,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		chks := a.ServiceHTTPChecks("web")
+		chks := a.ServiceHTTPBasedChecks("web")
 
 		got := chks[0].ProxyHTTP
 		if got == "" {
@@ -3618,9 +3618,9 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		chks := a.ServiceHTTPChecks("web")
+		chks := a.ServiceHTTPBasedChecks("web")
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPChecks
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
 		got := chks[1].ProxyGRPC
 		if got == "" {
 			r.Fatal("ProxyGRPC addr not set in check")
@@ -3656,7 +3656,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		chks := a.ServiceHTTPChecks("web")
+		chks := a.ServiceHTTPBasedChecks("web")
 
 		got := chks[0].ProxyHTTP
 		if got != "" {
@@ -3665,9 +3665,9 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		chks := a.ServiceHTTPChecks("web")
+		chks := a.ServiceHTTPBasedChecks("web")
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPChecks
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
 		got := chks[1].ProxyGRPC
 		if got != "" {
 			r.Fatal("ProxyGRPC addr was not reset")
@@ -3755,7 +3755,7 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		chks := a.ServiceHTTPChecks("web")
+		chks := a.ServiceHTTPBasedChecks("web")
 
 		got := chks[0].ProxyHTTP
 		if got == "" {
@@ -3769,9 +3769,9 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		chks := a.ServiceHTTPChecks("web")
+		chks := a.ServiceHTTPBasedChecks("web")
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPChecks
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
 		got := chks[1].ProxyGRPC
 		if got == "" {
 			r.Fatal("ProxyGRPC addr not set in check")

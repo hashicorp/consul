@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Integration test for ServiceHTTPChecks cache-type
+// Integration test for ServiceHTTPBasedChecks cache-type
 // Placed in agent pkg rather than cache-types to avoid circular dependency when importing agent.TestAgent
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	t.Parallel()
