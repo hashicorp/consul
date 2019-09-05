@@ -27,7 +27,7 @@ To demonstrate the usage of plugin acl, here we provide some typical examples.
 
 Block all DNS queries with record type A from 192.168.0.0/16：
 
-~~~ Corefile
+~~~ corefile
 . {
     acl {
         block type A net 192.168.0.0/16
@@ -37,18 +37,18 @@ Block all DNS queries with record type A from 192.168.0.0/16：
 
 Block all DNS queries from 192.168.0.0/16 except for 192.168.1.0/24:
 
-~~~ Corefile
+~~~ corefile
 . {
     acl {
         allow net 192.168.1.0/24
         block net 192.168.0.0/16
     }
 }
-```
+~~~
 
 Allow only DNS queries from 192.168.0.0/24 and 192.168.1.0/24:
 
-~~~ Corefile
+~~~ corefile
 . {
     acl {
         allow net 192.168.0.0/16 192.168.1.0/24
@@ -59,7 +59,7 @@ Allow only DNS queries from 192.168.0.0/24 and 192.168.1.0/24:
 
 Block all DNS queries from 192.168.1.0/24 towards a.example.org:
 
-~~~ Corefile
+~~~ corefile
 example.org {
     acl a.example.org {
         block net 192.168.1.0/24
