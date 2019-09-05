@@ -1,11 +1,10 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('templated-anchor', 'Integration | Component | templated anchor', {
-  integration: true,
-});
-
-test('it renders', function(assert) {
+module('Integration | Component | templated anchor', function(hooks) {
+  setupRenderingTest(hooks);
   [
     {
       href: 'http://localhost/?={{Name}}/{{ID}}',
@@ -94,17 +93,14 @@ test('it renders', function(assert) {
       result: 'http://localhost/?=%23Na%2Fme',
     },
   ].forEach(item => {
-    this.set('item', item);
-    this.render(hbs`
-        {{#templated-anchor href=item.href vars=item.vars}}
-          Dashboard link
-        {{/templated-anchor}}
-      `);
-    assert.equal(
-      this.$()
-        .find('a')
-        .attr('href'),
-      item.result
-    );
+    test(`it renders ${item.href}`, async function(assert) {
+      this.set('item', item);
+      await render(hbs`
+          {{#templated-anchor href=item.href vars=item.vars}}
+            Dashboard link
+          {{/templated-anchor}}
+        `);
+      assert.equal(this.element.querySelector('a').getAttribute('href'), item.result);
+    });
   });
 });

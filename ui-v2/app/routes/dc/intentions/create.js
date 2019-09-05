@@ -9,16 +9,16 @@ export default Route.extend(WithIntentionActions, {
   repo: service('repository/intention'),
   servicesRepo: service('repository/service'),
   beforeModel: function() {
-    get(this, 'repo').invalidate();
+    this.repo.invalidate();
   },
   model: function(params) {
-    this.item = get(this, 'repo').create();
+    this.item = this.repo.create();
     set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
     return hash({
       create: true,
       isLoading: false,
       item: this.item,
-      items: get(this, 'servicesRepo').findAllByDatacenter(this.modelFor('dc').dc.Name),
+      items: this.servicesRepo.findAllByDatacenter(this.modelFor('dc').dc.Name),
       intents: ['allow', 'deny'],
     }).then(function(model) {
       return {

@@ -1,33 +1,25 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('tag-list', 'Integration | Component | tag list', {
-  integration: true,
-});
+module('Integration | Component | tag list', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
+  test('it renders', async function(assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{tag-list}}`);
+    await render(hbs`{{tag-list}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
+    assert.dom('*').hasText('');
 
-  // Template block usage:
-  this.render(hbs`
-    {{#tag-list}}
-    {{/tag-list}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#tag-list}}
+      {{/tag-list}}
+    `);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
+    assert.dom('*').hasText('');
+  });
 });

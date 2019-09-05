@@ -1,20 +1,17 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('token/is-anonymous', 'helper:token/is-anonymous', {
-  integration: true,
-});
+module('helper:token/is-anonymous', function(hooks) {
+  setupRenderingTest(hooks);
 
-// Replace this with your real tests.
-test('it renders', function(assert) {
-  this.set('inputValue', { AccessorID: '00000' });
+  // Replace this with your real tests.
+  test('it renders', async function(assert) {
+    this.set('inputValue', { AccessorID: '00000' });
 
-  this.render(hbs`{{token/is-anonymous inputValue}}`);
+    await render(hbs`{{token/is-anonymous inputValue}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'false'
-  );
+    assert.dom('*').hasText('false');
+  });
 });

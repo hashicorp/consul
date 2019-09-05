@@ -6,7 +6,7 @@ export default Controller.extend({
   builder: service('form'),
   init: function() {
     this._super(...arguments);
-    this.form = get(this, 'builder').form('intention');
+    this.form = this.builder.form('intention');
   },
   setProperties: function(model) {
     const sourceName = get(model.item, 'SourceName');
@@ -35,11 +35,11 @@ export default Controller.extend({
       return template.replace(/{{term}}/g, term);
     },
     isUnique: function(term) {
-      return !get(this, 'items').findBy('Name', term);
+      return !this.items.findBy('Name', term);
     },
     change: function(e, value, item) {
-      const event = get(this, 'dom').normalizeEvent(e, value);
-      const form = get(this, 'form');
+      const event = this.dom.normalizeEvent(e, value);
+      const form = this.form;
       const target = event.target;
 
       let name;
@@ -55,7 +55,7 @@ export default Controller.extend({
             name = get(target.value, 'Name');
           }
           // see if the name is already in the list
-          match = get(this, 'items').filterBy('Name', name);
+          match = this.items.filterBy('Name', name);
           if (match.length === 0) {
             // if its not make a new 'fake' Service that doesn't exist yet
             // and add it to the possible services to make an intention between

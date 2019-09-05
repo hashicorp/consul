@@ -1,6 +1,6 @@
 import Adapter from './http';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
+
 export const DATACENTER_QUERY_PARAM = 'dc';
 export default Adapter.extend({
   repo: service('settings'),
@@ -9,8 +9,8 @@ export default Adapter.extend({
   // decide where this should go either read/write from http
   // should somehow use this or vice versa
   request: function(req, resp, obj, modelName) {
-    const client = get(this, 'client');
-    const store = get(this, 'store');
+    const client = this.client;
+    const store = this.store;
     const adapter = this;
 
     let unserialized, serialized;

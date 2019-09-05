@@ -1,4 +1,5 @@
 import Mixin from '@ember/object/mixin';
+import { set } from '@ember/object';
 import { computed as catchable } from 'consul-ui/computed/catchable';
 import purify from 'consul-ui/utils/computed/purify';
 
@@ -9,13 +10,23 @@ export default Mixin.create(WithListeners, {
     const _model = {};
     Object.keys(model).forEach(prop => {
       // here (see comment below on deleting)
-      if (this[prop] && this[prop].isDescriptor) {
-        _model[`${PREFIX}${prop}`] = model[prop];
-        const meta = this.constructor.metaForProperty(prop) || {};
+      if (model[prop] && typeof model[prop].addEventListener === 'function') {
+        let meta;
+        // TODO: metaForProperty throws an error if the property is not
+        // computed-like, this is far from ideal but happy with this
+        // until we can find a better way in an ember post 2.18 world
+        // of finding out if a property is computed or not
+        // (or until we switch all this out for <DataSource /> compoments
+        try {
+          meta = this.constructor.metaForProperty(prop);
+        } catch (e) {
+          meta = {};
+        }
         if (typeof meta.catch === 'function') {
-          if (typeof _model[`${PREFIX}${prop}`].addEventListener === 'function') {
-            this.listen(_model[`_${prop}`], 'error', meta.catch.bind(this));
-          }
+          _model[`${PREFIX}${prop}`] = model[prop];
+          this.listen(_model[`_${prop}`], 'error', meta.catch.bind(this));
+        } else {
+          _model[prop] = model[prop];
         }
       } else {
         _model[prop] = model[prop];
@@ -33,7 +44,10 @@ export default Mixin.create(WithListeners, {
           // setProperties will be called the next time we enter the Route so this
           // is ok for what we need and means that the above conditional works
           // as expected (see 'here' comment above)
-          delete this[prop];
+          // delete this[prop];
+          // TODO: Check that nulling this out instead of deleting is fine
+          // pretty sure it is as above is just a falsey check
+          set(this, prop, null);
         }
       });
     }

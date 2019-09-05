@@ -9,8 +9,8 @@ export default Route.extend({
   dcRepo: service('repository/dc'),
   model: function(params) {
     return hash({
-      item: get(this, 'repo').findAll(),
-      dcs: get(this, 'dcRepo').findAll(),
+      item: this.repo.findAll(),
+      dcs: this.dcRepo.findAll(),
     }).then(model => {
       if (typeof get(model.item, 'client.blocking') === 'undefined') {
         set(model, 'item.client', { blocking: true });
@@ -18,7 +18,7 @@ export default Route.extend({
       return hash({
         ...model,
         ...{
-          dc: get(this, 'dcRepo').getActive(null, model.dcs),
+          dc: this.dcRepo.getActive(null, model.dcs),
         },
       });
     });
@@ -29,9 +29,9 @@ export default Route.extend({
   actions: {
     update: function(item) {
       if (!get(item, 'client.blocking')) {
-        get(this, 'client').abort();
+        this.client.abort();
       }
-      get(this, 'repo').persist(item);
+      this.repo.persist(item);
     },
   },
 });

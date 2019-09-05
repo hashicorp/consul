@@ -1,5 +1,4 @@
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import Component from '@ember/component';
 export default Component.extend({
   buffer: service('dom-buffer'),
@@ -10,10 +9,10 @@ export default Component.extend({
   },
   didInsertElement: function() {
     this._super(...arguments);
-    get(this, 'buffer').add(this.getBufferName(), this.element);
+    this.buffer.add(this.getBufferName(), this.element);
   },
   didDestroyElement: function() {
     this._super(...arguments);
-    get(this, 'buffer').remove(this.getBufferName());
+    this.buffer.remove(this.getBufferName());
   },
 });

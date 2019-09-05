@@ -15,7 +15,7 @@ export default ChildSelectorComponent.extend({
   classNames: ['policy-selector'],
   init: function() {
     this._super(...arguments);
-    const source = get(this, 'source');
+    const source = this.source;
     if (source) {
       const event = 'save';
       this.listen(source, event, e => {
@@ -26,16 +26,14 @@ export default ChildSelectorComponent.extend({
   reset: function(e) {
     this._super(...arguments);
     set(this, 'isScoped', false);
-    set(this, 'datacenters', get(this, 'datacenterRepo').findAll());
+    set(this, 'datacenters', this.datacenterRepo.findAll());
   },
   refreshCodeEditor: function(e, target) {
     const selector = '.code-editor';
-    get(this, 'dom')
-      .component(selector, target)
-      .didAppear();
+    this.dom.component(selector, target).didAppear();
   },
   error: function(e) {
-    const item = get(this, 'item');
+    const item = this.item;
     const err = e.error;
     if (typeof err.errors !== 'undefined') {
       const error = err.errors[0];
@@ -75,9 +73,9 @@ export default ChildSelectorComponent.extend({
         }
         // potentially the item could change between load, so we don't check
         // anything to see if its already loaded here
-        const repo = get(this, 'repo');
+        const repo = this.repo;
         // TODO: Temporarily add dc here, will soon be serialized onto the policy itself
-        const dc = get(this, 'dc');
+        const dc = this.dc;
         const slugKey = repo.getSlugKey();
         const slug = get(value, slugKey);
         updateArrayObject(items, repo.findBySlug(slug, dc), slugKey, slug);

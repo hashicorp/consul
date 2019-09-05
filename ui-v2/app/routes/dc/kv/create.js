@@ -8,11 +8,11 @@ export default Route.extend(WithKvActions, {
   templateName: 'dc/kv/edit',
   repo: service('repository/kv'),
   beforeModel: function() {
-    get(this, 'repo').invalidate();
+    this.repo.invalidate();
   },
   model: function(params) {
     const key = params.key || '/';
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     const dc = this.modelFor('dc').dc.Name;
     this.item = repo.create();
     set(this.item, 'Datacenter', dc);

@@ -1,12 +1,12 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupTest } from 'ember-qunit';
 
-moduleFor('service:code-mirror/linter', 'Unit | Service | code mirror/linter', {
-  // Specify the other units that are required for this test.
-  needs: ['service:dom'],
-});
+module('Unit | Service | code mirror/linter', function(hooks) {
+  setupTest(hooks);
 
-// Replace this with your real tests.
-test('it exists', function(assert) {
-  let service = this.subject();
-  assert.ok(service);
+  // Replace this with your real tests.
+  test('it exists', function(assert) {
+    let service = this.owner.lookup('service:code-mirror/linter');
+    assert.ok(service);
+  });
 });

@@ -1,19 +1,16 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('format-number', 'helper:format-number', {
-  integration: true,
-});
+module('helper:format-number', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders a formatted number when passed a number', function(assert) {
-  this.set('inputValue', 1234);
+  test('it renders a formatted number when passed a number', async function(assert) {
+    this.set('inputValue', 1234);
 
-  this.render(hbs`{{format-number inputValue}}`);
+    await render(hbs`{{format-number inputValue}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    '1,234'
-  );
+    assert.dom('*').hasText('1,234');
+  });
 });

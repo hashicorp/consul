@@ -1,5 +1,5 @@
 import Component from '@ember/component';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 export default Component.extend({
   classNames: ['sort-control'],
   direction: 'asc',
@@ -9,7 +9,7 @@ export default Component.extend({
       if (e.target.type === 'checkbox') {
         set(this, 'direction', e.target.checked ? 'desc' : 'asc');
       }
-      this.onchange({ target: { value: `${get(this, 'value')}:${get(this, 'direction')}` } });
+      this.onchange({ target: { value: `${this.value}:${this.direction}` } });
     },
   },
 });

@@ -42,9 +42,7 @@ export default Serializer.extend(WithPolicies, WithRoles, {
           }
           // Convert an old style update response to a new style
           if (typeof body['ID'] !== 'undefined') {
-            const item = get(this, 'store')
-              .peekAll('token')
-              .findBy('SecretID', body['ID']);
+            const item = this.store.peekAll('token').findBy('SecretID', body['ID']);
             if (item) {
               body['SecretID'] = body['ID'];
               body['AccessorID'] = get(item, 'AccessorID');

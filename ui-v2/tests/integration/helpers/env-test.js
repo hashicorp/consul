@@ -1,20 +1,17 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('env', 'helper:env', {
-  integration: true,
-});
+module('helper:env', function(hooks) {
+  setupRenderingTest(hooks);
 
-// Replace this with your real tests.
-test('it renders', function(assert) {
-  this.set('inputValue', 'CONSUL_COPYRIGHT_URL');
+  // Replace this with your real tests.
+  test('it renders', async function(assert) {
+    this.set('inputValue', 'CONSUL_COPYRIGHT_URL');
 
-  this.render(hbs`{{env inputValue}}`);
+    await render(hbs`{{env inputValue}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'https://www.hashicorp.com'
-  );
+    assert.dom('*').hasText('https://www.hashicorp.com');
+  });
 });

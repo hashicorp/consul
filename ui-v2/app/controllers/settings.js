@@ -8,7 +8,7 @@ export default Controller.extend({
   timeout: service('timeout'),
   confirming: false,
   applyTransition: function() {
-    const tick = get(this, 'timeout').tick;
+    const tick = this.timeout.tick;
     set(this, 'confirming', true);
     tick().then(() => {
       set(this, 'confirming', false);
@@ -24,7 +24,7 @@ export default Controller.extend({
       }
     },
     change: function(e, value, item) {
-      const event = get(this, 'dom').normalizeEvent(e, value);
+      const event = this.dom.normalizeEvent(e, value);
       // TODO: Switch to using forms like the rest of the app
       // setting utils/form/builder for things to be done before we
       // can do that. For the moment just do things normally its a simple
@@ -35,14 +35,14 @@ export default Controller.extend({
       switch (target.name) {
         case 'client[blocking]':
           set(this, 'item.client.blocking', !blocking);
-          this.send('update', get(this, 'item'));
+          this.send('update', this.item);
           break;
         case 'urls[service]':
           if (typeof get(this, 'item.urls') === 'undefined') {
             set(this, 'item.urls', {});
           }
           set(this, 'item.urls.service', target.value);
-          this.send('update', get(this, 'item'));
+          this.send('update', this.item);
           break;
       }
     },
