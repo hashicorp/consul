@@ -275,11 +275,18 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 				reply.ProxyConfig = mapCopy.(map[string]interface{})
 				reply.MeshGateway = proxyConf.MeshGateway
+				reply.Expose = proxyConf.Expose
 			}
 
 			reply.Index = index
 
 			if serviceConf != nil {
+				if serviceConf.Expose.Checks {
+					reply.Expose.Checks = true
+				}
+				if len(serviceConf.Expose.Paths) >= 1 {
+					reply.Expose.Paths = serviceConf.Expose.Paths
+				}
 				if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
 					reply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
 				}

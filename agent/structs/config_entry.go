@@ -51,6 +51,7 @@ type ServiceConfigEntry struct {
 	Name        string
 	Protocol    string
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	Expose      ExposeConfig      `json:",omitempty"`
 
 	ExternalSNI string `json:",omitempty"`
 
@@ -116,6 +117,7 @@ type ProxyConfigEntry struct {
 	Name        string
 	Config      map[string]interface{}
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	Expose      ExposeConfig      `json:",omitempty"`
 
 	RaftIndex
 }
@@ -534,6 +536,7 @@ type ServiceConfigResponse struct {
 	ProxyConfig     map[string]interface{}
 	UpstreamConfigs map[string]map[string]interface{}
 	MeshGateway     MeshGatewayConfig `json:",omitempty"`
+	Expose          ExposeConfig      `json:",omitempty"`
 	QueryMeta
 }
 

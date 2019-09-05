@@ -373,3 +373,61 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 		}
 	})
 }
+
+func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create some config entries.
+	body := bytes.NewBuffer([]byte(`
+	{
+		"Kind": "proxy-defaults",
+		"Name": "global",
+		"Expose": {
+			"Checks": true,
+			"Paths": [
+				{
+					"LocalPathPort": 8080,
+					"ListenerPort": 21500,
+					"Path": "/healthz",
+					"Protocol": "http2"
+				}
+			]
+		}
+	}`))
+
+	req, _ := http.NewRequest("PUT", "/v1/config", body)
+	resp := httptest.NewRecorder()
+	_, err := a.srv.ConfigApply(resp, req)
+	require.NoError(t, err)
+	require.Equal(t, 200, resp.Code, "!200 Response Code: %s", resp.Body.String())
+
+	// Get the remaining entry.
+	{
+		args := structs.ConfigEntryQuery{
+			Kind:       structs.ProxyDefaults,
+			Name:       "global",
+			Datacenter: "dc1",
+		}
+		var out structs.ConfigEntryResponse
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
+		require.NotNil(t, out.Entry)
+		entry := out.Entry.(*structs.ProxyConfigEntry)
+
+		expose := structs.ExposeConfig{
+			Checks: true,
+			Paths: []structs.ExposePath{
+				{
+					LocalPathPort: 8080,
+					ListenerPort:  21500,
+					Path:          "/healthz",
+					Protocol:      "http2",
+				},
+			},
+		}
+		require.Equal(t, expose, entry.Expose)
+	}
+}

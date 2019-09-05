@@ -329,31 +329,31 @@ func UpstreamFromAPI(u api.Upstream) Upstream {
 type ExposeConfig struct {
 	// Checks defines whether paths associated with Consul checks will be exposed.
 	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
-	Checks bool `mapstructure:"checks"`
+	Checks bool `json:",omitempty"`
 
 	// Paths is the list of paths exposed through the proxy.
-	Paths []ExposePath `mapstructure:"paths"`
+	Paths []ExposePath `json:",omitempty"`
 }
 
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
-	ListenerPort int `mapstructure:"listener_port"`
+	ListenerPort int `json:",omitempty"`
 
 	// ExposePath is the path to expose through the proxy, ie. "/metrics."
-	Path string `mapstructure:"path"`
+	Path string `json:",omitempty"`
 
 	// LocalPathPort is the port that the service is listening on for the given path.
-	LocalPathPort int `mapstructure:"local_path_port"`
+	LocalPathPort int `json:",omitempty"`
 
 	// Protocol describes the upstream's service protocol.
 	// Valid values are "http" and "http2", defaults to "http"
-	Protocol string `mapstructure:"protocol"`
+	Protocol string `json:",omitempty"`
 
 	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
-	TLSSkipVerify bool `mapstructure:"tls_skip_verify"`
+	TLSSkipVerify bool `json:",omitempty"`
 
 	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
-	CAFile string `mapstructure:"ca_file"`
+	CAFile string `json:",omitempty"`
 
 	// CACert contains the PEM encoded CA file read from CAFile
 	CACert string

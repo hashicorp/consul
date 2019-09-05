@@ -5251,3 +5251,43 @@ func TestAgent_HostBadACL(t *testing.T) {
 	assert.Equal(http.StatusOK, resp.Code)
 	assert.Nil(respRaw)
 }
+
+// Thie tests that a proxy with an ExposeConfig is returned as expected.
+func TestAgent_Services_ExposeConfig(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "proxy-id",
+		Service: "proxy-name",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Expose: structs.ExposeConfig{
+				Checks: true,
+				Paths: []structs.ExposePath{
+					{
+						ListenerPort:  8080,
+						LocalPathPort: 21500,
+						Protocol:      "http2",
+						Path:          "/metrics",
+					},
+				},
+			},
+		},
+	}
+	a.State.AddService(srv1, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[string]*api.AgentService)
+	require.Len(t, val, 1)
+	actual := val["proxy-id"]
+	require.NotNil(t, actual)
+	require.Equal(t, api.ServiceKindConnectProxy, actual.Kind)
+	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}

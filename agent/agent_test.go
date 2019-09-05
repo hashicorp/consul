@@ -3553,6 +3553,8 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
 	// Register a service without a ProxyAddr
 	svc := &structs.NodeService{
 		ID:      "web",
@@ -3678,6 +3680,8 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register a service without a ProxyAddr
 	svc := &structs.NodeService{
