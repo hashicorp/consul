@@ -272,6 +272,31 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 - `organization` (required) - the organization access key to use for auth (equal to access key).
 - `token` (required) - the token to use for auth.
 
+### TencentCloud
+
+This returns the first IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
+
+```sh
+$ consul agent -retry-join "provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
+```
+
+```json
+{
+    "retry_join": ["provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."]
+}
+```
+
+- `provider` (required) - the name of the provider ("tencentcloud" in this case).
+- `region` (required) - The TencentCloud region.
+- `tag_key` (required) - The tag key to auto-join on.
+- `tag_value` (required) - The tag value to auto-join on.
+- `address_type` (optional) - "private_v4" or "public_v4", default is "private_v4".
+- `access_key_id` (required) - The secret id of TencentCloud.
+- `access_key_secret` (required) - The secret key of TencentCloud.
+
+This required permission to 'cvm:DescribeInstances'.
+It is recommended you make a dedicated key used only for auto-joining.
+
 ### Joyent Triton
 
 This returns the first PrimaryIP addresses for all servers with the given `tag_key` and `tag_value`.

@@ -13,7 +13,7 @@ func TestAgentRetryNewDiscover(t *testing.T) {
 	require.NoError(t, err)
 	expected := []string{
 		"aliyun", "aws", "azure", "digitalocean", "gce", "k8s", "mdns",
-		"os", "packet", "scaleway", "softlayer", "triton", "vsphere",
+		"os", "packet", "scaleway", "softlayer", "tencent", "triton", "vsphere",
 	}
 	require.Equal(t, expected, d.Names())
 }
