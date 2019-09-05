@@ -3647,7 +3647,7 @@ func (a *Agent) resetExposedChecks(serviceID string) {
 
 // listenerPort allocates a port from the configured range
 // The agent stateLock MUST be held when this is called
-func (a *Agent) listenerPort(svcID, checkID string) (int, error) {
+func (a *Agent) listenerPortLocked(svcID, checkID string) (int, error) {
 	key := fmt.Sprintf("%s:%s", svcID, checkID)
 	if a.exposedPorts == nil {
 		a.exposedPorts = make(map[string]int)
