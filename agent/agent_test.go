@@ -93,6 +93,10 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// This is a rare case where using a constructor for TestAgent
+			// (NewTestAgent and the likes) won't work, since we expect an error
+			// in one test case, and the constructors have built-in retry logic
+			// that runs automatically upon error.
 			a := &TestAgent{Name: tt.name, HCL: tt.hcl, LogOutput: testutil.TestWriter(t)}
 			err := a.Start()
 			if tt.wantErr {
