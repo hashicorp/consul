@@ -3607,7 +3607,7 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
 			return fmt.Errorf("failed to inject proxy addr into HTTP target")
 		}
-		c.ProxyHTTP = addr
+		c.ProxyHTTP = httpInjectAddr(c.HTTP, proxyAddr, port)
 	}
 	for _, c := range a.checkGRPCs {
 		if c.ServiceID != serviceID {
@@ -3618,7 +3618,7 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 			return err
 		}
 		addr := grpcInjectAddr(c.GRPC, proxyAddr, port)
-		c.ProxyGRPC = addr
+		c.ProxyGRPC = grpcInjectAddr(c.GRPC, proxyAddr, port)
 	}
 	return nil
 }
@@ -3646,7 +3646,7 @@ func (a *Agent) resetExposedChecks(serviceID string) {
 
 // listenerPort allocates a port from the configured range
 // The agent stateLock MUST be held when this is called
-func (a *Agent) listenerPort(svcID, checkID string) (int, error) {
+func (a *Agent) listenerPortLocked(svcID, checkID string) (int, error) {
 	key := fmt.Sprintf("%s:%s", svcID, checkID)
 	if a.exposedPorts == nil {
 		a.exposedPorts = make(map[string]int)
