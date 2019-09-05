@@ -288,7 +288,11 @@ func (a *TestAgent) Shutdown() error {
 
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
-	return a.Agent.ShutdownAgent()
+	if err := a.Agent.ShutdownAgent(); err != nil {
+		return err
+	}
+	<-a.Agent.ShutdownCh()
+	return nil
 }
 
 func (a *TestAgent) DNSAddr() string {
