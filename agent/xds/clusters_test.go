@@ -177,6 +177,22 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "expose-paths-local-app-paths",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+		},
+		{
+			name:   "expose-paths-new-cluster-http2",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Expose.Paths[1] = structs.ExposePath{
+					LocalPathPort: 9090,
+					Path:          "/grpc.health.v1.Health/Check",
+					ListenerPort:  21501,
+					Protocol:      "http2",
+				}
+			},
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup:  nil,

@@ -1005,6 +1005,35 @@ func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
+	return &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "web-proxy",
+		ProxyID: "web-proxy",
+		Address: "1.2.3.4",
+		Port:    8080,
+		Proxy: structs.ConnectProxyConfig{
+			LocalServicePort: 8080,
+			Expose: structs.ExposeConfig{
+				Checks: false,
+				Paths: []structs.ExposePath{
+					{
+						LocalPathPort: 8080,
+						Path:          "/health1",
+						ListenerPort:  21500,
+					},
+					{
+						LocalPathPort: 8080,
+						Path:          "/health2",
+						ListenerPort:  21501,
+					},
+				},
+			},
+		},
+		Datacenter: "dc1",
+	}
+}
+
 // ControllableCacheType is a cache.Type that simulates a typical blocking RPC
 // but lets us control the responses and when they are delivered easily.
 type ControllableCacheType struct {
