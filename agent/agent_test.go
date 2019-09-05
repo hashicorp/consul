@@ -3626,6 +3626,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 			r.Fatal("ProxyGRPC addr not set in check")
 		}
 
+		// Node that this relies on listener ports auto-incrementing in a.listenerPortLocked
 		want := "localhost:21501/myservice"
 		if got != want {
 			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)

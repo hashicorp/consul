@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -107,28 +109,38 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 }
 
 func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
-	grpcRE := regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
-	httpRE := regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
-
 	var path structs.ExposePath
-	var err error
 
 	if check.HTTP != "" {
 		path.Protocol = "http"
 
-		matches := httpRE.FindStringSubmatch(check.HTTP)
-		path.Path = matches[4]
+		// Get path and local port from original HTTP target
+		u, err := url.Parse(check.HTTP)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse url '%s': %v", check.HTTP, err)
+		}
+		path.Path = u.Path
 
-		localStr := strings.TrimPrefix(matches[3], ":")
-		path.LocalPathPort, err = strconv.Atoi(localStr)
+		_, portStr, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.HTTP, err)
+		}
+		path.LocalPathPort, err = strconv.Atoi(portStr)
 		if err != nil {
 			return path, fmt.Errorf("failed to parse port from '%s': %v", check.HTTP, err)
 		}
 
-		matches = httpRE.FindStringSubmatch(check.ProxyHTTP)
+		// Get listener port from proxied HTTP target
+		u, err = url.Parse(check.ProxyHTTP)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse url '%s': %v", check.ProxyHTTP, err)
+		}
 
-		listenerStr := strings.TrimPrefix(matches[3], ":")
-		path.ListenerPort, err = strconv.Atoi(listenerStr)
+		_, portStr, err = net.SplitHostPort(u.Host)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyHTTP, err)
+		}
+		path.ListenerPort, err = strconv.Atoi(portStr)
 		if err != nil {
 			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyHTTP, err)
 		}
@@ -138,18 +150,24 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 		path.Path = "/grpc.health.v1.Health/Check"
 		path.Protocol = "http2"
 
-		matches := grpcRE.FindStringSubmatch(check.GRPC)
-
-		localStr := strings.TrimPrefix(matches[2], ":")
-		path.LocalPathPort, err = strconv.Atoi(localStr)
+		// Get local port from original GRPC target of the form: host/service
+		proxyServerAndService := strings.SplitN(check.GRPC, "/", 2)
+		_, portStr, err := net.SplitHostPort(proxyServerAndService[0])
+		if err != nil {
+			return path, fmt.Errorf("failed to split host/port from '%s': %v", check.GRPC, err)
+		}
+		path.LocalPathPort, err = strconv.Atoi(portStr)
 		if err != nil {
 			return path, fmt.Errorf("failed to parse port from '%s': %v", check.GRPC, err)
 		}
 
-		matches = grpcRE.FindStringSubmatch(check.ProxyGRPC)
-
-		listenerStr := strings.TrimPrefix(matches[2], ":")
-		path.ListenerPort, err = strconv.Atoi(listenerStr)
+		// Get listener port from proxied GRPC target of the form: host/service
+		proxyServerAndService = strings.SplitN(check.ProxyGRPC, "/", 2)
+		_, portStr, err = net.SplitHostPort(proxyServerAndService[0])
+		if err != nil {
+			return path, fmt.Errorf("failed to split host/port from '%s': %v", check.ProxyGRPC, err)
+		}
+		path.ListenerPort, err = strconv.Atoi(portStr)
 		if err != nil {
 			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyGRPC, err)
 		}
@@ -372,7 +390,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 		addr = "0.0.0.0"
 	}
 
-	// Strip any special characters from path
+	// Strip any special characters from path to make a valid and hopefully unique name
 	r := regexp.MustCompile(`[^a-zA-Z0-9]+`)
 	strippedPath := r.ReplaceAllString(path, "")
 	listenerName := fmt.Sprintf("exposed_path_%s", strippedPath)

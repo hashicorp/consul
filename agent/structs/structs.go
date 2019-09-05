@@ -971,9 +971,14 @@ func (s *NodeService) Validate() error {
 
 			path.Protocol = strings.ToLower(path.Protocol)
 			if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
+				protocols := make([]string, 0)
+				for p, _ := range allowedExposeProtocols {
+					protocols = append(protocols, p)
+				}
+
 				result = multierror.Append(result,
-					fmt.Errorf("protocol '%s' not supported for path: %s, must be http or http2",
-						path.Protocol, path.Path))
+					fmt.Errorf("protocol '%s' not supported for path: %s, must be in: %v",
+						path.Protocol, path.Path, protocols))
 			}
 		}
 	}
