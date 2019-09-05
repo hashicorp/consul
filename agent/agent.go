@@ -2244,6 +2244,7 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 	// Reset the HTTP check targets if they were exposed through a proxy
 	// If this is not a proxy or checks were not exposed then this is a no-op
 	svc := a.State.Service(serviceID)
+
 	if svc != nil {
 		a.resetExposedChecks(svc.Proxy.DestinationServiceID)
 	}
