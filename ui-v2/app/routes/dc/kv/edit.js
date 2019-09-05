@@ -12,7 +12,7 @@ export default Route.extend(WithKvActions, {
   model: function(params) {
     const key = params.key;
     const dc = this.modelFor('dc').dc.Name;
-    const repo = get(this, 'repo');
+    const repo = this.repo;
     return hash({
       isLoading: false,
       parent: repo.findBySlug(ascend(key, 1) || '/', dc),
@@ -25,7 +25,7 @@ export default Route.extend(WithKvActions, {
         return hash({
           ...model,
           ...{
-            session: get(this, 'sessionRepo').findByKey(session, dc),
+            session: this.sessionRepo.findByKey(session, dc),
           },
         });
       }

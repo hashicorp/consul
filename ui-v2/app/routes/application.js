@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 import { next } from '@ember/runloop';
 import { Promise } from 'rsvp';
 
@@ -19,11 +18,11 @@ export default Route.extend(WithBlockingActions, {
   settings: service('settings'),
   actions: {
     loading: function(transition, originRoute) {
-      const $root = get(this, 'dom').root();
+      const $root = this.dom.root();
       let dc = null;
       if (originRoute.routeName !== 'dc') {
         const model = this.modelFor('dc') || { dcs: null, dc: { Name: null } };
-        dc = get(this, 'repo').getActive(model.dc.Name, model.dcs);
+        dc = this.repo.getActive(model.dc.Name, model.dcs);
       }
       hash({
         loading: !$root.classList.contains('ember-loading'),
@@ -66,23 +65,21 @@ export default Route.extend(WithBlockingActions, {
       // if a token has not been sent at all, it just gives you a 200 with an empty dataset
       const model = this.modelFor('dc');
       if (error.status === '403') {
-        return get(this, 'feedback').execute(() => {
-          return get(this, 'settings')
-            .delete('token')
-            .then(() => {
-              return Promise.reject(this.transitionTo('dc.acls.tokens', model.dc.Name));
-            });
+        return this.feedback.execute(() => {
+          return this.settings.delete('token').then(() => {
+            return Promise.reject(this.transitionTo('dc.acls.tokens', model.dc.Name));
+          });
         }, 'authorize');
       }
       if (error.status === '') {
         error.message = 'Error';
       }
-      const $root = get(this, 'dom').root();
+      const $root = this.dom.root();
       hash({
         error: error,
         dc:
           error.status.toString().indexOf('5') !== 0
-            ? get(this, 'repo').getActive()
+            ? this.repo.getActive()
             : model && model.dc
               ? model.dc
               : { Name: 'Error' },

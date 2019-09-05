@@ -1,16 +1,16 @@
-
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('atob', 'helper:atob', {
-  integration: true
+module('helper:atob', function(hooks) {
+  setupRenderingTest(hooks);
+
+  // Replace this with your real tests.
+  test('it renders', async function(assert) {
+    this.set('inputValue', 'MTIzNA==');
+
+    await render(hbs`{{atob inputValue}}`);
+    assert.dom('*').hasText('1234');
+  });
 });
-
-// Replace this with your real tests.
-test('it renders', function(assert) {
-  this.set('inputValue', 'MTIzNA==');
-
-  this.render(hbs`{{atob inputValue}}`);
-  assert.equal(this.$().text().trim(), '1234');
-});
-

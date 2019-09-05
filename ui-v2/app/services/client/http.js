@@ -69,11 +69,11 @@ export default Service.extend({
     set(this, 'connections', getObjectPool(dispose, maxConnections));
     if (typeof maxConnections !== 'undefined') {
       set(this, 'maxConnections', maxConnections);
-      const doc = get(this, 'dom').document();
+      const doc = this.dom.document();
       // when the user hides the tab, abort all connections
       doc.addEventListener('visibilitychange', e => {
         if (e.target.hidden) {
-          get(this, 'connections').purge();
+          this.connections.purge();
         }
       });
     }
@@ -201,13 +201,13 @@ export default Service.extend({
     });
   },
   abort: function(id = null) {
-    get(this, 'connections').purge();
+    this.connections.purge();
   },
   whenAvailable: function(e) {
-    const doc = get(this, 'dom').document();
+    const doc = this.dom.document();
     // if we are using a connection limited protocol and the user has hidden the tab (hidden browser/tab switch)
     // any aborted errors should restart
-    if (typeof get(this, 'maxConnections') !== 'undefined' && doc.hidden) {
+    if (typeof this.maxConnections !== 'undefined' && doc.hidden) {
       return new Promise(function(resolve) {
         doc.addEventListener('visibilitychange', function listen(event) {
           doc.removeEventListener('visibilitychange', listen);
@@ -219,9 +219,9 @@ export default Service.extend({
   },
   acquire: function(options, xhr) {
     const request = new Request(options.type, options.url, { body: options.data || {} }, xhr);
-    return get(this, 'connections').acquire(request, request.getId());
+    return this.connections.acquire(request, request.getId());
   },
   complete: function() {
-    return get(this, 'connections').release(...arguments);
+    return this.connections.release(...arguments);
   },
 });

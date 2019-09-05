@@ -35,10 +35,9 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
     // TODO: These should be mergeable
     .then(['"$selector" has the "$class" class'], function(selector, cls) {
       // because `find` doesn't work, guessing its sandboxed to ember's container
-      assert.ok(
-        document.querySelector(selector).classList.contains(cls),
-        `Expected [class] to contain ${cls} on ${selector}`
-      );
+      assert
+        .dom(document.querySelector(selector))
+        .hasClass(cls, `Expected [class] to contain ${cls} on ${selector}`);
     })
     .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
       assert.ok(

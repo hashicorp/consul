@@ -25,20 +25,20 @@ export default Controller.extend(WithEventSource, WithSearching, {
     if (e.target.readyState === 1) {
       // OPEN
       if (get(e, 'error.errors.firstObject.status') === '404') {
-        get(this, 'notify').add({
+        this.notify.add({
           destroyOnClick: false,
           sticky: true,
           type: 'warning',
           action: 'update',
         });
-        get(this, 'tomography').close();
-        get(this, 'sessions').close();
+        this.tomography.close();
+        this.sessions.close();
       }
     }
   }),
   searchable: computed('items', function() {
     return get(this, 'searchables.nodeservice')
-      .add(get(this, 'items'))
+      .add(this.items)
       .search(get(this, this.searchParams.nodeservice));
   }),
   setProperties: function() {
@@ -55,7 +55,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
       set(this, 'selectedTab', e.target.value);
       // Ensure tabular-collections sizing is recalculated
       // now it is visible in the DOM
-      get(this, 'dom')
+      this.dom
         .components('.tab-section input[type="radio"]:checked + div table')
         .forEach(function(item) {
           if (typeof item.didAppear === 'function') {

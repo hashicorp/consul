@@ -1,5 +1,5 @@
 import Component from '@ember/component';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
 import { Promise } from 'rsvp';
 
@@ -21,8 +21,8 @@ export default Component.extend(SlotsMixin, {
     this.error = this._error.bind(this);
   },
   applyTransition: function() {
-    const wait = get(this, 'wait').execute;
-    const className = get(this, 'transitionClassName');
+    const wait = this.wait.execute;
+    const className = this.transitionClassName;
     // TODO: Make 0 default in wait
     wait(0)
       .then(() => {
@@ -31,7 +31,7 @@ export default Component.extend(SlotsMixin, {
       })
       .then(() => {
         return new Promise(resolve => {
-          get(this, 'dom')
+          this.dom
             .element(`.${className}`, this.element)
             .addEventListener('transitionend', resolve);
         });

@@ -1,5 +1,4 @@
 import Adapter from 'ember-data/adapter';
-import { get } from '@ember/object';
 import {
   AbortError,
   TimeoutError,
@@ -98,45 +97,21 @@ export default Adapter.extend({
     throw error;
   },
   query: function(store, type, query) {
-    return read(this, store.serializerFor(type.modelName), get(this, 'client'), 'Query', query);
+    return read(this, store.serializerFor(type.modelName), this.client, 'Query', query);
   },
   queryRecord: function(store, type, query) {
-    return read(
-      this,
-      store.serializerFor(type.modelName),
-      get(this, 'client'),
-      'QueryRecord',
-      query
-    );
+    return read(this, store.serializerFor(type.modelName), this.client, 'QueryRecord', query);
   },
   findAll: function(store, type) {
-    return read(this, store.serializerFor(type.modelName), get(this, 'client'), 'FindAll');
+    return read(this, store.serializerFor(type.modelName), this.client, 'FindAll');
   },
   createRecord: function(store, type, snapshot) {
-    return write(
-      this,
-      store.serializerFor(type.modelName),
-      get(this, 'client'),
-      'CreateRecord',
-      snapshot
-    );
+    return write(this, store.serializerFor(type.modelName), this.client, 'CreateRecord', snapshot);
   },
   updateRecord: function(store, type, snapshot) {
-    return write(
-      this,
-      store.serializerFor(type.modelName),
-      get(this, 'client'),
-      'UpdateRecord',
-      snapshot
-    );
+    return write(this, store.serializerFor(type.modelName), this.client, 'UpdateRecord', snapshot);
   },
   deleteRecord: function(store, type, snapshot) {
-    return write(
-      this,
-      store.serializerFor(type.modelName),
-      get(this, 'client'),
-      'DeleteRecord',
-      snapshot
-    );
+    return write(this, store.serializerFor(type.modelName), this.client, 'DeleteRecord', snapshot);
   },
 });

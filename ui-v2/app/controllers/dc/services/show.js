@@ -25,7 +25,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
     if (e.target.readyState === 1) {
       // OPEN
       if (get(e, 'error.errors.firstObject.status') === '404') {
-        get(this, 'notify').add({
+        this.notify.add({
           destroyOnClick: false,
           sticky: true,
           type: 'warning',
@@ -36,7 +36,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
   }),
   searchable: computed('items', function() {
     return get(this, 'searchables.serviceInstance')
-      .add(get(this, 'items'))
+      .add(this.items)
       .search(get(this, this.searchParams.serviceInstance));
   }),
   actions: {
@@ -44,7 +44,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
       set(this, 'selectedTab', e.target.value);
       // Ensure tabular-collections sizing is recalculated
       // now it is visible in the DOM
-      get(this, 'dom')
+      this.dom
         .components('.tab-section input[type="radio"]:checked + div table')
         .forEach(function(item) {
           if (typeof item.didAppear === 'function') {

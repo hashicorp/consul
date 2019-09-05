@@ -30,54 +30,64 @@ export default function(
   run = defaultRunner,
   createErrorEvent = errorEvent
 ) {
-  return class extends EventTarget {
-    constructor(source, configuration = {}) {
-      super();
-      this.readyState = 2;
-      this.source =
-        typeof source !== 'function'
-          ? function(configuration, target) {
-              this.close();
-              return P.resolve();
-            }
-          : source;
-      this.readyState = 0; // CONNECTING
-      P.resolve()
-        .then(() => {
-          // if we are already closed, don't do anything
-          if (this.readyState > 1) {
-            return;
+  const CallableEventSource = function(source, configuration = {}) {
+    EventTarget.call(this);
+    this.readyState = 2;
+    this.source =
+      typeof source !== 'function'
+        ? function(configuration, target) {
+            this.close();
+            return P.resolve();
           }
-          this.readyState = 1; // open
-          // the connection _was just_ opened
-          this.dispatchEvent({ type: 'open' });
-          return run(this, configuration, isClosed);
-        })
-        .catch(e => {
-          this.dispatchEvent(createErrorEvent(e));
-          // close after the dispatch so we can tell if it was an error whilst closed or not
-          // but make sure its before the promise tick
-          this.readyState = 2; // CLOSE
-        })
-        .then(() => {
-          // This only gets called when the promise chain completely finishes
-          // so only when its completely closed.
-          this.readyState = 2; // CLOSE
-        });
-    }
-    close() {
-      // additional readyState 3 = CLOSING
-      switch (this.readyState) {
-        case 0: // CONNECTING
-        case 2: // CLOSED
-          this.readyState = 2;
-          break;
-        default:
-          // OPEN
-          this.readyState = 3; // CLOSING
-      }
-      // non-standard
-      return this;
-    }
+        : source;
+    this.readyState = 0; // CONNECTING
+    P.resolve()
+      .then(() => {
+        // if we are already closed, don't do anything
+        if (this.readyState > 1) {
+          return;
+        }
+        this.readyState = 1; // open
+        // the connection _was just_ opened
+        this.dispatchEvent({ type: 'open' });
+        return run(this, configuration, isClosed);
+      })
+      .catch(e => {
+        this.dispatchEvent(createErrorEvent(e));
+        // close after the dispatch so we can tell if it was an error whilst closed or not
+        // but make sure its before the promise tick
+        this.readyState = 2; // CLOSE
+      })
+      .then(() => {
+        // This only gets called when the promise chain completely finishes
+        // so only when its completely closed.
+        this.readyState = 2; // CLOSE
+      });
   };
+  CallableEventSource.prototype = Object.assign(
+    Object.create(EventTarget.prototype, {
+      constructor: {
+        value: CallableEventSource,
+        configurable: true,
+        writable: true,
+      },
+    }),
+    {
+      close: function() {
+        // additional readyState 3 = CLOSING
+        switch (this.readyState) {
+          case 0: // CONNECTING
+          case 2: // CLOSED
+            this.readyState = 2;
+            break;
+          default:
+            // OPEN
+            this.readyState = 3; // CLOSING
+        }
+        // non-standard
+        return this;
+      },
+    }
+  );
+  return CallableEventSource;
 }

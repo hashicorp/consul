@@ -15,7 +15,8 @@ export default function(items, item, prop, value) {
       set(item, 'content', items.objectAt(pos));
     }
     items.replace(pos, 1, [item]);
-    items.enumerableContentDidChange();
+    // TODO: Looks like with new proxies this isn't needed anymore
+    // items.enumerableContentDidChange();
   }
   return item;
 }

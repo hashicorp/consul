@@ -1,23 +1,25 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('healthcheck-list', 'Integration | Component | healthcheck list', {
-  integration: true,
-});
+module('Integration | Component | healthcheck list', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
+  test('it renders', async function(assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{healthcheck-list}}`);
+    await render(hbs`{{healthcheck-list}}`);
 
-  assert.equal(this.$('ul').length, 1);
+    assert.dom('ul').exists({ count: 1 });
 
-  // Template block usage:
-  this.render(hbs`
-    {{#healthcheck-list}}
-    {{/healthcheck-list}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#healthcheck-list}}
+      {{/healthcheck-list}}
+    `);
 
-  assert.equal(this.$('ul').length, 1);
+    assert.dom('ul').exists({ count: 1 });
+  });
 });

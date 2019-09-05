@@ -1,32 +1,24 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('default', 'helper:default', {
-  integration: true,
-});
+module('helper:default', function(hooks) {
+  setupRenderingTest(hooks);
 
-// Replace this with your real tests.
-test('it renders', function(assert) {
-  this.set('inputValue', '1234');
+  // Replace this with your real tests.
+  test('it renders', async function(assert) {
+    this.set('inputValue', '1234');
 
-  this.render(hbs`{{default inputValue}}`);
+    await render(hbs`{{default inputValue}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    '1234'
-  );
-});
-test('it renders the default value', function(assert) {
-  this.set('inputValue', '');
+    assert.dom('*').hasText('1234');
+  });
+  test('it renders the default value', async function(assert) {
+    this.set('inputValue', '');
 
-  this.render(hbs`{{default inputValue '1234'}}`);
+    await render(hbs`{{default inputValue '1234'}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    '1234'
-  );
+    assert.dom('*').hasText('1234');
+  });
 });

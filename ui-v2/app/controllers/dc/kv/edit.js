@@ -9,7 +9,7 @@ export default Controller.extend({
   json: true,
   init: function() {
     this._super(...arguments);
-    this.form = get(this, 'builder').form('kv');
+    this.form = this.builder.form('kv');
   },
   setProperties: function(model) {
     // essentially this replaces the data with changesets
@@ -26,8 +26,8 @@ export default Controller.extend({
   },
   actions: {
     change: function(e, value, item) {
-      const event = get(this, 'dom').normalizeEvent(e, value);
-      const form = get(this, 'form');
+      const event = this.dom.normalizeEvent(e, value);
+      const form = this.form;
       try {
         form.handleEvent(event);
       } catch (err) {
@@ -35,7 +35,7 @@ export default Controller.extend({
         let parent;
         switch (target.name) {
           case 'value':
-            set(this.item, 'Value', get(this, 'encoder').execute(target.value));
+            set(this.item, 'Value', this.encoder.execute(target.value));
             break;
           case 'additional':
             parent = get(this, 'parent.Key');
@@ -47,7 +47,7 @@ export default Controller.extend({
             // even if the user has selected code=off on another KV
             // ideally we would save the value per KV, but I'd like to not do that on the model
             // a set(this, 'json', valueFromSomeStorageJustForThisKV) would be added here
-            set(this, 'json', !get(this, 'json'));
+            set(this, 'json', !this.json);
             break;
           default:
             throw err;

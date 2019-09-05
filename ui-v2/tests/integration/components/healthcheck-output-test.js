@@ -1,34 +1,34 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render, find } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('healthcheck-output', 'Integration | Component | healthcheck output', {
-  integration: true,
-});
+module('Integration | Component | healthcheck output', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
+  test('it renders', async function(assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });
 
-  this.render(hbs`{{healthcheck-output}}`);
+    await render(hbs`{{healthcheck-output}}`);
 
-  assert.notEqual(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Output'),
-    -1
-  );
+    assert.notEqual(
+      find('*')
+        .textContent.trim()
+        .indexOf('Output'),
+      -1
+    );
 
-  // Template block usage:
-  this.render(hbs`
-    {{#healthcheck-output}}{{/healthcheck-output}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#healthcheck-output}}{{/healthcheck-output}}
+    `);
 
-  assert.notEqual(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Output'),
-    -1
-  );
+    assert.notEqual(
+      find('*')
+        .textContent.trim()
+        .indexOf('Output'),
+      -1
+    );
+  });
 });

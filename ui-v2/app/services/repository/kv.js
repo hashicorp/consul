@@ -16,7 +16,7 @@ export default RepositoryService.extend({
   findBySlug: function(key, dc, configuration = {}) {
     if (isFolder(key)) {
       const id = JSON.stringify([dc, key]);
-      let item = get(this, 'store').peekRecord(this.getModelName(), id);
+      let item = this.store.peekRecord(this.getModelName(), id);
       if (!item) {
         item = this.create();
         set(item, 'Key', key);
@@ -31,7 +31,7 @@ export default RepositoryService.extend({
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    return get(this, 'store').queryRecord(this.getModelName(), query);
+    return this.store.queryRecord(this.getModelName(), query);
   },
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
@@ -47,7 +47,7 @@ export default RepositoryService.extend({
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    return this.get('store')
+    return this.store
       .query(this.getModelName(), query)
       .then(function(items) {
         return items.filter(function(item) {
@@ -57,7 +57,7 @@ export default RepositoryService.extend({
       .catch(e => {
         if (e.errors && e.errors[0] && e.errors[0].status == '404') {
           const id = JSON.stringify([dc, key]);
-          const record = get(this, 'store').peekRecord(this.getModelName(), id);
+          const record = this.store.peekRecord(this.getModelName(), id);
           if (record) {
             record.unloadRecord();
           }

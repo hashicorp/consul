@@ -8,7 +8,7 @@ export default Component.extend(WithListeners, SlotsMixin, {
   didReceiveAttrs: function() {
     this._super(...arguments);
     this.removeListeners();
-    const dispatcher = get(this, 'dispatcher');
+    const dispatcher = this.dispatcher;
     if (dispatcher) {
       this.listen(dispatcher, 'change', e => {
         set(this, 'items', e.target.data);
