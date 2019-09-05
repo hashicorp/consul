@@ -2446,13 +2446,12 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
-				port, err := a.listenerPort(service.ID, string(http.CheckID))
+				port, err := a.listenerPortLocked(service.ID, string(http.CheckID))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
 					return err
 				}
-				addr := httpInjectAddr(http.HTTP, proxy.Proxy.LocalServiceAddress, port)
-				http.ProxyHTTP = addr
+				http.ProxyHTTP = httpInjectAddr(http.HTTP, proxy.Proxy.LocalServiceAddress, port)
 			}
 
 			http.Start()
@@ -2509,13 +2508,12 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
-				port, err := a.listenerPort(service.ID, string(grpc.CheckID))
+				port, err := a.listenerPortLocked(service.ID, string(grpc.CheckID))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
 					return err
 				}
-				addr := grpcInjectAddr(grpc.GRPC, proxy.Proxy.LocalServiceAddress, port)
-				grpc.ProxyGRPC = addr
+				grpc.ProxyGRPC = grpcInjectAddr(grpc.GRPC, proxy.Proxy.LocalServiceAddress, port)
 			}
 
 			grpc.Start()
@@ -3598,14 +3596,9 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 		if c.ServiceID != serviceID {
 			continue
 		}
-		port, err := a.listenerPort(serviceID, string(c.CheckID))
+		port, err := a.listenerPortLocked(serviceID, string(c.CheckID))
 		if err != nil {
 			return err
-		}
-		addr := httpInjectAddr(c.HTTP, proxyAddr, port)
-		if err != nil {
-			// The only way to get here is if the regex pattern fails to compile, which would be caught by tests
-			return fmt.Errorf("failed to inject proxy addr into HTTP target")
 		}
 		c.ProxyHTTP = httpInjectAddr(c.HTTP, proxyAddr, port)
 	}
@@ -3613,11 +3606,10 @@ func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
 		if c.ServiceID != serviceID {
 			continue
 		}
-		port, err := a.listenerPort(serviceID, string(c.CheckID))
+		port, err := a.listenerPortLocked(serviceID, string(c.CheckID))
 		if err != nil {
 			return err
 		}
-		addr := grpcInjectAddr(c.GRPC, proxyAddr, port)
 		c.ProxyGRPC = grpcInjectAddr(c.GRPC, proxyAddr, port)
 	}
 	return nil
