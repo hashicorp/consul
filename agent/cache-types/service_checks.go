@@ -145,6 +145,10 @@ func (s *ServiceHTTPChecksRequest) CacheInfo() cache.RequestInfo {
 }
 
 func hashChecks(checks []structs.CheckType) (string, error) {
+	if len(checks) == 0 {
+		return "", nil
+	}
+
 	// Wrapper created to use "set" struct tag, that way ordering doesn't lead to false-positives
 	wrapper := struct {
 		ChkTypes []structs.CheckType `hash:"set"`

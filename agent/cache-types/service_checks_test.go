@@ -26,6 +26,10 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 			GRPC:     "localhost:9090/v1.Health",
 			Interval: 5 * time.Second,
 		},
+		{
+			CheckID: "ttl-check",
+			TTL:     10 * time.Second,
+		},
 	}
 
 	svcState := local.ServiceState{
@@ -39,11 +43,28 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	a.LocalState().SetServiceState(&svcState)
 	typ := cachetype.ServiceHTTPChecks{Agent: a}
 
+	// Adding TTL check should not yield result from Fetch since TTL checks aren't tracked
+	if err := a.AddCheck(*chkTypes[2]); err != nil {
+		t.Fatalf("failed to add check: %v", err)
+	}
+	result, err := typ.Fetch(
+		cache.FetchOptions{},
+		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
+	)
+	if err != nil {
+		t.Fatalf("failed to fetch: %v", err)
+	}
+	got, ok := result.Value.(*[]structs.CheckType)
+	if !ok {
+		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
+	}
+	require.Empty(t, *got)
+
 	// Adding HTTP check should yield check in Fetch
 	if err := a.AddCheck(*chkTypes[0]); err != nil {
 		t.Fatalf("failed to add check: %v", err)
 	}
-	result, err := typ.Fetch(
+	result, err = typ.Fetch(
 		cache.FetchOptions{},
 		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
@@ -51,10 +72,10 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("failed to fetch: %v", err)
 	}
 	if result.Index != 1 {
-		t.Fatalf("expected index of 1 after first request, got %d", result.Index)
+		t.Fatalf("expected index of 1 after first cache hit, got %d", result.Index)
 	}
 
-	got, ok := result.Value.(*[]structs.CheckType)
+	got, ok = result.Value.(*[]structs.CheckType)
 	if !ok {
 		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
 	}
@@ -162,7 +183,9 @@ func (m *mockAgent) SyncPausedCh() <-chan struct{} {
 }
 
 func (m *mockAgent) AddCheck(check structs.CheckType) error {
-	m.checks = append(m.checks, check)
+	if check.IsHTTP() || check.IsGRPC() {
+		m.checks = append(m.checks, check)
+	}
 	return nil
 }
 
