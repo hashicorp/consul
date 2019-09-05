@@ -897,6 +897,9 @@ func (s *Server) Leave() error {
 		}
 	}
 
+	// Leave everything enterprise related as well
+	s.handleEnterpriseLeave()
+
 	// Start refusing RPCs now that we've left the LAN pool. It's important
 	// to do this *after* we've left the LAN pool so that clients will know
 	// to shift onto another server if they perform a retry. We also wake up
