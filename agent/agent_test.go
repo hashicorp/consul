@@ -29,7 +29,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3545,4 +3545,237 @@ func TestAgent_httpInjectAddr(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a service without a ProxyAddr
+	svc := &structs.NodeService{
+		ID:      "web",
+		Service: "web",
+		Address: "localhost",
+		Port:    8080,
+	}
+	chks := []*structs.CheckType{
+		{
+			CheckID:       "http",
+			HTTP:          "http://localhost:8080/mypath?query",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+		{
+			CheckID:       "grpc",
+			GRPC:          "localhost:8080/myservice",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+	}
+	if err := a.AddService(svc, chks, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	// Register a proxy and expose HTTP checks
+	// This should trigger setting ProxyHTTP and ProxyGRPC in the checks
+	proxy := &structs.NodeService{
+		Kind:    "connect-proxy",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "localhost",
+		Port:    21500,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "localhost",
+			LocalServicePort:       8080,
+			MeshGateway:            structs.MeshGatewayConfig{},
+			Expose: structs.ExposeConfig{
+				Checks: true,
+			},
+		},
+	}
+	if err := a.AddService(proxy, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPChecks("web")
+
+		got := chks[0].ProxyHTTP
+		if got == "" {
+			r.Fatal("proxyHTTP addr not set in check")
+		}
+
+		want := "http://localhost:21500/mypath?query"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPChecks("web")
+
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPChecks
+		got := chks[1].ProxyGRPC
+		if got == "" {
+			r.Fatal("ProxyGRPC addr not set in check")
+		}
+
+		want := "localhost:21501/myservice"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
+		}
+	})
+
+	// Re-register a proxy and disable exposing HTTP checks
+	// This should trigger resetting ProxyHTTP and ProxyGRPC to empty strings
+	proxy = &structs.NodeService{
+		Kind:    "connect-proxy",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "localhost",
+		Port:    21500,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "localhost",
+			LocalServicePort:       8080,
+			MeshGateway:            structs.MeshGatewayConfig{},
+			Expose: structs.ExposeConfig{
+				Checks: false,
+			},
+		},
+	}
+	if err := a.AddService(proxy, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPChecks("web")
+
+		got := chks[0].ProxyHTTP
+		if got != "" {
+			r.Fatal("ProxyHTTP addr was not reset")
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPChecks("web")
+
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPChecks
+		got := chks[1].ProxyGRPC
+		if got != "" {
+			r.Fatal("ProxyGRPC addr was not reset")
+		}
+	})
+}
+
+func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	// Register a service without a ProxyAddr
+	svc := &structs.NodeService{
+		ID:      "web",
+		Service: "web",
+		Address: "localhost",
+		Port:    8080,
+	}
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	// Register a proxy and expose HTTP checks
+	proxy := &structs.NodeService{
+		Kind:    "connect-proxy",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "localhost",
+		Port:    21500,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "localhost",
+			LocalServicePort:       8080,
+			MeshGateway:            structs.MeshGatewayConfig{},
+			Expose: structs.ExposeConfig{
+				Checks: true,
+			},
+		},
+	}
+	if err := a.AddService(proxy, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	checks := []*structs.HealthCheck{
+		{
+			CheckID:   "http",
+			Name:      "http",
+			ServiceID: "web",
+			Status:    api.HealthCritical,
+		},
+		{
+			CheckID:   "grpc",
+			Name:      "grpc",
+			ServiceID: "web",
+			Status:    api.HealthCritical,
+		},
+	}
+	chkTypes := []*structs.CheckType{
+		{
+			CheckID:       "http",
+			HTTP:          "http://localhost:8080/mypath?query",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+		{
+			CheckID:       "grpc",
+			GRPC:          "localhost:8080/myservice",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+	}
+
+	// ProxyGRPC and ProxyHTTP should be set when creating check
+	// since proxy.expose.checks is enabled on the proxy
+	if err := a.AddCheck(checks[0], chkTypes[0], false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add check: %v", err)
+	}
+	if err := a.AddCheck(checks[1], chkTypes[1], false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add check: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPChecks("web")
+
+		got := chks[0].ProxyHTTP
+		if got == "" {
+			r.Fatal("ProxyHTTP addr not set in check")
+		}
+
+		want := "http://localhost:21500/mypath?query"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in http check, want: %s, got: %s", want, got)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPChecks("web")
+
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPChecks
+		got := chks[1].ProxyGRPC
+		if got == "" {
+			r.Fatal("ProxyGRPC addr not set in check")
+		}
+
+		want := "localhost:21501/myservice"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in grpc check, want: %s, got: %s", want, got)
+		}
+	})
 }

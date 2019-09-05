@@ -2382,6 +2382,17 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		if chkType.OutputMaxSize > 0 && maxOutputSize > chkType.OutputMaxSize {
 			maxOutputSize = chkType.OutputMaxSize
 		}
+
+		// Get the address of the proxy for this service if it exists
+		// Need its config to know whether we should reroute checks to it
+		var proxy *structs.NodeService
+		services := a.State.Services()
+		for _, svc := range services {
+			if svc.Proxy.DestinationServiceID == service.ID {
+				proxy = svc
+			}
+		}
+
 		switch {
 
 		case chkType.IsTTL():
@@ -2435,13 +2446,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				TLSClientConfig: tlsClientConfig,
 			}
 
-			if service != nil && service.Proxy.Expose.Checks {
+			if proxy != nil && proxy.Proxy.Expose.Checks {
 				port, err := a.listenerPort(service.ID, string(http.CheckID))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
 					return err
 				}
-				addr := httpInjectAddr(http.HTTP, service.Proxy.LocalServiceAddress, port)
+				addr := httpInjectAddr(http.HTTP, proxy.Proxy.LocalServiceAddress, port)
 				http.ProxyHTTP = addr
 			}
 
@@ -2498,13 +2509,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				TLSClientConfig: tlsClientConfig,
 			}
 
-			if service != nil && service.Proxy.Expose.Checks {
+			if proxy != nil && proxy.Proxy.Expose.Checks {
 				port, err := a.listenerPort(service.ID, string(grpc.CheckID))
 				if err != nil {
 					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
 					return err
 				}
-				addr := grpcInjectAddr(grpc.GRPC, service.Proxy.LocalServiceAddress, port)
+				addr := grpcInjectAddr(grpc.GRPC, proxy.Proxy.LocalServiceAddress, port)
 				grpc.ProxyGRPC = addr
 			}
 

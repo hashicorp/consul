@@ -413,7 +413,7 @@ func (c *CheckHTTP) check() {
 
 	target := c.HTTP
 	if c.ProxyHTTP != "" {
-		target = c.HTTP
+		target = c.ProxyHTTP
 	}
 
 	req, err := http.NewRequest(method, target, nil)

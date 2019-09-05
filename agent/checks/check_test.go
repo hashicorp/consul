@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 )
 
 func uniqueID() string {
@@ -326,6 +326,69 @@ func TestCheckHTTP(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestCheckHTTP_Proxied(t *testing.T) {
+	t.Parallel()
+
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Proxy Server")
+	}))
+	defer proxy.Close()
+
+	notif := mock.NewNotify()
+	check := &CheckHTTP{
+		Notify:        notif,
+		CheckID:       types.CheckID("foo"),
+		HTTP:          "",
+		Method:        "GET",
+		OutputMaxSize: DefaultBufSize,
+		Interval:      10 * time.Millisecond,
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		ProxyHTTP:     proxy.URL,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	// If ProxyHTTP is set, check() reqs should go to that address
+	retry.Run(t, func(r *retry.R) {
+		output := notif.Output("foo")
+		if !strings.Contains(output, "Proxy Server") {
+			r.Fatalf("c.ProxyHTTP server did not receive request, but should")
+		}
+	})
+}
+
+func TestCheckHTTP_NotProxied(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Original Server")
+	}))
+	defer server.Close()
+
+	notif := mock.NewNotify()
+	check := &CheckHTTP{
+		Notify:        notif,
+		CheckID:       types.CheckID("foo"),
+		HTTP:          server.URL,
+		Method:        "GET",
+		OutputMaxSize: DefaultBufSize,
+		Interval:      10 * time.Millisecond,
+		Logger:        log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+		ProxyHTTP:     "",
+	}
+	check.Start()
+	defer check.Stop()
+
+	// If ProxyHTTP is not set, check() reqs should go to the address in CheckHTTP.HTTP
+	retry.Run(t, func(r *retry.R) {
+		output := notif.Output("foo")
+		if !strings.Contains(output, "Original Server") {
+			r.Fatalf("server did not receive request")
+		}
+	})
 }
 
 func TestCheckHTTPTCP_BigTimeout(t *testing.T) {
