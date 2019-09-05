@@ -106,11 +106,11 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 	return resources, nil
 }
 
-func parseCheckPath(check structs.CheckType) (structs.Path, error) {
+func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 	grpcRE := regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
 	httpRE := regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
 
-	var path structs.Path
+	var path structs.ExposePath
 	var err error
 
 	if check.HTTP != "" {

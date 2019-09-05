@@ -64,10 +64,10 @@ type ExposeConfig struct {
 	Checks bool `json:",omitempty"`
 
 	// Paths is the list of paths exposed through the proxy.
-	Paths []Path `json:",omitempty"`
+	Paths []ExposePath `json:",omitempty"`
 }
 
-type Path struct {
+type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty"`
 

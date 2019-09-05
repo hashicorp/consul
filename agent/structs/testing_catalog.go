@@ -59,7 +59,7 @@ func TestNodeServiceExpose(t testing.T) *NodeService {
 		Proxy: ConnectProxyConfig{
 			DestinationServiceName: "web",
 			Expose: ExposeConfig{
-				Paths: []Path{
+				Paths: []ExposePath{
 					{
 						Path:          "/foo",
 						LocalPathPort: 80,

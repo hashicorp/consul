@@ -332,14 +332,14 @@ type ExposeConfig struct {
 	Checks bool `mapstructure:"checks"`
 
 	// Paths is the list of paths exposed through the proxy.
-	Paths []Path `mapstructure:"paths"`
+	Paths []ExposePath `mapstructure:"paths"`
 }
 
-type Path struct {
+type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `mapstructure:"listener_port"`
 
-	// Path is the path to expose through the proxy, ie. "/metrics."
+	// ExposePath is the path to expose through the proxy, ie. "/metrics."
 	Path string `mapstructure:"path"`
 
 	// LocalPathPort is the port that the service is listening on for the given path.
@@ -360,7 +360,7 @@ type Path struct {
 }
 
 func (e *ExposeConfig) ToAPI() api.ExposeConfig {
-	paths := make([]api.Path, 0)
+	paths := make([]api.ExposePath, 0)
 	for _, p := range e.Paths {
 		paths = append(paths, p.ToAPI())
 	}
@@ -374,8 +374,8 @@ func (e *ExposeConfig) ToAPI() api.ExposeConfig {
 	}
 }
 
-func (p *Path) ToAPI() api.Path {
-	return api.Path{
+func (p *ExposePath) ToAPI() api.ExposePath {
+	return api.ExposePath{
 		ListenerPort:  p.ListenerPort,
 		Path:          p.Path,
 		LocalPathPort: p.LocalPathPort,

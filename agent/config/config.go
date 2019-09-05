@@ -533,10 +533,10 @@ type ExposeConfig struct {
 	Port *int `json:"port,omitempty" hcl:"port" mapstructure:"port"`
 
 	// Paths is the list of paths exposed through the proxy.
-	Paths []Path `json:"paths,omitempty" hcl:"paths" mapstructure:"paths"`
+	Paths []ExposePath `json:"paths,omitempty" hcl:"paths" mapstructure:"paths"`
 }
 
-type Path struct {
+type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort *int `json:"listener_port,omitempty" hcl:"listener_port" mapstructure:"listener_port"`
 

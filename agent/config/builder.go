@@ -1365,10 +1365,10 @@ func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 	return out
 }
 
-func (b *Builder) pathsVal(v []Path) []structs.Path {
-	paths := make([]structs.Path, len(v))
+func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
+	paths := make([]structs.ExposePath, len(v))
 	for i, p := range v {
-		paths[i] = structs.Path{
+		paths[i] = structs.ExposePath{
 			ListenerPort:  b.intVal(p.ListenerPort),
 			Path:          b.stringVal(p.Path),
 			LocalPathPort: b.intVal(p.LocalPathPort),

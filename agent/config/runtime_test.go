@@ -2445,7 +2445,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								Proxy: &structs.ConnectProxyConfig{
 									Expose: structs.ExposeConfig{
 										Checks: true,
-										Paths: []structs.Path{
+										Paths: []structs.ExposePath{
 											{
 												Path:          "/health",
 												LocalPathPort: 8080,
@@ -2574,7 +2574,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 								Proxy: &structs.ConnectProxyConfig{
 									Expose: structs.ExposeConfig{
 										Checks: true,
-										Paths: []structs.Path{
+										Paths: []structs.ExposePath{
 											{
 												Path:          "/health",
 												LocalPathPort: 8080,
@@ -5170,7 +5170,7 @@ func TestFullConfig(t *testing.T) {
 					},
 					Expose: structs.ExposeConfig{
 						Checks: true,
-						Paths: []structs.Path{
+						Paths: []structs.ExposePath{
 							{
 								Path:          "/health",
 								LocalPathPort: 8080,
