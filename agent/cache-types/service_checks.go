@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
-	"strings"
 	"time"
 )
 
@@ -146,13 +145,16 @@ func (s *ServiceHTTPChecksRequest) CacheInfo() cache.RequestInfo {
 }
 
 func hashChecks(checks []structs.CheckType) (string, error) {
-	var b strings.Builder
-	for _, check := range checks {
-		raw, err := hashstructure.Hash(check, nil)
-		if err != nil {
-			return "", fmt.Errorf("failed to hash check '%s': %v", check.CheckID, err)
-		}
-		fmt.Fprintf(&b, "%x", raw)
+	// Wrapper created to use "set" struct tag, that way ordering doesn't lead to false-positives
+	wrapper := struct {
+		ChkTypes []structs.CheckType `hash:"set"`
+	}{
+		ChkTypes: checks,
 	}
-	return b.String(), nil
+
+	b, err := hashstructure.Hash(wrapper, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash checks: %v", err)
+	}
+	return fmt.Sprintf("%d", b), nil
 }
