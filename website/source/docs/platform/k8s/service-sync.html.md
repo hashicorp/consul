@@ -75,12 +75,6 @@ syncCatalog:
 See the [Helm configuration](/docs/platform/k8s/helm.html#v-synccatalog)
 for more information.
 
--> **Before installing,** please read the introduction paragraphs for the
-reference documentation below for both
-[Kubernetes to Consul](/docs/platform/k8s/service-sync.html#kubernetes-to-consul) and
-[Consul to Kubernetes](/docs/platform/k8s/service-sync.html#consul-to-kubernetes)
-sync to understand how the syncing works.
-
 ### Authentication
 
 The sync process must authenticate to both Kubernetes and Consul to read
@@ -261,8 +255,8 @@ metadata:
 ## Consul to Kubernetes
 
 This syncs Consul services into first-class Kubernetes services.
-An [ExternalName](https://kubernetes.io/docs/concepts/services-networking/service/#externalname)
-`Service` is created for each Consul service. The "external name" will be
+The sync service will creat an [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname)
+`Service` for each Consul service. The "external name" will be
 the Consul DNS name.
 
 For example, given a Consul service `foo`, a Kubernetes Service will be created
@@ -279,14 +273,14 @@ spec:
   type: ExternalName
 ```
 
-With Consul To Kubernetes syncing enabled, DNS requests of the form `{consul-service-name}`
-will be serviced by Consul DNS. From a different namespace than where Consul
-is deployed, the DNS request would need to be `{consul-service-name}.{consul-namespace}`.
+With Consul To Kubernetes syncing enabled, DNS requests of the form `<consul-service-name>`
+will be serviced by Consul DNS. From a different Kubernetes namespace than where Consul
+is deployed, the DNS request would need to be `<consul-service-name>.<consul-namespace>`.
 
 -> **Note:** Consul to Kubernetes syncing **isn't required** if you've enabled [Consul DNS on Kubernetes](/docs/platform/k8s/dns.html)
-*and* all you need to do is address services in the form `{consul-service-name}.service.consul`, i.e. you don't need Kubernetes `Service` objects created.
+*and* all you need to do is address services in the form `<consul-service-name>.service.consul`, i.e. you don't need Kubernetes `Service` objects created.
 
--> **Requires Consul DNS via CoreDNS in Kubernetes:** This feature requires that
+~> **Requires Consul DNS via CoreDNS in Kubernetes:** This feature requires that
 [Consul DNS](/docs/platform/k8s/dns.html) is configured within Kubernetes.
 Additionally, **[CoreDNS](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#config-coredns)
 is required (instead of kube-dns)** to resolve an

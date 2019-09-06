@@ -9,22 +9,22 @@ description: |-
 # Consul DNS on Kubernetes
 
 One of the primary query interfaces to Consul is the
-[DNS interface](/docs/agent/dns.html). Consul DNS can be configured in
+[DNS interface](/docs/agent/dns.html). You can configure Consul DNS in
 Kubernetes using a
 [stub-domain configuration](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#configure-stub-domain-and-upstream-dns-servers)
 if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/proxy/) if using CoreDNS.
 
-Once configured, DNS requests in the form `{consul-service-name}.service.consul` will
-resolve for services in Consul. This will work from all namespaces.
+Once configured, DNS requests in the form `<consul-service-name>.service.consul` will
+resolve for services in Consul. This will work from all Kubernetes namespaces.
 
--> **Note:** If you want requests to just `{consul-service-name}` (without the `.service.consul`) to resolve, then you'll need
+-> **Note:** If you want requests to just `<consul-service-name>` (without the `.service.consul`) to resolve, then you'll need
 to turn on [Consul to Kubernetes Service Sync](/docs/platform/k8s/service-sync.html#consul-to-kubernetes).
 
 ## Consul DNS Cluster IP
-For configuring KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
+To configure KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
 DNS service created by the [Helm chart](/docs/platform/k8s/helm.html).
 
-The name of the Consul DNS service will be `consul-consul-dns`. Use
+The default name of the Consul DNS service will be `consul-consul-dns`. Use
 that name to get the `ClusterIP`:
 
 ```bash
@@ -32,10 +32,10 @@ $ kubectl get svc consul-consul-dns -o jsonpath='{.spec.clusterIP}'
 10.35.240.78%
 ```
 
--> *Note:* If you've installed Consul using a different helm release name than `consul`
-then the DNS service name will be `{release-name}-consul-dns`.
-
 For this installation the `ClusterIP` is `10.35.240.78`. 
+
+-> **Note:** If you've installed Consul using a different helm release name than `consul`
+then the DNS service name will be `<release-name>-consul-dns`.
 
 ## KubeDNS
 If using KubeDNS, you need to create a `ConfigMap` that tells KubeDNS
