@@ -12,7 +12,7 @@ The HashiCorp Consul Integration Program enables vendors to build integrations w
 
 ## Types of Consul Integrations
 
-By leveraging Consul’s RESTful HTTP API system, vendors are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed with the OSS (open source) version of Consul. Integrations with advanced network segmentation, advanced federation, and advanced read scalability need to be tested against Consul Enterprise since these features are only supported by Consul Enterprise.
+By leveraging Consul’s RESTful HTTP API system, vendors are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed with the OSS (open source) version of Consul. Integrations with advanced network segmentation, advanced federation, and advanced read scalability need to be tested against Consul Enterprise, since these features are only supported by Consul Enterprise.
 
 <div class="center">
 [![Consul Architecture](/assets/images/consul_ecosystem_diagram.png)](/assets/images/consul_ecosystem_diagram.png)
@@ -43,7 +43,7 @@ Please begin by completing [Consul Integration Program webform](https://docs.goo
 
 ### 2. Enable
 
-Here are links to resources, documentation, examples and best practices to guide you through the Vault integration development and testing process:
+Here are links to resources, documentation, examples and best practices to guide you through the Consul integration development and testing process:
 
 #### Data Plane:
 
@@ -83,7 +83,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 **Identity and Access Management (IAM)**
 
-* [ACL Documentation and Guides](https://www.vaultproject.io/docs/configuration/storage/index.html)
+* [ACL Documentation and Guides](https://www.consul.io/docs/acl/index.html)
 * [ACL API Documentation](https://www.consul.io/api/acl/acl.html)
 * [Securing Consul with ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls)
 
@@ -125,7 +125,7 @@ The expectation for vendors is to respond to all critical issues within 48 hours
 
 ## Checklist
 
-Below is a checklist of steps that should be followed during the Vault integration development process. This reiterates the steps described above.
+Below is a checklist of steps that should be followed during the Consul integration development process. This reiterates the steps described above.
 
 * Complete the [Consul Integration Program webform](https://docs.google.com/forms/d/e/1FAIpQLSf-RyVR9F0lmosao8Nnur0TTDjnl99gttnK3QP1OkfRefVKSw/viewform)
 * Develop and test your Consul integration following examples, documentation and best practices
