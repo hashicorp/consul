@@ -56,7 +56,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 * [How to Integrate a Sidecar Proxy Documentation](https://www.consul.io/docs/connect/proxies/integrate.html)
 * [Example of Envoy Integration](https://www.consul.io/docs/connect/proxies/envoy.html)
-* [Consul’s source code](https://github.com/hashicorp/consul/blob/master/INTERNALS.md)
+* [Consul’s source code](https://github.com/hashicorp/consul)
 
 **Firewall**
 
@@ -101,7 +101,7 @@ Here are links to resources, documentation, examples and best practices to guide
 
 **Information Technology Service Management (ITSM)**
 
-* [Consul Service Registry](https://learn.hashicorp.com/consul/getting-started/servicesx)
+* [Consul Service Registry](https://learn.hashicorp.com/consul/getting-started/services)
 * [DNS Query Interface](https://learn.hashicorp.com/consul/getting-started/services#querying-services)
 * [HTTP API with Edge Triggers](https://learn.hashicorp.com/consul/getting-started/services#http-api)
 
