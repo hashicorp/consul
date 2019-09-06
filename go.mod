@@ -5,7 +5,6 @@ go 1.12
 require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/Azure/azure-sdk-for-go v31.1.0+incompatible
-	github.com/Azure/go-autorest v13.0.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.9.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.3.0
 	github.com/Azure/go-autorest/autorest/to v0.2.0 // indirect
@@ -14,10 +13,8 @@ require (
 	github.com/aws/aws-sdk-go v1.23.13
 	github.com/caddyserver/caddy v1.0.3
 	github.com/coredns/federation v0.0.0-20190818181423-e032b096babe
-	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190212144455-93d5ec2c7f76 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
-	github.com/dgryski/go-metro v0.0.0-20180109044635-280f6062b5bc // indirect
 	github.com/dnstap/golang-dnstap v0.0.0-20170829151710-2cf77a2b5e11
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/farsightsec/golang-framestream v0.0.0-20181102145529-8a0cb8ba8710
@@ -39,9 +36,8 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common v0.6.0
-	github.com/seiflotfy/cuckoofilter v0.0.0-20190302225222-764cb5258d9b
 	github.com/sirupsen/logrus v1.4.2 // indirect
-	github.com/spf13/cobra v0.0.5 // indirect
+	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	go.etcd.io/etcd v0.0.0-20190823073701-67d0c21bb04c
@@ -61,4 +57,7 @@ require (
 	k8s.io/utils v0.0.0-20190529001817-6999998975a7 // indirect
 )
 
-replace github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.16
+replace (
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
+	github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.16
+)
