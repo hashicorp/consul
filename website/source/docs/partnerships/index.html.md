@@ -20,11 +20,11 @@ By leveraging Consul’s RESTful HTTP API system, vendors are able to build exte
 
 **Data Plane**: These integrations automate IP updates of load balancers by leveraging Consul service discovery,  automate firewall security policy updates by leveraging Consul intentions within a centralized management tool, extend sidecar proxies to support Consul connect, and extend API gateways to allow Consul to route incoming traffic to the proxies for Connect-enabled services.
 
-**Platform**: Consul has a client-server architecture and is the control plane for the service mesh. No integrations at this layer.
+**Control Plane**: Consul has a client-server architecture and is the control plane for the service mesh. No integrations at this layer.
 
 **Platform**: These integrations leverage automation of Consul agent deployment, configuration, and management through cloud and PaaS provisioning and orchestration tools such as Kubernetes and Pivotal Cloud Foundry (PCF). They include the Consul agent running in both client and server mode.
 
-**Infrastructure**: These integrations extend Consul’s connect certificate management, secure ACL configuration, observability metrics and logging, and service discovery that allows for dynamic service mapping with ITSM tools.
+**Infrastructure**: These integrations extend Consul’s certificate management, secure ACL configuration, observability metrics and logging, and service discovery that allows for dynamic service mapping with ITSM tools.
 
 ## Development Process
 
