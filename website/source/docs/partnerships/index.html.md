@@ -12,7 +12,7 @@ The HashiCorp Consul Integration Program enables vendors to build integrations w
 
 ## Types of Consul Integrations
 
-By leveraging Consul’s RESTful HTTP API system, vendors are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed with the OSS (open-source) version of Consul. Integrations with advanced network segmentation, advanced federation, and advanced read scalability need to be tested against Consul Enterprise since these features are only supported by Consul Enterprise.
+By leveraging Consul’s RESTful HTTP API system, vendors are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed with the OSS (open source) version of Consul. Integrations with advanced network segmentation, advanced federation, and advanced read scalability need to be tested against Consul Enterprise since these features are only supported by Consul Enterprise.
 
 <div class="center">
 [![Consul Architecture](/assets/images/consul_ecosystem_diagram.png)](/assets/images/consul_ecosystem_diagram.png)
