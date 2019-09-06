@@ -70,8 +70,8 @@ Here are links to resources, documentation, examples and best practices to guide
 
 #### Platform:
 
-[Consul-AWS for AWS Cloud Map](https://learn.hashicorp.com/consul/integrations/consul-aws)
-[Consul Agent Cloud Auto-joining](https://www.consul.io/docs/agent/cloud-auto-join.html)
+* [Consul-AWS for AWS Cloud Map](https://learn.hashicorp.com/consul/integrations/consul-aws)
+* [Consul Agent Cloud Auto-joining](https://www.consul.io/docs/agent/cloud-auto-join.html)
 
 #### Infrastructure:
 
