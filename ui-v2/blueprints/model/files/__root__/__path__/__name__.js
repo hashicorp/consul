@@ -6,4 +6,5 @@ export const SLUG_KEY = 'ID';
 export default Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
+  Datacenter: attr('string'),
 });
