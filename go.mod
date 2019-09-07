@@ -60,4 +60,5 @@ require (
 replace (
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
 	github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.16
+	golang.org/x/net v0.0.0-20190813000000-74dc4d7220e7 => golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 )
