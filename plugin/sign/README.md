@@ -2,7 +2,7 @@
 
 ## Name
 
-*sign* - add DNSSEC records to zone files.
+*sign* - adds DNSSEC records to zone files.
 
 ## Description
 
