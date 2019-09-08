@@ -2,7 +2,7 @@
 
 ## Name
 
-*errors* - enable error logging.
+*errors* - enables error logging.
 
 ## Description
 
