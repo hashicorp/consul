@@ -2,7 +2,7 @@
 
 ## Name
 
-*kubernetes* - enables the reading zone data from a Kubernetes cluster.
+*kubernetes* - enables reading zone data from a Kubernetes cluster.
 
 ## Description
 
