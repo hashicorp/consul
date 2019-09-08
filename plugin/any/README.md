@@ -3,7 +3,7 @@
 
 ## Name
 
-*any* - give a minimal response to ANY queries.
+*any* - gives a minimal response to ANY queries.
 
 ## Description
 
