@@ -2,25 +2,25 @@
 
 ## Name
 
-*metadata* - enable a meta data collector.
+*metadata* - enables a metadata collector.
 
 ## Description
 
 By enabling *metadata* any plugin that implements [metadata.Provider
 interface](https://godoc.org/github.com/coredns/coredns/plugin/metadata#Provider) will be called for
-each DNS query, at beginning of the process for that query, in order to add its own meta data to
+each DNS query, at the beginning of the process for that query, in order to add its own metadata to
 context.
 
-The meta data collected will be available for all plugins, via the Context parameter provided in the
+The metadata collected will be available for all plugins, via the Context parameter provided in the
 ServeDNS function. The package (code) documentation has examples on how to inspect and retrieve
 metadata a plugin might be interested in.
 
-The meta data is added by setting a label with a value in the context. These labels should be named
+The metadata is added by setting a label with a value in the context. These labels should be named
 `plugin/NAME`, where **NAME** is something descriptive. The only hard requirement the *metadata*
-plugin enforces is that the labels contains a slash. See the documentation for
+plugin enforces is that the labels contain a slash. See the documentation for
 `metadata.SetValueFunc`.
 
-The value stored is a string. The empty string signals "no meta data". See the documentation for
+The value stored is a string. The empty string signals "no metadata". See the documentation for
 `metadata.ValueFunc` on how to retrieve this.
 
 ## Syntax
