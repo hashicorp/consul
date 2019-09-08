@@ -110,14 +110,15 @@ func (k *Kubernetes) transfer(c chan dns.RR, zone string) {
 		case api.ServiceTypeClusterIP, api.ServiceTypeNodePort, api.ServiceTypeLoadBalancer:
 			clusterIP := net.ParseIP(svc.ClusterIP)
 			if clusterIP != nil {
+				s := msg.Service{Host: svc.ClusterIP, TTL: k.ttl}
+				s.Key = strings.Join(svcBase, "/")
+
+				// Change host from IP to Name for SRV records
+				host := emitAddressRecord(c, s)
+
 				for _, p := range svc.Ports {
-
-					s := msg.Service{Host: svc.ClusterIP, Port: int(p.Port), TTL: k.ttl}
+					s := msg.Service{Host: host, Port: int(p.Port), TTL: k.ttl}
 					s.Key = strings.Join(svcBase, "/")
-
-					// Change host from IP to Name for SRV records
-					host := emitAddressRecord(c, s)
-					s.Host = host
 
 					// Need to generate this to handle use cases for peer-finder
 					// ref: https://github.com/coredns/coredns/pull/823
