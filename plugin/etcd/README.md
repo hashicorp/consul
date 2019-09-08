@@ -2,7 +2,7 @@
 
 ## Name
 
-*etcd* - enable SkyDNS service discovery from etcd.
+*etcd* - enables SkyDNS service discovery from etcd.
 
 ## Description
 
@@ -10,7 +10,7 @@ The *etcd* plugin implements the (older) SkyDNS service discovery service. It is
 a generic DNS zone data plugin. Only a subset of DNS record types are implemented, and subdomains
 and delegations are not handled at all.
 
-The data in etcd instance has to be encoded as
+The data in the etcd instance has to be encoded as
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https://github.com/skynetservices/skydns). It works just like SkyDNS.
 
