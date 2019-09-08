@@ -2,11 +2,11 @@
 
 ## Name
 
-*dnstap* - enable logging to dnstap.
+*dnstap* - enables logging to dnstap.
 
 ## Description
 
-dnstap is a flexible, structured binary log format for DNS software: http://dnstap.info. With this
+dnstap is a flexible, structured binary log format for DNS software; see http://dnstap.info. With this
 plugin you make CoreDNS output dnstap logging.
 
 Note that there is an internal buffer, so expect at least 13 requests before the server sends its
