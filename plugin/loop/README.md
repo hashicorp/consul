@@ -2,7 +2,7 @@
 
 ## Name
 
-*loop* - detect simple forwarding loops and halt the server.
+*loop* - detects simple forwarding loops and halts the server.
 
 ## Description
 
