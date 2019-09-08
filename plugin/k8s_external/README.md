@@ -2,7 +2,7 @@
 
 ## Name
 
-*k8s_external* - resolve load balancer and external IPs from outside kubernetes clusters.
+*k8s_external* - resolves load balancer and external IPs from outside Kubernetes clusters.
 
 ## Description
 
