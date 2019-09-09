@@ -28,7 +28,7 @@ func init() {
 		DefaultInput: func() caddy.Input {
 			return caddy.CaddyfileInput{
 				Filepath:       "Corefile",
-				Contents:       []byte(".:" + Port + " {\nwhoami\n}\n"),
+				Contents:       []byte(".:" + Port + " {\nwhoami\nlog\n}\n"),
 				ServerTypeName: serverType,
 			}
 		},
