@@ -513,7 +513,6 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 
 	// Build the cert uri
 	var id connect.CertURI
-	var commonName string
 	if req.Service != "" {
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
@@ -521,14 +520,12 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Namespace:  "default",
 			Service:    req.Service,
 		}
-		commonName = fmt.Sprintf("%s.%s.service.%s.%s.%s", req.NodeName, req.ServiceID, roots.TrustDomain[:8], req.Datacenter, req.Domain)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
-		commonName = fmt.Sprintf("%s.agent.%s.%s.%s", req.NodeName, roots.TrustDomain[:8], req.Datacenter, req.Domain)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}
@@ -540,7 +537,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, commonName, pk)
+	csr, err := connect.CreateCSR(id, pk)
 	if err != nil {
 		return result, err
 	}
@@ -629,11 +626,8 @@ func (c *ConnectCALeaf) SupportsBlocking() bool {
 type ConnectCALeafRequest struct {
 	Token         string
 	Datacenter    string
-	Domain        string
 	Service       string // Service name, not ID
-	ServiceID     string
 	Agent         string // Agent name, not ID
-	NodeName      string
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
 }

@@ -25,9 +25,7 @@ type VaultProvider struct {
 	config    *structs.VaultCAProviderConfig
 	client    *vaultapi.Client
 	isRoot    bool
-	clusterID string
-	dcName    string
-	domain    string
+	clusterId string
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -42,8 +40,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 }
 
 // Configure sets up the provider using the given configuration.
-func (v *VaultProvider) Configure(clusterId string, datacenterName string, dnsDomain string,
-	isRoot bool, rawConfig map[string]interface{}) error {
+func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
 	config, err := ParseVaultCAConfig(rawConfig)
 	if err != nil {
 		return err
@@ -65,13 +62,7 @@ func (v *VaultProvider) Configure(clusterId string, datacenterName string, dnsDo
 	v.config = config
 	v.client = client
 	v.isRoot = isRoot
-	v.dcName = datacenterName
-	v.domain = dnsDomain
-
-	v.clusterID = clusterId
-	if len(v.clusterID) > 8 {
-		v.clusterID = v.clusterID[:8]
-	}
+	v.clusterId = clusterId
 
 	return nil
 }
@@ -105,10 +96,13 @@ func (v *VaultProvider) GenerateRoot() error {
 
 		fallthrough
 	case ErrBackendNotInitialized:
-		uuid, _ := uuid.GenerateUUID()
-		spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterID, Domain: v.domain}
+		spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
+		uuid, err := uuid.GenerateUUID()
+		if err != nil {
+			return err
+		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
-			"common_name": fmt.Sprintf("%s.root.ca.%s.%s.%s", uuid[:8], v.clusterID, v.dcName, v.domain),
+			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
 			"uri_sans":    spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
 			"key_bits":    v.config.PrivateKeyBits,
@@ -164,16 +158,15 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterID, Domain: "consul"}
+	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 	if role == nil {
 		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
-			"allow_any_name":    true,
-			"enforce_hostnames": false,
-			"allowed_uri_sans":  "spiffe://*",
-			"key_type":          "any",
-			"max_ttl":           v.config.LeafCertTTL.String(),
-			"no_store":          true,
-			"require_cn":        false,
+			"allow_any_name":   true,
+			"allowed_uri_sans": "spiffe://*",
+			"key_type":         "any",
+			"max_ttl":          v.config.LeafCertTTL.String(),
+			"no_store":         true,
+			"require_cn":       false,
 		})
 		if err != nil {
 			return "", err
@@ -181,9 +174,8 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	}
 
 	// Generate a new intermediate CSR for the root to sign.
-	uuid, _ := uuid.GenerateUUID()
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
-		"common_name": fmt.Sprintf("%s.intermediate.ca.%s.%s.%s", uuid[:8], v.clusterID, v.dcName, v.domain),
+		"common_name": "Vault CA Intermediate Authority",
 		"key_type":    v.config.PrivateKeyType,
 		"key_bits":    v.config.PrivateKeyBits,
 		"uri_sans":    spiffeID.URI().String(),

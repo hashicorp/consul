@@ -197,7 +197,7 @@ func (s *Server) initializeCA() error {
 
 // initializeRootCA runs the initialization logic for a root CA.
 func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
-	if err := provider.Configure(conf.ClusterID, s.config.Datacenter, s.config.Domain, true, conf.Config); err != nil {
+	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := provider.GenerateRoot(); err != nil {
@@ -757,7 +757,7 @@ func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs
 		return err
 	}
 
-	if err := provider.Configure(clusterID, s.config.Datacenter, s.config.Domain, false, conf.Config); err != nil {
+	if err := provider.Configure(clusterID, false, conf.Config); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 

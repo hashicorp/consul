@@ -1249,21 +1249,8 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
-	serviceID := serviceName
-	allServices := s.agent.State.Services()
-	for _, service := range allServices {
-		if service.Service == serviceName {
-			serviceID = service.ID
-			break
-		}
-	}
-
 	args := cachetype.ConnectCALeafRequest{
-		Service:    serviceName, // Need name not ID
-		ServiceID:  serviceID,
-		Datacenter: s.agent.config.Datacenter,
-		Domain:     s.agent.config.DNSDomain,
-		NodeName:   s.agent.config.NodeName,
+		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
 

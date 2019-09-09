@@ -536,7 +536,7 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
 	}
 
-	// prepopulate roots cache
+	// prepolutate roots cache
 	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
 	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
 		return nil, nil, err
@@ -546,11 +546,9 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 		Datacenter: a.config.Datacenter,
 		Token:      a.tokens.AgentToken(),
 		Agent:      a.config.NodeName,
-		Domain:     a.config.DNSDomain,
-		NodeName:   a.config.NodeName,
 	}
 
-	// prepopulate leaf cache
+	// prepolutate leaf cache
 	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
 	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
 		return nil, nil, err
