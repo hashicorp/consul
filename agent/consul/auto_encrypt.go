@@ -51,6 +51,13 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		return errFn(err)
 	}
 
+	if conf.PrivateKeyType == "" {
+		conf.PrivateKeyType = connect.DefaultPrivateKeyType
+	}
+	if conf.PrivateKeyBits == 0 {
+		conf.PrivateKeyBits = connect.DefaultPrivateKeyBits
+	}
+
 	// Create a new private key
 	pk, pkPEM, err := connect.GeneratePrivateKeyWithConfig(conf.PrivateKeyType, conf.PrivateKeyBits)
 	if err != nil {

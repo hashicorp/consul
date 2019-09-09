@@ -54,8 +54,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring files
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := &TestAgent{Name: t.Name(), Key: key}
-		a2.Start(t)
+		a2 := NewTestAgentWithFields(t, true, TestAgent{Key: key})
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -81,11 +80,10 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring file
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := &TestAgent{Name: t.Name(), HCL: `
+		a3 := NewTestAgentWithFields(t, true, TestAgent{HCL: `
 			server = false
 			bootstrap = false
-		`, Key: key}
-		a3.Start(t)
+		`, Key: key})
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -133,11 +131,10 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Server should auto-load LAN and WAN keyring
 	t.Run("server with keys", func(t *testing.T) {
-		a2 := &TestAgent{Name: t.Name(), HCL: `
-			encrypt = "` + key + `"
+		a2 := NewTestAgent(t, t.Name(), `
+			encrypt = "`+key+`"
 			disable_keyring_file = true
-		`}
-		a2.Start(t)
+		`)
 		defer a2.Shutdown()
 
 		c2 := a2.consulConfig()
@@ -163,13 +160,12 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 
 	// Client should auto-load only the LAN keyring
 	t.Run("client with keys", func(t *testing.T) {
-		a3 := &TestAgent{Name: t.Name(), HCL: `
-			encrypt = "` + key + `"
+		a3 := NewTestAgent(t, t.Name(), `
+			encrypt = "`+key+`"
 			server = false
 			bootstrap = false
 			disable_keyring_file = true
-		`}
-		a3.Start(t)
+		`)
 		defer a3.Shutdown()
 
 		c3 := a3.consulConfig()
@@ -203,12 +199,11 @@ func TestAgent_InmemKeyrings(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		a4 := &TestAgent{Name: t.Name(), HCL: `
-			encrypt = "` + key + `"
+		a4 := NewTestAgent(t, t.Name(), `
+			encrypt = "`+key+`"
 			disable_keyring_file = true
-			data_dir = "` + dir + `"
-		`}
-		a4.Start(t)
+			data_dir = "`+dir+`"
+		`)
 		defer a4.Shutdown()
 
 		c4 := a4.consulConfig()
@@ -277,12 +272,11 @@ func TestAgentKeyring_ACL(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
 
-	a := &TestAgent{Name: t.Name(), HCL: TestACLConfig() + `
+	a := NewTestAgentWithFields(t, true, TestAgent{HCL: TestACLConfig() + `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-	`, Key: key1}
-	a.Start(t)
+	`, Key: key1})
 	defer a.Shutdown()
 
 	// List keys without access fails

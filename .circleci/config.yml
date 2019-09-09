@@ -691,6 +691,9 @@ workflows:
       - envoy-integration-test-1.10.0:
           requires:
             - dev-build
+      - envoy-integration-test-1.11.1:
+          requires:
+            - dev-build
   website:
     jobs:
       - build-website

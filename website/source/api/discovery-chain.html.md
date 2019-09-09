@@ -104,7 +104,7 @@ The table below shows this endpoint's support for
 ### Sample Compilations
 
 Full documentation for the output fields is found on the [discovery chain
-internals](http://localhost:4567/docs/internals/discovery-chain.html#compileddiscoverychain)
+internals](/docs/internals/discovery-chain.html#compileddiscoverychain)
 page.
 
 #### Multi-Datacenter Failover

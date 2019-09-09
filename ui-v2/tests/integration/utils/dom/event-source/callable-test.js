@@ -81,4 +81,20 @@ module('Integration | Utility | dom/event-source/callable', function(hooks) {
       });
     });
   });
+  test("it can be closed before the first tick, and therefore doesn't run", function(assert) {
+    assert.expect(4);
+    const EventSource = domEventSourceCallable(EventTarget);
+    const listener = this.stub();
+    const source = new EventSource();
+    assert.equal(source.readyState, 0);
+    source.close();
+    assert.equal(source.readyState, 2);
+    source.addEventListener('open', function(e) {
+      listener();
+    });
+    return Promise.resolve().then(function() {
+      assert.notOk(listener.called);
+      assert.equal(source.readyState, 2);
+    });
+  });
 });

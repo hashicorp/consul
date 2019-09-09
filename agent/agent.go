@@ -1654,8 +1654,10 @@ func (a *Agent) ShutdownEndpoints() {
 	}
 
 	for _, srv := range a.dnsServers {
-		a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
-		srv.Shutdown()
+		if srv.Server != nil {
+			a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
+			srv.Shutdown()
+		}
 	}
 	a.dnsServers = nil
 
@@ -1982,18 +1984,27 @@ func (a *Agent) purgeCheck(checkID types.CheckID) error {
 	return nil
 }
 
+// AddServiceAndReplaceChecks is used to add a service entry and its check. Any check for this service missing from chkTypes will be deleted.
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered
+func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+	return a.addServiceLocked(service, chkTypes, persist, token, true, source)
+}
+
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
-	return a.addServiceLocked(service, chkTypes, persist, token, source)
+	return a.addServiceLocked(service, chkTypes, persist, token, false, source)
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, replaceExistingChecks bool, source configSource) error {
 	if err := a.validateService(service, chkTypes); err != nil {
 		return err
 	}
@@ -2002,11 +2013,11 @@ func (a *Agent) addServiceLocked(service *structs.NodeService, chkTypes []*struc
 		return a.serviceManager.AddService(service, chkTypes, persist, token, source)
 	}
 
-	return a.addServiceInternal(service, chkTypes, persist, token, source)
+	return a.addServiceInternal(service, chkTypes, persist, token, replaceExistingChecks, source)
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, replaceExistingChecks bool, source configSource) error {
 	// Pause the service syncs during modification
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2018,8 +2029,17 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 
 	var checks []*structs.HealthCheck
 
+	existingChecks := map[types.CheckID]bool{}
+	for _, check := range a.State.Checks() {
+		if check.ServiceID == service.ID {
+			existingChecks[check.CheckID] = false
+		}
+	}
+
 	// Create an associated health check
 	for i, chkType := range chkTypes {
+		existingChecks[chkType.CheckID] = true
+
 		checkID := string(chkType.CheckID)
 		if checkID == "" {
 			checkID = fmt.Sprintf("service:%s", service.ID)
@@ -2097,6 +2117,14 @@ func (a *Agent) addServiceInternal(service *structs.NodeService, chkTypes []*str
 		if err := a.persistService(service); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
+		}
+	}
+
+	if replaceExistingChecks {
+		for checkID, keep := range existingChecks {
+			if !keep {
+				a.removeCheckLocked(checkID, persist)
+			}
 		}
 	}
 
@@ -2843,13 +2871,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		// syntax sugar and shouldn't be persisted in local or server state.
 		ns.Connect.SidecarService = nil
 
-		if err := a.addServiceLocked(ns, chkTypes, false, service.Token, ConfigSourceLocal); err != nil {
+		if err := a.addServiceLocked(ns, chkTypes, false, service.Token, false, ConfigSourceLocal); err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
 
 		// If there is a sidecar service, register that too.
 		if sidecar != nil {
-			if err := a.addServiceLocked(sidecar, sidecarChecks, false, sidecarToken, ConfigSourceLocal); err != nil {
+			if err := a.addServiceLocked(sidecar, sidecarChecks, false, sidecarToken, false, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
 		}
@@ -2912,7 +2940,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		} else {
 			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
 				serviceID, file)
-			if err := a.addServiceLocked(p.Service, nil, false, p.Token, ConfigSourceLocal); err != nil {
+			if err := a.addServiceLocked(p.Service, nil, false, p.Token, false, ConfigSourceLocal); err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
 		}

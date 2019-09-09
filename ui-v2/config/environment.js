@@ -29,7 +29,10 @@ module.exports = function(environment) {
   };
   // TODO: These should probably go onto APP
   ENV = Object.assign({}, ENV, {
+    // TODO: Let people alter this, as with anchor selection
     CONSUL_UI_DISABLE_REALTIME: false,
+    CONSUL_UI_DISABLE_ANCHOR_SELECTION:
+      typeof process.env.CONSUL_UI_DISABLE_ANCHOR_SELECTION !== 'undefined',
     CONSUL_GIT_SHA: (function() {
       if (process.env.CONSUL_GIT_SHA) {
         return process.env.CONSUL_GIT_SHA;
@@ -61,11 +64,13 @@ module.exports = function(environment) {
       }
       return 'oss';
     })(),
-    CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
+    CONSUL_HOME_URL: 'https://www.consul.io',
+    CONSUL_DOCS_URL: 'https://www.consul.io/docs',
+    CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com/consul',
+    CONSUL_DOCS_API_URL: 'https://www.consul.io/api',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2019',
   });
-
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
@@ -87,8 +92,15 @@ module.exports = function(environment) {
 
     ENV.APP.rootElement = '#ember-testing';
     ENV.APP.autoboot = false;
-    ENV['ember-cli-api-double'] = {
-      reader: 'html',
+    ENV['@hashicorp/ember-cli-api-double'] = {
+      'auto-import': false,
+      enabled: true,
+      endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+    };
+  }
+  if (environment === 'staging') {
+    ENV['@hashicorp/ember-cli-api-double'] = {
+      enabled: true,
       endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
     };
   }

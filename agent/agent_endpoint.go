@@ -915,8 +915,21 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the service.
-	if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
-		return nil, err
+	replaceExistingChecks := false
+
+	query := req.URL.Query()
+	if len(query["replace-existing-checks"]) > 0 && (query.Get("replace-existing-checks") == "" || query.Get("replace-existing-checks") == "true") {
+		replaceExistingChecks = true
+	}
+
+	if replaceExistingChecks {
+		if err := s.agent.AddServiceAndReplaceChecks(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
+			return nil, err
+		}
 	}
 	// Add sidecar.
 	if sidecar != nil {

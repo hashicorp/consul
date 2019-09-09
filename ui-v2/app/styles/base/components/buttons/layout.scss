@@ -1,0 +1,40 @@
+%button {
+  position: relative;
+}
+%button .progress.indeterminate {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -12px;
+  margin-top: -12px;
+}
+%button:disabled .progress + * {
+  visibility: hidden;
+}
+%button:empty {
+  padding-right: 0 !important;
+  padding-left: 18px !important;
+  margin-right: 5px;
+}
+%button:empty::before {
+  left: 1px;
+}
+%button:not(:empty) {
+  display: inline-flex;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  padding: calc(0.375em - 1px) calc(2.2em - 1px);
+  height: 2.55em;
+  min-width: 100px;
+}
+%button:not(:last-child) {
+  margin-right: 8px;
+}
+%button-compact {
+  /* @extend %button;*/
+  padding-left: calc(1.6em - 1px) !important;
+  padding-right: calc(1.6em - 1px) !important;
+  padding-top: calc(0.35em - 1px) !important;
+  height: 2.3em !important;
+}

@@ -23,4 +23,9 @@ export default Store.extend({
     const adapter = this.adapterFor(modelName);
     return adapter.self(this, { modelName: modelName }, token);
   },
+  queryLeader: function(modelName, query) {
+    // TODO: no normalization, type it properly for the moment
+    const adapter = this.adapterFor(modelName);
+    return adapter.queryLeader(this, { modelName: modelName }, null, query);
+  },
 });

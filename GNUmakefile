@@ -176,7 +176,7 @@ ci.dev-docker:
 	--label PULL_REQUEST=$(CIRCLE_PULL_REQUEST) \
 	--label CIRCLE_BUILD_URL=$(CIRCLE_BUILD_URL) \
 	$(CI_DEV_DOCKER_WORKDIR) -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
-	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_LOGIN)" --password-stdin
+	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_USER)" --password-stdin
 	@echo "Pushing dev image to: https://cloud.docker.com/u/hashicorpdev/repository/docker/hashicorpdev/consul"
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)
 ifeq ($(CIRCLE_BRANCH), master)

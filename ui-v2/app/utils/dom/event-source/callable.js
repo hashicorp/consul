@@ -5,7 +5,7 @@ export const defaultRunner = function(target, configuration, isClosed) {
   }
   // TODO Consider wrapping this is a promise for none thenable returns
   return target.source
-    .bind(target)(configuration)
+    .bind(target)(configuration, target)
     .then(function(res) {
       return defaultRunner(target, configuration, isClosed);
     });
@@ -36,16 +36,20 @@ export default function(
       this.readyState = 2;
       this.source =
         typeof source !== 'function'
-          ? function(configuration) {
+          ? function(configuration, target) {
               this.close();
               return P.resolve();
             }
           : source;
-      this.readyState = 0; // connecting
+      this.readyState = 0; // CONNECTING
       P.resolve()
         .then(() => {
+          // if we are already closed, don't do anything
+          if (this.readyState > 1) {
+            return;
+          }
           this.readyState = 1; // open
-          // ...that the connection _was just_ opened
+          // the connection _was just_ opened
           this.dispatchEvent({ type: 'open' });
           return run(this, configuration, isClosed);
         })
@@ -63,9 +67,17 @@ export default function(
     }
     close() {
       // additional readyState 3 = CLOSING
-      if (this.readyState !== 2) {
-        this.readyState = 3;
+      switch (this.readyState) {
+        case 0: // CONNECTING
+        case 2: // CLOSED
+          this.readyState = 2;
+          break;
+        default:
+          // OPEN
+          this.readyState = 3; // CLOSING
       }
+      // non-standard
+      return this;
     }
   };
 }

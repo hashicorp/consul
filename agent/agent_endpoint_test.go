@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -2414,6 +2415,136 @@ func TestAgent_RegisterService(t *testing.T) {
 	}
 }
 
+func TestAgent_RegisterService_ReRegister(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"master"},
+		Port: 8000,
+		Checks: []*structs.CheckType{
+			&structs.CheckType{
+				CheckID: types.CheckID("check_1"),
+				TTL:     20 * time.Second,
+			},
+			&structs.CheckType{
+				CheckID: types.CheckID("check_2"),
+				TTL:     30 * time.Second,
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 100,
+			Warning: 3,
+		},
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	_, err := a.srv.AgentRegisterService(nil, req)
+	require.NoError(t, err)
+
+	args = &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"master"},
+		Port: 8000,
+		Checks: []*structs.CheckType{
+			&structs.CheckType{
+				CheckID: types.CheckID("check_1"),
+				TTL:     20 * time.Second,
+			},
+			&structs.CheckType{
+				CheckID: types.CheckID("check_3"),
+				TTL:     30 * time.Second,
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 100,
+			Warning: 3,
+		},
+	}
+	req, _ = http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	_, err = a.srv.AgentRegisterService(nil, req)
+	require.NoError(t, err)
+
+	checks := a.State.Checks()
+	require.Equal(t, 3, len(checks))
+
+	checkIDs := []string{}
+	for id := range checks {
+		checkIDs = append(checkIDs, string(id))
+	}
+	sort.Strings(checkIDs)
+	require.Equal(t, []string{"check_1", "check_2", "check_3"}, checkIDs)
+}
+
+func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	args := &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"master"},
+		Port: 8000,
+		Checks: []*structs.CheckType{
+			&structs.CheckType{
+				CheckID: types.CheckID("check_1"),
+				TTL:     20 * time.Second,
+			},
+			&structs.CheckType{
+				CheckID: types.CheckID("check_2"),
+				TTL:     30 * time.Second,
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 100,
+			Warning: 3,
+		},
+	}
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?replace-existing-checks", jsonReader(args))
+	_, err := a.srv.AgentRegisterService(nil, req)
+	require.NoError(t, err)
+
+	args = &structs.ServiceDefinition{
+		Name: "test",
+		Meta: map[string]string{"hello": "world"},
+		Tags: []string{"master"},
+		Port: 8000,
+		Checks: []*structs.CheckType{
+			&structs.CheckType{
+				CheckID: types.CheckID("check_1"),
+				TTL:     20 * time.Second,
+			},
+			&structs.CheckType{
+				CheckID: types.CheckID("check_3"),
+				TTL:     30 * time.Second,
+			},
+		},
+		Weights: &structs.Weights{
+			Passing: 100,
+			Warning: 3,
+		},
+	}
+	req, _ = http.NewRequest("PUT", "/v1/agent/service/register?replace-existing-checks", jsonReader(args))
+	_, err = a.srv.AgentRegisterService(nil, req)
+	require.NoError(t, err)
+
+	checks := a.State.Checks()
+	require.Equal(t, 2, len(checks))
+
+	checkIDs := []string{}
+	for id := range checks {
+		checkIDs = append(checkIDs, string(id))
+	}
+	sort.Strings(checkIDs)
+	require.Equal(t, []string{"check_1", "check_3"}, checkIDs)
+}
+
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -3788,13 +3919,11 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 func TestAgent_Monitor(t *testing.T) {
 	t.Parallel()
 	logWriter := logger.NewLogWriter(512)
-	a := &TestAgent{
-		Name:      t.Name(),
+	a := NewTestAgentWithFields(t, true, TestAgent{
 		LogWriter: logWriter,
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 		HCL:       `node_name = "invalid!"`,
-	}
-	a.Start(t)
+	})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

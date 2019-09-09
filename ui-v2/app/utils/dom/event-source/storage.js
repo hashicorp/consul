@@ -15,7 +15,7 @@ export default function(EventTarget, P = Promise) {
       this.configuration = configuration;
       this.configuration.cursor = 1;
       this.dispatcher = configuration.dispatcher;
-      this.reopen();
+      this.open();
     }
     dispatchEvent() {
       if (this.readyState === 1) {

@@ -40,7 +40,6 @@ h3,
 fieldset > header,
 caption,
 %header-nav,
-%healthchecked-resource header span,
 %healthcheck-output dt,
 %copy-button,
 %app-content div > dl > dt,
@@ -56,7 +55,6 @@ main label a[rel*='help'],
 %pill,
 %tbody-th em,
 %form-element > strong,
-%healthchecked-resource strong,
 %app-view h1 em {
   font-weight: $typo-weight-normal;
 }
@@ -72,7 +70,6 @@ td strong,
 /* Styling */
 %form-element > em,
 %tbody-th em,
-%healthchecked-resource header em,
 %app-view h1 em {
   font-style: normal;
 }
@@ -91,7 +88,6 @@ h2 {
 h3 {
   font-size: $typo-header-300;
 }
-%healthcheck-info dt,
 %header-drop-nav .is-active,
 %app-view h1 em {
   font-size: $typo-size-500;
@@ -108,9 +104,10 @@ th,
 td,
 caption,
 .type-dialog,
+%healthcheck-output dl > *,
 %form-element > span,
 %tooltip-bubble,
-%healthchecked-resource strong,
+%stats-card header a span,
 %footer,
 %app-view h1 span.kind-proxy {
   font-size: $typo-size-700;

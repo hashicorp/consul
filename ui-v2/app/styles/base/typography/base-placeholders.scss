@@ -1,0 +1,51 @@
+%typo-body {
+  font-size: $typo-size-600;
+  font-family: $typo-family-sans;
+  line-height: $typo-lead-700;
+}
+%typo-header {
+  line-height: $typo-lead-200;
+}
+%h1,
+%h2,
+%h3,
+%h4,
+%h5,
+%h6 {
+  @extend %typo-header;
+}
+%h1 {
+  font-weight: $typo-weight-bold;
+}
+%h2,
+%h3 {
+  font-weight: $typo-weight-semibold;
+}
+%h1 {
+  font-size: $typo-size-100;
+}
+%h2 {
+  font-size: $typo-size-200;
+}
+%h3 {
+  font-size: $typo-size-300;
+}
+%typo-p {
+  line-height: inherit;
+  font-size: inherit;
+}
+%p,
+%p1,
+%p2,
+%p3 {
+  @extend %typo-p;
+}
+%p1 {
+  font-size: $typo-size-600;
+}
+%p2 {
+  font-size: $typo-size-700;
+}
+%p3 {
+  font-size: $typo-size-800;
+}

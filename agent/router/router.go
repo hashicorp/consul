@@ -356,6 +356,14 @@ func (r *Router) GetDatacenters() []string {
 	return dcs
 }
 
+// HasDatacenter checks whether dc is defined in WAN
+func (r *Router) HasDatacenter(dc string) bool {
+	r.RLock()
+	defer r.RUnlock()
+	_, ok := r.managers[dc]
+	return ok
+}
+
 // datacenterSorter takes a list of DC names and a parallel vector of distances
 // and implements sort.Interface, keeping both structures coherent and sorting
 // by distance.

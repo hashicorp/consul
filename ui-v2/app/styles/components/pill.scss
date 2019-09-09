@@ -1,4 +1,4 @@
-@import './pill/index';
+@import '../base/components/pill/index';
 td strong,
 %tag-list span {
   @extend %pill;

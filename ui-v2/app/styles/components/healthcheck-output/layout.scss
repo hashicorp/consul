@@ -1,30 +1,75 @@
-%healthcheck-output::before {
-  background-size: 55%;
-  width: 25px !important;
-  height: 25px !important;
-  left: 17px;
-  top: 20px !important;
-  margin-top: 0 !important;
-}
-%healthcheck-output.warning::before {
-  background-size: 100%;
-}
 %healthcheck-output {
-  padding: 20px 24px;
-  padding-bottom: 26px;
-  padding-left: 57px;
+  display: flex;
+
+  padding: 20px 16px;
+  padding-right: 24px;
+
   margin-bottom: 24px;
+}
+%healthcheck-output::before {
+  margin-right: 15px;
+}
+%healthcheck-output > div {
+  flex: 1 1 auto;
+}
+%healthcheck-output header {
+  margin-bottom: 0.9em;
+}
+%healthcheck-output dl:not(:last-of-type) {
+  float: left;
+  width: 25%;
+  margin-right: 2%;
+}
+%healthcheck-output dl:nth-of-type(3) {
+  width: 46%;
+  margin-right: 0;
+}
+%healthcheck-output dl:not(:last-of-type) dd {
+  word-break: break-all;
+}
+%healthcheck-output dt {
+  margin-bottom: 0;
+}
+%healthcheck-output dl:last-of-type {
+  clear: both;
+  margin-bottom: 0;
+}
+%healthcheck-output dl:last-of-type dt {
+  margin-bottom: 0.3em;
+}
+%healthcheck-output dl:last-of-type dd {
   position: relative;
+}
+%healthcheck-output dl > * {
+  float: none;
+  display: block;
+  width: auto;
+  position: static;
+  padding-left: 0;
 }
 %healthcheck-output pre {
   padding: 12px;
+  padding-right: 40px;
+  white-space: pre-wrap;
 }
 %healthcheck-output .with-feedback {
-  float: right;
+  position: absolute;
+  right: 0.5em;
+  top: 1em;
 }
-%healthcheck-output dt {
-  margin-bottom: 0.2em;
-}
-%healthcheck-output dd:first-of-type {
-  margin-bottom: 0.6em;
+@media #{$--lt-spacious-healthcheck-output} {
+  %healthcheck-output {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-left: 14px;
+    padding-right: 19px;
+  }
+  %healthcheck-output::before {
+    margin-right: 8px;
+  }
+  %healthcheck-output dl:not(:last-of-type) {
+    float: none;
+    width: auto;
+    margin-right: 0;
+  }
 }
