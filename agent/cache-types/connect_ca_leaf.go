@@ -298,6 +298,10 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
 	// Do we already have a cert in the cache?
 	var existing *structs.IssuedCert
 	// Really important this is not a pointer type since otherwise we would set it
