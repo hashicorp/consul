@@ -19,7 +19,7 @@ provided out of the box you can add it by [writing a plugin](https://coredns.io/
 
 CoreDNS can listen for DNS requests coming in over UDP/TCP (go'old DNS), TLS ([RFC
 7858](https://tools.ietf.org/html/rfc7858)), also called DoT, DNS over HTTP/2 - DoH -
-([RFC 8484](https://tools.ietf.org/html/rfc7858)) and [gRPC](https://grpc.io) (not a standard).
+([RFC 8484](https://tools.ietf.org/html/rfc8484)) and [gRPC](https://grpc.io) (not a standard).
 
 Currently CoreDNS is able to:
 
