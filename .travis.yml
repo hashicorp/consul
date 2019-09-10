@@ -27,8 +27,8 @@ env:
     - TEST_TYPE=integration
     - TEST_TYPE=core
     - TEST_TYPE=plugin
-    - TEST_TYPE=fuzzit FUZZIT_TYPE=local-regression
-    - TEST_TYPE=fuzzit FUZZIT_TYPE=fuzzing
+#    - TEST_TYPE=fuzzit FUZZIT_TYPE=local-regression
+#    - TEST_TYPE=fuzzit FUZZIT_TYPE=fuzzing
 
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
