@@ -321,13 +321,10 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 		return fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
-	// Ensure we have a CA and cert if VerifyIncoming is set
+	// Ensure we have a CA if VerifyIncoming is set
 	if config.anyVerifyIncoming() {
 		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
-		}
-		if cert == nil || cert.Certificate == nil {
-			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
 	return nil

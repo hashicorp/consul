@@ -390,8 +390,8 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			true, false}, // 15
 		{Config{VerifyIncomingHTTPS: true, CAFile: "", CAPath: ""},
 			true, false}, // 16
-		{Config{VerifyIncoming: true, CAFile: cafile, CAPath: ""}, true, false}, // 17
-		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, true, false}, // 18
+		{Config{VerifyIncoming: true, CAFile: cafile, CAPath: ""}, false, false}, // 17
+		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath}, false, false}, // 18
 		{Config{VerifyIncoming: true, CAFile: "", CAPath: capath,
 			CertFile: certfile, KeyFile: keyfile}, false, false}, // 19
 		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true}, // 20
@@ -704,8 +704,7 @@ func TestConfigurator_UpdateChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, c.Update(Config{}))
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Error(t, c.Update(Config{VerifyIncoming: true,
-		CAFile: "../test/ca/root.cer"}))
+	require.Error(t, c.Update(Config{VerifyIncoming: true}))
 	require.False(t, c.base.VerifyIncoming)
 	require.False(t, c.base.VerifyOutgoing)
 	require.Equal(t, c.version, 2)
