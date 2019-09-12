@@ -1,3 +1,9 @@
+## UNRELEASED
+
+BUG FIXES
+
+* cache: remove data race in agent cache [[GH-6470](https://github.com/hashicorp/consul/issues/6470)]
+
 ## 1.6.1 (September 12, 2019)
 
 IMPROVEMENTS
