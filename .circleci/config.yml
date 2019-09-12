@@ -368,6 +368,10 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+          
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
 
       # attach website build directory
       - attach_workspace:
@@ -391,10 +395,6 @@ jobs:
       - run:
           name: middleman build
           command: bundle exec middleman build
-      
-      - run:
-          name: add missing tar binary
-          command: apk update && apk add tar
 
       - run:
           name: website deploy
