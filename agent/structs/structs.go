@@ -951,28 +951,31 @@ func (s *NodeService) Validate() error {
 		var knownListeners = make(map[int]bool)
 		for _, path := range s.Proxy.Expose.Paths {
 			if path.Path == "" {
-				result = multierror.Append(result, fmt.Errorf("empty path exposed"))
+				result = multierror.Append(result, fmt.Errorf("expose.paths: empty path exposed"))
 			}
 
 			if seen := knownPaths[path.Path]; seen {
-				result = multierror.Append(result, fmt.Errorf("duplicate paths exposed"))
+				result = multierror.Append(result, fmt.Errorf("expose.paths: duplicate paths exposed"))
 			}
 			knownPaths[path.Path] = true
 
 			if seen := knownListeners[path.ListenerPort]; seen {
-				result = multierror.Append(result, fmt.Errorf("duplicate listener ports exposed"))
+				result = multierror.Append(result, fmt.Errorf("expose.paths: duplicate listener ports exposed"))
 			}
 			knownListeners[path.ListenerPort] = true
 
 			if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
-				result = multierror.Append(result, fmt.Errorf("invalid listener port: %d", path.ListenerPort))
+				result = multierror.Append(result, fmt.Errorf("expose.paths: invalid listener port: %d", path.ListenerPort))
 			}
 
 			if path.CAFile != "" {
 				_, err := os.Stat(path.CAFile)
 				if err != nil {
-					result = multierror.Append(result, fmt.Errorf("failed to find CAFile '%s': %v", path.CAFile, err))
+					result = multierror.Append(result, fmt.Errorf("expose.paths: failed to find CAFile '%s': %v", path.CAFile, err))
 				}
+			}
+			if path.TLSSkipVerify == false && path.CAFile == "" {
+				result = multierror.Append(result, fmt.Errorf("expose.paths: CAFile must be provided if tls_skip_verify is false"))
 			}
 
 			path.Protocol = strings.ToLower(path.Protocol)
