@@ -34,9 +34,6 @@ export default Controller.extend({
       const blocking = get(this, 'item.client.blocking');
       switch (target.name) {
         case 'client[blocking]':
-          if (typeof blocking === 'undefined') {
-            set(this, 'item.client', {});
-          }
           set(this, 'item.client.blocking', !blocking);
           this.send('update', get(this, 'item'));
           break;

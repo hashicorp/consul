@@ -119,36 +119,6 @@
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="13" xmlns="http://www.w3.org/2000/svg"><path d="M4.779 1H1.8c-.439 0-.8.37-.8.833v9.334c0 .463.361.833.8.833h10.4c.439 0 .8-.37.8-.833V3.833C13 3.37 12.639 3 12.2 3H6.35a.5.5 0 0 1-.42-.228L4.78 1z" stroke="%23BBC4D2" fill="none"/></svg>');
   background-color: $color-transparent;
 }
-%with-magnifier {
-  position: relative;
-}
-%with-magnifier::before {
-  @extend %pseudo-icon;
-  cursor: pointer; // autosearch
-  top: 50%;
-  left: 50%;
-  margin-left: -0.2em;
-  margin-top: -0.2em;
-  font-size: 3em;
-  width: 0.35em;
-  height: 0.35em;
-  border: 0.05em solid;
-  border-radius: 0.35em;
-  border-color: currentColor;
-  background-color: $color-transparent;
-}
-%with-magnifier::after {
-  @extend %pseudo-icon;
-  font-size: 3em;
-  top: 50%;
-  left: 50%;
-  margin-top: 0.13em;
-  margin-left: 0.07em;
-  border-width: 0;
-  width: 0.18em;
-  height: 0.05em;
-  transform: rotate(45deg);
-}
 %with-exit::after {
   @extend %pseudo-icon-bg-img;
   top: 3px;
@@ -207,14 +177,6 @@
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="9" height="2" viewBox="0 0 9 2" xmlns="http://www.w3.org/2000/svg"><path fill="%23FFF" fill-rule="nonzero" d="M0 0h8v2H0z"/></svg>');
 }
-%with-warning-icon-orange {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M13.645 10.092c.24.409.365.88.365 1.37 0 1.392-1.027 2.527-2.294 2.538H2.322c-.824 0-1.592-.487-2.004-1.27a2.761 2.761 0 0 1 0-2.538l4.686-8.904C5.416.505 6.184.018 7.008.018c.824 0 1.592.487 2.004 1.27l4.633 8.804zm-5.989 1.264V9.607H6.344v1.749h1.312zm0-3.048v-4.37H6.344v4.37h1.312z" fill="%23fa8f37"/></svg>');
-}
-%with-warning-icon-grey {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M13.645 10.092c.24.409.365.88.365 1.37 0 1.392-1.027 2.527-2.294 2.538H2.322c-.824 0-1.592-.487-2.004-1.27a2.761 2.761 0 0 1 0-2.538l4.686-8.904C5.416.505 6.184.018 7.008.018c.824 0 1.592.487 2.004 1.27l4.633 8.804zm-5.989 1.264V9.607H6.344v1.749h1.312zm0-3.048v-4.37H6.344v4.37h1.312z" fill="%23949daa"/></svg>');
-}
 %with-right-arrow-green {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M9.263.5L8.084 1.637l4.716 4.55H0v1.625h12.8l-4.716 4.55 1.18 1.138L16 7z" fill="%232EB039"/></svg>');
@@ -226,39 +188,7 @@
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="13" height="11" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="%23919FA8" d="M7.526.219l-.958.924L10.4 4.84H0v1.32h10.4L6.568 9.857l.958.924L13 5.5z"/></svg>');
 }
-%with-deny-icon {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path fill="%23282C2E" d="M8.79 4l-.737.71L11 7.556H3V8.57h8l-2.947 2.844.736.711L13 8.062z"/><rect stroke="%23C73445" stroke-width="1.5" x=".75" y=".75" width="14.5" height="14.5" rx="7.25"/><path d="M3.5 3.5l9 9" stroke="%23C73445" stroke-width="1.5" stroke-linecap="square"/></g></svg>');
-  width: 16px;
-  height: 16px;
-  background-color: $color-transparent;
-}
-%with-deny-icon-grey {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="14" height="14" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path fill="%23919FA8" d="M7.79 2.992l-.737.711L10 6.547H2v1.016h8l-2.947 2.843.736.711L12 7.055z"/><rect stroke="%23919FA8" stroke-width="1.5" x=".75" y=".75" width="12.5" height="12.5" rx="6.25"/><path d="M3.063 3.063l7.874 7.874" stroke="%23919FA8" stroke-width="1.5" stroke-linecap="square"/></g></svg>');
-}
-%with-deny::before {
-  @extend %with-deny-icon;
-}
-%with-allow::before {
-  @extend %with-right-arrow-green;
-}
-%with-passing::before {
-  @extend %with-tick;
-  border-radius: 100%;
-}
-%with-warning::before {
-  @extend %with-warning-icon-orange;
-  background-color: $color-transparent;
-}
-%with-critical::before {
-  @extend %with-cross;
-  border-radius: 20%;
-}
-%with-no-healthchecks::before {
-  @extend %with-minus;
-  border-radius: 20%;
-}
+// swap this out for new icons
 %with-error {
   position: relative;
   padding-left: 18px;

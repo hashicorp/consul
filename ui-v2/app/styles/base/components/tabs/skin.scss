@@ -1,0 +1,32 @@
+%tab-nav {
+  /* %frame-gray-something */
+  border-bottom: $decor-border-100;
+  border-top: $decor-border-200;
+}
+%tab-nav {
+  /* %frame-gray-something */
+  border-color: $gray-200;
+}
+%tab-nav ul {
+  list-style-type: none;
+}
+%tab-nav label {
+  cursor: pointer;
+}
+%tab-button {
+  white-space: nowrap;
+  text-decoration: none;
+}
+%tab-button {
+  border-bottom: $decor-border-200;
+}
+%tab-button {
+  border-color: $color-transparent;
+  color: $gray-500;
+}
+%tab-button-intent,
+%tab-button-active {
+  /* %frame-gray-something */
+  border-color: $color-transparent;
+  background-color: $gray-100;
+}

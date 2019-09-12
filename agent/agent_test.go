@@ -66,7 +66,7 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 		name          string
 		hcl           string
 		wantClusterID string
-		wantPanic     bool
+		wantErr       bool
 	}{
 		{
 			name:          "default TestAgent has fixed cluster id",
@@ -87,28 +87,31 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 	   }
 	 }`,
 			wantClusterID: "",
-			wantPanic:     true,
+			wantErr:       true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Indirection to support panic recovery cleanly
-			testFn := func() {
-				a := &TestAgent{Name: "test", HCL: tt.hcl}
-				a.ExpectConfigError = tt.wantPanic
-				a.Start(t)
-				defer a.Shutdown()
-
-				cfg := a.consulConfig()
-				assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
+			// This is a rare case where using a constructor for TestAgent
+			// (NewTestAgent and the likes) won't work, since we expect an error
+			// in one test case, and the constructors have built-in retry logic
+			// that runs automatically upon error.
+			a := &TestAgent{Name: tt.name, HCL: tt.hcl, LogOutput: testutil.TestWriter(t)}
+			err := a.Start()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return // don't run the rest of the test
 			}
-
-			if tt.wantPanic {
-				require.Panics(t, testFn)
-			} else {
-				testFn()
+			if !tt.wantErr && err != nil {
+				t.Fatal(err)
 			}
+			defer a.Shutdown()
+
+			cfg := a.consulConfig()
+			assert.Equal(t, tt.wantClusterID, cfg.CAConfig.ClusterID)
 		})
 	}
 }
@@ -1219,9 +1222,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	    enable_central_service_config = false
 		data_dir = "` + dataDir + `"
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	a.LogOutput = testutil.TestWriter(t)
-	a.Start(t)
+	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
@@ -1305,9 +1306,7 @@ node_name = "` + a.Config.NodeName + `"
 		t.Helper()
 
 		// Reload and retain former NodeID and data directory.
-		a2 := &TestAgent{Name: t.Name(), HCL: futureHCL, DataDir: dataDir}
-		a2.LogOutput = testutil.TestWriter(t)
-		a2.Start(t)
+		a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: futureHCL, DataDir: dataDir})
 		defer a2.Shutdown()
 		a = nil
 
@@ -1577,7 +1576,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 	t.Parallel()
 
 	run := func(t *testing.T, ca string) {
-		a := &TestAgent{
+		a := NewTestAgentWithFields(t, true, TestAgent{
 			Name:   t.Name(),
 			UseTLS: true,
 			HCL: `
@@ -1588,8 +1587,7 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 				key_file = "../test/client_certs/server.key"
 				cert_file = "../test/client_certs/server.crt"
 			` + ca,
-		}
-		a.Start(t)
+		})
 		defer a.Shutdown()
 
 		health := &structs.HealthCheck{
@@ -1694,8 +1692,7 @@ func TestAgent_PersistService(t *testing.T) {
 		bootstrap = false
 		data_dir = "` + dataDir + `"
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	a.Start(t)
+	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
@@ -1760,8 +1757,7 @@ func TestAgent_PersistService(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	a2.Start(t)
+	a2 := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	restored := a2.State.ServiceState(svc.ID)
@@ -1867,8 +1863,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 		server = false
 		bootstrap = false
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	a.Start(t)
+	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer a.Shutdown()
 	defer os.RemoveAll(dataDir)
 
@@ -1887,15 +1882,14 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 
 	// Try bringing the agent back up with the service already
 	// existing in the config
-	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg + `
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: t.Name() + "-a2", HCL: cfg + `
 		service = {
 			id = "redis"
 			name = "redis"
 			tags = ["bar"]
 			port = 9000
 		}
-	`, DataDir: dataDir}
-	a2.Start(t)
+	`, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	file := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc1.ID))
@@ -1920,8 +1914,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		bootstrap = false
 		enable_script_checks = true
 	`
-	a := &TestAgent{Name: t.Name(), HCL: cfg, DataDir: dataDir}
-	a.Start(t)
+	a := NewTestAgentWithFields(t, true, TestAgent{HCL: cfg, DataDir: dataDir})
 	defer os.RemoveAll(dataDir)
 	defer a.Shutdown()
 
@@ -1992,8 +1985,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	a.Shutdown()
 
 	// Should load it back during later start
-	a2 := &TestAgent{Name: t.Name() + "-a2", HCL: cfg, DataDir: dataDir}
-	a2.Start(t)
+	a2 := NewTestAgentWithFields(t, true, TestAgent{Name: t.Name() + "-a2", HCL: cfg, DataDir: dataDir})
 	defer a2.Shutdown()
 
 	result := a2.State.Check(check.CheckID)
@@ -3024,7 +3016,9 @@ func TestAgent_reloadWatches(t *testing.T) {
 func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	t.Parallel()
 	a := TestAgent{Name: t.Name(), UseTLS: true}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 
 	// Normal watch with http addr set, should succeed

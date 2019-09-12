@@ -393,7 +393,7 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 			}
 
 			if !(enode.ID == "" && allowClashWithoutID) && nodeHealthy {
-				return fmt.Errorf("Node name %s is reserved by node %s with name %s", node.Node, enode.ID, enode.Node)
+				return fmt.Errorf("Node name %s is reserved by node %s with name %s (%s)", node.Node, enode.ID, enode.Node, enode.Address)
 			}
 		}
 	}
@@ -447,13 +447,13 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
 				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
 				if dupNameError != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
+					return fmt.Errorf("Error while renaming Node ID: %q (%s): %s", node.ID, node.Address, dupNameError)
 				}
 				// We are actually renaming a node, remove its reference first
 				err := s.deleteNodeTxn(tx, idx, n.Node)
 				if err != nil {
-					return fmt.Errorf("Error while renaming Node ID: %q from %s to %s",
-						node.ID, n.Node, node.Node)
+					return fmt.Errorf("Error while renaming Node ID: %q (%s) from %s to %s",
+						node.ID, node.Address, n.Node, node.Node)
 				}
 			}
 		} else {

@@ -349,6 +349,10 @@ jobs:
           name: middleman build
           command: bundle exec middleman build
 
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
+
       # saves website build directory
       - persist_to_workspace:
           root: .
@@ -689,6 +693,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1.10.0:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.11.1:
           requires:
             - dev-build
   website:

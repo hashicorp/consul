@@ -2,14 +2,17 @@
   border-width: 1px;
   border-radius: $decor-radius-100;
 }
-%flash-message p.success strong {
-  @extend %with-passing;
+%flash-message p strong::before {
+  @extend %as-pseudo;
 }
-%flash-message p.warning strong {
-  @extend %with-warning;
+%flash-message p.success strong::before {
+  @extend %with-check-circle-fill-color-icon;
 }
-%flash-message p.error strong {
-  @extend %with-critical;
+%flash-message p.warning strong::before {
+  @extend %with-alert-triangle-color-icon;
+}
+%flash-message p.error strong::before {
+  @extend %with-cancel-square-fill-color-icon;
 }
 %flash-message p.success {
   @extend %frame-green-500;

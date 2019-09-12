@@ -461,7 +461,7 @@ Parameters and response format are the same as
 
 ## Register Service
 
-This endpoint adds a new service, with an optional health check, to the local
+This endpoint adds a new service, with optional health checks, to the local
 agent.
 
 The agent is responsible for managing the status of its local services, and for
@@ -484,6 +484,10 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
+
+### Query string parameters
+
+- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks whithout having to manually deregister checks.
 
 ### Parameters
 
@@ -623,7 +627,7 @@ For the `Connect` field, the parameters are:
 $ curl \
     --request PUT \
     --data @payload.json \
-    http://127.0.0.1:8500/v1/agent/service/register
+    http://127.0.0.1:8500/v1/agent/service/register?replace-existing-checks=1
 ```
 
 ## Deregister Service

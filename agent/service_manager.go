@@ -39,7 +39,7 @@ func (s *ServiceManager) AddService(service *structs.NodeService, chkTypes []*st
 	// For now only sidecar proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
 	if !service.IsSidecarProxy() && !service.IsMeshGateway() {
-		return s.agent.addServiceInternal(service, chkTypes, persist, token, source)
+		return s.agent.addServiceInternal(service, chkTypes, persist, token, false, source)
 	}
 
 	s.lock.Lock()
@@ -263,7 +263,7 @@ func (s *serviceConfigWatch) handleUpdate(event cache.UpdateEvent, locked, first
 // updateAgentRegistration updates the service (and its sidecar, if applicable) in the
 // local state.
 func (s *serviceConfigWatch) updateAgentRegistration(ns *structs.NodeService) error {
-	return s.agent.addServiceInternal(ns, s.registration.chkTypes, s.registration.persist, s.registration.token, s.registration.source)
+	return s.agent.addServiceInternal(ns, s.registration.chkTypes, s.registration.persist, s.registration.token, false, s.registration.source)
 }
 
 // ensureConfigWatch starts a cache.Notify goroutine to run a continuous

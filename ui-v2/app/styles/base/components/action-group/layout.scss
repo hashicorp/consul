@@ -1,0 +1,82 @@
+%action-group {
+  display: inline-block;
+  position: relative;
+  width: 30px;
+  height: 30px;
+}
+%action-group label span {
+  display: none;
+}
+%action-group label {
+  display: block;
+  height: 100%;
+}
+%action-group label:last-of-type {
+  position: absolute;
+  width: 100%;
+  z-index: -1;
+  top: 0;
+}
+%action-group-action {
+  width: 170px;
+  padding: 10px 10px;
+  text-align: left;
+}
+/* this is actually the group */
+%action-group ul {
+  position: absolute;
+  padding: 1px;
+}
+%action-group li > * {
+  @extend %action-group-action;
+}
+%action-group ul::before {
+  position: absolute;
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+}
+%action-group ul:not(.left) {
+  right: 0px;
+}
+%action-group ul:not(.left)::before {
+  right: 9px;
+}
+%action-group ul.left {
+  left: 0px;
+}
+%action-group ul.left::before {
+  left: 9px;
+}
+%action-group ul:not(.above) {
+  top: 23px;
+}
+%action-group ul:not(.above)::before {
+  top: -6px;
+  transform: rotate(45deg);
+}
+%action-group ul.above {
+  bottom: 23px;
+}
+%action-group ul.above::before {
+  bottom: -6px;
+  transform: rotate(225deg);
+}
+%action-group li {
+  position: relative;
+  z-index: 1;
+}
+%action-group input[type='radio'],
+%action-group input[type='radio'] ~ ul,
+%action-group input[type='radio'] ~ .with-confirmation > ul {
+  display: none;
+}
+%action-group input[type='radio']:checked ~ ul,
+%action-group input[type='radio']:checked ~ .with-confirmation > ul {
+  display: block;
+}
+/*TODO: If anything this is %toggle-button*/
+%action-group input[type='radio']:checked ~ label[for='actions_close'] {
+  z-index: 1;
+}

@@ -1,0 +1,52 @@
+%table {
+  width: 100%;
+  border-collapse: collapse;
+}
+%table-flex tr {
+  display: flex;
+}
+%table-flex tr > * {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+}
+%table caption,
+%table thead th {
+  text-align: left;
+}
+%table-actions {
+  width: 60px !important;
+}
+%table th.actions input {
+  display: none;
+}
+%table th.actions {
+  text-align: right;
+}
+%table td a {
+  display: block;
+}
+%table td:not(.actions),
+%table td:not(.actions) > *:only-child {
+  overflow-x: hidden;
+}
+%table td:not(.actions) > * {
+  white-space: nowrap;
+}
+%table td:not(.actions) > *:only-child {
+  text-overflow: ellipsis;
+}
+%table td {
+  height: 50px;
+}
+%table caption {
+  margin-bottom: 0.8em;
+}
+%table th {
+  padding-bottom: 0.6em;
+}
+%table th:not(.actions),
+%table td:not(.actions),
+%table td a {
+  padding-right: 0.9em;
+}

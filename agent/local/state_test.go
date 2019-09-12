@@ -25,8 +25,7 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -258,8 +257,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -416,8 +414,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -501,8 +498,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -762,12 +758,11 @@ var testRegisterRules = `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name(), HCL: `
+	a := agent.NewTestAgent(t, t.Name(), `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-		acl_enforce_version_8 = true`}
-	a.Start(t)
+		acl_enforce_version_8 = true`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -913,8 +908,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	a.Start(t)
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1113,7 +1107,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		acl_master_token = "root"
 		acl_default_policy = "deny"
 		acl_enforce_version_8 = true`}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, dc)
@@ -1381,7 +1377,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	a := &agent.TestAgent{Name: t.Name(), HCL: `
 		check_update_interval = "500ms"
 	`}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -1417,21 +1415,34 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	// Update the check output! Should be deferred
 	a.State.UpdateCheck("web", api.HealthPassing, "output")
 
-	// Should not update for 500 milliseconds
-	time.Sleep(250 * time.Millisecond)
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
+	// We are going to wait up to 850ms for the deferred check update to run. The update
+	// can happen any time within: check_update_interval / 2 + random(min: 0, max: check_update_interval)
+	// For this test that means it will get deferred for 250ms - 750ms. We add up to 100ms on top of that to
+	// account for potentially slow tests on a overloaded system.
+	timer := &retry.Timer{Timeout: 850 * time.Millisecond, Wait: 50 * time.Millisecond}
+	start := time.Now()
+	retry.RunWith(timer, t, func(r *retry.R) {
+		cs := a.State.CheckState("web")
+		if cs == nil {
+			r.Fatalf("check is not registered")
+		}
+
+		if cs.DeferCheck != nil {
+			r.Fatalf("Deferred Check timeout not removed yet")
+		}
+	})
+	elapsed := time.Since(start)
+
+	// ensure the check deferral didn't update too fast
+	if elapsed < 240*time.Millisecond {
+		t.Fatalf("early update: elapsed %v\n\n%+v", elapsed, checks)
 	}
 
-	// Verify not updated
-	for _, chk := range checks.HealthChecks {
-		switch chk.CheckID {
-		case "web":
-			if chk.Output != "" {
-				t.Fatalf("early update: %v", chk)
-			}
-		}
+	// ensure the check deferral didn't update too late
+	if elapsed > 850*time.Millisecond {
+		t.Fatalf("late update: elapsed: %v\n\n%+v", elapsed, checks)
 	}
+
 	// Wait for a deferred update. TODO (slackpad) This isn't a great test
 	// because we might be stuck in the random stagger from the full sync
 	// after the leader election (~3 seconds) so it's easy to exceed the
@@ -1441,10 +1452,14 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	// good news is that the later update below should be well past the full
 	// sync so we are getting some coverage. We should rethink this a bit and
 	// rework the deferred update stuff to be more testable.
-	timer := &retry.Timer{Timeout: 6 * time.Second, Wait: 100 * time.Millisecond}
+	//
+	// TODO - figure out why after the deferred check calls TriggerSyncChanges that this
+	// takes so long to happen. I have seen it take upwards of 1.5s before the check gets
+	// synced.
+	timer = &retry.Timer{Timeout: 6 * time.Second, Wait: 100 * time.Millisecond}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-			r.Fatal(err)
+			r.Fatalf("err: %v", err)
 		}
 
 		// Verify updated
@@ -1572,7 +1587,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		node_meta {
 			somekey = "somevalue"
 		}`}
-	a.Start(t)
+	if err := a.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

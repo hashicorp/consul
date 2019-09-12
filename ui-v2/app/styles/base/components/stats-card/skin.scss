@@ -1,0 +1,31 @@
+%stats-card {
+  border: $decor-border-100;
+  border-radius: $decor-radius-100;
+}
+%stats-card li {
+  border-top: $decor-border-100;
+}
+%stats-card,
+%stats-card li {
+  border-color: $gray-200;
+}
+%stats-card,
+%stats-card header::before {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05);
+}
+%stats-card:hover,
+%stats-card:focus {
+  box-shadow: 0 8px 10px 0 rgba(0, 0, 0, 0.1);
+}
+%stats-card header > :not(a):last-child {
+  border: $decor-border-100;
+  border-radius: 100%;
+  border-color: $gray-200;
+  background-color: $white;
+}
+%stats-card ul {
+  /*TODO: %list-style-none?*/
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}

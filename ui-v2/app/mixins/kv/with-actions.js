@@ -29,7 +29,7 @@ export default Mixin.create(WithBlockingActions, {
           delete item.Session;
           set(controller, 'session', null);
         });
-      }, 'delete');
+      }, 'deletesession');
     },
   },
 });

@@ -70,10 +70,11 @@ export default function(EventSource, backoff = create5xxBackoff()) {
    */
   return class extends EventSource {
     constructor(source, configuration = {}) {
+      const { currentEvent, ...config } = configuration;
       super(configuration => {
         const { createEvent, ...superConfiguration } = configuration;
         return source
-          .apply(this, [superConfiguration])
+          .apply(this, [superConfiguration, this])
           .catch(backoff)
           .then(result => {
             if (result instanceof Error) {
@@ -103,7 +104,19 @@ export default function(EventSource, backoff = create5xxBackoff()) {
             this.previousEvent = this.currentEvent;
             return throttledResolve(result);
           });
-      }, configuration);
+      }, config);
+      if (typeof currentEvent !== 'undefined') {
+        this.currentEvent = currentEvent;
+      }
+      // only on initialization
+      // if we already have an currentEvent set via configuration
+      // dispatch the event so things are populated immediately
+      this.addEventListener('open', e => {
+        const currentEvent = e.target.getCurrentEvent();
+        if (typeof currentEvent !== 'undefined') {
+          this.dispatchEvent(currentEvent);
+        }
+      });
     }
     // if we are having these props, at least make getters
     getCurrentEvent() {
