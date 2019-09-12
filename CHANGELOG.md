@@ -2,6 +2,7 @@
 
 IMPROVEMENTS
 
+* agent: Distinguish between DC not existing and not being available [[GH-6399](https://github.com/hashicorp/consul/pull/6399)]
 * agent: Added `replace-existing-checks` param to service registration endpoint to replace existing checks when re-registering a service. [[GH-4905](https://github.com/hashicorp/consul/pull/4905)]
 * auto_encrypt: verify_incoming_rpc is good enough for auto_encrypt.allow_tls [[GH-6376](https://github.com/hashicorp/consul/pull/6376)]
 * connect: Ensure that a secondary CA's intermediate certificate will show in the various API endpoints CA Roots output [[GH-6333](https://github.com/hashicorp/consul/pull/6333)]
@@ -10,6 +11,7 @@ IMPROVEMENTS
 * ui: Adds the ability to frontend search instances by address (ip:port) [[GH-5993](https://github.com/hashicorp/consul/pull/5993)]
 * ui: Add CheckID to the output panels of healthchecks  [[GH-6195](https://github.com/hashicorp/consul/pull/6195)]
 * ui: Enable blocking queries by default [[GH-6194](https://github.com/hashicorp/consul/pull/6194)]
+* txn: don't try to decode request bodies > raft.SuggestedMaxDataSize [[GH-6422](https://github.com/hashicorp/consul/pull/6422)]
 
 BUG FIXES
 
