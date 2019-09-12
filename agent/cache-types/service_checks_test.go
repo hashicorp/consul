@@ -154,6 +154,17 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	}
 }
 
+func TestServiceHTTPChecks_badReqType(t *testing.T) {
+	a := newMockAgent()
+	typ := cachetype.ServiceHTTPChecks{Agent: a}
+
+	// Fetch
+	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
+		t, cache.RequestInfo{Key: "foo", MinIndex: 64}))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wrong request type")
+}
+
 type mockAgent struct {
 	state   *local.State
 	pauseCh <-chan struct{}
