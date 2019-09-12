@@ -391,6 +391,10 @@ jobs:
       - run:
           name: middleman build
           command: bundle exec middleman build
+      
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
 
       - run:
           name: website deploy
