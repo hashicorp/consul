@@ -12,20 +12,18 @@ const isWildcard = wildcard(routes);
 
 export default Helper.extend({
   compute([targetRouteName, ...rest], namedArgs) {
+    if (isWildcard(targetRouteName)) {
+      rest = rest.map(function(item, i) {
+        return item
+          .split('/')
+          .map(encodeURIComponent)
+          .join('/');
+      });
+    }
     if (namedArgs.params) {
-      return hrefTo(this, ...namedArgs.params);
+      return hrefTo(this, namedArgs.params);
     } else {
-      if (isWildcard(targetRouteName)) {
-        const split = rest.map(function(item, i) {
-          return item
-            .split('/')
-            .map(encodeURIComponent)
-            .join('/');
-        });
-        return hrefTo(this, targetRouteName, ...split);
-      } else {
-        return hrefTo(this, targetRouteName, ...rest);
-      }
+      return hrefTo(this, [targetRouteName, ...rest]);
     }
   },
 });
