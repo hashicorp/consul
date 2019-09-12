@@ -15,10 +15,12 @@ IMPROVEMENTS
 
 BUG FIXES
 
-* network areas (enterprise): make sure network areas are left as well when consul is leaving [[GH-6453](https://github.com/hashicorp/consul/pull/6453)]
+* network areas (Consul Enterprise): Ensure that TCP based transport for network area memberlist propgates failed nodes properly [[GH-6479](https://github.com/hashicorp/consul/pull/6479)]
+* network areas (Consul Enterprise): make sure network areas are left as well when consul is leaving [[GH-6453](https://github.com/hashicorp/consul/pull/6453)]
 * ui: Show the correct message when a session has been removed from a KV [[GH-6167](https://github.com/hashicorp/consul/pull/6167)]
 * ui: Ensure KV sessions visually aren't shared between multiple KV's [[GH-6166](https://github.com/hashicorp/consul/pull/6166)]
 * tls: make sure auto_encrypt has private key type and bits [[GH-6392](https://github.com/hashicorp/consul/pull/6392)]
+
 
 FEATURES
 
