@@ -1,6 +1,6 @@
 import { module } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { clearRender, render, settled, waitUntil } from '@ember/test-helpers';
+import { clearRender, render, waitUntil } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
 import test from 'ember-sinon-qunit/test-support/test';
