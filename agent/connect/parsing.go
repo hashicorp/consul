@@ -7,8 +7,10 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"strings"
 )
 
@@ -111,13 +113,35 @@ func KeyId(raw interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	// String formatted
 	kID := sha256.Sum256(bs)
-	return []byte(strings.Replace(fmt.Sprintf("% x", kID), " ", ":", -1)), nil
+	return kID[:], nil
 }
+
+// EncodeSerialNumber encodes the given serial number as a colon-hex encoded
+// string.
+func EncodeSerialNumber(serial *big.Int) string {
+	return HexString(serial.Bytes())
+}
+
+// EncodeSigningKeyID encodes the given AuthorityKeyId or SubjectKeyId into a
+// colon-hex encoded string suitable for using as a SigningKeyID value.
+func EncodeSigningKeyID(keyID []byte) string { return HexString(keyID) }
 
 // HexString returns a standard colon-separated hex value for the input
 // byte slice. This should be used with cert serial numbers and so on.
 func HexString(input []byte) string {
 	return strings.Replace(fmt.Sprintf("% x", input), " ", ":", -1)
+}
+
+// IsHexString returns true if the input is the output of HexString(). Meant
+// for use in tests.
+func IsHexString(input []byte) bool {
+	s := string(input)
+	if strings.Count(s, ":") < 5 { // 5 is arbitrary
+		return false
+	}
+
+	s = strings.ReplaceAll(s, ":", "")
+	_, err := hex.DecodeString(s)
+	return err == nil
 }

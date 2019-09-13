@@ -35,7 +35,7 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	// Create the private key we'll use for this CA cert.
 	signer, keyPEM := testPrivateKey(t, keyType, keyBits)
 	result.SigningKey = keyPEM
-	result.SigningKeyID = HexString(testKeyID(t, signer.Public()))
+	result.SigningKeyID = EncodeSigningKeyID(testKeyID(t, signer.Public()))
 	result.PrivateKeyType = keyType
 	result.PrivateKeyBits = keyBits
 
