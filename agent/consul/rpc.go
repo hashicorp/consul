@@ -319,7 +319,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
 			return structs.ErrDCNotAvailable
 		}
-		s.logger.Printf("[WARN] consul.rpc: RPC request for unkown DC %q", dc)
+		s.logger.Printf("[WARN] consul.rpc: RPC request for unknown DC %q", dc)
 		return structs.ErrNoDCPath
 	}
 
