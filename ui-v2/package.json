@@ -101,6 +101,7 @@
     "jsonlint": "^1.6.3",
     "lint-staged": "^9.2.5",
     "loader.js": "^4.7.0",
+    "mnemonist": "^0.30.0",
     "node-sass": "^4.9.3",
     "prettier": "^1.10.2",
     "qunit-dom": "^0.9.0",
