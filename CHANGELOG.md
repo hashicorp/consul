@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+FEATURES
+
+* snapshot agent (Consul Enterprise): Added support for saving snapshots to Google Cloud Storage.
+
 BUG FIXES
 
 * cache: remove data race in agent cache [[GH-6470](https://github.com/hashicorp/consul/issues/6470)]
