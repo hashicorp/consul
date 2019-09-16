@@ -428,11 +428,16 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
 	// GetCertificate is used when acting as a server and responding to
-	// client requests. Always return the manually configured cert, because
-	// on the server this is all we have. And on the client, this is the
-	// only sensitive option.
+	// client requests. Default to the manually configured cert, but allow
+	// autoEncrypt cert too so that a client can encrypt incoming
+	// connections without having a manual cert configured.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		return c.manual.cert, nil
+		cert := c.manual.cert
+		if cert == nil {
+			cert = c.autoEncrypt.cert
+		}
+
+		return cert, nil
 	}
 
 	// GetClientCertificate is used when acting as a client and responding
