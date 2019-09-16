@@ -201,7 +201,17 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	_, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
+	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
+	err := validateSetIntermediate(
+		intermediatePEM, rootPEM,
+		"", // we don't have access to the private key directly
+		&spiffeID,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/set-signed", map[string]interface{}{
 		"certificate": fmt.Sprintf("%s\n%s", intermediatePEM, rootPEM),
 	})
 	if err != nil {
@@ -257,8 +267,9 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 
 	// Sign the CSR with the root backend.
 	intermediate, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
-		"csr":    csr,
-		"format": "pem_bundle",
+		"csr":            csr,
+		"use_csr_values": true,
+		"format":         "pem_bundle",
 	})
 	if err != nil {
 		return "", err
@@ -323,6 +334,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 	// Sign the CSR with the root backend.
 	data, err := v.client.Logical().Write(v.config.RootPKIPath+"root/sign-intermediate", map[string]interface{}{
 		"csr":             pemBuf.String(),
+		"use_csr_values":  true,
 		"format":          "pem_bundle",
 		"max_path_length": 0,
 	})

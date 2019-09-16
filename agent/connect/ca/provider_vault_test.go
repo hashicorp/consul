@@ -3,60 +3,19 @@ package ca
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
+	"os"
+	"os/exec"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/hashicorp/vault/builtin/logical/pki"
-	vaulthttp "github.com/hashicorp/vault/http"
-	"github.com/hashicorp/vault/vault"
 	"github.com/stretchr/testify/require"
 )
-
-var vaultLock sync.Mutex
-
-func testVaultCluster(t *testing.T) (*VaultProvider, *vault.Core, net.Listener) {
-	return testVaultClusterWithConfig(t, true, nil)
-}
-
-func testVaultClusterWithConfig(t *testing.T, isRoot bool, rawConf map[string]interface{}) (*VaultProvider, *vault.Core, net.Listener) {
-	vaultLock.Lock()
-	defer vaultLock.Unlock()
-
-	if err := vault.AddTestLogicalBackend("pki", pki.Factory); err != nil {
-		t.Fatal(err)
-	}
-	core, _, token := vault.TestCoreUnsealedRaw(t)
-
-	ln, addr := vaulthttp.TestServer(t, core)
-
-	conf := map[string]interface{}{
-		"Address":             addr,
-		"Token":               token,
-		"RootPKIPath":         "pki-root/",
-		"IntermediatePKIPath": "pki-intermediate/",
-		// Tests duration parsing after msgpack type mangling during raft apply.
-		"LeafCertTTL": []uint8("72h"),
-	}
-	for k, v := range rawConf {
-		conf[k] = v
-	}
-
-	require := require.New(t)
-	provider := &VaultProvider{}
-	require.NoError(provider.Configure("asdf", isRoot, conf))
-	if isRoot {
-		require.NoError(provider.GenerateRoot())
-		_, err := provider.GenerateIntermediate()
-		require.NoError(err)
-	}
-
-	return provider, core, ln
-}
 
 func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	config := &structs.VaultCAProviderConfig{
@@ -80,15 +39,15 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
+	if skipIfVaultNotPresent(t) {
+		return
+	}
+
+	provider, testVault := testVaultProvider(t)
+	defer testVault.Stop()
+	client := testVault.client
+
 	require := require.New(t)
-	provider, core, listener := testVaultCluster(t)
-	defer core.Shutdown()
-	defer listener.Close()
-	client, err := vaultapi.NewClient(&vaultapi.Config{
-		Address: "http://" + listener.Addr().String(),
-	})
-	require.NoError(err)
-	client.SetToken(provider.config.Token)
 
 	cases := []struct {
 		certFunc    func() (string, error)
@@ -127,17 +86,15 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
+	if skipIfVaultNotPresent(t) {
+		return
+	}
+
 	require := require.New(t)
-	provider, core, listener := testVaultClusterWithConfig(t, true, map[string]interface{}{
+	provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
 		"LeafCertTTL": "1h",
 	})
-	defer core.Shutdown()
-	defer listener.Close()
-	client, err := vaultapi.NewClient(&vaultapi.Config{
-		Address: "http://" + listener.Addr().String(),
-	})
-	require.NoError(err)
-	client.SetToken(provider.config.Token)
+	defer testVault.Stop()
 
 	spiffeService := &connect.SpiffeIDService{
 		Host:       "node1",
@@ -194,13 +151,15 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	provider1, core1, listener1 := testVaultCluster(t)
-	defer core1.Shutdown()
-	defer listener1.Close()
+	if skipIfVaultNotPresent(t) {
+		return
+	}
 
-	provider2, core2, listener2 := testVaultCluster(t)
-	defer core2.Shutdown()
-	defer listener2.Close()
+	provider1, testVault1 := testVaultProvider(t)
+	defer testVault1.Stop()
+
+	provider2, testVault2 := testVaultProvider(t)
+	defer testVault2.Stop()
 
 	testCrossSignProviders(t, provider1, provider2)
 }
@@ -208,13 +167,15 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 func TestVaultProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
 
-	provider1, core1, listener1 := testVaultCluster(t)
-	defer core1.Shutdown()
-	defer listener1.Close()
+	if skipIfVaultNotPresent(t) {
+		return
+	}
 
-	provider2, core2, listener2 := testVaultClusterWithConfig(t, false, nil)
-	defer core2.Shutdown()
-	defer listener2.Close()
+	provider1, testVault1 := testVaultProvider(t)
+	defer testVault1.Stop()
+
+	provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
+	defer testVault2.Stop()
 
 	testSignIntermediateCrossDC(t, provider1, provider2)
 }
@@ -222,34 +183,193 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	if skipIfVaultNotPresent(t) {
+		return
+	}
 
 	// primary = Vault, secondary = Consul
-	{
-		provider1, core, listener := testVaultCluster(t)
-		defer core.Shutdown()
-		defer listener.Close()
+	t.Run("pri=vault,sec=consul", func(t *testing.T) {
+		provider1, testVault1 := testVaultProviderWithConfig(t, true, nil)
+		defer testVault1.Stop()
 
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider2 := &ConsulProvider{Delegate: delegate}
-		require.NoError(provider2.Configure(conf.ClusterID, false, conf.Config))
+		require.NoError(t, provider2.Configure(conf.ClusterID, false, conf.Config))
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
-	}
+	})
 
 	// primary = Consul, secondary = Vault
-	{
+	t.Run("pri=consul,sec=vault", func(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider1 := &ConsulProvider{Delegate: delegate}
-		require.NoError(provider1.Configure(conf.ClusterID, true, conf.Config))
-		require.NoError(provider1.GenerateRoot())
+		require.NoError(t, provider1.Configure(conf.ClusterID, true, conf.Config))
+		require.NoError(t, provider1.GenerateRoot())
 
-		provider2, core, listener := testVaultClusterWithConfig(t, false, nil)
-		defer core.Shutdown()
-		defer listener.Close()
+		provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
+		defer testVault2.Stop()
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
+	})
+}
+
+func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {
+	return testVaultProviderWithConfig(t, true, nil)
+}
+
+func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
+	testVault, err := runTestVault()
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
+
+	testVault.WaitUntilReady(t)
+
+	conf := map[string]interface{}{
+		"Address":             testVault.addr,
+		"Token":               testVault.rootToken,
+		"RootPKIPath":         "pki-root/",
+		"IntermediatePKIPath": "pki-intermediate/",
+		// Tests duration parsing after msgpack type mangling during raft apply.
+		"LeafCertTTL": []uint8("72h"),
+	}
+	for k, v := range rawConf {
+		conf[k] = v
+	}
+
+	provider := &VaultProvider{}
+
+	if err := provider.Configure("asdf", isRoot, conf); err != nil {
+		testVault.Stop()
+		t.Fatalf("err: %v", err)
+	}
+	if isRoot {
+		if err = provider.GenerateRoot(); err != nil {
+			testVault.Stop()
+			t.Fatalf("err: %v", err)
+		}
+		if _, err := provider.GenerateIntermediate(); err != nil {
+			testVault.Stop()
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	return provider, testVault
+}
+
+var printedVaultVersion sync.Once
+
+// skipIfVaultNotPresent skips the test and returns true if vault is not found
+func skipIfVaultNotPresent(t *testing.T) bool {
+	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
+	if vaultBinaryName == "" {
+		vaultBinaryName = "vault"
+	}
+
+	path, err := exec.LookPath(vaultBinaryName)
+	if err != nil || path == "" {
+		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
+		return true
+	}
+	return false
+}
+
+func runTestVault() (*testVaultServer, error) {
+	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
+	if vaultBinaryName == "" {
+		vaultBinaryName = "vault"
+	}
+
+	path, err := exec.LookPath(vaultBinaryName)
+	if err != nil || path == "" {
+		return nil, fmt.Errorf("%q not found on $PATH", vaultBinaryName)
+	}
+
+	ports := freeport.Get(2)
+
+	var (
+		clientAddr  = fmt.Sprintf("127.0.0.1:%d", ports[0])
+		clusterAddr = fmt.Sprintf("127.0.0.1:%d", ports[1])
+	)
+
+	const token = "root"
+
+	client, err := vaultapi.NewClient(&vaultapi.Config{
+		Address: "http://" + clientAddr,
+	})
+	if err != nil {
+		return nil, err
+	}
+	client.SetToken(token)
+
+	args := []string{
+		"server",
+		"-dev",
+		"-dev-root-token-id",
+		token,
+		"-dev-listen-address",
+		clientAddr,
+		"-address",
+		clusterAddr,
+	}
+
+	cmd := exec.Command(vaultBinaryName, args...)
+	cmd.Stdout = ioutil.Discard
+	cmd.Stderr = ioutil.Discard
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	return &testVaultServer{
+		rootToken: token,
+		addr:      "http://" + clientAddr,
+		cmd:       cmd,
+		client:    client,
+	}, nil
+}
+
+type testVaultServer struct {
+	rootToken string
+	addr      string
+	cmd       *exec.Cmd
+	client    *vaultapi.Client
+}
+
+func (v *testVaultServer) WaitUntilReady(t *testing.T) {
+	var version string
+	retry.Run(t, func(r *retry.R) {
+		resp, err := v.client.Sys().Health()
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if !resp.Initialized {
+			r.Fatalf("vault server is not initialized")
+		}
+		if resp.Sealed {
+			r.Fatalf("vault server is sealed")
+		}
+		version = resp.Version
+	})
+	printedVaultVersion.Do(func() {
+		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
+	})
+}
+
+func (v *testVaultServer) Stop() error {
+	// There was no process
+	if v.cmd == nil {
+		return nil
+	}
+
+	if v.cmd.Process != nil {
+		if err := v.cmd.Process.Signal(os.Interrupt); err != nil {
+			return fmt.Errorf("failed to kill vault server: %v", err)
+		}
+	}
+
+	// wait for the process to exit to be sure that the data dir can be
+	// deleted on all platforms.
+	return v.cmd.Wait()
 }
