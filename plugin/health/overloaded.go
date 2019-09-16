@@ -2,7 +2,6 @@ package health
 
 import (
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
@@ -48,5 +47,3 @@ var (
 		Help:      "Histogram of the time (in seconds) each request took.",
 	})
 )
-
-var once sync.Once
