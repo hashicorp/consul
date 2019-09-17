@@ -33,7 +33,7 @@ You will need a local install of Docker running on your machine for this guide. 
 
 ### Consul (Optional)
 
-If you would like to interact with your containerized Consul agents using a local install of Consul, follow the instructions [here](https://www.consul.io/docs/install/index.html) to install a local binary somewhere on your PATH.
+If you would like to interact with your containerized Consul agents using a local install of Consul, follow the instructions [here](https://www.consul.io/docs/install/index.html) and install the binary somewhere on your PATH.
 
 ## Get the Docker Image
 
