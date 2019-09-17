@@ -320,7 +320,7 @@ $ docker run -d --net=host -e 'CONSUL_ALLOW_PRIVILEGED_PORTS=' consul -dns-port=
 
 ## Summary
 
-In this guide you learned to deploy a containerized Consul cluster. You also learned how to deploy a containerized service and how to configure your Consul client to register that service with your Consul cluster.
+In this guide you learned to deploy a containerized Consul datacenter. You also learned how to deploy a containerized service and how to configure your Consul client to register that service with your Consul datacenter.
 
 You can continue learning how to deploy a Consul datacenter in production by completing the [Day 1 track](/consul/datacenter-deploy/day1-deploy-intro). The track includes securing the datacenter with Access Control Lists and encryption, DNS configuration, and datacenter federation.
 
