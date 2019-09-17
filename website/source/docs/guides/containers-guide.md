@@ -63,7 +63,7 @@ $ docker run \
     consul agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
 ```
 
-Since you started the container in detached mode, `-d`, the process will run in the background. You also set port mapping to your local machine as well as binding the cient interface of our agent to 0.0.0.0. This allows you to work directly with the Consul cluster from your local machine and to access Consul's UI and DNS over localhost. Finally, you are using Docker's default bridge network.
+Since you started the container in detached mode, `-d`, the process will run in the background. You also set port mapping to your local machine as well as binding the client interface of our agent to 0.0.0.0. This allows you to work directly with the Consul datacenter from your local machine and to access Consul's UI and DNS over localhost. Finally, you are using Docker's default bridge network.
 
 Note, the Consul Docker image sets up the Consul configuration directory at `/consul/config` by default. The agent will load any configuration files placed in that directory. 
 
