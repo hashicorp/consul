@@ -324,7 +324,7 @@ In this guide you learned to deploy a containerized Consul cluster. You also lea
 
 Further steps can be taken to deploy and secure a Consul cluster that is production ready, connect to other clusters in other datacenters, or deploy additional microservices that can find each other with Consul service discovery and connect securely with Consul Connect.
 
-For additional reference documentation on Docker or HashiCorp Consul, refer to these websites:
+For additional reference documentation on the official Docker image for Consul, refer to the following websites:
 
 - [Consul Documenation](https://www.consul.io/docs/index.html)
 - [Docker Documentation](https://docs.docker.com/)
