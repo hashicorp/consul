@@ -538,15 +538,26 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 
-	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
+	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Nil(t, cert.Certificate)
 
 	c.manual.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
 
+	c.manual.cert = &tls.Certificate{Certificate: [][]byte{}}
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	require.NoError(t, err)
+	require.Equal(t, c.manual.cert, cert)
+
+	c.autoEncrypt.cert = &tls.Certificate{Certificate: [][]byte{}}
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	require.NoError(t, err)
+	require.Equal(t, c.autoEncrypt.cert, cert)
+
+	c.autoEncrypt.cert = &tls.Certificate{}
 	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
@@ -556,20 +567,29 @@ func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 
-	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
+	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Nil(t, cert.Certificate)
 
 	c.autoEncrypt.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.autoEncrypt.cert, cert)
 
-	c.manual.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
+	c.autoEncrypt.cert = &tls.Certificate{Certificate: [][]byte{}}
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	require.NoError(t, err)
+	require.Equal(t, c.autoEncrypt.cert, cert)
+
+	c.manual.cert = &tls.Certificate{Certificate: [][]byte{}}
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
 
+	c.manual.cert = &tls.Certificate{}
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	require.NoError(t, err)
+	require.Equal(t, c.autoEncrypt.cert, cert)
 }
 
 func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
