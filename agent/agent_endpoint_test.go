@@ -1896,7 +1896,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), TestACLConfigNew())
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	nodeCheck := &structs.CheckDefinition{
 		Name: "test",
