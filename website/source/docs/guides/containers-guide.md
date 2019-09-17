@@ -69,7 +69,11 @@ Note, the Consul Docker image sets up the Consul configuration directory at `/co
 
 ~> The configuration directory is **not** exposed as a volume and will not persist data. Consul uses it only during startup and does not store any state there. 
 
-For more advanced use cases you can pass configuration JSON to `/consul/config` via the environment variable `CONSUL_LOCAL_CONFIG`, change the agent configuration with environment variables, or edit the configuration files directly. To learn more about configuring Consul see the [configuration documentation](https://www.consul.io/docs/agent/options.html). 
+Note, the Consul Docker image sets up the Consul configuration directory at `/consul/config` by default. You can configure Consul by placing config files in that directory.
+
+To avoid mounting volumes or copying files to the container you can also save [configuration JSON](https://www.consul.io/docs/agent/options.html#configuration-files) to that directory via the environment variable `CONSUL_LOCAL_CONFIG`.
+
+~> The configuration directory is **not** exposed as a volume and will not persist data across container restarts. However, Consul only reads from that directory and does not store any state to it.
 
 ### Discover the Server IP Address
 
