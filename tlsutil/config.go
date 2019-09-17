@@ -635,9 +635,9 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 // there is no cert, it will return a time in the past.
 func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
 	c.RLock()
+	defer c.RUnlock()
 	tlsCert := c.autoEncrypt.cert
-	c.RUnlock()
-	if tlsCert == nil {
+	if tlsCert == nil || tlsCert.Certificate == nil {
 		return time.Now().AddDate(0, 0, -1)
 	}
 	cert, err := x509.ParseCertificate(tlsCert.Certificate[0])
