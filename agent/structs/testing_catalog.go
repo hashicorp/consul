@@ -64,11 +64,13 @@ func TestNodeServiceExpose(t testing.T) *NodeService {
 						Path:          "/foo",
 						LocalPathPort: 8080,
 						ListenerPort:  21500,
+						TLSSkipVerify: true,
 					},
 					{
 						Path:          "/bar",
 						LocalPathPort: 8080,
 						ListenerPort:  21501,
+						TLSSkipVerify: true,
 					},
 				},
 			},
