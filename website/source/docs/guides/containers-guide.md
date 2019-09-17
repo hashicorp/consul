@@ -281,7 +281,7 @@ When a previously stopped server container is restarted using `docker start <con
 
 ### Backing-up Data
 
-You can back-up your Consul cluster using the [consul snapshot](https://www.consul.io/docs/commands/snapshot.html) command. 
+You can back-up your Consul datacenter using the [consul snapshot](https://www.consul.io/docs/commands/snapshot.html) command. 
 
 ```sh
 $ docker exec <container_id> consul snapshot save backup.snap
