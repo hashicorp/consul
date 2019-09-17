@@ -198,7 +198,7 @@ metadata:
     "consul.hashicorp.com/service-port": "http"
 ```
 
-The annotation value may a name of a port (recommended) or an exact port value.
+The annotation value may be a name of a port (recommended) or an exact port value.
 
 ### Service Tags
 
