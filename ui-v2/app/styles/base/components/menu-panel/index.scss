@@ -1,0 +1,9 @@
+@import './skin';
+@import './layout';
+
+%menu-panel > ul > li > * {
+  @extend %internal-button;
+}
+%menu-panel > ul > li.dangerous > * {
+  @extend %internal-button-dangerous;
+}

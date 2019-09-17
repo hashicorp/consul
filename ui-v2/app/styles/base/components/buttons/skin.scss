@@ -1,10 +1,12 @@
 /* decor */
-%button {
+%button,
+%internal-button {
   @extend %user-select-none;
   cursor: pointer;
   white-space: nowrap;
 }
-%button:disabled {
+%button:disabled,
+%internal-button:disabled {
   cursor: default;
   box-shadow: none;
 }
@@ -91,4 +93,22 @@
 }
 %dangerous-button:hover:active {
   @extend %frame-red-900;
+}
+
+%internal-button-dangerous {
+  @extend %frame-red-300;
+}
+%internal-button-dangerous-intent {
+  @extend %frame-red-700;
+}
+%internal-button-intent {
+  background-color: $gray-100;
+}
+%internal-button:focus,
+%internal-button:hover {
+  @extend %internal-button-intent;
+}
+%internal-button-dangerous:focus,
+%internal-button-dangerous:hover {
+  @extend %internal-button-dangerous-intent;
 }
