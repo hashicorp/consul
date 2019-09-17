@@ -270,7 +270,7 @@ $ docker kill --signal=HUP <container_id>
 
 As long as there are enough servers in the cluster to maintain [quorum](/docs/internals/consensus.html#deployment-table), Consul's [autopilot](/docs/guides/autopilot.html) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options.html#autopilot) are appropriate.
 
-* `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the cluster.
+* `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the datacenter.
 * `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
 * `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the datacenter until they stabilize.
 
