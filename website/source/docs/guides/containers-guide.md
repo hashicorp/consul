@@ -198,7 +198,7 @@ You can also see your newly registered service in Consul's UI, [http://localhost
 
 ### Accessing Containers
 
-You can access a containerized Consul cluster in several different ways. 
+You can access a containerized Consul datacenter in several different ways. 
 
 #### Docker Exec
 
