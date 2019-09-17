@@ -272,7 +272,7 @@ As long as there are enough servers in the cluster to maintain [quorum](/docs/in
 
 * `cleanup_dead_servers` must be set to true to make sure that a stopped container is removed from the cluster.
 * `last_contact_threshold` should be reasonably small, so that dead servers are removed quickly.
-* `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the cluster until they stabilize.
+* `server_stabilization_time` should be sufficiently large (on the order of several seconds) so that unstable servers are not added to the datacenter until they stabilize.
 
 If the container running the currently-elected Consul server leader is stopped, a leader election will be triggered.
 
