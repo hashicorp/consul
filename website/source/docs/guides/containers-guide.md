@@ -235,7 +235,7 @@ server-1  172.17.0.2:8301  alive   server  1.5.2  2         dc1  <all>
 client-1  172.17.0.3:8301  alive   client  1.5.2  2         dc1  <default>
 ```
 
-In this guide, you are binding your containerized Consul server's client address to 0.0.0.0 which allows us to communicate with our Consul cluster with a local Consul install. By default, the client address is bound to localhost.
+In this guide, you are binding your containerized Consul server's client address to 0.0.0.0 which allows us to communicate with our Consul datacenter with a local Consul install. By default, the client address is bound to localhost.
 
 ```sh
 $ which consul
