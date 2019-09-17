@@ -266,7 +266,7 @@ To do an in-memory reload, send a SIGHUP to the container.
 $ docker kill --signal=HUP <container_id>
 ```
 
-### Removing Servers from the Cluster
+### Removing Servers from the Datacenter
 
 As long as there are enough servers in the datacenter to maintain [quorum](/docs/internals/consensus.html#deployment-table), Consul's [autopilot](/docs/guides/autopilot.html) feature will handle removing servers whose containers were stopped. Autopilot's default settings are already configured correctly. If you override them, make sure that the following [settings](/docs/agent/options.html#autopilot) are appropriate.
 
