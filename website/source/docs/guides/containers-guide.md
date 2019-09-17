@@ -118,7 +118,7 @@ client-1  172.17.0.3:8301  alive   client  1.4.3  2         dc1  <default>
 
 ```
 
-Now that you have a small cluster, you can register a service and 
+Now that you have a small datacenter, you can register a service and 
 perform maintenance operations. 
 
 ## Register a Service
