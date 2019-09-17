@@ -5,7 +5,6 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 	"time"
@@ -17,7 +16,8 @@ const ServiceHTTPChecksName = "service-http-checks"
 type Agent interface {
 	ServiceHTTPBasedChecks(id string) []structs.CheckType
 	LocalState() *local.State
-	SyncPausedCh() <-chan struct{}
+	LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Duration,
+		fn func(ws memdb.WatchSet) (string, interface{}, error)) (string, interface{}, error)
 }
 
 // ServiceHTTPBasedChecks supports fetching discovering checks in the local state
@@ -35,77 +35,45 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 			"Internal cache failure: got wrong request type: %T, want: ServiceHTTPChecksRequest", req)
 	}
 
-	var lastChecks *[]structs.CheckType
+	var lastChecks []structs.CheckType
 	var lastHash string
 	var err error
 
 	// Hash last known result as a baseline
 	if opts.LastResult != nil {
-		lastChecks, ok = opts.LastResult.Value.(*[]structs.CheckType)
+		lastChecks, ok = opts.LastResult.Value.([]structs.CheckType)
 		if !ok {
 			return result, fmt.Errorf(
-				"Internal cache failure: got wrong request type: %T, want: ServiceHTTPChecksRequest", req)
+				"Internal cache failure: last value in cache of wrong type: %T, want: CheckType", req)
 		}
-		lastHash, err = hashChecks(*lastChecks)
+		lastHash, err = hashChecks(lastChecks)
 		if err != nil {
 			return result, fmt.Errorf("Internal cache failure: %v", err)
 		}
 	}
 
-	var wait time.Duration
-
-	// Adjust wait based on documented limits and add some jitter: https://www.consul.io/api/features/blocking.html
-	switch wait = reqReal.MaxQueryTime; {
-	case wait == 0*time.Second:
-		wait = 5 * time.Minute
-	case wait > 10*time.Minute:
-		wait = 10 * time.Minute
-	}
-	timeout := time.NewTimer(wait + lib.RandomStagger(wait/16))
-
-	var resp []structs.CheckType
-	var hash string
-
-WATCH_LOOP:
-	for {
-		// Must reset this every loop in case the Watch set is already closed but
-		// hash remains same. In that case we'll need to re-block on ws.Watch()
-		ws := memdb.NewWatchSet()
-
-		svcState := c.Agent.LocalState().ServiceState(reqReal.ServiceID)
-		if svcState == nil {
-			return result, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
-		}
-
-		// WatchCh will receive updates on service (de)registrations and check (de)registrations
-		ws.Add(svcState.WatchCh)
-
-		resp = c.Agent.ServiceHTTPBasedChecks(reqReal.ServiceID)
-
-		hash, err = hashChecks(resp)
-		if err != nil {
-			return result, fmt.Errorf("Internal cache failure: %v", err)
-		}
-
-		// Return immediately if the hash is different or the Watch returns true (indicating timeout fired).
-		if lastHash != hash || ws.Watch(timeout.C) {
-			break
-		}
-
-		// Watch returned false indicating a change was detected, loop and repeat
-		// the call to ServiceHTTPBasedChecks to load the new value.
-		// If agent sync is paused it means local state is being bulk-edited e.g. config reload.
-		if syncPauseCh := c.Agent.SyncPausedCh(); syncPauseCh != nil {
-			// Wait for pause to end or for the timeout to elapse.
-			select {
-			case <-syncPauseCh:
-			case <-timeout.C:
-				break WATCH_LOOP
+	hash, resp, err := c.Agent.LocalBlockingQuery(true, lastHash, reqReal.MaxQueryTime,
+		func(ws memdb.WatchSet) (string, interface{}, error) {
+			svcState := c.Agent.LocalState().ServiceState(reqReal.ServiceID)
+			if svcState == nil {
+				return "", result, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
 			}
-		}
-	}
 
-	result.Value = &resp
+			// WatchCh will receive updates on service (de)registrations and check (de)registrations
+			ws.Add(svcState.WatchCh)
+
+			reply := c.Agent.ServiceHTTPBasedChecks(reqReal.ServiceID)
+
+			hash, err := hashChecks(reply)
+			if err != nil {
+				return "", result, fmt.Errorf("Internal cache failure: %v", err)
+			}
+
+			return hash, reply, nil
+		},
+	)
+
+	result.Value = resp
 
 	// Below is a purely synthetic index to keep the caching happy.
 	if opts.LastResult == nil {

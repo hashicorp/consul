@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-memdb"
 	"io"
 	"io/ioutil"
 	"log"
@@ -77,6 +78,13 @@ const (
 
 	// ID of the leaf watch
 	leafWatchID = "leaf"
+
+	// maxQueryTime is used to bound the limit of a blocking query
+	maxQueryTime = 600 * time.Second
+
+	// defaultQueryTime is the amount of time we block waiting for a change
+	// if no time is specified. Previously we would wait the maxQueryTime.
+	defaultQueryTime = 300 * time.Second
 )
 
 type configSource int
@@ -3453,6 +3461,65 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
 
 	return nil
+}
+
+// LocalBlockingQuery performs a blocking query in a generic way against
+// local agent state that has no RPC or raft to back it. It uses `hash` parameter
+// instead of an `index`.
+// `alwaysBlock` determines whether we block if the provided hash is empty.
+// Callers like the AgentService endpoint will want to return the current result if a hash isn't provided.
+// On the other hand, for cache notifications we always want to block. This avoids an empty first response.
+func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Duration,
+	fn func(ws memdb.WatchSet) (string, interface{}, error)) (string, interface{}, error) {
+
+	// If we are not blocking we can skip tracking and allocating - nil WatchSet
+	// is still valid to call Add on and will just be a no op.
+	var ws memdb.WatchSet
+	var timeout *time.Timer
+
+	if alwaysBlock || hash != "" {
+		if wait == 0 {
+			wait = defaultQueryTime
+		}
+		if wait > 10*time.Minute {
+			wait = maxQueryTime
+		}
+		// Apply a small amount of jitter to the request.
+		wait += lib.RandomStagger(wait / 16)
+		timeout = time.NewTimer(wait)
+	}
+
+	for {
+		// Must reset this every loop in case the Watch set is already closed but
+		// hash remains same. In that case we'll need to re-block on ws.Watch()
+		// again.
+		ws = memdb.NewWatchSet()
+		curHash, curResp, err := fn(ws)
+		if err != nil {
+			return "", curResp, err
+		}
+
+		// Return immediately if there is no timeout, the hash is different or the
+		// Watch returns true (indicating timeout fired). Note that Watch on a nil
+		// WatchSet immediately returns false which would incorrectly cause this to
+		// loop and repeat again, however we rely on the invariant that ws == nil
+		// IFF timeout == nil in which case the Watch call is never invoked.
+		if timeout == nil || hash != curHash || ws.Watch(timeout.C) {
+			return curHash, curResp, err
+		}
+		// Watch returned false indicating a change was detected, loop and repeat
+		// the callback to load the new value. If agent sync is paused it means
+		// local state is currently being bulk-edited e.g. config reload. In this
+		// case it's likely that local state just got unloaded and may or may not be
+		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
+		// typical config reloads.
+		if syncPauseCh := a.SyncPausedCh(); syncPauseCh != nil {
+			select {
+			case <-syncPauseCh:
+			case <-timeout.C:
+			}
+		}
+	}
 }
 
 // registerCache configures the cache and registers all the supported

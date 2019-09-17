@@ -3,15 +3,13 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/hashstructure"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -262,7 +260,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	// in QueryOptions but I didn't want to make very general changes right away.
 	hash := req.URL.Query().Get("hash")
 
-	return s.agentLocalBlockingQuery(resp, hash, &queryOpts,
+	resultHash, service, err := s.agent.LocalBlockingQuery(false, hash, queryOpts.MaxQueryTime,
 		func(ws memdb.WatchSet) (string, interface{}, error) {
 
 			svcState := s.agent.State.ServiceState(id)
@@ -299,7 +297,12 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			reply.ContentHash = fmt.Sprintf("%x", rawHash)
 
 			return reply.ContentHash, reply, nil
-		})
+		},
+	)
+	if resultHash != "" {
+		resp.Header().Set("X-Consul-ContentHash", resultHash)
+	}
+	return service, err
 }
 
 func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1294,68 +1297,6 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	setIndex(resp, reply.ModifyIndex)
 
 	return reply, nil
-}
-
-type agentLocalBlockingFunc func(ws memdb.WatchSet) (string, interface{}, error)
-
-// agentLocalBlockingQuery performs a blocking query in a generic way against
-// local agent state that has no RPC or raft to back it. It uses `hash` parameter
-// instead of an `index`. The resp is needed to write the `X-Consul-ContentHash`
-// header back on return no Status nor body content is ever written to it.
-func (s *HTTPServer) agentLocalBlockingQuery(resp http.ResponseWriter, hash string,
-	queryOpts *structs.QueryOptions, fn agentLocalBlockingFunc) (interface{}, error) {
-
-	// If we are not blocking we can skip tracking and allocating - nil WatchSet
-	// is still valid to call Add on and will just be a no op.
-	var ws memdb.WatchSet
-	var timeout *time.Timer
-
-	if hash != "" {
-		// TODO(banks) at least define these defaults somewhere in a const. Would be
-		// nice not to duplicate the ones in consul/rpc.go too...
-		wait := queryOpts.MaxQueryTime
-		if wait == 0 {
-			wait = 5 * time.Minute
-		}
-		if wait > 10*time.Minute {
-			wait = 10 * time.Minute
-		}
-		// Apply a small amount of jitter to the request.
-		wait += lib.RandomStagger(wait / 16)
-		timeout = time.NewTimer(wait)
-	}
-
-	for {
-		// Must reset this every loop in case the Watch set is already closed but
-		// hash remains same. In that case we'll need to re-block on ws.Watch()
-		// again.
-		ws = memdb.NewWatchSet()
-		curHash, curResp, err := fn(ws)
-		if err != nil {
-			return curResp, err
-		}
-		// Return immediately if there is no timeout, the hash is different or the
-		// Watch returns true (indicating timeout fired). Note that Watch on a nil
-		// WatchSet immediately returns false which would incorrectly cause this to
-		// loop and repeat again, however we rely on the invariant that ws == nil
-		// IFF timeout == nil in which case the Watch call is never invoked.
-		if timeout == nil || hash != curHash || ws.Watch(timeout.C) {
-			resp.Header().Set("X-Consul-ContentHash", curHash)
-			return curResp, err
-		}
-		// Watch returned false indicating a change was detected, loop and repeat
-		// the callback to load the new value. If agent sync is paused it means
-		// local state is currently being bulk-edited e.g. config reload. In this
-		// case it's likely that local state just got unloaded and may or may not be
-		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
-		// typical config reloads.
-		if syncPauseCh := s.agent.SyncPausedCh(); syncPauseCh != nil {
-			select {
-			case <-syncPauseCh:
-			case <-timeout.C:
-			}
-		}
-	}
 }
 
 // AgentConnectAuthorize

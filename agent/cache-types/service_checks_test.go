@@ -1,13 +1,14 @@
-package cachetype_test
+package cachetype
 
 import (
+	"fmt"
 	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	// Create mockAgent and cache type
 	a := newMockAgent()
 	a.LocalState().SetServiceState(&svcState)
-	typ := cachetype.ServiceHTTPChecks{Agent: a}
+	typ := ServiceHTTPChecks{Agent: a}
 
 	// Adding TTL check should not yield result from Fetch since TTL checks aren't tracked
 	if err := a.AddCheck(*chkTypes[2]); err != nil {
@@ -49,16 +50,16 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	}
 	result, err := typ.Fetch(
 		cache.FetchOptions{},
-		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
+		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
 	)
 	if err != nil {
 		t.Fatalf("failed to fetch: %v", err)
 	}
-	got, ok := result.Value.(*[]structs.CheckType)
+	got, ok := result.Value.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("fetched value of wrong type, got %T, want []structs.CheckType", result.Value)
 	}
-	require.Empty(t, *got)
+	require.Empty(t, got)
 
 	// Adding HTTP check should yield check in Fetch
 	if err := a.AddCheck(*chkTypes[0]); err != nil {
@@ -66,7 +67,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	}
 	result, err = typ.Fetch(
 		cache.FetchOptions{},
-		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
+		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
 	if err != nil {
 		t.Fatalf("failed to fetch: %v", err)
@@ -74,14 +75,13 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	if result.Index != 1 {
 		t.Fatalf("expected index of 1 after first cache hit, got %d", result.Index)
 	}
-
-	got, ok = result.Value.(*[]structs.CheckType)
+	got, ok = result.Value.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("fetched value of wrong type, got %T, want []structs.CheckType", result.Value)
 	}
 	want := chkTypes[0:1]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
+	for i, c := range want {
+		require.Equal(t, *c, got[i])
 	}
 
 	// Adding GRPC check should yield both checks in Fetch
@@ -90,7 +90,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	}
 	result2, err := typ.Fetch(
 		cache.FetchOptions{LastResult: &result},
-		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
+		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
 	if err != nil {
 		t.Fatalf("failed to fetch: %v", err)
@@ -99,13 +99,13 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("expected index of 2 after second request, got %d", result2.Index)
 	}
 
-	got, ok = result2.Value.(*[]structs.CheckType)
+	got, ok = result2.Value.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("fetched value of wrong type, got %T, want []structs.CheckType", got)
 	}
 	want = chkTypes[0:2]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
+	for i, c := range want {
+		require.Equal(t, *c, got[i])
 	}
 
 	// Removing GRPC check should yield HTTP check in Fetch
@@ -114,7 +114,7 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 	}
 	result3, err := typ.Fetch(
 		cache.FetchOptions{LastResult: &result2},
-		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
+		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID},
 	)
 	if err != nil {
 		t.Fatalf("failed to fetch: %v", err)
@@ -123,19 +123,19 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("expected index of 3 after third request, got %d", result3.Index)
 	}
 
-	got, ok = result3.Value.(*[]structs.CheckType)
+	got, ok = result3.Value.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("fetched value of wrong type, got %T, want []structs.CheckType", got)
 	}
 	want = chkTypes[0:1]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
+	for i, c := range want {
+		require.Equal(t, *c, got[i])
 	}
 
 	// Fetching again should yield no change in result nor index
 	result4, err := typ.Fetch(
 		cache.FetchOptions{LastResult: &result3},
-		&cachetype.ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
+		&ServiceHTTPChecksRequest{ServiceID: svcState.Service.ID, MaxQueryTime: 100 * time.Millisecond},
 	)
 	if err != nil {
 		t.Fatalf("failed to fetch: %v", err)
@@ -144,19 +144,19 @@ func TestServiceHTTPChecks_Fetch(t *testing.T) {
 		t.Fatalf("expected index of 3 after fetch timeout, got %d", result4.Index)
 	}
 
-	got, ok = result4.Value.(*[]structs.CheckType)
+	got, ok = result4.Value.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("fetched value of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("fetched value of wrong type, got %T, want []structs.CheckType", got)
 	}
 	want = chkTypes[0:1]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
+	for i, c := range want {
+		require.Equal(t, *c, got[i])
 	}
 }
 
 func TestServiceHTTPChecks_badReqType(t *testing.T) {
 	a := newMockAgent()
-	typ := cachetype.ServiceHTTPChecks{Agent: a}
+	typ := ServiceHTTPChecks{Agent: a}
 
 	// Fetch
 	_, err := typ.Fetch(cache.FetchOptions{}, cache.TestRequest(
@@ -166,16 +166,14 @@ func TestServiceHTTPChecks_badReqType(t *testing.T) {
 }
 
 type mockAgent struct {
-	state   *local.State
-	pauseCh <-chan struct{}
-	checks  []structs.CheckType
+	state  *local.State
+	checks []structs.CheckType
 }
 
 func newMockAgent() *mockAgent {
 	m := mockAgent{
-		state:   local.NewState(local.Config{NodeID: "host"}, nil, new(token.Store)),
-		pauseCh: make(chan struct{}),
-		checks:  make([]structs.CheckType, 0),
+		state:  local.NewState(local.Config{NodeID: "host"}, nil, new(token.Store)),
+		checks: make([]structs.CheckType, 0),
 	}
 	m.state.TriggerSyncChanges = func() {}
 	return &m
@@ -189,8 +187,14 @@ func (m *mockAgent) LocalState() *local.State {
 	return m.state
 }
 
-func (m *mockAgent) SyncPausedCh() <-chan struct{} {
-	return m.pauseCh
+func (m *mockAgent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Duration,
+	fn func(ws memdb.WatchSet) (string, interface{}, error)) (string, interface{}, error) {
+
+	hash, err := hashChecks(m.checks)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to hash checks: %+v", m.checks)
+	}
+	return hash, m.checks, nil
 }
 
 func (m *mockAgent) AddCheck(check structs.CheckType) error {

@@ -56,8 +56,7 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 			TTL:     10 * time.Second,
 		},
 	}
-
-	// Adding first TTL type should lead to a timeout, since only HTTP-based checks are watched
+	// Adding TTL type should lead to a timeout, since only HTTP-based checks are watched
 	if err := a.AddService(&service, chkTypes[2:], false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("failed to add service: %v", err)
 	}
@@ -80,13 +79,13 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 		t.Fatal("didn't get cache update event")
 	}
 
-	got, ok := val.Result.(*[]structs.CheckType)
+	got, ok := val.Result.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("notified of result of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("notified of result of wrong type, got %T, want []structs.CheckType", got)
 	}
 	want := chkTypes[0:2]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
+	for i, c := range want {
+		require.Equal(t, *c, got[i])
 	}
 
 	// Removing the GRPC check should leave only the HTTP check
@@ -100,12 +99,12 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 		t.Fatal("didn't get cache update event")
 	}
 
-	got, ok = val.Result.(*[]structs.CheckType)
+	got, ok = val.Result.([]structs.CheckType)
 	if !ok {
-		t.Fatalf("notified of result of wrong type, got %T, want *[]structs.CheckType", got)
+		t.Fatalf("notified of result of wrong type, got %T, want []structs.CheckType", got)
 	}
 	want = chkTypes[0:1]
-	for i, c := range *got {
-		require.Equal(t, c, *want[i])
+	for i, c := range want {
+		require.Equal(t, *c, got[i])
 	}
 }

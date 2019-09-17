@@ -552,12 +552,12 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		snap.ConnectProxy.UpstreamEndpoints[pq] = resp.Nodes
 
 	case strings.HasPrefix(u.CorrelationID, svcChecksWatchIDPrefix):
-		resp, ok := u.Result.(*[]structs.CheckType)
+		resp, ok := u.Result.([]structs.CheckType)
 		if !ok {
-			return fmt.Errorf("invalid type for service checks response: %T, want: *[]structs.CheckType", u.Result)
+			return fmt.Errorf("invalid type for service checks response: %T, want: []structs.CheckType", u.Result)
 		}
 		svcID := strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix)
-		snap.ConnectProxy.WatchedServiceChecks[svcID] = *resp
+		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
 
 	default:
 		return errors.New("unknown correlation ID")
