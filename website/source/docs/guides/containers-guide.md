@@ -52,7 +52,7 @@ consul         latest   c836e84db154     4 days ago         107MB
 ```
 ## Configure and Run a Consul Server
 
-Next, you will use Docker command-line flags to start the agent as a server, configure networking, and bootstrap the cluster when one server is up.
+Next, you will use Docker command-line flags to start the agent as a server, configure networking, and bootstrap the datacenter when one server is up.
 
 ```sh
 $ docker run \
