@@ -11,7 +11,7 @@ level: Implementation
 
 # Consul with Containers
 
-In this guide, you will learn how to deploy two, joined Consul agents each running in separate Docker containers. You will also register a service and perform basic maintenance operations. The two Consul agents will form a small cluster. 
+In this guide, you will learn how to deploy two, joined Consul agents each running in separate Docker containers. You will also register a service and perform basic maintenance operations. The two Consul agents will form a small datacenter. 
 
 By following this guide you will learn how to:
 
