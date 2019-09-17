@@ -69,7 +69,6 @@ Note, the Consul Docker image sets up the Consul configuration directory at `/co
 
 ~> The configuration directory is **not** exposed as a volume and will not persist data. Consul uses it only during startup and does not store any state there. 
 
-Note, the Consul Docker image sets up the Consul configuration directory at `/consul/config` by default. You can configure Consul by placing config files in that directory.
 
 To avoid mounting volumes or copying files to the container you can also save [configuration JSON](https://www.consul.io/docs/agent/options.html#configuration-files) to that directory via the environment variable `CONSUL_LOCAL_CONFIG`.
 
