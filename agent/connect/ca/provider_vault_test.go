@@ -287,7 +287,10 @@ func runTestVault() (*testVaultServer, error) {
 		return nil, fmt.Errorf("%q not found on $PATH", vaultBinaryName)
 	}
 
-	ports := freeport.Get(2)
+	ports := freeport.MustTake(2)
+	returnPortsFn := func() {
+		freeport.Return(ports)
+	}
 
 	var (
 		clientAddr  = fmt.Sprintf("127.0.0.1:%d", ports[0])
@@ -300,6 +303,7 @@ func runTestVault() (*testVaultServer, error) {
 		Address: "http://" + clientAddr,
 	})
 	if err != nil {
+		returnPortsFn()
 		return nil, err
 	}
 	client.SetToken(token)
@@ -319,14 +323,16 @@ func runTestVault() (*testVaultServer, error) {
 	cmd.Stdout = ioutil.Discard
 	cmd.Stderr = ioutil.Discard
 	if err := cmd.Start(); err != nil {
+		returnPortsFn()
 		return nil, err
 	}
 
 	return &testVaultServer{
-		rootToken: token,
-		addr:      "http://" + clientAddr,
-		cmd:       cmd,
-		client:    client,
+		rootToken:     token,
+		addr:          "http://" + clientAddr,
+		cmd:           cmd,
+		client:        client,
+		returnPortsFn: returnPortsFn,
 	}, nil
 }
 
@@ -335,6 +341,9 @@ type testVaultServer struct {
 	addr      string
 	cmd       *exec.Cmd
 	client    *vaultapi.Client
+
+	// returnPortsFn will put the ports claimed for the test back into the
+	returnPortsFn func()
 }
 
 func (v *testVaultServer) WaitUntilReady(t *testing.T) {
@@ -371,5 +380,13 @@ func (v *testVaultServer) Stop() error {
 
 	// wait for the process to exit to be sure that the data dir can be
 	// deleted on all platforms.
-	return v.cmd.Wait()
+	if err := v.cmd.Wait(); err != nil {
+		return err
+	}
+
+	if v.returnPortsFn != nil {
+		v.returnPortsFn()
+	}
+
+	return nil
 }
