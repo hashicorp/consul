@@ -6,83 +6,13 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/proto"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestProtoEncodeDecode(t *testing.T) {
-	// TODO - probably should test this with a more complicated struct at some point
-	// for now though it does ensure that the encoder is doing the right thing.
-	message := proto.QueryOptions{
-		Token:             "ee0f0534-67c4-4c0e-80b2-2b282a6e21dd",
-		MinQueryIndex:     56,
-		MaxQueryTime:      time.Second,
-		AllowStale:        true,
-		RequireConsistent: true,
-		UseCache:          true,
-		MaxStaleDuration:  500 * time.Millisecond,
-		MaxAge:            10 * time.Second,
-		MustRevalidate:    true,
-		StaleIfError:      30 * time.Nanosecond,
-		Filter:            "fooooiajsdoijfoidjsoiju",
-	}
-
-	buf, err := Encode(MessageType(101), &message)
-	require.NoError(t, err)
-	require.Equal(t, uint8(101), buf[0])
-
-	// decode directly with the proto.Unmarshal
-	var decoded proto.QueryOptions
-	require.NoError(t, decoded.Unmarshal(buf[1:]))
-	require.Equal(t, message, decoded)
-
-	// encode directly
-	buf, err = message.Marshal()
-	require.NoError(t, err)
-	decoded.Reset()
-	require.NoError(t, Decode(buf, &decoded))
-	require.Equal(t, message, decoded)
-}
-
-func TestMsgpackEncodeDecode(t *testing.T) {
-	// TODO - probably should test this with a more complicated struct at some point
-	// for now though it does ensure that the encoder is doing the right thing.
-	message := QueryOptions{
-		Token:             "ee0f0534-67c4-4c0e-80b2-2b282a6e21dd",
-		MinQueryIndex:     56,
-		MaxQueryTime:      time.Second,
-		AllowStale:        true,
-		RequireConsistent: true,
-		UseCache:          true,
-		MaxStaleDuration:  500 * time.Millisecond,
-		MaxAge:            10 * time.Second,
-		MustRevalidate:    true,
-		StaleIfError:      30 * time.Nanosecond,
-		Filter:            "fooooiajsdoijfoidjsoiju",
-	}
-
-	buf, err := Encode(MessageType(101), &message)
-	require.NoError(t, err)
-	require.Equal(t, uint8(101), buf[0])
-
-	// decode directly with the proto.Unmarshal
-	var decoded QueryOptions
-	require.NoError(t, decodeMsgpack(buf[1:], &decoded))
-	require.Equal(t, message, decoded)
-
-	// encode directly
-	buf, err = encodeMsgpack(MessageType(101), &message)
-	require.NoError(t, err)
-	var decoded2 QueryOptions
-	require.NoError(t, Decode(buf[1:], &decoded2))
-	require.Equal(t, message, decoded2)
-}
 
 func TestEncodeDecode(t *testing.T) {
 	arg := &RegisterRequest{

@@ -370,10 +370,22 @@ func (s *Server) globalRPC(method string, args interface{},
 	return nil
 }
 
+type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
+
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
-	buf, err := structs.Encode(t, msg)
+	return s.raftApplyWithEncoder(t, msg, structs.Encode)
+}
+
+// raftApplyWithEncoder is used to encode a message, run it through raft,
+// and return the FSM response along with any errors. Unlike raftApply this
+// takes the encoder to use as an argument.
+func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, encoder raftEncoder) (interface{}, error) {
+	if encoder == nil {
+		return nil, fmt.Errorf("Failed to encode request: nil encoder")
+	}
+	buf, err := encoder(t, msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
