@@ -679,6 +679,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		Authz:        a,
 		ResolveToken: a.resolveToken,
 		CheckFetcher: a,
+		CfgFetcher:   a,
 	}
 	a.xdsServer.Initialize()
 
@@ -2705,6 +2706,9 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 }
 
 func (a *Agent) ServiceHTTPBasedChecks(serviceID string) []structs.CheckType {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+
 	var chkTypes = make([]structs.CheckType, 0)
 	for _, c := range a.checkHTTPs {
 		if c.ServiceID == serviceID {
@@ -2717,6 +2721,10 @@ func (a *Agent) ServiceHTTPBasedChecks(serviceID string) []structs.CheckType {
 		}
 	}
 	return chkTypes
+}
+
+func (a *Agent) AdvertiseAddrLAN() string {
+	return a.config.AdvertiseAddrLAN.String()
 }
 
 // resolveProxyCheckAddress returns the best address to use for a TCP check of

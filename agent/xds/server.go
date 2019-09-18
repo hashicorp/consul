@@ -103,6 +103,12 @@ type HTTPCheckFetcher interface {
 	ServiceHTTPBasedChecks(serviceID string) []structs.CheckType
 }
 
+// ConfigFetcher is the interface the agent needs to expose
+// for the xDS server to fetch agent config, currently only one field is fetched
+type ConfigFetcher interface {
+	AdvertiseAddrLAN() string
+}
+
 // ConfigManager is the interface xds.Server requires to consume proxy config
 // updates. It's satisfied normally by the agent's proxycfg.Manager, but allows
 // easier testing without several layers of mocked cache, local state and
@@ -128,6 +134,7 @@ type Server struct {
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
 	CheckFetcher       HTTPCheckFetcher
+	CfgFetcher         ConfigFetcher
 }
 
 // Initialize will finish configuring the Server for first use.

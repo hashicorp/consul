@@ -357,6 +357,9 @@ type ExposePath struct {
 
 	// CACert contains the PEM encoded CA file read from CAFile
 	CACert string
+
+	// ParsedFromCheck is set if this path was parsed from a registered check
+	ParsedFromCheck bool
 }
 
 func (e *ExposeConfig) ToAPI() api.ExposeConfig {

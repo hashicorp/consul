@@ -98,7 +98,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 			clusterName = makeExposeClusterName(path.LocalPathPort)
 		}
 
-		l, err := s.makeExposedCheckListener(cfgSnap, clusterName, path.Path, path.Protocol, path.ListenerPort)
+		l, err := s.makeExposedCheckListener(cfgSnap, clusterName, path)
 		if err != nil {
 			return nil, err
 		}
@@ -172,6 +172,9 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyGRPC, err)
 		}
 	}
+
+	path.ParsedFromCheck = true
+
 	return path, nil
 }
 
@@ -372,7 +375,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	return l, err
 }
 
-func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster, path, protocol string, port int) (proto.Message, error) {
+func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster string, path structs.ExposePath) (proto.Message, error) {
 	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -392,23 +395,46 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 
 	// Strip any special characters from path to make a valid and hopefully unique name
 	r := regexp.MustCompile(`[^a-zA-Z0-9]+`)
-	strippedPath := r.ReplaceAllString(path, "")
+	strippedPath := r.ReplaceAllString(path.Path, "")
 	listenerName := fmt.Sprintf("exposed_path_%s", strippedPath)
 
-	l := makeListener(listenerName, addr, port)
+	l := makeListener(listenerName, addr, path.ListenerPort)
 
-	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, port)
+	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
-	f, err := makeListenerFilter(false, protocol, filterName, cluster, "", path, true)
+	f, err := makeListenerFilter(false, path.Protocol, filterName, cluster, "", path.Path, true)
 	if err != nil {
 		return nil, err
 	}
 
-	l.FilterChains = []envoylistener.FilterChain{
-		{
-			Filters: []envoylistener.Filter{f},
-		},
+	chain := envoylistener.FilterChain{
+		Filters: []envoylistener.Filter{f},
 	}
+
+	// For registered checks restrict traffic sources to localhost and Consul's advertise addr
+	if path.ParsedFromCheck {
+
+		// For the advertise addr we use a CidrRange that only matches one address
+		advertise := s.CfgFetcher.AdvertiseAddrLAN()
+
+		// Get prefix length based on whether address is ipv4 (32 bits) or ipv6 (128 bits)
+		advertiseLen := 32
+		ip := net.ParseIP(advertise)
+		if ip != nil && strings.Contains(advertise, ":") {
+			advertiseLen = 128
+		}
+
+		chain.FilterChainMatch = &envoylistener.FilterChainMatch{
+			SourcePrefixRanges: []*envoycore.CidrRange{
+				{AddressPrefix: "127.0.0.1", PrefixLen: &types.UInt32Value{Value: 8}},
+				{AddressPrefix: "::1", PrefixLen: &types.UInt32Value{Value: 128}},
+				{AddressPrefix: advertise, PrefixLen: &types.UInt32Value{Value: uint32(advertiseLen)}},
+			},
+		}
+	}
+
+	l.FilterChains = []envoylistener.FilterChain{chain}
+
 	return l, err
 }
 
