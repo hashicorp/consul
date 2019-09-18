@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/proto"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
@@ -375,7 +376,19 @@ type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyMsgpack(t, msg)
+}
+
+// raftApplyMsgpack will msgpack encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
+}
+
+// raftApplyProtobuf will protobuf encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, proto.Encode)
 }
 
 // raftApplyWithEncoder is used to encode a message, run it through raft,

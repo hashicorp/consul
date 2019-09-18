@@ -22,6 +22,12 @@ message RaftIndex {
    uint64 ModifyIndex = 2 [(gogoproto.moretags) = "bexpr:\"-\""];
 }
 
+// TargetDatacenter is intended to be used within other messages used for RPC routing
+// amongst the various Consul datacenters
+message TargetDatacenter {
+   string Datacenter = 1;
+}
+
 message WriteRequest {
    // Token is the ACL token ID. If not provided, the 'anonymous'
    // token is assumed for backwards compatibility.
