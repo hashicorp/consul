@@ -388,7 +388,7 @@ func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (inter
 // raftApplyProtobuf will protobuf encode the request and then run it through raft,
 // then return the FSM response along with any errors.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
-	return s.raftApplyWithEncoder(t, msg, proto.Encode)
+	return s.raftApplyWithEncoder(t, msg, proto.EncodeInterface)
 }
 
 // raftApplyWithEncoder is used to encode a message, run it through raft,
