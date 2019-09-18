@@ -26,6 +26,7 @@ type VaultProvider struct {
 	client    *vaultapi.Client
 	isRoot    bool
 	clusterId string
+	spiffeID  *connect.SpiffeIDSigning
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -63,6 +64,7 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 	v.client = client
 	v.isRoot = isRoot
 	v.clusterId = clusterId
+	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterId})
 
 	return nil
 }
@@ -96,14 +98,13 @@ func (v *VaultProvider) GenerateRoot() error {
 
 		fallthrough
 	case ErrBackendNotInitialized:
-		spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 		uuid, err := uuid.GenerateUUID()
 		if err != nil {
 			return err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
-			"uri_sans":    spiffeID.URI().String(),
+			"uri_sans":    v.spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
 			"key_bits":    v.config.PrivateKeyBits,
 		})
@@ -158,7 +159,6 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 	if role == nil {
 		_, err := v.client.Logical().Write(rolePath, map[string]interface{}{
 			"allow_any_name":   true,
@@ -178,7 +178,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 		"common_name": "Vault CA Intermediate Authority",
 		"key_type":    v.config.PrivateKeyType,
 		"key_bits":    v.config.PrivateKeyBits,
-		"uri_sans":    spiffeID.URI().String(),
+		"uri_sans":    v.spiffeID.URI().String(),
 	})
 	if err != nil {
 		return "", err
@@ -201,11 +201,10 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	spiffeID := connect.SpiffeIDSigning{ClusterID: v.clusterId, Domain: "consul"}
 	err := validateSetIntermediate(
 		intermediatePEM, rootPEM,
 		"", // we don't have access to the private key directly
-		&spiffeID,
+		v.spiffeID,
 	)
 	if err != nil {
 		return err
