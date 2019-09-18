@@ -1896,7 +1896,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), TestACLConfigNew())
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	nodeCheck := &structs.CheckDefinition{
 		Name: "test",
@@ -1980,39 +1980,51 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	require.NotNil(t, nodeToken)
 
 	t.Run("no token - node check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("svc token - node check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("node token - node check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.NoError(t, err)
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.NoError(r, err)
+		})
 	})
 
 	t.Run("no token - svc check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("node token - svc check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("svc token - svc check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.NoError(t, err)
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.NoError(r, err)
+		})
 	})
 
 }
