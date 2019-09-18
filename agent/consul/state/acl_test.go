@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/proto"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
@@ -4061,4 +4062,211 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 		require.ElementsMatch(t, rules, res)
 		require.Equal(t, uint64(2), s.maxIndex("acl-binding-rules"))
 	}()
+}
+
+func TestStateStore_resolveACLLinks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing link id", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		links := []proto.ACLLink{
+			proto.ACLLink{
+				Name: "foo",
+			},
+		}
+
+		_, err := s.resolveACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+			err := fmt.Errorf("Should not be attempting to resolve an empty id")
+			require.Fail(t, err.Error())
+			return "", err
+		})
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "Encountered an ACL resource linked by Name in the state store")
+	})
+
+	t.Run("typical", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		links := []proto.ACLLink{
+			proto.ACLLink{
+				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
+			},
+			proto.ACLLink{
+				ID: "e81887b4-836b-4053-a1fa-7e8305902be9",
+			},
+		}
+
+		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "e81887b4-836b-4053-a1fa-7e8305902be9":
+				return "foo", nil
+			case "b985e082-25d3-45a9-9dd8-fd1a41b83b0d":
+				return "bar", nil
+			default:
+				return "", fmt.Errorf("No such id")
+			}
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, "bar", links[0].Name)
+		require.Equal(t, "foo", links[1].Name)
+		require.Equal(t, 2, numValid)
+	})
+
+	t.Run("unresolvable", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		links := []proto.ACLLink{
+			proto.ACLLink{
+				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
+			},
+		}
+
+		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			require.Equal(t, "b985e082-25d3-45a9-9dd8-fd1a41b83b0d", linkID)
+			return "", nil
+		})
+
+		require.NoError(t, err)
+		require.Empty(t, links[0].Name)
+		require.Equal(t, 0, numValid)
+	})
+}
+
+func TestStateStore_fixupACLLinks(t *testing.T) {
+	t.Parallel()
+
+	links := []proto.ACLLink{
+		proto.ACLLink{
+			ID:   "40b57f86-97ea-40e4-a99a-c399cc81f4dd",
+			Name: "foo",
+		},
+		proto.ACLLink{
+			ID:   "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc",
+			Name: "bar",
+		},
+		proto.ACLLink{
+			ID:   "c91afed1-e474-4cd2-98aa-cd57dd9377e9",
+			Name: "baz",
+		},
+		proto.ACLLink{
+			ID:   "c1585be7-ab0e-4973-b572-ba9afda86e07",
+			Name: "four",
+		},
+	}
+
+	t.Run("unaltered", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
+				return "foo", nil
+			case "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc":
+				return "bar", nil
+			case "c91afed1-e474-4cd2-98aa-cd57dd9377e9":
+				return "baz", nil
+			case "c1585be7-ab0e-4973-b572-ba9afda86e07":
+				return "four", nil
+			default:
+				return "", nil
+			}
+		})
+
+		require.NoError(t, err)
+		require.False(t, cloned)
+		require.Equal(t, links, newLinks)
+	})
+
+	t.Run("renamed", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
+				return "foo", nil
+			case "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc":
+				return "bart", nil
+			case "c91afed1-e474-4cd2-98aa-cd57dd9377e9":
+				return "bazzy", nil
+			case "c1585be7-ab0e-4973-b572-ba9afda86e07":
+				return "four", nil
+			default:
+				return "", nil
+			}
+		})
+
+		require.NoError(t, err)
+		require.True(t, cloned)
+		require.Equal(t, links[0], newLinks[0])
+		require.Equal(t, links[1].ID, newLinks[1].ID)
+		require.Equal(t, "bart", newLinks[1].Name)
+		require.Equal(t, links[2].ID, newLinks[2].ID)
+		require.Equal(t, "bazzy", newLinks[2].Name)
+		require.Equal(t, links[3], newLinks[3])
+	})
+
+	t.Run("deleted", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
+				return "foo", nil
+			case "c91afed1-e474-4cd2-98aa-cd57dd9377e9":
+				return "baz", nil
+			case "c1585be7-ab0e-4973-b572-ba9afda86e07":
+				return "four", nil
+			default:
+				return "", nil
+			}
+		})
+
+		require.NoError(t, err)
+		require.True(t, cloned)
+		require.Equal(t, links[0], newLinks[0])
+		require.Equal(t, links[2], newLinks[1])
+		require.Equal(t, links[3], newLinks[2])
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		_, _, err := s.fixupACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+			return "", fmt.Errorf("Resolver Error")
+		})
+
+		require.Error(t, err)
+		require.Equal(t, err.Error(), "Resolver Error")
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/agent/proto"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -558,6 +559,68 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 
 	// Return the reset index if we've already bootstrapped
 	return false, out.(*IndexEntry).Value, nil
+}
+
+func (s *Store) resolveACLLinks(tx *memdb.Txn, links []proto.ACLLink, getName func(*memdb.Txn, string) (string, error)) (int, error) {
+	var numValid int
+	for linkIndex, link := range links {
+		if link.ID != "" {
+			name, err := getName(tx, link.ID)
+
+			if err != nil {
+				return 0, err
+			}
+
+			// the name doesn't matter here
+			if name != "" {
+				links[linkIndex].Name = name
+				numValid++
+			}
+		} else {
+			return 0, fmt.Errorf("Encountered an ACL resource linked by Name in the state store")
+		}
+	}
+	return numValid, nil
+}
+
+func (s *Store) fixupACLLinks(tx *memdb.Txn, original []proto.ACLLink, getName func(*memdb.Txn, string) (string, error)) ([]proto.ACLLink, bool, error) {
+	owned := false
+	links := original
+
+	cloneLinks := func(l []proto.ACLLink, copyNumLinks int) []proto.ACLLink {
+		clone := make([]proto.ACLLink, copyNumLinks)
+		copy(clone, l[:copyNumLinks])
+		return clone
+	}
+
+	for linkIndex, link := range original {
+		name, err := getName(tx, link.ID)
+
+		if err != nil {
+			return nil, false, err
+		}
+
+		if name == "" {
+			if !owned {
+				// clone the original as we cannot modify anything stored in memdb
+				links = cloneLinks(original, linkIndex)
+				owned = true
+			}
+			// if already owned then we just don't append it.
+		} else if name != link.Name {
+			if !owned {
+				links = cloneLinks(original, linkIndex)
+				owned = true
+			}
+
+			// append the corrected policy
+			links = append(links, proto.ACLLink{ID: link.ID, Name: name})
+		} else if owned {
+			links = append(links, link)
+		}
+	}
+
+	return links, owned, nil
 }
 
 func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) (int, error) {
