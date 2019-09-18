@@ -10,7 +10,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"net/url"
@@ -43,17 +42,6 @@ func makeClient(t *testing.T) (*api.Client, *testutil.TestServer) {
 	}
 
 	return client, server
-}
-
-var errBadContent = errors.New("bad content")
-var errTimeout = errors.New("timeout")
-
-var timeout = 5 * time.Second
-
-func makeInvokeCh() chan error {
-	ch := make(chan error)
-	time.AfterFunc(timeout, func() { ch <- errTimeout })
-	return ch
 }
 
 func updateConnectCA(t *testing.T, client *api.Client) {
@@ -111,39 +99,28 @@ func TestKeyWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  []*api.KVPair
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
-		if raw == nil {
-			return // ignore
+		var v *api.KVPair
+		if raw == nil { // nil is a valid return value
+			v = nil
+		} else {
+			var ok bool
+			if v, ok = raw.(*api.KVPair); !ok {
+				return // ignore
+			}
 		}
-		v, ok := raw.(*api.KVPair)
-		if !ok || v == nil {
-			return // ignore
-		}
-		if string(v.Value) != "test" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		kv := c.KV()
-
-		time.Sleep(20 * time.Millisecond)
-		pair := &api.KVPair{
-			Key:   "foo/bar/baz",
-			Value: []byte("test"),
-		}
-		if _, err := kv.Put(pair, nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -151,13 +128,37 @@ func TestKeyWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		kv := c.KV()
+		pair := &api.KVPair{
+			Key:   "foo/bar/baz",
+			Value: []byte("test"),
+		}
+		if _, err := kv.Put(pair, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Nil(t, v)
+	}
+	{
+		v := wakeups[1]
+		require.Equal(t, "test", string(v.Value))
+	}
 }
 
 func TestKeyWatch_With_PrefixDelete(t *testing.T) {
@@ -165,30 +166,42 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  []*api.KVPair
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
-		if raw == nil {
-			return // ignore
+		var v *api.KVPair
+		if raw == nil { // nil is a valid return value
+			v = nil
+		} else {
+			var ok bool
+			if v, ok = raw.(*api.KVPair); !ok {
+				return // ignore
+			}
 		}
-		v, ok := raw.(*api.KVPair)
-		if !ok || v == nil {
-			return // ignore
-		}
-		if string(v.Value) != "test" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		kv := c.KV()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
 
-		time.Sleep(20 * time.Millisecond)
+	// Wait for first wakeup.
+	<-notifyCh
+
+	{
+		kv := c.KV()
 		pair := &api.KVPair{
 			Key:   "foo/bar/baz",
 			Value: []byte("test"),
@@ -196,22 +209,24 @@ func TestKeyWatch_With_PrefixDelete(t *testing.T) {
 		if _, err := kv.Put(pair, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Nil(t, v)
+	}
+	{
+		v := wakeups[1]
+		require.Equal(t, "test", string(v.Value))
+	}
 }
 
 func TestKeyPrefixWatch(t *testing.T) {
@@ -219,38 +234,25 @@ func TestKeyPrefixWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  []api.KVPairs
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.(api.KVPairs)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return
 		}
-		if string(v[0].Key) != "foo/bar" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		kv := c.KV()
-
-		time.Sleep(20 * time.Millisecond)
-		pair := &api.KVPair{
-			Key: "foo/bar",
-		}
-		if _, err := kv.Put(pair, nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -258,13 +260,37 @@ func TestKeyPrefixWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		kv := c.KV()
+		pair := &api.KVPair{
+			Key: "foo/bar",
+		}
+		if _, err := kv.Put(pair, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+		require.Equal(t, "foo/bar", v[0].Key)
+	}
 }
 
 func TestServicesWatch(t *testing.T) {
@@ -272,39 +298,25 @@ func TestServicesWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  []map[string][]string
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"services"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.(map[string][]string)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		if v["consul"] == nil {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		agent := c.Agent()
-
-		time.Sleep(20 * time.Millisecond)
-		reg := &api.AgentServiceRegistration{
-			ID:   "foo",
-			Name: "foo",
-		}
-		if err := agent.ServiceRegister(reg); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -312,13 +324,45 @@ func TestServicesWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		agent := c.Agent()
+
+		reg := &api.AgentServiceRegistration{
+			ID:   "foo",
+			Name: "foo",
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 1)
+		_, ok := v["consul"]
+		require.True(t, ok)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 2)
+		_, ok := v["consul"]
+		require.True(t, ok)
+		_, ok = v["foo"]
+		require.True(t, ok)
+	}
+
 }
 
 func TestNodesWatch(t *testing.T) {
@@ -326,26 +370,39 @@ func TestNodesWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  [][]*api.Node
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"nodes"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.([]*api.Node)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
 		catalog := c.Catalog()
 
-		time.Sleep(20 * time.Millisecond)
 		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -354,22 +411,31 @@ func TestNodesWatch(t *testing.T) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	var originalNodeName string
+	{
+		v := wakeups[0]
+		require.Len(t, v, 1)
+		originalNodeName = v[0].Node
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 2)
+		if v[0].Node == originalNodeName {
+			require.Equal(t, "foobar", v[1].Node)
+		} else {
+			require.Equal(t, "foobar", v[0].Node)
+		}
+	}
 }
 
 func TestServiceWatch(t *testing.T) {
@@ -377,31 +443,40 @@ func TestServiceWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  [][]*api.ServiceEntry
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.([]*api.ServiceEntry)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		if v[0].Service.ID != "foo" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
 		agent := c.Agent()
 
-		time.Sleep(20 * time.Millisecond)
 		reg := &api.AgentServiceRegistration{
 			ID:   "foo",
 			Name: "foo",
@@ -410,22 +485,25 @@ func TestServiceWatch(t *testing.T) {
 		if err := agent.ServiceRegister(reg); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+		require.Equal(t, "foo", v[0].Service.ID)
+	}
 }
 
 func TestServiceMultipleTagsWatch(t *testing.T) {
@@ -433,50 +511,41 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  [][]*api.ServiceEntry
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":["bar","buzz"], "passingonly":true}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.([]*api.ServiceEntry)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		if v[0].Service.ID != "foobarbuzzbiff" {
-			invoke <- errBadContent
-			return
-		}
-		if len(v[0].Service.Tags) == 0 {
-			invoke <- errBadContent
-			return
-		}
-		// test for our tags
-		barFound := false
-		buzzFound := false
-		for _, t := range v[0].Service.Tags {
-			if t == "bar" {
-				barFound = true
-			} else if t == "buzz" {
-				buzzFound = true
-			}
-		}
-		if !barFound || !buzzFound {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
 		agent := c.Agent()
 
 		// we do not want to find this one.
-		time.Sleep(20 * time.Millisecond)
 		reg := &api.AgentServiceRegistration{
 			ID:   "foobarbiff",
 			Name: "foo",
@@ -505,22 +574,27 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 		if err := agent.ServiceRegister(reg); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+
+		require.Equal(t, "foobarbuzzbiff", v[0].Service.ID)
+		require.ElementsMatch(t, []string{"bar", "buzz", "biff"}, v[0].Service.Tags)
+	}
 }
 
 func TestChecksWatch_State(t *testing.T) {
@@ -528,30 +602,39 @@ func TestChecksWatch_State(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  [][]*api.HealthCheck
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.([]*api.HealthCheck)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		if v[0].CheckID != "foobar" || v[0].Status != "warning" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
 		catalog := c.Catalog()
 
-		time.Sleep(20 * time.Millisecond)
 		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -566,22 +649,26 @@ func TestChecksWatch_State(t *testing.T) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+		require.Equal(t, "foobar", v[0].CheckID)
+		require.Equal(t, "warning", v[0].Status)
+	}
 }
 
 func TestChecksWatch_Service(t *testing.T) {
@@ -589,30 +676,39 @@ func TestChecksWatch_Service(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  [][]*api.HealthCheck
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
 		v, ok := raw.([]*api.HealthCheck)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		if v[0].CheckID != "foobar" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
 		catalog := c.Catalog()
 
-		time.Sleep(20 * time.Millisecond)
 		reg := &api.CatalogRegistration{
 			Node:       "foobar",
 			Address:    "1.1.1.1",
@@ -632,22 +728,25 @@ func TestChecksWatch_Service(t *testing.T) {
 		if _, err := catalog.Register(reg, nil); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := plan.Run(s.HTTPAddr); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+		require.Equal(t, "foobar", v[0].CheckID)
+	}
 }
 
 func TestEventWatch(t *testing.T) {
@@ -655,36 +754,25 @@ func TestEventWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	invoke := makeInvokeCh()
+	var (
+		wakeups  [][]*api.UserEvent
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return
 		}
 		v, ok := raw.([]*api.UserEvent)
-		if !ok || len(v) == 0 {
+		if !ok {
 			return // ignore
 		}
-		if string(v[len(v)-1].Name) != "foo" {
-			invoke <- errBadContent
-			return
-		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		event := c.Event()
-
-		time.Sleep(20 * time.Millisecond)
-		params := &api.UserEvent{Name: "foo"}
-		if _, _, err := event.Fire(params, nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -692,13 +780,36 @@ func TestEventWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		event := c.Event()
+
+		params := &api.UserEvent{Name: "foo"}
+		if _, _, err := event.Fire(params, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+		require.Equal(t, "foo", v[0].Name)
+	}
 }
 
 func TestConnectRootsWatch(t *testing.T) {
@@ -707,8 +818,11 @@ func TestConnectRootsWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	var originalCAID string
-	invoke := makeInvokeCh()
+	var (
+		wakeups  []*api.CARootList
+		notifyCh = make(chan struct{})
+	)
+
 	plan := mustParse(t, `{"type":"connect_roots"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -718,25 +832,11 @@ func TestConnectRootsWatch(t *testing.T) {
 		if !ok || v == nil || len(v.Roots) == 0 {
 			return // ignore
 		}
-		// Only 1 CA is the bootstrapped state (i.e. first response). Ignore this
-		// state and wait for the new CA to show up too.
-		if len(v.Roots) == 1 {
-			originalCAID = v.ActiveRootID
-			return
-		}
-		require.NotEmpty(t, originalCAID)
-		require.NotEqual(t, originalCAID, v.ActiveRootID)
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(100 * time.Millisecond)
-		updateConnectCA(t, c)
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -744,13 +844,34 @@ func TestConnectRootsWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Wait for first wakeup.
+	<-notifyCh
+
+	updateConnectCA(t, c)
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	var originalCAID string
+	{ // Only 1 CA is the bootstrapped state (i.e. first response).
+		v := wakeups[0]
+		require.Len(t, v.Roots, 1)
+		originalCAID = v.ActiveRootID
+		require.NotEmpty(t, originalCAID)
+	}
+
+	{ // This is the new CA showing up.
+		v := wakeups[1]
+		require.Len(t, v.Roots, 2)
+		require.NotEqual(t, originalCAID, v.ActiveRootID)
+	}
 }
 
 func TestConnectLeafWatch(t *testing.T) {
@@ -771,10 +892,11 @@ func TestConnectLeafWatch(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	var lastCert *api.LeafCert
+	var (
+		wakeups  []*api.LeafCert
+		notifyCh = make(chan struct{})
+	)
 
-	//invoke := makeInvokeCh()
-	invoke := make(chan error)
 	plan := mustParse(t, `{"type":"connect_leaf", "service":"web"}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
@@ -784,29 +906,11 @@ func TestConnectLeafWatch(t *testing.T) {
 		if !ok || v == nil {
 			return // ignore
 		}
-		if lastCert == nil {
-			// Initial fetch, just store the cert and return
-			lastCert = v
-			return
-		}
-		// TODO(banks): right now the root rotation actually causes Serial numbers
-		// to reset so these end up all being the same. That needs fixing but it's
-		// a bigger task than I want to bite off for this PR.
-		//require.NotEqual(t, lastCert.SerialNumber, v.SerialNumber)
-		require.NotEqual(t, lastCert.CertPEM, v.CertPEM)
-		require.NotEqual(t, lastCert.PrivateKeyPEM, v.PrivateKeyPEM)
-		require.NotEqual(t, lastCert.ModifyIndex, v.ModifyIndex)
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(100 * time.Millisecond)
-		updateConnectCA(t, c)
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -814,19 +918,54 @@ func TestConnectLeafWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Wait for first wakeup.
+	<-notifyCh
+
+	start := time.Now()
+	updateConnectCA(t, c)
+
+	// Wait for second wakeup. Note due to the 30s random jitter for this endpoint
+	// this may take up to 30s.
+	<-notifyCh
+	t.Logf("leaf cert regen took %s with jitter", time.Since(start))
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	var lastCert *api.LeafCert
+	{ // Initial fetch, just store the cert and return
+		v := wakeups[0]
+		require.NotNil(t, v)
+		lastCert = v
+	}
+
+	{ // Rotation completed.
+		v := wakeups[1]
+		require.NotNil(t, v)
+
+		// TODO(banks): right now the root rotation actually causes Serial numbers
+		// to reset so these end up all being the same. That needs fixing but it's
+		// a bigger task than I want to bite off for this PR.
+		//require.NotEqual(t, lastCert.SerialNumber, v.SerialNumber)
+		require.NotEqual(t, lastCert.CertPEM, v.CertPEM)
+		require.NotEqual(t, lastCert.PrivateKeyPEM, v.PrivateKeyPEM)
+		require.NotEqual(t, lastCert.ModifyIndex, v.ModifyIndex)
+	}
 }
 
 func TestAgentServiceWatch(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	var (
+		wakeups  []*api.AgentService
+		notifyCh = make(chan struct{})
+	)
 
 	// Register a local agent service
 	reg := &api.AgentServiceRegistration{
@@ -838,7 +977,6 @@ func TestAgentServiceWatch(t *testing.T) {
 	err := agent.ServiceRegister(reg)
 	require.NoError(t, err)
 
-	invoke := makeInvokeCh()
 	plan := mustParse(t, `{"type":"agent_service", "service_id":"web"}`)
 	plan.HybridHandler = func(blockParamVal watch.BlockingParamVal, raw interface{}) {
 		if raw == nil {
@@ -848,21 +986,11 @@ func TestAgentServiceWatch(t *testing.T) {
 		if !ok || v == nil {
 			return // ignore
 		}
-		invoke <- nil
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(20 * time.Millisecond)
-
-		// Change the service definition
-		reg.Port = 9090
-		err := agent.ServiceRegister(reg)
-		require.NoError(t, err)
-	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -870,13 +998,33 @@ func TestAgentServiceWatch(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}()
+	defer plan.Stop()
 
-	if err := <-invoke; err != nil {
-		t.Fatalf("err: %v", err)
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		// Change the service definition
+		reg.Port = 9090
+		err := agent.ServiceRegister(reg)
+		require.NoError(t, err)
 	}
+
+	// Wait for second wakeup.
+	<-notifyCh
 
 	plan.Stop()
 	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Equal(t, 8080, v.Port)
+	}
+	{
+		v := wakeups[1]
+		require.Equal(t, 9090, v.Port)
+	}
 }
 
 func mustParse(t *testing.T, q string) *watch.Plan {
