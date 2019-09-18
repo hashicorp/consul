@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -249,6 +248,9 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	cfg := defaultServerConfig()
+	testWriter := TestWriter(t)
+	cfg.Stdout = testWriter
+	cfg.Stderr = testWriter
 
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
@@ -262,7 +264,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
-	log.Printf("CONFIG JSON: %s", string(b))
+	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
 		cfg.ReturnPorts()
@@ -270,11 +272,11 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
 
-	stdout := io.Writer(os.Stdout)
+	stdout := testWriter
 	if cfg.Stdout != nil {
 		stdout = cfg.Stdout
 	}
-	stderr := io.Writer(os.Stderr)
+	stderr := testWriter
 	if cfg.Stderr != nil {
 		stderr = cfg.Stderr
 	}
