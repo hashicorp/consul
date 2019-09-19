@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package proto;
+package agentpb;
 
 import "google/protobuf/duration.proto";
 // Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode

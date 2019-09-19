@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/proto"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -561,7 +561,7 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 	return false, out.(*IndexEntry).Value, nil
 }
 
-func (s *Store) resolveACLLinks(tx *memdb.Txn, links []proto.ACLLink, getName func(*memdb.Txn, string) (string, error)) (int, error) {
+func (s *Store) resolveACLLinks(tx *memdb.Txn, links []agentpb.ACLLink, getName func(*memdb.Txn, string) (string, error)) (int, error) {
 	var numValid int
 	for linkIndex, link := range links {
 		if link.ID != "" {
@@ -583,12 +583,12 @@ func (s *Store) resolveACLLinks(tx *memdb.Txn, links []proto.ACLLink, getName fu
 	return numValid, nil
 }
 
-func (s *Store) fixupACLLinks(tx *memdb.Txn, original []proto.ACLLink, getName func(*memdb.Txn, string) (string, error)) ([]proto.ACLLink, bool, error) {
+func (s *Store) fixupACLLinks(tx *memdb.Txn, original []agentpb.ACLLink, getName func(*memdb.Txn, string) (string, error)) ([]agentpb.ACLLink, bool, error) {
 	owned := false
 	links := original
 
-	cloneLinks := func(l []proto.ACLLink, copyNumLinks int) []proto.ACLLink {
-		clone := make([]proto.ACLLink, copyNumLinks)
+	cloneLinks := func(l []agentpb.ACLLink, copyNumLinks int) []agentpb.ACLLink {
+		clone := make([]agentpb.ACLLink, copyNumLinks)
 		copy(clone, l[:copyNumLinks])
 		return clone
 	}
@@ -614,7 +614,7 @@ func (s *Store) fixupACLLinks(tx *memdb.Txn, original []proto.ACLLink, getName f
 			}
 
 			// append the corrected policy
-			links = append(links, proto.ACLLink{ID: link.ID, Name: name})
+			links = append(links, agentpb.ACLLink{ID: link.ID, Name: name})
 		} else if owned {
 			links = append(links, link)
 		}

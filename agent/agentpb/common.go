@@ -1,4 +1,4 @@
-package proto
+package agentpb
 
 // IsRead is always true for QueryOption
 func (q QueryOptions) IsRead() bool {

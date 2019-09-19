@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/proto"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
@@ -4074,8 +4074,8 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []proto.ACLLink{
-			proto.ACLLink{
+		links := []agentpb.ACLLink{
+			agentpb.ACLLink{
 				Name: "foo",
 			},
 		}
@@ -4097,11 +4097,11 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []proto.ACLLink{
-			proto.ACLLink{
+		links := []agentpb.ACLLink{
+			agentpb.ACLLink{
 				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
 			},
-			proto.ACLLink{
+			agentpb.ACLLink{
 				ID: "e81887b4-836b-4053-a1fa-7e8305902be9",
 			},
 		}
@@ -4130,8 +4130,8 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []proto.ACLLink{
-			proto.ACLLink{
+		links := []agentpb.ACLLink{
+			agentpb.ACLLink{
 				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
 			},
 		}
@@ -4150,20 +4150,20 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 func TestStateStore_fixupACLLinks(t *testing.T) {
 	t.Parallel()
 
-	links := []proto.ACLLink{
-		proto.ACLLink{
+	links := []agentpb.ACLLink{
+		agentpb.ACLLink{
 			ID:   "40b57f86-97ea-40e4-a99a-c399cc81f4dd",
 			Name: "foo",
 		},
-		proto.ACLLink{
+		agentpb.ACLLink{
 			ID:   "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc",
 			Name: "bar",
 		},
-		proto.ACLLink{
+		agentpb.ACLLink{
 			ID:   "c91afed1-e474-4cd2-98aa-cd57dd9377e9",
 			Name: "baz",
 		},
-		proto.ACLLink{
+		agentpb.ACLLink{
 			ID:   "c1585be7-ab0e-4973-b572-ba9afda86e07",
 			Name: "four",
 		},

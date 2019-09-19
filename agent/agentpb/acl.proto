@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package proto;
+package agentpb;
 
 // Go Modules now includes the version in the filepath for packages within GOPATH/pkg/mode
 // Therefore unless we want to hardcode a version here like
