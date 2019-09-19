@@ -33,7 +33,7 @@ Mesh gateways also require that your Consul datacenters are configured correctly
 - Each of your [datacenters](/docs/agent/options.html#datacenter) must have a unique name. 
 - Your datacenters must be [WAN joined](https://learn.hashicorp.com/consul/security-networking/datacenters).
 - The [primary datacenter](/docs/agent/options.html#primary_datacenter) must be set to the same value in both datacenters. This specifies which datacenter is the authority for Connect certificates and is required for services in all datacenters to establish mutual TLS with each other.
-- You must use a layer 7 proxy such as Envoy. The proxy built-into Consul will not work because it operates on layer 4 only.
+- Currently, Envoy is the only proxy with Mesh Gateway capabilities. 
 - [gRPC](/docs/agent/options.html#grpc_port) must be enabled. 
 - If you want to [enable gateways globally](/docs/connect/mesh_gateway.html#enabling-gateways-globally) you must enable [centralized configuration](/docs/agent/options.html#enable_central_service_config). 
 
