@@ -25,7 +25,7 @@ cancel [TIMEOUT]
 ## Examples
 
 ~~~ corefile
-. {
+example.org {
     cancel
     whoami
 }
@@ -34,7 +34,7 @@ cancel [TIMEOUT]
 Or with a custom timeout:
 
 ~~~ corefile
-. {
+example.org {
     cancel 1s
     whoami
 }

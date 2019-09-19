@@ -56,8 +56,8 @@ Load `org` domains from `/etc/coredns/zones/org` and allow transfers to the inte
 notifies to 10.240.1.1
 
 ~~~ corefile
-. {
-    auto org {
+org {
+    auto {
         directory /etc/coredns/zones/org
         transfer to *
         transfer to 10.240.1.1

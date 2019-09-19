@@ -49,7 +49,7 @@ clouddns [ZONE:PROJECT_ID:HOSTED_ZONE_NAME...] {
 Enable clouddns with implicit GCP credentials and resolve CNAMEs via 10.0.0.1:
 
 ~~~ txt
-. {
+example.org {
     clouddns example.org.:gcp-example-project:example-zone
     forward . 10.0.0.1
 }
@@ -58,7 +58,7 @@ Enable clouddns with implicit GCP credentials and resolve CNAMEs via 10.0.0.1:
 Enable clouddns with fallthrough:
 
 ~~~ txt
-. {
+example.org {
     clouddns example.org.:gcp-example-project:example-zone clouddns example.com.:gcp-example-project:example-zone-2 {
         fallthrough example.gov.
     }

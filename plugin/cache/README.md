@@ -93,13 +93,13 @@ Proxy to Google Public DNS and only cache responses for example.org (or below).
 }
 ~~~
 
-Enable caching for all zones, keep a positive cache size of 5000 and a negative cache size of 2500:
+Enable caching for `example.org`, keep a positive cache size of 5000 and a negative cache size of 2500:
 
 ~~~ corefile
- . {
-     cache {
-         success 5000
-         denial 2500
+example.org {
+    cache {
+        success 5000
+        denial 2500
     }
- }
- ~~~
+}
+~~~

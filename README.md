@@ -82,8 +82,11 @@ When starting CoreDNS without any configuration, it loads the
 
 ~~~ txt
 .:53
-2016/09/18 09:20:50 [INFO] CoreDNS-001
-CoreDNS-001
+   ______                ____  _   _______
+  / ____/___  ________  / __ \/ | / / ___/	~ CoreDNS-1.6.3
+ / /   / __ \/ ___/ _ \/ / / /  |/ /\__ \ 	~ linux/amd64, go1.13,
+/ /___/ /_/ / /  /  __/ /_/ / /|  /___/ /
+\____/\____/_/   \___/_____/_/ |_//____/
 ~~~
 
 Any query sent to port 53 should return some information; your sending address, port and protocol
@@ -128,14 +131,17 @@ Serve `example.org` on port 1053, but forward everything that does *not* match `
 recursive nameserver *and* rewrite ANY queries to HINFO.
 
 ~~~ txt
-.:1053 {
-    rewrite ANY HINFO
-    forward . 8.8.8.8:53
-
-    file /var/lib/coredns/example.org.signed example.org {
+example.org:1053 {
+    file /var/lib/coredns/example.org.signed {
         transfer to *
         transfer to 2001:500:8f::53
     }
+    errors
+    log
+}
+. {
+    any
+    forward . 8.8.8.8:53
     errors
     log
 }

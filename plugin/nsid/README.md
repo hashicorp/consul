@@ -28,7 +28,7 @@ If **DATA** is not given, the host's name is used.
 Enable nsid:
 
 ~~~ corefile
-. {
+example.org {
     whoami
     nsid Use The Force
 }

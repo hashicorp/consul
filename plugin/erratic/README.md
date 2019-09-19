@@ -40,7 +40,7 @@ This plugin reports readiness to the ready plugin.
 ## Examples
 
 ~~~ corefile
-. {
+example.org {
     erratic {
         drop 3
     }
@@ -50,7 +50,7 @@ This plugin reports readiness to the ready plugin.
 Or even shorter if the defaults suits you. Note this only drops queries, it does not delay them.
 
 ~~~ corefile
-. {
+example.org {
     erratic
 }
 ~~~
@@ -58,7 +58,7 @@ Or even shorter if the defaults suits you. Note this only drops queries, it does
 Delay 1 in 3 queries for 50ms
 
 ~~~ corefile
-. {
+example.org {
     erratic {
         delay 3 50ms
     }
@@ -68,7 +68,7 @@ Delay 1 in 3 queries for 50ms
 Delay 1 in 3 and truncate 1 in 5.
 
 ~~~ corefile
-. {
+example.org {
     erratic {
         delay 3 5ms
         truncate 5
@@ -79,7 +79,7 @@ Delay 1 in 3 and truncate 1 in 5.
 Drop every second query.
 
 ~~~ corefile
-. {
+example.org {
     erratic {
         drop 2
         truncate 2
@@ -89,5 +89,4 @@ Drop every second query.
 
 ## Also See
 
-[RFC 3849](https://tools.ietf.org/html/rfc3849) and
-[RFC 5737](https://tools.ietf.org/html/rfc5737).
+[RFC 3849](https://tools.ietf.org/html/rfc3849) and [RFC 5737](https://tools.ietf.org/html/rfc5737).

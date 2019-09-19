@@ -77,15 +77,19 @@ This causes two lookups from CoreDNS to etcdv3 in certain cases.
 This is the default SkyDNS setup, with everything specified in full:
 
 ~~~ corefile
-. {
-    etcd skydns.local {
+skydns.local {
+    etcd {
         path /skydns
         endpoint http://localhost:2379
     }
     prometheus
-    cache 160 skydns.local
+    cache
     loadbalance
+}
+
+. {
     forward . 8.8.8.8:53 8.8.4.4:53
+    cache
 }
 ~~~
 
@@ -93,12 +97,16 @@ Or a setup where we use `/etc/resolv.conf` as the basis for the proxy and the up
 when resolving external pointing CNAMEs.
 
 ~~~ corefile
-. {
-    etcd skydns.local {
+skydns.local {
+    etcd {
         path /skydns
     }
-    cache 160 skydns.local
+    cache
+}
+
+. {
     forward . /etc/resolv.conf
+    cache
 }
 ~~~
 

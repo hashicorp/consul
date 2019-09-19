@@ -104,11 +104,12 @@ next plugin if query doesn't match.
 Load hosts file inlined in Corefile.
 
 ~~~
-. {
-    hosts example.hosts example.org {
+example.hosts example.org {
+    hosts {
         10.0.0.1 example.org
         fallthrough
     }
+    whoami
 }
 ~~~
 

@@ -34,7 +34,7 @@ whoami
 Start a server on the default port and load the *whoami* plugin.
 
 ~~~ corefile
-. {
+example.org {
     whoami
 }
 ~~~
