@@ -72,6 +72,13 @@ hosts [FILE [ZONES...]] {
   is authoritative. If specific zones are listed (for example `in-addr.arpa` and `ip6.arpa`), then only
   queries for those zones will be subject to fallthrough.
 
+## Metrics
+
+If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
+
+- `coredns_hosts_entries_count{}` - The combined number of entries in hosts and Corefile.
+- `coredns_hosts_reload_timestamp_seconds{}` - The timestamp of the last reload of hosts file.
+
 ## Examples
 
 Load `/etc/hosts` file.

@@ -45,7 +45,7 @@ func (rd *ready) onStartup() error {
 		ok, todo := plugins.Ready()
 		if ok {
 			w.WriteHeader(http.StatusOK)
-			io.WriteString(w,  http.StatusText(http.StatusOK))
+			io.WriteString(w, http.StatusText(http.StatusOK))
 			return
 		}
 		log.Infof("Still waiting on: %q", todo)
