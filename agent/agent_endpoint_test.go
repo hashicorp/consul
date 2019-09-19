@@ -14,6 +14,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -4717,15 +4718,209 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	}
 }
 
-func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert,
-	ca *structs.CARoot) {
+func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	require := require.New(t)
+
+	a1 := NewTestAgent(t, t.Name()+"-dc1", `
+		datacenter = "dc1"
+		primary_datacenter = "dc1"
+	`)
+	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	a2 := NewTestAgent(t, t.Name()+"-dc2", `
+		datacenter = "dc2"
+		primary_datacenter = "dc1"
+	`)
+	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
+	_, err := a2.JoinWAN([]string{addr})
+	require.NoError(err)
+
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.WANMembers()), 2; got < want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+	})
+
+	// CA already setup by default by NewTestAgent but force a new one so we can
+	// verify it was signed easily.
+	dc1_ca1 := connect.TestCAConfigSet(t, a1, nil)
+
+	// Wait until root is updated in both dcs.
+	waitForActiveCARoot(t, a1.srv, dc1_ca1)
+	waitForActiveCARoot(t, a2.srv, dc1_ca1)
+
+	{
+		// Register a local service in the SECONDARY
+		args := &structs.ServiceDefinition{
+			ID:      "foo",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+		}
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		resp := httptest.NewRecorder()
+		_, err := a2.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		if !assert.Equal(200, resp.Code) {
+			t.Log("Body: ", resp.Body.String())
+		}
+	}
+
+	// List
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a2.srv.AgentConnectCALeafCert(resp, req)
+	require.NoError(err)
+	require.Equal("MISS", resp.Header().Get("X-Cache"))
+
+	// Get the issued cert
+	issued, ok := obj.(*structs.IssuedCert)
+	assert.True(ok)
+
+	// Verify that the cert is signed by the CA
+	requireLeafValidUnderCA(t, issued, dc1_ca1)
+
+	// Verify blocking index
+	assert.True(issued.ModifyIndex > 0)
+	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+		resp.Header().Get("X-Consul-Index"))
+
+	// Test caching
+	{
+		// Fetch it again
+		resp := httptest.NewRecorder()
+		obj2, err := a2.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+		require.Equal(obj, obj2)
+
+		// Should cache hit this time and not make request
+		require.Equal("HIT", resp.Header().Get("X-Cache"))
+	}
+
+	// Test that we aren't churning leaves for no reason at idle.
+	{
+		ch := make(chan error, 1)
+		go func() {
+			req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+strconv.Itoa(int(issued.ModifyIndex)), nil)
+			resp := httptest.NewRecorder()
+			obj, err := a2.srv.AgentConnectCALeafCert(resp, req)
+			if err != nil {
+				ch <- err
+			} else {
+				issued2 := obj.(*structs.IssuedCert)
+				if issued.CertPEM == issued2.CertPEM {
+					ch <- fmt.Errorf("leaf woke up unexpectedly with same cert")
+				} else {
+					ch <- fmt.Errorf("leaf woke up unexpectedly with new cert")
+				}
+			}
+		}()
+
+		start := time.Now()
+
+		// Before applying the fix from PR-6513 this would reliably wake up
+		// after ~20ms with a new cert. Since this test is necessarily a bit
+		// timing dependent we'll chill out for 5 seconds which should be enough
+		// time to disprove the original bug.
+		select {
+		case <-time.After(5 * time.Second):
+		case err := <-ch:
+			dur := time.Since(start)
+			t.Fatalf("unexpected return from blocking query; leaf churned during idle period, took %s: %v", dur, err)
+		}
+	}
+
+	// Set a new CA
+	dc1_ca2 := connect.TestCAConfigSet(t, a2, nil)
+
+	// Wait until root is updated in both dcs.
+	waitForActiveCARoot(t, a1.srv, dc1_ca2)
+	waitForActiveCARoot(t, a2.srv, dc1_ca2)
+
+	// Test that caching is updated in the background
+	retry.Run(t, func(r *retry.R) {
+		resp := httptest.NewRecorder()
+		// Try and sign again (note no index/wait arg since cache should update in
+		// background even if we aren't actively blocking)
+		obj, err := a2.srv.AgentConnectCALeafCert(resp, req)
+		r.Check(err)
+
+		issued2 := obj.(*structs.IssuedCert)
+		if issued.CertPEM == issued2.CertPEM {
+			r.Fatalf("leaf has not updated")
+		}
+
+		// Got a new leaf. Sanity check it's a whole new key as well as different
+		// cert.
+		if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
+			r.Fatalf("new leaf has same private key as before")
+		}
+
+		// Verify that the cert is signed by the new CA
+		requireLeafValidUnderCA(t, issued2, dc1_ca2)
+
+		// Should be a cache hit! The data should've updated in the cache
+		// in the background so this should've been fetched directly from
+		// the cache.
+		if resp.Header().Get("X-Cache") != "HIT" {
+			r.Fatalf("should be a cache hit")
+		}
+	})
+}
+
+func waitForActiveCARoot(t *testing.T, srv *HTTPServer, expect *structs.CARoot) {
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
+		resp := httptest.NewRecorder()
+		obj, err := srv.AgentConnectCARoots(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		roots, ok := obj.(structs.IndexedCARoots)
+		if !ok {
+			r.Fatalf("response is wrong type %T", obj)
+		}
+
+		var root *structs.CARoot
+		for _, r := range roots.Roots {
+			if r.ID == roots.ActiveRootID {
+				root = r
+				break
+			}
+		}
+		if root == nil {
+			r.Fatal("no active root")
+		}
+		if root.ID != expect.ID {
+			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
+		}
+	})
+}
+
+func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert, ca *structs.CARoot) {
+	leaf, intermediates, err := connect.ParseLeafCerts(issued.CertPEM)
+	require.NoError(t, err)
 
 	roots := x509.NewCertPool()
 	require.True(t, roots.AppendCertsFromPEM([]byte(ca.RootCert)))
-	leaf, err := connect.ParseCert(issued.CertPEM)
-	require.NoError(t, err)
+
 	_, err = leaf.Verify(x509.VerifyOptions{
-		Roots: roots,
+		Roots:         roots,
+		Intermediates: intermediates,
 	})
 	require.NoError(t, err)
 

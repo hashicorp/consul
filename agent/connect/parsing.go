@@ -29,6 +29,67 @@ func ParseCert(pemValue string) (*x509.Certificate, error) {
 	return x509.ParseCertificate(block.Bytes)
 }
 
+// ParseLeafCerts parses all of the x509 certificates from a PEM-encoded value
+// under the assumption that the first cert is a leaf (non-CA) cert and the
+// rest are intermediate CA certs.
+//
+// If no certificates are found this returns an error.
+func ParseLeafCerts(pemValue string) (*x509.Certificate, *x509.CertPool, error) {
+	certs, err := parseCerts(pemValue)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	leaf := certs[0]
+	if leaf.IsCA {
+		return nil, nil, fmt.Errorf("first PEM-block should be a leaf cert")
+	}
+
+	intermediates := x509.NewCertPool()
+	for _, cert := range certs[1:] {
+		if !cert.IsCA {
+			return nil, nil, fmt.Errorf("found an unexpected leaf cert after the first PEM-block")
+		}
+		intermediates.AddCert(cert)
+	}
+
+	return leaf, intermediates, nil
+}
+
+// ParseCerts parses the all x509 certificates from a PEM-encoded value.
+// The first returned cert is a leaf cert and any other ones are intermediates.
+//
+// If no certificates are found this returns an error.
+func parseCerts(pemValue string) ([]*x509.Certificate, error) {
+	var out []*x509.Certificate
+
+	rest := []byte(pemValue)
+	for {
+		// The _ result below is not an error but the remaining PEM bytes.
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		rest = remaining
+
+		if block.Type != "CERTIFICATE" {
+			return nil, fmt.Errorf("PEM-block should be CERTIFICATE type")
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, cert)
+	}
+
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no PEM-encoded data found")
+	}
+
+	return out, nil
+}
+
 // CalculateCertFingerprint parses the x509 certificate from a PEM-encoded value
 // and calculates the SHA-1 fingerprint.
 func CalculateCertFingerprint(pemValue string) (string, error) {

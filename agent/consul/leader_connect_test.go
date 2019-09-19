@@ -243,6 +243,100 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	require.NoError(err)
 }
 
+func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.6.0"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// dc2 as a secondary DC
+	dir2pre, s2pre := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.Build = "1.6.0"
+	})
+	defer os.RemoveAll(dir2pre)
+	defer s2pre.Shutdown()
+
+	// Create the WAN link
+	joinWAN(t, s2pre, s1)
+	testrpc.WaitForLeader(t, s2pre.RPC, "dc2")
+
+	// Restore the pre-1.6.1 behavior of the SigningKeyID not being derived
+	// from the intermediates.
+	{
+		state := s2pre.fsm.State()
+
+		// Get the highest index
+		idx, roots, err := state.CARoots(nil)
+		require.NoError(err)
+
+		var activeRoot *structs.CARoot
+		for _, root := range roots {
+			if root.Active {
+				activeRoot = root
+			}
+		}
+		require.NotNil(activeRoot)
+
+		rootCert, err := connect.ParseCert(activeRoot.RootCert)
+		require.NoError(err)
+
+		// Force this to be derived just from the root, not the intermediate.
+		activeRoot.SigningKeyID = connect.EncodeSigningKeyID(rootCert.SubjectKeyId)
+
+		// Store the root cert in raft
+		resp, err := s2pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+			Op:    structs.CAOpSetRoots,
+			Index: idx,
+			Roots: []*structs.CARoot{activeRoot},
+		})
+		require.NoError(err)
+		if respErr, ok := resp.(error); ok {
+			t.Fatalf("respErr: %v", respErr)
+		}
+		t.Logf("restored broken behavior")
+	}
+
+	// Shutdown s2pre and restart it to trigger the secondary CA init to correct
+	// the SigningKeyID.
+	s2pre.Shutdown()
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.DataDir = s2pre.config.DataDir
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.NodeName = s2pre.config.NodeName
+		c.NodeID = s2pre.config.NodeID
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	{ // verify that the root is now corrected
+		provider, activeRoot := s2.getCAProvider()
+		require.NotNil(provider)
+		require.NotNil(activeRoot)
+
+		activeIntermediate, err := provider.ActiveIntermediate()
+		require.NoError(err)
+
+		intermediateCert, err := connect.ParseCert(activeIntermediate)
+		require.NoError(err)
+
+		// Force this to be derived just from the root, not the intermediate.
+		expect := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+		require.Equal(expect, activeRoot.SigningKeyID)
+	}
+}
+
 func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	t.Parallel()
 
