@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 	"testing"
 
 	"github.com/coredns/coredns/plugin/erratic"
@@ -21,33 +20,22 @@ func TestReady(t *testing.T) {
 	e := &erratic.Erratic{}
 	plugins.Append(e, "erratic")
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		if err := rd.onStartup(); err != nil {
-			t.Fatalf("Unable to startup the readiness server: %v", err)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	if err := rd.onStartup(); err != nil {
+		t.Fatalf("Unable to startup the readiness server: %v", err)
+	}
 
 	defer rd.onFinalShutdown()
 
 	address := fmt.Sprintf("http://%s/ready", rd.ln.Addr().String())
 
-	wg.Add(1)
-	go func() {
-		response, err := http.Get(address)
-		if err != nil {
-			t.Fatalf("Unable to query %s: %v", address, err)
-		}
-		if response.StatusCode != 503 {
-			t.Errorf("Invalid status code: expecting %d, got %d", 503, response.StatusCode)
-		}
-		response.Body.Close()
-		wg.Done()
-	}()
-	wg.Wait()
+	response, err := http.Get(address)
+	if err != nil {
+		t.Fatalf("Unable to query %s: %v", address, err)
+	}
+	if response.StatusCode != 503 {
+		t.Errorf("Invalid status code: expecting %d, got %d", 503, response.StatusCode)
+	}
+	response.Body.Close()
 
 	// make it ready by giving erratic 3 queries.
 	m := new(dns.Msg)
@@ -56,7 +44,7 @@ func TestReady(t *testing.T) {
 	e.ServeDNS(context.TODO(), &test.ResponseWriter{}, m)
 	e.ServeDNS(context.TODO(), &test.ResponseWriter{}, m)
 
-	response, err := http.Get(address)
+	response, err = http.Get(address)
 	if err != nil {
 		t.Fatalf("Unable to query %s: %v", address, err)
 	}
