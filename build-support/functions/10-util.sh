@@ -58,6 +58,12 @@ function debug {
    fi
 }
 
+function debug_run {
+   debug "$@"
+   $@
+   return $?
+}
+
 function sed_i {
    if test "$(uname)" == "Darwin"
    then

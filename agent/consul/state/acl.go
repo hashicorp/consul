@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -558,6 +559,79 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 
 	// Return the reset index if we've already bootstrapped
 	return false, out.(*IndexEntry).Value, nil
+}
+
+// resolveACLLinks is used to populate the links Name given its ID as the object is inserted
+// into the Store. This will modify the links in place and should not be performed on data
+// already inserted into the store without copying first. This is an optimization so that when
+// the link is read back out of the Store, we hopefully will not have to copy the object being retrieved
+// to update the name. Unlike the older functions to operate specifically on role or policy links
+// this function does not itself handle the case where the id cannot be found. Instead the
+// getName function should handle that and return an error if necessary
+func (s *Store) resolveACLLinks(tx *memdb.Txn, links []agentpb.ACLLink, getName func(*memdb.Txn, string) (string, error)) (int, error) {
+	var numValid int
+	for linkIndex, link := range links {
+		if link.ID != "" {
+			name, err := getName(tx, link.ID)
+
+			if err != nil {
+				return 0, err
+			}
+
+			// the name doesn't matter here
+			if name != "" {
+				links[linkIndex].Name = name
+				numValid++
+			}
+		} else {
+			return 0, fmt.Errorf("Encountered an ACL resource linked by Name in the state store")
+		}
+	}
+	return numValid, nil
+}
+
+// fixupACLLinks is used to ensure data returned by read operations have the most up to date name
+// associated with the ID of the link. Ideally this will be a no-op if the names are already correct
+// however if a linked resource was renamed it might be stale. This function will treat the incoming
+// links with copy-on-write semantics and its output will indicate whether any modifications were made.
+func (s *Store) fixupACLLinks(tx *memdb.Txn, original []agentpb.ACLLink, getName func(*memdb.Txn, string) (string, error)) ([]agentpb.ACLLink, bool, error) {
+	owned := false
+	links := original
+
+	cloneLinks := func(l []agentpb.ACLLink, copyNumLinks int) []agentpb.ACLLink {
+		clone := make([]agentpb.ACLLink, copyNumLinks)
+		copy(clone, l[:copyNumLinks])
+		return clone
+	}
+
+	for linkIndex, link := range original {
+		name, err := getName(tx, link.ID)
+
+		if err != nil {
+			return nil, false, err
+		}
+
+		if name == "" {
+			if !owned {
+				// clone the original as we cannot modify anything stored in memdb
+				links = cloneLinks(original, linkIndex)
+				owned = true
+			}
+			// if already owned then we just don't append it.
+		} else if name != link.Name {
+			if !owned {
+				links = cloneLinks(original, linkIndex)
+				owned = true
+			}
+
+			// append the corrected link
+			links = append(links, agentpb.ACLLink{ID: link.ID, Name: name})
+		} else if owned {
+			links = append(links, link)
+		}
+	}
+
+	return links, owned, nil
 }
 
 func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, allowMissing bool) (int, error) {
