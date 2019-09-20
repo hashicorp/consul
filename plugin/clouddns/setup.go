@@ -18,9 +18,8 @@ import (
 var log = clog.NewWithPlugin("clouddns")
 
 func init() {
-	caddy.RegisterPlugin("clouddns", caddy.Plugin{
-		ServerType: "dns",
-		Action: func(c *caddy.Controller) error {
+	plugin.Register("clouddns",
+		func(c *caddy.Controller) error {
 			f := func(ctx context.Context, opt option.ClientOption) (gcpDNS, error) {
 				var err error
 				var client *gcp.Service
@@ -35,7 +34,7 @@ func init() {
 			}
 			return setup(c, f)
 		},
-	})
+	)
 }
 
 func setup(c *caddy.Controller, f func(ctx context.Context, opt option.ClientOption) (gcpDNS, error)) error {

@@ -16,12 +16,7 @@ import (
 
 var log = clog.NewWithPlugin("cache")
 
-func init() {
-	caddy.RegisterPlugin("cache", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("cache", setup) }
 
 func setup(c *caddy.Controller) error {
 	ca, err := cacheParse(c)

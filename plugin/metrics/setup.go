@@ -20,12 +20,7 @@ var (
 	registry = newReg()
 )
 
-func init() {
-	caddy.RegisterPlugin("prometheus", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("prometheus", setup) }
 
 func setup(c *caddy.Controller) error {
 	m, err := parse(c)

@@ -12,12 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func init() {
-	caddy.RegisterPlugin("template", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setupTemplate,
-	})
-}
+func init() { plugin.Register("template", setupTemplate) }
 
 func setupTemplate(c *caddy.Controller) error {
 	handler, err := templateParse(c)

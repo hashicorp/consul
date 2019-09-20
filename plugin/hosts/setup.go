@@ -17,12 +17,7 @@ import (
 
 var log = clog.NewWithPlugin("hosts")
 
-func init() {
-	caddy.RegisterPlugin("hosts", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("hosts", setup) }
 
 func periodicHostsUpdate(h *Hosts) chan bool {
 	parseChan := make(chan bool)

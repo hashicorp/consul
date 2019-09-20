@@ -13,12 +13,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func init() {
-	caddy.RegisterPlugin("acl", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("acl", setup) }
 
 func newDefaultFilter() *iptree.Tree {
 	defaultFilter := iptree.NewTree()

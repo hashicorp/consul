@@ -14,12 +14,7 @@ import (
 	"github.com/caddyserver/caddy/caddyfile"
 )
 
-func init() {
-	caddy.RegisterPlugin("grpc", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("grpc", setup) }
 
 func setup(c *caddy.Controller) error {
 	g, err := parseGRPC(c)

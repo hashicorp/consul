@@ -9,12 +9,7 @@ import (
 	"github.com/caddyserver/caddy"
 )
 
-func init() {
-	caddy.RegisterPlugin("ready", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("ready", setup) }
 
 func setup(c *caddy.Controller) error {
 	addr, err := parse(c)

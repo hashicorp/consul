@@ -10,12 +10,7 @@ import (
 	"github.com/caddyserver/caddy"
 )
 
-func init() {
-	caddy.RegisterPlugin("nsid", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("nsid", setup) }
 
 func setup(c *caddy.Controller) error {
 	nsid, err := nsidParse(c)

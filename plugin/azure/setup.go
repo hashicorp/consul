@@ -17,12 +17,7 @@ import (
 
 var log = clog.NewWithPlugin("azure")
 
-func init() {
-	caddy.RegisterPlugin("azure", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("azure", setup) }
 
 func setup(c *caddy.Controller) error {
 	env, keys, fall, err := parse(c)

@@ -15,12 +15,7 @@ import (
 
 var log = clog.NewWithPlugin("dnstap")
 
-func init() {
-	caddy.RegisterPlugin("dnstap", caddy.Plugin{
-		ServerType: "dns",
-		Action:     wrapSetup,
-	})
-}
+func init() { plugin.Register("dnstap", wrapSetup) }
 
 func wrapSetup(c *caddy.Controller) error {
 	if err := setup(c); err != nil {

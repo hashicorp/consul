@@ -15,12 +15,7 @@ import (
 
 var log = clog.NewWithPlugin("etcd")
 
-func init() {
-	caddy.RegisterPlugin("etcd", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("etcd", setup) }
 
 func setup(c *caddy.Controller) error {
 	e, err := etcdParse(c)

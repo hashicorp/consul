@@ -34,12 +34,7 @@ import (
 
 var log = clog.NewWithPlugin("kubernetes")
 
-func init() {
-	caddy.RegisterPlugin("kubernetes", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("kubernetes", setup) }
 
 func setup(c *caddy.Controller) error {
 	klog.SetOutput(os.Stdout)

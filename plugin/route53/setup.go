@@ -25,9 +25,8 @@ import (
 var log = clog.NewWithPlugin("route53")
 
 func init() {
-	caddy.RegisterPlugin("route53", caddy.Plugin{
-		ServerType: "dns",
-		Action: func(c *caddy.Controller) error {
+	plugin.Register("route53",
+		func(c *caddy.Controller) error {
 			f := func(credential *credentials.Credentials) route53iface.Route53API {
 				return route53.New(session.Must(session.NewSession(&aws.Config{
 					Credentials: credential,
@@ -35,7 +34,7 @@ func init() {
 			}
 			return setup(c, f)
 		},
-	})
+	)
 }
 
 func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Route53API) error {

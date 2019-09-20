@@ -12,12 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func init() {
-	caddy.RegisterPlugin("log", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("log", setup) }
 
 func setup(c *caddy.Controller) error {
 	rules, err := logParse(c)

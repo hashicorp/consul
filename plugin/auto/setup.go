@@ -18,12 +18,7 @@ import (
 
 var log = clog.NewWithPlugin("auto")
 
-func init() {
-	caddy.RegisterPlugin("auto", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("auto", setup) }
 
 func setup(c *caddy.Controller) error {
 	a, err := autoParse(c)

@@ -20,7 +20,7 @@ import (
 )
 
 // removed has the names of the plugins that need to error on startup.
-var removed = []string{"reverse"}
+var removed = []string{""}
 
 func setup(c *caddy.Controller) error {
 	c.Next()
@@ -29,10 +29,7 @@ func setup(c *caddy.Controller) error {
 }
 
 func init() {
-	for _, plugin := range removed {
-		caddy.RegisterPlugin(plugin, caddy.Plugin{
-			ServerType: "dns",
-			Action:     setup,
-		})
+	for _, plug := range removed {
+		plugin.Register(plug, setup)
 	}
 }

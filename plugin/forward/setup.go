@@ -16,12 +16,7 @@ import (
 	"github.com/caddyserver/caddy/caddyfile"
 )
 
-func init() {
-	caddy.RegisterPlugin("forward", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("forward", setup) }
 
 func setup(c *caddy.Controller) error {
 	f, err := parseForward(c)

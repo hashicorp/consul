@@ -10,12 +10,7 @@ import (
 
 var log = clog.NewWithPlugin("rewrite")
 
-func init() {
-	caddy.RegisterPlugin("rewrite", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("rewrite", setup) }
 
 func setup(c *caddy.Controller) error {
 	rewrites, err := rewriteParse(c)
