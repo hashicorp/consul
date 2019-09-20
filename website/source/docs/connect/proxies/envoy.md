@@ -71,6 +71,7 @@ The dynamic configuration Consul Connect provides to each Envoy instance include
  - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
    outgoing connections.
  - L7 configuration including timeouts and protocol-specific options.
+ - Configuration to [expose specific HTTP paths](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
 
 For more information on the parts of the Envoy proxy runtime configuration
 that are currently controllable via Consul Connect see [Dynamic

@@ -66,6 +66,19 @@ example shows all possible fields, but note that only a few are required.
       "upstreams": [],
       "mesh_gateway": {
         "mode": "local"
+      },
+      "expose": {
+        "checks": true,
+        "paths": [
+          {
+            "path": "/healthz",
+            "protocol": "http2",
+            "tls_skip_verify": false,
+            "key_file": "key.pem",
+            "cert_file": "cert.pem",
+            "ca_file": "ca.pem"
+          }
+       ]
       }
     },
     "connect": {
