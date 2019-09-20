@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"io/ioutil"
 	"log"
 )
 
@@ -355,8 +354,11 @@ type ExposePath struct {
 	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
 	CAFile string `json:",omitempty"`
 
-	// CACert contains the PEM encoded CA file read from CAFile
-	CACert string
+	// CertFile is the path fo the PEM encoded client certificate to authenticate Envoy
+	CertFile string `json:",omitempty"`
+
+	// KeyFile is the path fo the PEM encoded client certificate to authenticate Envoy
+	KeyFile string `json:",omitempty"`
 
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool
@@ -385,7 +387,8 @@ func (p *ExposePath) ToAPI() api.ExposePath {
 		Protocol:      p.Protocol,
 		TLSSkipVerify: p.TLSSkipVerify,
 		CAFile:        p.CAFile,
-		CACert:        p.CACert,
+		CertFile:      p.CertFile,
+		KeyFile:       p.KeyFile,
 	}
 }
 
@@ -396,15 +399,6 @@ func (e *ExposeConfig) Finalize(l *log.Logger) {
 
 		if path.Protocol == "" {
 			path.Protocol = defaultExposeProtocol
-		}
-
-		if path.CAFile != "" {
-			b, err := ioutil.ReadFile(path.CAFile)
-			if err != nil {
-				l.Printf("[WARN] envoy: failed to read CAFile '%s': %v", path.CAFile, err)
-				continue
-			}
-			path.CACert = string(b)
 		}
 	}
 }

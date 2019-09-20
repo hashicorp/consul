@@ -1042,6 +1042,106 @@ func TestParseConfigEntry(t *testing.T) {
 				Name: "main",
 			},
 		},
+		{
+			name: "expose paths: kitchen sink proxy defaults",
+			snake: `
+				kind = "proxy-defaults"
+				name = "global"
+				expose = {
+					checks = true
+					paths = [
+						{
+							local_path_port = 8080
+							listener_port = 21500
+							path = "/healthz"
+							protocol = "http2"
+							tls_skip_verify = true
+							ca_file = "ca.pem"
+							cert_file = "cert.pem"
+							key_file = "key.pem"
+						}
+					]
+				}`,
+			camel: `
+				Kind = "proxy-defaults"
+				Name = "global"
+				Expose = {
+					Checks = true
+					Paths = [
+						{
+							LocalPathPort = 8080
+							ListenerPort = 21500
+							Path = "/healthz"
+							Protocol = "http2"
+							TLSSkipVerify = true
+							CAFile = "ca.pem"
+							CertFile = "cert.pem"
+							KeyFile = "key.pem"
+						}
+					]
+				}`,
+			snakeJSON: `
+			{
+				"kind": "proxy-defaults",
+				"name": "global",
+				"expose": {
+					"checks": true,
+					"paths": [
+						{
+							"local_path_port": 8080,
+							"listener_port": 21500,
+							"path": "/healthz",
+							"protocol": "http2",
+							"tls_skip_verify": true,
+							"ca_file": "ca.pem",
+							"cert_file": "cert.pem",
+							"key_file": "key.pem"
+						}
+					]
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "proxy-defaults",
+				"Name": "global",
+				"Expose": {
+					"Checks": true,
+					"Paths": [
+						{
+							"LocalPathPort": 8080,
+							"ListenerPort": 21500,
+							"Path": "/healthz",
+							"Protocol": "http2",
+							"TLSSkipVerify": true,
+							"CAFile": "ca.pem",
+							"CertFile": "cert.pem",
+							"KeyFile": "key.pem"
+						}
+					]
+				}
+			}
+			`,
+			expect: &api.ProxyConfigEntry{
+				Kind: "proxy-defaults",
+				Name: "global",
+				Expose: api.ExposeConfig{
+					Checks: true,
+					Paths: []api.ExposePath{
+						{
+							ListenerPort:  21500,
+							Path:          "/healthz",
+							LocalPathPort: 8080,
+							Protocol:      "http2",
+							TLSSkipVerify: true,
+							CAFile:        "ca.pem",
+							CertFile:      "cert.pem",
+							KeyFile:       "key.pem",
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

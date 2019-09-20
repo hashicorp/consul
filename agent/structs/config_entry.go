@@ -299,10 +299,19 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, translateKeysDict map[string]string, err error) {
 	switch kind {
 	case ProxyDefaults:
-		return nil, map[string]string{
-			"mesh_gateway": "meshgateway",
-			"config":       "",
-		}, nil
+		return []string{
+				"expose.paths",
+				"Expose.Paths",
+			}, map[string]string{
+				"local_path_port": "localpathport",
+				"listener_port":   "listenerport",
+				"key_file":        "keyfile",
+				"cert_file":       "certfile",
+				"ca_file":         "cafile",
+				"tls_skip_verify": "tlsskipverify",
+				"mesh_gateway":    "meshgateway",
+				"config":          "",
+			}, nil
 	case ServiceDefaults:
 		return nil, map[string]string{
 			"mesh_gateway": "meshgateway",

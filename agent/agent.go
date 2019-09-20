@@ -87,6 +87,11 @@ const (
 	defaultQueryTime = 300 * time.Second
 )
 
+var (
+	httpAddrRE = regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
+	grpcAddrRE = regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
+)
+
 type configSource int
 
 const (
@@ -3753,28 +3758,24 @@ func listenerPortKey(svcID, checkID string) string {
 
 // grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]
 func grpcInjectAddr(existing string, ip string, port int) string {
-	r := regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
-
 	portRepl := fmt.Sprintf("${1}:%d${3}", port)
-	out := r.ReplaceAllString(existing, portRepl)
+	out := grpcAddrRE.ReplaceAllString(existing, portRepl)
 
 	addrRepl := fmt.Sprintf("%s${2}${3}", ip)
-	out = r.ReplaceAllString(out, addrRepl)
+	out = grpcAddrRE.ReplaceAllString(out, addrRepl)
 
 	return out
 }
 
 // httpInjectAddr injects a port then an IP into a URL
 func httpInjectAddr(url string, ip string, port int) string {
-	r := regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
-
 	portRepl := fmt.Sprintf("${1}${2}:%d${4}${5}", port)
-	out := r.ReplaceAllString(url, portRepl)
+	out := httpAddrRE.ReplaceAllString(url, portRepl)
 
 	// Ensure that ipv6 addr is enclosed in brackets (RFC 3986)
 	ip = fixIPv6(ip)
 	addrRepl := fmt.Sprintf("${1}%s${3}${4}${5}", ip)
-	out = r.ReplaceAllString(out, addrRepl)
+	out = httpAddrRE.ReplaceAllString(out, addrRepl)
 
 	return out
 }

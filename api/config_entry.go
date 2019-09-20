@@ -87,8 +87,11 @@ type ExposePath struct {
 	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
 	CAFile string `json:",omitempty"`
 
-	// CACert contains the PEM encoded CA file read from CAFile
-	CACert string `json:",omitempty"`
+	// CertFile is the path fo the PEM encoded client certificate to authenticate Envoy
+	CertFile string `json:",omitempty"`
+
+	// KeyFile is the path fo the PEM encoded client certificate to authenticate Envoy
+	KeyFile string `json:",omitempty"`
 }
 
 type ServiceConfigEntry struct {

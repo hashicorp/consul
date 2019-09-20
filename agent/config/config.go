@@ -554,6 +554,12 @@ type ExposePath struct {
 
 	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
 	CAFile *string `json:"ca_file,omitempty" hcl:"ca_file" mapstructure:"ca_file"`
+
+	// CertFile is the path to the PEM encoded CA cert used to verify client certificates.
+	CertFile *string `json:"cert_file,omitempty" hcl:"cert_file" mapstructure:"cert_file"`
+
+	// KeyFile is the path to the PEM encoded CA cert used to verify client certificates.
+	KeyFile *string `json:"key_file,omitempty" hcl:"key_file" mapstructure:"key_file"`
 }
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.

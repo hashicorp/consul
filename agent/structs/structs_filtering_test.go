@@ -104,8 +104,13 @@ var expectedFieldConfigPaths bexpr.FieldConfigurations = bexpr.FieldConfiguratio
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
-	"CACert": &bexpr.FieldConfiguration{
-		StructFieldName:     "CACert",
+	"CertFile": &bexpr.FieldConfiguration{
+		StructFieldName:     "CertFile",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"KeyFile": &bexpr.FieldConfiguration{
+		StructFieldName:     "KeyFile",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
