@@ -225,12 +225,12 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func NewTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	return newTestServerConfigT(t, cb)
 }
 
 // newTestServerConfigT is the internal helper for NewTestServerConfigT.
-func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func newTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
@@ -263,7 +263,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
-	
+
 	if t != nil {
 		// if you really want this output ensure to pass a valid t
 		t.Logf("CONFIG JSON: %s", string(b))
