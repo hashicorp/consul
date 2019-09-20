@@ -92,6 +92,9 @@ type ExposePath struct {
 
 	// KeyFile is the path fo the PEM encoded client certificate to authenticate Envoy
 	KeyFile string `json:",omitempty"`
+
+	// ParsedFromCheck is set if this path was parsed from a registered check
+	ParsedFromCheck bool
 }
 
 type ServiceConfigEntry struct {

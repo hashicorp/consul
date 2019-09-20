@@ -381,14 +381,15 @@ func (e *ExposeConfig) ToAPI() api.ExposeConfig {
 
 func (p *ExposePath) ToAPI() api.ExposePath {
 	return api.ExposePath{
-		ListenerPort:  p.ListenerPort,
-		Path:          p.Path,
-		LocalPathPort: p.LocalPathPort,
-		Protocol:      p.Protocol,
-		TLSSkipVerify: p.TLSSkipVerify,
-		CAFile:        p.CAFile,
-		CertFile:      p.CertFile,
-		KeyFile:       p.KeyFile,
+		ListenerPort:    p.ListenerPort,
+		Path:            p.Path,
+		LocalPathPort:   p.LocalPathPort,
+		Protocol:        p.Protocol,
+		TLSSkipVerify:   p.TLSSkipVerify,
+		CAFile:          p.CAFile,
+		CertFile:        p.CertFile,
+		KeyFile:         p.KeyFile,
+		ParsedFromCheck: p.ParsedFromCheck,
 	}
 }
 
