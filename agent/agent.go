@@ -454,6 +454,9 @@ func (a *Agent) Start() error {
 	// checks.
 	go a.reapServices()
 
+	// Periodically check for orphan sidecar proxy services
+	go a.cleanSidecars()
+
 	// Start handling events.
 	go a.handleEvents()
 
@@ -3342,6 +3345,35 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
 
 	return nil
+}
+
+func (a *Agent) cleanSidecars() {
+	tick := time.Tick(5 * time.Minute)
+	for {
+		select {
+		case <-a.shutdownCh:
+			return
+		case <-tick:
+		}
+
+		a.stateLock.Lock()
+		services := a.State.Services()
+		for _, svc := range services {
+			if !svc.LocallyRegisteredAsSidecar {
+				continue
+			}
+
+			a.logger.Printf("[WARN] agent: removing orphan sidecar service %s", svc.ID)
+			_, hasTarget := services[a.sidecarTargetServiceID(svc.ID)]
+			if !hasTarget {
+				err := a.removeServiceLocked(svc.ID, true)
+				if err != nil {
+					a.logger.Printf("[ERR] agent: error removing orphan sidecar service %s: %s", svc.ID, err)
+				}
+			}
+		}
+		a.stateLock.Unlock()
+	}
 }
 
 // registerCache configures the cache and registers all the supported

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/ipaddr"
@@ -11,6 +12,10 @@ import (
 
 func (a *Agent) sidecarServiceID(serviceID string) string {
 	return serviceID + "-sidecar-proxy"
+}
+
+func (a *Agent) sidecarTargetServiceID(serviceID string) string {
+	return strings.TrimSuffix(serviceID, "-sidecar-proxy")
 }
 
 // sidecarServiceFromNodeService returns a *structs.NodeService representing a
