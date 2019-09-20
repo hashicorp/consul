@@ -17,7 +17,7 @@ func EncodeInterface(t structs.MessageType, message interface{}) ([]byte, error)
 	if marshaller, ok := message.(ProtoMarshaller); ok {
 		return Encode(t, marshaller)
 	}
-	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface")
+	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
 }
 
 func Encode(t structs.MessageType, message ProtoMarshaller) ([]byte, error) {
