@@ -59,7 +59,7 @@ The table below shows this endpoint's support for
 {
     "Kind": "service-defaults",
     "Name": "web",
-    "Protocol": "http",
+    "Protocol": "http"
 }
 ```
 
