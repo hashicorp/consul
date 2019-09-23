@@ -171,7 +171,7 @@ definition](/docs/connect/registration/service-registration.html) that is
 actually registered.
 
 To learn about other options that can be configured centrally see the 
-[Configuration Entries](/docs/agent/agent/config_entries.html) docs.
+[Configuration Entries](/docs/agent/config_entries.html) docs.
 
 ### Proxy Config Options
 
