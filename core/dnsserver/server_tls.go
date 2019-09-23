@@ -78,5 +78,4 @@ func (s *ServerTLS) OnStartupComplete() {
 	if out != "" {
 		fmt.Print(out)
 	}
-	return
 }

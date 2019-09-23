@@ -79,7 +79,7 @@ func TestExternal(t *testing.T) {
 type external struct{}
 
 func (external) HasSynced() bool                              { return true }
-func (external) Run()                                         { return }
+func (external) Run()                                         {}
 func (external) Stop() error                                  { return nil }
 func (external) EpIndexReverse(string) []*object.Endpoints    { return nil }
 func (external) SvcIndexReverse(string) []*object.Service     { return nil }

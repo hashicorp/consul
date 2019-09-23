@@ -82,7 +82,6 @@ func (s *ServerHTTPS) OnStartupComplete() {
 	if out != "" {
 		fmt.Print(out)
 	}
-	return
 }
 
 // Stop stops the server. It blocks until the server is totally stopped.

@@ -521,7 +521,7 @@ type APIConnServeTest struct {
 }
 
 func (a APIConnServeTest) HasSynced() bool                         { return !a.notSynced }
-func (APIConnServeTest) Run()                                      { return }
+func (APIConnServeTest) Run()                                      {}
 func (APIConnServeTest) Stop() error                               { return nil }
 func (APIConnServeTest) EpIndexReverse(string) []*object.Endpoints { return nil }
 func (APIConnServeTest) SvcIndexReverse(string) []*object.Service  { return nil }

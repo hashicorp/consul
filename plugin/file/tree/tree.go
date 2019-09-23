@@ -290,7 +290,6 @@ func (t *Tree) Delete(rr dns.RR) {
 	if el.Empty() {
 		t.deleteNode(rr)
 	}
-	return
 }
 
 // DeleteNode deletes the node that matches rr according to Less().

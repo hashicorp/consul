@@ -61,7 +61,7 @@ func TestEndpointHostname(t *testing.T) {
 type APIConnServiceTest struct{}
 
 func (APIConnServiceTest) HasSynced() bool                           { return true }
-func (APIConnServiceTest) Run()                                      { return }
+func (APIConnServiceTest) Run()                                      {}
 func (APIConnServiceTest) Stop() error                               { return nil }
 func (APIConnServiceTest) PodIndex(string) []*object.Pod             { return nil }
 func (APIConnServiceTest) SvcIndexReverse(string) []*object.Service  { return nil }

@@ -43,7 +43,6 @@ func (h *health) OnStartup() error {
 		// We're always healthy.
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, http.StatusText(http.StatusOK))
-		return
 	})
 
 	go func() { http.Serve(h.ln, h.mux) }()

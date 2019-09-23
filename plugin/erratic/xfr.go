@@ -48,5 +48,4 @@ func xfr(state request.Request, truncate bool) {
 
 	tr.Out(state.W, state.Req, ch)
 	state.W.Hijack()
-	return
 }

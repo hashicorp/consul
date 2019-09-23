@@ -13,7 +13,7 @@ import (
 type APIConnTest struct{}
 
 func (APIConnTest) HasSynced() bool                          { return true }
-func (APIConnTest) Run()                                     { return }
+func (APIConnTest) Run()                                     {}
 func (APIConnTest) Stop() error                              { return nil }
 func (APIConnTest) PodIndex(string) []*object.Pod            { return nil }
 func (APIConnTest) SvcIndexReverse(string) []*object.Service { return nil }

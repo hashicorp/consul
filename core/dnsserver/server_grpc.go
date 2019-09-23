@@ -93,7 +93,6 @@ func (s *ServergRPC) OnStartupComplete() {
 	if out != "" {
 		fmt.Print(out)
 	}
-	return
 }
 
 // Stop stops the server. It blocks until the server is
@@ -165,8 +164,8 @@ func (r *gRPCresponse) Write(b []byte) (int, error) {
 // These methods implement the dns.ResponseWriter interface from Go DNS.
 func (r *gRPCresponse) Close() error              { return nil }
 func (r *gRPCresponse) TsigStatus() error         { return nil }
-func (r *gRPCresponse) TsigTimersOnly(b bool)     { return }
-func (r *gRPCresponse) Hijack()                   { return }
+func (r *gRPCresponse) TsigTimersOnly(b bool)     {}
+func (r *gRPCresponse) Hijack()                   {}
 func (r *gRPCresponse) LocalAddr() net.Addr       { return r.localAddr }
 func (r *gRPCresponse) RemoteAddr() net.Addr      { return r.remoteAddr }
 func (r *gRPCresponse) WriteMsg(m *dns.Msg) error { r.Msg = m; return nil }

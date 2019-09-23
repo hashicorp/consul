@@ -51,10 +51,10 @@ func (t *ResponseWriter) Close() error { return nil }
 func (t *ResponseWriter) TsigStatus() error { return nil }
 
 // TsigTimersOnly implement dns.ResponseWriter interface.
-func (t *ResponseWriter) TsigTimersOnly(bool) { return }
+func (t *ResponseWriter) TsigTimersOnly(bool) {}
 
 // Hijack implement dns.ResponseWriter interface.
-func (t *ResponseWriter) Hijack() { return }
+func (t *ResponseWriter) Hijack() {}
 
 // ResponseWriter6 returns fixed client and remote address in IPv6.  The remote
 // address is always fe80::42:ff:feca:4c65 and port 40212. The local address is always ::1 and port 53.

@@ -302,7 +302,6 @@ func (s *Server) OnStartupComplete() {
 	if out != "" {
 		fmt.Print(out)
 	}
-	return
 }
 
 // Tracer returns the tracer in the server if defined.

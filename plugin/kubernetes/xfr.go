@@ -184,7 +184,6 @@ func (k *Kubernetes) transfer(c chan dns.RR, zone string) {
 			}
 		}
 	}
-	return
 }
 
 // emitAddressRecord generates a new A or AAAA record based on the msg.Service and writes it to
