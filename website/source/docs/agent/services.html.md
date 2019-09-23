@@ -153,6 +153,30 @@ For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
 
+### Checks
+
+A service can have an associated health check. This is a powerful feature as
+it allows a web balancer to gracefully remove failing nodes, a database
+to replace a failed secondary, etc. The health check is strongly integrated in
+the DNS interface as well. If a service is failing its health check or a
+node has any failing system-level check, the DNS interface will omit that
+node from any service query.
+
+There are several check types that have differing required options as
+[documented here](/docs/agent/checks.html). The check name is automatically
+generated as `service:<service-id>`. If there are multiple service checks
+registered, the ID will be generated as `service:<service-id>:<num>` where
+`<num>` is an incrementing number starting from `1`.
+
+-> **Note:** There is more information about [checks here](/docs/agent/checks.html).
+
+### Proxy
+
+Service definitions allow for an optional proxy registration. Proxies used with Connect
+are registered as services in Consul's catalog. 
+See the [Proxy Service Registration](/docs/connect/registration/service-registration.html) reference 
+for the available configuration options. 
+
 ### Connect
 
 The `kind` field is used to optionally identify the service as a [Connect
@@ -182,23 +206,6 @@ it is an error to also specify a sidecar service registration.
 supported "Managed" proxies which are specified with the `connect.proxy` field.
 [Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated.html)
 and the `connect.proxy` field will be removed in a future major release.
-
-### Checks
-
-A service can have an associated health check. This is a powerful feature as
-it allows a web balancer to gracefully remove failing nodes, a database
-to replace a failed secondary, etc. The health check is strongly integrated in
-the DNS interface as well. If a service is failing its health check or a
-node has any failing system-level check, the DNS interface will omit that
-node from any service query.
-
-There are several check types that have differing required options as
-[documented here](/docs/agent/checks.html). The check name is automatically
-generated as `service:<service-id>`. If there are multiple service checks
-registered, the ID will be generated as `service:<service-id>:<num>` where
-`<num>` is an incrementing number starting from `1`.
-
--> **Note:** There is more information about [checks here](/docs/agent/checks.html).
 
 ### DNS SRV Weights
 
