@@ -1,3 +1,5 @@
+# bou.ke/monkey v1.0.1
+bou.ke/monkey
 # cloud.google.com/go v0.26.0
 cloud.google.com/go/compute/metadata
 cloud.google.com/go/civil

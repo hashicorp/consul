@@ -7,6 +7,7 @@ replace github.com/hashicorp/consul/api => ./api
 replace github.com/hashicorp/consul/sdk => ./sdk
 
 require (
+	bou.ke/monkey v1.0.1
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest v10.15.3+incompatible // indirect
 	github.com/Jeffail/gabs v1.1.0 // indirect
