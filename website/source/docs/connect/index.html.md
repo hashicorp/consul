@@ -53,8 +53,8 @@ There are several ways to try Connect in different environments.
 
  - The [Kubernetes guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube)
    walks you through configuring Consul Connect in Kubernetes using the Helm
-   chart, and using intentions. You can run the guide on Minikube or an extant
-   Kubernets cluster.
+   chart, and using intentions. You can run the guide on Minikube or an existing
+   Kubernetes cluster.
 
  - The [observability guide](https://learn.hashicorp.com/consul/getting-started-k8s/l7-observability-k8s)
    shows how to deploy a basic metrics collection and visualization pipeline on
