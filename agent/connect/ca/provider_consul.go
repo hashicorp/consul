@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -48,7 +47,7 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 	}
 	c.config = config
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
-	c.id = strings.Replace(fmt.Sprintf("% x", hash), " ", ":", -1)
+	c.id = connect.HexString(hash[:])
 	c.clusterID = clusterID
 	c.isRoot = isRoot
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})

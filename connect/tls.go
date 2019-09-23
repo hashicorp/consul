@@ -235,7 +235,7 @@ func newServerSideVerifier(client *api.Client, serviceName string) verifierFunc 
 		req := &api.AgentAuthorizeParams{
 			Target:           serviceName,
 			ClientCertURI:    certURI.URI().String(),
-			ClientCertSerial: connect.HexString(leaf.SerialNumber.Bytes()),
+			ClientCertSerial: connect.EncodeSerialNumber(leaf.SerialNumber),
 		}
 		resp, err := client.Agent().ConnectAuthorize(req)
 		if err != nil {
