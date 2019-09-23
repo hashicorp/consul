@@ -585,11 +585,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"tls_skip_verify":       "TLSSkipVerify",
 
 			// Common CA config
-			"leaf_cert_ttl":      "LeafCertTTL",
-			"csr_max_per_second": "CSRMaxPerSecond",
-			"csr_max_concurrent": "CSRMaxConcurrent",
-			"private_key_type":   "PrivateKeyType",
-			"private_key_bits":   "PrivateKeyBits",
+			"leaf_cert_ttl":               "LeafCertTTL",
+			"csr_max_per_second":          "CSRMaxPerSecond",
+			"csr_max_concurrent":          "CSRMaxConcurrent",
+			"private_key_type":            "PrivateKeyType",
+			"private_key_bits":            "PrivateKeyBits",
+			"force_without_cross_signing": "ForceWithoutCrossSigning",
 		})
 	}
 

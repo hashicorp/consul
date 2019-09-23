@@ -27,6 +27,7 @@ type CommonCAProviderConfig struct {
 	SkipValidate     bool
 	CSRMaxPerSecond  float32
 	CSRMaxConcurrent int
+	ForceWithoutCrossSigning bool
 }
 
 // ConsulCAProviderConfig is the config for the built-in Consul CA provider.

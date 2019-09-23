@@ -183,6 +183,23 @@ func (s *ConnectCA) ConfigurationSet(
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
+	commonConfig, err := config.GetCommonConfig()
+	if err != nil {
+		return err
+	}
+	if commonConfig.LeafCertTTL < newProvider.MinimumLeafTTL() {
+		if commonConfig.ForceWithoutCrossSigning {
+			s.srv.logger.Printf("[INFO] configured leaf TTL of %v is less than provider minimum of %v. "+
+				"ForceWithoutCrossSigning is set, continuing with operation",
+				commonConfig.LeafCertTTL, newProvider.MinimumLeafTTL())
+		} else {
+			return fmt.Errorf("configured leaf TTL of %v is less than provider minimum of %v. "+
+				"Use the ForceWithoutCrossSigning parameter to force it anyway",
+				commonConfig.LeafCertTTL, newProvider.MinimumLeafTTL())
+		}
+
+	}
+
 	newRootPEM, err := newProvider.ActiveRoot()
 	if err != nil {
 		return err

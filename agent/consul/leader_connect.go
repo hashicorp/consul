@@ -225,8 +225,8 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	}
 
 	// Check if the configured leaf cert TTL would be less than allowed by the provider.
-	// If so, abort with an error. Also, grab the configured PK type for later use when
-	// creating CSRs.
+	// If so, abort with an error, unless the ForceWithoutCrossSigning parameter has been
+	// set to true. Also, grab the configured PK type for later use when creating CSRs.
 	commonConfig, err := conf.GetCommonConfig()
 	if err != nil {
 		return err
@@ -236,8 +236,15 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		s.logger.Printf("[WARN] leaf TTL not configured, setting to provider minimum of %v",
 			provider.MinimumLeafTTL())
 	} else if commonConfig.LeafCertTTL < provider.MinimumLeafTTL() {
-		return fmt.Errorf("configured leaf TTL of %v is less than provider minimum of %v",
-			commonConfig.LeafCertTTL, provider.MinimumLeafTTL())
+		if commonConfig.ForceWithoutCrossSigning {
+			s.logger.Printf("[INFO] configured leaf TTL of %v is less than provider minimum of %v. "+
+				"ForceWithoutCrossSigning is set, continuing with operation",
+				commonConfig.LeafCertTTL, provider.MinimumLeafTTL())
+		} else {
+			return fmt.Errorf("configured leaf TTL of %v is less than provider minimum of %v. "+
+				"Use the ForceWithoutCrossSigning parameter to force it anyway",
+				commonConfig.LeafCertTTL, provider.MinimumLeafTTL())
+		}
 	}
 	rootCA.PrivateKeyType = commonConfig.PrivateKeyType
 	rootCA.PrivateKeyBits = commonConfig.PrivateKeyBits

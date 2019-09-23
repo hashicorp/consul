@@ -282,8 +282,20 @@ type CommonCAProviderConfig struct {
 	// is used. This is ignored if CSRMaxPerSecond is non-zero.
 	CSRMaxConcurrent int
 
+	// PrivateKeyType sets the algorithm used to create private keys for certificates.
+	// Valid choices are "ec" for ECDSA, or "rsa" for RSA.
 	PrivateKeyType string
+
+	// PrivateKeyBits specifies the key strength used in private keys. The valid choices
+	// depend on the `PrivateKeyType` but are currently 256, 384, and 521 for ECDSA,
+	// and 2048 or 4096 for RSA.
 	PrivateKeyBits int
+
+	// ForceWithoutCrossSigning controls the behavior when the operator attempts to
+	// configure a new CA provider whose `MinimumLeafTTL` is greater than the configured
+	// value for `LeafCertTTL`. By default, Consul will refuse to configure the new
+	// provider unless `ForceWithoutCrossSigning` is true.
+	ForceWithoutCrossSigning bool
 }
 
 func (c CommonCAProviderConfig) Validate() error {
