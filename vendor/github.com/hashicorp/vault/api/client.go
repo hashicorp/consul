@@ -16,27 +16,34 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-cleanhttp"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/go-rootcerts"
-	"github.com/hashicorp/vault/helper/parseutil"
+	rootcerts "github.com/hashicorp/go-rootcerts"
+	"github.com/hashicorp/vault/sdk/helper/consts"
+	"github.com/hashicorp/vault/sdk/helper/parseutil"
 	"golang.org/x/net/http2"
 	"golang.org/x/time/rate"
 )
 
 const EnvVaultAddress = "VAULT_ADDR"
+const EnvVaultAgentAddr = "VAULT_AGENT_ADDR"
 const EnvVaultCACert = "VAULT_CACERT"
 const EnvVaultCAPath = "VAULT_CAPATH"
 const EnvVaultClientCert = "VAULT_CLIENT_CERT"
 const EnvVaultClientKey = "VAULT_CLIENT_KEY"
 const EnvVaultClientTimeout = "VAULT_CLIENT_TIMEOUT"
-const EnvVaultInsecure = "VAULT_SKIP_VERIFY"
+const EnvVaultSkipVerify = "VAULT_SKIP_VERIFY"
+const EnvVaultNamespace = "VAULT_NAMESPACE"
 const EnvVaultTLSServerName = "VAULT_TLS_SERVER_NAME"
 const EnvVaultWrapTTL = "VAULT_WRAP_TTL"
 const EnvVaultMaxRetries = "VAULT_MAX_RETRIES"
 const EnvVaultToken = "VAULT_TOKEN"
 const EnvVaultMFA = "VAULT_MFA"
 const EnvRateLimit = "VAULT_RATE_LIMIT"
+
+// Deprecated values
+const EnvVaultAgentAddress = "VAULT_AGENT_ADDR"
+const EnvVaultInsecure = "VAULT_SKIP_VERIFY"
 
 // WrappingLookupFunc is a function that, given an HTTP verb and a path,
 // returns an optional string duration to be used for response wrapping (e.g.
@@ -54,6 +61,10 @@ type Config struct {
 	// cert or want to enable insecure mode, you need to specify a custom
 	// HttpClient.
 	Address string
+
+	// AgentAddress is the address of the local Vault agent. This should be a
+	// complete URL such as "http://vault.example.com".
+	AgentAddress string
 
 	// HttpClient is the HTTP client to use. Vault sets sane defaults for the
 	// http.Client and its associated http.Transport created in DefaultConfig.
@@ -83,6 +94,14 @@ type Config struct {
 	// then that limiter will be used. Note that an empty Limiter
 	// is equivalent blocking all events.
 	Limiter *rate.Limiter
+
+	// OutputCurlString causes the actual request to return an error of type
+	// *OutputStringError. Type asserting the error message will allow
+	// fetching a cURL-compatible string for the operation.
+	//
+	// Note: It is not thread-safe to set this and make concurrent requests
+	// with the same client. Cloning a client will not clone this value.
+	OutputCurlString bool
 }
 
 // TLSConfig contains the parameters needed to configure TLS on the HTTP client
@@ -120,7 +139,7 @@ type TLSConfig struct {
 func DefaultConfig() *Config {
 	config := &Config{
 		Address:    "https://127.0.0.1:8200",
-		HttpClient: cleanhttp.DefaultClient(),
+		HttpClient: cleanhttp.DefaultPooledClient(),
 	}
 	config.HttpClient.Timeout = time.Second * 60
 
@@ -214,6 +233,7 @@ func (c *Config) ConfigureTLS(t *TLSConfig) error {
 // there is an error, no configuration value is updated.
 func (c *Config) ReadEnvironment() error {
 	var envAddress string
+	var envAgentAddress string
 	var envCACert string
 	var envCAPath string
 	var envClientCert string
@@ -227,6 +247,11 @@ func (c *Config) ReadEnvironment() error {
 	// Parse the environment variables
 	if v := os.Getenv(EnvVaultAddress); v != "" {
 		envAddress = v
+	}
+	if v := os.Getenv(EnvVaultAgentAddr); v != "" {
+		envAgentAddress = v
+	} else if v := os.Getenv(EnvVaultAgentAddress); v != "" {
+		envAgentAddress = v
 	}
 	if v := os.Getenv(EnvVaultMaxRetries); v != "" {
 		maxRetries, err := strconv.ParseUint(v, 10, 32)
@@ -261,13 +286,20 @@ func (c *Config) ReadEnvironment() error {
 		}
 		envClientTimeout = clientTimeout
 	}
-	if v := os.Getenv(EnvVaultInsecure); v != "" {
+	if v := os.Getenv(EnvVaultSkipVerify); v != "" {
 		var err error
 		envInsecure, err = strconv.ParseBool(v)
 		if err != nil {
 			return fmt.Errorf("could not parse VAULT_SKIP_VERIFY")
 		}
+	} else if v := os.Getenv(EnvVaultInsecure); v != "" {
+		var err error
+		envInsecure, err = strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("could not parse VAULT_INSECURE")
+		}
 	}
+
 	if v := os.Getenv(EnvVaultTLSServerName); v != "" {
 		envTLSServerName = v
 	}
@@ -293,6 +325,10 @@ func (c *Config) ReadEnvironment() error {
 
 	if envAddress != "" {
 		c.Address = envAddress
+	}
+
+	if envAgentAddress != "" {
+		c.AgentAddress = envAgentAddress
 	}
 
 	if envMaxRetries != nil {
@@ -357,16 +393,37 @@ func NewClient(c *Config) (*Client, error) {
 	c.modifyLock.Lock()
 	defer c.modifyLock.Unlock()
 
-	u, err := url.Parse(c.Address)
-	if err != nil {
-		return nil, err
-	}
-
 	if c.HttpClient == nil {
 		c.HttpClient = def.HttpClient
 	}
 	if c.HttpClient.Transport == nil {
 		c.HttpClient.Transport = def.HttpClient.Transport
+	}
+
+	address := c.Address
+	if c.AgentAddress != "" {
+		address = c.AgentAddress
+	}
+
+	u, err := url.Parse(address)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.HasPrefix(address, "unix://") {
+		socket := strings.TrimPrefix(address, "unix://")
+		transport := c.HttpClient.Transport.(*http.Transport)
+		transport.DialContext = func(context.Context, string, string) (net.Conn, error) {
+			return net.Dial("unix", socket)
+		}
+
+		// Since the address points to a unix domain socket, the scheme in the
+		// *URL would be set to `unix`. The *URL in the client is expected to
+		// be pointing to the protocol used in the application layer and not to
+		// the transport layer. Hence, setting the fields accordingly.
+		u.Scheme = "http"
+		u.Host = socket
+		u.Path = ""
 	}
 
 	client := &Client{
@@ -376,6 +433,10 @@ func NewClient(c *Config) (*Client, error) {
 
 	if token := os.Getenv(EnvVaultToken); token != "" {
 		client.token = token
+	}
+
+	if namespace := os.Getenv(EnvVaultNamespace); namespace != "" {
+		client.setNamespace(namespace)
 	}
 
 	return client, nil
@@ -437,6 +498,24 @@ func (c *Client) SetClientTimeout(timeout time.Duration) {
 	c.config.Timeout = timeout
 }
 
+func (c *Client) OutputCurlString() bool {
+	c.modifyLock.RLock()
+	c.config.modifyLock.RLock()
+	defer c.config.modifyLock.RUnlock()
+	c.modifyLock.RUnlock()
+
+	return c.config.OutputCurlString
+}
+
+func (c *Client) SetOutputCurlString(curl bool) {
+	c.modifyLock.RLock()
+	c.config.modifyLock.Lock()
+	defer c.config.modifyLock.Unlock()
+	c.modifyLock.RUnlock()
+
+	c.config.OutputCurlString = curl
+}
+
 // CurrentWrappingLookupFunc sets a lookup function that returns desired wrap TTLs
 // for a given operation and path
 func (c *Client) CurrentWrappingLookupFunc() WrappingLookupFunc {
@@ -462,6 +541,22 @@ func (c *Client) SetMFACreds(creds []string) {
 	defer c.modifyLock.Unlock()
 
 	c.mfaCreds = creds
+}
+
+// SetNamespace sets the namespace supplied either via the environment
+// variable or via the command line.
+func (c *Client) SetNamespace(namespace string) {
+	c.modifyLock.Lock()
+	defer c.modifyLock.Unlock()
+	c.setNamespace(namespace)
+}
+
+func (c *Client) setNamespace(namespace string) {
+	if c.headers == nil {
+		c.headers = make(http.Header)
+	}
+
+	c.headers.Set(consts.NamespaceHeaderName, namespace)
 }
 
 // Token returns the access token being used by this client. It will
@@ -490,6 +585,26 @@ func (c *Client) ClearToken() {
 	c.token = ""
 }
 
+// Headers gets the current set of headers used for requests. This returns a
+// copy; to modify it make modifications locally and use SetHeaders.
+func (c *Client) Headers() http.Header {
+	c.modifyLock.RLock()
+	defer c.modifyLock.RUnlock()
+
+	if c.headers == nil {
+		return nil
+	}
+
+	ret := make(http.Header)
+	for k, v := range c.headers {
+		for _, val := range v {
+			ret[k] = append(ret[k], val)
+		}
+	}
+
+	return ret
+}
+
 // SetHeaders sets the headers to be used for future requests.
 func (c *Client) SetHeaders(headers http.Header) {
 	c.modifyLock.Lock()
@@ -512,6 +627,10 @@ func (c *Client) SetBackoff(backoff retryablehttp.Backoff) {
 // underlying http.Client is used; modifying the client from more than one
 // goroutine at once may not be safe, so modify the client as needed and then
 // clone.
+//
+// Also, only the client's config is currently copied; this means items not in
+// the api.Config struct, such as policy override and wrapping function
+// behavior, must currently then be set as desired on the new client.
 func (c *Client) Clone() (*Client, error) {
 	c.modifyLock.RLock()
 	c.config.modifyLock.RLock()
@@ -608,6 +727,13 @@ func (c *Client) NewRequest(method, requestPath string) *Request {
 // a Vault server not configured with this client. This is an advanced operation
 // that generally won't need to be called externally.
 func (c *Client) RawRequest(r *Request) (*Response, error) {
+	return c.RawRequestWithContext(context.Background(), r)
+}
+
+// RawRequestWithContext performs the raw request given. This request may be against
+// a Vault server not configured with this client. This is an advanced operation
+// that generally won't need to be called externally.
+func (c *Client) RawRequestWithContext(ctx context.Context, r *Request) (*Response, error) {
 	c.modifyLock.RLock()
 	token := c.token
 
@@ -617,12 +743,13 @@ func (c *Client) RawRequest(r *Request) (*Response, error) {
 	backoff := c.config.Backoff
 	httpClient := c.config.HttpClient
 	timeout := c.config.Timeout
+	outputCurlString := c.config.OutputCurlString
 	c.config.modifyLock.RUnlock()
 
 	c.modifyLock.RUnlock()
 
 	if limiter != nil {
-		limiter.Wait(context.Background())
+		limiter.Wait(ctx)
 	}
 
 	// Sanity check the token before potentially erroring from the API
@@ -643,13 +770,15 @@ START:
 		return nil, fmt.Errorf("nil request created")
 	}
 
-	// Set the timeout, if any
-	var cancelFunc context.CancelFunc
-	if timeout != 0 {
-		var ctx context.Context
-		ctx, cancelFunc = context.WithTimeout(context.Background(), timeout)
-		req.Request = req.Request.WithContext(ctx)
+	if outputCurlString {
+		LastOutputStringError = &OutputStringError{Request: req}
+		return nil, LastOutputStringError
 	}
+
+	if timeout != 0 {
+		ctx, _ = context.WithTimeout(ctx, timeout)
+	}
+	req.Request = req.Request.WithContext(ctx)
 
 	if backoff == nil {
 		backoff = retryablehttp.LinearJitterBackoff
@@ -667,9 +796,6 @@ START:
 
 	var result *Response
 	resp, err := client.Do(req)
-	if cancelFunc != nil {
-		cancelFunc()
-	}
 	if resp != nil {
 		result = &Response{Response: resp}
 	}
