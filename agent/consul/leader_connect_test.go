@@ -2,6 +2,7 @@ package consul
 
 import (
 	"crypto/x509"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"os"
 	"reflect"
 	"strings"
@@ -18,6 +19,8 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"bou.ke/monkey"
 )
 
 func TestLeader_SecondaryCA_Initialize(t *testing.T) {
@@ -1064,4 +1067,51 @@ h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
 			require.Equal(t, connect.HexString(rootCert.SubjectKeyId), root.SigningKeyID)
 		}
 	}
+}
+
+func TestLeader_MinimumTTLFail(t *testing.T) {
+	t.Parallel()
+
+	monkey.Patch((*ca.ConsulProvider).MinimumLeafTTL, func(*ca.ConsulProvider) time.Duration {
+		return 2 * time.Hour
+	})
+
+	// Initialize primary as the primary DC
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Build = "1.6.0"
+		c.CAConfig.Config = map[string]interface{}{
+			"LeafCertTTL": "1h",
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeaderFail(t, s1.RPC, "dc1")
+
+	monkey.Unpatch((*ca.ConsulProvider).MinimumLeafTTL)
+}
+
+func TestLeader_MinimumTTLOverride(t *testing.T) {
+	t.Parallel()
+
+	monkey.Patch((*ca.ConsulProvider).MinimumLeafTTL, func(*ca.ConsulProvider) time.Duration {
+		return 2 * time.Hour
+	})
+
+	// Initialize primary as the primary DC
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Build = "1.6.0"
+		c.CAConfig.Config = map[string]interface{}{
+			"LeafCertTTL": "1h",
+			"ForceWithoutCrossSigning": true,
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	monkey.Unpatch((*ca.ConsulProvider).MinimumLeafTTL)
 }
