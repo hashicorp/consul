@@ -145,13 +145,18 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	require.NoError(err)
 	require.NotEmpty(oldIntermediatePEM)
 
-	// Store the current root
-	rootReq := &structs.DCSpecificRequest{
-		Datacenter: "dc1",
+	// Capture the current root
+	var originalRoot *structs.CARoot
+	{
+		rootList, activeRoot, err := getTestRoots(s1, "dc1")
+		require.NoError(err)
+		require.Len(rootList.Roots, 1)
+		originalRoot = activeRoot
 	}
-	var rootList structs.IndexedCARoots
-	require.NoError(s1.RPC("ConnectCA.Roots", rootReq, &rootList))
-	require.Len(rootList.Roots, 1)
+
+	// Wait for current state to be reflected in both datacenters.
+	waitForActiveCARoot(t, s1, "dc1", originalRoot)
+	waitForActiveCARoot(t, s2, "dc2", originalRoot)
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
@@ -175,6 +180,14 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		require.NoError(s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
 	}
 
+	var updatedRoot *structs.CARoot
+	{
+		rootList, activeRoot, err := getTestRoots(s1, "dc1")
+		require.NoError(err)
+		require.Len(rootList.Roots, 2)
+		updatedRoot = activeRoot
+	}
+
 	// Wait for dc2's intermediate to be refreshed.
 	var intermediatePEM string
 	retry.Run(t, func(r *retry.R) {
@@ -185,6 +198,9 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		}
 	})
 	require.NoError(err)
+
+	waitForActiveCARoot(t, s1, "dc1", updatedRoot)
+	waitForActiveCARoot(t, s2, "dc2", updatedRoot)
 
 	// Verify the root lists have been rotated in each DC's state store.
 	state1 := s1.fsm.State()
@@ -302,7 +318,6 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 		if respErr, ok := resp.(error); ok {
 			t.Fatalf("respErr: %v", respErr)
 		}
-		t.Logf("restored broken behavior")
 	}
 
 	// Shutdown s2pre and restart it to trigger the secondary CA init to correct
@@ -553,6 +568,52 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		Roots:         rootPool,
 	})
 	require.NoError(t, err)
+}
+
+func waitForActiveCARoot(t *testing.T, s *Server, datacenter string, expect *structs.CARoot) {
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.DCSpecificRequest{
+			Datacenter: datacenter,
+		}
+		var reply structs.IndexedCARoots
+		if err := s.RPC("ConnectCA.Roots", args, &reply); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		var root *structs.CARoot
+		for _, r := range reply.Roots {
+			if r.ID == reply.ActiveRootID {
+				root = r
+				break
+			}
+		}
+		if root == nil {
+			r.Fatal("no active root")
+		}
+		if root.ID != expect.ID {
+			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
+		}
+	})
+}
+
+func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *structs.CARoot, error) {
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: datacenter,
+	}
+	var rootList structs.IndexedCARoots
+	if err := s.RPC("ConnectCA.Roots", rootReq, &rootList); err != nil {
+		return nil, nil, err
+	}
+
+	var active *structs.CARoot
+	for _, root := range rootList.Roots {
+		if root.Active {
+			active = root
+			break
+		}
+	}
+
+	return &rootList, active, nil
 }
 
 func TestLeader_ReplicateIntentions(t *testing.T) {
