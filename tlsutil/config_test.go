@@ -293,17 +293,16 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 		cert, key string
 		shoulderr bool
 		isnil     bool
-		isempty   bool
 	}
 	variants := []variant{
-		{"", "", false, false, true},
-		{"bogus", "", false, false, true},
-		{"", "bogus", false, false, true},
-		{"../test/key/ourdomain.cer", "", false, false, true},
-		{"", "../test/key/ourdomain.key", false, false, true},
-		{"bogus", "bogus", true, true, false},
+		{"", "", false, false},
+		{"bogus", "", false, false},
+		{"", "bogus", false, false},
+		{"../test/key/ourdomain.cer", "", false, false},
+		{"", "../test/key/ourdomain.key", false, false},
+		{"bogus", "bogus", true, true},
 		{"../test/key/ourdomain.cer", "../test/key/ourdomain.key",
-			false, false, false},
+			false, false},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
@@ -316,10 +315,6 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 		} else {
 			require.NoError(t, err1, info)
 			require.NoError(t, err2, info)
-		}
-		if v.isempty {
-			require.Empty(t, cert1.Certificate, info)
-			require.Empty(t, cert2.Certificate, info)
 		}
 		if v.isnil {
 			require.Nil(t, cert1, info)
@@ -540,56 +535,44 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 
 	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
-	require.Nil(t, cert.Certificate)
+	require.Nil(t, cert)
 
-	c.manual.cert = &tls.Certificate{}
+	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
+	require.NoError(t, err)
+	c.manual.cert = c1
 	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
 
-	c.manual.cert = &tls.Certificate{Certificate: [][]byte{}}
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
-	require.Equal(t, c.manual.cert, cert)
-
-	c.autoEncrypt.cert = &tls.Certificate{Certificate: [][]byte{}}
+	c.autoEncrypt.cert = c2
 	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.autoEncrypt.cert, cert)
-
-	c.autoEncrypt.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
-	require.NoError(t, err)
-	require.Equal(t, c.manual.cert, cert)
 }
 
 func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 
-	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
+	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
-	require.Nil(t, cert.Certificate)
+	require.Nil(t, cert)
 
-	c.autoEncrypt.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)
-	require.Equal(t, c.autoEncrypt.cert, cert)
-
-	c.autoEncrypt.cert = &tls.Certificate{Certificate: [][]byte{}}
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	c.autoEncrypt.cert = c1
+	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.autoEncrypt.cert, cert)
 
-	c.manual.cert = &tls.Certificate{Certificate: [][]byte{}}
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
+	require.NoError(t, err)
+	c.manual.cert = c2
+	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
-
-	c.manual.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
-	require.NoError(t, err)
-	require.Equal(t, c.autoEncrypt.cert, cert)
 }
 
 func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
@@ -755,7 +738,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 	require.Nil(t, c.caPool)
-	require.Nil(t, c.manual.cert.Certificate)
+	require.Nil(t, c.manual.cert)
 	require.Equal(t, c.base, &Config{})
 	require.Equal(t, 1, c.version)
 

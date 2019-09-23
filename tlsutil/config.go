@@ -351,7 +351,7 @@ func (c *Config) baseVerifyIncoming() bool {
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
-		return &tls.Certificate{}, nil
+		return nil, nil
 	}
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
