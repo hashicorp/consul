@@ -326,7 +326,7 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 		if pool == nil {
 			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
-		if cert == nil || cert.Certificate == nil {
+		if cert == nil {
 			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
@@ -433,7 +433,7 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	// connections without having a manual cert configured.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 		cert := c.manual.cert
-		if cert == nil || cert.Certificate == nil {
+		if cert == nil {
 			cert = c.autoEncrypt.cert
 		}
 
@@ -445,7 +445,7 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	// if possible, otherwise default to the manually provisioned one.
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
 		cert := c.autoEncrypt.cert
-		if cert == nil || cert.Certificate == nil {
+		if cert == nil {
 			cert = c.manual.cert
 		}
 
