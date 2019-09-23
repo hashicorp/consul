@@ -526,7 +526,7 @@ func (s *ConnectCA) Sign(
 
 	// Set the response
 	*reply = structs.IssuedCert{
-		SerialNumber: connect.HexString(cert.SerialNumber.Bytes()),
+		SerialNumber: connect.EncodeSerialNumber(cert.SerialNumber),
 		CertPEM:      pem,
 		ValidAfter:   cert.NotBefore,
 		ValidBefore:  cert.NotAfter,

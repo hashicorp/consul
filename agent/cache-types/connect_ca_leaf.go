@@ -599,7 +599,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, err
 	}
 	// Set the CA key ID so we can easily tell when a active root has changed.
-	state.authorityKeyID = connect.HexString(cert.AuthorityKeyId)
+	state.authorityKeyID = connect.EncodeSigningKeyID(cert.AuthorityKeyId)
 
 	result.Value = &reply
 	// Store value not pointer so we don't accidentally mutate the cache entry
