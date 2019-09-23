@@ -1104,7 +1104,7 @@ func TestLeader_MinimumTTLOverride(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.Build = "1.6.0"
 		c.CAConfig.Config = map[string]interface{}{
-			"LeafCertTTL": "1h",
+			"LeafCertTTL":              "1h",
 			"ForceWithoutCrossSigning": true,
 		}
 	})
