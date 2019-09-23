@@ -26,6 +26,23 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
 	})
 }
 
+// WaitForLeaderFail ensures the cluster fails to initialize a leader.
+func WaitForLeaderFail(t *testing.T, rpc rpcFn, dc string) {
+	var out structs.IndexedNodes
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.DCSpecificRequest{Datacenter: dc}
+		if err := rpc("Catalog.ListNodes", args, &out); err != nil {
+			r.Fatalf("Catalog.ListNodes failed: %v", err)
+		}
+		if !out.QueryMeta.KnownLeader {
+			r.Fatalf("No leader")
+		}
+		if out.Index >= 2 {
+			r.Fatalf("Consul index should be less than 2")
+		}
+	})
+}
+
 // WaitUntilNoLeader ensures no leader is present, useful for testing lost leadership.
 func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
 	var out structs.IndexedNodes
