@@ -941,8 +941,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 	// Add sidecar.
 	if sidecar != nil {
-		if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
-			return nil, err
+		if replaceExistingChecks {
+			if err := s.agent.AddServiceAndReplaceChecks(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
+				return nil, err
+			}
 		}
 	}
 	s.syncChanges()
@@ -959,7 +965,7 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
-	if err := s.agent.RemoveService(serviceID, true); err != nil {
+	if err := s.agent.RemoveService(serviceID); err != nil {
 		return nil, err
 	}
 

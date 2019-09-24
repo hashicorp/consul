@@ -184,7 +184,7 @@ agent_prefix "bar" {
 
 Agent rules are keyed by the node name they apply to. In the example above the rules
 allow read-only access to any node name by using the empty prefix, read-write access to 
-the node with the _exact_ name `foo`, and denies all access to any noe name that starts
+the node with the _exact_ name `foo`, and denies all access to any node name that starts
 with `bar`. 
 
 Since [Agent API](/api/agent.html) utility operations may be required before an agent is joined to

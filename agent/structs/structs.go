@@ -204,6 +204,18 @@ func (q QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
+func (q QueryOptions) GetMinQueryIndex() uint64 {
+	return q.MinQueryIndex
+}
+
+func (q QueryOptions) GetMaxQueryTime() time.Duration {
+	return q.MaxQueryTime
+}
+
+func (q QueryOptions) GetRequireConsistent() bool {
+	return q.RequireConsistent
+}
+
 type WriteRequest struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
@@ -241,6 +253,22 @@ type QueryMeta struct {
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
 	ConsistencyLevel string
+}
+
+func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
+	q.LastContact = lastContact
+}
+
+func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
+	q.KnownLeader = knownLeader
+}
+
+func (q *QueryMeta) GetIndex() uint64 {
+	return q.Index
+}
+
+func (q *QueryMeta) SetIndex(index uint64) {
+	q.Index = index
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint

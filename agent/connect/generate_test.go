@@ -89,7 +89,7 @@ func TestGenerateKeys(t *testing.T) {
 				case "ec":
 					testGenerateECDSAKey(t, params.keyBits)
 				default:
-					t.Fatalf("unkown key type: %s", params.keyType)
+					t.Fatalf("unknown key type: %s", params.keyType)
 				}
 			})
 	}

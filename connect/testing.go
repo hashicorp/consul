@@ -94,22 +94,24 @@ type TestServer struct {
 	// Listening is closed when the listener is run.
 	Listening chan struct{}
 
-	l        net.Listener
-	stopFlag int32
-	stopChan chan struct{}
+	l             net.Listener
+	returnPortsFn func()
+	stopFlag      int32
+	stopChan      chan struct{}
 }
 
 // NewTestServer returns a TestServer. It should be closed when test is
 // complete.
 func NewTestServer(t testing.T, service string, ca *structs.CARoot) *TestServer {
-	ports := freeport.GetT(t, 1)
+	ports := freeport.MustTake(1)
 	return &TestServer{
-		Service:   service,
-		CA:        ca,
-		stopChan:  make(chan struct{}),
-		TLSCfg:    TestTLSConfig(t, service, ca),
-		Addr:      fmt.Sprintf("127.0.0.1:%d", ports[0]),
-		Listening: make(chan struct{}),
+		Service:       service,
+		CA:            ca,
+		stopChan:      make(chan struct{}),
+		TLSCfg:        TestTLSConfig(t, service, ca),
+		Addr:          fmt.Sprintf("127.0.0.1:%d", ports[0]),
+		Listening:     make(chan struct{}),
+		returnPortsFn: func() { freeport.Return(ports) },
 	}
 }
 
@@ -185,6 +187,10 @@ func (s *TestServer) Close() error {
 	if old == 0 {
 		if s.l != nil {
 			s.l.Close()
+		}
+		if s.returnPortsFn != nil {
+			s.returnPortsFn()
+			s.returnPortsFn = nil
 		}
 		close(s.stopChan)
 	}

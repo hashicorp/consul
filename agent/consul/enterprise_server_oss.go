@@ -34,6 +34,18 @@ func (s *Server) handleEnterpriseRPCConn(rtype pool.RPCType, conn net.Conn, isTL
 	return false
 }
 
+func (s *Server) handleEnterpriseLeave() {
+	return
+}
+
 func (s *Server) enterpriseStats() map[string]map[string]string {
+	return nil
+}
+
+func (s *Server) establishEnterpriseLeadership() error {
+	return nil
+}
+
+func (s *Server) revokeEnterpriseLeadership() error {
 	return nil
 }

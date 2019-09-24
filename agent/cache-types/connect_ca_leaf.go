@@ -298,6 +298,10 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
 	// Do we already have a cert in the cache?
 	var existing *structs.IssuedCert
 	// Really important this is not a pointer type since otherwise we would set it
@@ -595,7 +599,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, err
 	}
 	// Set the CA key ID so we can easily tell when a active root has changed.
-	state.authorityKeyID = connect.HexString(cert.AuthorityKeyId)
+	state.authorityKeyID = connect.EncodeSigningKeyID(cert.AuthorityKeyId)
 
 	result.Value = &reply
 	// Store value not pointer so we don't accidentally mutate the cache entry
