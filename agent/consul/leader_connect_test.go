@@ -1066,7 +1066,7 @@ h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
 			// just to make sure these two are not the same
 			require.NotEqual(t, rootCert.AuthorityKeyId, rootCert.SubjectKeyId)
 
-			require.Equal(t, connect.HexString(rootCert.SubjectKeyId), root.SigningKeyID)
+			require.Equal(t, connect.EncodeSigningKeyID(rootCert.SubjectKeyId), root.SigningKeyID)
 		}
 	}
 }

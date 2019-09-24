@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -104,6 +103,7 @@ type TestServerConfig struct {
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
+	ReturnPorts         func()                 `json:"-"`
 }
 
 type TestACLs struct {
@@ -138,7 +138,8 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
-	ports := freeport.Get(6)
+	ports := freeport.MustTake(6)
+
 	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
@@ -166,6 +167,9 @@ func defaultServerConfig() *TestServerConfig {
 				// const TestClusterID causes import cycle so hard code it here.
 				"cluster_id": "11111111-2222-3333-4444-555555555555",
 			},
+		},
+		ReturnPorts: func() {
+			freeport.Return(ports)
 		},
 	}
 }
@@ -221,12 +225,12 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func NewTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	return newTestServerConfigT(t, cb)
 }
 
 // newTestServerConfigT is the internal helper for NewTestServerConfigT.
-func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func newTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
@@ -244,6 +248,10 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	cfg := defaultServerConfig()
+	testWriter := TestWriter(t)
+	cfg.Stdout = testWriter
+	cfg.Stderr = testWriter
+
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -251,22 +259,27 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
-	log.Printf("CONFIG JSON: %s", string(b))
+	if t != nil {
+		// if you really want this output ensure to pass a valid t
+		t.Logf("CONFIG JSON: %s", string(b))
+	}
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
 
-	stdout := io.Writer(os.Stdout)
+	stdout := testWriter
 	if cfg.Stdout != nil {
 		stdout = cfg.Stdout
 	}
-	stderr := io.Writer(os.Stderr)
+	stderr := testWriter
 	if cfg.Stderr != nil {
 		stderr = cfg.Stderr
 	}
@@ -278,6 +291,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
@@ -319,6 +333,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
+	defer s.Config.ReturnPorts()
 	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process

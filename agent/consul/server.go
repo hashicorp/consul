@@ -843,6 +843,10 @@ func (s *Server) Shutdown() error {
 	// Close the connection pool
 	s.connPool.Shutdown()
 
+	if s.config.NotifyShutdown != nil {
+		s.config.NotifyShutdown()
+	}
+
 	return nil
 }
 
@@ -896,6 +900,9 @@ func (s *Server) Leave() error {
 			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
 		}
 	}
+
+	// Leave everything enterprise related as well
+	s.handleEnterpriseLeave()
 
 	// Start refusing RPCs now that we've left the LAN pool. It's important
 	// to do this *after* we've left the LAN pool so that clients will know

@@ -25,10 +25,7 @@ import (
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -260,10 +257,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := &agent.TestAgent{Name: t.Name()}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -420,10 +414,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -507,10 +498,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -770,14 +758,11 @@ var testRegisterRules = `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name(), HCL: `
+	a := agent.NewTestAgent(t, t.Name(), `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
 		acl_default_policy = "deny"
-		acl_enforce_version_8 = true`}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+		acl_enforce_version_8 = true`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -923,10 +908,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	t.Parallel()
-	a := &agent.TestAgent{Name: t.Name()}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

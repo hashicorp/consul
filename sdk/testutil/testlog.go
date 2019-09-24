@@ -32,8 +32,10 @@ type testWriter struct {
 }
 
 func (tw *testWriter) Write(p []byte) (n int, err error) {
-	tw.t.Helper()
-	if sendTestLogsToStdout {
+	if tw.t != nil {
+		tw.t.Helper()
+	}
+	if sendTestLogsToStdout || tw.t == nil {
 		fmt.Fprint(os.Stdout, strings.TrimSpace(string(p))+"\n")
 	} else {
 		tw.t.Log(strings.TrimSpace(string(p)))

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -48,7 +47,7 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 	}
 	c.config = config
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
-	c.id = strings.Replace(fmt.Sprintf("% x", hash), " ", ":", -1)
+	c.id = connect.HexString(hash[:])
 	c.clusterID = clusterID
 	c.isRoot = isRoot
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})
@@ -220,49 +219,13 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	// Get the key from the incoming intermediate cert so we can compare it
-	// to the currently stored key.
-	intermediate, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate PEM: %v", err)
-	}
-	privKey, err := connect.ParseSigner(providerState.PrivateKey)
+	err = validateSetIntermediate(
+		intermediatePEM, rootPEM,
+		providerState.PrivateKey,
+		c.spiffeID,
+	)
 	if err != nil {
 		return err
-	}
-
-	// Compare the two keys to make sure they match.
-	b1, err := x509.MarshalPKIXPublicKey(intermediate.PublicKey)
-	if err != nil {
-		return err
-	}
-	b2, err := x509.MarshalPKIXPublicKey(privKey.Public())
-	if err != nil {
-		return err
-	}
-	if !bytes.Equal(b1, b2) {
-		return fmt.Errorf("intermediate cert is for a different private key")
-	}
-
-	// Validate the remaining fields and make sure the intermediate validates against
-	// the given root cert.
-	if !intermediate.IsCA {
-		return fmt.Errorf("intermediate is not a CA certificate")
-	}
-	if uriCount := len(intermediate.URIs); uriCount != 1 {
-		return fmt.Errorf("incoming intermediate cert has unexpected number of URIs: %d", uriCount)
-	}
-	if got, want := intermediate.URIs[0].String(), c.spiffeID.URI().String(); got != want {
-		return fmt.Errorf("incoming cert URI %q does not match current URI: %q", got, want)
-	}
-
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM([]byte(rootPEM))
-	_, err = intermediate.Verify(x509.VerifyOptions{
-		Roots: pool,
-	})
-	if err != nil {
-		return fmt.Errorf("could not verify intermediate cert against root: %v", err)
 	}
 
 	// Update the state

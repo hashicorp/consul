@@ -85,7 +85,7 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 		ID:                  id,
 		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
 		SerialNumber:        rootCert.SerialNumber.Uint64(),
-		SigningKeyID:        connect.HexString(rootCert.SubjectKeyId),
+		SigningKeyID:        connect.EncodeSigningKeyID(rootCert.SubjectKeyId),
 		ExternalTrustDomain: clusterID,
 		NotBefore:           rootCert.NotBefore,
 		NotAfter:            rootCert.NotAfter,

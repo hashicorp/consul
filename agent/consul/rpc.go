@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -319,7 +320,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
 			return structs.ErrDCNotAvailable
 		}
-		s.logger.Printf("[WARN] consul.rpc: RPC request for unkown DC %q", dc)
+		s.logger.Printf("[WARN] consul.rpc: RPC request for unknown DC %q", dc)
 		return structs.ErrNoDCPath
 	}
 
@@ -370,10 +371,34 @@ func (s *Server) globalRPC(method string, args interface{},
 	return nil
 }
 
+type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
+
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
-	buf, err := structs.Encode(t, msg)
+	return s.raftApplyMsgpack(t, msg)
+}
+
+// raftApplyMsgpack will msgpack encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, structs.Encode)
+}
+
+// raftApplyProtobuf will protobuf encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, agentpb.EncodeInterface)
+}
+
+// raftApplyWithEncoder is used to encode a message, run it through raft,
+// and return the FSM response along with any errors. Unlike raftApply this
+// takes the encoder to use as an argument.
+func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, encoder raftEncoder) (interface{}, error) {
+	if encoder == nil {
+		return nil, fmt.Errorf("Failed to encode request: nil encoder")
+	}
+	buf, err := encoder(t, msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
@@ -429,28 +454,47 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 // a snapshot.
 type queryFn func(memdb.WatchSet, *state.Store) error
 
-// blockingQuery is used to process a potentially blocking query operation.
-func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	fn queryFn) error {
-	var timeout *time.Timer
+// we specify this as an interface so that we can allow a our legacy structs.QueryOptions
+// and the protobuf defined QueryOptions struct to both be used here.
+type queryOptions interface {
+	GetMinQueryIndex() uint64
+	GetMaxQueryTime() time.Duration
+	GetRequireConsistent() bool
+}
 
+// we specify this as an interface so that we can allow a our legacy structs.QueryMeta
+// and the protobuf defined QueryMeta struct to both be used here.
+type queryMeta interface {
+	SetLastContact(time.Duration)
+	SetKnownLeader(bool)
+	GetIndex() uint64
+	SetIndex(uint64)
+}
+
+// blockingQuery is used to process a potentially blocking query operation.
+func (s *Server) blockingQuery(queryOpts queryOptions, queryMeta queryMeta, fn queryFn) error {
+	var timeout *time.Timer
+	var queryTimeout time.Duration
+
+	minQueryIndex := queryOpts.GetMinQueryIndex()
 	// Fast path right to the non-blocking query.
-	if queryOpts.MinQueryIndex == 0 {
+	if minQueryIndex == 0 {
 		goto RUN_QUERY
 	}
 
+	queryTimeout = queryOpts.GetMaxQueryTime()
 	// Restrict the max query time, and ensure there is always one.
-	if queryOpts.MaxQueryTime > maxQueryTime {
-		queryOpts.MaxQueryTime = maxQueryTime
-	} else if queryOpts.MaxQueryTime <= 0 {
-		queryOpts.MaxQueryTime = defaultQueryTime
+	if queryTimeout > maxQueryTime {
+		queryTimeout = maxQueryTime
+	} else if queryTimeout <= 0 {
+		queryTimeout = defaultQueryTime
 	}
 
 	// Apply a small amount of jitter to the request.
-	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
+	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
 
 	// Setup a query timeout.
-	timeout = time.NewTimer(queryOpts.MaxQueryTime)
+	timeout = time.NewTimer(queryTimeout)
 	defer timeout.Stop()
 
 RUN_QUERY:
@@ -458,7 +502,7 @@ RUN_QUERY:
 	s.setQueryMeta(queryMeta)
 
 	// If the read must be consistent we verify that we are still the leader.
-	if queryOpts.RequireConsistent {
+	if queryOpts.GetRequireConsistent() {
 		if err := s.consistentRead(); err != nil {
 			return err
 		}
@@ -474,7 +518,7 @@ RUN_QUERY:
 
 	// We can skip all watch tracking if this isn't a blocking query.
 	var ws memdb.WatchSet
-	if queryOpts.MinQueryIndex > 0 {
+	if minQueryIndex > 0 {
 		ws = memdb.NewWatchSet()
 
 		// This channel will be closed if a snapshot is restored and the
@@ -492,10 +536,10 @@ RUN_QUERY:
 	// state method). We also need to ensure that unless there is an error, we
 	// return an index > 0 otherwise the client will never block and burn CPU and
 	// requests.
-	if err == nil && queryMeta.Index < 1 {
-		queryMeta.Index = 1
+	if err == nil && queryMeta.GetIndex() < 1 {
+		queryMeta.SetIndex(1)
 	}
-	if err == nil && queryOpts.MinQueryIndex > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
+	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since
@@ -513,13 +557,13 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m *structs.QueryMeta) {
+func (s *Server) setQueryMeta(m queryMeta) {
 	if s.IsLeader() {
-		m.LastContact = 0
-		m.KnownLeader = true
+		m.SetLastContact(0)
+		m.SetKnownLeader(true)
 	} else {
-		m.LastContact = time.Since(s.raft.LastContact())
-		m.KnownLeader = (s.raft.Leader() != "")
+		m.SetLastContact(time.Since(s.raft.LastContact()))
+		m.SetKnownLeader(s.raft.Leader() != "")
 	}
 }
 

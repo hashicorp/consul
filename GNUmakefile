@@ -29,6 +29,9 @@ GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
 
+PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
+PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
+
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
 else
@@ -176,7 +179,7 @@ ci.dev-docker:
 	--label PULL_REQUEST=$(CIRCLE_PULL_REQUEST) \
 	--label CIRCLE_BUILD_URL=$(CIRCLE_BUILD_URL) \
 	$(CI_DEV_DOCKER_WORKDIR) -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
-	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_LOGIN)" --password-stdin
+	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_USER)" --password-stdin
 	@echo "Pushing dev image to: https://cloud.docker.com/u/hashicorpdev/repository/docker/hashicorpdev/consul"
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)
 ifeq ($(CIRCLE_BRANCH), master)
@@ -362,8 +365,18 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
-proto:
-	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
+proto-go-delete:
+	@echo "Removing $(PROTOGOFILES)"
+	-@rm $(PROTOGOFILES)
+
+proto-rebuild: proto-go-delete proto
+
+proto: $(PROTOGOFILES)
+	@echo "Generated all protobuf Go files"
+
+%.pb.go: %.proto
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace --generator gogo "$<"
+
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker

@@ -25,6 +25,10 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
 	// Set the minimum query index to our current index so we block
 	reqReal.MinQueryIndex = opts.MinIndex
 	reqReal.MaxQueryTime = opts.Timeout

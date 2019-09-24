@@ -2361,8 +2361,20 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_RegisterService(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2428,8 +2440,20 @@ func TestAgent_RegisterService(t *testing.T) {
 }
 
 func TestAgent_RegisterService_ReRegister(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ReRegister(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ReRegister(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2493,8 +2517,19 @@ func TestAgent_RegisterService_ReRegister(t *testing.T) {
 }
 
 func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, extraHCL string) {
+	t.Helper()
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2558,7 +2593,19 @@ func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
 }
 
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ACLDeny(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
+	t.Helper()
+
 	tests := []struct {
 		ip                    string
 		expectedTCPCheckStart string
@@ -2570,7 +2617,7 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 		t.Run(tt.ip, func(t *testing.T) {
 			a := NewTestAgent(t, t.Name(), `
 	connect {}
-`)
+`+extraHCL)
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2762,8 +2809,20 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 }
 
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), TestACLConfig())
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ACLDeny(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), TestACLConfig()+" "+extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2800,8 +2859,20 @@ func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_InvalidAddress(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2832,10 +2903,21 @@ func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 // This verifies that it is put in the local state store properly for syncing
 // later.
 func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL string) {
+	t.Helper()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -2953,7 +3035,18 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 // TestAgent_sidecarServiceFromNodeService. Note it also tests Deregister
 // explicitly too since setup is identical.
 func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterServiceDeregisterService_Sidecar(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL string) {
+	t.Helper()
 
 	tests := []struct {
 		name                      string
@@ -3336,7 +3429,7 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 				hcl = hcl + TestACLConfig()
 			}
 
-			a := NewTestAgent(t, t.Name(), hcl)
+			a := NewTestAgent(t, t.Name(), hcl+" "+extraHCL)
 			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -3434,10 +3527,21 @@ func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 // registration. This doesn't need to test validation exhaustively since
 // that is done via a table test in the structs package.
 func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraHCL string) {
+	t.Helper()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -3467,10 +3571,21 @@ func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 
 // Tests agent registration of a service that is connect native.
 func TestAgent_RegisterService_ConnectNative(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ConnectNative(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ConnectNative(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
+	t.Helper()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -3501,8 +3616,20 @@ func TestAgent_RegisterService_ConnectNative(t *testing.T) {
 }
 
 func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL string) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -3537,10 +3664,22 @@ func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
 }
 
 func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T, extraHCL string) {
+	t.Helper()
+
 	a := NewTestAgent(t, t.Name(), `
 		enable_local_script_checks = true
-	`)
+	`+extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -3931,15 +4070,11 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 func TestAgent_Monitor(t *testing.T) {
 	t.Parallel()
 	logWriter := logger.NewLogWriter(512)
-	a := &TestAgent{
-		Name:      t.Name(),
+	a := NewTestAgentWithFields(t, true, TestAgent{
 		LogWriter: logWriter,
 		LogOutput: io.MultiWriter(os.Stderr, logWriter),
 		HCL:       `node_name = "invalid!"`,
-	}
-	if err := a.Start(); err != nil {
-		t.Fatal(err)
-	}
+	})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

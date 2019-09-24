@@ -106,7 +106,7 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 	require.NoError(t, err)
 
 	return &structs.IssuedCert{
-		SerialNumber:  connect.HexString(leafCert.SerialNumber.Bytes()),
+		SerialNumber:  connect.EncodeSerialNumber(leafCert.SerialNumber),
 		CertPEM:       leafPEM,
 		PrivateKeyPEM: pkPEM,
 		Service:       "web",
