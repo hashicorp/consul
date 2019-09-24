@@ -26,5 +26,5 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric 127.0.0.1:19000 "cluster.dd412229~s2.default.secondary.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.dd412229~s2.default.secondary.*cx_total" 1
 }
