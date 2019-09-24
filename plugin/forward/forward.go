@@ -199,15 +199,6 @@ var (
 	ErrCachedClosed = errors.New("cached connection was closed by peer")
 )
 
-// policy tells forward what policy for selecting upstream it uses.
-type policy int
-
-const (
-	randomPolicy policy = iota
-	roundRobinPolicy
-	sequentialPolicy
-)
-
 // options holds various options that can be set.
 type options struct {
 	forceTCP  bool

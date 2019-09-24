@@ -55,13 +55,6 @@ var (
 		Help:      "The number of elements in the dnssec cache.",
 	}, []string{"server", "type"})
 
-	cacheCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: plugin.Namespace,
-		Subsystem: "dnssec",
-		Name:      "cache_capacity",
-		Help:      "The dnssec cache's capacity.",
-	}, []string{"server", "type"})
-
 	cacheHits = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: "dnssec",

@@ -184,7 +184,6 @@ func setVersion() {
 // Flags that control program flow or startup
 var (
 	conf    string
-	logfile bool
 	version bool
 	plugins bool
 )

@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	frameLenSize = 4
 	protobufSize = 1024 * 1024
 )
 
