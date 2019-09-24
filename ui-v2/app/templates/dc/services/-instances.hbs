@@ -28,7 +28,7 @@
               <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
             </td>
             <td data-test-address>
-                {{item.Service.Address}}:{{item.Service.Port}}
+              <span>{{item.Service.Address}}:{{item.Service.Port}}</span>
             </td>
             <td>
               {{#with (reject-by 'ServiceID' '' item.Checks) as |checks|}}
