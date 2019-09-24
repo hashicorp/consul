@@ -32,6 +32,8 @@ func makeClient(t *testing.T) (*api.Client, *testutil.TestServer) {
 	require.NoError(t, err)
 	conf.Address = server.HTTPAddr
 
+	server.WaitForLeader(t)
+
 	// Create client
 	client, err := api.NewClient(conf)
 	if err != nil {
@@ -369,6 +371,8 @@ func TestNodesWatch(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t) // wait for AE to sync
 
 	var (
 		wakeups  [][]*api.Node
