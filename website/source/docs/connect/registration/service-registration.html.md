@@ -82,7 +82,8 @@ registering a proxy instance.
     "local_service_port": 9090,
     "config": {},
     "upstreams": [],
-    "mesh_gateway": {}
+    "mesh_gateway": {},
+    "expose": {}
   },
   "port": 8181
 }
@@ -122,6 +123,10 @@ registering a proxy instance.
 
  - `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
    for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
+   
+ - `expose` `(object: {})` - Specifies the configuration to expose HTTP paths through this proxy. 
+   The format is defined in the [Expose Paths Configuration Reference](#expose-paths-configuration-reference),
+   and is only compatible with an Envoy proxy.
 
 ### Upstream Configuration Reference
 
