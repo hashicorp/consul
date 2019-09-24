@@ -309,6 +309,10 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
+	if err := s.establishEnterpriseLeadership(); err != nil {
+		return err
+	}
+
 	// attempt to bootstrap config entries
 	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
 		return err
@@ -339,6 +343,8 @@ func (s *Server) revokeLeadership() {
 	// Clear the session timers on either shutdown or step down, since we
 	// are no longer responsible for session expirations.
 	s.clearAllSessionTimers()
+
+	s.revokeEnterpriseLeadership()
 
 	s.stopConfigReplication()
 

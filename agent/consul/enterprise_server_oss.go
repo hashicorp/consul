@@ -41,3 +41,11 @@ func (s *Server) handleEnterpriseLeave() {
 func (s *Server) enterpriseStats() map[string]map[string]string {
 	return nil
 }
+
+func (s *Server) establishEnterpriseLeadership() error {
+	return nil
+}
+
+func (s *Server) revokeEnterpriseLeadership() error {
+	return nil
+}
