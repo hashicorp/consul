@@ -94,26 +94,6 @@ var expectedFieldConfigPaths bexpr.FieldConfigurations = bexpr.FieldConfiguratio
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
-	"TLSSkipVerify": &bexpr.FieldConfiguration{
-		StructFieldName:     "TLSSkipVerify",
-		CoerceFn:            bexpr.CoerceBool,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-	},
-	"CAFile": &bexpr.FieldConfiguration{
-		StructFieldName:     "CAFile",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
-	"CertFile": &bexpr.FieldConfiguration{
-		StructFieldName:     "CertFile",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
-	"KeyFile": &bexpr.FieldConfiguration{
-		StructFieldName:     "KeyFile",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
 	"ParsedFromCheck": &bexpr.FieldConfiguration{
 		StructFieldName:     "ParsedFromCheck",
 		CoerceFn:            bexpr.CoerceBool,

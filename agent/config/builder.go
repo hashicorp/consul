@@ -1373,8 +1373,6 @@ func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
 			Path:          b.stringVal(p.Path),
 			LocalPathPort: b.intVal(p.LocalPathPort),
 			Protocol:      b.stringVal(p.Protocol),
-			TLSSkipVerify: b.boolVal(p.TLSSkipVerify),
-			CAFile:        b.stringVal(p.CAFile),
 		}
 	}
 	return paths

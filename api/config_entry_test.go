@@ -208,11 +208,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"LocalPathPort": 8080,
 							"ListenerPort": 21500,
 							"Path": "/healthz",
-							"Protocol": "http2",
-							"TLSSkipVerify": true,
-							"CAFile": "ca.pem",
-							"CertFile": "cert.pem",
-							"KeyFile": "key.pem"
+							"Protocol": "http2"
 						}
 					]
 				}
@@ -229,10 +225,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							ListenerPort:  21500,
 							Path:          "/healthz",
 							Protocol:      "http2",
-							TLSSkipVerify: true,
-							CAFile:        "ca.pem",
-							CertFile:      "cert.pem",
-							KeyFile:       "key.pem",
 						},
 					},
 				},
@@ -251,11 +243,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"LocalPathPort": 8080,
 							"ListenerPort": 21500,
 							"Path": "/healthz",
-							"Protocol": "http2",
-							"TLSSkipVerify": true,
-							"CAFile": "ca.pem",
-							"CertFile": "cert.pem",
-							"KeyFile": "key.pem"
+							"Protocol": "http2"
 						}
 					]
 				}
@@ -272,10 +260,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							ListenerPort:  21500,
 							Path:          "/healthz",
 							Protocol:      "http2",
-							TLSSkipVerify: true,
-							CAFile:        "ca.pem",
-							CertFile:      "cert.pem",
-							KeyFile:       "key.pem",
 						},
 					},
 				},

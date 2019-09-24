@@ -305,10 +305,6 @@ func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, tran
 			}, map[string]string{
 				"local_path_port": "localpathport",
 				"listener_port":   "listenerport",
-				"key_file":        "keyfile",
-				"cert_file":       "certfile",
-				"ca_file":         "cafile",
-				"tls_skip_verify": "tlsskipverify",
 				"mesh_gateway":    "meshgateway",
 				"config":          "",
 			}, nil

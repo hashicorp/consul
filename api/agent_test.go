@@ -1580,7 +1580,6 @@ func TestAgentService_ExposeChecks(t *testing.T) {
 		ListenerPort:  21500,
 		Path:          "/metrics",
 		Protocol:      "http2",
-		TLSSkipVerify: true,
 	}
 	reg := AgentServiceRegistration{
 		Kind:    ServiceKindConnectProxy,

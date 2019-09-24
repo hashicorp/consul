@@ -1055,10 +1055,6 @@ func TestParseConfigEntry(t *testing.T) {
 							listener_port = 21500
 							path = "/healthz"
 							protocol = "http2"
-							tls_skip_verify = true
-							ca_file = "ca.pem"
-							cert_file = "cert.pem"
-							key_file = "key.pem"
 						}
 					]
 				}`,
@@ -1073,10 +1069,6 @@ func TestParseConfigEntry(t *testing.T) {
 							ListenerPort = 21500
 							Path = "/healthz"
 							Protocol = "http2"
-							TLSSkipVerify = true
-							CAFile = "ca.pem"
-							CertFile = "cert.pem"
-							KeyFile = "key.pem"
 						}
 					]
 				}`,
@@ -1091,11 +1083,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"local_path_port": 8080,
 							"listener_port": 21500,
 							"path": "/healthz",
-							"protocol": "http2",
-							"tls_skip_verify": true,
-							"ca_file": "ca.pem",
-							"cert_file": "cert.pem",
-							"key_file": "key.pem"
+							"protocol": "http2"
 						}
 					]
 				}
@@ -1112,11 +1100,7 @@ func TestParseConfigEntry(t *testing.T) {
 							"LocalPathPort": 8080,
 							"ListenerPort": 21500,
 							"Path": "/healthz",
-							"Protocol": "http2",
-							"TLSSkipVerify": true,
-							"CAFile": "ca.pem",
-							"CertFile": "cert.pem",
-							"KeyFile": "key.pem"
+							"Protocol": "http2"
 						}
 					]
 				}
@@ -1133,10 +1117,6 @@ func TestParseConfigEntry(t *testing.T) {
 							Path:          "/healthz",
 							LocalPathPort: 8080,
 							Protocol:      "http2",
-							TLSSkipVerify: true,
-							CAFile:        "ca.pem",
-							CertFile:      "cert.pem",
-							KeyFile:       "key.pem",
 						},
 					},
 				},

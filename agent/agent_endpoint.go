@@ -775,8 +775,6 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			// Expose Config
 			"local_path_port": "LocalPathPort",
 			"listener_port":   "ListenerPort",
-			"tls_skip_verify": "TLSSkipVerify",
-			"ca_file":         "CAFile",
 
 			// DON'T Recurse into these opaque config maps or we might mangle user's
 			// keys. Note empty canonical is a special sentinel to prevent recursion.

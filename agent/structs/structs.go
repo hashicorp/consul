@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -994,16 +993,6 @@ func (s *NodeService) Validate() error {
 
 			if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
 				result = multierror.Append(result, fmt.Errorf("expose.paths: invalid listener port: %d", path.ListenerPort))
-			}
-
-			if path.CAFile != "" {
-				_, err := os.Stat(path.CAFile)
-				if err != nil {
-					result = multierror.Append(result, fmt.Errorf("expose.paths: failed to find CAFile '%s': %v", path.CAFile, err))
-				}
-			}
-			if path.TLSSkipVerify == false && path.CAFile == "" {
-				result = multierror.Append(result, fmt.Errorf("expose.paths: CAFile must be provided if tls_skip_verify is false"))
 			}
 
 			path.Protocol = strings.ToLower(path.Protocol)

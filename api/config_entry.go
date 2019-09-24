@@ -81,18 +81,6 @@ type ExposePath struct {
 	// Valid values are "http" and "http2", defaults to "http"
 	Protocol string `json:",omitempty"`
 
-	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
-	TLSSkipVerify bool `json:",omitempty"`
-
-	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
-	CAFile string `json:",omitempty"`
-
-	// CertFile is the path fo the PEM encoded client certificate to authenticate Envoy
-	CertFile string `json:",omitempty"`
-
-	// KeyFile is the path fo the PEM encoded client certificate to authenticate Envoy
-	KeyFile string `json:",omitempty"`
-
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool
 }

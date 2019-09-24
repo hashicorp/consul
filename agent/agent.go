@@ -2331,8 +2331,8 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 		// Reset check targets if proxy was re-registered but no longer wants to expose checks
 		// If the proxy is being registered for the first time then this is a no-op
 		a.resetExposedChecks(service.Proxy.DestinationServiceID)
-  }
-  
+	}
+
 	if persistServiceConfig && a.config.DataDir != "" {
 		var err error
 		if persistDefaults != nil {

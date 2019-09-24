@@ -3732,9 +3732,9 @@ func TestAgent_httpInjectAddr(t *testing.T) {
 			got := httpInjectAddr(tt.url, tt.ip, tt.port)
 			if got != tt.want {
 				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
-      }
-    })
-  }
+			}
+		})
+	}
 }
 
 func TestDefaultIfEmpty(t *testing.T) {

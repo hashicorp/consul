@@ -548,18 +548,6 @@ type ExposePath struct {
 
 	// LocalPathPort is the port that the service is listening on for the given path.
 	LocalPathPort *int `json:"local_path_port,omitempty" hcl:"local_path_port" mapstructure:"local_path_port"`
-
-	// TLSSkipVerify defines whether incoming requests should be authenticated with TLS.
-	TLSSkipVerify *bool `json:"tls_skip_verify,omitempty" hcl:"tls_skip_verify" mapstructure:"tls_skip_verify"`
-
-	// CAFile is the path to the PEM encoded CA cert used to verify client certificates.
-	CAFile *string `json:"ca_file,omitempty" hcl:"ca_file" mapstructure:"ca_file"`
-
-	// CertFile is the path to the PEM encoded CA cert used to verify client certificates.
-	CertFile *string `json:"cert_file,omitempty" hcl:"cert_file" mapstructure:"cert_file"`
-
-	// KeyFile is the path to the PEM encoded CA cert used to verify client certificates.
-	KeyFile *string `json:"key_file,omitempty" hcl:"key_file" mapstructure:"key_file"`
 }
 
 // AutoEncrypt is the agent-global auto_encrypt configuration.
