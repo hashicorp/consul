@@ -11,6 +11,7 @@ type persistedCheck struct {
 	Check   *structs.HealthCheck
 	ChkType *structs.CheckType
 	Token   string
+	Source  string
 }
 
 // persistedCheckState is used to persist the current state of a given
