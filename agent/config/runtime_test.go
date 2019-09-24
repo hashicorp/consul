@@ -3976,8 +3976,7 @@ func TestFullConfig(t *testing.T) {
 									"path": "/health",
 									"local_path_port": 8080,
 									"listener_port": 21500,
-									"protocol": "http",
-									"tls_skip_verify": true
+									"protocol": "http"
 								}
 							]
 						},
@@ -4592,7 +4591,6 @@ func TestFullConfig(t *testing.T) {
 									local_path_port = 8080
 									listener_port = 21500
 									protocol = "http"
-									tls_skip_verify = true
 								}
 							]
 						}
@@ -5178,7 +5176,6 @@ func TestFullConfig(t *testing.T) {
 								LocalPathPort: 8080,
 								ListenerPort:  21500,
 								Protocol:      "http",
-								TLSSkipVerify: true,
 							},
 						},
 					},
