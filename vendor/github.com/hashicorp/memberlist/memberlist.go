@@ -690,3 +690,32 @@ func (m *Memberlist) changeNode(addr string, f func(*nodeState)) {
 	n := m.nodeMap[addr]
 	f(n)
 }
+
+func (m *Memberlist) ForceLeave(nodename string, timeout time.Duration) error {
+	m.nodeLock.Lock()
+	state, ok := m.nodeMap[nodename]
+	m.nodeLock.Unlock()
+	if !ok {
+		m.logger.Printf("[WARN] memberlist: %s Member is not in cluster.", nodename)
+		return nil
+	}
+	d := dead{
+		Incarnation: state.Incarnation,
+		Node:        state.Name,
+	}
+	m.deadNode(&d)
+
+	// Block until the broadcast goes out
+	if m.anyAlive() {
+		var timeoutCh <-chan time.Time
+		if timeout > 0 {
+			timeoutCh = time.After(timeout)
+		}
+		select {
+		case <-m.leaveBroadcast:
+		case <-timeoutCh:
+			return fmt.Errorf("timeout waiting for leave broadcast")
+		}
+	}
+	return nil
+}

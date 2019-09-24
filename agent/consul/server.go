@@ -1010,20 +1010,57 @@ func (s *Server) WANMembers() []serf.Member {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster
-func (s *Server) RemoveFailedNode(node string) error {
-	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
+// We must remove a node from both serf LAN & WAN if present and also
+// check for the prune flag to see if it should be completely deleted
+func (s *Server) RemoveFailedNode(node string, prune bool) error {
+	if prune {
+		s.removeFailedNodePrune(node)
+	}
+
+	lanRemover := s.serfLAN.RemoveFailedNode
+	if err := lanRemover(node); err != nil {
 		return err
 	}
+
+	// If there's no WAN pool, there's nothing more to do
+	if s.serfWAN == nil {
+		return nil
+	}
+
 	// The Serf WAN pool stores members as node.datacenter
 	// so the dc is appended if not present
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
 		node = node + "." + s.config.Datacenter
 	}
+
+	wanRemover := s.serfWAN.RemoveFailedNode
+	if err := wanRemover(node); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//removeFailedNodePrune completely erases a node from the list
+//of members
+func (s *Server) removeFailedNodePrune(node string) error {
+	fmt.Println(node)
+	lanRemover := s.serfLAN.RemoveFailedNodePrune
+	if err := lanRemover(node); err != nil {
+		return err
+	}
+
 	if s.serfWAN != nil {
-		if err := s.serfWAN.RemoveFailedNode(node); err != nil {
+		if !strings.HasSuffix(node, "."+s.config.Datacenter) {
+			node = node + "." + s.config.Datacenter
+		}
+
+		wanRemover := s.serfWAN.RemoveFailedNodePrune
+		if err := wanRemover(node); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

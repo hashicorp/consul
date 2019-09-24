@@ -19,10 +19,15 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
+
+	//flags
+	prune bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.prune, "prune", false,
+		"Remove agent completely from list of members")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
@@ -47,10 +52,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = client.Agent().ForceLeave(nodes[0])
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
-		return 1
+	switch c.prune {
+	case true:
+		fmt.Println("prune set")
+		err = client.Agent().ForceLeavePrune(nodes[0])
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
+			return 1
+		}
+	case false:
+		err = client.Agent().ForceLeave(nodes[0])
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
+			return 1
+		}
+
 	}
 
 	return 0
@@ -74,4 +90,6 @@ Usage: consul force-leave [options] name
   that are never coming back. If you do not force leave a failed node,
   Consul will attempt to reconnect to those failed nodes for some period of
   time before eventually reaping them.
+
+  -prune    Remove agent completely from list of members
 `

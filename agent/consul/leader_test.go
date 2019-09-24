@@ -549,7 +549,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	servers[0].Shutdown()
 
 	// Force remove the non-leader (transition to left state)
-	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
+	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

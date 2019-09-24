@@ -1070,6 +1070,20 @@ func TestAPI_AgentForceLeave(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentForceLeavePrune(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody
+	err := agent.ForceLeavePrune("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentMonitor(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
