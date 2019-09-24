@@ -502,7 +502,7 @@ func (w *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) 
 		return nil, err
 	}
 
-	if err := mergo.Merge(&ns.Proxy.Expose, s.defaults.Expose); err != nil {
+	if err := mergo.Merge(&ns.Proxy.Expose, w.defaults.Expose); err != nil {
 		return nil, err
 	}
 
