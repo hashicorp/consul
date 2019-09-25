@@ -166,6 +166,12 @@ function snapshot_envoy_admin {
   docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-stats.txt"
 }
 
+function reset_envoy_metrics {
+  local HOSTPORT=$1
+  curl -s -f -XPOST $HOSTPORT/reset_counters
+  return $?
+}
+
 function get_all_envoy_metrics {
   local HOSTPORT=$1
   curl -s -f $HOSTPORT/stats
@@ -243,6 +249,34 @@ function assert_envoy_metric {
   fi
 }
 
+function assert_envoy_metric_at_least {
+  set -eEuo pipefail
+  local HOSTPORT=$1
+  local METRIC=$2
+  local EXPECT_COUNT=$3
+
+  METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
+
+  if [ -z "${METRICS}" ]
+  then
+    echo "Metric not found" 1>&2
+    return 1
+  fi
+
+  GOT_COUNT=$(awk -F: '{print $2}' <<< "$METRICS" | head -n 1 | tr -d ' ')
+
+  if [ -z "$GOT_COUNT" ]
+  then
+    echo "Couldn't parse metric count" 1>&2
+    return 1
+  fi
+
+  if [ $EXPECT_COUNT -gt $GOT_COUNT ]
+  then
+    echo "$METRIC - expected >= count: $EXPECT_COUNT, actual count: $GOT_COUNT" 1>&2
+    return 1
+  fi
+}
 
 function get_healthy_service_count {
   local SERVICE_NAME=$1
