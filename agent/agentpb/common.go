@@ -14,51 +14,83 @@ func (q *QueryOptions) AllowStaleRead() bool {
 	return q.AllowStale
 }
 
-// TokenSecret returns the token to be used to authorize the request
 func (q *QueryOptions) TokenSecret() string {
 	return q.Token
 }
 
-// GetMinQueryIndex implements the interface necessary to be used
-// in a blocking query
-func (q *QueryOptions) GetMinQueryIndex() uint64 {
-	return q.MinQueryIndex
+// SetToken is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetToken(token string) {
+	q.Token = token
 }
 
-// GetMaxQueryTime implements the interface necessary to be used
-// in a blocking query
-func (q *QueryOptions) GetMaxQueryTime() time.Duration {
-	return q.MaxQueryTime
+// SetMinQueryIndex is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetMinQueryIndex(minQueryIndex uint64) {
+	q.MinQueryIndex = minQueryIndex
 }
 
-// GetRequireConsistent implements the interface necessary to be used
-// in a blocking query
-func (q *QueryOptions) GetRequireConsistent() bool {
-	return q.RequireConsistent
+// SetMaxQueryTime is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetMaxQueryTime(maxQueryTime time.Duration) {
+	q.MaxQueryTime = maxQueryTime
 }
 
-// SetLastContact implements the interface necessary to be used
-// in a blocking query
+// SetAllowStale is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetAllowStale(allowStale bool) {
+	q.AllowStale = allowStale
+}
+
+// SetRequireConsistent is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetRequireConsistent(requireConsistent bool) {
+	q.RequireConsistent = requireConsistent
+}
+
+// SetUseCache is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetUseCache(useCache bool) {
+	q.UseCache = useCache
+}
+
+// SetMaxStaleDuration is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetMaxStaleDuration(maxStaleDuration time.Duration) {
+	q.MaxStaleDuration = maxStaleDuration
+}
+
+// SetMaxAge is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetMaxAge(maxAge time.Duration) {
+	q.MaxAge = maxAge
+}
+
+// SetMustRevalidate is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetMustRevalidate(mustRevalidate bool) {
+	q.MustRevalidate = mustRevalidate
+}
+
+// SetStaleIfError is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
+	q.StaleIfError = staleIfError
+}
+
+// SetFilter is needed to implement the structs.QueryOptionsCompat interface
+func (q *QueryOptions) SetFilter(filter string) {
+	q.Filter = filter
+}
+
+// SetLastContact is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
 	q.LastContact = lastContact
 }
 
-// SetKnownLeader implements the interface necessary to be used
-// in a blocking query
+// SetKnownLeader is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetKnownLeader(knownLeader bool) {
 	q.KnownLeader = knownLeader
 }
 
-// GetIndex implements the interface necessary to be used
-// in a blocking query
-func (q *QueryMeta) GetIndex() uint64 {
-	return q.Index
-}
-
-// SetIndex implements the interface necessary to be used
-// in a blocking query
+// SetIndex is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetIndex(index uint64) {
 	q.Index = index
+}
+
+// SetConsistencyLevel is needed to implement the structs.QueryMetaCompat interface
+func (q *QueryMeta) SetConsistencyLevel(consistencyLevel string) {
+	q.ConsistencyLevel = consistencyLevel
 }
 
 // WriteRequest only applies to writes, always false
@@ -66,14 +98,13 @@ func (w WriteRequest) IsRead() bool {
 	return false
 }
 
+func (w WriteRequest) TokenSecret() string {
+	return w.Token
+}
+
 // AllowStaleRead returns whether a stale read should be allowed
 func (w WriteRequest) AllowStaleRead() bool {
 	return false
-}
-
-// TokenSecret returns the token to be used to authorize the request
-func (w WriteRequest) TokenSecret() string {
-	return w.Token
 }
 
 func (td TargetDatacenter) RequestDatacenter() string {

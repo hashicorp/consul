@@ -682,11 +682,11 @@ func setLastContact(resp http.ResponseWriter, last time.Duration) {
 }
 
 // setMeta is used to set the query response meta data
-func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
-	setIndex(resp, m.Index)
-	setLastContact(resp, m.LastContact)
-	setKnownLeader(resp, m.KnownLeader)
-	setConsistency(resp, m.ConsistencyLevel)
+func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
+	setIndex(resp, m.GetIndex())
+	setLastContact(resp, m.GetLastContact())
+	setKnownLeader(resp, m.GetKnownLeader())
+	setConsistency(resp, m.GetConsistencyLevel())
 }
 
 // setCacheMeta sets http response headers to indicate cache status.
@@ -713,7 +713,7 @@ func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 
 // parseWait is used to parse the ?wait and ?index query params
 // Returns true on error
-func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func parseWait(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
@@ -722,7 +722,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 			fmt.Fprint(resp, "Invalid wait time")
 			return true
 		}
-		b.MaxQueryTime = dur
+		b.SetMaxQueryTime(dur)
 	}
 	if idx := query.Get("index"); idx != "" {
 		index, err := strconv.ParseUint(idx, 10, 64)
@@ -731,14 +731,14 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 			fmt.Fprint(resp, "Invalid index")
 			return true
 		}
-		b.MinQueryIndex = index
+		b.SetMinQueryIndex(index)
 	}
 	return false
 }
 
 // parseCacheControl parses the CacheControl HTTP header value. So far we only
 // support maxage directive.
-func parseCacheControl(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	raw := strings.ToLower(req.Header.Get("Cache-Control"))
 
 	if raw == "" {
@@ -766,7 +766,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b *structs.Q
 		d = strings.ToLower(strings.TrimSpace(d))
 
 		if d == "must-revalidate" {
-			b.MustRevalidate = true
+			b.SetMustRevalidate(true)
 		}
 
 		if strings.HasPrefix(d, "max-age=") {
@@ -774,12 +774,12 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b *structs.Q
 			if failed {
 				return true
 			}
-			b.MaxAge = d
+			b.SetMaxAge(d)
 			if d == 0 {
 				// max-age=0 specifically means that we need to consider the cache stale
 				// immediately however MaxAge = 0 is indistinguishable from the default
 				// where MaxAge is unset.
-				b.MustRevalidate = true
+				b.SetMustRevalidate(true)
 			}
 		}
 		if strings.HasPrefix(d, "stale-if-error=") {
@@ -787,7 +787,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b *structs.Q
 			if failed {
 				return true
 			}
-			b.StaleIfError = d
+			b.SetStaleIfError(d)
 		}
 	}
 
@@ -796,22 +796,22 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b *structs.Q
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
-		b.AllowStale = true
+		b.SetAllowStale(true)
 		defaults = false
 	}
 	if _, ok := query["consistent"]; ok {
-		b.RequireConsistent = true
+		b.SetRequireConsistent(true)
 		defaults = false
 	}
 	if _, ok := query["leader"]; ok {
 		defaults = false
 	}
 	if _, ok := query["cached"]; ok {
-		b.UseCache = true
+		b.SetUseCache(true)
 		defaults = false
 	}
 	if maxStale := query.Get("max_stale"); maxStale != "" {
@@ -821,9 +821,9 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 			fmt.Fprintf(resp, "Invalid max_stale value %q", maxStale)
 			return true
 		}
-		b.MaxStaleDuration = dur
+		b.SetMaxStaleDuration(dur)
 		if dur.Nanoseconds() > 0 {
-			b.AllowStale = true
+			b.SetAllowStale(true)
 			defaults = false
 		}
 	}
@@ -832,17 +832,17 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 		path := req.URL.Path
 		if strings.HasPrefix(path, "/v1/catalog") || strings.HasPrefix(path, "/v1/health") {
 			if s.agent.config.DiscoveryMaxStale.Nanoseconds() > 0 {
-				b.MaxStaleDuration = s.agent.config.DiscoveryMaxStale
-				b.AllowStale = true
+				b.SetMaxStaleDuration(s.agent.config.DiscoveryMaxStale)
+				b.SetAllowStale(true)
 			}
 		}
 	}
-	if b.AllowStale && b.RequireConsistent {
+	if b.GetAllowStale() && b.GetRequireConsistent() {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?stale with ?consistent, conflicting semantics.")
 		return true
 	}
-	if b.UseCache && b.RequireConsistent {
+	if b.GetUseCache() && b.GetRequireConsistent() {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Cannot specify ?cached with ?consistent, conflicting semantics.")
 		return true
@@ -959,10 +959,14 @@ func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
 
 // parseInternal is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
-	s.parseTokenInternal(req, &b.Token)
-	s.parseFilter(req, &b.Filter)
+	var token string
+	s.parseTokenInternal(req, &token)
+	b.SetToken(token)
+	var filter string
+	s.parseFilter(req, &filter)
+	b.SetFilter(filter)
 	if s.parseConsistency(resp, req, b) {
 		return true
 	}
@@ -974,7 +978,7 @@ func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, 
 
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
+func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	return s.parseInternal(resp, req, dc, b)
 }
 

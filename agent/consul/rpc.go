@@ -454,25 +454,8 @@ func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, en
 // a snapshot.
 type queryFn func(memdb.WatchSet, *state.Store) error
 
-// we specify this as an interface so that we can allow a our legacy structs.QueryOptions
-// and the protobuf defined QueryOptions struct to both be used here.
-type queryOptions interface {
-	GetMinQueryIndex() uint64
-	GetMaxQueryTime() time.Duration
-	GetRequireConsistent() bool
-}
-
-// we specify this as an interface so that we can allow a our legacy structs.QueryMeta
-// and the protobuf defined QueryMeta struct to both be used here.
-type queryMeta interface {
-	SetLastContact(time.Duration)
-	SetKnownLeader(bool)
-	GetIndex() uint64
-	SetIndex(uint64)
-}
-
 // blockingQuery is used to process a potentially blocking query operation.
-func (s *Server) blockingQuery(queryOpts queryOptions, queryMeta queryMeta, fn queryFn) error {
+func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
 	var timeout *time.Timer
 	var queryTimeout time.Duration
 
@@ -557,7 +540,7 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m queryMeta) {
+func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
