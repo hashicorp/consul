@@ -63,7 +63,7 @@ config {
   non-Connect-enabled applications to contact an HTTP endpoint. 
   Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
 
-  - `Checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.  
+  - `Checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
  Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's 
  [advertise address](/docs/agent/options.html#advertise). The port for these listeners are dynamically allocated from 
  [expose_min_port](/docs/agent/options.html#expose_min_port) to [expose_max_port](/docs/agent/options.html#expose_max_port). 

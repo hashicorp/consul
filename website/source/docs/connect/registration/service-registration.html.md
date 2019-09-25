@@ -132,7 +132,7 @@ registering a proxy instance.
 
 The following examples show all possible upstream configuration parameters.
 
-Note that `snake_case` is used here as it works in both [config file and API
+-> Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 Upstreams support multiple destination types. Both examples are shown below
@@ -199,7 +199,7 @@ followed by documentation for each attribute.
 
 The following examples show all possible mesh gateway configurations.
 
-Note that `snake_case` is used here as it works in both [config file and API
+-> Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 #### Using a Local/Egress Gateway in the Local Datacenter
