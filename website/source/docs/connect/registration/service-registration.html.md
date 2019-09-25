@@ -254,7 +254,7 @@ Exposing paths through Envoy enables a service to protect itself by only listeni
 non-Connect-enabled applications to contact an HTTP endpoint. 
 Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
 
-Note that `snake_case` is used here as it works in both [config file and API
+-> Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 #### Expose listeners in Envoy for HTTP and GRPC checks registered with the local Consul agent
