@@ -149,6 +149,8 @@ type AgentServiceRegistration struct {
 	Checks            AgentServiceChecks
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
+
+	ReplaceExistingChecks bool `json:"-"`
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -545,7 +547,12 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 // ServiceRegister is used to register a new service with
 // the local agent
 func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
-	r := a.c.newRequest("PUT", "/v1/agent/service/register")
+	url := url.URL{Path: "/v1/agent/service/register"}
+	if service.ReplaceExistingChecks {
+		url.Query().Add("replace-existing-checks", "true")
+	}
+
+	r := a.c.newRequest("PUT", url.String())
 	r.obj = service
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
