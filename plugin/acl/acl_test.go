@@ -27,9 +27,7 @@ func (t *testResponseWriter) WriteMsg(m *dns.Msg) error {
 
 func NewTestControllerWithZones(input string, zones []string) *caddy.Controller {
 	ctr := caddy.NewTestController("dns", input)
-	for _, zone := range zones {
-		ctr.ServerBlockKeys = append(ctr.ServerBlockKeys, zone)
-	}
+	ctr.ServerBlockKeys = append(ctr.ServerBlockKeys, zones...)
 	return ctr
 }
 

@@ -83,7 +83,7 @@ func (e *Etcd) Records(ctx context.Context, state request.Request, exact bool) (
 func (e *Etcd) get(ctx context.Context, path string, recursive bool) (*etcdcv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, etcdTimeout)
 	defer cancel()
-	if recursive == true {
+	if recursive {
 		if !strings.HasSuffix(path, "/") {
 			path = path + "/"
 		}

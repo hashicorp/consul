@@ -46,9 +46,7 @@ func parseConfig(d *caddyfile.Dispenser) (c config, err error) {
 		c.target = servers[0]
 	} else {
 		// default to UNIX socket
-		if strings.HasPrefix(c.target, "unix://") {
-			c.target = c.target[7:]
-		}
+		c.target = strings.TrimPrefix(c.target, "unix://")
 		c.socket = true
 	}
 

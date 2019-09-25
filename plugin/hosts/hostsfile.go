@@ -244,8 +244,8 @@ func (h *Hostsfile) LookupStaticAddr(addr string) []string {
 
 	h.RLock()
 	defer h.RUnlock()
-	hosts1, _ := h.hmap.addr[addr]
-	hosts2, _ := h.inline.addr[addr]
+	hosts1 := h.hmap.addr[addr]
+	hosts2 := h.inline.addr[addr]
 
 	if len(hosts1) == 0 && len(hosts2) == 0 {
 		return nil
