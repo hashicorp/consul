@@ -628,10 +628,3 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 func (c *ConsulProvider) SetLogger(logger *log.Logger) {
 	c.logger = logger
 }
-
-// Printf sends output to the configured Logger, if one exists.
-func (c *ConsulProvider) Printf(format string, v ...interface{}) {
-	if c.logger != nil {
-		c.logger.Printf(format, v...)
-	}
-}
