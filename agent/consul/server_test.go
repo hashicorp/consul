@@ -130,10 +130,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	return dir, config
 }
 
-func MakeMeATestServer(t *testing.T) (string, *Server) {
-	return testServer(t)
-}
-
 func testServer(t *testing.T) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
