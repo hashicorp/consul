@@ -655,14 +655,10 @@ func makeHTTPFilter(
 	if grpc {
 		proto = "grpc"
 	}
-	codec := envoyhttp.AUTO
-	if grpc || http2 {
-		codec = envoyhttp.HTTP2
-	}
 
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
-		CodecType:  codec,
+		CodecType:  envoyhttp.AUTO,
 		HttpFilters: []*envoyhttp.HttpFilter{
 			&envoyhttp.HttpFilter{
 				Name: "envoy.router",
