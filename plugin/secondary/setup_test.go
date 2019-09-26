@@ -55,7 +55,7 @@ func TestSecondaryParse(t *testing.T) {
 			}
 		}
 
-		// This is only set *iff* we have a zone (i.e. not in all tests above)
+		// This is only set *if* we have a zone (i.e. not in all tests above)
 		for _, v := range s.Z {
 			if x := v.TransferFrom[0]; x != test.transferFrom {
 				t.Fatalf("Test %d transform from names don't match expected %q, but got %q", i, test.transferFrom, x)

@@ -29,7 +29,7 @@ const (
 	Continue = "continue"
 )
 
-// Rewrite is plugin to rewrite requests internally before being handled.
+// Rewrite is a plugin to rewrite requests internally before being handled.
 type Rewrite struct {
 	Next     plugin.Handler
 	Rules    []Rule

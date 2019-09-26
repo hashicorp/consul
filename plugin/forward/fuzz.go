@@ -11,7 +11,7 @@ import (
 
 var f *Forward
 
-// abuse init to setup a environment to test against. This start another server to that will
+// abuse init to setup an environment to test against. This start another server to that will
 // reflect responses.
 func init() {
 	f = New()

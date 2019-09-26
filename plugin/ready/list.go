@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// list is structure that holds the plugins that signals readiness for this server block.
+// list is a structure that holds the plugins that signals readiness for this server block.
 type list struct {
 	sync.RWMutex
 	rs    []Readiness
