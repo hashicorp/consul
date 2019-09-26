@@ -96,9 +96,9 @@ type ConnectCALeaf struct {
 // since all times we get from our wall clock should point to the same Location
 // anyway.
 type fetchState struct {
-	// authorityKeyID is the key ID of the CA root that signed the current cert.
-	// This is just to save parsing the whole cert everytime we have to check if
-	// the root changed.
+	// authorityKeyId is the ID of the CA key (whether root or intermediate) that signed
+	// the current cert.  This is just to save parsing the whole cert everytime
+	// we have to check if the root changed.
 	authorityKeyID string
 
 	// forceExpireAfter is used to coordinate renewing certs after a CA rotation
@@ -362,7 +362,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		expiresAt = state.forceExpireAfter
 	}
 
-	if expiresAt == now || expiresAt.Before(now) {
+	if expiresAt.Equal(now) || expiresAt.Before(now) {
 		// Already expired, just make a new one right away
 		return c.generateNewLeaf(reqReal, lastResultWithNewState())
 	}

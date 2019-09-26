@@ -290,7 +290,10 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 		return err
 	}
 
-	var storedRootID string
+	var (
+		storedRootID         string
+		expectedSigningKeyID string
+	)
 	if activeIntermediate != "" {
 		storedRoot, err := provider.ActiveRoot()
 		if err != nil {
@@ -301,6 +304,12 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 		if err != nil {
 			return fmt.Errorf("error parsing root fingerprint: %v, %#v", err, roots)
 		}
+
+		intermediateCert, err := connect.ParseCert(activeIntermediate)
+		if err != nil {
+			return fmt.Errorf("error parsing active intermediate cert: %v", err)
+		}
+		expectedSigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 	}
 
 	var newActiveRoot *structs.CARoot
@@ -314,10 +323,21 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 		return fmt.Errorf("primary datacenter does not have an active root CA for Connect")
 	}
 
-	newIntermediate := false
 	// Get a signed intermediate from the primary DC if the provider
 	// hasn't been initialized yet or if the primary's root has changed.
+	needsNewIntermediate := false
 	if activeIntermediate == "" || storedRootID != roots.ActiveRootID {
+		needsNewIntermediate = true
+	}
+
+	// Also we take this opportunity to correct an incorrectly persisted SigningKeyID
+	// in secondary datacenters (see PR-6513).
+	if expectedSigningKeyID != "" && newActiveRoot.SigningKeyID != expectedSigningKeyID {
+		needsNewIntermediate = true
+	}
+
+	newIntermediate := false
+	if needsNewIntermediate {
 		csr, err := provider.GenerateIntermediateCSR()
 		if err != nil {
 			return err
@@ -334,8 +354,14 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 			return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 		}
 
+		intermediateCert, err := connect.ParseCert(intermediatePEM)
+		if err != nil {
+			return fmt.Errorf("error parsing intermediate cert: %v", err)
+		}
+
 		// Append the new intermediate to our local active root entry.
 		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
+		newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 		newIntermediate = true
 
 		s.logger.Printf("[INFO] connect: received new intermediate certificate from primary datacenter")
