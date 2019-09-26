@@ -14,6 +14,16 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+
+## Consul 1.6.0
+
+#### Removal of Deprecated Features
+
+Managed proxies (which have been [deprecated](/docs/connect/proxies/managed-deprecated.html)
+since Consul 1.3.0) have now been [removed](/docs/connect/proxies.html). Before
+upgrading, you will need to migrate any managed proxy usage to [sidecar service
+registrations](/docs/connect/registration/sidecar-service.html).
+
 ## Consul 1.4.0
 
 There are two major features in Consul 1.4.0 that may impact upgrades: a [new
