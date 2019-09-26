@@ -4,6 +4,7 @@ import { set } from '@ember/object';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
+  HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
 } from 'consul-ui/utils/http/consul';
 export default Serializer.extend({
   // this could get confusing if you tried to override
@@ -50,6 +51,7 @@ export default Serializer.extend({
   normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
     const meta = {
       cursor: headers[HTTP_HEADERS_INDEX],
+      dc: headers[HTTP_HEADERS_DATACENTER],
     };
     if (requestType === 'query') {
       meta.date = this.timestamp();
