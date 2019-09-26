@@ -6,6 +6,7 @@ FEATURES
 
 BUG FIXES
 
+* agent: cache notifications work after error if the underlying RPC returns index=1 [[GH-6547](https://github.com/hashicorp/consul/issues/6547)]
 * agent: tolerate more failure scenarios during service registration with central config enabled [[GH-6472](https://github.com/hashicorp/consul/issues/6472)]
 * cache: remove data race in agent cache [[GH-6470](https://github.com/hashicorp/consul/issues/6470)]
 * connect: intermediate CA certs generated with the vault provider lack URI SANs [[GH-6491](https://github.com/hashicorp/consul/issues/6491)]
