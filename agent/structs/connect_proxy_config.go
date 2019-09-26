@@ -3,10 +3,16 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"log"
 )
+
+const (
+	defaultExposeProtocol = "http"
+)
+
+var allowedExposeProtocols = map[string]bool{"http": true, "http2": true}
 
 type MeshGatewayMode string
 
@@ -109,6 +115,9 @@ type ConnectProxyConfig struct {
 
 	// MeshGateway defines the mesh gateway configuration for this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+
+	// Expose defines whether checks or paths are exposed through the proxy
+	Expose ExposeConfig `json:",omitempty"`
 }
 
 func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
@@ -137,6 +146,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		Config:                 c.Config,
 		Upstreams:              c.Upstreams.ToAPI(),
 		MeshGateway:            c.MeshGateway.ToAPI(),
+		Expose:                 c.Expose.ToAPI(),
 	}
 }
 
@@ -310,5 +320,70 @@ func UpstreamFromAPI(u api.Upstream) Upstream {
 		LocalBindAddress:     u.LocalBindAddress,
 		LocalBindPort:        u.LocalBindPort,
 		Config:               u.Config,
+	}
+}
+
+// ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
+// Users can expose individual paths and/or all HTTP/GRPC paths for checks.
+type ExposeConfig struct {
+	// Checks defines whether paths associated with Consul checks will be exposed.
+	// This flag triggers exposing all HTTP and GRPC check paths registered for the service.
+	Checks bool `json:",omitempty"`
+
+	// Paths is the list of paths exposed through the proxy.
+	Paths []ExposePath `json:",omitempty"`
+}
+
+type ExposePath struct {
+	// ListenerPort defines the port of the proxy's listener for exposed paths.
+	ListenerPort int `json:",omitempty"`
+
+	// ExposePath is the path to expose through the proxy, ie. "/metrics."
+	Path string `json:",omitempty"`
+
+	// LocalPathPort is the port that the service is listening on for the given path.
+	LocalPathPort int `json:",omitempty"`
+
+	// Protocol describes the upstream's service protocol.
+	// Valid values are "http" and "http2", defaults to "http"
+	Protocol string `json:",omitempty"`
+
+	// ParsedFromCheck is set if this path was parsed from a registered check
+	ParsedFromCheck bool
+}
+
+func (e *ExposeConfig) ToAPI() api.ExposeConfig {
+	paths := make([]api.ExposePath, 0)
+	for _, p := range e.Paths {
+		paths = append(paths, p.ToAPI())
+	}
+	if e.Paths == nil {
+		paths = nil
+	}
+
+	return api.ExposeConfig{
+		Checks: e.Checks,
+		Paths:  paths,
+	}
+}
+
+func (p *ExposePath) ToAPI() api.ExposePath {
+	return api.ExposePath{
+		ListenerPort:    p.ListenerPort,
+		Path:            p.Path,
+		LocalPathPort:   p.LocalPathPort,
+		Protocol:        p.Protocol,
+		ParsedFromCheck: p.ParsedFromCheck,
+	}
+}
+
+// Finalize validates ExposeConfig and sets default values
+func (e *ExposeConfig) Finalize(l *log.Logger) {
+	for i := 0; i < len(e.Paths); i++ {
+		path := &e.Paths[i]
+
+		if path.Protocol == "" {
+			path.Protocol = defaultExposeProtocol
+		}
 	}
 }

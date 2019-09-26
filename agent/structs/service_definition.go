@@ -54,6 +54,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
 			}
 		}
+		ns.Proxy.Expose = s.Proxy.Expose
 	}
 	if ns.ID == "" && ns.Service != "" {
 		ns.ID = ns.Service

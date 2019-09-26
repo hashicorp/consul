@@ -14,6 +14,7 @@ type configSnapshotConnectProxy struct {
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 	WatchedGateways          map[string]map[string]context.CancelFunc
 	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
+	WatchedServiceChecks     map[string][]structs.CheckType
 
 	UpstreamEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
 }

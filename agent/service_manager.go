@@ -502,6 +502,10 @@ func (w *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) 
 		return nil, err
 	}
 
+	if err := mergo.Merge(&ns.Proxy.Expose, w.defaults.Expose); err != nil {
+		return nil, err
+	}
+
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		ns.Proxy.MeshGateway.Mode = w.defaults.MeshGateway.Mode
 	}

@@ -206,7 +206,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
 						"db": {},
 					},
-					UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
+					UpstreamEndpoints:    map[string]structs.CheckServiceNodes{},
+					WatchedServiceChecks: map[string][]structs.CheckType{},
 				},
 				Datacenter: "dc1",
 			},
@@ -250,7 +251,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
 						"db": {},
 					},
-					UpstreamEndpoints: map[string]structs.CheckServiceNodes{},
+					UpstreamEndpoints:    map[string]structs.CheckServiceNodes{},
+					WatchedServiceChecks: map[string][]structs.CheckType{},
 				},
 				Datacenter: "dc1",
 			},

@@ -13,11 +13,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const (
-	// maxQueryTime is used to bound the limit of a blocking query
-	maxQueryTime = 600 * time.Second
-)
-
 // EventFire is used to fire a new event
 func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 

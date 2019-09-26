@@ -139,7 +139,7 @@ func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, er
 	return cfg, err
 }
 
-// ParseUpstreamConfig returns the UpstreamConfig parsed from the an opaque map.
+// ParseUpstreamConfig returns the UpstreamConfig parsed from an opaque map.
 // If an error occurs during parsing it is returned along with the default
 // config this allows caller to choose whether and how to report the error.
 func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {

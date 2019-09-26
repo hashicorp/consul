@@ -1127,3 +1127,46 @@ operator = "write"
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
 }
+
+func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	expose := structs.ExposeConfig{
+		Checks: true,
+		Paths: []structs.ExposePath{
+			{
+				LocalPathPort: 8080,
+				ListenerPort:  21500,
+				Protocol:      "http2",
+				Path:          "/healthz",
+			},
+		},
+	}
+
+	args := structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Entry: &structs.ProxyConfigEntry{
+			Kind:   "proxy-defaults",
+			Name:   "global",
+			Expose: expose,
+		},
+	}
+
+	out := false
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	require.True(t, out)
+
+	state := s1.fsm.State()
+	_, entry, err := state.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	require.NoError(t, err)
+
+	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
+	require.True(t, ok)
+	require.Equal(t, expose, proxyConf.Expose)
+}

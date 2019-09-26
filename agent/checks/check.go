@@ -3,6 +3,7 @@ package checks
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/hashicorp/consul/agent/structs"
 	"io"
 	"io/ioutil"
 	"log"
@@ -58,6 +59,7 @@ type CheckNotifier interface {
 type CheckMonitor struct {
 	Notify        CheckNotifier
 	CheckID       types.CheckID
+	ServiceID     string
 	Script        string
 	ScriptArgs    []string
 	Interval      time.Duration
@@ -210,10 +212,11 @@ func (c *CheckMonitor) check() {
 // but upon the TTL expiring, the check status is
 // automatically set to critical.
 type CheckTTL struct {
-	Notify  CheckNotifier
-	CheckID types.CheckID
-	TTL     time.Duration
-	Logger  *log.Logger
+	Notify    CheckNotifier
+	CheckID   types.CheckID
+	ServiceID string
+	TTL       time.Duration
+	Logger    *log.Logger
 
 	timer *time.Timer
 
@@ -308,6 +311,7 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 type CheckHTTP struct {
 	Notify          CheckNotifier
 	CheckID         types.CheckID
+	ServiceID       string
 	HTTP            string
 	Header          map[string][]string
 	Method          string
@@ -321,6 +325,23 @@ type CheckHTTP struct {
 	stop       bool
 	stopCh     chan struct{}
 	stopLock   sync.Mutex
+
+	// Set if checks are exposed through Connect proxies
+	// If set, this is the target of check()
+	ProxyHTTP string
+}
+
+func (c *CheckHTTP) CheckType() structs.CheckType {
+	return structs.CheckType{
+		CheckID:       c.CheckID,
+		HTTP:          c.HTTP,
+		Method:        c.Method,
+		Header:        c.Header,
+		Interval:      c.Interval,
+		ProxyHTTP:     c.ProxyHTTP,
+		Timeout:       c.Timeout,
+		OutputMaxSize: c.OutputMaxSize,
+	}
 }
 
 // Start is used to start an HTTP check.
@@ -390,7 +411,12 @@ func (c *CheckHTTP) check() {
 		method = "GET"
 	}
 
-	req, err := http.NewRequest(method, c.HTTP, nil)
+	target := c.HTTP
+	if c.ProxyHTTP != "" {
+		target = c.ProxyHTTP
+	}
+
+	req, err := http.NewRequest(method, target, nil)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
@@ -430,7 +456,7 @@ func (c *CheckHTTP) check() {
 	}
 
 	// Format the response body
-	result := fmt.Sprintf("HTTP %s %s: %s Output: %s", method, c.HTTP, resp.Status, output.String())
+	result := fmt.Sprintf("HTTP %s %s: %s Output: %s", method, target, resp.Status, output.String())
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
@@ -456,12 +482,13 @@ func (c *CheckHTTP) check() {
 // The check is passing if the connection succeeds
 // The check is critical if the connection returns an error
 type CheckTCP struct {
-	Notify   CheckNotifier
-	CheckID  types.CheckID
-	TCP      string
-	Interval time.Duration
-	Timeout  time.Duration
-	Logger   *log.Logger
+	Notify    CheckNotifier
+	CheckID   types.CheckID
+	ServiceID string
+	TCP       string
+	Interval  time.Duration
+	Timeout   time.Duration
+	Logger    *log.Logger
 
 	dialer   *net.Dialer
 	stop     bool
@@ -537,6 +564,7 @@ func (c *CheckTCP) check() {
 type CheckDocker struct {
 	Notify            CheckNotifier
 	CheckID           types.CheckID
+	ServiceID         string
 	Script            string
 	ScriptArgs        []string
 	DockerContainerID string
@@ -656,6 +684,7 @@ func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
 type CheckGRPC struct {
 	Notify          CheckNotifier
 	CheckID         types.CheckID
+	ServiceID       string
 	GRPC            string
 	Interval        time.Duration
 	Timeout         time.Duration
@@ -666,6 +695,20 @@ type CheckGRPC struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+
+	// Set if checks are exposed through Connect proxies
+	// If set, this is the target of check()
+	ProxyGRPC string
+}
+
+func (c *CheckGRPC) CheckType() structs.CheckType {
+	return structs.CheckType{
+		CheckID:   c.CheckID,
+		GRPC:      c.GRPC,
+		ProxyGRPC: c.ProxyGRPC,
+		Interval:  c.Interval,
+		Timeout:   c.Timeout,
+	}
 }
 
 func (c *CheckGRPC) Start() {
@@ -697,13 +740,18 @@ func (c *CheckGRPC) run() {
 }
 
 func (c *CheckGRPC) check() {
-	err := c.probe.Check()
+	target := c.GRPC
+	if c.ProxyGRPC != "" {
+		target = c.ProxyGRPC
+	}
+
+	err := c.probe.Check(target)
 	if err != nil {
 		c.Logger.Printf("[DEBUG] agent: Check %q failed: %s", c.CheckID, err.Error())
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
 	} else {
 		c.Logger.Printf("[DEBUG] agent: Check %q is passing", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", c.GRPC))
+		c.Notify.UpdateCheck(c.CheckID, api.HealthPassing, fmt.Sprintf("gRPC check %s: success", target))
 	}
 }
 

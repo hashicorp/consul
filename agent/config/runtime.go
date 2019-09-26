@@ -541,6 +541,14 @@ type RuntimeConfig struct {
 	// specified
 	ConnectSidecarMaxPort int
 
+	// ExposeMinPort is the inclusive start of the range of ports
+	// allocated to the agent for exposing checks through a proxy
+	ExposeMinPort int
+
+	// ExposeMinPort is the inclusive start of the range of ports
+	// allocated to the agent for exposing checks through a proxy
+	ExposeMaxPort int
+
 	// ConnectCAProvider is the type of CA provider to use with Connect.
 	ConnectCAProvider string
 
