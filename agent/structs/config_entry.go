@@ -51,6 +51,7 @@ type ServiceConfigEntry struct {
 	Name        string
 	Protocol    string
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	Expose      ExposeConfig      `json:",omitempty"`
 
 	ExternalSNI string `json:",omitempty"`
 
@@ -116,6 +117,7 @@ type ProxyConfigEntry struct {
 	Name        string
 	Config      map[string]interface{}
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	Expose      ExposeConfig      `json:",omitempty"`
 
 	RaftIndex
 }
@@ -297,10 +299,15 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, translateKeysDict map[string]string, err error) {
 	switch kind {
 	case ProxyDefaults:
-		return nil, map[string]string{
-			"mesh_gateway": "meshgateway",
-			"config":       "",
-		}, nil
+		return []string{
+				"expose.paths",
+				"Expose.Paths",
+			}, map[string]string{
+				"local_path_port": "localpathport",
+				"listener_port":   "listenerport",
+				"mesh_gateway":    "meshgateway",
+				"config":          "",
+			}, nil
 	case ServiceDefaults:
 		return nil, map[string]string{
 			"mesh_gateway": "meshgateway",
@@ -534,6 +541,7 @@ type ServiceConfigResponse struct {
 	ProxyConfig     map[string]interface{}
 	UpstreamConfigs map[string]map[string]interface{}
 	MeshGateway     MeshGatewayConfig `json:",omitempty"`
+	Expose          ExposeConfig      `json:",omitempty"`
 	QueryMeta
 }
 

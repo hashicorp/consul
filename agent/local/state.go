@@ -50,7 +50,7 @@ type ServiceState struct {
 	// but has not been removed on the server yet.
 	Deleted bool
 
-	// WatchCh is closed when the service state changes suitable for use in a
+	// WatchCh is closed when the service state changes. Suitable for use in a
 	// memdb.WatchSet when watching agent local changes with hash-based blocking.
 	WatchCh chan struct{}
 }
@@ -366,7 +366,7 @@ func (l *State) SetServiceState(s *ServiceState) {
 }
 
 func (l *State) setServiceStateLocked(s *ServiceState) {
-	s.WatchCh = make(chan struct{})
+	s.WatchCh = make(chan struct{}, 1)
 
 	old, hasOld := l.services[s.Service.ID]
 	l.services[s.Service.ID] = s

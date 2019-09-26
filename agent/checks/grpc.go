@@ -28,7 +28,6 @@ type GrpcHealthProbe struct {
 func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Config) *GrpcHealthProbe {
 	serverAndService := strings.SplitN(target, "/", 2)
 
-	server := serverAndService[0]
 	request := hv1.HealthCheckRequest{}
 	if len(serverAndService) > 1 {
 		request.Service = serverAndService[1]
@@ -43,7 +42,6 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 	}
 
 	return &GrpcHealthProbe{
-		server:      server,
 		request:     &request,
 		timeout:     timeout,
 		dialOptions: dialOptions,
@@ -52,11 +50,14 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 
 // Check if the target of this GrpcHealthProbe is healthy
 // If nil is returned, target is healthy, otherwise target is not healthy
-func (probe *GrpcHealthProbe) Check() error {
+func (probe *GrpcHealthProbe) Check(target string) error {
+	serverAndService := strings.SplitN(target, "/", 2)
+	server := serverAndService[0]
+
 	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
 	defer cancel()
 
-	connection, err := grpc.DialContext(ctx, probe.server, probe.dialOptions...)
+	connection, err := grpc.DialContext(ctx, server, probe.dialOptions...)
 	if err != nil {
 		return err
 	}

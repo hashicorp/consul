@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-memdb"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,7 +22,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
@@ -42,8 +44,8 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	multierror "github.com/hashicorp/go-multierror"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -77,6 +79,18 @@ const (
 
 	// ID of the leaf watch
 	leafWatchID = "leaf"
+
+	// maxQueryTime is used to bound the limit of a blocking query
+	maxQueryTime = 600 * time.Second
+
+	// defaultQueryTime is the amount of time we block waiting for a change
+	// if no time is specified. Previously we would wait the maxQueryTime.
+	defaultQueryTime = 300 * time.Second
+)
+
+var (
+	httpAddrRE = regexp.MustCompile(`^(http[s]?://)(\[.*?\]|\[?[\w\-\.]+)(:\d+)?([^?]*)(\?.*)?$`)
+	grpcAddrRE = regexp.MustCompile("(.*)((?::)(?:[0-9]+))(.*)$")
 )
 
 type configSource int
@@ -205,6 +219,9 @@ type Agent struct {
 
 	// checkAliases maps the check ID to an associated Alias checks
 	checkAliases map[types.CheckID]*checks.CheckAlias
+
+	// exposedPorts tracks listener ports for checks exposed through a proxy
+	exposedPorts map[string]int
 
 	// stateLock protects the agent state
 	stateLock sync.Mutex
@@ -691,6 +708,8 @@ func (a *Agent) listenAndServeGRPC() error {
 		CfgMgr:       a.proxyConfig,
 		Authz:        a,
 		ResolveToken: a.resolveToken,
+		CheckFetcher: a,
+		CfgFetcher:   a,
 	}
 	a.xdsServer.Initialize()
 
@@ -1836,7 +1855,7 @@ func (a *Agent) ResumeSync() {
 
 // syncPausedCh returns either a channel or nil. If nil sync is not paused. If
 // non-nil, the channel will be closed when sync resumes.
-func (a *Agent) syncPausedCh() <-chan struct{} {
+func (a *Agent) SyncPausedCh() <-chan struct{} {
 	a.syncMu.Lock()
 	defer a.syncMu.Unlock()
 	return a.syncCh
@@ -2265,7 +2284,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	}
 
 	// cleanup, store the ids of services and checks that weren't previously
-	// registered so we clean them up if somthing fails halfway through the
+	// registered so we clean them up if something fails halfway through the
 	// process.
 	var cleanupServices []string
 	var cleanupChecks []types.CheckID
@@ -2299,6 +2318,19 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 
 			}
 		}
+	}
+
+	// If a proxy service wishes to expose checks, check targets need to be rerouted to the proxy listener
+	// This needs to be called after chkTypes are added to the agent, to avoid being overwritten
+	if service.Proxy.Expose.Checks {
+		err := a.rerouteExposedChecks(service.Proxy.DestinationServiceID, service.Proxy.LocalServiceAddress)
+		if err != nil {
+			a.logger.Println("[WARN] failed to reroute L7 checks to exposed proxy listener")
+		}
+	} else {
+		// Reset check targets if proxy was re-registered but no longer wants to expose checks
+		// If the proxy is being registered for the first time then this is a no-op
+		a.resetExposedChecks(service.Proxy.DestinationServiceID)
 	}
 
 	if persistServiceConfig && a.config.DataDir != "" {
@@ -2437,6 +2469,14 @@ func (a *Agent) removeServiceLocked(serviceID string, persist bool) error {
 		a.serviceManager.RemoveService(serviceID)
 	}
 
+	// Reset the HTTP check targets if they were exposed through a proxy
+	// If this is not a proxy or checks were not exposed then this is a no-op
+	svc := a.State.Service(serviceID)
+
+	if svc != nil {
+		a.resetExposedChecks(svc.Proxy.DestinationServiceID)
+	}
+
 	checks := a.State.Checks()
 	var checkIDs []types.CheckID
 	for id, check := range checks {
@@ -2573,6 +2613,19 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		if chkType.OutputMaxSize > 0 && maxOutputSize > chkType.OutputMaxSize {
 			maxOutputSize = chkType.OutputMaxSize
 		}
+
+		// Get the address of the proxy for this service if it exists
+		// Need its config to know whether we should reroute checks to it
+		var proxy *structs.NodeService
+		if service != nil {
+			for _, svc := range a.State.Services() {
+				if svc.Proxy.DestinationServiceID == service.ID {
+					proxy = svc
+					break
+				}
+			}
+		}
+
 		switch {
 
 		case chkType.IsTTL():
@@ -2584,6 +2637,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			ttl := &checks.CheckTTL{
 				Notify:        a.State,
 				CheckID:       check.CheckID,
+				ServiceID:     check.ServiceID,
 				TTL:           chkType.TTL,
 				Logger:        a.logger,
 				OutputMaxSize: maxOutputSize,
@@ -2614,6 +2668,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			http := &checks.CheckHTTP{
 				Notify:          a.State,
 				CheckID:         check.CheckID,
+				ServiceID:       check.ServiceID,
 				HTTP:            chkType.HTTP,
 				Header:          chkType.Header,
 				Method:          chkType.Method,
@@ -2623,6 +2678,16 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				OutputMaxSize:   maxOutputSize,
 				TLSClientConfig: tlsClientConfig,
 			}
+
+			if proxy != nil && proxy.Proxy.Expose.Checks {
+				port, err := a.listenerPortLocked(service.ID, string(http.CheckID))
+				if err != nil {
+					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
+					return err
+				}
+				http.ProxyHTTP = httpInjectAddr(http.HTTP, proxy.Proxy.LocalServiceAddress, port)
+			}
+
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
 
@@ -2638,12 +2703,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			tcp := &checks.CheckTCP{
-				Notify:   a.State,
-				CheckID:  check.CheckID,
-				TCP:      chkType.TCP,
-				Interval: chkType.Interval,
-				Timeout:  chkType.Timeout,
-				Logger:   a.logger,
+				Notify:    a.State,
+				CheckID:   check.CheckID,
+				ServiceID: check.ServiceID,
+				TCP:       chkType.TCP,
+				Interval:  chkType.Interval,
+				Timeout:   chkType.Timeout,
+				Logger:    a.logger,
 			}
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
@@ -2667,12 +2733,23 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			grpc := &checks.CheckGRPC{
 				Notify:          a.State,
 				CheckID:         check.CheckID,
+				ServiceID:       check.ServiceID,
 				GRPC:            chkType.GRPC,
 				Interval:        chkType.Interval,
 				Timeout:         chkType.Timeout,
 				Logger:          a.logger,
 				TLSClientConfig: tlsClientConfig,
 			}
+
+			if proxy != nil && proxy.Proxy.Expose.Checks {
+				port, err := a.listenerPortLocked(service.ID, string(grpc.CheckID))
+				if err != nil {
+					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
+					return err
+				}
+				grpc.ProxyGRPC = grpcInjectAddr(grpc.GRPC, proxy.Proxy.LocalServiceAddress, port)
+			}
+
 			grpc.Start()
 			a.checkGRPCs[check.CheckID] = grpc
 
@@ -2700,6 +2777,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			dockerCheck := &checks.CheckDocker{
 				Notify:            a.State,
 				CheckID:           check.CheckID,
+				ServiceID:         check.ServiceID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
 				ScriptArgs:        chkType.ScriptArgs,
@@ -2726,6 +2804,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			monitor := &checks.CheckMonitor{
 				Notify:        a.State,
 				CheckID:       check.CheckID,
+				ServiceID:     check.ServiceID,
 				ScriptArgs:    chkType.ScriptArgs,
 				Interval:      chkType.Interval,
 				Timeout:       chkType.Timeout,
@@ -2768,6 +2847,16 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			return fmt.Errorf("Check type is not valid")
 		}
 
+		// Notify channel that watches for service state changes
+		// This is a non-blocking send to avoid synchronizing on a large number of check updates
+		s := a.State.ServiceState(check.ServiceID)
+		if s != nil && !s.Deleted {
+			select {
+			case s.WatchCh <- struct{}{}:
+			default:
+			}
+		}
+
 		if chkType.DeregisterCriticalServiceAfter > 0 {
 			timeout := chkType.DeregisterCriticalServiceAfter
 			if timeout < a.config.CheckDeregisterIntervalMin {
@@ -2800,6 +2889,28 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
+	// Notify channel that watches for service state changes
+	// This is a non-blocking send to avoid synchronizing on a large number of check updates
+	var svcID string
+	for _, c := range a.State.Checks() {
+		if c.CheckID == checkID {
+			svcID = c.ServiceID
+			break
+		}
+	}
+	s := a.State.ServiceState(svcID)
+	if s != nil && !s.Deleted {
+		select {
+		case s.WatchCh <- struct{}{}:
+		default:
+		}
+	}
+
+	// Delete port from allocated port set
+	// If checks weren't being exposed then this is a no-op
+	portKey := listenerPortKey(svcID, string(checkID))
+	delete(a.exposedPorts, portKey)
+
 	a.cancelCheckMonitors(checkID)
 	a.State.RemoveCheck(checkID)
 
@@ -2811,8 +2922,31 @@ func (a *Agent) removeCheckLocked(checkID types.CheckID, persist bool) error {
 			return err
 		}
 	}
+
 	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
+}
+
+func (a *Agent) ServiceHTTPBasedChecks(serviceID string) []structs.CheckType {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+
+	var chkTypes = make([]structs.CheckType, 0)
+	for _, c := range a.checkHTTPs {
+		if c.ServiceID == serviceID {
+			chkTypes = append(chkTypes, c.CheckType())
+		}
+	}
+	for _, c := range a.checkGRPCs {
+		if c.ServiceID == serviceID {
+			chkTypes = append(chkTypes, c.CheckType())
+		}
+	}
+	return chkTypes
+}
+
+func (a *Agent) AdvertiseAddrLAN() string {
+	return a.config.AdvertiseAddrLAN.String()
 }
 
 // resolveProxyCheckAddress returns the best address to use for a TCP check of
@@ -3623,6 +3757,65 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	return nil
 }
 
+// LocalBlockingQuery performs a blocking query in a generic way against
+// local agent state that has no RPC or raft to back it. It uses `hash` parameter
+// instead of an `index`.
+// `alwaysBlock` determines whether we block if the provided hash is empty.
+// Callers like the AgentService endpoint will want to return the current result if a hash isn't provided.
+// On the other hand, for cache notifications we always want to block. This avoids an empty first response.
+func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Duration,
+	fn func(ws memdb.WatchSet) (string, interface{}, error)) (string, interface{}, error) {
+
+	// If we are not blocking we can skip tracking and allocating - nil WatchSet
+	// is still valid to call Add on and will just be a no op.
+	var ws memdb.WatchSet
+	var timeout *time.Timer
+
+	if alwaysBlock || hash != "" {
+		if wait == 0 {
+			wait = defaultQueryTime
+		}
+		if wait > 10*time.Minute {
+			wait = maxQueryTime
+		}
+		// Apply a small amount of jitter to the request.
+		wait += lib.RandomStagger(wait / 16)
+		timeout = time.NewTimer(wait)
+	}
+
+	for {
+		// Must reset this every loop in case the Watch set is already closed but
+		// hash remains same. In that case we'll need to re-block on ws.Watch()
+		// again.
+		ws = memdb.NewWatchSet()
+		curHash, curResp, err := fn(ws)
+		if err != nil {
+			return "", curResp, err
+		}
+
+		// Return immediately if there is no timeout, the hash is different or the
+		// Watch returns true (indicating timeout fired). Note that Watch on a nil
+		// WatchSet immediately returns false which would incorrectly cause this to
+		// loop and repeat again, however we rely on the invariant that ws == nil
+		// IFF timeout == nil in which case the Watch call is never invoked.
+		if timeout == nil || hash != curHash || ws.Watch(timeout.C) {
+			return curHash, curResp, err
+		}
+		// Watch returned false indicating a change was detected, loop and repeat
+		// the callback to load the new value. If agent sync is paused it means
+		// local state is currently being bulk-edited e.g. config reload. In this
+		// case it's likely that local state just got unloaded and may or may not be
+		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
+		// typical config reloads.
+		if syncPauseCh := a.SyncPausedCh(); syncPauseCh != nil {
+			select {
+			case <-syncPauseCh:
+			case <-timeout.C:
+			}
+		}
+	}
+}
+
 // registerCache configures the cache and registers all the supported
 // types onto the cache. This is NOT safe to call multiple times so
 // care should be taken to call this exactly once after the cache
@@ -3744,6 +3937,139 @@ func (a *Agent) registerCache() {
 		RefreshTimer:   0 * time.Second,
 		RefreshTimeout: 10 * time.Minute,
 	})
+
+	a.cache.RegisterType(cachetype.ServiceHTTPChecksName, &cachetype.ServiceHTTPChecks{
+		Agent: a,
+	}, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+}
+
+func (a *Agent) LocalState() *local.State {
+	return a.State
+}
+
+// rerouteExposedChecks will inject proxy address into check targets
+// Future calls to check() will dial the proxy listener
+// The agent stateLock MUST be held for this to be called
+func (a *Agent) rerouteExposedChecks(serviceID string, proxyAddr string) error {
+	for _, c := range a.checkHTTPs {
+		if c.ServiceID != serviceID {
+			continue
+		}
+		port, err := a.listenerPortLocked(serviceID, string(c.CheckID))
+		if err != nil {
+			return err
+		}
+		c.ProxyHTTP = httpInjectAddr(c.HTTP, proxyAddr, port)
+	}
+	for _, c := range a.checkGRPCs {
+		if c.ServiceID != serviceID {
+			continue
+		}
+		port, err := a.listenerPortLocked(serviceID, string(c.CheckID))
+		if err != nil {
+			return err
+		}
+		c.ProxyGRPC = grpcInjectAddr(c.GRPC, proxyAddr, port)
+	}
+	return nil
+}
+
+// resetExposedChecks will set Proxy addr in HTTP checks to empty string
+// Future calls to check() will use the original target c.HTTP or c.GRPC
+// The agent stateLock MUST be held for this to be called
+func (a *Agent) resetExposedChecks(serviceID string) {
+	ids := make([]string, 0)
+	for _, c := range a.checkHTTPs {
+		if c.ServiceID == serviceID {
+			c.ProxyHTTP = ""
+			ids = append(ids, string(c.CheckID))
+		}
+	}
+	for _, c := range a.checkGRPCs {
+		if c.ServiceID == serviceID {
+			c.ProxyGRPC = ""
+			ids = append(ids, string(c.CheckID))
+		}
+	}
+	for _, checkID := range ids {
+		delete(a.exposedPorts, listenerPortKey(serviceID, checkID))
+	}
+}
+
+// listenerPort allocates a port from the configured range
+// The agent stateLock MUST be held when this is called
+func (a *Agent) listenerPortLocked(svcID, checkID string) (int, error) {
+	key := listenerPortKey(svcID, checkID)
+	if a.exposedPorts == nil {
+		a.exposedPorts = make(map[string]int)
+	}
+	if p, ok := a.exposedPorts[key]; ok {
+		return p, nil
+	}
+
+	allocated := make(map[int]bool)
+	for _, v := range a.exposedPorts {
+		allocated[v] = true
+	}
+
+	var port int
+	for i := 0; i < a.config.ExposeMaxPort-a.config.ExposeMinPort; i++ {
+		port = a.config.ExposeMinPort + i
+		if !allocated[port] {
+			a.exposedPorts[key] = port
+			break
+		}
+	}
+	if port == 0 {
+		return 0, fmt.Errorf("no ports available to expose '%s'", checkID)
+	}
+
+	return port, nil
+}
+
+func listenerPortKey(svcID, checkID string) string {
+	return fmt.Sprintf("%s:%s", svcID, checkID)
+}
+
+// grpcInjectAddr injects an ip and port into an address of the form: ip:port[/service]
+func grpcInjectAddr(existing string, ip string, port int) string {
+	portRepl := fmt.Sprintf("${1}:%d${3}", port)
+	out := grpcAddrRE.ReplaceAllString(existing, portRepl)
+
+	addrRepl := fmt.Sprintf("%s${2}${3}", ip)
+	out = grpcAddrRE.ReplaceAllString(out, addrRepl)
+
+	return out
+}
+
+// httpInjectAddr injects a port then an IP into a URL
+func httpInjectAddr(url string, ip string, port int) string {
+	portRepl := fmt.Sprintf("${1}${2}:%d${4}${5}", port)
+	out := httpAddrRE.ReplaceAllString(url, portRepl)
+
+	// Ensure that ipv6 addr is enclosed in brackets (RFC 3986)
+	ip = fixIPv6(ip)
+	addrRepl := fmt.Sprintf("${1}%s${3}${4}${5}", ip)
+	out = httpAddrRE.ReplaceAllString(out, addrRepl)
+
+	return out
+}
+
+func fixIPv6(address string) string {
+	if strings.Count(address, ":") < 2 {
+		return address
+	}
+	if !strings.HasSuffix(address, "]") {
+		address = address + "]"
+	}
+	if !strings.HasPrefix(address, "[") {
+		address = "[" + address
+	}
+	return address
 }
 
 // defaultIfEmpty returns the value if not empty otherwise the default value.

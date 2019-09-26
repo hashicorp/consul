@@ -1381,6 +1381,16 @@ default will automatically work with some tooling.
       number to use for automatically assigned [sidecar service
       registrations](/docs/connect/registration/sidecar-service.html). Default 21255.
       Set to `0` to disable automatic port assignment.
+    * <a name="expose_min_port"></a><a
+      href="#expose_min_port">`expose_min_port`</a> - Inclusive minimum port
+      number to use for automatically assigned 
+      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference). 
+      Default 21500. Set to `0` to disable automatic port assignment.
+    * <a name="expose_max_port"></a><a
+      href="#expose_max_port">`expose_max_port`</a> - Inclusive maximum port
+      number to use for automatically assigned 
+      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference). 
+      Default 21755. Set to `0` to disable automatic port assignment.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).

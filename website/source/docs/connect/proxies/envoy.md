@@ -71,6 +71,7 @@ The dynamic configuration Consul Connect provides to each Envoy instance include
  - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
    outgoing connections.
  - L7 configuration including timeouts and protocol-specific options.
+ - Configuration to [expose specific HTTP paths](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
 
 For more information on the parts of the Envoy proxy runtime configuration
 that are currently controllable via Consul Connect see [Dynamic
@@ -155,7 +156,7 @@ each service such as which protocol they speak. Consul will use this information
 to configure appropriate proxy settings for that service's proxies and also for
 the upstream listeners of any downstream service.
 
-Users can define a service's protocol in its [`service-defaults` configuration
+One example is how users can define a service's protocol in a [`service-defaults` configuration
 entry](/docs/agent/config-entries/service-defaults.html). Agents with
 [`enable_central_service_config`](/docs/agent/options.html#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
@@ -168,6 +169,9 @@ This automated discovery results in Consul auto-populating the `proxy.config`
 and `proxy.upstreams[*].config` fields of the [proxy service
 definition](/docs/connect/registration/service-registration.html) that is
 actually registered.
+
+To learn about other options that can be configured centrally see the 
+[Configuration Entries](/docs/agent/config_entries.html) docs.
 
 ### Proxy Config Options
 

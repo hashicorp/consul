@@ -196,6 +196,76 @@ func TestDecodeConfigEntry(t *testing.T) {
 		expectErr string
 	}{
 		{
+			name: "expose-paths: kitchen sink proxy",
+			body: `
+			{
+				"Kind": "proxy-defaults",
+				"Name": "global",
+				"Expose": {
+					"Checks": true,
+					"Paths": [
+						{
+							"LocalPathPort": 8080,
+							"ListenerPort": 21500,
+							"Path": "/healthz",
+							"Protocol": "http2"
+						}
+					]
+				}
+			}
+			`,
+			expect: &ProxyConfigEntry{
+				Kind: "proxy-defaults",
+				Name: "global",
+				Expose: ExposeConfig{
+					Checks: true,
+					Paths: []ExposePath{
+						{
+							LocalPathPort: 8080,
+							ListenerPort:  21500,
+							Path:          "/healthz",
+							Protocol:      "http2",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "expose-paths: kitchen sink service default",
+			body: `
+			{
+				"Kind": "service-defaults",
+				"Name": "global",
+				"Expose": {
+					"Checks": true,
+					"Paths": [
+						{
+							"LocalPathPort": 8080,
+							"ListenerPort": 21500,
+							"Path": "/healthz",
+							"Protocol": "http2"
+						}
+					]
+				}
+			}
+			`,
+			expect: &ServiceConfigEntry{
+				Kind: "service-defaults",
+				Name: "global",
+				Expose: ExposeConfig{
+					Checks: true,
+					Paths: []ExposePath{
+						{
+							LocalPathPort: 8080,
+							ListenerPort:  21500,
+							Path:          "/healthz",
+							Protocol:      "http2",
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "proxy-defaults",
 			body: `
 			{

@@ -325,7 +325,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "f5826efc5ffc207a",
+		ContentHash: "4c7d5f8d3748be6d",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -337,7 +337,7 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "c8cb04cb77ef33d8"
+	updatedResponse.ContentHash = "713435ba1f5badcf"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
@@ -1980,39 +1980,51 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	require.NotNil(t, nodeToken)
 
 	t.Run("no token - node check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("svc token - node check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("node token - node check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.NoError(t, err)
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.NoError(r, err)
+		})
 	})
 
 	t.Run("no token - svc check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("node token - svc check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.True(r, acl.IsErrPermissionDenied(err))
+		})
 	})
 
 	t.Run("svc token - svc check", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
-		_, err := a.srv.AgentRegisterCheck(nil, req)
-		require.NoError(t, err)
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
+			_, err := a.srv.AgentRegisterCheck(nil, req)
+			require.NoError(r, err)
+		})
 	})
 
 }
@@ -5385,4 +5397,44 @@ func TestAgent_HostBadACL(t *testing.T) {
 	assert.EqualError(err, "ACL not found")
 	assert.Equal(http.StatusOK, resp.Code)
 	assert.Nil(respRaw)
+}
+
+// Thie tests that a proxy with an ExposeConfig is returned as expected.
+func TestAgent_Services_ExposeConfig(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	srv1 := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "proxy-id",
+		Service: "proxy-name",
+		Port:    8443,
+		Proxy: structs.ConnectProxyConfig{
+			Expose: structs.ExposeConfig{
+				Checks: true,
+				Paths: []structs.ExposePath{
+					{
+						ListenerPort:  8080,
+						LocalPathPort: 21500,
+						Protocol:      "http2",
+						Path:          "/metrics",
+					},
+				},
+			},
+		},
+	}
+	a.State.AddService(srv1, "")
+
+	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+	obj, err := a.srv.AgentServices(nil, req)
+	require.NoError(t, err)
+	val := obj.(map[string]*api.AgentService)
+	require.Len(t, val, 1)
+	actual := val["proxy-id"]
+	require.NotNil(t, actual)
+	require.Equal(t, api.ServiceKindConnectProxy, actual.Kind)
+	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 }

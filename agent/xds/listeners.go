@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -71,7 +75,107 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		}
 		resources[i+1] = upstreamListener
 	}
+
+	cfgSnap.Proxy.Expose.Finalize(s.Logger)
+	paths := cfgSnap.Proxy.Expose.Paths
+
+	// Add service health checks to the list of paths to create listeners for if needed
+	if cfgSnap.Proxy.Expose.Checks {
+		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(cfgSnap.Proxy.DestinationServiceID) {
+			p, err := parseCheckPath(check)
+			if err != nil {
+				s.Logger.Printf("[WARN] envoy: failed to create listener for check '%s': %v", check.CheckID, err)
+				continue
+			}
+			paths = append(paths, p)
+		}
+	}
+
+	// Configure additional listener for exposed check paths
+	for _, path := range paths {
+		clusterName := LocalAppClusterName
+		if path.LocalPathPort != cfgSnap.Proxy.LocalServicePort {
+			clusterName = makeExposeClusterName(path.LocalPathPort)
+		}
+
+		l, err := s.makeExposedCheckListener(cfgSnap, clusterName, path)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, l)
+	}
+
 	return resources, nil
+}
+
+func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
+	var path structs.ExposePath
+
+	if check.HTTP != "" {
+		path.Protocol = "http"
+
+		// Get path and local port from original HTTP target
+		u, err := url.Parse(check.HTTP)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse url '%s': %v", check.HTTP, err)
+		}
+		path.Path = u.Path
+
+		_, portStr, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.HTTP, err)
+		}
+		path.LocalPathPort, err = strconv.Atoi(portStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.HTTP, err)
+		}
+
+		// Get listener port from proxied HTTP target
+		u, err = url.Parse(check.ProxyHTTP)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse url '%s': %v", check.ProxyHTTP, err)
+		}
+
+		_, portStr, err = net.SplitHostPort(u.Host)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyHTTP, err)
+		}
+		path.ListenerPort, err = strconv.Atoi(portStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyHTTP, err)
+		}
+	}
+
+	if check.GRPC != "" {
+		path.Path = "/grpc.health.v1.Health/Check"
+		path.Protocol = "http2"
+
+		// Get local port from original GRPC target of the form: host/service
+		proxyServerAndService := strings.SplitN(check.GRPC, "/", 2)
+		_, portStr, err := net.SplitHostPort(proxyServerAndService[0])
+		if err != nil {
+			return path, fmt.Errorf("failed to split host/port from '%s': %v", check.GRPC, err)
+		}
+		path.LocalPathPort, err = strconv.Atoi(portStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.GRPC, err)
+		}
+
+		// Get listener port from proxied GRPC target of the form: host/service
+		proxyServerAndService = strings.SplitN(check.ProxyGRPC, "/", 2)
+		_, portStr, err = net.SplitHostPort(proxyServerAndService[0])
+		if err != nil {
+			return path, fmt.Errorf("failed to split host/port from '%s': %v", check.ProxyGRPC, err)
+		}
+		path.ListenerPort, err = strconv.Atoi(portStr)
+		if err != nil {
+			return path, fmt.Errorf("failed to parse port from '%s': %v", check.ProxyGRPC, err)
+		}
+	}
+
+	path.ParsedFromCheck = true
+
+	return path, nil
 }
 
 // listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
@@ -80,7 +184,7 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
 	}
 
 	// TODO - prevent invalid configurations of binding to the same port/addr
@@ -221,7 +325,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
 	}
 
 	if cfg.PublicListenerJSON != "" {
@@ -253,7 +357,8 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 
 		l = makeListener(PublicListenerName, addr, port)
 
-		filter, err := makeListenerFilter(false, cfg.Protocol, "public_listener", LocalAppClusterName, "", true)
+		filter, err := makeListenerFilter(
+			false, cfg.Protocol, "public_listener", LocalAppClusterName, "", "", true)
 		if err != nil {
 			return nil, err
 		}
@@ -267,6 +372,69 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	}
 
 	err = injectConnectFilters(cfgSnap, token, l)
+	return l, err
+}
+
+func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster string, path structs.ExposePath) (proto.Message, error) {
+	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
+	if err != nil {
+		// Don't hard fail on a config typo, just warn. The parse func returns
+		// default config if there is an error so it's safe to continue.
+		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
+	}
+
+	// No user config, use default listener
+	addr := cfgSnap.Address
+
+	// Override with bind address if one is set, otherwise default to 0.0.0.0
+	if cfg.BindAddress != "" {
+		addr = cfg.BindAddress
+	} else if addr == "" {
+		addr = "0.0.0.0"
+	}
+
+	// Strip any special characters from path to make a valid and hopefully unique name
+	r := regexp.MustCompile(`[^a-zA-Z0-9]+`)
+	strippedPath := r.ReplaceAllString(path.Path, "")
+	listenerName := fmt.Sprintf("exposed_path_%s", strippedPath)
+
+	l := makeListener(listenerName, addr, path.ListenerPort)
+
+	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
+
+	f, err := makeListenerFilter(false, path.Protocol, filterName, cluster, "", path.Path, true)
+	if err != nil {
+		return nil, err
+	}
+
+	chain := envoylistener.FilterChain{
+		Filters: []envoylistener.Filter{f},
+	}
+
+	// For registered checks restrict traffic sources to localhost and Consul's advertise addr
+	if path.ParsedFromCheck {
+
+		// For the advertise addr we use a CidrRange that only matches one address
+		advertise := s.CfgFetcher.AdvertiseAddrLAN()
+
+		// Get prefix length based on whether address is ipv4 (32 bits) or ipv6 (128 bits)
+		advertiseLen := 32
+		ip := net.ParseIP(advertise)
+		if ip != nil && strings.Contains(advertise, ":") {
+			advertiseLen = 128
+		}
+
+		chain.FilterChainMatch = &envoylistener.FilterChainMatch{
+			SourcePrefixRanges: []*envoycore.CidrRange{
+				{AddressPrefix: "127.0.0.1", PrefixLen: &types.UInt32Value{Value: 8}},
+				{AddressPrefix: "::1", PrefixLen: &types.UInt32Value{Value: 128}},
+				{AddressPrefix: advertise, PrefixLen: &types.UInt32Value{Value: uint32(advertiseLen)}},
+			},
+		}
+	}
+
+	l.FilterChains = []envoylistener.FilterChain{chain}
+
 	return l, err
 }
 
@@ -303,7 +471,8 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	clusterName := CustomizeClusterName(sni, chain)
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
-	filter, err := makeListenerFilter(false, cfg.Protocol, upstreamID, clusterName, "upstream_", false)
+	filter, err := makeListenerFilter(
+		false, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +577,8 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		proto = "tcp"
 	}
 
-	filter, err := makeListenerFilter(true, proto, upstreamID, "", "upstream_", false)
+	filter, err := makeListenerFilter(
+		true, proto, upstreamID, "", "upstream_", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -423,14 +593,17 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	return l, nil
 }
 
-func makeListenerFilter(useRDS bool, protocol, filterName, cluster, statPrefix string, ingress bool) (envoylistener.Filter, error) {
+func makeListenerFilter(
+	useRDS bool,
+	protocol, filterName, cluster, statPrefix, routePath string, ingress bool) (envoylistener.Filter, error) {
+
 	switch protocol {
 	case "grpc":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, true, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, true, true)
 	case "http2":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, false, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, true)
 	case "http":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, ingress, false, false)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, false)
 	case "tcp":
 		fallthrough
 	default:
@@ -471,7 +644,7 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 
 func makeHTTPFilter(
 	useRDS bool,
-	filterName, cluster, statPrefix string,
+	filterName, cluster, statPrefix, routePath string,
 	ingress, grpc, http2 bool,
 ) (envoylistener.Filter, error) {
 	op := envoyhttp.INGRESS
@@ -482,6 +655,7 @@ func makeHTTPFilter(
 	if grpc {
 		proto = "grpc"
 	}
+
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(proto, statPrefix, filterName),
 		CodecType:  envoyhttp.AUTO,
@@ -517,33 +691,39 @@ func makeHTTPFilter(
 		if cluster == "" {
 			return envoylistener.Filter{}, fmt.Errorf("must specify cluster name when not using RDS")
 		}
+		route := envoyroute.Route{
+			Match: envoyroute.RouteMatch{
+				PathSpecifier: &envoyroute.RouteMatch_Prefix{
+					Prefix: "/",
+				},
+				// TODO(banks) Envoy supports matching only valid GRPC
+				// requests which might be nice to add here for gRPC services
+				// but it's not supported in our current envoy SDK version
+				// although docs say it was supported by 1.8.0. Going to defer
+				// that until we've updated the deps.
+			},
+			Action: &envoyroute.Route_Route{
+				Route: &envoyroute.RouteAction{
+					ClusterSpecifier: &envoyroute.RouteAction_Cluster{
+						Cluster: cluster,
+					},
+				},
+			},
+		}
+		// If a path is provided, do not match on a catch-all prefix
+		if routePath != "" {
+			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: routePath}
+		}
+
 		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
 			RouteConfig: &envoy.RouteConfiguration{
 				Name: filterName,
 				VirtualHosts: []envoyroute.VirtualHost{
-					envoyroute.VirtualHost{
+					{
 						Name:    filterName,
 						Domains: []string{"*"},
 						Routes: []envoyroute.Route{
-							envoyroute.Route{
-								Match: envoyroute.RouteMatch{
-									PathSpecifier: &envoyroute.RouteMatch_Prefix{
-										Prefix: "/",
-									},
-									// TODO(banks) Envoy supports matching only valid GRPC
-									// requests which might be nice to add here for gRPC services
-									// but it's not supported in our current envoy SDK version
-									// although docs say it was supported by 1.8.0. Going to defer
-									// that until we've updated the deps.
-								},
-								Action: &envoyroute.Route_Route{
-									Route: &envoyroute.RouteAction{
-										ClusterSpecifier: &envoyroute.RouteAction_Cluster{
-											Cluster: cluster,
-										},
-									},
-								},
-							},
+							route,
 						},
 					},
 				},
@@ -557,7 +737,7 @@ func makeHTTPFilter(
 
 	if grpc {
 		// Add grpc bridge before router
-		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{&envoyhttp.HttpFilter{
+		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
 			Name:       "envoy.grpc_http1_bridge",
 			ConfigType: &envoyhttp.HttpFilter_Config{Config: &types.Struct{}},
 		}}, cfg.HttpFilters...)

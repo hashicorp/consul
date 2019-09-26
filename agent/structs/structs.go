@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
@@ -974,6 +974,39 @@ func (s *NodeService) Validate() error {
 			}
 			bindAddrs[addr] = struct{}{}
 		}
+		var knownPaths = make(map[string]bool)
+		var knownListeners = make(map[int]bool)
+		for _, path := range s.Proxy.Expose.Paths {
+			if path.Path == "" {
+				result = multierror.Append(result, fmt.Errorf("expose.paths: empty path exposed"))
+			}
+
+			if seen := knownPaths[path.Path]; seen {
+				result = multierror.Append(result, fmt.Errorf("expose.paths: duplicate paths exposed"))
+			}
+			knownPaths[path.Path] = true
+
+			if seen := knownListeners[path.ListenerPort]; seen {
+				result = multierror.Append(result, fmt.Errorf("expose.paths: duplicate listener ports exposed"))
+			}
+			knownListeners[path.ListenerPort] = true
+
+			if path.ListenerPort <= 0 || path.ListenerPort > 65535 {
+				result = multierror.Append(result, fmt.Errorf("expose.paths: invalid listener port: %d", path.ListenerPort))
+			}
+
+			path.Protocol = strings.ToLower(path.Protocol)
+			if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
+				protocols := make([]string, 0)
+				for p, _ := range allowedExposeProtocols {
+					protocols = append(protocols, p)
+				}
+
+				result = multierror.Append(result,
+					fmt.Errorf("protocol '%s' not supported for path: %s, must be in: %v",
+						path.Protocol, path.Path, protocols))
+			}
+		}
 	}
 
 	// MeshGateway validation
@@ -1150,6 +1183,14 @@ type HealthCheckDefinition struct {
 	OutputMaxSize                  uint                `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
 	DeregisterCriticalServiceAfter time.Duration       `json:",omitempty"`
+	ScriptArgs                     []string            `json:",omitempty"`
+	DockerContainerID              string              `json:",omitempty"`
+	Shell                          string              `json:",omitempty"`
+	GRPC                           string              `json:",omitempty"`
+	GRPCUseTLS                     bool                `json:",omitempty"`
+	AliasNode                      string              `json:",omitempty"`
+	AliasService                   string              `json:",omitempty"`
+	TTL                            time.Duration       `json:",omitempty"`
 }
 
 func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {

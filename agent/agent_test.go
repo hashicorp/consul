@@ -29,7 +29,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3538,6 +3538,205 @@ func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
 	require.Equal(t, uint64(812345), a.consulConfig().RaftConfig.TrailingLogs)
 }
 
+func TestAgent_grpcInjectAddr(t *testing.T) {
+	tt := []struct {
+		name string
+		grpc string
+		ip   string
+		port int
+		want string
+	}{
+		{
+			name: "localhost web svc",
+			grpc: "localhost:8080/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "localhost no svc",
+			grpc: "localhost:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090",
+		},
+		{
+			name: "ipv4 web svc",
+			grpc: "127.0.0.1:8080/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "ipv4 no svc",
+			grpc: "127.0.0.1:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090",
+		},
+		{
+			name: "ipv6 no svc",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090",
+		},
+		{
+			name: "ipv6 web svc",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "zone ipv6 web svc",
+			grpc: "::FFFF:C0A8:1%1:5000/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "ipv6 literal web svc",
+			grpc: "::FFFF:192.168.0.1:5000/web",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "192.168.0.0:9090/web",
+		},
+		{
+			name: "ipv6 injected into ipv6 url",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "::FFFF:C0A8:1:9090",
+		},
+		{
+			name: "ipv6 injected into ipv6 url with svc",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/web",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "::FFFF:C0A8:1:9090/web",
+		},
+		{
+			name: "ipv6 injected into ipv6 url with special",
+			grpc: "2001:db8:1f70::999:de8:7648:6e8:5000/service-$name:with@special:Chars",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "::FFFF:C0A8:1:9090/service-$name:with@special:Chars",
+		},
+	}
+	for _, tt := range tt {
+		t.Run(tt.name, func(t *testing.T) {
+			got := grpcInjectAddr(tt.grpc, tt.ip, tt.port)
+			if got != tt.want {
+				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAgent_httpInjectAddr(t *testing.T) {
+	tt := []struct {
+		name string
+		url  string
+		ip   string
+		port int
+		want string
+	}{
+		{
+			name: "localhost health",
+			url:  "http://localhost:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "http://192.168.0.0:9090/health",
+		},
+		{
+			name: "https localhost health",
+			url:  "https://localhost:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv4 health",
+			url:  "https://127.0.0.1:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv4 without path",
+			url:  "https://127.0.0.1:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090",
+		},
+		{
+			name: "https ipv6 health",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv6 with zone",
+			url:  "https://[::FFFF:C0A8:1%1]:5000/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv6 literal",
+			url:  "https://[::FFFF:192.168.0.1]:5000/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090/health",
+		},
+		{
+			name: "https ipv6 without path",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "https://192.168.0.0:9090",
+		},
+		{
+			name: "ipv6 injected into ipv6 url",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000",
+			ip:   "::FFFF:C0A8:1",
+			port: 9090,
+			want: "https://[::FFFF:C0A8:1]:9090",
+		},
+		{
+			name: "ipv6 with brackets injected into ipv6 url",
+			url:  "https://[2001:db8:1f70::999:de8:7648:6e8]:5000",
+			ip:   "[::FFFF:C0A8:1]",
+			port: 9090,
+			want: "https://[::FFFF:C0A8:1]:9090",
+		},
+		{
+			name: "short domain health",
+			url:  "http://i.co:8080/health",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "http://192.168.0.0:9090/health",
+		},
+		{
+			name: "nested url in query",
+			url:  "http://my.corp.com:8080/health?from=http://google.com:8080",
+			ip:   "192.168.0.0",
+			port: 9090,
+			want: "http://192.168.0.0:9090/health?from=http://google.com:8080",
+		},
+	}
+	for _, tt := range tt {
+		t.Run(tt.name, func(t *testing.T) {
+			got := httpInjectAddr(tt.url, tt.ip, tt.port)
+			if got != tt.want {
+				t.Errorf("httpInjectAddr() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDefaultIfEmpty(t *testing.T) {
 	require.Equal(t, "", defaultIfEmpty("", ""))
 	require.Equal(t, "foo", defaultIfEmpty("", "foo"))
@@ -3573,4 +3772,242 @@ func TestConfigSourceFromName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register a service without a ProxyAddr
+	svc := &structs.NodeService{
+		ID:      "web",
+		Service: "web",
+		Address: "localhost",
+		Port:    8080,
+	}
+	chks := []*structs.CheckType{
+		{
+			CheckID:       "http",
+			HTTP:          "http://localhost:8080/mypath?query",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+		{
+			CheckID:       "grpc",
+			GRPC:          "localhost:8080/myservice",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+	}
+	if err := a.AddService(svc, chks, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	// Register a proxy and expose HTTP checks
+	// This should trigger setting ProxyHTTP and ProxyGRPC in the checks
+	proxy := &structs.NodeService{
+		Kind:    "connect-proxy",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "localhost",
+		Port:    21500,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "localhost",
+			LocalServicePort:       8080,
+			MeshGateway:            structs.MeshGatewayConfig{},
+			Expose: structs.ExposeConfig{
+				Checks: true,
+			},
+		},
+	}
+	if err := a.AddService(proxy, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPBasedChecks("web")
+
+		got := chks[0].ProxyHTTP
+		if got == "" {
+			r.Fatal("proxyHTTP addr not set in check")
+		}
+
+		want := "http://localhost:21500/mypath?query"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPBasedChecks("web")
+
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
+		got := chks[1].ProxyGRPC
+		if got == "" {
+			r.Fatal("ProxyGRPC addr not set in check")
+		}
+
+		// Node that this relies on listener ports auto-incrementing in a.listenerPortLocked
+		want := "localhost:21501/myservice"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
+		}
+	})
+
+	// Re-register a proxy and disable exposing HTTP checks
+	// This should trigger resetting ProxyHTTP and ProxyGRPC to empty strings
+	proxy = &structs.NodeService{
+		Kind:    "connect-proxy",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "localhost",
+		Port:    21500,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "localhost",
+			LocalServicePort:       8080,
+			MeshGateway:            structs.MeshGatewayConfig{},
+			Expose: structs.ExposeConfig{
+				Checks: false,
+			},
+		},
+	}
+	if err := a.AddService(proxy, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPBasedChecks("web")
+
+		got := chks[0].ProxyHTTP
+		if got != "" {
+			r.Fatal("ProxyHTTP addr was not reset")
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPBasedChecks("web")
+
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
+		got := chks[1].ProxyGRPC
+		if got != "" {
+			r.Fatal("ProxyGRPC addr was not reset")
+		}
+	})
+}
+
+func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register a service without a ProxyAddr
+	svc := &structs.NodeService{
+		ID:      "web",
+		Service: "web",
+		Address: "localhost",
+		Port:    8080,
+	}
+	if err := a.AddService(svc, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	// Register a proxy and expose HTTP checks
+	proxy := &structs.NodeService{
+		Kind:    "connect-proxy",
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "localhost",
+		Port:    21500,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServiceAddress:    "localhost",
+			LocalServicePort:       8080,
+			MeshGateway:            structs.MeshGatewayConfig{},
+			Expose: structs.ExposeConfig{
+				Checks: true,
+			},
+		},
+	}
+	if err := a.AddService(proxy, nil, false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add svc: %v", err)
+	}
+
+	checks := []*structs.HealthCheck{
+		{
+			CheckID:   "http",
+			Name:      "http",
+			ServiceID: "web",
+			Status:    api.HealthCritical,
+		},
+		{
+			CheckID:   "grpc",
+			Name:      "grpc",
+			ServiceID: "web",
+			Status:    api.HealthCritical,
+		},
+	}
+	chkTypes := []*structs.CheckType{
+		{
+			CheckID:       "http",
+			HTTP:          "http://localhost:8080/mypath?query",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+		{
+			CheckID:       "grpc",
+			GRPC:          "localhost:8080/myservice",
+			Interval:      20 * time.Millisecond,
+			TLSSkipVerify: true,
+		},
+	}
+
+	// ProxyGRPC and ProxyHTTP should be set when creating check
+	// since proxy.expose.checks is enabled on the proxy
+	if err := a.AddCheck(checks[0], chkTypes[0], false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add check: %v", err)
+	}
+	if err := a.AddCheck(checks[1], chkTypes[1], false, "", ConfigSourceLocal); err != nil {
+		t.Fatalf("failed to add check: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPBasedChecks("web")
+
+		got := chks[0].ProxyHTTP
+		if got == "" {
+			r.Fatal("ProxyHTTP addr not set in check")
+		}
+
+		want := "http://localhost:21500/mypath?query"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in http check, want: %s, got: %s", want, got)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		chks := a.ServiceHTTPBasedChecks("web")
+
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
+		got := chks[1].ProxyGRPC
+		if got == "" {
+			r.Fatal("ProxyGRPC addr not set in check")
+		}
+
+		want := "localhost:21501/myservice"
+		if got != want {
+			r.Fatalf("unexpected proxy addr in grpc check, want: %s, got: %s", want, got)
+		}
+	})
 }

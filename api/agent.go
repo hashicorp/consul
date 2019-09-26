@@ -103,6 +103,7 @@ type AgentServiceConnectProxyConfig struct {
 	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
 	Upstreams              []Upstream             `json:",omitempty"`
 	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
+	Expose                 ExposeConfig           `json:",omitempty"`
 }
 
 // AgentMember represents a cluster member known to the agent
