@@ -3,6 +3,7 @@
 FEATURES
 
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Google Cloud Storage.
+* connect: Added proxy config stanza to allow exposing HTTP paths through Envoy for non-Connect-enabled services [[GH-5396](https://github.com/hashicorp/consul/issues/5396)]
 
 BUG FIXES
 
