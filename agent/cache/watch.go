@@ -126,7 +126,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, t string, r Request, co
 			}
 		}
 		// Sanity check we always request blocking on second pass
-		if index < 1 {
+		if err == nil && index < 1 {
 			index = 1
 		}
 	}

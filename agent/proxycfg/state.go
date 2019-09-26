@@ -460,18 +460,22 @@ func (s *state) handleUpdate(u cache.UpdateEvent, snap *ConfigSnapshot) error {
 }
 
 func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapshot) error {
+	if u.Err != nil {
+		return fmt.Errorf("error filling agent cache: %v", u.Err)
+	}
+
 	switch {
 	case u.CorrelationID == rootsWatchID:
 		roots, ok := u.Result.(*structs.IndexedCARoots)
 		if !ok {
-			return fmt.Errorf("invalid type for roots response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
 
 	case u.CorrelationID == leafWatchID:
 		leaf, ok := u.Result.(*structs.IssuedCert)
 		if !ok {
-			return fmt.Errorf("invalid type for leaf response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.ConnectProxy.Leaf = leaf
 
@@ -481,7 +485,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 	case strings.HasPrefix(u.CorrelationID, "discovery-chain:"):
 		resp, ok := u.Result.(*structs.DiscoveryChainResponse)
 		if !ok {
-			return fmt.Errorf("invalid type for service response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
 		snap.ConnectProxy.DiscoveryChain[svc] = resp.Chain
@@ -493,7 +497,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 	case strings.HasPrefix(u.CorrelationID, "upstream-target:"):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
-			return fmt.Errorf("invalid type for service response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "upstream-target:")
 		targetID, svc, ok := removeColonPrefix(correlationID)
@@ -511,7 +515,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
-			return fmt.Errorf("invalid type for service response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		correlationID := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
 		dc, svc, ok := removeColonPrefix(correlationID)
@@ -528,7 +532,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix):
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
-			return fmt.Errorf("invalid type for service response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		svc := strings.TrimPrefix(u.CorrelationID, "upstream:"+serviceIDPrefix)
 		snap.ConnectProxy.UpstreamEndpoints[svc] = resp.Nodes
@@ -536,13 +540,13 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
 		if !ok {
-			return fmt.Errorf("invalid type for prepared query response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		pq := strings.TrimPrefix(u.CorrelationID, "upstream:")
 		snap.ConnectProxy.UpstreamEndpoints[pq] = resp.Nodes
 
 	default:
-		return errors.New("unknown correlation ID")
+		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
 	return nil
 }
@@ -650,17 +654,21 @@ func (s *state) resetWatchesFromChain(
 }
 
 func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapshot) error {
+	if u.Err != nil {
+		return fmt.Errorf("error filling agent cache: %v", u.Err)
+	}
+
 	switch u.CorrelationID {
 	case rootsWatchID:
 		roots, ok := u.Result.(*structs.IndexedCARoots)
 		if !ok {
-			return fmt.Errorf("invalid type for roots response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
 	case serviceListWatchID:
 		services, ok := u.Result.(*structs.IndexedServices)
 		if !ok {
-			return fmt.Errorf("invalid type for services response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
 		for svcName := range services.Services {
@@ -703,7 +711,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 	case datacentersWatchID:
 		datacentersRaw, ok := u.Result.(*[]string)
 		if !ok {
-			return fmt.Errorf("invalid type for datacenters response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		if datacentersRaw == nil {
 			return fmt.Errorf("invalid response with a nil datacenter list")
@@ -753,7 +761,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 	case serviceResolversWatchID:
 		configEntries, ok := u.Result.(*structs.IndexedConfigEntries)
 		if !ok {
-			return fmt.Errorf("invalid type for services response: %T", u.Result)
+			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
 		resolvers := make(map[string]*structs.ServiceResolverConfigEntry)
@@ -768,7 +776,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 		case strings.HasPrefix(u.CorrelationID, "connect-service:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 			if !ok {
-				return fmt.Errorf("invalid type for service response: %T", u.Result)
+				return fmt.Errorf("invalid type for response: %T", u.Result)
 			}
 
 			svc := strings.TrimPrefix(u.CorrelationID, "connect-service:")
@@ -781,7 +789,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 		case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
 			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 			if !ok {
-				return fmt.Errorf("invalid type for service response: %T", u.Result)
+				return fmt.Errorf("invalid type for response: %T", u.Result)
 			}
 
 			dc := strings.TrimPrefix(u.CorrelationID, "mesh-gateway:")
