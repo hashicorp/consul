@@ -20,6 +20,8 @@ import (
 
 	"github.com/hashicorp/consul/testrpc"
 
+	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
@@ -4010,4 +4012,100 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 			r.Fatalf("unexpected proxy addr in grpc check, want: %s, got: %s", want, got)
 		}
 	})
+}
+
+func TestAgentCache_serviceInConfigFile_initialFetchErrors_Issue6521(t *testing.T) {
+	t.Parallel()
+
+	// Ensure that initial failures to fetch the discovery chain via the agent
+	// cache using the notify API for a service with no config entries
+	// correctly recovers when those RPCs resume working. The key here is that
+	// the lack of config entries guarantees that the RPC will come back with a
+	// synthetic index of 1.
+	//
+	// The bug in the Cache.notifyBlockingQuery used to incorrectly "fix" the
+	// index for the next query from 0 to 1 for all queries, when it should
+	// have not done so for queries that errored.
+
+	a1 := NewTestAgent(t, t.Name()+"-a1", "")
+	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+
+	a2 := NewTestAgent(t, t.Name()+"-a2", `
+		server = false
+		bootstrap = false
+services {
+  name = "echo-client"
+  port = 8080
+  connect {
+    sidecar_service {
+      proxy {
+        upstreams {
+          destination_name = "echo"
+          local_bind_port  = 9191
+        }
+      }
+    }
+  }
+}
+
+services {
+  name = "echo"
+  port = 9090
+  connect {
+    sidecar_service {}
+  }
+}
+	`)
+	defer a2.Shutdown()
+
+	// Starting a client agent disconnected from a server with services.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan cache.UpdateEvent, 1)
+	require.NoError(t, a2.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
+		Datacenter:           "dc1",
+		Name:                 "echo",
+		EvaluateInDatacenter: "dc1",
+		EvaluateInNamespace:  "default",
+	}, "foo", ch))
+
+	{ // The first event is an error because we are not joined yet.
+		evt := <-ch
+		require.Equal(t, "foo", evt.CorrelationID)
+		require.Nil(t, evt.Result)
+		require.Error(t, evt.Err)
+		require.Equal(t, evt.Err, structs.ErrNoServers)
+	}
+
+	t.Logf("joining client to server")
+
+	// Now connect to server
+	_, err := a1.JoinLAN([]string{
+		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
+	})
+	require.NoError(t, err)
+
+	t.Logf("joined client to server")
+
+	deadlineCh := time.After(10 * time.Second)
+	start := time.Now()
+LOOP:
+	for {
+		select {
+		case evt := <-ch:
+			// We may receive several notifications of an error until we get the
+			// first successful reply.
+			require.Equal(t, "foo", evt.CorrelationID)
+			if evt.Err != nil {
+				break LOOP
+			}
+			require.NoError(t, evt.Err)
+			require.NotNil(t, evt.Result)
+			t.Logf("took %s to get first success", time.Since(start))
+		case <-deadlineCh:
+			t.Fatal("did not get notified successfully")
+		}
+	}
 }
