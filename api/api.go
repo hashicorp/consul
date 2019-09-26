@@ -75,6 +75,10 @@ const (
 
 // QueryOptions are used to parameterize a query
 type QueryOptions struct {
+	// Namespace overrides the `default` namespace
+	// Note: Namespaces are available only in Consul Enterprise
+	Namespace string
+
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
@@ -178,6 +182,10 @@ func (o *QueryOptions) WithContext(ctx context.Context) *QueryOptions {
 
 // WriteOptions are used to parameterize a write
 type WriteOptions struct {
+	// Namespace overrides the `default` namespace
+	// Note: Namespaces are available only in Consul Enterprise
+	Namespace string
+
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
@@ -624,6 +632,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q == nil {
 		return
 	}
+	if q.Namespace != "" {
+		r.params.Set("ns", q.Namespace)
+	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}
@@ -721,6 +732,9 @@ func IsRetryableError(err error) bool {
 func (r *request) setWriteOptions(q *WriteOptions) {
 	if q == nil {
 		return
+	}
+	if q.Namespace != "" {
+		r.params.Set("ns", q.Namespace)
 	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
