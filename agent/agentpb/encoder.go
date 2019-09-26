@@ -1,8 +1,12 @@
 package agentpb
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -32,4 +36,28 @@ func Encode(t structs.MessageType, message ProtoMarshaller) ([]byte, error) {
 func Decode(buf []byte, out ProtoMarshaller) error {
 	// Note that this assumes the leading byte indicating the type has already been stripped off
 	return out.Unmarshal(buf)
+}
+
+func MarshalJSON(msg proto.Message) ([]byte, error) {
+	m := jsonpb.Marshaler{
+		EmitDefaults: false,
+	}
+
+	var buf bytes.Buffer
+	if err := m.Marshal(&buf, msg); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func UnmarshalJSON(r io.Reader, msg proto.Message) error {
+	u := jsonpb.Unmarshaler{
+		AllowUnknownFields: true,
+	}
+
+	return u.Unmarshal(r, msg)
+}
+
+func UnmarshalJSONBytes(b []byte, msg proto.Message) error {
+	return UnmarshalJSON(bytes.NewReader(b), msg)
 }
