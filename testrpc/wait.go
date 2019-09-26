@@ -41,11 +41,16 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
 }
 
 type waitOption struct {
-	Token string
+	Token                  string
+	WaitForAntiEntropySync bool
 }
 
 func WithToken(token string) waitOption {
 	return waitOption{Token: token}
+}
+
+func WaitForAntiEntropySync() waitOption {
+	return waitOption{WaitForAntiEntropySync: true}
 }
 
 // WaitForTestAgent ensures we have a node with serfHealth check registered
@@ -53,11 +58,16 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 	var nodes structs.IndexedNodes
 	var checks structs.IndexedHealthChecks
 
-	// first extra arg is an optional acl token
-	var token string
+	var (
+		token                  string
+		waitForAntiEntropySync bool
+	)
 	for _, opt := range options {
 		if opt.Token != "" {
 			token = opt.Token
+		}
+		if opt.WaitForAntiEntropySync {
+			waitForAntiEntropySync = true
 		}
 	}
 
@@ -71,6 +81,12 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 		}
 		if len(nodes.Nodes) == 0 {
 			r.Fatalf("No registered nodes")
+		}
+
+		if waitForAntiEntropySync {
+			if len(nodes.Nodes[0].TaggedAddresses) == 0 {
+				r.Fatalf("Not synced via anti entropy yet")
+			}
 		}
 
 		// This assumes that there is a single agent per dc, typically a TestAgent

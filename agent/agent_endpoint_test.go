@@ -4153,6 +4153,89 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 	// here.
 }
 
+func TestAgent_TokenTriggersFullSync(t *testing.T) {
+	t.Parallel()
+
+	body := func(token string) io.Reader {
+		return jsonReader(&api.AgentToken{Token: token})
+	}
+
+	createNodePolicy := func(t *testing.T, a *TestAgent, policyName string) *structs.ACLPolicy {
+		policy := &structs.ACLPolicy{
+			Name:  policyName,
+			Rules: `node_prefix "" { policy = "write" }`,
+		}
+
+		req, err := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policy))
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLPolicyCreate(resp, req)
+		require.NoError(t, err)
+
+		policy, ok := obj.(*structs.ACLPolicy)
+		require.True(t, ok)
+		return policy
+	}
+
+	createNodeToken := func(t *testing.T, a *TestAgent, policyName string) *structs.ACLToken {
+		createNodePolicy(t, a, policyName)
+
+		token := &structs.ACLToken{
+			Description: "test",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{Name: policyName},
+			},
+		}
+
+		req, err := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(token))
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLTokenCreate(resp, req)
+		require.NoError(t, err)
+
+		token, ok := obj.(*structs.ACLToken)
+		require.True(t, ok)
+		return token
+	}
+
+	for _, pathElem := range []string{"acl_agent_token", "agent"} {
+		url := fmt.Sprintf("/v1/agent/token/%s?token=root", pathElem)
+		t.Run(pathElem, func(t *testing.T) {
+			a := NewTestAgent(t, t.Name(), TestACLConfig()+`
+				acl {
+					tokens {
+						default = ""
+						agent = ""
+						agent_master = ""
+						replication = ""
+					}
+				}
+			`)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			// create node policy and token
+			token := createNodeToken(t, a, "test")
+
+			req, err := http.NewRequest("PUT", url, body(token.SecretID))
+			require.NoError(t, err)
+
+			resp := httptest.NewRecorder()
+			_, err = a.srv.AgentToken(resp, req)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusOK, resp.Code)
+			require.Equal(t, token.SecretID, a.tokens.AgentToken())
+
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1",
+				testrpc.WithToken("root"),
+				testrpc.WaitForAntiEntropySync())
+		})
+	}
+}
+
 func TestAgent_Token(t *testing.T) {
 	t.Parallel()
 
