@@ -76,6 +76,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           service.Tags = payload.Nodes[0].Service.Tags;
           service.meta = {
             cursor: undefined,
+            dc: dc,
           };
 
           return service;
