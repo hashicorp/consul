@@ -36,6 +36,7 @@ type HealthCheck struct {
 	ServiceID   string
 	ServiceName string
 	ServiceTags []string
+	Type        string
 
 	Definition HealthCheckDefinition
 

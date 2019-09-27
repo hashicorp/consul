@@ -1139,6 +1139,7 @@ type HealthCheck struct {
 	ServiceID   string        // optional associated service
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
+	Type        string        // Check type: http/ttl/tcp/etc
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 

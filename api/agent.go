@@ -52,6 +52,7 @@ type AgentCheck struct {
 	Output      string
 	ServiceID   string
 	ServiceName string
+	Type        string
 	Definition  HealthCheckDefinition
 }
 
