@@ -104,9 +104,7 @@ func (rule *regexNameRule) Rewrite(ctx context.Context, state request.Request) R
 	s := rule.Replacement
 	for groupIndex, groupValue := range regexGroups {
 		groupIndexStr := "{" + strconv.Itoa(groupIndex) + "}"
-		if strings.Contains(s, groupIndexStr) {
-			s = strings.Replace(s, groupIndexStr, groupValue, -1)
-		}
+		s = strings.Replace(s, groupIndexStr, groupValue, -1)
 	}
 	state.Req.Question[0].Name = s
 	return RewriteDone
@@ -264,10 +262,7 @@ func (rule *regexNameRule) GetResponseRule() ResponseRule { return rule.Response
 
 // hasClosingDot return true if s has a closing dot at the end.
 func hasClosingDot(s string) bool {
-	if strings.HasSuffix(s, ".") {
-		return true
-	}
-	return false
+	return strings.HasSuffix(s, ".")
 }
 
 // getSubExprUsage return the number of subexpressions used in s.

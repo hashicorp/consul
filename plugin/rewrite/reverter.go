@@ -59,9 +59,7 @@ func (r *ResponseReverter) WriteMsg(res *dns.Msg) error {
 					s := rule.Replacement
 					for groupIndex, groupValue := range regexGroups {
 						groupIndexStr := "{" + strconv.Itoa(groupIndex) + "}"
-						if strings.Contains(s, groupIndexStr) {
-							s = strings.Replace(s, groupIndexStr, groupValue, -1)
-						}
+						s = strings.Replace(s, groupIndexStr, groupValue, -1)
 					}
 					name = s
 					isNameRewritten = true

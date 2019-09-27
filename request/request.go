@@ -358,7 +358,7 @@ func (r *Request) Match(reply *dns.Msg) bool {
 		return false
 	}
 
-	if reply.Response == false {
+	if !reply.Response {
 		return false
 	}
 

@@ -65,8 +65,7 @@ func (k *Kubernetes) nsAddrs(external bool, zone string) []dns.RR {
 	}
 
 	// Create an RR slice of collected IPs
-	var rrs []dns.RR
-	rrs = make([]dns.RR, len(svcIPs))
+	rrs := make([]dns.RR, len(svcIPs))
 	for i, ip := range svcIPs {
 		if ip.To4() == nil {
 			rr := new(dns.AAAA)
