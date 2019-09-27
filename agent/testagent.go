@@ -479,61 +479,81 @@ const (
 	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
 )
 
-type ACLConfigParams struct {
+type TestACLConfigParams struct {
 	PrimaryDatacenter string
 	DefaultPolicy     string
 	MasterToken       string
+	AgentToken        string
+	DefaultToken      string
 	AgentMasterToken  string
+	ReplicationToken  string
+}
+
+func DefaulTestACLConfigParams() *TestACLConfigParams {
+	return &TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       TestDefaultMasterToken,
+		AgentToken:        TestDefaultMasterToken,
+		AgentMasterToken:  TestDefaultAgentMasterToken,
+	}
+}
+
+func (p *TestACLConfigParams) HasConfiguredTokens() bool {
+	return p.MasterToken != "" ||
+		p.AgentToken != "" ||
+		p.DefaultToken != "" ||
+		p.AgentMasterToken != "" ||
+		p.ReplicationToken != ""
 }
 
 func TestACLConfigNew() string {
-	return TestACLConfigWithParams(&ACLConfigParams{
+	return TestACLConfigWithParams(&TestACLConfigParams{
 		PrimaryDatacenter: "dc1",
 		DefaultPolicy:     "deny",
 		MasterToken:       "root",
+		AgentToken:        "root",
 		AgentMasterToken:  "towel",
 	})
 }
 
 var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
+   {{if ne .PrimaryDatacenter ""}}
 	primary_datacenter = "{{ .PrimaryDatacenter }}"
+	{{end}}
 	acl {
 		enabled = true
+		{{if ne .DefaultPolicy ""}}
 		default_policy = "{{ .DefaultPolicy }}"
+		{{end}}
+		{{if .HasConfiguredTokens }}
 		tokens {
+			{{if ne .MasterToken ""}}
 			master = "{{ .MasterToken }}"
-			agent = "{{ .MasterToken }}"
+			{{end}}
+			{{if ne .AgentToken ""}}
+			agent = "{{ .AgentToken }}"
+			{{end}}
+			{{if ne .AgentMasterToken "" }}
 			agent_master = "{{ .AgentMasterToken }}"
+			{{end}}
+			{{if ne .DefaultToken "" }}
+			default = "{{ .DefaultToken }}"
+			{{end}}
+			{{if ne .ReplicationToken "" }}
+			replication = "{{ .ReplicationToken }}"
+			{{end}}
 		}
+		{{end}}
 	}
 `))
 
-func TestACLConfigWithParams(params *ACLConfigParams) string {
+func TestACLConfigWithParams(params *TestACLConfigParams) string {
 	var buf bytes.Buffer
 
-	cfg := ACLConfigParams{
-		PrimaryDatacenter: "dc1",
-		DefaultPolicy:     "deny",
-		MasterToken:       TestDefaultMasterToken,
-		AgentMasterToken:  TestDefaultAgentMasterToken,
-	}
-
-	if params != nil {
-		if params.PrimaryDatacenter != "" {
-			cfg.PrimaryDatacenter = params.PrimaryDatacenter
-		}
-
-		if params.DefaultPolicy != "" {
-			cfg.DefaultPolicy = params.DefaultPolicy
-		}
-
-		if params.MasterToken != "" {
-			cfg.MasterToken = params.MasterToken
-		}
-
-		if params.AgentMasterToken != "" {
-			cfg.AgentMasterToken = params.AgentMasterToken
-		}
+	cfg := params
+	if params == nil {
+		cfg = DefaulTestACLConfigParams()
 	}
 
 	err := aclConfigTpl.Execute(&buf, &cfg)
