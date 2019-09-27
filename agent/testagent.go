@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"text/template"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -472,17 +474,92 @@ func TestACLConfig() string {
 	`
 }
 
+const (
+	TestDefaultMasterToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
+)
+
+type TestACLConfigParams struct {
+	PrimaryDatacenter string
+	DefaultPolicy     string
+	MasterToken       string
+	AgentToken        string
+	DefaultToken      string
+	AgentMasterToken  string
+	ReplicationToken  string
+}
+
+func DefaulTestACLConfigParams() *TestACLConfigParams {
+	return &TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       TestDefaultMasterToken,
+		AgentToken:        TestDefaultMasterToken,
+		AgentMasterToken:  TestDefaultAgentMasterToken,
+	}
+}
+
+func (p *TestACLConfigParams) HasConfiguredTokens() bool {
+	return p.MasterToken != "" ||
+		p.AgentToken != "" ||
+		p.DefaultToken != "" ||
+		p.AgentMasterToken != "" ||
+		p.ReplicationToken != ""
+}
+
 func TestACLConfigNew() string {
-	return `
-		primary_datacenter = "dc1"
-		acl {
-			enabled = true
-			default_policy = "deny"
-			tokens {
-				master = "root"
-				agent = "root"
-				agent_master = "towel"
-			}
+	return TestACLConfigWithParams(&TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       "root",
+		AgentToken:        "root",
+		AgentMasterToken:  "towel",
+	})
+}
+
+var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
+   {{if ne .PrimaryDatacenter ""}}
+	primary_datacenter = "{{ .PrimaryDatacenter }}"
+	{{end}}
+	acl {
+		enabled = true
+		{{if ne .DefaultPolicy ""}}
+		default_policy = "{{ .DefaultPolicy }}"
+		{{end}}
+		{{if .HasConfiguredTokens }}
+		tokens {
+			{{if ne .MasterToken ""}}
+			master = "{{ .MasterToken }}"
+			{{end}}
+			{{if ne .AgentToken ""}}
+			agent = "{{ .AgentToken }}"
+			{{end}}
+			{{if ne .AgentMasterToken "" }}
+			agent_master = "{{ .AgentMasterToken }}"
+			{{end}}
+			{{if ne .DefaultToken "" }}
+			default = "{{ .DefaultToken }}"
+			{{end}}
+			{{if ne .ReplicationToken "" }}
+			replication = "{{ .ReplicationToken }}"
+			{{end}}
 		}
-	`
+		{{end}}
+	}
+`))
+
+func TestACLConfigWithParams(params *TestACLConfigParams) string {
+	var buf bytes.Buffer
+
+	cfg := params
+	if params == nil {
+		cfg = DefaulTestACLConfigParams()
+	}
+
+	err := aclConfigTpl.Execute(&buf, &cfg)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to generate test ACL config: %v", err))
+	}
+
+	return buf.String()
 }
