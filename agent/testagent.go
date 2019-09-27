@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"text/template"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -472,17 +474,72 @@ func TestACLConfig() string {
 	`
 }
 
+const (
+	TestDefaultMasterToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
+)
+
+type ACLConfigParams struct {
+	PrimaryDatacenter string
+	DefaultPolicy     string
+	MasterToken       string
+	AgentMasterToken  string
+}
+
 func TestACLConfigNew() string {
-	return `
-		primary_datacenter = "dc1"
-		acl {
-			enabled = true
-			default_policy = "deny"
-			tokens {
-				master = "root"
-				agent = "root"
-				agent_master = "towel"
-			}
+	return TestACLConfigWithParams(&ACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       "root",
+		AgentMasterToken:  "towel",
+	})
+}
+
+var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
+	primary_datacenter = "{{ .PrimaryDatacenter }}"
+	acl {
+		enabled = true
+		default_policy = "{{ .DefaultPolicy }}"
+		tokens {
+			master = "{{ .MasterToken }}"
+			agent = "{{ .MasterToken }}"
+			agent_master = "{{ .AgentMasterToken }}"
 		}
-	`
+	}
+`))
+
+func TestACLConfigWithParams(params *ACLConfigParams) string {
+	var buf bytes.Buffer
+
+	cfg := ACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       TestDefaultMasterToken,
+		AgentMasterToken:  TestDefaultAgentMasterToken,
+	}
+
+	if params != nil {
+		if params.PrimaryDatacenter != "" {
+			cfg.PrimaryDatacenter = params.PrimaryDatacenter
+		}
+
+		if params.DefaultPolicy != "" {
+			cfg.DefaultPolicy = params.DefaultPolicy
+		}
+
+		if params.MasterToken != "" {
+			cfg.MasterToken = params.MasterToken
+		}
+
+		if params.AgentMasterToken != "" {
+			cfg.AgentMasterToken = params.AgentMasterToken
+		}
+	}
+
+	err := aclConfigTpl.Execute(&buf, &cfg)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to generate test ACL config: %v", err))
+	}
+
+	return buf.String()
 }
