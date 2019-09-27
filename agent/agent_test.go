@@ -393,6 +393,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceID:   "svcid1",
 					ServiceName: "svcname1",
 					ServiceTags: []string{"tag1"},
+					Type:        "ttl",
 				},
 			},
 		},
@@ -438,6 +439,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
 					ServiceTags: []string{"tag2"},
+					Type:        "ttl",
 				},
 				"check-noname": &structs.HealthCheck{
 					Node:        "node1",
@@ -447,6 +449,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
 					ServiceTags: []string{"tag2"},
+					Type:        "ttl",
 				},
 				"service:svcid2:3": &structs.HealthCheck{
 					Node:        "node1",
@@ -456,6 +459,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
 					ServiceTags: []string{"tag2"},
+					Type:        "ttl",
 				},
 				"service:svcid2:4": &structs.HealthCheck{
 					Node:        "node1",
@@ -465,6 +469,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceID:   "svcid2",
 					ServiceName: "svcname2",
 					ServiceTags: []string{"tag2"},
+					Type:        "ttl",
 				},
 			},
 		},
