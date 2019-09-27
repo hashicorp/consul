@@ -18,7 +18,7 @@ with each other.
 To get started with Network Segments,
 [read the guide](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
 
--> **Note:** Due to limitations in Consul's implementation of Serf, you may currently only use 10 Network Segments per Consul cluster.
+-> **Note:** Due to limitations in [Serf](https://www.consul.io/docs/internals/gossip.html), you may currently only use up to 10 Network Segments per Consul cluster.
 
 # Consul Networking Models
 
