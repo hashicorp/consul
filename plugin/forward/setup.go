@@ -13,7 +13,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/transport"
 
 	"github.com/caddyserver/caddy"
-	"github.com/caddyserver/caddy/caddyfile"
 )
 
 func init() { plugin.Register("forward", setup) }
@@ -74,7 +73,7 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 			return nil, plugin.ErrOnce
 		}
 		i++
-		f, err = ParseForwardStanza(&c.Dispenser)
+		f, err = parseStanza(c)
 		if err != nil {
 			return nil, err
 		}
@@ -82,8 +81,7 @@ func parseForward(c *caddy.Controller) (*Forward, error) {
 	return f, nil
 }
 
-// ParseForwardStanza parses one forward stanza
-func ParseForwardStanza(c *caddyfile.Dispenser) (*Forward, error) {
+func parseStanza(c *caddy.Controller) (*Forward, error) {
 	f := New()
 
 	if !c.Args(&f.from) {
@@ -128,7 +126,7 @@ func ParseForwardStanza(c *caddyfile.Dispenser) (*Forward, error) {
 	return f, nil
 }
 
-func parseBlock(c *caddyfile.Dispenser, f *Forward) error {
+func parseBlock(c *caddy.Controller, f *Forward) error {
 	switch c.Val() {
 	case "except":
 		ignore := c.RemainingArgs()

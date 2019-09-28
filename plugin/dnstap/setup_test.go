@@ -21,7 +21,7 @@ func TestConfig(t *testing.T) {
 	}
 	for _, c := range tests {
 		cad := caddy.NewTestController("dns", c.file)
-		conf, err := parseConfig(&cad.Dispenser)
+		conf, err := parseConfig(cad)
 		if c.fail {
 			if err == nil {
 				t.Errorf("%s: %s", c.file, err)

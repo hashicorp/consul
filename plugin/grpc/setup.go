@@ -11,7 +11,6 @@ import (
 	pkgtls "github.com/coredns/coredns/plugin/pkg/tls"
 
 	"github.com/caddyserver/caddy"
-	"github.com/caddyserver/caddy/caddyfile"
 )
 
 func init() { plugin.Register("grpc", setup) }
@@ -50,7 +49,7 @@ func parseGRPC(c *caddy.Controller) (*GRPC, error) {
 			return nil, plugin.ErrOnce
 		}
 		i++
-		g, err = parseGRPCStanza(&c.Dispenser)
+		g, err = parseStanza(c)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +57,7 @@ func parseGRPC(c *caddy.Controller) (*GRPC, error) {
 	return g, nil
 }
 
-func parseGRPCStanza(c *caddyfile.Dispenser) (*GRPC, error) {
+func parseStanza(c *caddy.Controller) (*GRPC, error) {
 	g := newGRPC()
 
 	if !c.Args(&g.from) {
@@ -99,7 +98,7 @@ func parseGRPCStanza(c *caddyfile.Dispenser) (*GRPC, error) {
 	return g, nil
 }
 
-func parseBlock(c *caddyfile.Dispenser, g *GRPC) error {
+func parseBlock(c *caddy.Controller, g *GRPC) error {
 
 	switch c.Val() {
 	case "except":

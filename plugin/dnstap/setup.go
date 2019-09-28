@@ -10,7 +10,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/parse"
 
 	"github.com/caddyserver/caddy"
-	"github.com/caddyserver/caddy/caddyfile"
 )
 
 var log = clog.NewWithPlugin("dnstap")
@@ -30,7 +29,7 @@ type config struct {
 	full   bool
 }
 
-func parseConfig(d *caddyfile.Dispenser) (c config, err error) {
+func parseConfig(d *caddy.Controller) (c config, err error) {
 	d.Next() // directive name
 
 	if !d.Args(&c.target) {
@@ -56,7 +55,7 @@ func parseConfig(d *caddyfile.Dispenser) (c config, err error) {
 }
 
 func setup(c *caddy.Controller) error {
-	conf, err := parseConfig(&c.Dispenser)
+	conf, err := parseConfig(c)
 	if err != nil {
 		return err
 	}
