@@ -13,12 +13,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func init() {
-	caddy.RegisterPlugin("cancel", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("cancel", setup) }
 
 func setup(c *caddy.Controller) error {
 	ca := Cancel{timeout: 5001 * time.Millisecond}

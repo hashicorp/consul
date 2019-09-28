@@ -1,11 +1,6 @@
 // Package bind allows binding to a specific interface instead of bind to all of them.
 package bind
 
-import "github.com/caddyserver/caddy"
+import "github.com/coredns/coredns/plugin"
 
-func init() {
-	caddy.RegisterPlugin("bind", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("bind", setup) }

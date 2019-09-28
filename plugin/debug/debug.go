@@ -7,12 +7,7 @@ import (
 	"github.com/caddyserver/caddy"
 )
 
-func init() {
-	caddy.RegisterPlugin("debug", caddy.Plugin{
-		ServerType: "dns",
-		Action:     setup,
-	})
-}
+func init() { plugin.Register("debug", setup) }
 
 func setup(c *caddy.Controller) error {
 	config := dnsserver.GetConfig(c)
