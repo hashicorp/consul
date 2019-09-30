@@ -833,8 +833,23 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
 	chk1 := &structs.CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
 	chk2 := &structs.CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
-	hchk1 := &structs.HealthCheck{Node: "node1", CheckID: "chk1", Name: "chk1", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
-	hchk2 := &structs.HealthCheck{Node: "node1", CheckID: "chk2", Name: "chk2", Status: "critical", ServiceID: "redis", ServiceName: "redis"}
+	hchk1 := &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "chk1",
+		Name:        "chk1",
+		Status:      "critical",
+		ServiceID:   "redis",
+		ServiceName: "redis",
+		Type:        "ttl",
+	}
+	hchk2 := &structs.HealthCheck{Node: "node1",
+		CheckID:     "chk2",
+		Name:        "chk2",
+		Status:      "critical",
+		ServiceID:   "redis",
+		ServiceName: "redis",
+		Type:        "ttl",
+	}
 
 	// register service with chk1
 	if err := a.AddService(svc, []*structs.CheckType{chk1}, false, "", ConfigSourceLocal); err != nil {

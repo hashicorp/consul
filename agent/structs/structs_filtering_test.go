@@ -462,6 +462,11 @@ var expectedFieldConfigHealthCheck bexpr.FieldConfigurations = bexpr.FieldConfig
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty, bexpr.MatchIn, bexpr.MatchNotIn},
 		StructFieldName:     "ServiceTags",
 	},
+	"Type": &bexpr.FieldConfiguration{
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+		StructFieldName:     "Type",
+	},
 }
 
 var expectedFieldConfigCheckServiceNode bexpr.FieldConfigurations = bexpr.FieldConfigurations{
