@@ -6,6 +6,8 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
 	github.com/gogo/protobuf/protoc-gen-gofast \
+	github.com/mitchellh/protoc-gen-go-json \
+	github.com/hashicorp/protoc-gen-go-binary \
 	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
@@ -31,6 +33,8 @@ GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).
 
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
+PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
+PROTOGOJSONFILES=$(PROTOFILES:.proto=.pb.json.go)
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -368,14 +372,19 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 proto-go-delete:
 	@echo "Removing $(PROTOGOFILES)"
 	-@rm $(PROTOGOFILES)
+	@echo "Removing $(PROTOGOBINFILES)"
+	-@rm $(PROTOGOBINFILES)
+	@echo "Removing $(PROTOGOJSONFILES)"
+	-@rm $(PROTOGOJSONFILES)
 
 proto-rebuild: proto-go-delete proto
 
-proto: $(PROTOGOFILES)
+proto: $(PROTOGOFILES) $(PROTOGOBINFILES) $(PROTOGOJSONFILES)
 	@echo "Generated all protobuf Go files"
 
-%.pb.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace --generator gogo "$<"
+
+%.pb.go %.pb.json.go %.pb.binary.go: %.proto
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
 
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
