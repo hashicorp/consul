@@ -9,10 +9,10 @@ export default Route.extend(WithAclActions, {
   templateName: 'dc/acls/edit',
   repo: service('repository/acl'),
   beforeModel: function() {
-    get(this, 'repo').invalidate();
+    this.repo.invalidate();
   },
   model: function(params) {
-    this.item = get(this, 'repo').create();
+    this.item = this.repo.create();
     set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
     return hash({
       create: true,

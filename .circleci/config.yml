@@ -447,7 +447,7 @@ jobs:
       - checkout
       - restore_cache:
           key: *YARN_CACHE_KEY
-      - run: cd ui-v2 && yarn build-ci --output-path=dist
+      - run: cd ui-v2 && make build-ci
 
       # saves the build to a workspace to be passed to a downstream job
       - persist_to_workspace:

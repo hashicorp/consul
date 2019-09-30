@@ -23,7 +23,7 @@ Feature: Page Navigation
   Where:
     -----------------------------------------------------------------------
     | Link       | URL               | Endpoint                           |
-    | nodes      | /dc-1/nodes       | /v1/status/leader?dc=dc-1          |
+    | nodes      | /dc-1/nodes       | /v1/internal/ui/nodes?dc=dc-1      |
     | kvs        | /dc-1/kv          | /v1/kv/?keys&dc=dc-1&separator=%2F |
     | acls       | /dc-1/acls/tokens | /v1/acl/tokens?dc=dc-1             |
     | intentions | /dc-1/intentions  | /v1/connect/intentions?dc=dc-1     |

@@ -10,7 +10,7 @@ export default SingleRoute.extend(WithRoleActions, {
   tokenRepo: service('repository/token'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const tokenRepo = get(this, 'tokenRepo');
+    const tokenRepo = this.tokenRepo;
     return this._super(...arguments).then(model => {
       return hash({
         ...model,

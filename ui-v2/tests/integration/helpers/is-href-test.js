@@ -1,20 +1,16 @@
-import { moduleForComponent, skip } from 'ember-qunit';
+import { module, skip } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('is-href', 'helper:is-href', {
-  integration: true,
-});
+module('helper:is-href', function(hooks) {
+  setupRenderingTest(hooks);
 
-// Replace this with your real tests.
-skip('it renders', function(assert) {
-  this.set('inputValue', '1234');
+  // Replace this with your real tests.
+  skip('it renders', function(assert) {
+    this.set('inputValue', '1234');
 
-  this.render(hbs`{{is-href inputValue}}`);
+    this.render(hbs`{{is-href inputValue}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    '1234'
-  );
+    assert.dom('*').hasText('1234');
+  });
 });

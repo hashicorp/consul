@@ -23,7 +23,7 @@ export default RepositoryService.extend({
     return status(obj);
   },
   self: function(secret, dc) {
-    return get(this, 'store')
+    return this.store
       .self(this.getModelName(), {
         secret: secret,
         dc: dc,
@@ -41,16 +41,16 @@ export default RepositoryService.extend({
       });
   },
   clone: function(item) {
-    return get(this, 'store').clone(this.getModelName(), get(item, PRIMARY_KEY));
+    return this.store.clone(this.getModelName(), get(item, PRIMARY_KEY));
   },
   findByPolicy: function(id, dc) {
-    return get(this, 'store').query(this.getModelName(), {
+    return this.store.query(this.getModelName(), {
       policy: id,
       dc: dc,
     });
   },
   findByRole: function(id, dc) {
-    return get(this, 'store').query(this.getModelName(), {
+    return this.store.query(this.getModelName(), {
       role: id,
       dc: dc,
     });

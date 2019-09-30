@@ -33,6 +33,6 @@ export default RepositoryService.extend({
     return Promise.resolve(item);
   },
   translate: function(item) {
-    return get(this, 'store').translate('policy', get(item, 'Rules'));
+    return this.store.translate('policy', get(item, 'Rules'));
   },
 });

@@ -27,7 +27,7 @@ module.exports = function(defaults) {
     },
     'babel': {
       plugins: [
-        'transform-object-rest-spread'
+        '@babel/plugin-proposal-object-rest-spread'
       ]
     },
     'codemirror': {

@@ -14,21 +14,21 @@ export default Controller.extend(WithEventSource, WithSearching, WithHealthFilte
   },
   searchableHealthy: computed('healthy', function() {
     return get(this, 'searchables.healthyNode')
-      .add(get(this, 'healthy'))
+      .add(this.healthy)
       .search(get(this, this.searchParams.healthyNode));
   }),
   searchableUnhealthy: computed('unhealthy', function() {
     return get(this, 'searchables.unhealthyNode')
-      .add(get(this, 'unhealthy'))
+      .add(this.unhealthy)
       .search(get(this, this.searchParams.unhealthyNode));
   }),
   unhealthy: computed('filtered', function() {
-    return get(this, 'filtered').filter(function(item) {
+    return this.filtered.filter(function(item) {
       return get(item, 'isUnhealthy');
     });
   }),
   healthy: computed('filtered', function() {
-    return get(this, 'filtered').filter(function(item) {
+    return this.filtered.filter(function(item) {
       return get(item, 'isHealthy');
     });
   }),

@@ -17,7 +17,7 @@ export default RepositoryService.extend({
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    return this.get('store').query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), query);
   },
   findInstanceBySlug: function(id, node, slug, dc, configuration) {
     return this.findAllBySlug(slug, dc, configuration).then(function(items) {

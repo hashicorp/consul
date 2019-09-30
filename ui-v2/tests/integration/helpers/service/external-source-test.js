@@ -1,32 +1,24 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('service/external-source', 'helper:service/external-source', {
-  integration: true,
-});
+module('helper:service/external-source', function(hooks) {
+  setupRenderingTest(hooks);
 
-// Replace this with your real tests.
-test('it renders', function(assert) {
-  this.set('inputValue', { Meta: { 'external-source': 'consul' } });
+  // Replace this with your real tests.
+  test('it renders', async function(assert) {
+    this.set('inputValue', { Meta: { 'external-source': 'consul' } });
 
-  this.render(hbs`{{service/external-source inputValue}}`);
+    await render(hbs`{{service/external-source inputValue}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'consul'
-  );
-});
-test('it renders prefixed', function(assert) {
-  this.set('inputValue', { Meta: { 'external-source': 'consul' } });
+    assert.dom('*').hasText('consul');
+  });
+  test('it renders prefixed', async function(assert) {
+    this.set('inputValue', { Meta: { 'external-source': 'consul' } });
 
-  this.render(hbs`{{service/external-source inputValue prefix='external-source-'}}`);
+    await render(hbs`{{service/external-source inputValue prefix='external-source-'}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    'external-source-consul'
-  );
+    assert.dom('*').hasText('external-source-consul');
+  });
 });
