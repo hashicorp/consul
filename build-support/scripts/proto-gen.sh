@@ -112,7 +112,7 @@ function main {
       "${proto_path}"
    if test $? -ne 0
    then
-      err "Failed to generate ${generator} from ${proto_path}"
+      err "Failed to generate outputs from ${proto_path}"
       return 1
    fi
 
