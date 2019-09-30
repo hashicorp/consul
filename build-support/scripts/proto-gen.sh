@@ -23,9 +23,6 @@ Description:
 
 Options:
    --import-replace         Replace imports of google types with those from the gogo/protobuf repo.
-
-   --generator              Which generator to use: gogo, gofast etc. Defaults to gofast.
-
    --grpc                   Enable the gRPC plugin
 
    -h | --help                   Print this help text.
@@ -39,7 +36,6 @@ function err_usage {
 }
 
 function main {
-   local    generator=gofast
    local -i grpc=0
    local -i imp_replace=0
    local    proto_path=
@@ -50,16 +46,6 @@ function main {
          -h | --help )
             usage
             return 0
-            ;;
-         generator )
-            if test -z "$2"
-            then
-               err_usage "ERROR: option -g/--generator requires an argument"
-               return 1
-            fi
-
-            generator="$2"
-            shift 2
             ;;
          --grpc )
             grpc=1
@@ -92,7 +78,9 @@ function main {
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types"
 
    local proto_go_path=${proto_path%%.proto}.pb.go
-
+   local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
+   local proto_go_json_path=${proto_path%%.proto}.pb.json.go
+   
    local go_proto_out=""
    local sep=""
    if is_set "${grpc}"
@@ -112,17 +100,19 @@ function main {
    fi
 
    local -i ret=0
-   status_stage "Generating ${proto_go_path} from ${proto_path}"
+   status_stage "Generating ${proto_path} into ${proto_go_path}, ${proto_go_bin_path}, and ${proto_go_json_path}"
    debug_run protoc \
       -I="$(dirname ${proto_path})" \
       -I="${gogo_proto_path}/protobuf" \
       -I="${gogo_proto_path}" \
       -I="${gogo_proto_mod_path}" \
-      --${generator}_out="${go_proto_out}$(dirname ${proto_path})" \
+      --gofast_out="${go_proto_out}$(dirname ${proto_path})" \
+      --go-binary_out="$(dirname ${proto_path})" \
+      --go-json_out="$(dirname ${proto_path})" \
       "${proto_path}"
    if test $? -ne 0
    then
-      err "Failed to generate ${proto_go_path} from ${proto_path}"
+      err "Failed to generate outputs from ${proto_path}"
       return 1
    fi
 
@@ -132,6 +122,14 @@ function main {
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_path}.new"
       cat "${proto_go_path}" >> "${proto_go_path}.new"
       mv "${proto_go_path}.new" "${proto_go_path}"
+      
+      echo -e "${BUILD_TAGS}\n" >> "${proto_go_bin_path}.new"
+      cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
+      mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"
+      
+      echo -e "${BUILD_TAGS}\n" >> "${proto_go_json_path}.new"
+      cat "${proto_go_json_path}" >> "${proto_go_json_path}.new"
+      mv "${proto_go_json_path}.new" "${proto_go_json_path}"
    fi
 
    return 0

@@ -11,7 +11,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	time "time"
 )
 
@@ -25,7 +24,7 @@ var _ = time.Kitchen
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
@@ -48,7 +47,7 @@ func (m *RaftIndex) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_RaftIndex.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +86,7 @@ func (m *TargetDatacenter) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_TargetDatacenter.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +125,7 @@ func (m *WriteRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_WriteRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +218,7 @@ func (m *QueryOptions) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_QueryOptions.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +345,7 @@ func (m *QueryMeta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_QueryMeta.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -444,7 +443,7 @@ var fileDescriptor_555bd8c177793206 = []byte{
 func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -452,32 +451,27 @@ func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RaftIndex) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *RaftIndex) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.ModifyIndex != 0 {
-		i = encodeVarintCommon(dAtA, i, uint64(m.ModifyIndex))
-		i--
-		dAtA[i] = 0x10
-	}
 	if m.CreateIndex != 0 {
-		i = encodeVarintCommon(dAtA, i, uint64(m.CreateIndex))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(m.CreateIndex))
 	}
-	return len(dAtA) - i, nil
+	if m.ModifyIndex != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(m.ModifyIndex))
+	}
+	return i, nil
 }
 
 func (m *TargetDatacenter) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -485,29 +479,23 @@ func (m *TargetDatacenter) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TargetDatacenter) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *TargetDatacenter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Datacenter) > 0 {
-		i -= len(m.Datacenter)
-		copy(dAtA[i:], m.Datacenter)
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.Datacenter)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Datacenter)))
+		i += copy(dAtA[i:], m.Datacenter)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *WriteRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -515,29 +503,23 @@ func (m *WriteRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *WriteRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *WriteRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Token) > 0 {
-		i -= len(m.Token)
-		copy(dAtA[i:], m.Token)
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
+		i += copy(dAtA[i:], m.Token)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *QueryOptions) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -545,113 +527,106 @@ func (m *QueryOptions) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QueryOptions) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryOptions) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Filter) > 0 {
-		i -= len(m.Filter)
-		copy(dAtA[i:], m.Filter)
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.Filter)))
-		i--
-		dAtA[i] = 0x5a
+	if len(m.Token) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
+		i += copy(dAtA[i:], m.Token)
 	}
-	n1, err1 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.StaleIfError, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.StaleIfError):])
-	if err1 != nil {
-		return 0, err1
+	if m.MinQueryIndex != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(m.MinQueryIndex))
 	}
-	i -= n1
-	i = encodeVarintCommon(dAtA, i, uint64(n1))
-	i--
-	dAtA[i] = 0x52
-	if m.MustRevalidate {
-		i--
-		if m.MustRevalidate {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x48
+	dAtA[i] = 0x1a
+	i++
+	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxQueryTime)))
+	n1, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxQueryTime, dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	n2, err2 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxAge, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAge):])
-	if err2 != nil {
-		return 0, err2
-	}
-	i -= n2
-	i = encodeVarintCommon(dAtA, i, uint64(n2))
-	i--
-	dAtA[i] = 0x42
-	n3, err3 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxStaleDuration, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxStaleDuration):])
-	if err3 != nil {
-		return 0, err3
-	}
-	i -= n3
-	i = encodeVarintCommon(dAtA, i, uint64(n3))
-	i--
-	dAtA[i] = 0x3a
-	if m.UseCache {
-		i--
-		if m.UseCache {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.RequireConsistent {
-		i--
-		if m.RequireConsistent {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x28
-	}
+	i += n1
 	if m.AllowStale {
-		i--
+		dAtA[i] = 0x20
+		i++
 		if m.AllowStale {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x20
+		i++
 	}
-	n4, err4 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxQueryTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxQueryTime):])
-	if err4 != nil {
-		return 0, err4
+	if m.RequireConsistent {
+		dAtA[i] = 0x28
+		i++
+		if m.RequireConsistent {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
 	}
-	i -= n4
-	i = encodeVarintCommon(dAtA, i, uint64(n4))
-	i--
-	dAtA[i] = 0x1a
-	if m.MinQueryIndex != 0 {
-		i = encodeVarintCommon(dAtA, i, uint64(m.MinQueryIndex))
-		i--
-		dAtA[i] = 0x10
+	if m.UseCache {
+		dAtA[i] = 0x30
+		i++
+		if m.UseCache {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
 	}
-	if len(m.Token) > 0 {
-		i -= len(m.Token)
-		copy(dAtA[i:], m.Token)
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.Token)))
-		i--
-		dAtA[i] = 0xa
+	dAtA[i] = 0x3a
+	i++
+	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxStaleDuration)))
+	n2, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxStaleDuration, dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	return len(dAtA) - i, nil
+	i += n2
+	dAtA[i] = 0x42
+	i++
+	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAge)))
+	n3, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxAge, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n3
+	if m.MustRevalidate {
+		dAtA[i] = 0x48
+		i++
+		if m.MustRevalidate {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	dAtA[i] = 0x52
+	i++
+	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.StaleIfError)))
+	n4, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.StaleIfError, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n4
+	if len(m.Filter) > 0 {
+		dAtA[i] = 0x5a
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.Filter)))
+		i += copy(dAtA[i:], m.Filter)
+	}
+	return i, nil
 }
 
 func (m *QueryMeta) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -659,58 +634,50 @@ func (m *QueryMeta) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QueryMeta) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryMeta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.ConsistencyLevel) > 0 {
-		i -= len(m.ConsistencyLevel)
-		copy(dAtA[i:], m.ConsistencyLevel)
-		i = encodeVarintCommon(dAtA, i, uint64(len(m.ConsistencyLevel)))
-		i--
-		dAtA[i] = 0x22
+	if m.Index != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(m.Index))
 	}
+	dAtA[i] = 0x12
+	i++
+	i = encodeVarintCommon(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.LastContact)))
+	n5, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.LastContact, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n5
 	if m.KnownLeader {
-		i--
+		dAtA[i] = 0x18
+		i++
 		if m.KnownLeader {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x18
+		i++
 	}
-	n5, err5 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.LastContact, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.LastContact):])
-	if err5 != nil {
-		return 0, err5
+	if len(m.ConsistencyLevel) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintCommon(dAtA, i, uint64(len(m.ConsistencyLevel)))
+		i += copy(dAtA[i:], m.ConsistencyLevel)
 	}
-	i -= n5
-	i = encodeVarintCommon(dAtA, i, uint64(n5))
-	i--
-	dAtA[i] = 0x12
-	if m.Index != 0 {
-		i = encodeVarintCommon(dAtA, i, uint64(m.Index))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func encodeVarintCommon(dAtA []byte, offset int, v uint64) int {
-	offset -= sovCommon(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *RaftIndex) Size() (n int) {
 	if m == nil {
@@ -815,7 +782,14 @@ func (m *QueryMeta) Size() (n int) {
 }
 
 func sovCommon(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozCommon(x uint64) (n int) {
 	return sovCommon(uint64((x << 1) ^ uint64((int64(x) >> 63))))
