@@ -1,5 +1,5 @@
 SHELL = bash
-GOGOVERSION?=$(shell go list -f '{{ .Dir }}' -m github.com/gogo/protobuf | awk -F '@' '{print $$2}')
+GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
 	github.com/hashicorp/go-bindata/go-bindata \
