@@ -1,11 +1,12 @@
 SHELL = bash
+GOGOVERSION?=$(shell go list -f '{{ .Dir }}' -m github.com/gogo/protobuf | awk -F '@' '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
 	github.com/hashicorp/go-bindata/go-bindata \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
-	github.com/gogo/protobuf/protoc-gen-gofast \
+	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
 	github.com/mitchellh/protoc-gen-go-json \
 	github.com/hashicorp/protoc-gen-go-binary \
 	github.com/vektra/mockery/cmd/mockery
@@ -334,7 +335,7 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	go get -u -v $(GOTOOLS)
+	go get -v $(GOTOOLS)
 
 version:
 	@echo -n "Version:                    "

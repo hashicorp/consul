@@ -8,11 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,7 +21,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type ConfigureRequest struct {
 	ClusterId            string   `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
@@ -49,7 +46,7 @@ func (m *ConfigureRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_ConfigureRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +108,7 @@ func (m *SetIntermediateRequest) XXX_Marshal(b []byte, deterministic bool) ([]by
 		return xxx_messageInfo_SetIntermediateRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +162,7 @@ func (m *SignRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_SignRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +209,7 @@ func (m *SignIntermediateRequest) XXX_Marshal(b []byte, deterministic bool) ([]b
 		return xxx_messageInfo_SignIntermediateRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +256,7 @@ func (m *CrossSignCARequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_CrossSignCARequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -306,7 +303,7 @@ func (m *ActiveRootResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_ActiveRootResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -353,7 +350,7 @@ func (m *GenerateIntermediateCSRResponse) XXX_Marshal(b []byte, deterministic bo
 		return xxx_messageInfo_GenerateIntermediateCSRResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -400,7 +397,7 @@ func (m *ActiveIntermediateResponse) XXX_Marshal(b []byte, deterministic bool) (
 		return xxx_messageInfo_ActiveIntermediateResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -447,7 +444,7 @@ func (m *GenerateIntermediateResponse) XXX_Marshal(b []byte, deterministic bool)
 		return xxx_messageInfo_GenerateIntermediateResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -494,7 +491,7 @@ func (m *SignResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_SignResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -541,7 +538,7 @@ func (m *SignIntermediateResponse) XXX_Marshal(b []byte, deterministic bool) ([]
 		return xxx_messageInfo_SignIntermediateResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -588,7 +585,7 @@ func (m *CrossSignCAResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return xxx_messageInfo_CrossSignCAResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -636,7 +633,7 @@ func (m *Empty) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Empty.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -855,44 +852,6 @@ type CAServer interface {
 	SignIntermediate(context.Context, *SignIntermediateRequest) (*SignIntermediateResponse, error)
 	CrossSignCA(context.Context, *CrossSignCARequest) (*CrossSignCAResponse, error)
 	Cleanup(context.Context, *Empty) (*Empty, error)
-}
-
-// UnimplementedCAServer can be embedded to have forward compatible implementations.
-type UnimplementedCAServer struct {
-}
-
-func (*UnimplementedCAServer) Configure(ctx context.Context, req *ConfigureRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Configure not implemented")
-}
-func (*UnimplementedCAServer) GenerateRoot(ctx context.Context, req *Empty) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateRoot not implemented")
-}
-func (*UnimplementedCAServer) ActiveRoot(ctx context.Context, req *Empty) (*ActiveRootResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ActiveRoot not implemented")
-}
-func (*UnimplementedCAServer) GenerateIntermediateCSR(ctx context.Context, req *Empty) (*GenerateIntermediateCSRResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateIntermediateCSR not implemented")
-}
-func (*UnimplementedCAServer) SetIntermediate(ctx context.Context, req *SetIntermediateRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetIntermediate not implemented")
-}
-func (*UnimplementedCAServer) ActiveIntermediate(ctx context.Context, req *Empty) (*ActiveIntermediateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ActiveIntermediate not implemented")
-}
-func (*UnimplementedCAServer) GenerateIntermediate(ctx context.Context, req *Empty) (*GenerateIntermediateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateIntermediate not implemented")
-}
-func (*UnimplementedCAServer) Sign(ctx context.Context, req *SignRequest) (*SignResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Sign not implemented")
-}
-func (*UnimplementedCAServer) SignIntermediate(ctx context.Context, req *SignIntermediateRequest) (*SignIntermediateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SignIntermediate not implemented")
-}
-func (*UnimplementedCAServer) CrossSignCA(ctx context.Context, req *CrossSignCARequest) (*CrossSignCAResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CrossSignCA not implemented")
-}
-func (*UnimplementedCAServer) Cleanup(ctx context.Context, req *Empty) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Cleanup not implemented")
 }
 
 func RegisterCAServer(s *grpc.Server, srv CAServer) {
@@ -1153,7 +1112,7 @@ var _CA_serviceDesc = grpc.ServiceDesc{
 func (m *ConfigureRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1161,50 +1120,42 @@ func (m *ConfigureRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ConfigureRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ConfigureRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Config) > 0 {
-		i -= len(m.Config)
-		copy(dAtA[i:], m.Config)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.Config)))
-		i--
-		dAtA[i] = 0x1a
+	if len(m.ClusterId) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.ClusterId)))
+		i += copy(dAtA[i:], m.ClusterId)
 	}
 	if m.IsRoot {
-		i--
+		dAtA[i] = 0x10
+		i++
 		if m.IsRoot {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x10
+		i++
 	}
-	if len(m.ClusterId) > 0 {
-		i -= len(m.ClusterId)
-		copy(dAtA[i:], m.ClusterId)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.ClusterId)))
-		i--
-		dAtA[i] = 0xa
+	if len(m.Config) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.Config)))
+		i += copy(dAtA[i:], m.Config)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *SetIntermediateRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1212,40 +1163,32 @@ func (m *SetIntermediateRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SetIntermediateRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SetIntermediateRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.IntermediatePem) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.IntermediatePem)))
+		i += copy(dAtA[i:], m.IntermediatePem)
 	}
 	if len(m.RootPem) > 0 {
-		i -= len(m.RootPem)
-		copy(dAtA[i:], m.RootPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.RootPem)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.RootPem)))
+		i += copy(dAtA[i:], m.RootPem)
 	}
-	if len(m.IntermediatePem) > 0 {
-		i -= len(m.IntermediatePem)
-		copy(dAtA[i:], m.IntermediatePem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.IntermediatePem)))
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *SignRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1253,33 +1196,26 @@ func (m *SignRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SignRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SignRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Csr) > 0 {
-		i -= len(m.Csr)
-		copy(dAtA[i:], m.Csr)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.Csr)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.Csr)))
+		i += copy(dAtA[i:], m.Csr)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *SignIntermediateRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1287,33 +1223,26 @@ func (m *SignIntermediateRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SignIntermediateRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SignIntermediateRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Csr) > 0 {
-		i -= len(m.Csr)
-		copy(dAtA[i:], m.Csr)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.Csr)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.Csr)))
+		i += copy(dAtA[i:], m.Csr)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *CrossSignCARequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1321,33 +1250,26 @@ func (m *CrossSignCARequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CrossSignCARequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CrossSignCARequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Crt) > 0 {
-		i -= len(m.Crt)
-		copy(dAtA[i:], m.Crt)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.Crt)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.Crt)))
+		i += copy(dAtA[i:], m.Crt)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *ActiveRootResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1355,33 +1277,26 @@ func (m *ActiveRootResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ActiveRootResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ActiveRootResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CrtPem) > 0 {
-		i -= len(m.CrtPem)
-		copy(dAtA[i:], m.CrtPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
+		i += copy(dAtA[i:], m.CrtPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *GenerateIntermediateCSRResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1389,33 +1304,26 @@ func (m *GenerateIntermediateCSRResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GenerateIntermediateCSRResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *GenerateIntermediateCSRResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CsrPem) > 0 {
-		i -= len(m.CsrPem)
-		copy(dAtA[i:], m.CsrPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CsrPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CsrPem)))
+		i += copy(dAtA[i:], m.CsrPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *ActiveIntermediateResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1423,33 +1331,26 @@ func (m *ActiveIntermediateResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ActiveIntermediateResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ActiveIntermediateResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CrtPem) > 0 {
-		i -= len(m.CrtPem)
-		copy(dAtA[i:], m.CrtPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
+		i += copy(dAtA[i:], m.CrtPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *GenerateIntermediateResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1457,33 +1358,26 @@ func (m *GenerateIntermediateResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GenerateIntermediateResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *GenerateIntermediateResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CrtPem) > 0 {
-		i -= len(m.CrtPem)
-		copy(dAtA[i:], m.CrtPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
+		i += copy(dAtA[i:], m.CrtPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *SignResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1491,33 +1385,26 @@ func (m *SignResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SignResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SignResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CrtPem) > 0 {
-		i -= len(m.CrtPem)
-		copy(dAtA[i:], m.CrtPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
+		i += copy(dAtA[i:], m.CrtPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *SignIntermediateResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1525,33 +1412,26 @@ func (m *SignIntermediateResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SignIntermediateResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SignIntermediateResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CrtPem) > 0 {
-		i -= len(m.CrtPem)
-		copy(dAtA[i:], m.CrtPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
+		i += copy(dAtA[i:], m.CrtPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *CrossSignCAResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1559,33 +1439,26 @@ func (m *CrossSignCAResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CrossSignCAResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CrossSignCAResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.CrtPem) > 0 {
-		i -= len(m.CrtPem)
-		copy(dAtA[i:], m.CrtPem)
-		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintProvider(dAtA, i, uint64(len(m.CrtPem)))
+		i += copy(dAtA[i:], m.CrtPem)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *Empty) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1593,32 +1466,24 @@ func (m *Empty) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Empty) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Empty) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func encodeVarintProvider(dAtA []byte, offset int, v uint64) int {
-	offset -= sovProvider(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *ConfigureRequest) Size() (n int) {
 	if m == nil {
@@ -1836,7 +1701,14 @@ func (m *Empty) Size() (n int) {
 }
 
 func sovProvider(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozProvider(x uint64) (n int) {
 	return sovProvider(uint64((x << 1) ^ uint64((int64(x) >> 63))))
