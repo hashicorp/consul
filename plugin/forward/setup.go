@@ -54,13 +54,10 @@ func (f *Forward) OnStartup() (err error) {
 // OnShutdown stops all configured proxies.
 func (f *Forward) OnShutdown() error {
 	for _, p := range f.proxies {
-		p.close()
+		p.stop()
 	}
 	return nil
 }
-
-// Close is a synonym for OnShutdown().
-func (f *Forward) Close() { f.OnShutdown() }
 
 func parseForward(c *caddy.Controller) (*Forward, error) {
 	var (

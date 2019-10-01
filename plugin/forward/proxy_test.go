@@ -35,7 +35,7 @@ func TestProxyClose(t *testing.T) {
 		go func() { p.Connect(ctx, state, options{}) }()
 		go func() { p.Connect(ctx, state, options{forceTCP: true}) }()
 
-		p.close()
+		p.stop()
 	}
 }
 

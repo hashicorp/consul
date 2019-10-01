@@ -24,8 +24,8 @@ type Transport struct {
 	tlsConfig   *tls.Config
 
 	dial  chan string
-	yield chan *dns.Conn
-	ret   chan *dns.Conn
+	yield chan *persistConn
+	ret   chan *persistConn
 	stop  chan bool
 }
 
@@ -36,21 +36,11 @@ func newTransport(addr string) *Transport {
 		expire:      defaultExpire,
 		addr:        addr,
 		dial:        make(chan string),
-		yield:       make(chan *dns.Conn),
-		ret:         make(chan *dns.Conn),
+		yield:       make(chan *persistConn),
+		ret:         make(chan *persistConn),
 		stop:        make(chan bool),
 	}
 	return t
-}
-
-// len returns the number of connection, used for metrics. Can only be safely
-// used inside connManager() because of data races.
-func (t *Transport) len() int {
-	l := 0
-	for _, conns := range t.conns {
-		l += len(conns)
-	}
-	return l
 }
 
 // connManagers manages the persistent connection cache for UDP and TCP.
@@ -66,7 +56,7 @@ Wait:
 				if time.Since(pc.used) < t.expire {
 					// Found one, remove from pool and return this conn.
 					t.conns[proto] = stack[:len(stack)-1]
-					t.ret <- pc.c
+					t.ret <- pc
 					continue Wait
 				}
 				// clear entire cache if the last conn is expired
@@ -75,26 +65,21 @@ Wait:
 				// transport methods anymore. So, it's safe to close them in a separate goroutine
 				go closeConns(stack)
 			}
-			SocketGauge.WithLabelValues(t.addr).Set(float64(t.len()))
-
 			t.ret <- nil
 
-		case conn := <-t.yield:
-
-			SocketGauge.WithLabelValues(t.addr).Set(float64(t.len() + 1))
-
+		case pc := <-t.yield:
 			// no proto here, infer from config and conn
-			if _, ok := conn.Conn.(*net.UDPConn); ok {
-				t.conns["udp"] = append(t.conns["udp"], &persistConn{conn, time.Now()})
+			if _, ok := pc.c.Conn.(*net.UDPConn); ok {
+				t.conns["udp"] = append(t.conns["udp"], pc)
 				continue Wait
 			}
 
 			if t.tlsConfig == nil {
-				t.conns["tcp"] = append(t.conns["tcp"], &persistConn{conn, time.Now()})
+				t.conns["tcp"] = append(t.conns["tcp"], pc)
 				continue Wait
 			}
 
-			t.conns["tcp-tls"] = append(t.conns["tcp-tls"], &persistConn{conn, time.Now()})
+			t.conns["tcp-tls"] = append(t.conns["tcp-tls"], pc)
 
 		case <-ticker.C:
 			t.cleanup(false)
@@ -143,8 +128,23 @@ func (t *Transport) cleanup(all bool) {
 	}
 }
 
+// It is hard to pin a value to this, the import thing is to no block forever, loosing at cached connection is not terrible.
+const yieldTimeout = 25 * time.Millisecond
+
 // Yield return the connection to transport for reuse.
-func (t *Transport) Yield(c *dns.Conn) { t.yield <- c }
+func (t *Transport) Yield(pc *persistConn) {
+	pc.used = time.Now() // update used time
+
+	// Make ths non-blocking, because in the case of a very busy forwarder we will *block* on this yield. This
+	// blocks the outer go-routine and stuff will just pile up.  We timeout when the send fails to as returning
+	// these connection is an optimization anyway.
+	select {
+	case t.yield <- pc:
+		return
+	case <-time.After(yieldTimeout):
+		return
+	}
+}
 
 // Start starts the transport's connection manager.
 func (t *Transport) Start() { go t.connManager() }

@@ -66,7 +66,7 @@ func (p *Proxy) Down(maxfails uint32) bool {
 }
 
 // close stops the health checking goroutine.
-func (p *Proxy) close()     { p.probe.Stop() }
+func (p *Proxy) stop()      { p.probe.Stop() }
 func (p *Proxy) finalizer() { p.transport.Stop() }
 
 // start starts the proxy's healthchecking.

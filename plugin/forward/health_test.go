@@ -29,7 +29,7 @@ func TestHealth(t *testing.T) {
 	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
-	defer f.Close()
+	defer f.OnShutdown()
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
@@ -69,7 +69,7 @@ func TestHealthTimeout(t *testing.T) {
 	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
-	defer f.Close()
+	defer f.OnShutdown()
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
@@ -113,7 +113,7 @@ func TestHealthFailTwice(t *testing.T) {
 	p := NewProxy(s.Addr, transport.DNS)
 	f := New()
 	f.SetProxy(p)
-	defer f.Close()
+	defer f.OnShutdown()
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
@@ -137,7 +137,7 @@ func TestHealthMaxFails(t *testing.T) {
 	f := New()
 	f.maxfails = 2
 	f.SetProxy(p)
-	defer f.Close()
+	defer f.OnShutdown()
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
@@ -169,7 +169,7 @@ func TestHealthNoMaxFails(t *testing.T) {
 	f := New()
 	f.maxfails = 0
 	f.SetProxy(p)
-	defer f.Close()
+	defer f.OnShutdown()
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
