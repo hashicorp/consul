@@ -120,8 +120,14 @@ func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Ro
 				return plugin.Error("route53", c.Errf("unknown property '%s'", c.Val()))
 			}
 		}
+
+		session, err := session.NewSession(&aws.Config{})
+		if err != nil {
+			return plugin.Error("route53", err)
+		}
+
 		providers = append(providers, &credentials.EnvProvider{}, sharedProvider, &ec2rolecreds.EC2RoleProvider{
-			Client: ec2metadata.New(session.New(&aws.Config{})),
+			Client: ec2metadata.New(session),
 		})
 		client := f(credentials.NewChainCredentials(providers))
 		ctx := context.Background()
