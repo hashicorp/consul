@@ -73,7 +73,7 @@ func (h Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	}
 
 	for _, template := range h.Templates {
-		data, match, fthrough := template.match(ctx, state, zone)
+		data, match, fthrough := template.match(ctx, state)
 		if !match {
 			if !fthrough {
 				return dns.RcodeNameError, nil
@@ -143,11 +143,11 @@ func executeRRTemplate(server, section string, template *gotmpl.Template, data *
 	return rr, nil
 }
 
-func (t template) match(ctx context.Context, state request.Request, zone string) (*templateData, bool, bool) {
+func (t template) match(ctx context.Context, state request.Request) (*templateData, bool, bool) {
 	q := state.Req.Question[0]
 	data := &templateData{md: metadata.ValueFuncs(ctx)}
 
-	zone = plugin.Zones(t.zones).Matches(state.Name())
+	zone := plugin.Zones(t.zones).Matches(state.Name())
 	if zone == "" {
 		return data, false, true
 	}

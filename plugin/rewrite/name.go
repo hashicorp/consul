@@ -195,7 +195,7 @@ func newNameRule(nextAction string, args ...string) (Rule, error) {
 				},
 			}, nil
 		default:
-			return nil, fmt.Errorf("A name rule supports only exact, prefix, suffix, substring, and regex name matching, received: %s", matchType)
+			return nil, fmt.Errorf("name rule supports only exact, prefix, suffix, substring, and regex name matching, received: %s", matchType)
 		}
 	}
 	if len(args) == 7 {

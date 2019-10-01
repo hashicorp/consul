@@ -4,9 +4,10 @@ import (
 	"sync"
 
 	"github.com/coredns/coredns/core/dnsserver"
-
 	// Hook in CoreDNS.
 	_ "github.com/coredns/coredns/core"
+	// Load all managed plugins in github.com/coredns/coredns
+	_ "github.com/coredns/coredns/core/plugin"
 
 	"github.com/caddyserver/caddy"
 )

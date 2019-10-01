@@ -12,11 +12,8 @@ import (
 // Proxy defines an upstream host.
 type Proxy struct {
 	fails uint32
+	addr  string
 
-	addr string
-
-	// Connection caching
-	expire    time.Duration
 	transport *Transport
 
 	// health checking

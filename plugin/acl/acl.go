@@ -6,14 +6,11 @@ import (
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
-	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/request"
 
 	"github.com/infobloxopen/go-trees/iptree"
 	"github.com/miekg/dns"
 )
-
-var log = clog.NewWithPlugin("acl")
 
 // ACL enforces access control policies on DNS queries.
 type ACL struct {

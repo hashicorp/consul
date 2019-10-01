@@ -30,13 +30,9 @@ type (
 		TapMessage(message *tap.Message)
 		Pack() bool
 	}
-	tapContext struct {
-		context.Context
-		Dnstap
-	}
 )
 
-// ContextKey defines the type of key that is used to save data into the context
+// ContextKey defines the type of key that is used to save data into the context.
 type ContextKey string
 
 const (

@@ -153,20 +153,6 @@ func testMsgCname() *dns.Msg {
 	}
 }
 
-func testDelegationMsg() *dns.Msg {
-	return &dns.Msg{
-		Ns: []dns.RR{
-			test.NS("miek.nl.	3600	IN	NS	linode.atoom.net."),
-			test.NS("miek.nl.	3600	IN	NS	ns-ext.nlnetlabs.nl."),
-			test.NS("miek.nl.	3600	IN	NS	omval.tednet.nl."),
-		},
-		Extra: []dns.RR{
-			test.A("omval.tednet.nl.	3600	IN	A	185.49.141.42"),
-			test.AAAA("omval.tednet.nl.	3600	IN	AAAA	2a04:b900:0:100::42"),
-		},
-	}
-}
-
 func testMsgDname() *dns.Msg {
 	return &dns.Msg{
 		Answer: []dns.RR{

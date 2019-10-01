@@ -14,8 +14,6 @@ import (
 	"github.com/opentracing/opentracing-go/mocktracer"
 )
 
-const server = "coolServer"
-
 func TestStartup(t *testing.T) {
 	m, err := traceParse(caddy.NewTestController("dns", `trace`))
 	if err != nil {

@@ -16,13 +16,13 @@ import (
 func init() { plugin.Register("cancel", setup) }
 
 func setup(c *caddy.Controller) error {
-	ca := Cancel{timeout: 5001 * time.Millisecond}
+	ca := Cancel{}
 
 	for c.Next() {
 		args := c.RemainingArgs()
 		switch len(args) {
 		case 0:
-			break
+			ca.timeout = 5001 * time.Millisecond
 		case 1:
 			dur, err := time.ParseDuration(args[0])
 			if err != nil {

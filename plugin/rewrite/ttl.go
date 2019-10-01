@@ -159,7 +159,7 @@ func newTTLRule(nextAction string, args ...string) (Rule, error) {
 				},
 			}, nil
 		default:
-			return nil, fmt.Errorf("A ttl rule supports only exact, prefix, suffix, substring, and regex name matching")
+			return nil, fmt.Errorf("ttl rule supports only exact, prefix, suffix, substring, and regex name matching")
 		}
 	}
 	if len(args) > 3 {
