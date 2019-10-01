@@ -372,7 +372,7 @@ func (z *Zone) additionalProcessing(answer []dns.RR, do bool) (extra []dns.RR) {
 		case *dns.MX:
 			name = x.Mx
 		}
-		if !dns.IsSubDomain(z.origin, name) {
+		if len(name) == 0 || !dns.IsSubDomain(z.origin, name) {
 			continue
 		}
 
