@@ -96,18 +96,14 @@ func TestCleanupAll(t *testing.T) {
 	c2, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
 	c3, _ := dns.DialTimeout("udp", tr.addr, maxDialTimeout)
 
-	tr.conns["udp"] = []*persistConn{
-		{c1, time.Now()},
-		{c2, time.Now()},
-		{c3, time.Now()},
-	}
+	tr.conns[typeUdp] = []*persistConn{{c1, time.Now()}, {c2, time.Now()}, {c3, time.Now()}}
 
-	if len(tr.conns["udp"]) != 3 {
+	if len(tr.conns[typeUdp]) != 3 {
 		t.Error("Expected 3 connections")
 	}
 	tr.cleanup(true)
 
-	if len(tr.conns["udp"]) > 0 {
+	if len(tr.conns[typeUdp]) > 0 {
 		t.Error("Expected no cached connections")
 	}
 }

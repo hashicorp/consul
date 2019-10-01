@@ -2,7 +2,6 @@ package forward
 
 import (
 	"crypto/tls"
-	"net"
 	"sort"
 	"time"
 
@@ -17,9 +16,9 @@ type persistConn struct {
 
 // Transport hold the persistent cache.
 type Transport struct {
-	avgDialTime int64                     // kind of average time of dial time
-	conns       map[string][]*persistConn // Buckets for udp, tcp and tcp-tls.
-	expire      time.Duration             // After this duration a connection is expired.
+	avgDialTime int64                          // kind of average time of dial time
+	conns       [typeTotalCount][]*persistConn // Buckets for udp, tcp and tcp-tls.
+	expire      time.Duration                  // After this duration a connection is expired.
 	addr        string
 	tlsConfig   *tls.Config
 
@@ -32,7 +31,7 @@ type Transport struct {
 func newTransport(addr string) *Transport {
 	t := &Transport{
 		avgDialTime: int64(maxDialTimeout / 2),
-		conns:       make(map[string][]*persistConn),
+		conns:       [typeTotalCount][]*persistConn{},
 		expire:      defaultExpire,
 		addr:        addr,
 		dial:        make(chan string),
@@ -50,17 +49,18 @@ Wait:
 	for {
 		select {
 		case proto := <-t.dial:
+			transtype := stringToTransportType(proto)
 			// take the last used conn - complexity O(1)
-			if stack := t.conns[proto]; len(stack) > 0 {
+			if stack := t.conns[transtype]; len(stack) > 0 {
 				pc := stack[len(stack)-1]
 				if time.Since(pc.used) < t.expire {
 					// Found one, remove from pool and return this conn.
-					t.conns[proto] = stack[:len(stack)-1]
+					t.conns[transtype] = stack[:len(stack)-1]
 					t.ret <- pc
 					continue Wait
 				}
 				// clear entire cache if the last conn is expired
-				t.conns[proto] = nil
+				t.conns[transtype] = nil
 				// now, the connections being passed to closeConns() are not reachable from
 				// transport methods anymore. So, it's safe to close them in a separate goroutine
 				go closeConns(stack)
@@ -68,18 +68,8 @@ Wait:
 			t.ret <- nil
 
 		case pc := <-t.yield:
-			// no proto here, infer from config and conn
-			if _, ok := pc.c.Conn.(*net.UDPConn); ok {
-				t.conns["udp"] = append(t.conns["udp"], pc)
-				continue Wait
-			}
-
-			if t.tlsConfig == nil {
-				t.conns["tcp"] = append(t.conns["tcp"], pc)
-				continue Wait
-			}
-
-			t.conns["tcp-tls"] = append(t.conns["tcp-tls"], pc)
+			transtype := t.transportTypeFromConn(pc)
+			t.conns[transtype] = append(t.conns[transtype], pc)
 
 		case <-ticker.C:
 			t.cleanup(false)
@@ -102,12 +92,12 @@ func closeConns(conns []*persistConn) {
 // cleanup removes connections from cache.
 func (t *Transport) cleanup(all bool) {
 	staleTime := time.Now().Add(-t.expire)
-	for proto, stack := range t.conns {
+	for transtype, stack := range t.conns {
 		if len(stack) == 0 {
 			continue
 		}
 		if all {
-			t.conns[proto] = nil
+			t.conns[transtype] = nil
 			// now, the connections being passed to closeConns() are not reachable from
 			// transport methods anymore. So, it's safe to close them in a separate goroutine
 			go closeConns(stack)
@@ -121,7 +111,7 @@ func (t *Transport) cleanup(all bool) {
 		good := sort.Search(len(stack), func(i int) bool {
 			return stack[i].used.After(staleTime)
 		})
-		t.conns[proto] = stack[good:]
+		t.conns[transtype] = stack[good:]
 		// now, the connections being passed to closeConns() are not reachable from
 		// transport methods anymore. So, it's safe to close them in a separate goroutine
 		go closeConns(stack[:good])
