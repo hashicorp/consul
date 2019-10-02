@@ -7,7 +7,6 @@ GOTOOLS = \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
-	github.com/mitchellh/protoc-gen-go-json \
 	github.com/hashicorp/protoc-gen-go-binary \
 	github.com/vektra/mockery/cmd/mockery
 
@@ -35,7 +34,6 @@ GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
 PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
-PROTOGOJSONFILES=$(PROTOFILES:.proto=.pb.json.go)
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -370,24 +368,22 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
-proto-go-delete:
+proto-delete:
 	@echo "Removing $(PROTOGOFILES)"
 	-@rm $(PROTOGOFILES)
 	@echo "Removing $(PROTOGOBINFILES)"
 	-@rm $(PROTOGOBINFILES)
-	@echo "Removing $(PROTOGOJSONFILES)"
-	-@rm $(PROTOGOJSONFILES)
 
-proto-rebuild: proto-go-delete proto
+proto-rebuild: proto-delete proto
 
-proto: $(PROTOGOFILES) $(PROTOGOBINFILES) $(PROTOGOJSONFILES)
+proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
 
-%.pb.go %.pb.json.go %.pb.binary.go: %.proto
+%.pb.go %.pb.binary.go: %.proto
 	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
 
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto test-envoy-integ
+.PHONY: version proto proto-rebuild proto-delete test-envoy-integ

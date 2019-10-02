@@ -79,7 +79,6 @@ function main {
 
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
-   local proto_go_json_path=${proto_path%%.proto}.pb.json.go
    
    local go_proto_out=""
    local sep=""
@@ -100,7 +99,7 @@ function main {
    fi
 
    local -i ret=0
-   status_stage "Generating ${proto_path} into ${proto_go_path}, ${proto_go_bin_path}, and ${proto_go_json_path}"
+   status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
    debug_run protoc \
       -I="$(dirname ${proto_path})" \
       -I="${gogo_proto_path}/protobuf" \
@@ -108,7 +107,6 @@ function main {
       -I="${gogo_proto_mod_path}" \
       --gofast_out="${go_proto_out}$(dirname ${proto_path})" \
       --go-binary_out="$(dirname ${proto_path})" \
-      --go-json_out="$(dirname ${proto_path})" \
       "${proto_path}"
    if test $? -ne 0
    then
@@ -126,10 +124,6 @@ function main {
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_bin_path}.new"
       cat "${proto_go_bin_path}" >> "${proto_go_bin_path}.new"
       mv "${proto_go_bin_path}.new" "${proto_go_bin_path}"
-      
-      echo -e "${BUILD_TAGS}\n" >> "${proto_go_json_path}.new"
-      cat "${proto_go_json_path}" >> "${proto_go_json_path}.new"
-      mv "${proto_go_json_path}.new" "${proto_go_json_path}"
    fi
 
    return 0
