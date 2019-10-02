@@ -17,27 +17,23 @@ import (
 
 var log = clog.NewWithPlugin("clouddns")
 
-func init() {
-	plugin.Register("clouddns",
-		func(c *caddy.Controller) error {
-			f := func(ctx context.Context, opt option.ClientOption) (gcpDNS, error) {
-				var err error
-				var client *gcp.Service
-				if opt != nil {
-					client, err = gcp.NewService(ctx, opt)
-				} else {
-					// if credentials file is not provided in the Corefile
-					// authenticate the client using env variables
-					client, err = gcp.NewService(ctx)
-				}
-				return gcpClient{client}, err
-			}
-			return setup(c, f)
-		},
-	)
+func init() { plugin.Register("clouddns", setup) }
+
+// exposed for testing
+var f = func(ctx context.Context, opt option.ClientOption) (gcpDNS, error) {
+	var err error
+	var client *gcp.Service
+	if opt != nil {
+		client, err = gcp.NewService(ctx, opt)
+	} else {
+		// if credentials file is not provided in the Corefile
+		// authenticate the client using env variables
+		client, err = gcp.NewService(ctx)
+	}
+	return gcpClient{client}, err
 }
 
-func setup(c *caddy.Controller, f func(ctx context.Context, opt option.ClientOption) (gcpDNS, error)) error {
+func setup(c *caddy.Controller) error {
 	for c.Next() {
 		keyPairs := map[string]struct{}{}
 		keys := map[string][]string{}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestSetupCloudDNS(t *testing.T) {
-	f := func(ctx context.Context, opt option.ClientOption) (gcpDNS, error) {
+	f = func(ctx context.Context, opt option.ClientOption) (gcpDNS, error) {
 		return fakeGCPClient{}, nil
 	}
 
@@ -41,7 +41,7 @@ func TestSetupCloudDNS(t *testing.T) {
 
 	for _, test := range tests {
 		c := caddy.NewTestController("dns", test.body)
-		if err := setup(c, f); (err == nil) == test.expectedError {
+		if err := setup(c); (err == nil) == test.expectedError {
 			t.Errorf("Unexpected errors: %v", err)
 		}
 	}
