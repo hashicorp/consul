@@ -1255,6 +1255,32 @@ func (c *HealthCheck) Clone() *HealthCheck {
 	return clone
 }
 
+func (c *HealthCheck) CheckType() *CheckType {
+	return &CheckType{
+		CheckID: c.CheckID,
+		Name:    c.Name,
+		Status:  c.Status,
+		Notes:   c.Notes,
+
+		ScriptArgs:                     c.Definition.ScriptArgs,
+		AliasNode:                      c.Definition.AliasNode,
+		AliasService:                   c.Definition.AliasService,
+		HTTP:                           c.Definition.HTTP,
+		GRPC:                           c.Definition.GRPC,
+		GRPCUseTLS:                     c.Definition.GRPCUseTLS,
+		Header:                         c.Definition.Header,
+		Method:                         c.Definition.Method,
+		TCP:                            c.Definition.TCP,
+		Interval:                       c.Definition.Interval,
+		DockerContainerID:              c.Definition.DockerContainerID,
+		Shell:                          c.Definition.Shell,
+		TLSSkipVerify:                  c.Definition.TLSSkipVerify,
+		Timeout:                        c.Definition.Timeout,
+		TTL:                            c.Definition.TTL,
+		DeregisterCriticalServiceAfter: c.Definition.DeregisterCriticalServiceAfter,
+	}
+}
+
 // HealthChecks is a collection of HealthCheck structs.
 type HealthChecks []*HealthCheck
 

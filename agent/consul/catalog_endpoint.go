@@ -125,6 +125,13 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			check.Node = args.Node
 		}
 		checkPreApply(check)
+
+		// Populate check type for cases when this is a direct reg with /catalog/register
+		// Typically this is populated when a check is registered with an agent
+		if check.Type == "" {
+			chkType := check.CheckType()
+			check.Type = chkType.Type()
+		}
 	}
 
 	// Check the complete register request against the given ACL policy.
