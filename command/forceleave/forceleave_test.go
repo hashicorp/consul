@@ -1,7 +1,6 @@
 package forceleave
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -72,8 +71,6 @@ func TestForceLeaveCommand_prune(t *testing.T) {
 	// Forcibly shutdown a2 so that it appears "failed" in a1
 	a2.Shutdown()
 
-	fmt.Println(a1.LANMembers())
-
 	ui := cli.NewMockUi()
 	c := New(ui)
 	args := []string{
@@ -86,7 +83,6 @@ func TestForceLeaveCommand_prune(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	fmt.Println("after leave", a1.LANMembers())
 	retry.Run(t, func(r *retry.R) {
 		m := len(a1.LANMembers())
 		if m != 1 {

@@ -1044,7 +1044,6 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 //removeFailedNodePrune completely erases a node from the list
 //of members
 func (s *Server) removeFailedNodePrune(node string) error {
-	fmt.Println(node)
 	lanRemover := s.serfLAN.RemoveFailedNodePrune
 	if err := lanRemover(node); err != nil {
 		return err

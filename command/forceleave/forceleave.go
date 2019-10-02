@@ -54,7 +54,6 @@ func (c *cmd) Run(args []string) int {
 
 	switch c.prune {
 	case true:
-		fmt.Println("prune set")
 		err = client.Agent().ForceLeavePrune(nodes[0])
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))

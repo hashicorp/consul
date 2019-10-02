@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-memdb"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-memdb"
 
 	"google.golang.org/grpc"
 
@@ -1780,10 +1781,11 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 // ForceLeave is used to remove a failed node from the cluster
 func (a *Agent) ForceLeave(node string, prune bool) (err error) {
 	a.logger.Printf("[INFO] agent: Force leaving node: %v", node)
-	fmt.Println("ForceLeave in Agent")
-	return a.delegate.RemoveFailedNode(node, prune)
-
-	return nil
+	err = a.delegate.RemoveFailedNode(node, prune)
+	if err != nil {
+		a.logger.Printf("[WARN] agent: Failed to remove node: %v", err)
+	}
+	return err
 }
 
 // LocalMember is used to return the local node
