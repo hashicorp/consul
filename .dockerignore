@@ -1,14 +1,2 @@
-.git/*
-core/*
-coremain/*
-hooks/*
-man/*
-pb/*
-plugin/*
-request/*
-test/*
-vendor/*
-build/*
-release/*
-go.sum
-go.mod
+*
+!coredns
