@@ -2,6 +2,7 @@ package erratic
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
@@ -46,6 +47,11 @@ func xfr(state request.Request, truncate bool) {
 		close(ch)
 	}()
 
-	tr.Out(state.W, state.Req, ch)
-	state.W.Hijack()
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		tr.Out(state.W, state.Req, ch)
+		wg.Done()
+	}()
+	wg.Wait()
 }
