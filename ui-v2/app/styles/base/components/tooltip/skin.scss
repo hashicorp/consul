@@ -7,7 +7,12 @@
   background-color: transparent !important;
   border-left: 9px solid transparent;
   border-right: 9px solid transparent;
+
   border-top: 18px solid $gray-500;
+}
+%tooltip-bottom::after {
+  border-top: 0;
+  border-bottom: 18px solid $gray-500;
 }
 %tooltip-bubble {
   font-weight: normal;
