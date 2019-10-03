@@ -735,7 +735,6 @@ func (a *Agent) ForceLeave(node string) error {
 func (a *Agent) ForceLeavePrune(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
 	r.params.Set("prune", "1")
-	r.setQueryOptions(q)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
