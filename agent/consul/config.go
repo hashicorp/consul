@@ -424,6 +424,9 @@ type Config struct {
 	// AutoEncryptAllowTLS is whether to enable the server responding to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	// Embedded Consul Enterprise specific configuration
+	*EnterpriseConfig
 }
 
 // ToTLSUtilConfig is only used by tests, usually the config is being passed
@@ -543,6 +546,7 @@ func DefaultConfig() *Config {
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+		EnterpriseConfig:     DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

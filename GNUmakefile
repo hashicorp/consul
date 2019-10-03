@@ -1,11 +1,13 @@
 SHELL = bash
+GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
 	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
 	github.com/hashicorp/go-bindata/go-bindata \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
-	github.com/gogo/protobuf/protoc-gen-gofast \
+	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
+	github.com/hashicorp/protoc-gen-go-binary \
 	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
@@ -31,6 +33,7 @@ GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).
 
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
+PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -330,7 +333,7 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	go get -u -v $(GOTOOLS)
+	go get -v $(GOTOOLS)
 
 version:
 	@echo -n "Version:                    "
@@ -365,19 +368,22 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
-proto-go-delete:
+proto-delete:
 	@echo "Removing $(PROTOGOFILES)"
 	-@rm $(PROTOGOFILES)
+	@echo "Removing $(PROTOGOBINFILES)"
+	-@rm $(PROTOGOBINFILES)
 
-proto-rebuild: proto-go-delete proto
+proto-rebuild: proto-delete proto
 
-proto: $(PROTOGOFILES)
+proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
-%.pb.go: %.proto
-	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace --generator gogo "$<"
+
+%.pb.go %.pb.binary.go: %.proto
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
 
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto test-envoy-integ
+.PHONY: version proto proto-rebuild proto-delete test-envoy-integ
