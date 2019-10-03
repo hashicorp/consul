@@ -1,0 +1,29 @@
+{{#tabular-collection
+    data-test-exposedpaths
+    items=item.Proxy.Expose.Paths as |path index|
+}}
+    {{#block-slot 'header'}}
+      <th>Path</th>
+      <th>Protocol</th>
+      <th>Listener port</th>
+      <th>Local path port</th>
+      <th>Combined address</th>
+    {{/block-slot}}
+    {{#block-slot 'row'}}
+      <td>
+        <a>{{path.Path}}</a>
+      </td>
+      <td>
+        {{path.Protocol}}
+      </td>
+      <td>
+        {{path.ListenerPort}}
+      </td>
+      <td>
+        {{path.LocalPathPort}}
+      </td>
+      <td>
+        <span>{{item.Address}}{{path.Path}}:{{path.ListenerPort}}</span>
+      </td>
+    {{/block-slot}}
+{{/tabular-collection}}
