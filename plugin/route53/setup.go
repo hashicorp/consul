@@ -24,20 +24,14 @@ import (
 
 var log = clog.NewWithPlugin("route53")
 
-func init() {
-	plugin.Register("route53",
-		func(c *caddy.Controller) error {
-			f := func(credential *credentials.Credentials) route53iface.Route53API {
-				return route53.New(session.Must(session.NewSession(&aws.Config{
-					Credentials: credential,
-				})))
-			}
-			return setup(c, f)
-		},
-	)
+func init() { plugin.Register("route53", setup) }
+
+// exposed for testing
+var f = func(credential *credentials.Credentials) route53iface.Route53API {
+	return route53.New(session.Must(session.NewSession(&aws.Config{Credentials: credential})))
 }
 
-func setup(c *caddy.Controller, f func(*credentials.Credentials) route53iface.Route53API) error {
+func setup(c *caddy.Controller) error {
 	for c.Next() {
 		keyPairs := map[string]struct{}{}
 		keys := map[string][]string{}
