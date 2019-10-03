@@ -14,6 +14,13 @@
     margin-right: 8px;
   }
 }
+%healthcheck-output dd em {
+  font-style: normal;
+}
+%healthcheck-output dd em::before {
+  @extend %with-alert-triangle-color-icon, %as-pseudo;
+  margin-right: 5px;
+}
 %healthcheck-output.passing::before {
   @extend %with-check-circle-fill-color-icon;
 }

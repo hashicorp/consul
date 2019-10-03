@@ -12,45 +12,60 @@
 %healthcheck-output > div {
   flex: 1 1 auto;
 }
+%healthcheck-output header,
+%healthcheck-output dl:last-of-type {
+  width: 100%;
+}
+
 %healthcheck-output header {
   margin-bottom: 0.9em;
 }
-%healthcheck-output dl:not(:last-of-type) {
-  float: left;
-  width: 25%;
-  margin-right: 2%;
-}
-%healthcheck-output dl:nth-of-type(3) {
-  width: 46%;
-  margin-right: 0;
-}
-%healthcheck-output dl:not(:last-of-type) dd {
-  word-break: break-all;
-}
-%healthcheck-output dt {
-  margin-bottom: 0;
-}
-%healthcheck-output dl:last-of-type {
-  clear: both;
-  margin-bottom: 0;
-}
-%healthcheck-output dl:last-of-type dt {
-  margin-bottom: 0.3em;
-}
-%healthcheck-output dl:last-of-type dd {
-  position: relative;
+%healthcheck-output > div {
+  // 100% minus the width of the icon space (26)
+  width: calc(100% - 26px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 %healthcheck-output dl > * {
-  float: none;
   display: block;
   width: auto;
   position: static;
   padding-left: 0;
 }
+%healthcheck-output dt {
+  margin-bottom: 0;
+}
+%healthcheck-output dd {
+  position: relative;
+}
+%healthcheck-output dd[data-tooltip] {
+  @extend %tooltip-bottom;
+}
+%healthcheck-output dd[data-tooltip]::before {
+  width: 242px;
+  /* TODO: All tooltips previously used */
+  /* nowrap, they shouldn't */
+  white-space: normal;
+}
+%healthcheck-output dl:nth-last-of-type(2) {
+  width: 50%;
+}
+%healthcheck-output dl:last-of-type {
+  margin-bottom: 0;
+}
+%healthcheck-output dl:last-of-type dt {
+  margin-bottom: 0.3em;
+}
+
 %healthcheck-output pre {
   padding: 12px;
   padding-right: 40px;
   white-space: pre-wrap;
+  position: relative;
+}
+%healthcheck-output pre code {
+  word-wrap: break-word;
 }
 %healthcheck-output .with-feedback {
   position: absolute;
@@ -67,9 +82,10 @@
   %healthcheck-output::before {
     margin-right: 8px;
   }
+  %healthcheck-output dl:nth-last-of-type(2) {
+    width: 100%;
+  }
   %healthcheck-output dl:not(:last-of-type) {
-    float: none;
-    width: auto;
     margin-right: 0;
   }
 }
