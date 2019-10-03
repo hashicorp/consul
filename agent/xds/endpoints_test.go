@@ -239,6 +239,10 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "mesh-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
+		},
+		{
 			name:   "connect-proxy-with-chain",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain,
 			setup:  nil,
