@@ -21,27 +21,14 @@
   }
 
   p {
-    font-size: 1.8rem;
     max-width: 848px;
     margin: 0 auto 35px;
-
-    @media (min-width: 768px) {
-      font-size: 2rem;
-    }
-
-    @media (min-width: 992px) {
-      font-size: 2.4rem;
-    }
   }
 
   span {
     border: 1px solid #ca2171;
     border-radius: 2px;
     display: inline-block;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    line-height: 20px;
     margin-bottom: 24px;
     padding: 2px 9px;
     text-transform: uppercase;
@@ -54,7 +41,7 @@
   & > div {
     margin: 0 -30px;
 
-    .g-btn {
+    .button {
       min-width: 129px;
       margin: 5px;
 

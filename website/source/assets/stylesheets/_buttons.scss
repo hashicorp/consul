@@ -1,37 +1,117 @@
 .button {
-  background: $button-background;
-  border: 1px solid $button-font-color;
-  box-shadow: 3px 4px 0 rgba(0,0,0,0.1);
-  color: $button-font-color;
+  background: $consul;
+  border-radius: 1px;
+  box-sizing: border-box;
+  color: $white;
   display: inline-block;
-  font-family: $button-font-family;
-  font-size: $button-font-size;
-  font-weight: $button-font-weight;
-  letter-spacing: 1px;
+  font-family: $font-display;
+  font-size: 0.938rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.6em;
   margin-bottom: 4px;
-  padding: 10px 30px;
-  text-transform: uppercase;
+  padding: 14px 20px;
   text-decoration: none;
 
   &:hover,
   &:active,
   &:focus {
+    color: $white;
     text-decoration: none;
   }
 
-  &:hover {
-    background: $button-font-color;
-    border: 1px solid $button-font-color;
-    color: $button-background;
+  &:focus {
+    border: 3px solid $consul-l1;
+    outline: none;
+    padding: 11px 17px;
   }
 
-  &.primary {
-    background: $button-primary-background;
-    border: 1px solid darken($button-primary-background, 5%);
-    color: $button-primary-font-color;
+  &:hover {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)),
+      $consul;
+    border: none;
+    padding: 14px 20px;
+  }
+
+  &:active {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+      $consul;
+    border: none;
+  }
+
+  &.white {
+    background: $white;
+    color: $black;
+
+    path {
+      fill: black;
+    }
 
     &:hover {
-      background: lighten($button-primary-background, 5%);
+      background: $consul-l3;
     }
+
+    &:active {
+      background: $consul-l2;
+    }
+  }
+
+  &.secondary {
+    background: transparent;
+    border: 1px solid rgba($gray-1, 0.2);
+    color: $black;
+    padding: 13px 19px;
+
+    &:focus {
+      border: 3px solid $consul-l1;
+      padding: 11px 17px;
+    }
+
+    &:hover {
+      background: rgba($gray-1, 0.1);
+      border: none;
+      padding: 14px 20px;
+    }
+
+    &:active {
+      background: rgba($gray-1, 0.16);
+    }
+
+    &.white {
+      border: 1px solid rgba($white, 0.24);
+      color: $white;
+
+      &:focus {
+        border: 3px solid $consul-l1;
+        padding: 11px 17px;
+      }
+
+      &:hover {
+        background: rgba($white, 0.14);
+        border: none;
+        padding: 14px 20px;
+      }
+
+      &:active {
+        background: rgba($white, 0.08);
+      }
+    }
+  }
+
+  &.download {
+    svg {
+      margin: 0 4px -4px 0;
+
+      path {
+        transition: fill 0.25s ease;
+      }
+    }
+  }
+
+  &.inline {
+    padding: 8px 14px;
+  }
+
+  path {
+    fill: $white;
   }
 }

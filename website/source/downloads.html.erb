@@ -40,7 +40,7 @@ description: |-
       <div class="col-md-12 download">
         <div class="icon pull-left"><%= system_icon(os) %></div>
         <div class="details">
-          <h2 class="os-name"><%= pretty_os(os) %></h2>
+          <h2 class="os-name g-type-display-4"><%= pretty_os(os) %></h2>
           <ul>
             <% arches.each do |arch, url| %>
               <li><a href="<%= url %>"><%= pretty_arch(arch) %></a></li>
