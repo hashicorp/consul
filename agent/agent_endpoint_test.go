@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -4200,9 +4201,33 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 		return token
 	}
 
-	for _, pathElem := range []string{"acl_agent_token", "agent"} {
-		url := fmt.Sprintf("/v1/agent/token/%s?token=root", pathElem)
-		t.Run(pathElem, func(t *testing.T) {
+	cases := []struct {
+		path       string
+		tokenGetFn func(*token.Store) string
+	}{
+		{
+			path:       "acl_agent_token",
+			tokenGetFn: (*token.Store).AgentToken,
+		},
+		{
+			path:       "agent",
+			tokenGetFn: (*token.Store).AgentToken,
+		},
+		{
+			path:       "acl_token",
+			tokenGetFn: (*token.Store).UserToken,
+		},
+		{
+			path:       "default",
+			tokenGetFn: (*token.Store).UserToken,
+		},
+	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.path, func(t *testing.T) {
+			url := fmt.Sprintf("/v1/agent/token/%s?token=root", tt.path)
+
 			a := NewTestAgent(t, t.Name(), TestACLConfig()+`
 				acl {
 					tokens {
@@ -4227,7 +4252,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, http.StatusOK, resp.Code)
-			require.Equal(t, token.SecretID, a.tokens.AgentToken())
+			require.Equal(t, token.SecretID, tt.tokenGetFn(a.tokens))
 
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1",
 				testrpc.WithToken("root"),

@@ -1192,7 +1192,10 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	triggerAntiEntropySync := false
 	switch target {
 	case "acl_token", "default":
-		s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
+		changed := s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
+		if changed {
+			triggerAntiEntropySync = true
+		}
 
 	case "acl_agent_token", "agent":
 		changed := s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
