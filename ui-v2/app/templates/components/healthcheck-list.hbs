@@ -1,10 +1,10 @@
 <ul data-test-healthchecks>
 {{#each (sort-by (action 'sortChecksByImportance') items) as |item| }}
+{{! TODO: this component and its child should be moved to a single component }}
   {{#healthcheck-output
     data-test-node-healthcheck=item.Name
     class=item.Status
     tagName='li'
-    output=item.Output
     }}
       {{#block-slot 'header'}}
         <h3>{{item.Name}}</h3>
@@ -19,8 +19,45 @@
         <dd>{{or item.CheckID '-'}}</dd>
       </dl>
       <dl>
+        <dt>Type</dt>
+        <dd>{{item.Type}}</dd>
+      </dl>
+{{#if exposed}}
+      <dl>
+        <dt>Exposed</dt>
+  {{#if (contains item.Type (array 'http' 'grpc'))}}
+        <dd data-tooltip="Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent."><em>Yes</em></dd>
+  {{else}}
+        <dd>No</dd>
+  {{/if}}
+      </dl>
+{{/if}}
+      <dl>
         <dt>Notes</dt>
         <dd>{{or item.Notes '-'}}</dd>
+      </dl>
+      <dl>
+{{#if (not-eq item.Type 'ttl')}}
+        <dt>Output</dt>
+        <dd>
+            <pre><code>{{item.Output}}</code></pre>
+    {{#feedback-dialog type='inline'}}
+      {{#block-slot 'action' as |success error|}}
+          {{copy-button success=(action success) error=(action error) clipboardText=item.Output title='copy output to clipboard'}}
+      {{/block-slot}}
+      {{#block-slot 'success' as |transition|}}
+        <p class={{transition}}>
+          Copied output!
+        </p>
+      {{/block-slot}}
+      {{#block-slot 'error' as |transition|}}
+        <p class={{transition}}>
+          Sorry, something went wrong!
+        </p>
+      {{/block-slot}}
+    {{/feedback-dialog}}
+        </dd>
+{{/if}}
       </dl>
       {{/block-slot}}
     {{/healthcheck-output}}
