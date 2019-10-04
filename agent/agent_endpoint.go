@@ -3,13 +3,14 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -1188,12 +1189,19 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 
 	// Figure out the target token.
 	target := strings.TrimPrefix(req.URL.Path, "/v1/agent/token/")
+	triggerAntiEntropySync := false
 	switch target {
 	case "acl_token", "default":
-		s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
+		changed := s.agent.tokens.UpdateUserToken(args.Token, token_store.TokenSourceAPI)
+		if changed {
+			triggerAntiEntropySync = true
+		}
 
 	case "acl_agent_token", "agent":
-		s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
+		changed := s.agent.tokens.UpdateAgentToken(args.Token, token_store.TokenSourceAPI)
+		if changed {
+			triggerAntiEntropySync = true
+		}
 
 	case "acl_agent_master_token", "agent_master":
 		s.agent.tokens.UpdateAgentMasterToken(args.Token, token_store.TokenSourceAPI)
@@ -1205,6 +1213,10 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 		resp.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(resp, "Token %q is unknown", target)
 		return nil, nil
+	}
+
+	if triggerAntiEntropySync {
+		s.agent.sync.SyncFull.Trigger()
 	}
 
 	if s.agent.config.ACLEnableTokenPersistence {
