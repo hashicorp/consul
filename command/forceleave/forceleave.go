@@ -54,8 +54,9 @@ func (c *cmd) Run(args []string) int {
 
 	if c.prune {
 		err = client.Agent().ForceLeavePrune(nodes[0])
+	} else {
+		err = client.Agent().ForceLeave(nodes[0])
 	}
-	err = client.Agent().ForceLeave(nodes[0])
 
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))

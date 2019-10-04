@@ -1674,8 +1674,13 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
 	retry.Run(t, func(r *retry.R) {
 		m := a1.LANMembers()
-		if got, want := m[1].Status, serf.StatusFailed; got != want {
-			r.Fatalf("got status %q want %q", got, want)
+		for _, member := range m {
+			if member.Name == a2.Config.NodeName {
+				if member.Status != serf.StatusFailed {
+					r.Fatalf("got status %q want %q", member.Status, serf.StatusFailed)
+				}
+
+			}
 		}
 	})
 
