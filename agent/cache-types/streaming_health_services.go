@@ -30,6 +30,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 	subscribeReq := stream.SubscribeRequest{
 		Topic:  stream.Topic_ServiceHealth,
 		Key:    reqReal.ServiceName,
+		Token:  reqReal.Token,
 		Index:  reqReal.MinQueryIndex,
 		Filter: reqReal.Filter,
 		TopicFilters: &stream.Filters{
@@ -66,11 +67,11 @@ func (h *healthServicesHandler) HandleEvent(event *stream.Event) {
 	node := serviceHealth.CheckServiceNode
 	id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 
-	switch event.Op {
-	case stream.Operation_Upsert:
+	switch serviceHealth.Op {
+	case stream.CatalogOp_Register:
 		checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
 		h.state[id] = checkServiceNode
-	case stream.Operation_Delete:
+	case stream.CatalogOp_Deregister:
 		delete(h.state, id)
 	}
 }
@@ -83,4 +84,8 @@ func (h *healthServicesHandler) State(idx uint64) interface{} {
 	}
 	result.Index = idx
 	return &result
+}
+
+func (h *healthServicesHandler) Reset() {
+	h.state = make(map[string]structs.CheckServiceNode)
 }
