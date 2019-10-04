@@ -101,7 +101,6 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 		event := stream.Event{
 			Topic: stream.Topic_ServiceHealth,
 			Index: idx,
-			Op:    stream.Operation_Upsert,
 		}
 
 		if n.Service != nil {
@@ -110,6 +109,7 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 
 		event.Payload = &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
+				Op:               stream.CatalogOp_Register,
 				CheckServiceNode: stream.ToCheckServiceNode(&n),
 			},
 		}
@@ -139,9 +139,9 @@ func serviceHealthDeregisterEvent(idx uint64, node string) stream.Event {
 	return stream.Event{
 		Topic: stream.Topic_ServiceHealth,
 		Index: idx,
-		Op:    stream.Operation_Delete,
 		Payload: &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
+				Op: stream.CatalogOp_Deregister,
 				CheckServiceNode: &stream.CheckServiceNode{
 					Node: &stream.Node{Node: node},
 				},

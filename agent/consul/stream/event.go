@@ -2,6 +2,7 @@ package stream
 
 import (
 	fmt "fmt"
+	"hash/fnv"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -22,21 +23,51 @@ func (e *Event) FilterObject() interface{} {
 }
 
 // ID returns an identifier for the event based on the contents of the payload.
-func (e *Event) ID() string {
+func (e *Event) ID() uint32 {
 	if e == nil || e.Payload == nil {
-		return ""
+		return 0
 	}
+
+	var id string
+	switch e.Payload.(type) {
+	case *Event_ServiceHealth:
+		node := e.GetServiceHealth().CheckServiceNode
+		if node == nil || node.Node == nil || node.Service == nil {
+			return 0
+		}
+		id = fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
+	default:
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return h.Sum32()
+}
+
+func MakeDeleteEvent(e *Event) (*Event, error) {
+	deleteEvent := &Event{Topic: e.Topic}
 
 	switch e.Payload.(type) {
 	case *Event_ServiceHealth:
 		node := e.GetServiceHealth().CheckServiceNode
 		if node == nil || node.Node == nil || node.Service == nil {
-			return ""
+			return nil, fmt.Errorf("event missing node or service info")
 		}
-		return fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
+
+		deleteEvent.Payload = &Event_ServiceHealth{
+			ServiceHealth: &ServiceHealthUpdate{
+				Op: CatalogOp_Deregister,
+				CheckServiceNode: &CheckServiceNode{
+					Node:    &Node{Node: node.Node.Node},
+					Service: &NodeService{Service: node.Service.Service},
+				},
+			},
+		}
 	default:
-		return ""
+		return nil, fmt.Errorf("unrecognized payload type")
 	}
+
+	return deleteEvent, nil
 }
 
 // EventFilterFunc returns true if the given event should be sent.

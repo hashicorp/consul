@@ -376,3 +376,14 @@ message ProtoHeaders {
 message StringList {
   repeated string Values = 1;
 }
+
+// These ACL structs are incomplete for now, they're only used internally to
+// notify listeners of an ACL update.
+message ACLToken {
+  // This is the UUID used for tracking and management purposes
+	string AccessorID = 1;
+
+	// This is the UUID used as the api token by clients
+  string SecretID = 2;
+}
+
