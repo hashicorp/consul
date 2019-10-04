@@ -52,35 +52,47 @@ type Store struct {
 }
 
 // UpdateUserToken replaces the current user token in the store.
-func (t *Store) UpdateUserToken(token string, source TokenSource) {
+// Returns true if it was changed.
+func (t *Store) UpdateUserToken(token string, source TokenSource) bool {
 	t.l.Lock()
+	changed := (t.userToken != token || t.userTokenSource != source)
 	t.userToken = token
 	t.userTokenSource = source
 	t.l.Unlock()
+	return changed
 }
 
 // UpdateAgentToken replaces the current agent token in the store.
-func (t *Store) UpdateAgentToken(token string, source TokenSource) {
+// Returns true if it was changed.
+func (t *Store) UpdateAgentToken(token string, source TokenSource) bool {
 	t.l.Lock()
+	changed := (t.agentToken != token || t.agentTokenSource != source)
 	t.agentToken = token
 	t.agentTokenSource = source
 	t.l.Unlock()
+	return changed
 }
 
 // UpdateAgentMasterToken replaces the current agent master token in the store.
-func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) {
+// Returns true if it was changed.
+func (t *Store) UpdateAgentMasterToken(token string, source TokenSource) bool {
 	t.l.Lock()
+	changed := (t.agentMasterToken != token || t.agentMasterTokenSource != source)
 	t.agentMasterToken = token
 	t.agentMasterTokenSource = source
 	t.l.Unlock()
+	return changed
 }
 
 // UpdateReplicationToken replaces the current replication token in the store.
-func (t *Store) UpdateReplicationToken(token string, source TokenSource) {
+// Returns true if it was changed.
+func (t *Store) UpdateReplicationToken(token string, source TokenSource) bool {
 	t.l.Lock()
+	changed := (t.replicationToken != token || t.replicationTokenSource != source)
 	t.replicationToken = token
 	t.replicationTokenSource = source
 	t.l.Unlock()
+	return changed
 }
 
 // UserToken returns the best token to use for user operations.

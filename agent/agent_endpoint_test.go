@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -4151,6 +4152,113 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 	// test to prove monitor works, which should be sufficient. The monitor
 	// logic is a little complex to set up so isn't worth repeating again
 	// here.
+}
+
+func TestAgent_TokenTriggersFullSync(t *testing.T) {
+	t.Parallel()
+
+	body := func(token string) io.Reader {
+		return jsonReader(&api.AgentToken{Token: token})
+	}
+
+	createNodePolicy := func(t *testing.T, a *TestAgent, policyName string) *structs.ACLPolicy {
+		policy := &structs.ACLPolicy{
+			Name:  policyName,
+			Rules: `node_prefix "" { policy = "write" }`,
+		}
+
+		req, err := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policy))
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLPolicyCreate(resp, req)
+		require.NoError(t, err)
+
+		policy, ok := obj.(*structs.ACLPolicy)
+		require.True(t, ok)
+		return policy
+	}
+
+	createNodeToken := func(t *testing.T, a *TestAgent, policyName string) *structs.ACLToken {
+		createNodePolicy(t, a, policyName)
+
+		token := &structs.ACLToken{
+			Description: "test",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{Name: policyName},
+			},
+		}
+
+		req, err := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(token))
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.ACLTokenCreate(resp, req)
+		require.NoError(t, err)
+
+		token, ok := obj.(*structs.ACLToken)
+		require.True(t, ok)
+		return token
+	}
+
+	cases := []struct {
+		path       string
+		tokenGetFn func(*token.Store) string
+	}{
+		{
+			path:       "acl_agent_token",
+			tokenGetFn: (*token.Store).AgentToken,
+		},
+		{
+			path:       "agent",
+			tokenGetFn: (*token.Store).AgentToken,
+		},
+		{
+			path:       "acl_token",
+			tokenGetFn: (*token.Store).UserToken,
+		},
+		{
+			path:       "default",
+			tokenGetFn: (*token.Store).UserToken,
+		},
+	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.path, func(t *testing.T) {
+			url := fmt.Sprintf("/v1/agent/token/%s?token=root", tt.path)
+
+			a := NewTestAgent(t, t.Name(), TestACLConfig()+`
+				acl {
+					tokens {
+						default = ""
+						agent = ""
+						agent_master = ""
+						replication = ""
+					}
+				}
+			`)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			// create node policy and token
+			token := createNodeToken(t, a, "test")
+
+			req, err := http.NewRequest("PUT", url, body(token.SecretID))
+			require.NoError(t, err)
+
+			resp := httptest.NewRecorder()
+			_, err = a.srv.AgentToken(resp, req)
+			require.NoError(t, err)
+
+			require.Equal(t, http.StatusOK, resp.Code)
+			require.Equal(t, token.SecretID, tt.tokenGetFn(a.tokens))
+
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1",
+				testrpc.WithToken("root"),
+				testrpc.WaitForAntiEntropySync())
+		})
+	}
 }
 
 func TestAgent_Token(t *testing.T) {
