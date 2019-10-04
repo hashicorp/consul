@@ -163,13 +163,6 @@ github.com/gophercloud/gophercloud/openstack/identity/v2/tenants
 # github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7
 github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
-# github.com/hashicorp/consul/api v1.2.0 => ./api
-github.com/hashicorp/consul/api
-github.com/hashicorp/consul/api/watch
-# github.com/hashicorp/consul/sdk v0.2.0 => ./sdk
-github.com/hashicorp/consul/sdk/freeport
-github.com/hashicorp/consul/sdk/testutil
-github.com/hashicorp/consul/sdk/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-bexpr v0.1.2
