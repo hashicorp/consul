@@ -28,7 +28,7 @@ require (
 	github.com/infobloxopen/go-trees v0.0.0-20190313150506-2af4e13f9062
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
-	github.com/miekg/dns v1.1.17
+	github.com/miekg/dns v1.1.22
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5
@@ -40,8 +40,9 @@ require (
 	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	go.etcd.io/etcd v0.0.0-20190823073701-67d0c21bb04c
-	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
-	golang.org/x/sys v0.0.0-20190904154756-749cb33beabd
+	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
+	golang.org/x/net v0.0.0-20191003171128-d98b1b443823 // indirect
+	golang.org/x/sys v0.0.0-20191003212358-c178f38b412c
 	google.golang.org/api v0.10.0
 	google.golang.org/genproto v0.0.0-20190701230453-710ae3a149df // indirect
 	google.golang.org/grpc v1.24.0
@@ -57,6 +58,6 @@ require (
 
 replace (
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible
-	github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.17
+	github.com/miekg/dns v1.1.3 => github.com/miekg/dns v1.1.22
 	golang.org/x/net v0.0.0-20190813000000-74dc4d7220e7 => golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 )
