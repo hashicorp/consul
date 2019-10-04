@@ -1,7 +1,7 @@
 ## UNRELEASED
 
 FEATURES
-
+* agent: update force-leave to allow for complete removal of members [[GH-6571](https://github.com/hashicorp/consul/issues/6571)]
 * agent: updates to the agent token trigger anti-entropy full syncs [[GH-6577](https://github.com/hashicorp/consul/issues/6577)]
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Google Cloud Storage.
 * connect: Added proxy config stanza to allow exposing HTTP paths through Envoy for non-Connect-enabled services [[GH-5396](https://github.com/hashicorp/consul/issues/5396)]
