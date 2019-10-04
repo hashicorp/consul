@@ -495,7 +495,7 @@ the list of members entirely.
 
 | Method | Path                                    | Produces                   |
 | ------ | --------------------------------------- | -------------------------- |
-| `PUT`  | `/agent/force-leave/:node?prune=true`   | `application/json`         |
+| `PUT`  | `/agent/force-leave/:node?prune`   | `application/json`         |
 
 
 The table below shows this endpoint's support for
