@@ -191,7 +191,7 @@ func TestCache(t *testing.T) {
 		m := tc.in.Msg()
 		m = cacheMsg(m, tc)
 
-		state := request.Request{W: nil, Req: m}
+		state := request.Request{W: &test.ResponseWriter{}, Req: m}
 
 		mt, _ := response.Typify(m, utc)
 		valid, k := key(state.Name(), m, mt, state.Do())
