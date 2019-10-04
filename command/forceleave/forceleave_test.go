@@ -60,7 +60,7 @@ func TestForceLeaveCommand_prune(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, t.Name(), ``)
 	defer a1.Shutdown()
-	a2 := agent.NewTestAgent(t, t.Name(), ``)
+	a2 := agent.NewTestAgent(t, t.Name()+"-a2", ``)
 	defer a2.Shutdown()
 
 	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
