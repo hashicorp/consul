@@ -439,52 +439,30 @@ func (s *Server) generateCASignRequest(csr string) *structs.CASignRequest {
 
 // startConnectLeader starts multi-dc connect leader routines.
 func (s *Server) startConnectLeader() {
-	s.connectLock.Lock()
-	defer s.connectLock.Unlock()
-
-	if s.connectEnabled {
-		return
-	}
-
-	s.connectCh = make(chan struct{})
-
 	// Start the Connect secondary DC actions if enabled.
 	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
-		go s.secondaryCARootWatch(s.connectCh)
-		go s.replicateIntentions(s.connectCh)
-
+		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
+		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
 	}
 
-	go s.runCARootPruning(s.connectCh)
-
-	s.connectEnabled = true
+	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
 }
 
 // stopConnectLeader stops connect specific leader functions.
 func (s *Server) stopConnectLeader() {
-	s.connectLock.Lock()
-	defer s.connectLock.Unlock()
-
-	if !s.connectEnabled {
-		return
-	}
-
-	s.actingSecondaryLock.Lock()
-	s.actingSecondaryCA = false
-	s.actingSecondaryLock.Unlock()
-
-	close(s.connectCh)
-	s.connectEnabled = false
+	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
+	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
+	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 }
 
-func (s *Server) runCARootPruning(stopCh <-chan struct{}) {
+func (s *Server) runCARootPruning(ctx context.Context) error {
 	ticker := time.NewTicker(caRootPruneInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-stopCh:
-			return
+		case <-ctx.Done():
+			return nil
 		case <-ticker.C:
 			if err := s.pruneCARoots(); err != nil {
 				s.logger.Printf("[ERR] connect: error pruning CA roots: %v", err)
@@ -549,7 +527,7 @@ func (s *Server) pruneCARoots() error {
 // secondaryCARootWatch maintains a blocking query to the primary datacenter's
 // ConnectCA.Roots endpoint to monitor when it needs to request a new signed
 // intermediate certificate.
-func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
+func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
@@ -559,7 +537,7 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 
 	s.logger.Printf("[DEBUG] connect: starting Connect CA root replication from primary datacenter %q", s.config.PrimaryDatacenter)
 
-	retryLoopBackoff(stopCh, func() error {
+	retryLoopBackoff(ctx.Done(), func() error {
 		var roots structs.IndexedCARoots
 		if err := s.forwardDC("ConnectCA.Roots", s.config.PrimaryDatacenter, &args, &roots); err != nil {
 			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
@@ -598,18 +576,20 @@ func (s *Server) secondaryCARootWatch(stopCh <-chan struct{}) {
 	}, func(err error) {
 		s.logger.Printf("[ERR] connect: %v", err)
 	})
+
+	return nil
 }
 
 // replicateIntentions executes a blocking query to the primary datacenter to replicate
 // the intentions there to the local state.
-func (s *Server) replicateIntentions(stopCh <-chan struct{}) {
+func (s *Server) replicateIntentions(ctx context.Context) error {
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.PrimaryDatacenter,
 	}
 
 	s.logger.Printf("[DEBUG] connect: starting Connect intention replication from primary datacenter %q", s.config.PrimaryDatacenter)
 
-	retryLoopBackoff(stopCh, func() error {
+	retryLoopBackoff(ctx.Done(), func() error {
 		// Always use the latest replication token value in case it changed while looping.
 		args.QueryOptions.Token = s.tokens.ReplicationToken()
 
@@ -653,6 +633,7 @@ func (s *Server) replicateIntentions(stopCh <-chan struct{}) {
 	}, func(err error) {
 		s.logger.Printf("[ERR] connect: error replicating intentions: %v", err)
 	})
+	return nil
 }
 
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially

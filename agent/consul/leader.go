@@ -649,239 +649,244 @@ func (s *Server) initializeACLs(upgrade bool) error {
 	return nil
 }
 
-func (s *Server) startACLUpgrade() {
-	s.aclUpgradeLock.Lock()
-	defer s.aclUpgradeLock.Unlock()
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
+func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
+	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
+	for {
+		if err := limiter.Wait(ctx); err != nil {
+			return err
+		}
 
-	if s.aclUpgradeEnabled {
-		return
-	}
+		// actually run the upgrade here
+		state := s.fsm.State()
+		tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
+		if err != nil {
+			s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
+		}
+		// No need to check expiration time here, as that only exists for v2 tokens.
 
-	ctx, cancel := context.WithCancel(context.Background())
-	s.aclUpgradeCancel = cancel
+		if len(tokens) == 0 {
+			ws := memdb.NewWatchSet()
+			ws.Add(state.AbandonCh())
+			ws.Add(waitCh)
+			ws.Add(ctx.Done())
 
-	go func() {
-		limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
-		for {
-			if err := limiter.Wait(ctx); err != nil {
-				return
-			}
+			// wait for more tokens to need upgrading or the aclUpgradeCh to be closed
+			ws.Watch(nil)
+			continue
+		}
 
-			// actually run the upgrade here
-			state := s.fsm.State()
-			tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
-			if err != nil {
-				s.logger.Printf("[WARN] acl: encountered an error while searching for tokens without accessor ids: %v", err)
-			}
-			// No need to check expiration time here, as that only exists for v2 tokens.
-
-			if len(tokens) == 0 {
-				ws := memdb.NewWatchSet()
-				ws.Add(state.AbandonCh())
-				ws.Add(waitCh)
-				ws.Add(ctx.Done())
-
-				// wait for more tokens to need upgrading or the aclUpgradeCh to be closed
-				ws.Watch(nil)
+		var newTokens structs.ACLTokens
+		for _, token := range tokens {
+			// This should be entirely unnecessary but is just a small safeguard against changing accessor IDs
+			if token.AccessorID != "" {
 				continue
 			}
 
-			var newTokens structs.ACLTokens
-			for _, token := range tokens {
-				// This should be entirely unnecessary but is just a small safeguard against changing accessor IDs
-				if token.AccessorID != "" {
+			newToken := *token
+			if token.SecretID == anonymousToken {
+				newToken.AccessorID = structs.ACLTokenAnonymousID
+			} else {
+				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+				if err != nil {
+					s.logger.Printf("[WARN] acl: failed to generate accessor during token auto-upgrade: %v", err)
 					continue
 				}
-
-				newToken := *token
-				if token.SecretID == anonymousToken {
-					newToken.AccessorID = structs.ACLTokenAnonymousID
-				} else {
-					accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-					if err != nil {
-						s.logger.Printf("[WARN] acl: failed to generate accessor during token auto-upgrade: %v", err)
-						continue
-					}
-					newToken.AccessorID = accessor
-				}
-
-				// Assign the global-management policy to legacy management tokens
-				if len(newToken.Policies) == 0 &&
-					len(newToken.ServiceIdentities) == 0 &&
-					len(newToken.Roles) == 0 &&
-					newToken.Type == structs.ACLTokenTypeManagement {
-					newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
-				}
-
-				// need to copy these as we are going to do a CAS operation.
-				newToken.CreateIndex = token.CreateIndex
-				newToken.ModifyIndex = token.ModifyIndex
-
-				newToken.SetHash(true)
-
-				newTokens = append(newTokens, &newToken)
+				newToken.AccessorID = accessor
 			}
 
-			req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
-
-			resp, err := s.raftApply(structs.ACLTokenSetRequestType, req)
-			if err != nil {
-				s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+			// Assign the global-management policy to legacy management tokens
+			if len(newToken.Policies) == 0 &&
+				len(newToken.ServiceIdentities) == 0 &&
+				len(newToken.Roles) == 0 &&
+				newToken.Type == structs.ACLTokenTypeManagement {
+				newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 			}
 
-			if err, ok := resp.(error); ok {
-				s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
-			}
+			// need to copy these as we are going to do a CAS operation.
+			newToken.CreateIndex = token.CreateIndex
+			newToken.ModifyIndex = token.ModifyIndex
+
+			newToken.SetHash(true)
+
+			newTokens = append(newTokens, &newToken)
 		}
-	}()
 
-	s.aclUpgradeEnabled = true
+		req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
+
+		resp, err := s.raftApply(structs.ACLTokenSetRequestType, req)
+		if err != nil {
+			s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+		}
+
+		if err, ok := resp.(error); ok {
+			s.logger.Printf("[ERR] acl: failed to apply acl token upgrade batch: %v", err)
+		}
+	}
+}
+
+func (s *Server) startACLUpgrade() {
+	if s.config.PrimaryDatacenter != s.config.Datacenter {
+		// token upgrades should only run in the primary
+		return
+	}
+
+	s.leaderRoutineManager.Start(aclUpgradeRoutineName, s.legacyACLTokenUpgrade)
 }
 
 func (s *Server) stopACLUpgrade() {
-	s.aclUpgradeLock.Lock()
-	defer s.aclUpgradeLock.Unlock()
+	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
+}
 
-	if !s.aclUpgradeEnabled {
-		return
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
+func (s *Server) runLegacyACLReplication(ctx context.Context) error {
+	var lastRemoteIndex uint64
+	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
+
+	for {
+		if err := limiter.Wait(ctx); err != nil {
+			return err
+		}
+
+		if s.tokens.ReplicationToken() == "" {
+			continue
+		}
+
+		index, exit, err := s.replicateLegacyACLs(lastRemoteIndex, ctx)
+		if exit {
+			return nil
+		}
+
+		if err != nil {
+			lastRemoteIndex = 0
+			s.updateACLReplicationStatusError()
+			s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
+		} else {
+			lastRemoteIndex = index
+			s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
+			s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
+		}
 	}
-
-	s.aclUpgradeCancel()
-	s.aclUpgradeCancel = nil
-	s.aclUpgradeEnabled = false
 }
 
 func (s *Server) startLegacyACLReplication() {
-	s.aclReplicationLock.Lock()
-	defer s.aclReplicationLock.Unlock()
+	if s.InACLDatacenter() {
+		return
+	}
 
-	if s.aclReplicationEnabled {
+	// unlike some other leader routines this initializes some extra state
+	// and therefore we want to prevent re-initialization if things are already
+	// running
+	if s.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName) {
 		return
 	}
 
 	s.initReplicationStatus()
-	ctx, cancel := context.WithCancel(context.Background())
-	s.aclReplicationCancel = cancel
 
-	go func() {
-		var lastRemoteIndex uint64
-		limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-
-		for {
-			if err := limiter.Wait(ctx); err != nil {
-				return
-			}
-
-			if s.tokens.ReplicationToken() == "" {
-				continue
-			}
-
-			index, exit, err := s.replicateLegacyACLs(lastRemoteIndex, ctx)
-			if exit {
-				return
-			}
-
-			if err != nil {
-				lastRemoteIndex = 0
-				s.updateACLReplicationStatusError()
-				s.logger.Printf("[WARN] consul: Legacy ACL replication error (will retry if still leader): %v", err)
-			} else {
-				lastRemoteIndex = index
-				s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
-				s.logger.Printf("[DEBUG] consul: Legacy ACL replication completed through remote index %d", index)
-			}
-		}
-	}()
-
+	s.leaderRoutineManager.Start(legacyACLReplicationRoutineName, s.runLegacyACLReplication)
+	s.logger.Printf("[INFO] acl: started legacy ACL replication")
 	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
-	s.aclReplicationEnabled = true
 }
 
 func (s *Server) startACLReplication() {
-	s.aclReplicationLock.Lock()
-	defer s.aclReplicationLock.Unlock()
+	if s.InACLDatacenter() {
+		return
+	}
 
-	if s.aclReplicationEnabled {
+	// unlike some other leader routines this initializes some extra state
+	// and therefore we want to prevent re-initialization if things are already
+	// running
+	if s.leaderRoutineManager.IsRunning(aclPolicyReplicationRoutineName) {
 		return
 	}
 
 	s.initReplicationStatus()
-	ctx, cancel := context.WithCancel(context.Background())
-	s.aclReplicationCancel = cancel
-
-	s.startACLReplicator(ctx, structs.ACLReplicatePolicies, s.replicateACLPolicies)
-	s.startACLReplicator(ctx, structs.ACLReplicateRoles, s.replicateACLRoles)
+	s.leaderRoutineManager.Start(aclPolicyReplicationRoutineName, s.runACLPolicyReplicator)
+	s.leaderRoutineManager.Start(aclRoleReplicationRoutineName, s.runACLRoleReplicator)
 
 	if s.config.ACLTokenReplication {
-		s.startACLReplicator(ctx, structs.ACLReplicateTokens, s.replicateACLTokens)
+		s.leaderRoutineManager.Start(aclTokenReplicationRoutineName, s.runACLTokenReplicator)
 		s.updateACLReplicationStatusRunning(structs.ACLReplicateTokens)
 	} else {
 		s.updateACLReplicationStatusRunning(structs.ACLReplicatePolicies)
 	}
-
-	s.aclReplicationEnabled = true
 }
 
 type replicateFunc func(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error)
 
-func (s *Server) startACLReplicator(ctx context.Context, replicationType structs.ACLReplicationType, replicateFunc replicateFunc) {
-	go func() {
-		var failedAttempts uint
-		limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
+func (s *Server) runACLPolicyReplicator(ctx context.Context) error {
+	s.logger.Printf("[INFO] acl: started ACL Policy replication")
 
-		var lastRemoteIndex uint64
-		for {
-			if err := limiter.Wait(ctx); err != nil {
-				return
-			}
+	return s.runACLReplicator(ctx, structs.ACLReplicatePolicies, s.replicateACLPolicies)
+}
 
-			if s.tokens.ReplicationToken() == "" {
-				continue
-			}
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
+func (s *Server) runACLRoleReplicator(ctx context.Context) error {
+	s.logger.Printf("[INFO] acl: started ACL Role replication")
+	return s.runACLReplicator(ctx, structs.ACLReplicateRoles, s.replicateACLRoles)
+}
 
-			index, exit, err := replicateFunc(ctx, lastRemoteIndex)
-			if exit {
-				return
-			}
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
+func (s *Server) runACLTokenReplicator(ctx context.Context) error {
+	return s.runACLReplicator(ctx, structs.ACLReplicateTokens, s.replicateACLTokens)
+}
 
-			if err != nil {
-				lastRemoteIndex = 0
-				s.updateACLReplicationStatusError()
-				s.logger.Printf("[WARN] consul: ACL %s replication error (will retry if still leader): %v", replicationType.SingularNoun(), err)
-				if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
-					failedAttempts++
-				}
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
+func (s *Server) runACLReplicator(ctx context.Context, replicationType structs.ACLReplicationType, replicateFunc replicateFunc) error {
+	var failedAttempts uint
+	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
 
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After((1 << failedAttempts) * time.Second):
-					// do nothing
-				}
-			} else {
-				lastRemoteIndex = index
-				s.updateACLReplicationStatusIndex(replicationType, index)
-				s.logger.Printf("[DEBUG] consul: ACL %s replication completed through remote index %d", replicationType.SingularNoun(), index)
-				failedAttempts = 0
-			}
+	var lastRemoteIndex uint64
+	for {
+		if err := limiter.Wait(ctx); err != nil {
+			return err
 		}
-	}()
 
-	s.logger.Printf("[INFO] acl: started ACL %s replication", replicationType.SingularNoun())
+		if s.tokens.ReplicationToken() == "" {
+			continue
+		}
+
+		index, exit, err := replicateFunc(ctx, lastRemoteIndex)
+		if exit {
+			return nil
+		}
+
+		if err != nil {
+			lastRemoteIndex = 0
+			s.updateACLReplicationStatusError()
+			s.logger.Printf("[WARN] consul: ACL %s replication error (will retry if still leader): %v", replicationType.SingularNoun(), err)
+			if (1 << failedAttempts) < aclReplicationMaxRetryBackoff {
+				failedAttempts++
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After((1 << failedAttempts) * time.Second):
+				// do nothing
+			}
+		} else {
+			lastRemoteIndex = index
+			s.updateACLReplicationStatusIndex(replicationType, index)
+			s.logger.Printf("[DEBUG] consul: ACL %s replication completed through remote index %d", replicationType.SingularNoun(), index)
+			failedAttempts = 0
+		}
+	}
 }
 
 func (s *Server) stopACLReplication() {
-	s.aclReplicationLock.Lock()
-	defer s.aclReplicationLock.Unlock()
-
-	if !s.aclReplicationEnabled {
-		return
-	}
-
-	s.aclReplicationCancel()
-	s.aclReplicationCancel = nil
-	s.updateACLReplicationStatusStopped()
-	s.aclReplicationEnabled = false
+	// these will be no-ops when not started
+	s.leaderRoutineManager.Stop(legacyACLReplicationRoutineName)
+	s.leaderRoutineManager.Stop(aclPolicyReplicationRoutineName)
+	s.leaderRoutineManager.Stop(aclRoleReplicationRoutineName)
+	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)
 }
 
 func (s *Server) startConfigReplication() {
@@ -890,12 +895,12 @@ func (s *Server) startConfigReplication() {
 		return
 	}
 
-	s.configReplicator.Start()
+	s.leaderRoutineManager.Start(configReplicationRoutineName, s.configReplicator.Run)
 }
 
 func (s *Server) stopConfigReplication() {
 	// will be a no-op when not started
-	s.configReplicator.Stop()
+	s.leaderRoutineManager.Stop(configReplicationRoutineName)
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary

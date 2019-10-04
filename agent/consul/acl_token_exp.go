@@ -9,17 +9,27 @@ import (
 	"golang.org/x/time/rate"
 )
 
-func (s *Server) startACLTokenReaping() {
-	s.aclTokenReapLock.Lock()
-	defer s.aclTokenReapLock.Unlock()
+func (s *Server) reapExpiredTokens(ctx context.Context) error {
+	limiter := rate.NewLimiter(aclTokenReapingRateLimit, aclTokenReapingBurst)
+	for {
+		if err := limiter.Wait(ctx); err != nil {
+			return err
+		}
 
-	if s.aclTokenReapEnabled {
-		return
+		if s.LocalTokensEnabled() {
+			if _, err := s.reapExpiredLocalACLTokens(); err != nil {
+				s.logger.Printf("[ERR] acl: error reaping expired local ACL tokens: %v", err)
+			}
+		}
+		if s.InACLDatacenter() {
+			if _, err := s.reapExpiredGlobalACLTokens(); err != nil {
+				s.logger.Printf("[ERR] acl: error reaping expired global ACL tokens: %v", err)
+			}
+		}
 	}
+}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	s.aclTokenReapCancel = cancel
-
+func (s *Server) startACLTokenReaping() {
 	// Do a quick check for config settings that would imply the goroutine
 	// below will just spin forever.
 	//
@@ -30,41 +40,11 @@ func (s *Server) startACLTokenReaping() {
 		return
 	}
 
-	go func() {
-		limiter := rate.NewLimiter(aclTokenReapingRateLimit, aclTokenReapingBurst)
-
-		for {
-			if err := limiter.Wait(ctx); err != nil {
-				return
-			}
-
-			if s.LocalTokensEnabled() {
-				if _, err := s.reapExpiredLocalACLTokens(); err != nil {
-					s.logger.Printf("[ERR] acl: error reaping expired local ACL tokens: %v", err)
-				}
-			}
-			if s.InACLDatacenter() {
-				if _, err := s.reapExpiredGlobalACLTokens(); err != nil {
-					s.logger.Printf("[ERR] acl: error reaping expired global ACL tokens: %v", err)
-				}
-			}
-		}
-	}()
-
-	s.aclTokenReapEnabled = true
+	s.leaderRoutineManager.Start(aclTokenReapingRoutineName, s.reapExpiredTokens)
 }
 
 func (s *Server) stopACLTokenReaping() {
-	s.aclTokenReapLock.Lock()
-	defer s.aclTokenReapLock.Unlock()
-
-	if !s.aclTokenReapEnabled {
-		return
-	}
-
-	s.aclTokenReapCancel()
-	s.aclTokenReapCancel = nil
-	s.aclTokenReapEnabled = false
+	s.leaderRoutineManager.Stop(aclTokenReapingRoutineName)
 }
 
 func (s *Server) reapExpiredGlobalACLTokens() (int, error) {

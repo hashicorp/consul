@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -88,6 +87,19 @@ const (
 	reconcileChSize = 256
 )
 
+const (
+	legacyACLReplicationRoutineName = "legacy ACL replication"
+	aclPolicyReplicationRoutineName = "ACL policy replication"
+	aclRoleReplicationRoutineName   = "ACL role replication"
+	aclTokenReplicationRoutineName  = "ACL token replication"
+	aclTokenReapingRoutineName      = "acl token reaping"
+	aclUpgradeRoutineName           = "legacy ACL token upgrade"
+	caRootPruningRoutineName        = "CA root pruning"
+	configReplicationRoutineName    = "config entry replication"
+	intentionReplicationRoutineName = "intention replication"
+	secondaryCARootWatchRoutineName = "secondary CA roots watch"
+)
+
 var (
 	ErrWANFederationDisabled = fmt.Errorf("WAN Federation is disabled")
 )
@@ -100,24 +112,6 @@ type Server struct {
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
-
-	// aclUpgradeCancel is used to cancel the ACL upgrade goroutine when we
-	// lose leadership
-	aclUpgradeCancel  context.CancelFunc
-	aclUpgradeLock    sync.RWMutex
-	aclUpgradeEnabled bool
-
-	// aclReplicationCancel is used to shut down the ACL replication goroutine
-	// when we lose leadership
-	aclReplicationCancel  context.CancelFunc
-	aclReplicationLock    sync.RWMutex
-	aclReplicationEnabled bool
-
-	// aclTokenReapCancel is used to shut down the ACL Token expiration reap
-	// goroutine when we lose leadership.
-	aclTokenReapCancel  context.CancelFunc
-	aclTokenReapLock    sync.RWMutex
-	aclTokenReapEnabled bool
 
 	aclAuthMethodValidators    map[string]*authMethodValidatorEntry
 	aclAuthMethodValidatorLock sync.RWMutex
@@ -271,14 +265,12 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
-	// State for multi-dc connect leader logic
-	connectLock    sync.RWMutex
-	connectEnabled bool
-	connectCh      chan struct{}
-
 	// State for whether this datacenter is acting as a secondary CA.
 	actingSecondaryCA   bool
 	actingSecondaryLock sync.RWMutex
+
+	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
+	leaderRoutineManager *LeaderRoutineManager
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
@@ -354,24 +346,25 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Create server.
 	s := &Server{
-		config:            config,
-		tokens:            tokens,
-		connPool:          connPool,
-		eventChLAN:        make(chan serf.Event, serfEventChSize),
-		eventChWAN:        make(chan serf.Event, serfEventChSize),
-		logger:            logger,
-		leaveCh:           make(chan struct{}),
-		reconcileCh:       make(chan serf.Member, reconcileChSize),
-		router:            router.NewRouter(logger, config.Datacenter),
-		rpcServer:         rpc.NewServer(),
-		insecureRPCServer: rpc.NewServer(),
-		tlsConfigurator:   tlsConfigurator,
-		reassertLeaderCh:  make(chan chan error),
-		segmentLAN:        make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:     NewSessionTimers(),
-		tombstoneGC:       gc,
-		serverLookup:      NewServerLookup(),
-		shutdownCh:        shutdownCh,
+		config:               config,
+		tokens:               tokens,
+		connPool:             connPool,
+		eventChLAN:           make(chan serf.Event, serfEventChSize),
+		eventChWAN:           make(chan serf.Event, serfEventChSize),
+		logger:               logger,
+		leaveCh:              make(chan struct{}),
+		reconcileCh:          make(chan serf.Member, reconcileChSize),
+		router:               router.NewRouter(logger, config.Datacenter),
+		rpcServer:            rpc.NewServer(),
+		insecureRPCServer:    rpc.NewServer(),
+		tlsConfigurator:      tlsConfigurator,
+		reassertLeaderCh:     make(chan chan error),
+		segmentLAN:           make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:        NewSessionTimers(),
+		tombstoneGC:          gc,
+		serverLookup:         NewServerLookup(),
+		shutdownCh:           shutdownCh,
+		leaderRoutineManager: NewLeaderRoutineManager(logger),
 	}
 
 	// Initialize enterprise specific server functionality
@@ -811,6 +804,11 @@ func (s *Server) Shutdown() error {
 
 	s.shutdown = true
 	close(s.shutdownCh)
+
+	// ensure that any leader routines still running get canceled
+	if s.leaderRoutineManager != nil {
+		s.leaderRoutineManager.StopAll()
+	}
 
 	if s.serfLAN != nil {
 		s.serfLAN.Shutdown()
