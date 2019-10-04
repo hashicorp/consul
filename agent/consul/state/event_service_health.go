@@ -126,10 +126,6 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 		}
 	}
 
-	if eventCh != nil {
-		close(eventCh)
-	}
-
 	return events
 }
 
