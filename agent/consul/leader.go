@@ -725,7 +725,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 }
 
 func (s *Server) startACLUpgrade() {
-	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
+	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		// token upgrades should only run in the primary
 		return
 	}
