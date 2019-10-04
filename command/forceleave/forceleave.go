@@ -60,6 +60,7 @@ func (c *cmd) Run(args []string) int {
 
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
+		return 1
 	}
 
 	return 0
