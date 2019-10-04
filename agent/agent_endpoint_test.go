@@ -1655,6 +1655,54 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	})
 }
 
+func TestAgent_ForceLeavePrune(t *testing.T) {
+	t.Parallel()
+	a1 := NewTestAgent(t, t.Name()+"-a1", "")
+	defer a1.Shutdown()
+	a2 := NewTestAgent(t, t.Name()+"-a2", "")
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+	testrpc.WaitForLeader(t, a2.RPC, "dc1")
+
+	// Join first
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
+	_, err := a1.JoinLAN([]string{addr})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// this test probably needs work
+	a2.Shutdown()
+	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
+	retry.Run(t, func(r *retry.R) {
+		m := a1.LANMembers()
+		for _, member := range m {
+			if member.Name == a2.Config.NodeName {
+				if member.Status != serf.StatusFailed {
+					r.Fatalf("got status %q want %q", member.Status, serf.StatusFailed)
+				}
+
+			}
+		}
+	})
+
+	// Force leave now
+	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/%s?prune=true", a2.Config.NodeName), nil)
+	obj, err := a1.srv.AgentForceLeave(nil, req)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("Err: %v", obj)
+	}
+	retry.Run(t, func(r *retry.R) {
+		m := len(a1.LANMembers())
+		if m != 1 {
+			r.Fatalf("want one member, got %v", m)
+		}
+	})
+
+}
+
 func TestAgent_RegisterCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")

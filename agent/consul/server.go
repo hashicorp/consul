@@ -1008,8 +1008,15 @@ func (s *Server) WANMembers() []serf.Member {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster
-func (s *Server) RemoveFailedNode(node string) error {
-	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
+func (s *Server) RemoveFailedNode(node string, prune bool) error {
+	var removeFn func(*serf.Serf, string) error
+	if prune {
+		removeFn = (*serf.Serf).RemoveFailedNodePrune
+	} else {
+		removeFn = (*serf.Serf).RemoveFailedNode
+	}
+
+	if err := removeFn(s.serfLAN, node); err != nil {
 		return err
 	}
 	// The Serf WAN pool stores members as node.datacenter
@@ -1018,7 +1025,7 @@ func (s *Server) RemoveFailedNode(node string) error {
 		node = node + "." + s.config.Datacenter
 	}
 	if s.serfWAN != nil {
-		if err := s.serfWAN.RemoveFailedNode(node); err != nil {
+		if err := removeFn(s.serfWAN, node); err != nil {
 			return err
 		}
 	}
