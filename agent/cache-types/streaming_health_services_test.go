@@ -22,9 +22,9 @@ func TestStreamingHealthServices(t *testing.T) {
 		{
 			Topic: stream.Topic_ServiceHealth,
 			Index: 1,
-			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:    "node1",
@@ -41,9 +41,9 @@ func TestStreamingHealthServices(t *testing.T) {
 		{
 			Topic: stream.Topic_ServiceHealth,
 			Index: 2,
-			Op:    stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:    "node2",
@@ -105,9 +105,9 @@ func TestStreamingHealthServices(t *testing.T) {
 	client.QueueEvents(&stream.Event{
 		Topic: stream.Topic_ServiceHealth,
 		Index: 3,
-		Op:    stream.Operation_Upsert,
 		Payload: &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
+				Op: stream.CatalogOp_Register,
 				CheckServiceNode: &stream.CheckServiceNode{
 					Node: &stream.Node{
 						Node:    "node1",

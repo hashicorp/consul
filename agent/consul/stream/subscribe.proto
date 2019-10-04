@@ -10,6 +10,9 @@ service Consul {
 
 enum Topic {
     ServiceHealth = 0;
+    ACLTokens = 1;
+    ACLPolicies = 2;
+    ACLRoles = 3;
 }
   
 message SubscribeRequest {
@@ -21,20 +24,37 @@ message SubscribeRequest {
     Filters TopicFilters = 6;
 }
 
+message Filters {
+    bool Connect = 1;
+    repeated string Tags = 2;
+}
+
 message Event {
     Topic Topic = 1;
     string Key = 2;
     uint64 Index = 3;
     repeated ACLRule RequiredACLs = 4;
-    Operation Op = 5;
     oneof Payload {
         ServiceHealthUpdate ServiceHealth = 6;
-        bool EndOfSnapshot = 7;
+        ACLTokenUpdate ACLToken = 7;
+        ACLPolicyUpdate ACLPolicy = 8;
+        ACLRoleUpdate ACLRole = 9;
+
+        // EndOfSnapshot indicates the event stream for the initial snapshot has ended.
+        bool EndOfSnapshot = 10;
+
+        // ReloadStream indicates the client should re-start the Subscribe call.
+        bool ReloadStream = 11;
     }
 }
 
-enum Operation {
-    Upsert = 0;
+enum CatalogOp {
+    Register = 0;
+    Deregister = 1;
+}
+
+enum ACLOp {
+    Update = 0;
     Delete = 1;
 }
 
@@ -49,10 +69,21 @@ message ACLRule {
 }
 
 message ServiceHealthUpdate {
-    CheckServiceNode CheckServiceNode = 1;
+    CatalogOp Op = 1;
+    CheckServiceNode CheckServiceNode = 2;
 }
 
-message Filters {
-    bool Connect = 1;
-    repeated string Tags = 2;
+message ACLTokenUpdate {
+    ACLOp Op = 1;
+    ACLToken Token = 2;
+}
+
+message ACLPolicyUpdate {
+    ACLOp Op = 1;
+    string PolicyID = 2;
+}
+
+message ACLRoleUpdate {
+    ACLOp Op = 1;
+    string RoleID = 2;
 }

@@ -5,28 +5,54 @@ import (
 	"sync"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/go-memdb"
 )
 
 type EventPublisher struct {
+	store *Store
+
 	listeners map[stream.Topic]map[*stream.SubscribeRequest]chan stream.Event
+
+	// These maps store the relations of ACL tokens, roles and policies.
+	tokenSubs    map[string]map[*stream.SubscribeRequest]chan stream.Event
+	roleTokens   map[string]map[string]struct{}
+	policyTokens map[string]map[string]struct{}
+
+	// lastIndex stores the index of the last event sent on each topic.
 	lastIndex map[stream.Topic]uint64
-	staged    []stream.Event
-	lock      sync.RWMutex
+
+	commitCh   chan commitUpdate
+	staged     []stream.Event
+	stagedLock sync.RWMutex
+	lock       sync.RWMutex
 }
 
-func NewEventPublisher() *EventPublisher {
-	return &EventPublisher{
-		listeners: make(map[stream.Topic]map[*stream.SubscribeRequest]chan stream.Event),
-		lastIndex: make(map[stream.Topic]uint64),
+type commitUpdate struct {
+	tx     *memdb.Txn
+	events []stream.Event
+}
+
+func NewEventPublisher(store *Store) *EventPublisher {
+	e := &EventPublisher{
+		store:        store,
+		listeners:    make(map[stream.Topic]map[*stream.SubscribeRequest]chan stream.Event),
+		tokenSubs:    make(map[string]map[*stream.SubscribeRequest]chan stream.Event),
+		roleTokens:   make(map[string]map[string]struct{}),
+		policyTokens: make(map[string]map[string]struct{}),
+		lastIndex:    make(map[stream.Topic]uint64),
+		commitCh:     make(chan commitUpdate, 64),
 	}
+	go e.handleUpdates()
+
+	return e
 }
 
 // PreparePublish gets an event ready to publish to any listeners on the relevant
 // topics. This doesn't do the send, which happens when the memdb transaction has
 // been committed.
 func (e *EventPublisher) PreparePublish(events []stream.Event) error {
-	e.lock.Lock()
-	defer e.lock.Unlock()
+	e.stagedLock.Lock()
+	defer e.stagedLock.Unlock()
 
 	if e.staged != nil {
 		return errors.New("event already staged for commit")
@@ -37,13 +63,47 @@ func (e *EventPublisher) PreparePublish(events []stream.Event) error {
 	return nil
 }
 
-// Commit sends any staged events to the relevant listeners. This is called
+// Commit triggers any staged events to be sent to the relevant listeners. This is called
 // via txn.Defer to delay it from running until the transaction has been finalized.
 func (e *EventPublisher) Commit() {
+	e.stagedLock.Lock()
+	defer e.stagedLock.Unlock()
+
+	e.commitCh <- commitUpdate{
+		tx:     e.store.db.Txn(false),
+		events: e.staged,
+	}
+	e.staged = nil
+}
+
+func (e *EventPublisher) handleUpdates() {
+	for {
+		update := <-e.commitCh
+		e.sendEvents(update)
+	}
+}
+
+// sendEvents sends the given events to any applicable topic listeners, as well as
+// any ACL update events to cause affected listeners to reset their stream.
+func (e *EventPublisher) sendEvents(update commitUpdate) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	for _, event := range e.staged {
+	for _, event := range update.events {
+		// If the event is an ACL update, treat it as a special case. Currently
+		// ACL update events are only used internally to recognize when a subscriber
+		// should reload its subscription.
+		if event.Topic == stream.Topic_ACLTokens ||
+			event.Topic == stream.Topic_ACLPolicies ||
+			event.Topic == stream.Topic_ACLRoles {
+			if err := e.handleACLUpdate(update.tx, event); err != nil {
+				panic(err)
+			}
+
+			continue
+		}
+
+		// If the event isn't an ACL update, send it to the relevant subscribers.
 		event.SetACLRules()
 		for subscription, listener := range e.listeners[event.Topic] {
 			// If this event doesn't pertain to the subset this subscription is listening for,
@@ -65,8 +125,73 @@ func (e *EventPublisher) Commit() {
 			e.lastIndex[event.Topic] = event.Index
 		}
 	}
+}
 
-	e.staged = nil
+func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) error {
+	switch event.Topic {
+	case stream.Topic_ACLTokens:
+		token := event.GetACLToken()
+		subscribers, ok := e.tokenSubs[token.Token.SecretID]
+
+		// If there are subscribers using the updated/deleted token, signal them
+		// to reload their connection.
+		if ok {
+			e.reloadSubscribers(subscribers)
+		}
+	case stream.Topic_ACLPolicies:
+		policy := event.GetACLPolicy()
+		for token, subscribers := range e.tokenSubs {
+			token, err := e.store.aclTokenGetTxn(tx, nil, token, "id", nil)
+			if err != nil {
+				return err
+			}
+			for _, p := range token.Policies {
+				if p.ID == policy.PolicyID {
+					e.reloadSubscribers(subscribers)
+					break
+				}
+			}
+		}
+	case stream.Topic_ACLRoles:
+		role := event.GetACLRole()
+		for token, subscribers := range e.tokenSubs {
+			token, err := e.store.aclTokenGetTxn(tx, nil, token, "id", nil)
+			if err != nil {
+				return err
+			}
+			for _, r := range token.Roles {
+				if r.ID == role.RoleID {
+					e.reloadSubscribers(subscribers)
+					break
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// reloadSubscribers sends a reload signal to all subscribers in the given map.
+func (e *EventPublisher) reloadSubscribers(subscribers map[*stream.SubscribeRequest]chan stream.Event) {
+	for subscription, listener := range subscribers {
+		// Send a reload event and deregister the subscriber.
+		reloadEvent := stream.Event{
+			Payload: &stream.Event_ReloadStream{ReloadStream: true},
+		}
+		e.nonBlockingListenerSend(listener, subscription, reloadEvent)
+		e.unsubscribeLocked(subscription)
+	}
+}
+
+// nonBlockingListenerSend sends an event to a listener in a non-blocking way, closing the
+// subscription if the send fails. This method assumes the lock is held.
+func (e *EventPublisher) nonBlockingListenerSend(listener chan stream.Event, subscription *stream.SubscribeRequest, event stream.Event) {
+	select {
+	case listener <- event:
+	default:
+		close(listener)
+		e.unsubscribeLocked(subscription)
+	}
 }
 
 // LastTopicIndex returns the index of the last event published for the topic.
@@ -89,11 +214,35 @@ func (e *EventPublisher) Subscribe(subscription *stream.SubscribeRequest) <-chan
 		}
 	}
 
+	// Add the subscription to the ACL token map.
+	if subs, ok := e.tokenSubs[subscription.Token]; ok {
+		subs[subscription] = ch
+	} else {
+		e.tokenSubs[subscription.Token] = map[*stream.SubscribeRequest]chan stream.Event{
+			subscription: ch,
+		}
+	}
+
 	return ch
 }
 
 func (e *EventPublisher) Unsubscribe(subscription *stream.SubscribeRequest) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
+
+	e.unsubscribeLocked(subscription)
+}
+
+func (e *EventPublisher) unsubscribeLocked(subscription *stream.SubscribeRequest) {
+	// Clean up the topic -> subscribers map.
 	delete(e.listeners[subscription.Topic], subscription)
+	if len(e.listeners[subscription.Topic]) == 0 {
+		delete(e.listeners, subscription.Topic)
+	}
+
+	// Clean up the token -> subscribers map.
+	delete(e.tokenSubs[subscription.Token], subscription)
+	if len(e.tokenSubs[subscription.Token]) == 0 {
+		delete(e.tokenSubs, subscription.Token)
+	}
 }

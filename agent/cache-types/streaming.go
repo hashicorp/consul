@@ -20,6 +20,7 @@ type StreamingClient interface {
 type EventHandler interface {
 	HandleEvent(event *stream.Event)
 	State(idx uint64) interface{}
+	Reset()
 }
 
 // Subscriber runs a streaming subscription for a single topic/key combination.
@@ -29,11 +30,16 @@ type Subscriber struct {
 	handler EventHandler
 
 	lastResult interface{}
-	resultCh   chan interface{}
+	resultCh   chan watchResult
 	ctx        context.Context
 	cancelFunc func()
 
 	lock sync.RWMutex
+}
+
+type watchResult struct {
+	result     interface{}
+	forceReset bool
 }
 
 func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler EventHandler) *Subscriber {
@@ -42,7 +48,7 @@ func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler 
 		client:     client,
 		request:    req,
 		handler:    handler,
-		resultCh:   make(chan interface{}, 1),
+		resultCh:   make(chan watchResult, 1),
 		ctx:        ctx,
 		cancelFunc: cancel,
 	}
@@ -66,12 +72,13 @@ func (s *Subscriber) Close() error {
 func (s *Subscriber) run() {
 	defer s.cancelFunc()
 
+START:
 	// Start a new Subscribe call.
 	streamHandle, err := s.client.Subscribe(s.ctx, &s.request)
 
 	// If something went wrong setting up the stream, return the error.
 	if err != nil {
-		s.resultCh <- err
+		s.resultCh <- watchResult{result: err}
 		return
 	}
 
@@ -83,19 +90,37 @@ func (s *Subscriber) run() {
 		if err != nil {
 			// Do a non-blocking send of the error, in case there's no Fetch watching.
 			select {
-			case s.resultCh <- err:
+			case s.resultCh <- watchResult{result: err}:
 			default:
 			}
 			return
 		}
 
+		// Check to see if this is a special "reload stream" message before processing
+		// the event.
+		if event.GetReloadStream() {
+			fmt.Printf("[WARN] got ACL reset event\n")
+			s.handler.Reset()
+
+			// Cancel the context to end the streaming call and create a new one.
+			s.lock.Lock()
+			s.cancelFunc()
+			s.ctx, s.cancelFunc = context.WithCancel(context.Background())
+			s.lock.Unlock()
+
+			goto START
+		}
+
 		// Update our version of the state based on the event/op.
+		var finishedSnapshot bool
 		switch event.Topic {
 		case s.request.Topic:
 			if !event.GetEndOfSnapshot() {
 				s.handler.HandleEvent(event)
 			} else {
+				fmt.Printf("SNAPSHOT FINISHED\n")
 				snapshotDone = true
+				finishedSnapshot = true
 			}
 		default:
 			// should never happen
@@ -119,7 +144,7 @@ func (s *Subscriber) run() {
 
 		// Send the new view of the state to the watcher.
 		select {
-		case s.resultCh <- result:
+		case s.resultCh <- watchResult{result: result, forceReset: finishedSnapshot}:
 		default:
 		}
 	}
@@ -161,18 +186,22 @@ WAIT:
 	select {
 	case r := <-sub.resultCh:
 		// If an error was returned, exit immediately.
-		if err, ok := r.(error); ok {
+		if err, ok := r.result.(error); ok {
 			// Reset the state/subscriber if there was an error.
 			result.State = nil
 			return result, err
 		}
 
 		// Wait for another update if the result wasn't higher than the requested index.
-		index := getIndex(r)
-		if index <= opts.MinIndex {
+		// If this update came from a snapshot finishing, we return no matter what, as the
+		// state/index could have changed as a result of ACL updates or other filtering.
+		index := getIndex(r.result)
+		if index <= opts.MinIndex && !r.forceReset {
+			fmt.Println("WAITING FOR HIGHER INDEX")
 			goto WAIT
 		}
-		result.Value = r
+		fmt.Println("RETURNING UPDATE")
+		result.Value = r.result
 		result.Index = index
 	case <-timeout:
 		sub.lock.RLock()

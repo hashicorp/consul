@@ -116,9 +116,9 @@ func TestStreaming_Subscribe(t *testing.T) {
 	expected := []*stream.Event{
 		{
 			Key: "redis",
-			Op:  stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:       "node1",
@@ -138,9 +138,9 @@ func TestStreaming_Subscribe(t *testing.T) {
 		},
 		{
 			Key: "redis",
-			Op:  stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:       "node2",
@@ -188,9 +188,9 @@ func TestStreaming_Subscribe(t *testing.T) {
 	case event := <-eventCh:
 		expected := &stream.Event{
 			Key: "redis",
-			Op:  stream.Operation_Upsert,
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
 					CheckServiceNode: &stream.CheckServiceNode{
 						Node: &stream.Node{
 							Node:       "node2",
@@ -535,6 +535,141 @@ node "%s" {
 		case event := <-eventCh:
 			t.Fatalf("should not have received event: %v", event)
 		case <-time.After(500 * time.Millisecond):
+		}
+	}
+}
+
+func TestStreaming_Subscribe_ACLUpdate(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir, _, server, codec := testACLFilterServerV8(t, true)
+	defer os.RemoveAll(dir)
+	defer server.Shutdown()
+	defer codec.Close()
+
+	dir2, client := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	// Try to join
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	joinLAN(t, client, server)
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken("root"))
+
+	// Create a new token that only has access to one node.
+	var token string
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "Service/node token",
+			Type: structs.ACLTokenTypeClient,
+			Rules: fmt.Sprintf(`
+service "foo" {
+	policy = "write"
+}
+node "%s" {
+	policy = "write"
+}
+`, server.config.NodeName),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+	auth, err := server.ResolveToken(token)
+	require.NoError(err)
+	require.False(auth.NodeRead("denied"))
+
+	// Set up the gRPC client.
+	conn, err := client.grpcClient.GRPCConn(nil)
+	require.NoError(err)
+	streamClient := stream.NewConsulClient(conn)
+
+	// Start a Subscribe call to our streaming endpoint for the service we have access to.
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "foo",
+			Token: token,
+		})
+		require.NoError(err)
+
+		// Start a goroutine to read updates off the stream.
+		eventCh := make(chan *stream.Event, 0)
+		go testSendEvents(t, eventCh, streamHandle)
+
+		// Read events off the stream.
+		var snapshotEvents []*stream.Event
+		for i := 0; i < 2; i++ {
+			select {
+			case event := <-eventCh:
+				snapshotEvents = append(snapshotEvents, event)
+			case <-time.After(5 * time.Second):
+				t.Fatalf("did not receive events past %d", len(snapshotEvents))
+			}
+		}
+		require.Len(snapshotEvents, 2)
+		require.Equal("foo", snapshotEvents[0].GetServiceHealth().CheckServiceNode.Service.Service)
+		require.Equal(server.config.NodeName, snapshotEvents[0].GetServiceHealth().CheckServiceNode.Node.Node)
+		require.True(snapshotEvents[1].GetEndOfSnapshot())
+
+		// Update a different token and make sure we don't see an event.
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name: "Ignored token",
+				Type: structs.ACLTokenTypeClient,
+				Rules: `
+service "foo" {
+	policy = "read"
+}
+`,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var reply string
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &reply))
+
+		select {
+		case event := <-eventCh:
+			t.Fatalf("should not have received event: %v", event)
+		case <-time.After(500 * time.Millisecond):
+		}
+
+		// Update our token to trigger a refresh event.
+		arg = structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				ID:   token,
+				Name: "Service/node token",
+				Type: structs.ACLTokenTypeClient,
+				Rules: fmt.Sprintf(`
+	service "foo" {
+		policy = "write"
+	}
+	node "%s" {
+		policy = "write"
+	}
+	node "bar" {
+		policy = "read"
+	}
+	`, server.config.NodeName),
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &reply))
+
+		select {
+		case event := <-eventCh:
+			require.True(event.GetReloadStream())
+		case <-time.After(500 * time.Millisecond):
+			t.Fatalf("did not receive reload event")
 		}
 	}
 }

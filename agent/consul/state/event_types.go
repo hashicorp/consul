@@ -52,6 +52,16 @@ func (s *Store) RegistrationEvents(tx *memdb.Txn, idx uint64, node, service stri
 	return checkServiceNodesToServiceHealth(idx, nodes, nil, nil), nil
 }
 
+// DeregistrationEvents returns stream.Events that correspond to a catalog
+// deregister operation.
+func (s *Store) DeregistrationEvents(tx *memdb.Txn, idx uint64, node string) ([]stream.Event, error) {
+	events := []stream.Event{
+		serviceHealthDeregisterEvent(idx, node),
+	}
+
+	return events, nil
+}
+
 // TxnEvents returns the stream.Events that correspond to a Txn operation.
 func (s *Store) TxnEvents(tx *memdb.Txn, idx uint64, ops structs.TxnOps) ([]stream.Event, error) {
 	var events []stream.Event
@@ -66,12 +76,46 @@ func (s *Store) TxnEvents(tx *memdb.Txn, idx uint64, ops structs.TxnOps) ([]stre
 	return events, nil
 }
 
-// DeregistrationEvents returns stream.Events that correspond to a catalog
-// deregister operation.
-func (s *Store) DeregistrationEvents(tx *memdb.Txn, idx uint64, node string) ([]stream.Event, error) {
-	events := []stream.Event{
-		serviceHealthDeregisterEvent(idx, node),
+// ACLTokenEvent returns a stream.Event that corresponds to an ACL token operation.
+func (s *Store) ACLTokenEvent(idx uint64, token *structs.ACLToken, op stream.ACLOp) stream.Event {
+	return stream.Event{
+		Topic: stream.Topic_ACLTokens,
+		Index: idx,
+		Payload: &stream.Event_ACLToken{
+			ACLToken: &stream.ACLTokenUpdate{
+				Op: op,
+				Token: &stream.ACLToken{
+					SecretID: token.SecretID,
+				},
+			},
+		},
 	}
+}
 
-	return events, nil
+// ACLPolicyEvent returns a stream.Event that corresponds to an ACL policy operation.
+func (s *Store) ACLPolicyEvent(idx uint64, id string, op stream.ACLOp) stream.Event {
+	return stream.Event{
+		Topic: stream.Topic_ACLPolicies,
+		Index: idx,
+		Payload: &stream.Event_ACLPolicy{
+			ACLPolicy: &stream.ACLPolicyUpdate{
+				Op:       op,
+				PolicyID: id,
+			},
+		},
+	}
+}
+
+// ACLRoleEvent returns a stream.Event that corresponds to an ACL role operation.
+func (s *Store) ACLRoleEvent(idx uint64, id string, op stream.ACLOp) stream.Event {
+	return stream.Event{
+		Topic: stream.Topic_ACLRoles,
+		Index: idx,
+		Payload: &stream.Event_ACLRole{
+			ACLRole: &stream.ACLRoleUpdate{
+				Op:     op,
+				RoleID: id,
+			},
+		},
+	}
 }

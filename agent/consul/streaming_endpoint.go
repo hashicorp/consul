@@ -39,7 +39,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	// is lower than the last sent index of the topic.
 	state := h.srv.fsm.State()
 	lastSentIndex := state.LastTopicIndex(req.Topic)
-	sent := make(map[string]struct{})
+	sent := make(map[uint32]struct{})
 	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
 		go state.GetTopicSnapshot(server.Context(), snapshotCh, req)
@@ -77,6 +77,15 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 				return fmt.Errorf("handler could not keep up with events")
 			}
 
+			// If we need to reload the stream (because our ACL token was updated)
+			// then pass the event along to the client and exit.
+			if event.GetReloadStream() {
+				if err := server.Send(&event); err != nil {
+					return err
+				}
+				return nil
+			}
+
 			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
@@ -87,13 +96,13 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 // sendEvent sends the given event along the stream if it passes ACL, boolean, and
 // any topic-specific filtering.
 func sendEvent(event stream.Event, eventFilter stream.EventFilterFunc, aclFilter *aclFilter,
-	eval *bexpr.Evaluator, sent map[string]struct{}, server stream.Consul_SubscribeServer) error {
+	eval *bexpr.Evaluator, sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
 	allowEvent := true
 
 	// Check if the event should be filtered based on the request type.
-	if eventFilter != nil && !eventFilter(event) {
+	/*if eventFilter != nil && !eventFilter(event) {
 		allowEvent = false
-	}
+	}*/
 
 	// Filter by ACL rules.
 	if !aclFilter.allowEvent(event) {
@@ -117,21 +126,30 @@ func sendEvent(event stream.Event, eventFilter stream.EventFilterFunc, aclFilter
 	id := event.ID()
 	if !allowEvent {
 		if _, ok := sent[id]; ok {
-			event.Op = stream.Operation_Delete
+			deleteEvent, err := stream.MakeDeleteEvent(&event)
+			if err != nil {
+				return err
+			}
+
+			// Send the delete.
+			if err := server.Send(deleteEvent); err != nil {
+				return err
+			}
+
 			delete(sent, id)
+			return nil
 		} else {
 			// If the event should be filtered and the agent doesn't know about it,
 			// just return early and don't send anything.
 			return nil
 		}
-	} else {
-		sent[id] = struct{}{}
 	}
 
 	// Send the event.
 	if err := server.Send(&event); err != nil {
 		return err
 	}
+	sent[id] = struct{}{}
 
 	return nil
 }

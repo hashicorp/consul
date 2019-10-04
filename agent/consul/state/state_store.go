@@ -160,8 +160,8 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
-		publisher:    NewEventPublisher(),
 	}
+	s.publisher = NewEventPublisher(s)
 	return s, nil
 }
 
