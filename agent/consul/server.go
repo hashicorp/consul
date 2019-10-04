@@ -805,6 +805,11 @@ func (s *Server) Shutdown() error {
 	s.shutdown = true
 	close(s.shutdownCh)
 
+	// ensure that any leader routines still running get canceled
+	if s.leaderRoutineManager != nil {
+		s.leaderRoutineManager.StopAll()
+	}
+
 	if s.serfLAN != nil {
 		s.serfLAN.Shutdown()
 	}

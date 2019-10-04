@@ -649,6 +649,8 @@ func (s *Server) initializeACLs(upgrade bool) error {
 	return nil
 }
 
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
 func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
 	for {
@@ -737,6 +739,8 @@ func (s *Server) stopACLUpgrade() {
 	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
 }
 
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
 func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 	var lastRemoteIndex uint64
 	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
@@ -812,21 +816,29 @@ func (s *Server) startACLReplication() {
 
 type replicateFunc func(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error)
 
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
 func (s *Server) runACLPolicyReplicator(ctx context.Context) error {
 	s.logger.Printf("[INFO] acl: started ACL Policy replication")
 
 	return s.runACLReplicator(ctx, structs.ACLReplicatePolicies, s.replicateACLPolicies)
 }
 
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
 func (s *Server) runACLRoleReplicator(ctx context.Context) error {
 	s.logger.Printf("[INFO] acl: started ACL Role replication")
 	return s.runACLReplicator(ctx, structs.ACLReplicateRoles, s.replicateACLRoles)
 }
 
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
 func (s *Server) runACLTokenReplicator(ctx context.Context) error {
 	return s.runACLReplicator(ctx, structs.ACLReplicateTokens, s.replicateACLTokens)
 }
 
+// This function is only intended to be run as a managed go routine, it will block until
+// the context passed in indicates that it should exit.
 func (s *Server) runACLReplicator(ctx context.Context, replicationType structs.ACLReplicationType, replicateFunc replicateFunc) error {
 	var failedAttempts uint
 	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
