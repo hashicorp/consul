@@ -1658,7 +1658,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 	t.Parallel()
 	a1 := NewTestAgent(t, t.Name()+"-a1", "")
 	defer a1.Shutdown()
-	a2 := NewTestAgent(t, t.Name(), "")
+	a2 := NewTestAgent(t, t.Name()+"-a2", "")
 	testrpc.WaitForLeader(t, a1.RPC, "dc1")
 	testrpc.WaitForLeader(t, a2.RPC, "dc1")
 
