@@ -127,7 +127,7 @@ func (a *TestACLAgent) LocalMember() serf.Member {
 func (a *TestACLAgent) JoinLAN(addrs []string) (n int, err error) {
 	return 0, fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RemoveFailedNode(node string) error {
+func (a *TestACLAgent) RemoveFailedNode(node string, prune bool) error {
 	return fmt.Errorf("Unimplemented")
 }
 

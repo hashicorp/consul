@@ -490,6 +490,14 @@ state allows its old entries to be removed.
 | ------ | ---------------------------- | -------------------------- |
 | `PUT`  | `/agent/force-leave/:node`   | `application/json`         |
 
+Additionally, by specifying the `prune` flag, a node can be forcibly removed from
+the list of members entirely.
+
+| Method | Path                                    | Produces                   |
+| ------ | --------------------------------------- | -------------------------- |
+| `PUT`  | `/agent/force-leave/:node?prune`   | `application/json`         |
+
+
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
 [consistency modes](/api/features/consistency.html),

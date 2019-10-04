@@ -730,6 +730,19 @@ func (a *Agent) ForceLeave(node string) error {
 	return nil
 }
 
+//ForceLeavePrune is used to have an a failed agent removed
+//from the list of members
+func (a *Agent) ForceLeavePrune(node string) error {
+	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
+	r.params.Set("prune", "1")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // ConnectAuthorize is used to authorize an incoming connection
 // to a natively integrated Connect service.
 func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, error) {

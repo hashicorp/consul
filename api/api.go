@@ -679,6 +679,7 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 			r.header.Set("Cache-Control", strings.Join(cc, ", "))
 		}
 	}
+
 	r.ctx = q.ctx
 }
 
