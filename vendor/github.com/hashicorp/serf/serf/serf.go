@@ -1102,6 +1102,10 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 	case StatusAlive:
 		member.Status = StatusLeaving
 		member.statusLTime = leaveMsg.LTime
+
+		if leaveMsg.Prune {
+			s.handlePrune(member)
+		}
 		return true
 	case StatusFailed:
 		member.Status = StatusLeft
@@ -1132,22 +1136,30 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 
 		return true
 
+	case StatusLeaving, StatusLeft:
+		if leaveMsg.Prune {
+			s.handlePrune(member)
+		}
+		return true
 	default:
 		return false
 	}
 }
 
-//handlePrune is called after a node has been force-left
+// handlePrune waits for nodes that are leaving and then forcibly
+// erases a member from the list of members
 func (s *Serf) handlePrune(member *memberState) {
 	if member.Status == StatusLeaving {
 		time.Sleep(s.config.BroadcastTimeout + s.config.LeavePropagateDelay)
 	}
 
-	if member.Status == StatusFailed || member.Status == StatusLeft {
-		s.logger.Printf("[INFO] serf: EventMemberReap (forced): %s %s", member.Name, member.Member.Addr)
+	s.logger.Printf("[INFO] serf: EventMemberReap (forced): %s %s", member.Name, member.Member.Addr)
+
+	//If we are leaving or left we may be in that list of members
+	if member.Status == StatusLeaving || member.Status == StatusLeft {
 		s.leftMembers = removeOldMember(s.leftMembers, member.Name)
-		s.eraseNode(member)
 	}
+	s.eraseNode(member)
 
 }
 

@@ -52,20 +52,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	switch c.prune {
-	case true:
+	if c.prune {
 		err = client.Agent().ForceLeavePrune(nodes[0])
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
-			return 1
-		}
-	case false:
-		err = client.Agent().ForceLeave(nodes[0])
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
-			return 1
-		}
+	}
+	err = client.Agent().ForceLeave(nodes[0])
 
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error force leaving: %s", err))
 	}
 
 	return 0

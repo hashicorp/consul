@@ -3,13 +3,14 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -438,15 +439,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	}
 
 	//Check the value of the prune query
-	var prune bool
-	params := req.URL.Query()
-	if _, ok := params["prune"]; ok {
-		raw := params.Get("prune")
-		prune, err = strconv.ParseBool(raw)
-		if err != nil {
-			return nil, err
-		}
-	}
+	_, prune := req.URL.Query()["prune"]
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
 	return nil, s.agent.ForceLeave(addr, prune)

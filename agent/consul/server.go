@@ -1010,15 +1010,12 @@ func (s *Server) WANMembers() []serf.Member {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster
-// We must remove a node from both serf LAN & WAN if present and also
-// check for the prune flag to see if it should be completely deleted
 func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	if prune {
 		s.removeFailedNodePrune(node)
 	}
 
-	lanRemover := s.serfLAN.RemoveFailedNode
-	if err := lanRemover(node); err != nil {
+	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
 		return err
 	}
 
@@ -1033,8 +1030,7 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 		node = node + "." + s.config.Datacenter
 	}
 
-	wanRemover := s.serfWAN.RemoveFailedNode
-	if err := wanRemover(node); err != nil {
+	if err := s.serfWAN.RemoveFailedNode(node); err != nil {
 		return err
 	}
 
@@ -1044,8 +1040,7 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 //removeFailedNodePrune completely erases a node from the list
 //of members
 func (s *Server) removeFailedNodePrune(node string) error {
-	lanRemover := s.serfLAN.RemoveFailedNodePrune
-	if err := lanRemover(node); err != nil {
+	if err := s.serfLAN.RemoveFailedNodePrune(node); err != nil {
 		return err
 	}
 
@@ -1054,8 +1049,7 @@ func (s *Server) removeFailedNodePrune(node string) error {
 			node = node + "." + s.config.Datacenter
 		}
 
-		wanRemover := s.serfWAN.RemoveFailedNodePrune
-		if err := wanRemover(node); err != nil {
+		if err := s.serfWAN.RemoveFailedNodePrune(node); err != nil {
 			return err
 		}
 	}
