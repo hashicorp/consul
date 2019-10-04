@@ -269,6 +269,7 @@ type Server struct {
 	actingSecondaryCA   bool
 	actingSecondaryLock sync.RWMutex
 
+	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *LeaderRoutineManager
 
 	// embedded struct to hold all the enterprise specific data
