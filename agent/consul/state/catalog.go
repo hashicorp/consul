@@ -1961,6 +1961,10 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.checkServiceNodesTxn(tx, ws, serviceName, connect)
+}
+
+func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceName string, connect bool) (uint64, structs.CheckServiceNodes, error) {
 	// Function for lookup
 	var f func() (memdb.ResultIterator, error)
 	if !connect {

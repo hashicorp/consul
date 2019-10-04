@@ -11,7 +11,7 @@ import (
 
 // GetTopicSnapshot returns a snapshot of the given topic based on the SubscribeRequest.
 func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
-	var snapshotFunc func(context.Context, chan stream.Event, *stream.SubscribeRequest) error
+	var snapshotFunc func(*memdb.Txn, context.Context, chan stream.Event, *stream.SubscribeRequest) error
 	switch req.Topic {
 	case stream.Topic_ServiceHealth:
 		snapshotFunc = s.ServiceHealthSnapshot
@@ -20,13 +20,46 @@ func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event,
 		return fmt.Errorf("only the ServiceHealth topic is supported")
 	}
 
-	return snapshotFunc(ctx, eventCh, req)
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	if err := snapshotFunc(tx, ctx, eventCh, req); err != nil {
+		return err
+	}
+
+	// Get the latest index and send an "end of snapshot" message.
+	iter, err := tx.Get("index", "id")
+	if err != nil {
+		return err
+	}
+	highestIndex := uint64(0)
+	for index := iter.Next(); index != nil; index = iter.Next() {
+		if idx, ok := index.(*IndexEntry); ok && idx.Value > highestIndex {
+			highestIndex = idx.Value
+		}
+	}
+
+	endSnapshotEvent := stream.Event{
+		Topic:   req.Topic,
+		Index:   highestIndex,
+		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
+	}
+	select {
+	case <-ctx.Done():
+		return nil
+	case eventCh <- endSnapshotEvent:
+	}
+
+	if eventCh != nil {
+		close(eventCh)
+	}
+
+	return nil
 }
 
 // ServiceHealthSnapshot returns stream.Events that provide a snapshot of the
 // current state.
-func (s *Store) ServiceHealthSnapshot(ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
-	idx, nodes, err := s.CheckServiceNodes(nil, req.Key)
+func (s *Store) ServiceHealthSnapshot(tx *memdb.Txn, ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
+	idx, nodes, err := s.checkServiceNodesTxn(tx, nil, req.Key, false)
 	if err != nil {
 		return err
 	}

@@ -53,15 +53,6 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		}
 	}
 
-	// Send a marker that the snapshot is finished.
-	endSnapshotEvent := stream.Event{
-		Topic:   req.Topic,
-		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
-	}
-	if err := server.Send(&endSnapshotEvent); err != nil {
-		return err
-	}
-
 	// Register a subscription on this topic/key with the FSM.
 	eventCh := state.Subscribe(req)
 	defer state.Unsubscribe(req)
