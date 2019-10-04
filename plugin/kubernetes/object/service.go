@@ -26,8 +26,14 @@ type Service struct {
 // ServiceKey return a string using for the index.
 func ServiceKey(name, namespace string) string { return name + "." + namespace }
 
-// ToService converts an api.Service to a *Service.
-func ToService(obj interface{}) interface{} {
+// ToService returns a function that converts an api.Service to a *Service.
+func ToService(skipCleanup bool) ToFunc {
+	return func(obj interface{}) interface{} {
+		return toService(skipCleanup, obj)
+	}
+}
+
+func toService(skipCleanup bool, obj interface{}) interface{} {
 	svc, ok := obj.(*api.Service)
 	if !ok {
 		return nil
@@ -58,7 +64,9 @@ func ToService(obj interface{}) interface{} {
 		s.ExternalIPs[li+i] = lb.IP
 	}
 
-	*svc = api.Service{}
+	if !skipCleanup {
+		*svc = api.Service{}
+	}
 
 	return s
 }

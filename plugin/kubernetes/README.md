@@ -229,3 +229,19 @@ plugin is also enabled:
  * kubernetes/service: the service name in the query
  * kubernetes/client-namespace: the client pod's namespace, if `pods verified` mode is enabled
  * kubernetes/client-pod-name: the client pod's name, if `pods verified` mode is enabled
+
+## Metrics
+
+The *kubernetes* plugin exports the following *Prometheus* metrics.
+* `coredns_kubernetes_dns_programming_latency_seconds{service_kind}` - exports the
+[DNS programming latency SLI](https://github.com/kubernetes/community/blob/master/sig-scalability/slos/dns_programming_latency.md).
+  The metrics has the `service_kind` label that identifies the kind of the
+  [kubernetes service](https://kubernetes.io/docs/concepts/services-networking/service).
+  It may take one of the three values:
+    * `cluster_ip`
+    * `headless_with_selector`
+    * `headless_without_selector`
+
+## Bugs
+
+ * add support for other service types; only "headless_with_selector" is supported now

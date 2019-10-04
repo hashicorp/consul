@@ -5,19 +5,25 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// NewIndexerInformer is a copy of the cache.NewIndexInformer function, but allows Process to have a conversion function (ToFunc).
-func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, h cache.ResourceEventHandler, indexers cache.Indexers, convert ToFunc) (cache.Indexer, cache.Controller) {
+// NewIndexerInformer is a copy of the cache.NewIndexerInformer function, but allows custom process function
+func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, h cache.ResourceEventHandler, indexers cache.Indexers, builder ProcessorBuilder) (cache.Indexer, cache.Controller) {
 	clientState := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, indexers)
 
-	fifo := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, clientState)
-
 	cfg := &cache.Config{
-		Queue:            fifo,
+		Queue:            cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, clientState),
 		ListerWatcher:    lw,
 		ObjectType:       objType,
 		FullResyncPeriod: defaultResyncPeriod,
 		RetryOnError:     false,
-		Process: func(obj interface{}) error {
+		Process:          builder(clientState, h),
+	}
+	return clientState, cache.New(cfg)
+}
+
+// DefaultProcessor is a copy of Process function from cache.NewIndexerInformer except it does a conversion.
+func DefaultProcessor(convert ToFunc) ProcessorBuilder {
+	return func(clientState cache.Indexer, h cache.ResourceEventHandler) cache.ProcessFunc {
+		return func(obj interface{}) error {
 			for _, d := range obj.(cache.Deltas) {
 
 				obj := convert(d.Object)
@@ -43,9 +49,8 @@ func NewIndexerInformer(lw cache.ListerWatcher, objType runtime.Object, h cache.
 				}
 			}
 			return nil
-		},
+		}
 	}
-	return clientState, cache.New(cfg)
 }
 
 const defaultResyncPeriod = 0

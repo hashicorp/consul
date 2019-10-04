@@ -16,8 +16,14 @@ type Pod struct {
 	*Empty
 }
 
-// ToPod converts an api.Pod to a *Pod.
-func ToPod(obj interface{}) interface{} {
+// ToPod returns a function that converts an api.Pod to a *Pod.
+func ToPod(skipCleanup bool) ToFunc {
+	return func(obj interface{}) interface{} {
+		return toPod(skipCleanup, obj)
+	}
+}
+
+func toPod(skipCleanup bool, obj interface{}) interface{} {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
 		return nil
@@ -35,7 +41,9 @@ func ToPod(obj interface{}) interface{} {
 		return nil
 	}
 
-	*pod = api.Pod{}
+	if !skipCleanup {
+		*pod = api.Pod{}
+	}
 
 	return p
 }

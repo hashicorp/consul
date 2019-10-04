@@ -44,10 +44,10 @@ type EndpointPort struct {
 func EndpointsKey(name, namespace string) string { return name + "." + namespace }
 
 // ToEndpoints converts an api.Endpoints to a *Endpoints.
-func ToEndpoints(obj interface{}) interface{} {
+func ToEndpoints(obj interface{}) (*api.Endpoints, *Endpoints) {
 	end, ok := obj.(*api.Endpoints)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	e := &Endpoints{
@@ -93,9 +93,7 @@ func ToEndpoints(obj interface{}) interface{} {
 		}
 	}
 
-	*end = api.Endpoints{}
-
-	return e
+	return end, e
 }
 
 // CopyWithoutSubsets copies e, without the subsets.
