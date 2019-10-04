@@ -58,7 +58,7 @@ func TestForceLeaveCommand(t *testing.T) {
 
 func TestForceLeaveCommand_prune(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	a1 := agent.NewTestAgent(t, t.Name()+"-a1", ``)
 	defer a1.Shutdown()
 	a2 := agent.NewTestAgent(t, t.Name()+"-a2", ``)
 	defer a2.Shutdown()
