@@ -13,7 +13,8 @@ initWorkingDir: &initWorkingDir
     GOROOT=$(go env GOROOT)
     sudo rm -r $(go env GOROOT)
     sudo mkdir $GOROOT
-    curl https://dl.google.com/go/go1.12.5.linux-amd64.tar.gz | sudo tar xz -C $GOROOT --strip-components=1
+    LATEST=$(curl -s https://golang.org/VERSION?m=text)
+    curl https://dl.google.com/go/${LATEST}.linux-amd64.tar.gz | sudo tar xz -C $GOROOT --strip-components=1
 
 integrationDefaults: &integrationDefaults
   machine:
@@ -55,7 +56,7 @@ jobs:
           name: Run Kubernetes tests
           command: |
             cd ~/go/src/${CIRCLE_PROJECT_USERNAME}/ci/test/kubernetes
-            GO111MODULE=on go test -v ./...
+            go test -v ./...
 
 workflows:
   version: 2
