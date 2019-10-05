@@ -32,6 +32,12 @@ type cmd struct {
 	service  string
 }
 
+type serviceInfo struct {
+	address	string
+	port 	int
+	tags	[]string
+}
+
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.node, "node", "",
@@ -68,28 +74,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.service != "" {
-		catalogService, _, err := client.Catalog().Service(c.service, "", nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error print service: %s", err))
-			return 1
-		}
-		if catalogService != nil {
-			var b bytes.Buffer
-			tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
-			for _, s := range catalogService {
-				fmt.Fprintf(tw, "%s\t%s\t%d\n", s.ServiceName, s.Address, s.ServicePort)
-			}
-			if err := tw.Flush(); err != nil {
-				c.UI.Error(fmt.Sprintf("Error flushing tabwriter: %s", err))
-				return 1
-			}
-			c.UI.Output(strings.TrimSpace(b.String()))
-			return 0
-		}
-	}
-
-	var services map[string][]string
+	var services map[string]*serviceInfo
 	if c.node != "" {
 		catalogNode, _, err := client.Catalog().Node(c.node, &api.QueryOptions{
 			NodeMeta: c.nodeMeta,
@@ -99,18 +84,47 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if catalogNode != nil {
-			services = make(map[string][]string, len(catalogNode.Services))
+			services = make(map[string]*serviceInfo, len(catalogNode.Services))
 			for _, s := range catalogNode.Services {
-				services[s.Service] = append(services[s.Service], s.Tags...)
+				services[s.Service] = &serviceInfo{
+					address: s.Address,
+					port:    s.Port,
+					tags:    s.Tags,
+				}
+			}
+		}
+	} else if c.service != "" {
+		catalogServices, _, err := client.Catalog().Service(c.service, "", nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error print service: %s", err))
+			return 1
+		}
+
+		if catalogServices != nil {
+			services = make(map[string]*serviceInfo, len(catalogServices))
+			for _, s := range catalogServices {
+				services[s.ServiceName] = &serviceInfo{
+					address:	s.Address,
+					port:		s.ServicePort,
+					tags:		s.ServiceTags,
+				}
 			}
 		}
 	} else {
-		services, _, err = client.Catalog().Services(&api.QueryOptions{
+		allServices, _, err := client.Catalog().Services(&api.QueryOptions{
 			NodeMeta: c.nodeMeta,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing services: %s", err))
 			return 1
+		}
+		if allServices != nil {
+			services = make(map[string]*serviceInfo, len(allServices))
+			for s, tags := range allServices {
+				services[s] = &serviceInfo{
+					tags:	tags,
+				}
+			}
 		}
 	}
 
@@ -127,24 +141,39 @@ func (c *cmd) Run(args []string) int {
 	}
 	sort.Strings(order)
 
-	if c.tags {
-		var b bytes.Buffer
-		tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
+	var b bytes.Buffer
+	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
+
+	if c.service != "" {
+		s := c.service
+		if c.tags {
+			sort.Strings(services[s].tags)
+			fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n", s, services[s].address, services[s].port, strings.Join(services[s].tags, ","))
+		} else {
+			fmt.Fprintf(tw, "%s\t%s\t%d\n", s, services[s].address, services[s].port)
+		}
+		return c.flushAndPrint(tw, &b)
+	} else if c.tags {
 		for _, s := range order {
-			sort.Strings(services[s])
-			fmt.Fprintf(tw, "%s\t%s\n", s, strings.Join(services[s], ","))
+			sort.Strings(services[s].tags)
+			fmt.Fprintf(tw, "%s\t%s\n", s, strings.Join(services[s].tags, ","))
 		}
-		if err := tw.Flush(); err != nil {
-			c.UI.Error(fmt.Sprintf("Error flushing tabwriter: %s", err))
-			return 1
-		}
-		c.UI.Output(strings.TrimSpace(b.String()))
+		return c.flushAndPrint(tw, &b)
 	} else {
 		for _, s := range order {
 			c.UI.Output(s)
 		}
 	}
 
+	return 0
+}
+
+func (c *cmd) flushAndPrint(tw *tabwriter.Writer, b *bytes.Buffer) int {
+	if err := tw.Flush(); err != nil {
+		c.UI.Error(fmt.Sprintf("Error flushing tabwriter: %s", err))
+		return 1
+	}
+	c.UI.Output(strings.TrimSpace(b.String()))
 	return 0
 }
 
@@ -166,6 +195,10 @@ Usage: consul catalog services [options]
   To retrieve the list of services:
 
       $ consul catalog services
+
+  To retrieve information about particular service:
+
+      $ consul catalog services -service=web
 
   To include the services' tags in the output:
 

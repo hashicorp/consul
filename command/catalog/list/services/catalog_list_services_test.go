@@ -100,6 +100,26 @@ func TestCatalogListServicesCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("service and tags", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-service", "testing",
+			"-tags",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+		output := ui.OutputWriter.String()
+		for _, expected := range []string{"testing", "127.0.0.1", "8080", "bar,foo"} {
+			if !strings.Contains(output, expected) {
+				t.Errorf("expected %q to contain %q", output, expected)
+			}
+		}
+	})
+
 	t.Run("node_missing", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
