@@ -1066,7 +1066,9 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 		if err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor", nil); err != nil {
 			return err
 		}
-		events = append(events, s.ACLTokenEvent(idx, token, stream.ACLOp_Delete))
+		if token != nil {
+			events = append(events, s.ACLTokenEvent(idx, token, stream.ACLOp_Delete))
+		}
 	}
 
 	if err := s.emitEvents(tx, events); err != nil {
