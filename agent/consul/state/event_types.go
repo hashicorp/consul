@@ -16,37 +16,33 @@ func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event,
 	case stream.Topic_ServiceHealth:
 		snapshotFunc = s.ServiceHealthSnapshot
 
+	case stream.Topic_ServiceHealthConnect:
+		snapshotFunc = s.ServiceHealthConnectSnapshot
+
 	default:
-		return fmt.Errorf("only the ServiceHealth topic is supported")
+		return fmt.Errorf("only ServiceHealth and ServiceHealthConnect topics supported")
 	}
 
+	// Compute the index to send back with the "end of snapshot" message.
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	idx, err := s.computeIndexTxn(tx)
+	if err != nil {
+		return err
+	}
 	if err := snapshotFunc(tx, ctx, eventCh, req); err != nil {
 		return err
 	}
 
-	// Get the latest index and send an "end of snapshot" message.
-	iter, err := tx.Get("index", "id")
-	if err != nil {
-		return err
-	}
-	highestIndex := uint64(0)
-	for index := iter.Next(); index != nil; index = iter.Next() {
-		if idx, ok := index.(*IndexEntry); ok && idx.Value > highestIndex {
-			highestIndex = idx.Value
-		}
-	}
-
 	endSnapshotEvent := stream.Event{
 		Topic:   req.Topic,
-		Index:   highestIndex,
+		Index:   idx,
 		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 	}
 	select {
+	case eventCh <- endSnapshotEvent:
 	case <-ctx.Done():
 		return nil
-	case eventCh <- endSnapshotEvent:
 	}
 
 	if eventCh != nil {
@@ -64,7 +60,20 @@ func (s *Store) ServiceHealthSnapshot(tx *memdb.Txn, ctx context.Context, eventC
 		return err
 	}
 
-	checkServiceNodesToServiceHealth(idx, nodes, ctx, eventCh)
+	checkServiceNodesToServiceHealth(idx, nodes, ctx, eventCh, false)
+
+	return nil
+}
+
+// ServiceHealthSnapshot returns stream.Events that provide a snapshot of the
+// current state.
+func (s *Store) ServiceHealthConnectSnapshot(tx *memdb.Txn, ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
+	idx, nodes, err := s.checkServiceNodesTxn(tx, nil, req.Key, true)
+	if err != nil {
+		return err
+	}
+
+	checkServiceNodesToServiceHealth(idx, nodes, ctx, eventCh, true)
 
 	return nil
 }
@@ -82,29 +91,59 @@ func (s *Store) RegistrationEvents(tx *memdb.Txn, idx uint64, node, service stri
 		return nil, err
 	}
 
-	return checkServiceNodesToServiceHealth(idx, nodes, nil, nil), nil
+	serviceHealthEvents := checkServiceNodesToServiceHealth(idx, nodes, nil, nil, false)
+	serviceHealthConnectEvents := serviceHealthToConnectEvents(serviceHealthEvents)
+
+	return append(serviceHealthEvents, serviceHealthConnectEvents...), nil
 }
 
 // DeregistrationEvents returns stream.Events that correspond to a catalog
 // deregister operation.
 func (s *Store) DeregistrationEvents(tx *memdb.Txn, idx uint64, node string) ([]stream.Event, error) {
+	serviceHealthEvent := serviceHealthDeregisterEvent(idx, node)
+	serviceHealthConnectEvents := serviceHealthToConnectEvents([]stream.Event{serviceHealthEvent})
+
 	events := []stream.Event{
-		serviceHealthDeregisterEvent(idx, node),
+		serviceHealthEvent,
 	}
+	events = append(events, serviceHealthConnectEvents...)
 
 	return events, nil
+}
+
+func serviceHealthToConnectEvents(events []stream.Event) []stream.Event {
+	serviceHealthConnectEvents := make([]stream.Event, 0, len(events))
+	for _, event := range events {
+		node := event.GetServiceHealth().CheckServiceNode
+		if node.Service == nil || (node.Service.Kind != structs.ServiceKindConnectProxy && !node.Service.Connect.Native) {
+			continue
+		}
+
+		connectEvent := event
+		connectEvent.Topic = stream.Topic_ServiceHealthConnect
+
+		// If this is a proxy, set the key to the destination service name.
+		if node.Service.Kind == structs.ServiceKindConnectProxy {
+			connectEvent.Key = node.Service.Proxy.DestinationServiceName
+		}
+
+		serviceHealthConnectEvents = append(serviceHealthConnectEvents, connectEvent)
+	}
+
+	return serviceHealthConnectEvents
 }
 
 // TxnEvents returns the stream.Events that correspond to a Txn operation.
 func (s *Store) TxnEvents(tx *memdb.Txn, idx uint64, ops structs.TxnOps) ([]stream.Event, error) {
 	var events []stream.Event
 
-	// Get the ServiceHealth events.
-	serviceHealth, err := txnServiceHealthEvents(s, tx, idx, ops)
+	// Get the ServiceHealth and events.
+	serviceHealthEvents, err := txnServiceHealthEvents(s, tx, idx, ops)
 	if err != nil {
 		return nil, err
 	}
-	events = append(events, serviceHealth...)
+	events = append(events, serviceHealthEvents...)
+	events = append(events, serviceHealthToConnectEvents(serviceHealthEvents)...)
 
 	return events, nil
 }

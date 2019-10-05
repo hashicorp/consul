@@ -8,9 +8,9 @@ import (
 
 func TestSetACLRules(t *testing.T) {
 	event := Event{
-		Op: Operation_Upsert,
 		Payload: &Event_ServiceHealth{
 			ServiceHealth: &ServiceHealthUpdate{
+				Op: CatalogOp_Register,
 				CheckServiceNode: &CheckServiceNode{
 					Node: &Node{
 						Node: "node1",

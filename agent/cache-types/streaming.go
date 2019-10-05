@@ -30,16 +30,11 @@ type Subscriber struct {
 	handler EventHandler
 
 	lastResult interface{}
-	resultCh   chan watchResult
+	resultCh   chan interface{}
 	ctx        context.Context
 	cancelFunc func()
 
 	lock sync.RWMutex
-}
-
-type watchResult struct {
-	result     interface{}
-	forceReset bool
 }
 
 func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler EventHandler) *Subscriber {
@@ -48,7 +43,7 @@ func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler 
 		client:     client,
 		request:    req,
 		handler:    handler,
-		resultCh:   make(chan watchResult, 1),
+		resultCh:   make(chan interface{}, 1),
 		ctx:        ctx,
 		cancelFunc: cancel,
 	}
@@ -78,7 +73,7 @@ START:
 
 	// If something went wrong setting up the stream, return the error.
 	if err != nil {
-		s.resultCh <- watchResult{result: err}
+		s.resultCh <- err
 		return
 	}
 
@@ -90,7 +85,7 @@ START:
 		if err != nil {
 			// Do a non-blocking send of the error, in case there's no Fetch watching.
 			select {
-			case s.resultCh <- watchResult{result: err}:
+			case s.resultCh <- err:
 			default:
 			}
 			return
@@ -112,15 +107,12 @@ START:
 		}
 
 		// Update our version of the state based on the event/op.
-		var finishedSnapshot bool
 		switch event.Topic {
 		case s.request.Topic:
 			if !event.GetEndOfSnapshot() {
 				s.handler.HandleEvent(event)
 			} else {
-				fmt.Printf("SNAPSHOT FINISHED\n")
 				snapshotDone = true
-				finishedSnapshot = true
 			}
 		default:
 			// should never happen
@@ -144,7 +136,7 @@ START:
 
 		// Send the new view of the state to the watcher.
 		select {
-		case s.resultCh <- watchResult{result: result, forceReset: finishedSnapshot}:
+		case s.resultCh <- result:
 		default:
 		}
 	}
@@ -186,7 +178,7 @@ WAIT:
 	select {
 	case r := <-sub.resultCh:
 		// If an error was returned, exit immediately.
-		if err, ok := r.result.(error); ok {
+		if err, ok := r.(error); ok {
 			// Reset the state/subscriber if there was an error.
 			result.State = nil
 			return result, err
@@ -195,13 +187,11 @@ WAIT:
 		// Wait for another update if the result wasn't higher than the requested index.
 		// If this update came from a snapshot finishing, we return no matter what, as the
 		// state/index could have changed as a result of ACL updates or other filtering.
-		index := getIndex(r.result)
-		if index <= opts.MinIndex && !r.forceReset {
-			fmt.Println("WAITING FOR HIGHER INDEX")
+		index := getIndex(r)
+		if index <= opts.MinIndex {
 			goto WAIT
 		}
-		fmt.Println("RETURNING UPDATE")
-		result.Value = r.result
+		result.Value = r
 		result.Index = index
 	case <-timeout:
 		sub.lock.RLock()

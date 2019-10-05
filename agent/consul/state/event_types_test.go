@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegistrationEvents(t *testing.T) {
+func TestRegistrationEvents_ServiceHealth(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s := testStateStore(t)
@@ -221,7 +221,173 @@ func TestRegistrationEvents(t *testing.T) {
 	}
 }
 
-func TestTxnEvents(t *testing.T) {
+func TestRegistrationEvents_ServiceHealthConnect(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s := testStateStore(t)
+
+	nodeID := makeRandomNodeID(t)
+
+	// Register a first node with a native connect service, a non-native service,
+	// and a proxy for the non-native service.
+	{
+		req := &structs.RegisterRequest{
+			ID:      nodeID,
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				ID:      "api1",
+				Service: "api",
+				Address: "1.1.1.1",
+				Port:    8080,
+				Connect: structs.ServiceConnect{
+					Native: true,
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "node1",
+					CheckID: "check1",
+					Name:    "node check",
+					Status:  "passing",
+				},
+			},
+		}
+		require.NoError(s.EnsureRegistration(1, req))
+	}
+	{
+		req := &structs.RegisterRequest{
+			ID:      nodeID,
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "1.1.1.1",
+				Port:    7777,
+			},
+		}
+		require.NoError(s.EnsureRegistration(2, req))
+	}
+	{
+		req := &structs.RegisterRequest{
+			ID:      nodeID,
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "redis1-proxy",
+				Service: "redis-proxy",
+				Address: "2.2.2.2",
+				Port:    9999,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "redis",
+				},
+			},
+		}
+		require.NoError(s.EnsureRegistration(3, req))
+	}
+
+	expected := []stream.Event{
+		stream.Event{
+			Topic: stream.Topic_ServiceHealthConnect,
+			Index: 2,
+			Key:   "api",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:      "node1",
+							ID:        nodeID,
+							Address:   "1.2.3.4",
+							RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+						},
+						Service: &stream.NodeService{
+							ID:      "api1",
+							Service: "api",
+							Address: "1.1.1.1",
+							Port:    8080,
+							Connect: stream.ServiceConnect{
+								Native: true,
+							},
+							RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+						},
+						Checks: []*stream.HealthCheck{
+							{
+								Name:      "node check",
+								Node:      "node1",
+								Status:    "passing",
+								CheckID:   "check1",
+								RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+							},
+						},
+					},
+				},
+			},
+		},
+		stream.Event{
+			Topic: stream.Topic_ServiceHealthConnect,
+			Index: 2,
+			Key:   "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:      "node1",
+							ID:        nodeID,
+							Address:   "1.2.3.4",
+							RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+						},
+						Service: &stream.NodeService{
+							Kind:    structs.ServiceKindConnectProxy,
+							ID:      "redis1-proxy",
+							Service: "redis-proxy",
+							Address: "2.2.2.2",
+							Port:    9999,
+							Proxy: stream.ConnectProxyConfig{
+								DestinationServiceName: "redis",
+							},
+							RaftIndex: stream.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+						},
+						Checks: []*stream.HealthCheck{
+							{
+								Name:      "node check",
+								Node:      "node1",
+								Status:    "passing",
+								CheckID:   "check1",
+								RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Check the output and make sure we only get events for the native service
+	// and connect.
+	{
+		tx := s.db.Txn(false)
+		events, err := s.RegistrationEvents(tx, 2, "node1", "")
+		require.NoError(err)
+
+		// Filter out only the events with the connect topic.
+		var connectEvents []stream.Event
+		for _, event := range events {
+			if event.Topic == stream.Topic_ServiceHealthConnect {
+				connectEvents = append(connectEvents, event)
+			}
+		}
+		require.Equal(expected, connectEvents)
+		tx.Abort()
+	}
+}
+
+func TestTxnEvents_ServiceHealth(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 	s := testStateStore(t)
@@ -501,6 +667,207 @@ func TestTxnEvents(t *testing.T) {
 		events, err := s.TxnEvents(tx, 2, ops)
 		require.NoError(err)
 		verify.Values(t, "", events, expected)
+		tx.Abort()
+	}
+}
+
+func TestTxnEvents_ServiceHealthConnect(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+	s := testStateStore(t)
+
+	// Register a first node with a native connect service, a non-native service,
+	// and a proxy for the non-native service.
+	nodeID := types.NodeID(testUUID())
+	{
+		req := &structs.RegisterRequest{
+			ID:      nodeID,
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				ID:      "api1",
+				Service: "api",
+				Address: "1.1.1.1",
+				Port:    8080,
+				Connect: structs.ServiceConnect{
+					Native: true,
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "node1",
+					CheckID: "check1",
+					Name:    "node check",
+					Status:  "passing",
+				},
+			},
+		}
+		require.NoError(s.EnsureRegistration(1, req))
+	}
+	{
+		req := &structs.RegisterRequest{
+			ID:      nodeID,
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "1.1.1.1",
+				Port:    7777,
+			},
+		}
+		require.NoError(s.EnsureRegistration(2, req))
+	}
+	{
+		req := &structs.RegisterRequest{
+			ID:      nodeID,
+			Node:    "node1",
+			Address: "1.2.3.4",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "redis1-proxy",
+				Service: "redis-proxy",
+				Address: "2.2.2.2",
+				Port:    9999,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "redis",
+				},
+			},
+		}
+		require.NoError(s.EnsureRegistration(3, req))
+	}
+
+	// Set up some txn ops that hit each service so we can be sure the connect ones
+	// generate events for the connect topic and the others don't.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb: api.ServiceSet,
+				Node: "node1",
+				Service: structs.NodeService{
+					ID:      "api1",
+					Service: "api",
+				},
+			},
+		},
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb: api.ServiceSet,
+				Node: "node1",
+				Service: structs.NodeService{
+					ID:      "redis1",
+					Service: "redis",
+				},
+			},
+		},
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb: api.ServiceSet,
+				Node: "node1",
+				Service: structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "redis1-proxy",
+					Service: "redis-proxy",
+				},
+			},
+		},
+	}
+
+	expected := []stream.Event{
+		stream.Event{
+			Topic: stream.Topic_ServiceHealthConnect,
+			Index: 3,
+			Key:   "api",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:      "node1",
+							ID:        nodeID,
+							Address:   "1.2.3.4",
+							RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+						},
+						Service: &stream.NodeService{
+							ID:      "api1",
+							Service: "api",
+							Address: "1.1.1.1",
+							Port:    8080,
+							Connect: stream.ServiceConnect{
+								Native: true,
+							},
+							RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+						},
+						Checks: []*stream.HealthCheck{
+							{
+								Name:      "node check",
+								Node:      "node1",
+								Status:    "passing",
+								CheckID:   "check1",
+								RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+							},
+						},
+					},
+				},
+			},
+		},
+		stream.Event{
+			Topic: stream.Topic_ServiceHealthConnect,
+			Index: 3,
+			Key:   "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:      "node1",
+							ID:        nodeID,
+							Address:   "1.2.3.4",
+							RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+						},
+						Service: &stream.NodeService{
+							Kind:    structs.ServiceKindConnectProxy,
+							ID:      "redis1-proxy",
+							Service: "redis-proxy",
+							Address: "2.2.2.2",
+							Port:    9999,
+							Proxy: stream.ConnectProxyConfig{
+								DestinationServiceName: "redis",
+							},
+							RaftIndex: stream.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+						},
+						Checks: []*stream.HealthCheck{
+							{
+								Name:      "node check",
+								Node:      "node1",
+								Status:    "passing",
+								CheckID:   "check1",
+								RaftIndex: stream.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Check the output and make sure we only get events for the native service
+	// and connect.
+	{
+		tx := s.db.Txn(false)
+		events, err := s.TxnEvents(tx, 3, ops)
+		require.NoError(err)
+
+		// Filter out only the events with the connect topic.
+		var connectEvents []stream.Event
+		for _, event := range events {
+			if event.Topic == stream.Topic_ServiceHealthConnect {
+				connectEvents = append(connectEvents, event)
+			}
+		}
+		require.Equal(expected, connectEvents)
 		tx.Abort()
 	}
 }

@@ -10,9 +10,10 @@ service Consul {
 
 enum Topic {
     ServiceHealth = 0;
-    ACLTokens = 1;
-    ACLPolicies = 2;
-    ACLRoles = 3;
+    ServiceHealthConnect = 1;
+    ACLTokens = 2;
+    ACLPolicies = 3;
+    ACLRoles = 4;
 }
   
 message SubscribeRequest {
@@ -21,12 +22,6 @@ message SubscribeRequest {
     string Token = 3;
     uint64 Index = 4;
     string Filter = 5;
-    Filters TopicFilters = 6;
-}
-
-message Filters {
-    bool Connect = 1;
-    repeated string Tags = 2;
 }
 
 message Event {
