@@ -29,6 +29,7 @@ type cmd struct {
 	node     string
 	nodeMeta map[string]string
 	tags     bool
+	service  string
 }
 
 func (c *cmd) init() {
@@ -42,6 +43,7 @@ func (c *cmd) init() {
 		"of metadata.")
 	c.flags.BoolVar(&c.tags, "tags", false, "Display each service's tags as a "+
 		"comma-separated list beside each service entry.")
+	c.flags.StringVar(&c.service, "service", "", "Service `name` for which to list host and port.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -64,6 +66,27 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
+	}
+
+	if c.service != "" {
+		catalogService, _, err := client.Catalog().Service(c.service, "", nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error print service: %s", err))
+			return 1
+		}
+		if catalogService != nil {
+			var b bytes.Buffer
+			tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
+			for _, s := range catalogService {
+				fmt.Fprintf(tw, "%s\t%s\t%d\n", s.ServiceName, s.Address, s.ServicePort)
+			}
+			if err := tw.Flush(); err != nil {
+				c.UI.Error(fmt.Sprintf("Error flushing tabwriter: %s", err))
+				return 1
+			}
+			c.UI.Output(strings.TrimSpace(b.String()))
+			return 0
+		}
 	}
 
 	var services map[string][]string
