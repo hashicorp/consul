@@ -86,6 +86,7 @@ func (h *healthServicesHandler) State(idx uint64) interface{} {
 	for _, node := range h.state {
 		result.Nodes = append(result.Nodes, node)
 	}
+	result.Nodes.Sort()
 	result.Index = idx
 	return &result
 }

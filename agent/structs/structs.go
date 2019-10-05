@@ -1396,6 +1396,31 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 
 type CheckServiceNodes []CheckServiceNode
 
+// Sort sorts the nodes by node name first, then service name.
+func (nodes CheckServiceNodes) Sort() {
+	sort.Slice(nodes, func(a, b int) bool {
+		var nodeA, nodeB string
+		if nodes[a].Node != nil {
+			nodeA = nodes[a].Node.Node
+		}
+		if nodes[b].Node != nil {
+			nodeB = nodes[b].Node.Node
+		}
+		if nodeA != nodeB {
+			return nodeA < nodeB
+		}
+
+		var svcA, svcB string
+		if nodes[a].Service != nil {
+			svcA = nodes[a].Service.Service
+		}
+		if nodes[b].Service != nil {
+			svcB = nodes[b].Service.Service
+		}
+		return svcA < svcB
+	})
+}
+
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
 func (nodes CheckServiceNodes) Shuffle() {
 	for i := len(nodes) - 1; i > 0; i-- {
