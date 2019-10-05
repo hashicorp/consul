@@ -171,6 +171,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().CheckServiceNode.Service.RaftIndex
 		expected[i].SetACLRules()
 	}
+	expected[2].Index = snapshotEvents[2].Index
 	verify.Values(t, "", snapshotEvents, expected)
 
 	// Update the registration by adding a check.

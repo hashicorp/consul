@@ -3,8 +3,6 @@ package stream
 import (
 	fmt "fmt"
 	"hash/fnv"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // FilterObject returns the object in the event to use for boolean
@@ -44,6 +42,8 @@ func (e *Event) ID() uint32 {
 	return h.Sum32()
 }
 
+// MakeDeleteEvent creates a minimal delete event for removing an object
+// due to filtering.
 func MakeDeleteEvent(e *Event) (*Event, error) {
 	deleteEvent := &Event{Topic: e.Topic}
 
@@ -68,48 +68,4 @@ func MakeDeleteEvent(e *Event) (*Event, error) {
 	}
 
 	return deleteEvent, nil
-}
-
-// EventFilterFunc returns true if the given event should be sent.
-type EventFilterFunc func(Event) bool
-
-// EventFilter returns a function used to apply event filtering
-// to the Subscribe call based on the request.
-func (r *SubscribeRequest) EventFilter() EventFilterFunc {
-	if r == nil || r.TopicFilters == nil {
-		return nil
-	}
-
-	switch r.Topic {
-	case Topic_ServiceHealth:
-		if r.TopicFilters.Connect {
-			return serviceConnectFilter
-		} else if len(r.TopicFilters.Tags) > 0 {
-			return r.serviceTagsFilter
-		}
-	default:
-	}
-
-	return nil
-}
-
-// serviceConnectFilter returns whether the event relates to a Connect-enabled service.
-func serviceConnectFilter(e Event) bool {
-	svc := e.GetServiceHealth()
-	if svc == nil || svc.CheckServiceNode == nil || svc.CheckServiceNode.Service == nil {
-		return false
-	}
-
-	service := svc.CheckServiceNode.Service
-	return service.Connect.Native == true || service.Kind == structs.ServiceKindConnectProxy
-}
-
-// serviceTagsFilter returns whether the event's service contains the required tags.
-func (r *SubscribeRequest) serviceTagsFilter(e Event) bool {
-	svc := e.GetServiceHealth()
-	if svc == nil || svc.CheckServiceNode == nil || svc.CheckServiceNode.Service == nil {
-		return false
-	}
-
-	return !structs.ServiceTagsFilter(svc.CheckServiceNode.Service.Tags, r.TopicFilters.Tags)
 }
