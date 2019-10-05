@@ -24,7 +24,6 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		return err
 	}
 	aclFilter := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
-	eventFilter := req.EventFilter()
 
 	// Create the boolean expression filter.
 	var eval *bexpr.Evaluator
@@ -47,9 +46,25 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		// Wait for the events to come in and send them to the client.
 		for event := range snapshotCh {
 			event.SetACLRules()
-			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
+			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
+		}
+	} else {
+		// If there wasn't a snapshot, just send an end of snapshot message
+		// so the client knows not to wait for one.
+		idx, err := state.ComputeIndex()
+		if err != nil {
+			return err
+		}
+
+		endSnapshotEvent := stream.Event{
+			Topic:   req.Topic,
+			Index:   idx,
+			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
+		}
+		if err := server.Send(&endSnapshotEvent); err != nil {
+			return err
 		}
 	}
 
@@ -77,7 +92,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 				return nil
 			}
 
-			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
+			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
 		}
@@ -86,14 +101,13 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 // sendEvent sends the given event along the stream if it passes ACL, boolean, and
 // any topic-specific filtering.
-func sendEvent(event stream.Event, eventFilter stream.EventFilterFunc, aclFilter *aclFilter,
-	eval *bexpr.Evaluator, sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
+func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
+	sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
+	// If it's a special case event, skip the filtering and just send it.
+	if event.GetEndOfSnapshot() || event.GetReloadStream() {
+		return server.Send(&event)
+	}
 	allowEvent := true
-
-	// Check if the event should be filtered based on the request type.
-	/*if eventFilter != nil && !eventFilter(event) {
-		allowEvent = false
-	}*/
 
 	// Filter by ACL rules.
 	if !aclFilter.allowEvent(event) {

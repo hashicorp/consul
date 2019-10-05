@@ -1246,9 +1246,12 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string) error {
 	if err != nil {
 		return err
 	}
-	event := s.ACLTokenEvent(idx, token, stream.ACLOp_Delete)
-	if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
-		return err
+
+	if token != nil {
+		event := s.ACLTokenEvent(idx, token, stream.ACLOp_Delete)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()
