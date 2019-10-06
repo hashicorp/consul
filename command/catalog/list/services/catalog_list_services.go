@@ -33,9 +33,9 @@ type cmd struct {
 }
 
 type serviceInfo struct {
-	address	string
-	port 	int
-	tags	[]string
+	address string
+	port    int
+	tags    []string
 }
 
 func (c *cmd) init() {
@@ -104,9 +104,9 @@ func (c *cmd) Run(args []string) int {
 			services = make(map[string]*serviceInfo, len(catalogServices))
 			for _, s := range catalogServices {
 				services[s.ServiceName] = &serviceInfo{
-					address:	s.Address,
-					port:		s.ServicePort,
-					tags:		s.ServiceTags,
+					address: s.Address,
+					port:    s.ServicePort,
+					tags:    s.ServiceTags,
 				}
 			}
 		}
@@ -122,7 +122,7 @@ func (c *cmd) Run(args []string) int {
 			services = make(map[string]*serviceInfo, len(catalogServices))
 			for s, tags := range catalogServices {
 				services[s] = &serviceInfo{
-					tags:	tags,
+					tags: tags,
 				}
 			}
 		}
