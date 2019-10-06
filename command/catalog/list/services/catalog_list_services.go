@@ -111,16 +111,16 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		allServices, _, err := client.Catalog().Services(&api.QueryOptions{
+		catalogServices, _, err := client.Catalog().Services(&api.QueryOptions{
 			NodeMeta: c.nodeMeta,
 		})
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error listing services: %s", err))
 			return 1
 		}
-		if allServices != nil {
-			services = make(map[string]*serviceInfo, len(allServices))
-			for s, tags := range allServices {
+		if catalogServices != nil {
+			services = make(map[string]*serviceInfo, len(catalogServices))
+			for s, tags := range catalogServices {
 				services[s] = &serviceInfo{
 					tags:	tags,
 				}
