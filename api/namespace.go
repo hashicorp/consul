@@ -10,7 +10,7 @@ type Namespace struct {
 	// Name is the name of the Namespace. It must be unique and
 	// must be a DNS hostname. There are also other reserved names
 	// that may not be used.
-	Name string `json:"Name,omitempty"`
+	Name string `json:"Name"`
 
 	// Description is where the user puts any information they want
 	// about the namespace. It is not used internally.
