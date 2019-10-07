@@ -6,6 +6,10 @@ FEATURES
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Google Cloud Storage.
 * connect: Added proxy config stanza to allow exposing HTTP paths through Envoy for non-Connect-enabled services [[GH-5396](https://github.com/hashicorp/consul/issues/5396)]
 
+IMPROVEMENTS
+
+* licensing (Consul Enterprise): Increase initial server temporary license duration to 6 hours to allow for longer upgrades/migrations.
+
 BUG FIXES
 
 * agent: cache notifications work after error if the underlying RPC returns index=1 [[GH-6547](https://github.com/hashicorp/consul/issues/6547)]
