@@ -23,8 +23,8 @@ type ACLLink struct {
 	Name string
 }
 
-type ACLTokenPolicyLink ACLLink
-type ACLTokenRoleLink ACLLink
+type ACLTokenPolicyLink = ACLLink
+type ACLTokenRoleLink = ACLLink
 
 // ACLToken represents an ACL Token
 type ACLToken struct {
@@ -116,7 +116,7 @@ type ACLPolicyListEntry struct {
 	ModifyIndex uint64
 }
 
-type ACLRolePolicyLink ACLLink
+type ACLRolePolicyLink = ACLLink
 
 // ACLRole represents an ACL Role.
 type ACLRole struct {
