@@ -28,7 +28,7 @@ var (
 	DnsProgrammingLatency = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: plugin.Namespace,
 		Subsystem: subsystem,
-		Name:      "dns_programming_latency_seconds",
+		Name:      "dns_programming_duration_seconds",
 		// From 1 millisecond to ~17 minutes.
 		Buckets: prometheus.ExponentialBuckets(0.001, 2, 20),
 		Help:    "Histogram of the time (in seconds) it took to program a dns instance.",
@@ -72,5 +72,4 @@ func recordDNSProgrammingLatency(svcs []*object.Service, endpoints *api.Endpoint
 	// "headless service with selector".
 	DnsProgrammingLatency.WithLabelValues("headless_with_selector").
 		Observe(durationSinceFunc(lastChangeTriggerTime).Seconds())
-
 }

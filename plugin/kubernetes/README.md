@@ -46,7 +46,6 @@ kubernetes [ZONES...] {
 }
 ```
 
-
 * `endpoint` specifies the **URL** for a remote k8s API endpoint.
    If omitted, it will connect to k8s in-cluster using the cluster service account.
 * `tls` **CERT** **KEY** **CACERT** are the TLS cert, key and the CA cert file names for remote k8s connection.
@@ -210,15 +209,15 @@ or the word "any"), then that label will match all values.  The labels that acce
  * multiple wildcards are allowed in a single query, e.g., `A` Request `*.*.svc.zone.` or `SRV` request `*.*.*.*.svc.zone.`
 
  For example, wildcards can be used to resolve all Endpoints for a Service as `A` records. e.g.: `*.service.ns.svc.myzone.local` will return the Endpoint IPs in the Service `service` in namespace `default`:
- ```
+
+```
 *.service.default.svc.cluster.local. 5	IN A	192.168.10.10
 *.service.default.svc.cluster.local. 5	IN A	192.168.25.15
 ```
- This response can be randomized using the `loadbalance` plugin
 
 ## Metadata
 
-The kubernetes plugin will publish the following metadata, if the _metadata_
+The kubernetes plugin will publish the following metadata, if the *metadata*
 plugin is also enabled:
 
  * kubernetes/endpoint: the endpoint name in the query
@@ -232,9 +231,10 @@ plugin is also enabled:
 
 ## Metrics
 
-The *kubernetes* plugin exports the following *Prometheus* metrics.
-* `coredns_kubernetes_dns_programming_latency_seconds{service_kind}` - exports the
-[DNS programming latency SLI](https://github.com/kubernetes/community/blob/master/sig-scalability/slos/dns_programming_latency.md).
+If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
+
+* `coredns_kubernetes_dns_programming_duration_seconds{service_kind}` - Exports the
+  [DNS programming latency SLI](https://github.com/kubernetes/community/blob/master/sig-scalability/slos/dns_programming_latency.md).
   The metrics has the `service_kind` label that identifies the kind of the
   [kubernetes service](https://kubernetes.io/docs/concepts/services-networking/service).
   It may take one of the three values:
@@ -244,4 +244,4 @@ The *kubernetes* plugin exports the following *Prometheus* metrics.
 
 ## Bugs
 
- * add support for other service types; only "headless_with_selector" is supported now
+The duration metric only supports the "headless_with_selector" service currently.
