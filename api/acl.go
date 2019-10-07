@@ -18,14 +18,13 @@ const (
 	ACLManagementType = "management"
 )
 
-type ACLTokenPolicyLink struct {
+type ACLLink struct {
 	ID   string
 	Name string
 }
-type ACLTokenRoleLink struct {
-	ID   string
-	Name string
-}
+
+type ACLTokenPolicyLink = ACLLink
+type ACLTokenRoleLink = ACLLink
 
 // ACLToken represents an ACL Token
 type ACLToken struct {
@@ -117,10 +116,7 @@ type ACLPolicyListEntry struct {
 	ModifyIndex uint64
 }
 
-type ACLRolePolicyLink struct {
-	ID   string
-	Name string
-}
+type ACLRolePolicyLink = ACLLink
 
 // ACLRole represents an ACL Role.
 type ACLRole struct {
