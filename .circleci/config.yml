@@ -94,7 +94,7 @@ jobs:
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
       - checkout
-      - restore_cache: # restore cache from dev-build job
+      - restore_cache: # restore cache from earlier job
           keys:
             - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
@@ -147,14 +147,11 @@ jobs:
       - image: *GOLANG_IMAGE
     environment: &build-env
       <<: *ENVIRONMENT
-      GOXPARALLEL: 2 # CircleCI containers are 2 CPU x 4GB RAM
-    resource_class: large
     steps:
       - checkout
-      - run: |
-          make tools
-          # restore any go.{mod,sum} files that were updated indirectly
-          git reset --hard HEAD
+      - restore_cache: # restore cache from dev-build job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run: ./build-support/scripts/build-local.sh
 
       # save dev build to CircleCI
@@ -541,9 +538,12 @@ workflows:
       - go-test-api: *go-test
   build-distros:
     jobs:
-      - build-386
-      - build-amd64
-      - build-arm
+      - check-vendor
+      - build-386: &require-check-vendor
+          requires:
+            - check-vendor
+      - build-amd64: *require-check-vendor
+      - build-arm: *require-check-vendor
   test-integrations:
     jobs:
       - dev-build
