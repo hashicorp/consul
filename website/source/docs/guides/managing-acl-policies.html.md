@@ -81,7 +81,7 @@ agent_prefix ""
 
 ## Secure Access Control: Operator-Only Access
 
-The most secure access control implementation restricts tokens with `acl=”write”` policies to only one or a few trusted operators. Tokens with the policy `acl = "write"` grant the holder unlimited privileges, because they can generate tokens with any other resource and policy. The operators are responsible for creating all other policies and tokens that grant limited access to the datacenter. We refer to this implementation as the operator-only implementation. This implementation type is the most secure, and most complex to manage.  
+The most secure access control implementation restricts tokens with `acl="write"` policies to only one or a few trusted operators. Tokens with the policy `acl = "write"` grant the holder unlimited privileges, because they can generate tokens with any other resource and policy. The operators are responsible for creating all other policies and tokens that grant limited access to the datacenter. We refer to this implementation as the operator-only implementation. This implementation type is the most secure, and most complex to manage.  
 
 For this implementation type operators are responsible for managing policies and tokens for: 
 - service registration
