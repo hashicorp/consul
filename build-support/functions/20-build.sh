@@ -400,18 +400,45 @@ function build_consul_local {
       do
          outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
          osarch="${os}/${arch}"
-         if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64" -o "${osarch}" == "freebsd/arm64" -o "${osarch}" == "windows/arm" -o "${osarch}" == "windows/arm64" -o "${osarch}" == "freebsd/arm"
-         then
-            continue
-         fi
 
-         if test "${os}" == "solaris" -a "${arch}" != "amd64"
-         then
-            continue
-         fi
+         case "${os}" in
+            "darwin" )
+               # Do not build ARM binaries for macOS
+               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               then
+                  continue
+               fi
+               ;;
+            "windows" )
+               # Do not build ARM binaries for Windows
+               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               then
+                  continue
+               fi
+               ;;
+            "freebsd" )
+               # Do not build ARM binaries for FreeBSD
+               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               then
+                  continue
+               fi
+               ;;
+            "solaris" )
+               # Only build amd64 for Solaris
+               if test "${arch}" != "amd64"
+               then
+                  continue
+               fi            
+               ;;
+            "linux" )
+               # build all the binaries for Linux
+               ;;
+            *)
+               continue
+            ;;
+         esac         
 
          echo "--->   ${osarch}"
-
 
          mkdir -p "${outdir}"
          GOBIN_EXTRA=""
