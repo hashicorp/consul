@@ -109,7 +109,7 @@ service "wordpress"
   }
 ```
 
-This enables the security team to create an intention that allows the upstream proxy for `mysql` to send data to the destination, the downstream proxy for `wordpress`.
+This enables the security team to create an intention that allows the `wordpress` service to open new connections to the upstream `mysql` service.
 
 ```sh
 consul intention create wordpress mysql
