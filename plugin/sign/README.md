@@ -62,7 +62,7 @@ sign DBFILE [ZONES...] {
 ~~~
 
 *  **DBFILE** the zone database file to read and parse. If the path is relative, the path from the
-   *root* directive will be prepended to it.
+   *root* plugin will be prepended to it.
 *  **ZONES** zones it should be sign for. If empty, the zones from the configuration block are
    used.
 * `key` specifies the key(s) (there can be multiple) to sign the zone. If `file` is
@@ -71,7 +71,7 @@ sign DBFILE [ZONES...] {
    *ignored*. These keys must also be Key Signing Keys (KSK).
 *  `directory` specifies the **DIR** where CoreDNS should save zones that have been signed.
    If not given this defaults to `/var/lib/coredns`. The zones are saved under the name
-   `db.<name>.signed`. If the path is relative the path from the *root* directive will be prepended
+   `db.<name>.signed`. If the path is relative the path from the *root* plugin will be prepended
    to it.
 
 Keys can be generated with `coredns-keygen`, to create one for use in the *sign* plugin, use:

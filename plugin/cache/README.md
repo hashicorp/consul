@@ -61,9 +61,9 @@ Since shards don't fill up perfectly evenly, evictions will occur before the ent
 Each shard capacity is equal to the total cache size / number of shards (256). Eviction is random, not TTL based.
 Entries with 0 TTL will remain in the cache until randomly evicted when the shard reaches capacity.
 
-# Metrics
+## Metrics
 
-If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
+If monitoring is enabled (via the *prometheus* plugin) then the following metrics are exported:
 
 * `coredns_cache_size{server, type}` - Total elements in the cache by cache type.
 * `coredns_cache_hits_total{server, type}` - Counter of cache hits by cache type.

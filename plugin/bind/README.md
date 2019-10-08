@@ -40,7 +40,7 @@ To allow processing DNS requests only local host on both IPv4 and IPv6 stacks, u
 }
 ~~~
 
-If the configuration comes up with several *bind* directives, all addresses are consolidated together:
+If the configuration comes up with several *bind* plugins, all addresses are consolidated together:
 The following sample is equivalent to the preceding:
 
 ~~~ corefile

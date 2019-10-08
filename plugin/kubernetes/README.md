@@ -24,7 +24,7 @@ This plugin can only be used once per Server Block.
 kubernetes [ZONES...]
 ~~~
 
-With only the directive specified, the *kubernetes* plugin will default to the zone specified in
+With only the plugin specified, the *kubernetes* plugin will default to the zone specified in
 the server's block. It will handle all queries in that zone and connect to Kubernetes in-cluster. It
 will not provide PTR records for services or A records for pods. If **ZONES** is used it specifies
 all the zones the plugin should be authoritative for.
@@ -231,7 +231,7 @@ plugin is also enabled:
 
 ## Metrics
 
-If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
+If monitoring is enabled (via the *prometheus* plugin) then the following metrics are exported:
 
 * `coredns_kubernetes_dns_programming_duration_seconds{service_kind}` - Exports the
   [DNS programming latency SLI](https://github.com/kubernetes/community/blob/master/sig-scalability/slos/dns_programming_latency.md).

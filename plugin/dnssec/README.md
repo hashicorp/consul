@@ -51,7 +51,7 @@ used (See [bugs](#bugs)).
 
 ## Metrics
 
-If monitoring is enabled (via the *prometheus* directive) then the following metrics are exported:
+If monitoring is enabled (via the *prometheus* plugin) then the following metrics are exported:
 
 * `coredns_dnssec_cache_size{server, type}` - total elements in the cache, type is "signature".
 * `coredns_dnssec_cache_hits_total{server}` - Counter of cache hits.

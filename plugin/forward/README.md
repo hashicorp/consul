@@ -94,7 +94,7 @@ On each endpoint, the timeouts of the communication are set by default and autom
 
 ## Metrics
 
-If monitoring is enabled (via the *prometheus* directive) then the following metric are exported:
+If monitoring is enabled (via the *prometheus* plugin) then the following metric are exported:
 
 * `coredns_forward_request_duration_seconds{to}` - duration per upstream interaction.
 * `coredns_forward_request_count_total{to}` - query count per upstream.
