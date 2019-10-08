@@ -21,7 +21,7 @@ This guide assumes the `default_policy` of `deny` is set on all agents, in accor
 
 ## Security and Usability 
 
-The examples in this guide illustrate how to create multiple policies that can be used to accomplish the same task. For example, using an exact match resource rule, is the most secure. It grants the least privileges necessary to accomplish the task. Generally, creating policies and tokens with the least privileges will result in more policy definitions. Alternatively, for a simplified process, the prefix resources rules can apply to zero-to-many objects. The trade-off of a less complicated token creation process is security. 
+The examples in this guide illustrate how to create multiple policies that can be used to accomplish the same task. For example, using an exact match resource rule, is the most secure. It grants the least privileges necessary to accomplish the task. Generally, creating policies and tokens with the least privileges will result in more policy definitions. Alternatively, for a simplified process, the prefix resources rules can apply to zero-to-many objects. The trade-off of a less complicated token creation process is wider potential blast radius on token or workload compromise. 
 
 ## Discover Required Privileges 
 
