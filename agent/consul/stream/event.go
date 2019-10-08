@@ -2,7 +2,6 @@ package stream
 
 import (
 	fmt "fmt"
-	"hash/fnv"
 )
 
 // FilterObject returns the object in the event to use for boolean
@@ -20,26 +19,23 @@ func (e *Event) FilterObject() interface{} {
 	}
 }
 
-// ID returns an identifier for the event based on the contents of the payload.
-func (e *Event) ID() uint32 {
+// ID returns an identifier for the event based on the object referred to by
+// the payload.
+func (e *Event) ID() string {
 	if e == nil || e.Payload == nil {
-		return 0
+		return ""
 	}
 
-	var id string
 	switch e.Payload.(type) {
 	case *Event_ServiceHealth:
 		node := e.GetServiceHealth().CheckServiceNode
 		if node == nil || node.Node == nil || node.Service == nil {
-			return 0
+			return ""
 		}
-		id = fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
+		return fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 	default:
+		return ""
 	}
-
-	h := fnv.New32a()
-	h.Write([]byte(id))
-	return h.Sum32()
 }
 
 // MakeDeleteEvent creates a minimal delete event for removing an object

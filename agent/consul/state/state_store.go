@@ -332,7 +332,7 @@ func (s *Store) LastTopicIndex(topic stream.Topic) uint64 {
 	return s.publisher.LastTopicIndex(topic)
 }
 
-func (s *Store) Subscribe(subscription *stream.SubscribeRequest) <-chan stream.Event {
+func (s *Store) Subscribe(subscription *stream.SubscribeRequest) (<-chan stream.Event, error) {
 	return s.publisher.Subscribe(subscription)
 }
 

@@ -9,16 +9,14 @@ import (
 )
 
 const (
-	// Recommended names for registration.
-	StreamingHealthServicesName        = "streaming-health-services"
-	StreamingHealthServicesConnectName = "streaming-health-services-connect"
+	// Recommended name for registration.
+	StreamingHealthServicesName = "streaming-health-services"
 )
 
 // StreamingHealthServices supports fetching discovering service instances via the
 // catalog using the streaming gRPC endpoint.
 type StreamingHealthServices struct {
-	Client  StreamingClient
-	Connect bool
+	Client StreamingClient
 }
 
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
@@ -38,7 +36,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 	}
 
 	// Switch the topic if Connect is enabled.
-	if c.Connect {
+	if reqReal.Connect {
 		subscribeReq.Topic = stream.Topic_ServiceHealthConnect
 	}
 
