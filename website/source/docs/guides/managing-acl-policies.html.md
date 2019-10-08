@@ -92,7 +92,7 @@ For this implementation type operators are responsible for managing policies and
 
 For static or non-containerized workflows, this implementation type is straightforward and the operator's workload scales linearly. If the workflow is dynamic, implementing an automation tool will ensure the operator's workload does not scale exponentially. 
 
-!> If you need to share token generation responsibilities with other teams, anyone with the ability to create tokens (`acl = "write"`) will also have unrestricted access to the datacenter. That individual will have the ability to deregister agents and services, and delete data from Consul KV. 
+!> If you need to share token generation responsibilities with other teams, anyone with the ability to create tokens (`acl = "write"`) effectively has unrestricted access to the datacenter. That individual will have the ability to access or delete any data in Consul including ACL tokens, Connect Intentions and all Catalog and KV data. 
 
 ### Operator-Only Implementation Example 
 
