@@ -191,9 +191,6 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		cType := cachetype.HealthServicesName
 		if s.agent.config.EnableBackendStreaming {
 			cType = cachetype.StreamingHealthServicesName
-			if connect {
-				cType = cachetype.StreamingHealthServicesConnectName
-			}
 		}
 		raw, m, err := s.agent.cache.Get(cType, &args)
 		if err != nil {

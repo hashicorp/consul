@@ -3893,14 +3893,6 @@ func (a *Agent) registerCache() {
 			RefreshTimer:   0 * time.Second,
 			RefreshTimeout: 10 * time.Minute,
 		})
-		a.cache.RegisterType(cachetype.StreamingHealthServicesConnectName, &cachetype.StreamingHealthServices{
-			Client:  a.streamClient,
-			Connect: true,
-		}, &cache.RegisterOptions{
-			Refresh:        true,
-			RefreshTimer:   0 * time.Second,
-			RefreshTimeout: 10 * time.Minute,
-		})
 	} else {
 		a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
 			RPC: a,

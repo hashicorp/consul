@@ -24,16 +24,21 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 	}
 	require.NoError(s.ACLTokenSet(2, token.Clone(), false))
 
-	// Sleep briefly to avoid the initial acl update event.
-	time.Sleep(100 * time.Millisecond)
-
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
 		Topic: stream.Topic_ServiceHealth,
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	eventCh := s.publisher.Subscribe(subscription)
+	eventCh, err := s.publisher.Subscribe(subscription)
+	require.NoError(err)
+
+	// Ignore the initial acl update event if we see it.
+	select {
+	case e := <-eventCh:
+		require.True(e.GetReloadStream())
+	case <-time.After(100 * time.Millisecond):
+	}
 
 	// Update an unrelated token.
 	token2 := &structs.ACLToken{
@@ -71,7 +76,8 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	eventCh = s.publisher.Subscribe(subscription2)
+	eventCh, err = s.publisher.Subscribe(subscription2)
+	require.NoError(err)
 
 	// Delete the unrelated token.
 	require.NoError(s.ACLTokenDeleteByAccessor(5, token2.AccessorID))
@@ -113,16 +119,21 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 	}
 	require.NoError(s.ACLTokenSet(2, token.Clone(), false))
 
-	// Sleep briefly to avoid the initial acl update event.
-	time.Sleep(100 * time.Millisecond)
-
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
 		Topic: stream.Topic_ServiceHealth,
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	eventCh := s.publisher.Subscribe(subscription)
+	eventCh, err := s.publisher.Subscribe(subscription)
+	require.NoError(err)
+
+	// Ignore the initial acl update event if we see it.
+	select {
+	case e := <-eventCh:
+		require.True(e.GetReloadStream())
+	case <-time.After(100 * time.Millisecond):
+	}
 
 	// Update an unrelated policy.
 	policy2 := structs.ACLPolicy{
@@ -165,7 +176,8 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	eventCh = s.publisher.Subscribe(subscription2)
+	eventCh, err = s.publisher.Subscribe(subscription2)
+	require.NoError(err)
 
 	// Delete the unrelated policy.
 	require.NoError(s.ACLPolicyDeleteByID(5, testPolicyID_B))
@@ -207,16 +219,21 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 	}
 	require.NoError(s.ACLTokenSet(2, token.Clone(), false))
 
-	// Sleep briefly to avoid the initial acl update event.
-	time.Sleep(100 * time.Millisecond)
-
 	// Register the subscription.
 	subscription := &stream.SubscribeRequest{
 		Topic: stream.Topic_ServiceHealth,
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	eventCh := s.publisher.Subscribe(subscription)
+	eventCh, err := s.publisher.Subscribe(subscription)
+	require.NoError(err)
+
+	// Ignore the initial acl update event if we see it.
+	select {
+	case e := <-eventCh:
+		require.True(e.GetReloadStream())
+	case <-time.After(100 * time.Millisecond):
+	}
 
 	// Update an unrelated role.
 	role := structs.ACLRole{
@@ -255,7 +272,8 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 		Key:   "nope",
 		Token: token.SecretID,
 	}
-	eventCh = s.publisher.Subscribe(subscription2)
+	eventCh, err = s.publisher.Subscribe(subscription2)
+	require.NoError(err)
 
 	// Delete the unrelated policy.
 	require.NoError(s.ACLRoleDeleteByID(5, testRoleID_B))

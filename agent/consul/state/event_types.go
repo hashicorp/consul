@@ -157,7 +157,8 @@ func (s *Store) ACLTokenEvent(idx uint64, token *structs.ACLToken, op stream.ACL
 			ACLToken: &stream.ACLTokenUpdate{
 				Op: op,
 				Token: &stream.ACLToken{
-					SecretID: token.SecretID,
+					AccessorID: token.AccessorID,
+					SecretID:   token.SecretID,
 				},
 			},
 		},

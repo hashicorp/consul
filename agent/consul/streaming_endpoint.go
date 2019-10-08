@@ -7,6 +7,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"golang.org/x/crypto/blake2b"
 )
 
 type ConsulGRPCAdapter struct {
@@ -38,7 +39,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	// is lower than the last sent index of the topic.
 	state := h.srv.fsm.State()
 	lastSentIndex := state.LastTopicIndex(req.Topic)
-	sent := make(map[uint32]struct{})
+	sent := make(map[string]struct{})
 	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
 		go state.GetTopicSnapshot(server.Context(), snapshotCh, req)
@@ -69,7 +70,10 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	}
 
 	// Register a subscription on this topic/key with the FSM.
-	eventCh := state.Subscribe(req)
+	eventCh, err := state.Subscribe(req)
+	if err != nil {
+		return err
+	}
 	defer state.Unsubscribe(req)
 
 	for {
@@ -102,7 +106,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 // sendEvent sends the given event along the stream if it passes ACL, boolean, and
 // any topic-specific filtering.
 func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
-	sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
+	sent map[string]struct{}, server stream.Consul_SubscribeServer) error {
 	// If it's a special case event, skip the filtering and just send it.
 	if event.GetEndOfSnapshot() || event.GetReloadStream() {
 		return server.Send(&event)
@@ -125,12 +129,23 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 		}
 	}
 
+	// Get the unique identifier for the object the event pertains to, and
+	// hash it to save space. This is only used to determine if an object has been
+	// removed and needs to be deleted from the client's cache so we make the tradeoff
+	// of using less memory here at the extremely small risk of a hash collision.
+	rawId := event.ID()
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		return err
+	}
+	hash.Write([]byte(rawId))
+	bytes := hash.Sum(nil)
+	idHash := string(bytes)
+
 	// If the event would be filtered but the agent needs to know about
-	// the delete, change the operation to delete and send the event
-	// before removing the ID from the sent map.
-	id := event.ID()
+	// the delete, send a delete event before removing the ID from the sent map.
 	if !allowEvent {
-		if _, ok := sent[id]; ok {
+		if _, ok := sent[idHash]; ok {
 			deleteEvent, err := stream.MakeDeleteEvent(&event)
 			if err != nil {
 				return err
@@ -141,7 +156,7 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 				return err
 			}
 
-			delete(sent, id)
+			delete(sent, idHash)
 			return nil
 		} else {
 			// If the event should be filtered and the agent doesn't know about it,
@@ -154,7 +169,7 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 	if err := server.Send(&event); err != nil {
 		return err
 	}
-	sent[id] = struct{}{}
+	sent[idHash] = struct{}{}
 
 	return nil
 }
