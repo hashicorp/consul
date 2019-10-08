@@ -32,6 +32,9 @@ additional files, if any, aren't required to run Consul.
 Copy the binary to anywhere on your system. If you intend to access it from the
 command-line, make sure to place it somewhere on your `PATH`.
 
+The [Getting started guides](https://learn.hashicorp.com/consul/getting-started) provide a quick walk through of using Consul on your local machine.
+
+
 ## Compiling from Source
 
 To compile from source, you will need [Go](https://golang.org) installed and
