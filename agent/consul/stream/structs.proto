@@ -381,9 +381,9 @@ message StringList {
 // notify listeners of an ACL update.
 message ACLToken {
   // This is the UUID used for tracking and management purposes
-	string AccessorID = 1;
+  string AccessorID = 1;
 
-	// This is the UUID used as the api token by clients
+  // This is the UUID used as the api token by clients
   string SecretID = 2;
 }
 

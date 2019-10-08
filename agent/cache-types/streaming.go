@@ -11,7 +11,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-const StreamTimeout = 10 * time.Minute
+const (
+	StreamTimeout = 10 * time.Minute
+
+	// retryInterval and maxBackoffTime control the ramp up and maximum wait
+	// time between ACL stream reloads respectively.
+	retryInterval  = 1 * time.Second
+	maxBackoffTime = 60 * time.Second
+)
 
 type StreamingClient interface {
 	Subscribe(ctx context.Context, in *stream.SubscribeRequest, opts ...grpc.CallOption) (stream.Consul_SubscribeClient, error)
@@ -67,6 +74,8 @@ func (s *Subscriber) Close() error {
 func (s *Subscriber) run() {
 	defer s.cancelFunc()
 
+	var reloads int
+	var lastReload time.Time
 START:
 	// Start a new Subscribe call.
 	streamHandle, err := s.client.Subscribe(s.ctx, &s.request)
@@ -94,7 +103,6 @@ START:
 		// Check to see if this is a special "reload stream" message before processing
 		// the event.
 		if event.GetReloadStream() {
-			fmt.Printf("[WARN] got ACL reset event\n")
 			s.handler.Reset()
 
 			// Cancel the context to end the streaming call and create a new one.
@@ -103,6 +111,23 @@ START:
 			s.ctx, s.cancelFunc = context.WithCancel(context.Background())
 			s.lock.Unlock()
 
+			// Start an exponential backoff if we get into a loop of reloading. If this is
+			// the first reload we've seen in the last maxBackoffTime, don't wait at all.
+			// This effectively rate-limits the amount of reloading that can happen in case
+			// something unexpectedly causes the server to get stuck sending too many reload
+			// events for some reason.
+			if time.Now().Sub(lastReload) < maxBackoffTime {
+				retry := 5 * time.Second * time.Duration(reloads*reloads)
+				if retry > maxBackoffTime {
+					retry = maxBackoffTime
+				}
+				reloads++
+				<-time.After(retry)
+			} else {
+				reloads = 0
+			}
+
+			lastReload = time.Now()
 			goto START
 		}
 
@@ -185,8 +210,6 @@ WAIT:
 		}
 
 		// Wait for another update if the result wasn't higher than the requested index.
-		// If this update came from a snapshot finishing, we return no matter what, as the
-		// state/index could have changed as a result of ACL updates or other filtering.
 		index := getIndex(r)
 		if index <= opts.MinIndex {
 			goto WAIT
