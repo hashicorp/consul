@@ -60,7 +60,7 @@ function debug {
 
 function debug_run {
    debug "$@"
-   $@
+   "$@"
    return $?
 }
 
