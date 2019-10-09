@@ -272,5 +272,5 @@ The `service_prefix` policy needs read access for any services that can be regis
 
 ## Next Steps
 
-Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/security-networking/production-acls) or continue reading about
+Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/security-networking/production-acls?utm_source=consul.io&utm_medium=docs) or continue reading about
 [ACL rules](/docs/acl/acl-rules.html).
