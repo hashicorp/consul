@@ -15,7 +15,7 @@ The ACL is [Capability-based](https://en.wikipedia.org/wiki/Capability-based_sec
 are associated with policies to determine which fine grained rules can be applied. Consul's capability based
 ACL system is very similar to the design of [AWS IAM](https://aws.amazon.com/iam/). 
 
-To learn how to setup the ACL system on an existing Consul datacenter, use the [Bootstrapping The ACL System guide](https://learn.hashicorp.com/consul/day-0/acl-guide).
+To learn how to setup the ACL system on an existing Consul datacenter, use the [Bootstrapping The ACL System guide](https://learn.hashicorp.com/consul/day-0/acl-guide?utm_source=consul.io&utm_medium=docs).
 
 ## ACL System Overview
 
