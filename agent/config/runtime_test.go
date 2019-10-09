@@ -4049,6 +4049,7 @@ func TestFullConfig(t *testing.T) {
 			"translate_wan_addrs": true,
 			"ui": true,
 			"ui_dir": "11IFzAUn",
+			"ui_content_path": "consul",
 			"unix_sockets": {
 				"group": "8pFodrV8",
 				"mode": "E8sAwOv4",
@@ -4647,6 +4648,7 @@ func TestFullConfig(t *testing.T) {
 			translate_wan_addrs = true
 			ui = true
 			ui_dir = "11IFzAUn"
+			ui_content_path = "consul"
 			unix_sockets = {
 				group = "8pFodrV8"
 				mode = "E8sAwOv4"
@@ -5340,7 +5342,7 @@ func TestFullConfig(t *testing.T) {
 			"wan":      "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
-		UIContentPath:        "/ui/",
+		UIContentPath:        "/consul/",
 		UIDir:                "11IFzAUn",
 		UnixSocketUser:       "E0nB1DwA",
 		UnixSocketGroup:      "8pFodrV8",
@@ -5966,6 +5968,7 @@ func TestSanitize(t *testing.T) {
 		"TranslateWANAddrs": false,
 		"UIContentPath": "",
 		"UIDir": "",
+		"UIContentPath":"",
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
 		"UnixSocketUser": "",
