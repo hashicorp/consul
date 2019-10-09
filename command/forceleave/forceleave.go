@@ -3,6 +3,7 @@ package forceleave
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -21,13 +22,15 @@ type cmd struct {
 	help  string
 
 	//flags
-	prune bool
+	prune      bool
+	datacenter string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.prune, "prune", false,
 		"Remove agent completely from list of members")
+	c.flags.StringVar(&c.datacenter, "datacenter", "", "Specify datacenter name")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
@@ -52,8 +55,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.prune {
-		err = client.Agent().ForceLeavePrune(nodes[0])
+	if c.prune || c.datacenter != "" {
+		q := &api.QueryOptions{Datacenter: c.datacenter, Prune: c.prune}
+		err = client.Agent().ForceLeaveWithOpts(nodes[0], q)
 	} else {
 		err = client.Agent().ForceLeave(nodes[0])
 	}
@@ -85,5 +89,6 @@ Usage: consul force-leave [options] name
   Consul will attempt to reconnect to those failed nodes for some period of
   time before eventually reaping them.
 
-  -prune    Remove agent completely from list of members
+  -prune       Remove agent completely from list of members
+  -datacenter  Specify datacenter name
 `

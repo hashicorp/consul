@@ -263,7 +263,10 @@ func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster
-func (c *Client) RemoveFailedNode(node string, prune bool) error {
+func (c *Client) RemoveFailedNode(node, datacenter string, prune bool) error {
+	if datacenter != "" {
+		node = node + "." + datacenter
+	}
 	if prune {
 		c.serf.RemoveFailedNodePrune(node)
 	}

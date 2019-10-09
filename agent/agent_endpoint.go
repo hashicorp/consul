@@ -438,11 +438,15 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 		return nil, acl.ErrPermissionDenied
 	}
 
-	//Check the value of the prune query
-	_, prune := req.URL.Query()["prune"]
+	//Check the value of the prune and datacenter query
+	datacenter := req.URL.Query().Get("datacenter")
+	prune, err := strconv.ParseBool(req.URL.Query().Get("prune"))
+	if err != nil {
+		prune = false
+	}
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	return nil, s.agent.ForceLeave(addr, prune)
+	return nil, s.agent.ForceLeave(addr, datacenter, prune)
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync

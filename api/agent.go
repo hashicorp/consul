@@ -730,11 +730,13 @@ func (a *Agent) ForceLeave(node string) error {
 	return nil
 }
 
-//ForceLeavePrune is used to have an a failed agent removed
-//from the list of members
-func (a *Agent) ForceLeavePrune(node string) error {
+//ForceLeaveWithOpts is used to have an a failed agent removed
+//from the list of members with specified additional arguments
+func (a *Agent) ForceLeaveWithOpts(node string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.params.Set("prune", "1")
+
+	r.setQueryOptions(q)
+
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err

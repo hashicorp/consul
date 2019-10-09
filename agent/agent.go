@@ -134,7 +134,7 @@ type delegate interface {
 	LANSegmentMembers(segment string) ([]serf.Member, error)
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
-	RemoveFailedNode(node string, prune bool) error
+	RemoveFailedNode(node, datacenter string, prune bool) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
 	ACLsEnabled() bool
@@ -1779,9 +1779,9 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool) (err error) {
+func (a *Agent) ForceLeave(node, datacenter string, prune bool) (err error) {
 	a.logger.Printf("[INFO] agent: Force leaving node: %v", node)
-	err = a.delegate.RemoveFailedNode(node, prune)
+	err = a.delegate.RemoveFailedNode(node, datacenter, prune)
 	if err != nil {
 		a.logger.Printf("[WARN] agent: Failed to remove node: %v", err)
 	}

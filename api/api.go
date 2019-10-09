@@ -155,6 +155,10 @@ type QueryOptions struct {
 	// services. This currently affects prepared query execution.
 	Connect bool
 
+	// Prune is used in force leave command to remove agent completely
+	// from list of members
+	Prune bool
+
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use Context() and WithContext() to manage this.
 	ctx context.Context
@@ -675,6 +679,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.Connect {
 		r.params.Set("connect", "true")
+	}
+	if q.Prune {
+		r.params.Set("prune", "true")
 	}
 	if q.UseCache && !q.RequireConsistent {
 		r.params.Set("cached", "")
