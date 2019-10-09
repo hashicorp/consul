@@ -14,7 +14,7 @@ In addition to running Consul itself, the Helm chart is the primary
 method for installing and configuring Consul integrations with
 Kubernetes such as catalog syncing, Connect injection, and more.
 
-A step-by-step beginner tutorial and accompanying video can be found at the [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube).
+A step-by-step beginner tutorial and accompanying video can be found at the [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs).
 
 This page assumes general knowledge of [Helm](https://helm.sh/) and
 how to use it. Using Helm to install Consul will require that Helm is

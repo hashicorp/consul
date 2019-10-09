@@ -19,6 +19,8 @@ Downloading a precompiled binary is easiest, and we provide downloads over TLS
 along with SHA256 sums to verify the binary. We also distribute a PGP signature
 with the SHA256 sums that can be verified.
 
+The [Getting started guides](https://learn.hashicorp.com/consul/getting-started?utm_source=consul.io&utm_medium=docs) provide a quick walk through of using Consul on your local machine.
+
 ## Precompiled Binaries
 
 To install the precompiled binary, [download](/downloads.html) the appropriate
@@ -31,8 +33,6 @@ additional files, if any, aren't required to run Consul.
 
 Copy the binary to anywhere on your system. If you intend to access it from the
 command-line, make sure to place it somewhere on your `PATH`.
-
-The [Getting started guides](https://learn.hashicorp.com/consul/getting-started) provide a quick walk through of using Consul on your local machine.
 
 
 ## Compiling from Source
