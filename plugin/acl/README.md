@@ -4,7 +4,7 @@
 
 ## Description
 
-With `acl` enabled, users are able to block suspicous DNS queries by configuring IP filter rule sets, i.e. allowing authorized queries to recurse or blocking unauthorized queries.
+With `acl` enabled, users are able to block suspicious DNS queries by configuring IP filter rule sets, i.e. allowing authorized queries to recurse or blocking unauthorized queries.
 
 This plugin can be used multiple times per Server Block.
 

@@ -81,7 +81,7 @@ RulesCheckLoop:
 }
 
 // matchWithPolicies matches the DNS query with a list of ACL polices and returns suitable
-// action agains the query.
+// action against the query.
 func matchWithPolicies(policies []policy, w dns.ResponseWriter, r *dns.Msg) action {
 	state := request.Request{W: w, Req: r}
 

@@ -31,7 +31,7 @@ const (
 	DurationSignatureExpireDays     = 32 * 24 * time.Hour // sign for 32 days
 	DurationRefreshHours            = 5 * time.Hour       // check zones every 5 hours
 	DurationJitter                  = -18 * time.Hour     // default max jitter
-	DurationSignatureInceptionHours = -3 * time.Hour      // -(2+1) hours, be sure to catch daylight saving time and such, jitter is substracted
+	DurationSignatureInceptionHours = -3 * time.Hour      // -(2+1) hours, be sure to catch daylight saving time and such, jitter is subtracted
 )
 
 const timeFmt = "2006-01-02T15:04:05.000Z07:00"

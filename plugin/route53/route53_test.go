@@ -285,7 +285,7 @@ func TestMaybeUnescape(t *testing.T) {
 		// 3. Escaped dot, 'a' and a hyphen. No idea why but we'll allow it.
 		{escaped: `weird\\055ex\\141mple\\056com\\056\\056`, want: "weird-example.com.."},
 		// 4. escaped `*` in the middle - NOT OK.
-		{escaped: `e\\052ample.com`, wantErr: errors.New("`*' ony supported as wildcard (leftmost label)")},
+		{escaped: `e\\052ample.com`, wantErr: errors.New("`*' only supported as wildcard (leftmost label)")},
 		// 5. Invalid character.
 		{escaped: `\\000.example.com`, wantErr: errors.New(`invalid character: \\000`)},
 		// 6. Invalid escape sequence in the middle.

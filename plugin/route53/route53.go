@@ -193,7 +193,7 @@ func maybeUnescape(s string) (string, error) {
 		case r >= rune('0') && r <= rune('9'):
 		case r == rune('*'):
 			if out != "" {
-				return "", errors.New("`*' ony supported as wildcard (leftmost label)")
+				return "", errors.New("`*' only supported as wildcard (leftmost label)")
 			}
 		case r == rune('-'):
 		case r == rune('.'):

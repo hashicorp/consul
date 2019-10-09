@@ -1,6 +1,6 @@
 ## CoreDNS
 
-*coredns* - plugable DNS nameserver optimized for service discovery and flexibility.
+*coredns* - pluggable DNS nameserver optimized for service discovery and flexibility.
 
 ## Synopsis
 
