@@ -126,8 +126,8 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 		checkPreApply(check)
 
-		// Populate check type for cases when this is a direct reg with /catalog/register
-		// Typically this is populated when a check is registered with an agent
+		// Populate check type for cases when a check is registered in the catalog directly
+		// and not via anti-entropy
 		if check.Type == "" {
 			chkType := check.CheckType()
 			check.Type = chkType.Type()
