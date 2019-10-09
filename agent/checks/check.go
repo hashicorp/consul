@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	osexec "os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -315,6 +316,7 @@ type CheckHTTP struct {
 	HTTP            string
 	Header          map[string][]string
 	Method          string
+	Body            string
 	Interval        time.Duration
 	Timeout         time.Duration
 	Logger          *log.Logger
