@@ -893,7 +893,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:                  c.TaggedAddresses,
 		TranslateWANAddrs:                b.boolVal(c.TranslateWANAddrs),
 		UIDir:                            b.stringVal(c.UIDir),
-		UIContentPath:                    UIPathBuilder(b.stringVal(b.Flags.Config.UIContentPath)),
+		UIContentPath:                    UIPathBuilder(b.stringVal(c.UIContentPath)),
 		UnixSocketGroup:                  b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:                   b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                   b.stringVal(c.UnixSocket.User),
