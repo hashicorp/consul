@@ -418,7 +418,8 @@ func (c *CheckHTTP) check() {
 		target = c.ProxyHTTP
 	}
 
-	req, err := http.NewRequest(method, target, nil)
+	bodyReader := strings.NewReader(c.Body)
+	req, err := http.NewRequest(method, target, bodyReader)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: Check %q HTTP request failed: %s", c.CheckID, err)
 		c.Notify.UpdateCheck(c.CheckID, api.HealthCritical, err.Error())
