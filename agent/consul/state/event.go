@@ -132,7 +132,7 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 	switch event.Topic {
 	case stream.Topic_ACLTokens:
 		token := event.GetACLToken()
-		subscribers, ok := e.tokenSubs[token.Token.AccessorID]
+		subscribers, ok := e.tokenSubs[token.Token.SecretID]
 
 		// If there are subscribers using the updated/deleted token, signal them
 		// to reload their connection.
@@ -205,7 +205,6 @@ func (e *EventPublisher) reloadSubscribers(subscribers map[*stream.SubscribeRequ
 			Payload: &stream.Event_ReloadStream{ReloadStream: true},
 		}
 		e.nonBlockingListenerSend(listener, subscription, reloadEvent)
-		e.unsubscribeLocked(subscription)
 	}
 }
 
@@ -241,19 +240,10 @@ func (e *EventPublisher) Subscribe(subscription *stream.SubscribeRequest) (<-cha
 	}
 
 	// Add the subscription to the ACL token map.
-	var accessor string
-	_, token, err := e.store.ACLTokenGetBySecret(nil, subscription.Token)
-	if err != nil {
-		return nil, err
-	}
-	if token != nil {
-		accessor = token.AccessorID
-	}
-
-	if subs, ok := e.tokenSubs[accessor]; ok {
+	if subs, ok := e.tokenSubs[subscription.Token]; ok {
 		subs[subscription] = ch
 	} else {
-		e.tokenSubs[accessor] = map[*stream.SubscribeRequest]chan stream.Event{
+		e.tokenSubs[subscription.Token] = map[*stream.SubscribeRequest]chan stream.Event{
 			subscription: ch,
 		}
 	}
