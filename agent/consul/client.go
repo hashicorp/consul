@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/resolver"
 )
 
 const (
@@ -58,8 +59,9 @@ type Client struct {
 	useNewACLs int32
 
 	// Connection pool to consul servers
-	connPool   *pool.ConnPool
-	grpcClient *GRPCClient
+	connPool        *pool.ConnPool
+	grpcClient      *GRPCClient
+	resolverBuilder *ServerResolverBuilder
 
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -143,6 +145,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
 		logger:          logger,
+		resolverBuilder: NewServerResolverBuilder(),
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
 	}
@@ -180,6 +183,9 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	if c.acls.ACLsEnabled() {
 		go c.monitorACLMode()
 	}
+
+	// Register the gRPC resolver.
+	resolver.Register(c.resolverBuilder)
 
 	// Start maintenance task for servers
 	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
@@ -285,10 +291,6 @@ func (c *Client) Encrypted() bool {
 	return c.serf.EncryptionEnabled()
 }
 
-var grpcAbleEndpoints = map[string]bool{
-	"Health.Test": true,
-}
-
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// This is subtle but we start measuring the time on the client side
@@ -386,7 +388,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 // GRPCConn returns a gRPC connection to a server.
 func (c *Client) GRPCConn() (*grpc.ClientConn, error) {
-	return c.grpcClient.GRPCConn(nil)
+	return c.grpcClient.GRPCConn()
 }
 
 // Stats is used to return statistics for debugging and insight
