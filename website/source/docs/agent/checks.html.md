@@ -154,7 +154,8 @@ A HTTP check:
     "http": "https://localhost:5000/health",
     "tls_skip_verify": false,
     "method": "POST",
-    "header": {"x-foo":["bar", "baz"]},
+    "header": {"Content-Type": "application/json", "x-foo": ["bar", "baz"]},
+    "body": "{\"method\":\"health\"}",
     "interval": "10s",
     "timeout": "1s"
   }
