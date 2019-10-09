@@ -15,7 +15,7 @@ import (
 func TestStreamingHealthServices(t *testing.T) {
 	require := require.New(t)
 	client := NewTestStreamingClient()
-	typ := StreamingHealthServices{Client: client}
+	typ := StreamingHealthServices{client: client}
 
 	// Set up the events that will form the snapshot
 	events := []*stream.Event{
