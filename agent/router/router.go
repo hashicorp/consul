@@ -414,6 +414,12 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 				continue
 			}
 
+			if m.Status == serf.StatusLeft {
+				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
+					m.Name, areaID)
+				continue
+			}
+
 			existing := index[parts.Datacenter]
 			if parts.Datacenter == r.localDatacenter {
 				// Everything in the local datacenter looks like zero RTT.
@@ -471,6 +477,12 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
 				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
+					m.Name, areaID)
+				continue
+			}
+
+			if m.Status == serf.StatusLeft {
+				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
 					m.Name, areaID)
 				continue
 			}
