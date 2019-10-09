@@ -89,7 +89,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
 
 	// Start a Subscribe call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.grpcClient.GRPCConn()
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
@@ -279,7 +279,7 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 	}
 
 	// Start a Subscribe call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.grpcClient.GRPCConn()
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
@@ -400,7 +400,7 @@ node "%s" {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &regArg, nil))
 
 	// Set up the gRPC client.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.grpcClient.GRPCConn()
 	require.NoError(err)
 	streamClient := stream.NewConsulClient(conn)
 
@@ -583,7 +583,7 @@ node "%s" {
 	require.False(auth.NodeRead("denied"))
 
 	// Set up the gRPC client.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.grpcClient.GRPCConn()
 	require.NoError(err)
 	streamClient := stream.NewConsulClient(conn)
 
@@ -743,7 +743,7 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 
 	// Start a Subscribe call to our streaming endpoint from the client.
 	{
-		conn, err := client.grpcClient.GRPCConn(nil)
+		conn, err := client.grpcClient.GRPCConn()
 		require.NoError(err)
 
 		streamClient := stream.NewConsulClient(conn)

@@ -209,6 +209,9 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
+	// resolverBuilder is the gRPC resolver used for connection balancing.
+	resolverBuilder *ServerResolverBuilder
+
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
 	router *router.Router
@@ -373,6 +376,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		leaveCh:           make(chan struct{}),
 		reconcileCh:       make(chan serf.Member, reconcileChSize),
 		router:            router.NewRouter(logger, config.Datacenter),
+		resolverBuilder:   NewServerResolverBuilder(),
 		rpcServer:         rpc.NewServer(),
 		insecureRPCServer: rpc.NewServer(),
 		tlsConfigurator:   tlsConfigurator,
@@ -428,12 +432,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	if err := s.setupRPC(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
-	}
-
-	// Initialize the GRPC listener.
-	if err := s.setupGRPC(); err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
 	}
 
 	// Initialize any extra RPC listeners for segments.
@@ -495,6 +493,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
 	go s.lanEventHandler()
+
+	// Initialize the GRPC listener.
+	if err := s.setupGRPC(); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
+	}
 
 	// Start the flooders after the LAN event handler is wired up.
 	s.floodSegments(config)
@@ -830,7 +834,7 @@ func (s *Server) setupGRPC() error {
 	s.GRPCListener = lis
 
 	// Set up a gRPC client connection to the above listener.
-	dialer := newDialer(s.config.UseTLS, s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
+	dialer := newDialer(s.serverLookup, s.tlsConfigurator.OutgoingRPCWrapper())
 	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithDialer(dialer), grpc.WithDisableRetry())
 	if err != nil {
 		return err

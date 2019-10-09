@@ -217,6 +217,11 @@ func (m *Manager) FindServer() *metadata.Server {
 	return l.servers[0]
 }
 
+// Servers returns the current list of servers.
+func (m *Manager) Servers() []*metadata.Server {
+	return m.getServerList().servers
+}
+
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {
