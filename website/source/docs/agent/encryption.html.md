@@ -14,7 +14,7 @@ There are two separate encryption systems, one for gossip traffic and one for RP
 
 To configure the encryption systems on a new cluster, review this following guides to
 [enable gossip encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption?utm_source=consul.io&utm_medium=docs) and 
-[TlS encryption for agent communication](https://learn.hashicorp.com/consul/security-networking/certificates?utm_source=consul.io&utm_medium=docs).
+[TLS encryption for agent communication](https://learn.hashicorp.com/consul/security-networking/certificates?utm_source=consul.io&utm_medium=docs).
 
 ## Gossip Encryption
 
