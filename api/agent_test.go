@@ -1070,7 +1070,7 @@ func TestAPI_AgentForceLeave(t *testing.T) {
 	}
 }
 
-func TestAPI_AgentForceLeavePrune(t *testing.T) {
+func TestAPI_AgentForceLeaveWithOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1078,7 +1078,8 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeavePrune("foo")
+	q := &QueryOptions{Datacenter: "", Prune: true}
+	err := agent.ForceLeaveWithOpts("foo", q)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
