@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -16,7 +17,15 @@ const (
 // StreamingHealthServices supports fetching discovering service instances via the
 // catalog using the streaming gRPC endpoint.
 type StreamingHealthServices struct {
-	Client StreamingClient
+	client StreamingClient
+	logger *log.Logger
+}
+
+func NewStreamingHealthServices(client StreamingClient, logger *log.Logger) *StreamingHealthServices {
+	return &StreamingHealthServices{
+		client: client,
+		logger: logger,
+	}
 }
 
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
@@ -50,7 +59,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 		return 0
 	}
 
-	return watchSubscriber(c.Client, opts, subscribeReq, &handler, indexFunc)
+	return watchSubscriber(c.client, c.logger, opts, subscribeReq, &handler, indexFunc)
 }
 
 func (c *StreamingHealthServices) SupportsBlocking() bool {

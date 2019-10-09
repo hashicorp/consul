@@ -3886,13 +3886,13 @@ func (a *Agent) registerCache() {
 	})
 
 	if a.config.EnableBackendStreaming {
-		a.cache.RegisterType(cachetype.StreamingHealthServicesName, &cachetype.StreamingHealthServices{
-			Client: a.streamClient,
-		}, &cache.RegisterOptions{
-			Refresh:        true,
-			RefreshTimer:   0 * time.Second,
-			RefreshTimeout: 10 * time.Minute,
-		})
+		a.cache.RegisterType(cachetype.StreamingHealthServicesName,
+			cachetype.NewStreamingHealthServices(a.streamClient, a.logger),
+			&cache.RegisterOptions{
+				Refresh:        true,
+				RefreshTimer:   0 * time.Second,
+				RefreshTimeout: 10 * time.Minute,
+			})
 	} else {
 		a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{
 			RPC: a,
