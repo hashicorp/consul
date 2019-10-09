@@ -17,7 +17,7 @@ features released with Consul 1.5.
 
 ## Getting Started
 
-To get started with the built-in and see a working example you can follow the [Getting Started](https://learn.hashicorp.com/consul/getting-started/connect) guide.
+To get started with the built-in proxy and see a working example you can follow the [Getting Started](https://learn.hashicorp.com/consul/getting-started/connect) guide.
 
 ## Proxy Config Key Reference
 
