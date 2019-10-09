@@ -5967,7 +5967,7 @@ func TestSanitize(t *testing.T) {
 		},
 		"TranslateWANAddrs": false,
 		"UIDir": "",
-		"UIContentPath":"",
+		"UIContentPath": "",
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
 		"UnixSocketUser": "",
