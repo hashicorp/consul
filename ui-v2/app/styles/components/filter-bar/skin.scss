@@ -1,7 +1,7 @@
 // decoration/color
 %filter-bar > * {
   border: $decor-border-100;
-  border-radius: $radius-small;
+  border-radius: $decor-radius-100;
 }
 // TODO: Move this elsewhere
 @media #{$--horizontal-selects} {
