@@ -23,6 +23,10 @@ core design allows data to be replicated automatically across all the servers.
 Having a quorum of servers will decrease the risk of data loss if an outage
 occurs.
 
+-> If you have not used Consul KV, check out this [Getting Started
+guide](https://learn.hashicorp.com/consul/getting-started/kv) on HashiCorp
+Learn. 
+
 ## Accessing the KV store
 
 The KV store can be accessed by the [consul kv CLI
@@ -41,9 +45,6 @@ directory](/docs/agent/options.html#_data_dir). To ensure data is not lost in
 the event of a complete outage, use the [`consul
 snapshot`](/docs/commands/snapshot/restore.html) feature to backup the data. 
 
-If you have not used Consul KV, check out this [Getting Started
-guide](https://learn.hashicorp.com/consul/getting-started/kv) on HashiCorp
-Learn. 
 
 ## Using Consul KV
 

@@ -12,7 +12,7 @@ The Consul agent supports encrypting all of its network traffic. The exact
 method of encryption is described on the [encryption internals page](/docs/internals/security.html).
 There are two separate encryption systems, one for gossip traffic and one for RPC.
 
-To configure encryption on a new cluster, review this following guides to
+To configure the encryption systems on a new cluster, review this following guides to
 [enable gossip encryption](https://learn.hashicorp.com/consul/security-networking/agent-encryption) and 
 [TlS encryption for agent communication](https://learn.hashicorp.com/consul/security-networking/certificates).
 
