@@ -16,7 +16,7 @@ page documents the system architecture.
 [glossary](/docs/glossary.html) of terms to help
 clarify what is being discussed.
 
-You can apply the architecture concepts in this document to a local Consul cluster by following this [Getting started guide](https://learn.hashicorp.com/consul/getting-started/join?utm_source=consul.io&utm_medium=docs).
+The architecture concepts in this document can be used with the [Reference Architecture guide](https://learn.hashicorp.com/consul/datacenter-deploy/reference-architecture?utm_source=consul.io&utm_medium=docs) when deploying Consul in production.
 
 ## 10,000 foot view
 
