@@ -82,4 +82,7 @@ the community.
   <li>
     <a href="https://github.com/marlonmleite/consul-env-webpack-plugin">consul-env-webpack-plugin</a> - Webpack plugin for converting KV store JSON output to environments variables.
   </li>
+  <li>
+    <a href="https://github.com/rogerwelin/crystal-consul">crystal-consul</a> - Crystal client for the Consul HTTP API
+  </li>
 </ul>
