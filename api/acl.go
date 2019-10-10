@@ -666,6 +666,32 @@ func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMe
 	return &out, qm, nil
 }
 
+// PolicyReadByName retrieves the policy details including the rule set with name.
+func (a *ACL) PolicyReadByName(policyName string, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/policy/name/"+url.QueryEscape(policyName))
+	r.setQueryOptions(q)
+	found, rtt, resp, err := requireNotFoundOrOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if !found {
+		return nil, qm, nil
+	}
+
+	var out ACLPolicy
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, qm, nil
+}
+
 // PolicyList retrieves a listing of all policies. The listing does not include the
 // rules for any policy as those should be retrieved by subsequent calls to PolicyRead.
 func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, error) {
