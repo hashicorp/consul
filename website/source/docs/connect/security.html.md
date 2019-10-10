@@ -14,7 +14,8 @@ Connect enables secure service-to-service communication over mutual TLS. This
 provides both in-transit data encryption as well as authorization. This page
 will document how to secure Connect. To try Connect locally, complete the
 [Getting Started guide](https://learn.hashicorp.com/consul/getting-started/connect?utm_source=consul.io&utm_medium=docs) or for a full security model reference,
-see the dedicated [Consul security model](/docs/internals/security.html) page. 
+see the dedicated [Consul security model](/docs/internals/security.html) page.  When
+setting up Connect in production, review this [guide](https://learn.hashicorp.com/consul/developer-mesh/connect-production?utm_source=consul.io&utm_medium=docs).
 
 
 Connect will function in any Consul configuration. However, unless the checklist
