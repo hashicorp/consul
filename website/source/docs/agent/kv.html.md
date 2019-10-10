@@ -23,7 +23,7 @@ core design allows data to be replicated automatically across all the servers.
 Having a quorum of servers will decrease the risk of data loss if an outage
 occurs.
 
--> If you have not used Consul KV, check out this [Getting Started
+If you have not used Consul KV, check out this [Getting Started
 guide](https://learn.hashicorp.com/consul/getting-started/kv?utm_source=consul.io&utm_medium=docs) on HashiCorp
 Learn. 
 
