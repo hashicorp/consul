@@ -177,7 +177,7 @@ The table below shows this endpoint's support for
   for an `HTTP` check. When no value is specified, `GET` is used.
 
 - `Body` `(string: "")` - Specifies a body that should be sent for `HTTP`
-  checks. When no value is specified, an empty body is sent
+  checks. When no value is specified, an empty body is sent.
 
 - `Header` `(map[string][]string: {})` - Specifies a set of headers that should
   be set for `HTTP` checks. Each header can have multiple values.
