@@ -338,6 +338,7 @@ func (c *CheckHTTP) CheckType() structs.CheckType {
 		CheckID:       c.CheckID,
 		HTTP:          c.HTTP,
 		Method:        c.Method,
+		Body:          c.Body,
 		Header:        c.Header,
 		Interval:      c.Interval,
 		ProxyHTTP:     c.ProxyHTTP,
