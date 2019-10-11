@@ -3544,6 +3544,7 @@ func TestFullConfig(t *testing.T) {
 					"f3r6xFtM": [ "RyuIdDWv", "QbxEcIUM" ]
 				},
 				"method": "Dou0nGT5",
+				"body": "5PBQd2OT",
 				"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
 				"tcp": "JY6fTTcw",
 				"interval": "18714s",
@@ -3569,6 +3570,7 @@ func TestFullConfig(t *testing.T) {
 						"Ui0nU99X": [ "LMccm3Qe", "k5H5RggQ" ]
 					},
 					"method": "aldrIQ4l",
+					"body": "wSjTy7dg",
 					"tcp": "RJQND605",
 					"interval": "22164s",
 					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3593,6 +3595,7 @@ func TestFullConfig(t *testing.T) {
 						"qxvdnSE9": [ "6wBPUYdF", "YYh8wtSZ" ]
 					},
 					"method": "gLrztrNw",
+					"body": "0jkKgGUC",
 					"tcp": "4jG5casb",
 					"interval": "28767s",
 					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3801,6 +3804,7 @@ func TestFullConfig(t *testing.T) {
 						"l4HwQ112": ["fk56MNlo", "dhLK56aZ"]
 					},
 					"method": "9afLm3Mj",
+					"body": "wVVL2V6f",
 					"tcp": "fjiLFqVd",
 					"interval": "23926s",
 					"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3824,6 +3828,7 @@ func TestFullConfig(t *testing.T) {
 							"SHOVq1Vv": [ "jntFhyym", "GYJh32pp" ]
 						},
 						"method": "T66MFBfR",
+						"body": "OwGjTFQi",
 						"tcp": "bNnNfx2A",
 						"interval": "22224s",
 						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3846,6 +3851,7 @@ func TestFullConfig(t *testing.T) {
 							"p2UI34Qz": [ "UsG1D0Qh", "NHhRiB6s" ]
 						},
 						"method": "ciYHWors",
+						"body": "lUVLGYU7",
 						"tcp": "FfvCwlqH",
 						"interval": "12356s",
 						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3882,6 +3888,7 @@ func TestFullConfig(t *testing.T) {
 							"cVFpko4u": ["gGqdEB6k", "9LsRo22u"]
 						},
 						"method": "X5DrovFc",
+						"body": "WeikigLh",
 						"tcp": "ICbxkpSF",
 						"interval": "24392s",
 						"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3921,6 +3928,7 @@ func TestFullConfig(t *testing.T) {
 								"1UJXjVrT": [ "OJgxzTfk", "xZZrFsq7" ]
 							},
 							"method": "5wkAxCUE",
+							"body": "7CRjCJyz",
 							"tcp": "MN3oA9D2",
 							"interval": "32718s",
 							"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -3943,6 +3951,7 @@ func TestFullConfig(t *testing.T) {
 								"vr7wY7CS": [ "EtCoNPPL", "9vAarJ5s" ]
 							},
 							"method": "wzByP903",
+							"body": "4I8ucZgZ",
 							"tcp": "2exjZIGE",
 							"interval": "5656s",
 							"output_max_size": ` + strconv.Itoa(checks.DefaultBufSize) + `,
@@ -4141,6 +4150,7 @@ func TestFullConfig(t *testing.T) {
 					f3r6xFtM = [ "RyuIdDWv", "QbxEcIUM" ]
 				}
 				method = "Dou0nGT5"
+				body = "5PBQd2OT"
 				tcp = "JY6fTTcw"
 				interval = "18714s"
 				output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4166,6 +4176,7 @@ func TestFullConfig(t *testing.T) {
 						"Ui0nU99X" = [ "LMccm3Qe", "k5H5RggQ" ]
 					}
 					method = "aldrIQ4l"
+					body = "wSjTy7dg"
 					tcp = "RJQND605"
 					interval = "22164s"
 					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4190,6 +4201,7 @@ func TestFullConfig(t *testing.T) {
 						"qxvdnSE9" = [ "6wBPUYdF", "YYh8wtSZ" ]
 					}
 					method = "gLrztrNw"
+					body = "0jkKgGUC"
 					tcp = "4jG5casb"
 					interval = "28767s"
 					output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4401,6 +4413,7 @@ func TestFullConfig(t *testing.T) {
 						l4HwQ112 = [ "fk56MNlo", "dhLK56aZ" ]
 					}
 					method = "9afLm3Mj"
+					body = "wVVL2V6f"
 					tcp = "fjiLFqVd"
 					interval = "23926s"
 					docker_container_id = "dO5TtRHk"
@@ -4423,6 +4436,7 @@ func TestFullConfig(t *testing.T) {
 							"SHOVq1Vv" = [ "jntFhyym", "GYJh32pp" ]
 						}
 						method = "T66MFBfR"
+						body = "OwGjTFQi"
 						tcp = "bNnNfx2A"
 						interval = "22224s"
 						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4445,6 +4459,7 @@ func TestFullConfig(t *testing.T) {
 							"p2UI34Qz" = [ "UsG1D0Qh", "NHhRiB6s" ]
 						}
 						method = "ciYHWors"
+						body = "lUVLGYU7"
 						tcp = "FfvCwlqH"
 						interval = "12356s"
 						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4481,6 +4496,7 @@ func TestFullConfig(t *testing.T) {
 							cVFpko4u = [ "gGqdEB6k", "9LsRo22u" ]
 						}
 						method = "X5DrovFc"
+						body = "WeikigLh"
 						tcp = "ICbxkpSF"
 						interval = "24392s"
 						output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4520,6 +4536,7 @@ func TestFullConfig(t *testing.T) {
 								"1UJXjVrT" = [ "OJgxzTfk", "xZZrFsq7" ]
 							}
 							method = "5wkAxCUE"
+							body = "7CRjCJyz"
 							tcp = "MN3oA9D2"
 							interval = "32718s"
 							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4542,6 +4559,7 @@ func TestFullConfig(t *testing.T) {
 								"vr7wY7CS" = [ "EtCoNPPL", "9vAarJ5s" ]
 							}
 							method = "wzByP903"
+							body = "4I8ucZgZ"
 							tcp = "2exjZIGE"
 							interval = "5656s"
 							output_max_size = ` + strconv.Itoa(checks.DefaultBufSize) + `
@@ -4844,6 +4862,7 @@ func TestFullConfig(t *testing.T) {
 					"Ui0nU99X": []string{"LMccm3Qe", "k5H5RggQ"},
 				},
 				Method:                         "aldrIQ4l",
+				Body:                           "wSjTy7dg",
 				TCP:                            "RJQND605",
 				Interval:                       22164 * time.Second,
 				OutputMaxSize:                  checks.DefaultBufSize,
@@ -4868,6 +4887,7 @@ func TestFullConfig(t *testing.T) {
 					"qxvdnSE9": []string{"6wBPUYdF", "YYh8wtSZ"},
 				},
 				Method:                         "gLrztrNw",
+				Body:                           "0jkKgGUC",
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
 				Interval:                       28767 * time.Second,
@@ -4892,6 +4912,7 @@ func TestFullConfig(t *testing.T) {
 					"f3r6xFtM": {"RyuIdDWv", "QbxEcIUM"},
 				},
 				Method:                         "Dou0nGT5",
+				Body:                           "5PBQd2OT",
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
 				Interval:                       18714 * time.Second,
@@ -5056,6 +5077,7 @@ func TestFullConfig(t *testing.T) {
 							"cVFpko4u": {"gGqdEB6k", "9LsRo22u"},
 						},
 						Method:                         "X5DrovFc",
+						Body:                           "WeikigLh",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "ICbxkpSF",
 						Interval:                       24392 * time.Second,
@@ -5105,6 +5127,7 @@ func TestFullConfig(t *testing.T) {
 							"1UJXjVrT": {"OJgxzTfk", "xZZrFsq7"},
 						},
 						Method:                         "5wkAxCUE",
+						Body:                           "7CRjCJyz",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "MN3oA9D2",
 						Interval:                       32718 * time.Second,
@@ -5127,6 +5150,7 @@ func TestFullConfig(t *testing.T) {
 							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
 						},
 						Method:                         "wzByP903",
+						Body:                           "4I8ucZgZ",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "2exjZIGE",
 						Interval:                       5656 * time.Second,
@@ -5241,6 +5265,7 @@ func TestFullConfig(t *testing.T) {
 							"SHOVq1Vv": {"jntFhyym", "GYJh32pp"},
 						},
 						Method:                         "T66MFBfR",
+						Body:                           "OwGjTFQi",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "bNnNfx2A",
 						Interval:                       22224 * time.Second,
@@ -5263,6 +5288,7 @@ func TestFullConfig(t *testing.T) {
 							"p2UI34Qz": {"UsG1D0Qh", "NHhRiB6s"},
 						},
 						Method:                         "ciYHWors",
+						Body:                           "lUVLGYU7",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "FfvCwlqH",
 						Interval:                       12356 * time.Second,
@@ -5285,6 +5311,7 @@ func TestFullConfig(t *testing.T) {
 							"l4HwQ112": {"fk56MNlo", "dhLK56aZ"},
 						},
 						Method:                         "9afLm3Mj",
+						Body:                           "wVVL2V6f",
 						OutputMaxSize:                  checks.DefaultBufSize,
 						TCP:                            "fjiLFqVd",
 						Interval:                       23926 * time.Second,
