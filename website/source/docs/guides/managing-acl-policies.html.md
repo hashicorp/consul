@@ -117,7 +117,7 @@ consul intention create wordpress mysql
 
 The Security Team responsible for managing intentions would need to create allow intentions when the `default_policy` is set to `deny`, since deny all will be inherited from the ACL configuration.
 
-In this implementation type, Developers are responsible for requesting a token for their service. For a Connect enabled service, the Operator would need to create a policy that provides write privileges for the service and proxy, and read privileges for the service_prefix and node_prefix.
+In this implementation type, Developers are responsible for requesting a token for their service. For a Connect enabled service, the Operator would need to create a policy that provides write privileges for the service and proxy, and read privileges for all services and nodes to enable discovery of other upstream dependencies.
 
 ```hcl
 service "mysql" {
