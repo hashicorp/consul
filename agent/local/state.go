@@ -965,7 +965,48 @@ func (l *State) SyncFull() error {
 // marked out of sync or deleted to the server.
 func (l *State) SyncChanges() error {
 	l.Lock()
-	defer l.Unlock()
+
+	const (
+		deleted = iota
+		notInSync
+	)
+
+	var services = make(map[string]int)
+	for id, s := range l.services {
+		switch {
+		case s.Deleted:
+			services[id] = deleted
+		case !s.InSync:
+			services[id] = notInSync
+		default:
+			l.logger.Printf("[DEBUG] agent: Service %q in sync", id)
+		}
+	}
+
+	type checkContainer struct {
+			state      int
+			deferCheck *time.Timer
+	}
+
+	var checks = make(map[types.CheckID]checkContainer)
+
+	for id, c := range l.checks {
+		switch  {
+		case c.Deleted:
+			checks[id] = checkContainer{
+				state: deleted,
+			}
+		case !c.InSync:
+			checks[id] = checkContainer{
+				state: notInSync,
+				deferCheck: c.DeferCheck,
+			}
+		default:
+			l.logger.Printf("[DEBUG] agent: Check %q in sync", id)
+		}
+	}
+
+	l.Unlock()
 
 	// We will do node-level info syncing at the end, since it will get
 	// updated by a service or check sync anyway, given how the register
@@ -973,15 +1014,13 @@ func (l *State) SyncChanges() error {
 
 	// Sync the services
 	// (logging happens in the helper methods)
-	for id, s := range l.services {
+	for id, state := range services {
 		var err error
-		switch {
-		case s.Deleted:
+		switch state {
+		case deleted:
 			err = l.deleteService(id)
-		case !s.InSync:
+		case notInSync:
 			err = l.syncService(id)
-		default:
-			l.logger.Printf("[DEBUG] agent: Service %q in sync", id)
 		}
 		if err != nil {
 			return err
@@ -990,19 +1029,17 @@ func (l *State) SyncChanges() error {
 
 	// Sync the checks
 	// (logging happens in the helper methods)
-	for id, c := range l.checks {
+	for id, c := range checks {
 		var err error
-		switch {
-		case c.Deleted:
+		switch c.state {
+		case deleted:
 			err = l.deleteCheck(id)
-		case !c.InSync:
-			if c.DeferCheck != nil {
-				c.DeferCheck.Stop()
-				c.DeferCheck = nil
+		case notInSync:
+			if c.deferCheck != nil {
+				c.deferCheck.Stop()
+				c.deferCheck = nil
 			}
 			err = l.syncCheck(id)
-		default:
-			l.logger.Printf("[DEBUG] agent: Check %q in sync", id)
 		}
 		if err != nil {
 			return err
