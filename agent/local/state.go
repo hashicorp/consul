@@ -984,21 +984,21 @@ func (l *State) SyncChanges() error {
 	}
 
 	type checkContainer struct {
-			state      int
-			deferCheck *time.Timer
+		state      int
+		deferCheck *time.Timer
 	}
 
 	var checks = make(map[types.CheckID]checkContainer)
 
 	for id, c := range l.checks {
-		switch  {
+		switch {
 		case c.Deleted:
 			checks[id] = checkContainer{
 				state: deleted,
 			}
 		case !c.InSync:
 			checks[id] = checkContainer{
-				state: notInSync,
+				state:      notInSync,
 				deferCheck: c.DeferCheck,
 			}
 		default:
