@@ -1373,11 +1373,13 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 	}
 
 	if existing != nil {
-		policyMatch := existing.(*structs.ACLPolicy)
-
 		if policy.ID == structs.ACLPolicyGlobalManagementID {
 			// Only the name and description are modifiable
-			if policy.Rules != policyMatch.Rules {
+			// Here we specifically check that the rules on the global management policy
+			// are identical to the correct policy rules within the binary. This is opposed
+			// to checking against the current rules to allow us to update the rules during
+			// upgrades.
+			if policy.Rules != structs.ACLPolicyGlobalManagement {
 				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
 			}
 
