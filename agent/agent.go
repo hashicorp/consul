@@ -2627,6 +2627,8 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 		}
 
+		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
+
 		switch {
 
 		case chkType.IsTTL():
@@ -2667,7 +2669,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
 
 			http := &checks.CheckHTTP{
-				Notify:          a.State,
 				CheckID:         check.CheckID,
 				ServiceID:       check.ServiceID,
 				HTTP:            chkType.HTTP,
@@ -2678,6 +2679,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Logger:          a.logger,
 				OutputMaxSize:   maxOutputSize,
 				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
@@ -2704,13 +2706,13 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			tcp := &checks.CheckTCP{
-				Notify:    a.State,
-				CheckID:   check.CheckID,
-				ServiceID: check.ServiceID,
-				TCP:       chkType.TCP,
-				Interval:  chkType.Interval,
-				Timeout:   chkType.Timeout,
-				Logger:    a.logger,
+				CheckID:       check.CheckID,
+				ServiceID:     check.ServiceID,
+				TCP:           chkType.TCP,
+				Interval:      chkType.Interval,
+				Timeout:       chkType.Timeout,
+				Logger:        a.logger,
+				StatusHandler: statusHandler,
 			}
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
@@ -2732,7 +2734,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			grpc := &checks.CheckGRPC{
-				Notify:          a.State,
 				CheckID:         check.CheckID,
 				ServiceID:       check.ServiceID,
 				GRPC:            chkType.GRPC,
@@ -2740,6 +2741,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Timeout:         chkType.Timeout,
 				Logger:          a.logger,
 				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
@@ -2776,7 +2778,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 
 			dockerCheck := &checks.CheckDocker{
-				Notify:            a.State,
 				CheckID:           check.CheckID,
 				ServiceID:         check.ServiceID,
 				DockerContainerID: chkType.DockerContainerID,
@@ -2785,6 +2786,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
 				Client:            a.dockerClient,
+				StatusHandler:     statusHandler,
 			}
 			if prev := a.checkDockers[check.CheckID]; prev != nil {
 				prev.Stop()
@@ -2811,6 +2813,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Timeout:       chkType.Timeout,
 				Logger:        a.logger,
 				OutputMaxSize: maxOutputSize,
+				StatusHandler: statusHandler,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
