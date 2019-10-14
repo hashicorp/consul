@@ -17,12 +17,17 @@ this is `USR1` while on Windows it is `BREAK`. Once Consul receives the signal,
 it will dump the current telemetry information to the agent's `stderr`.
 
 This telemetry information can be used for debugging or otherwise
-getting a better view of what Consul is doing.
+getting a better view of what Consul is doing. Review the [Monitoring and
+Metrics guide](https://learn.hashicorp.com/consul/day-2-operations/monitoring?utm_source=consul.io&utm_medium=docs) to learn how collect and interpret Consul data.
 
 Additionally, if the [`telemetry` configuration options](/docs/agent/options.html#telemetry)
 are provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
-it can be aggregated and flushed to Graphite or any other metrics store. This
+it can be aggregated and flushed to Graphite or any other metrics store. 
+For a configuration example for Telegraf, review the [Monitoring with Telegraf guide](https://learn.hashicorp.com/consul/integrations/telegraf?utm_source=consul.io&utm_medium=docs). 
+
+
+This
 information can also be viewed with the [metrics endpoint](/api/agent.html#view-metrics) in JSON
 format or using [Prometheus](https://prometheus.io/) format.
 
