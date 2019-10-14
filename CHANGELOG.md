@@ -9,6 +9,7 @@ FEATURES
 IMPROVEMENTS
 
 * licensing (Consul Enterprise): Increase initial server temporary license duration to 6 hours to allow for longer upgrades/migrations.
+* agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
 
 BUG FIXES
 
