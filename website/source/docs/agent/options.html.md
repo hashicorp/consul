@@ -39,6 +39,8 @@ documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
+You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent. 
+
 ## <a name="commandline_options"></a>Command-line Options
 
 The options below are all specified on the command-line.

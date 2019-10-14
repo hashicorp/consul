@@ -33,7 +33,8 @@ DNS resolver library and point it at Consul. Another option is to set Consul
 as the DNS server for a node and provide a
 [`recursors`](/docs/agent/options.html#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
-domain to a Consul agent from the existing DNS server.
+domain to a Consul agent from the existing DNS server. Review the 
+[DNS Forwarding guide](https://learn.hashicorp.com/consul/security-networking/forwarding?utm_source=consul.io&utm_medium=docs) for examples. 
 
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 

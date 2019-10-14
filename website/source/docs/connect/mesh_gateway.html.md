@@ -18,6 +18,9 @@ within the Connect session is not decrypted by the Gateway.
 
 ![Mesh Gateway Architecture](/assets/images/mesh-gateways.png)
 
+For a complete example of how to connect services across datacenters,
+review the [mesh gateway guide](https://learn.hashicorp.com/consul/developer-mesh/connect-gateways).
+
 ## Prerequisites
 
 Each mesh gateway needs three things:
