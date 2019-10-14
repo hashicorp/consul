@@ -36,8 +36,6 @@ type Config struct {
 
 // ServiceState describes the state of a service record.
 type ServiceState struct {
-	sync.RWMutex
-
 	// Service is the local copy of the service record.
 	Service *structs.NodeService
 
@@ -73,8 +71,6 @@ func (s *ServiceState) Clone() *ServiceState {
 }
 
 func (s *ServiceState) increment() {
-	s.Lock()
-	defer s.Unlock()
 	if s.version > versionRollover {
 		s.version = 1
 		return
@@ -84,8 +80,6 @@ func (s *ServiceState) increment() {
 
 // CheckState describes the state of a health check record.
 type CheckState struct {
-	sync.RWMutex
-
 	// Check is the local copy of the health check record.
 	//
 	// Must Clone() the overall CheckState before mutating this. After mutation
@@ -143,8 +137,6 @@ func (c *CheckState) CriticalFor() time.Duration {
 }
 
 func (c *CheckState) increment() {
-	c.Lock()
-	defer c.Unlock()
 	if c.version > versionRollover {
 		c.version = 1
 		return
