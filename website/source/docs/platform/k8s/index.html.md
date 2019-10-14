@@ -13,8 +13,6 @@ to Kubernetes using the Helm chart, sync services between Consul and
 Kubernetes, automatically secure Pod communication with Connect, and more.
 This section documents the official integrations between Consul and Kubernetes.
 
--> A step-by-step beginner tutorial and accompanying video can be found at the [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube)
-
 ## Use Cases
 
 **Running a Consul server cluster:** The Consul server cluster can run directly
@@ -44,6 +42,26 @@ vice versa) over a fully encrypted connection.
 **And more!** Consul can run directly on Kubernetes, so in addition to the
 native integrations provided by Consul itself, any other tool built for
 Kubernetes can choose to leverage Consul.
+
+## Getting Started With Consul and Kubernetes
+
+There are several ways to try Consul with Kubernetes in different environments.
+
+ - The [Consul and minikube guide](https://learn.hashicorp.com/consul/
+   getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs) is a quick walk through of how to deploy Consul with the official Helm chart on a local instance of Minikube. 
+
+ - The [Deploying Consul with Kubernetes guide](https://learn.hashicorp.com/
+   consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
+   walks you through deploying Consul on Kubernetes with the official Helm chart and can be applied to any Kubernetes installation type.
+
+ - The [Kubernetes on Azure guide](https://learn.hashicorp.com/consul/
+   getting-started-k8s/azure-k8s?utm_source=consul.io&utm_medium=docs) is a complete walk through on how to deploy Consul on AKS.
+
+ - The [Consul and Kubernetes Reference Architecture](
+   https://learn.hashicorp.com/consul/day-1-operations/kubernetes-reference?utm_source=consul.io&utm_medium=docs) guide provides recommended practices for production. 
+
+ - The [Consul and Kubernetes Deployment](
+   https://learn.hashicorp.com/consul/day-1-operations/kubernetes-deployment-guide?utm_source=consul.io&utm_medium=docs) guide covers the necssary steps to install and configure a new Consul cluster on Kubernetes in production. 
 
 ## "consul-k8s" Project
 
