@@ -1621,7 +1621,7 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 	// This accounts for cases where the agent no longer has a token with write permission
 	// on the service to deregister it.
 	// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
-	if rule.NodeWrite(subj.Node, nil) != acl.Allow {
+	if rule.NodeWrite(subj.Node, nil) == acl.Allow {
 		return nil
 	}
 
