@@ -21,6 +21,7 @@ import (
 )
 
 const fullSyncReadMaxStale = 2 * time.Second
+const versionRollover = 65533
 
 // Config is the configuration for the State.
 type Config struct {
@@ -35,6 +36,8 @@ type Config struct {
 
 // ServiceState describes the state of a service record.
 type ServiceState struct {
+	sync.RWMutex
+
 	// Service is the local copy of the service record.
 	Service *structs.NodeService
 
@@ -54,7 +57,9 @@ type ServiceState struct {
 	// memdb.WatchSet when watching agent local changes with hash-based blocking.
 	WatchCh chan struct{}
 
-
+	// Defines the version of the state, so in changes of the certain Service
+	// can be tracked by version numbers
+	version uint64
 }
 
 // Clone returns a shallow copy of the object. The service record still points
@@ -67,8 +72,20 @@ func (s *ServiceState) Clone() *ServiceState {
 	return s2
 }
 
+func (s *ServiceState) increment() {
+	s.Lock()
+	defer s.Unlock()
+	if s.version > versionRollover {
+		s.version = 1
+		return
+	}
+	s.version = s.version + 1
+}
+
 // CheckState describes the state of a health check record.
 type CheckState struct {
+	sync.RWMutex
+
 	// Check is the local copy of the health check record.
 	//
 	// Must Clone() the overall CheckState before mutating this. After mutation
@@ -96,6 +113,10 @@ type CheckState struct {
 	// Deleted is true when the health check record has been marked as
 	// deleted but has not been removed on the server yet.
 	Deleted bool
+
+	// Defines the version of the state, so in changes of the certain Service
+	// can be tracked by version numbers
+	version uint64
 }
 
 // Clone returns a shallow copy of the object.
@@ -119,6 +140,16 @@ func (c *CheckState) Critical() bool {
 // state. Its value is undefined when the service is not in critical state.
 func (c *CheckState) CriticalFor() time.Duration {
 	return time.Since(c.CriticalTime)
+}
+
+func (c *CheckState) increment() {
+	c.Lock()
+	defer c.Unlock()
+	if c.version > versionRollover {
+		c.version = 1
+		return
+	}
+	c.version = c.version + 1
 }
 
 type rpc interface {
@@ -307,6 +338,7 @@ func (l *State) removeServiceLocked(id string) error {
 		close(s.WatchCh)
 		s.WatchCh = nil
 	}
+	s.increment()
 	l.TriggerSyncChanges()
 	l.broadcastUpdateLocked()
 
@@ -374,9 +406,11 @@ func (l *State) setServiceStateLocked(s *ServiceState) {
 	l.services[s.Service.ID] = s
 
 	if hasOld && old.WatchCh != nil {
+		l.services[s.Service.ID].version = old.version
 		close(old.WatchCh)
 	}
 
+	l.services[s.Service.ID].increment()
 	l.TriggerSyncChanges()
 	l.broadcastUpdateLocked()
 }
@@ -516,6 +550,7 @@ func (l *State) removeCheckLocked(id types.CheckID) error {
 	// entry around until it is actually removed.
 	c.InSync = false
 	c.Deleted = true
+	c.increment()
 	l.TriggerSyncChanges()
 
 	return nil
@@ -584,6 +619,7 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 					return
 				}
 				c.InSync = false
+				c.increment()
 				l.TriggerSyncChanges()
 			})
 		}
@@ -597,6 +633,7 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 	c.Check.Status = status
 	c.Check.Output = output
 	c.InSync = false
+	c.increment()
 	l.TriggerSyncChanges()
 }
 
@@ -653,6 +690,7 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	// If this is a check for an aliased service, then notify the waiters.
 	l.notifyIfAliased(c.Check.ServiceID)
 
+	c.increment()
 	l.TriggerSyncChanges()
 }
 
@@ -1164,6 +1202,8 @@ func (l *State) syncService(id string) error {
 	// checks ride on service registrations with the same token,
 	// otherwise we need to register them separately so they don't
 	// pick up privileges from the service token.
+	l.Lock()
+	var currentVersion = l.services[id].version
 	var checks structs.HealthChecks
 	for checkID, c := range l.checks {
 		if c.Deleted || c.InSync {
@@ -1177,6 +1217,7 @@ func (l *State) syncService(id string) error {
 		}
 		checks = append(checks, c.Check)
 	}
+	l.Unlock()
 
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
@@ -1198,9 +1239,14 @@ func (l *State) syncService(id string) error {
 
 	var out struct{}
 	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	l.Lock()
+	defer l.Unlock()
 	switch {
 	case err == nil:
 		l.services[id].InSync = true
+		if l.services[id].version > currentVersion {
+			l.services[id].InSync = false
+		}
 		// Given how the register API works, this info is also updated
 		// every time we sync a service.
 		l.nodeInfoInSync = true
@@ -1229,7 +1275,10 @@ func (l *State) syncService(id string) error {
 
 // syncCheck is used to sync a check to the server
 func (l *State) syncCheck(id types.CheckID) error {
+	l.Lock()
+	var currentVersion = l.checks[id].version
 	c := l.checks[id]
+	l.Unlock()
 
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
@@ -1250,9 +1299,14 @@ func (l *State) syncCheck(id types.CheckID) error {
 
 	var out struct{}
 	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	l.Lock()
+	defer l.Unlock()
 	switch {
 	case err == nil:
 		l.checks[id].InSync = true
+		if l.checks[id].version > currentVersion {
+			l.checks[id].InSync = false
+		}
 		// Given how the register API works, this info is also updated
 		// every time we sync a check.
 		l.nodeInfoInSync = true
