@@ -892,13 +892,13 @@ type discoveryChainConfigEntry interface {
 }
 
 func canReadDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
-	return rule.ServiceRead(entry.GetName())
+	return rule.ServiceRead(entry.GetName(), nil) == acl.Allow
 }
 
 func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
 	name := entry.GetName()
 
-	if !rule.ServiceWrite(name, nil) {
+	if rule.ServiceWrite(name, nil) != acl.Allow {
 		return false
 	}
 
@@ -909,7 +909,7 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if !rule.ServiceRead(svc) {
+		if rule.ServiceRead(svc, nil) != acl.Allow {
 			return false
 		}
 	}

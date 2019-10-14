@@ -78,7 +78,7 @@ func (s *HTTPServer) EventList(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	authz, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
@@ -128,10 +128,10 @@ RUN_QUERY:
 	events := s.agent.UserEvents()
 
 	// Filter the events using the ACL, if present
-	if acl != nil {
+	if authz != nil {
 		for i := 0; i < len(events); i++ {
 			name := events[i].Name
-			if acl.EventRead(name) {
+			if authz.EventRead(name, nil) == acl.Allow {
 				continue
 			}
 			s.agent.logger.Printf("[DEBUG] agent: dropping event %q from result due to ACLs", name)

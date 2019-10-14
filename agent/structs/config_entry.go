@@ -92,11 +92,11 @@ func (e *ServiceConfigEntry) Validate() error {
 }
 
 func (e *ServiceConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return rule.ServiceRead(e.Name)
+	return rule.ServiceRead(e.Name, nil) == acl.Allow
 }
 
 func (e *ServiceConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return rule.ServiceWrite(e.Name, nil)
+	return rule.ServiceWrite(e.Name, nil) == acl.Allow
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -162,7 +162,7 @@ func (e *ProxyConfigEntry) CanRead(rule acl.Authorizer) bool {
 }
 
 func (e *ProxyConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return rule.OperatorWrite()
+	return rule.OperatorWrite(nil) == acl.Allow
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {

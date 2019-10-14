@@ -57,7 +57,8 @@ func (a *Agent) ConnectAuthorize(token string,
 	if err != nil {
 		return returnErr(err)
 	}
-	if rule != nil && !rule.ServiceWrite(req.Target, nil) {
+	// TODO (namespaces) - pass through a real ent authz ctx
+	if rule != nil && rule.ServiceWrite(req.Target, nil) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
@@ -115,5 +116,6 @@ func (a *Agent) ConnectAuthorize(token string,
 		return true, "ACLs disabled, access is allowed by default", &meta, nil
 	}
 	reason = "Default behavior configured by ACLs"
-	return rule.IntentionDefaultAllow(), reason, &meta, nil
+	// TODO (namespaces) - pass through a real ent authz ctx
+	return rule.IntentionDefaultAllow(nil) == acl.Allow, reason, &meta, nil
 }

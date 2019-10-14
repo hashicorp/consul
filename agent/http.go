@@ -279,7 +279,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
-			if rule != nil && !rule.OperatorRead() {
+			if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}

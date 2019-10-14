@@ -764,7 +764,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
@@ -774,7 +774,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		require.False(t, authz == authz2)
-		require.False(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz2.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", false, "expired")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", false, "expired") // from "found" token
@@ -802,14 +802,14 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// role cache expired - so we will fail to resolve that role and use the default policy only
 		authz2, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		require.False(t, authz == authz2)
-		require.False(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz2.NodeWrite("foo", nil))
 	})
 
 	t.Run("Extend-Cache-Policy", func(t *testing.T) {
@@ -832,7 +832,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requireIdentityCached(t, r, "found", true, "cached")
 
@@ -841,7 +841,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
 	t.Run("Extend-Cache-Role", func(t *testing.T) {
@@ -864,7 +864,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requireIdentityCached(t, r, "found-role", true, "still cached")
 
@@ -873,7 +873,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
 	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
@@ -897,7 +897,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
@@ -907,7 +907,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		require.True(t, authz == authz2)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "still cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "still cached") // from "found" token
@@ -935,14 +935,14 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// Will just use the policy cache
 		authz2, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		require.True(t, authz == authz2)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
 	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
@@ -968,7 +968,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
@@ -979,7 +979,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
@@ -989,7 +989,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			authz3, err := r.ResolveToken("found")
 			assert.NoError(t, err)
 			assert.NotNil(t, authz3)
-			assert.False(t, authz3.NodeWrite("foo", nil))
+			assert.Equal(t, acl.Deny, authz3.NodeWrite("foo", nil))
 		})
 
 		requirePolicyCached(t, r, "node-wr", false, "no longer cached")    // from "found" token
@@ -1020,7 +1020,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// The identity should have been cached so this should still be valid
 		authz2, err := r.ResolveToken("found-role")
@@ -1028,14 +1028,14 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// the go routine spawned will eventually return with a authz that doesn't have the policy
 		retry.Run(t, func(t *retry.R) {
 			authz3, err := r.ResolveToken("found-role")
 			assert.NoError(t, err)
 			assert.NotNil(t, authz3)
-			assert.False(t, authz3.NodeWrite("foo", nil))
+			assert.Equal(t, acl.Deny, authz3.NodeWrite("foo", nil))
 		})
 	})
 
@@ -1062,7 +1062,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
@@ -1072,7 +1072,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
 	t.Run("Extend-Cache-Client-Role", func(t *testing.T) {
@@ -1099,7 +1099,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "still cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "still cached") // from "found" token
@@ -1109,7 +1109,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2, "\n[1]={%+v} != \n[2]={%+v}", authz, authz2)
-		require.True(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
 	t.Run("Async-Cache", func(t *testing.T) {
@@ -1132,7 +1132,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requireIdentityCached(t, r, "found", true, "cached")
 
@@ -1142,7 +1142,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
 		require.True(t, authz == authz2)
-		require.True(t, authz2.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 
 		requireIdentityCached(t, r, "found", true, "cached")
 
@@ -1205,7 +1205,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken(secretID)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// Verify that the caches are setup properly.
 		requireIdentityCached(t, r, secretID, true, "cached")
@@ -1267,7 +1267,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz, err := r.ResolveToken(secretID)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// Verify that the caches are setup properly.
 		requireIdentityCached(t, r, secretID, true, "cached")
@@ -1304,9 +1304,9 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.False(t, authz.KeyWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.KeyWrite("foo", nil))
 	})
 
 	t.Run("dc2", func(t *testing.T) {
@@ -1326,9 +1326,9 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.False(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.KeyWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.KeyWrite("foo", nil))
 	})
 }
 
@@ -1403,8 +1403,8 @@ func TestACLResolver_Client(t *testing.T) {
 		authz, err := r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.False(t, authz.ACLRead())
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.True(t, modified)
 		require.True(t, deleted)
 		require.Equal(t, int32(2), tokenReads)
@@ -1577,49 +1577,49 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		authz, err := r.ResolveToken("missing-policy")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.ACLRead())
-		require.False(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.ACLRead(nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Missing Role", func(t *testing.T) {
 		authz, err := r.ResolveToken("missing-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.ACLRead())
-		require.False(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.ACLRead(nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Missing Policy on Role", func(t *testing.T) {
 		authz, err := r.ResolveToken("missing-policy-on-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.True(t, authz.ACLRead())
-		require.False(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.ACLRead(nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Normal with Policy", func(t *testing.T) {
 		authz, err := r.ResolveToken("found")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Normal with Role", func(t *testing.T) {
 		authz, err := r.ResolveToken("found-role")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Normal with Policy and Role", func(t *testing.T) {
 		authz, err := r.ResolveToken("found-policy-and-role")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.ServiceRead("bar"))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("bar", nil))
 	})
 
 	runTwiceAndReset("Synthetic Policies Independently Cache", func(t *testing.T) {
@@ -1631,28 +1631,28 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			require.NotNil(t, authz)
 			require.NoError(t, err)
 			// spot check some random perms
-			require.False(t, authz.ACLRead())
-			require.False(t, authz.NodeWrite("foo", nil))
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 			// ensure we didn't bleed over to the other synthetic policy
-			require.False(t, authz.ServiceWrite("service2", nil))
+			require.Equal(t, acl.Deny, authz.ServiceWrite("service2", nil))
 			// check our own synthetic policy
-			require.True(t, authz.ServiceWrite("service1", nil))
-			require.True(t, authz.ServiceRead("literally-anything"))
-			require.True(t, authz.NodeRead("any-node"))
+			require.Equal(t, acl.Allow, authz.ServiceWrite("service1", nil))
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeRead("any-node", nil))
 		}
 		{
 			authz, err := r.ResolveToken("found-synthetic-policy-2")
 			require.NotNil(t, authz)
 			require.NoError(t, err)
 			// spot check some random perms
-			require.False(t, authz.ACLRead())
-			require.False(t, authz.NodeWrite("foo", nil))
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 			// ensure we didn't bleed over to the other synthetic policy
-			require.False(t, authz.ServiceWrite("service1", nil))
+			require.Equal(t, acl.Deny, authz.ServiceWrite("service1", nil))
 			// check our own synthetic policy
-			require.True(t, authz.ServiceWrite("service2", nil))
-			require.True(t, authz.ServiceRead("literally-anything"))
-			require.True(t, authz.NodeRead("any-node"))
+			require.Equal(t, acl.Allow, authz.ServiceWrite("service2", nil))
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeRead("any-node", nil))
 		}
 	})
 
@@ -1660,24 +1660,24 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		authz, err := r.ResolveToken("")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.False(t, authz.ACLRead())
-		require.True(t, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("legacy-management", func(t *testing.T) {
 		authz, err := r.ResolveToken("legacy-management")
 		require.NotNil(t, authz)
 		require.NoError(t, err)
-		require.True(t, authz.ACLWrite())
-		require.True(t, authz.KeyRead("foo"))
+		require.Equal(t, acl.Allow, authz.ACLWrite(nil))
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
 	})
 
 	runTwiceAndReset("legacy-client", func(t *testing.T) {
 		authz, err := r.ResolveToken("legacy-client")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
-		require.False(t, authz.OperatorRead())
-		require.True(t, authz.ServiceRead("foo"))
+		require.Equal(t, acl.Deny, authz.OperatorRead(nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
 	})
 }
 
@@ -1700,10 +1700,12 @@ func TestACLResolver_Legacy(t *testing.T) {
 					reply.ETag = "nothing"
 					reply.Policy = &acl.Policy{
 						ID: "not-needed",
-						Nodes: []*acl.NodePolicy{
-							&acl.NodePolicy{
-								Name:   "foo",
-								Policy: acl.PolicyWrite,
+						PolicyRules: acl.PolicyRules{
+							Nodes: []*acl.NodeRule{
+								&acl.NodeRule{
+									Name:   "foo",
+									Policy: acl.PolicyWrite,
+								},
 							},
 						},
 					}
@@ -1719,18 +1721,18 @@ func TestACLResolver_Legacy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 
 		// this should be from the cache
 		authz, err = r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 	})
 
 	t.Run("Cache-Expiry-Extend", func(t *testing.T) {
@@ -1749,10 +1751,12 @@ func TestACLResolver_Legacy(t *testing.T) {
 					reply.ETag = "nothing"
 					reply.Policy = &acl.Policy{
 						ID: "not-needed",
-						Nodes: []*acl.NodePolicy{
-							&acl.NodePolicy{
-								Name:   "foo",
-								Policy: acl.PolicyWrite,
+						PolicyRules: acl.PolicyRules{
+							Nodes: []*acl.NodeRule{
+								&acl.NodeRule{
+									Name:   "foo",
+									Policy: acl.PolicyWrite,
+								},
 							},
 						},
 					}
@@ -1770,18 +1774,18 @@ func TestACLResolver_Legacy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 
 		// this should be from the cache
 		authz, err = r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 	})
 
 	t.Run("Cache-Expiry-Allow", func(t *testing.T) {
@@ -1800,10 +1804,12 @@ func TestACLResolver_Legacy(t *testing.T) {
 					reply.ETag = "nothing"
 					reply.Policy = &acl.Policy{
 						ID: "not-needed",
-						Nodes: []*acl.NodePolicy{
-							&acl.NodePolicy{
-								Name:   "foo",
-								Policy: acl.PolicyWrite,
+						PolicyRules: acl.PolicyRules{
+							Nodes: []*acl.NodeRule{
+								&acl.NodeRule{
+									Name:   "foo",
+									Policy: acl.PolicyWrite,
+								},
 							},
 						},
 					}
@@ -1822,18 +1828,18 @@ func TestACLResolver_Legacy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 
 		// this should be from the cache
 		authz, err = r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.True(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("fo", nil))
 	})
 
 	t.Run("Cache-Expiry-Deny", func(t *testing.T) {
@@ -1852,10 +1858,12 @@ func TestACLResolver_Legacy(t *testing.T) {
 					reply.ETag = "nothing"
 					reply.Policy = &acl.Policy{
 						ID: "not-needed",
-						Nodes: []*acl.NodePolicy{
-							&acl.NodePolicy{
-								Name:   "foo",
-								Policy: acl.PolicyWrite,
+						PolicyRules: acl.PolicyRules{
+							Nodes: []*acl.NodeRule{
+								&acl.NodeRule{
+									Name:   "foo",
+									Policy: acl.PolicyWrite,
+								},
 							},
 						},
 					}
@@ -1874,18 +1882,18 @@ func TestACLResolver_Legacy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 
 		// this should be from the cache
 		authz, err = r.ResolveToken("foo")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.False(t, authz.NodeWrite("foo", nil))
-		require.False(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 	})
 
 	t.Run("Cache-Expiry-Async-Cache", func(t *testing.T) {
@@ -1904,10 +1912,12 @@ func TestACLResolver_Legacy(t *testing.T) {
 					reply.ETag = "nothing"
 					reply.Policy = &acl.Policy{
 						ID: "not-needed",
-						Nodes: []*acl.NodePolicy{
-							&acl.NodePolicy{
-								Name:   "foo",
-								Policy: acl.PolicyWrite,
+						PolicyRules: acl.PolicyRules{
+							Nodes: []*acl.NodeRule{
+								&acl.NodeRule{
+									Name:   "foo",
+									Policy: acl.PolicyWrite,
+								},
 							},
 						},
 					}
@@ -1926,9 +1936,9 @@ func TestACLResolver_Legacy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 		// there is a bit of translation that happens
-		require.True(t, authz.NodeWrite("foo", nil))
-		require.True(t, authz.NodeWrite("foo/bar", nil))
-		require.False(t, authz.NodeWrite("fo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.NodeWrite("foo/bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("fo", nil))
 
 		// delivered from the cache
 		authz2, err := r.ResolveToken("foo")
@@ -2170,7 +2180,7 @@ service "foo" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2204,7 +2214,7 @@ node "node1" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2260,7 +2270,7 @@ service "foo" {
 }
 `, acl.SyntaxLegacy, nil)
 	assert.Nil(err)
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	assert.Nil(err)
 
 	// Filter
@@ -2347,7 +2357,7 @@ service "foo" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2381,7 +2391,7 @@ node "node1" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2453,7 +2463,7 @@ service "foo" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2487,7 +2497,7 @@ node "node1" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2559,7 +2569,7 @@ service "foo" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2596,7 +2606,7 @@ node "node1" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2750,7 +2760,7 @@ service "foo" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2790,7 +2800,7 @@ node "node1" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3046,7 +3056,7 @@ node "node" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3091,7 +3101,7 @@ service "service" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3121,7 +3131,7 @@ service "other" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3195,7 +3205,7 @@ service "other" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3225,7 +3235,7 @@ node "node" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	perms, err = acl.NewPolicyAuthorizer(perms, []*acl.Policy{policy}, nil)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3272,7 +3282,7 @@ node "node" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	nodePerms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	nodePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3285,7 +3295,7 @@ node "node" {
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
-	servicePerms, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	servicePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -3294,7 +3304,7 @@ node "node" {
 		DeregisterRequest structs.DeregisterRequest
 		Service           *structs.NodeService
 		Check             *structs.HealthCheck
-		Perms             *acl.PolicyAuthorizer
+		Perms             acl.Authorizer
 		Expected          bool
 		Name              string
 	}{

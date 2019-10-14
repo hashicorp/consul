@@ -665,11 +665,11 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 
-		require.True(t, authz.NodeRead("foo"))
-		require.True(t, authz.AgentRead("foo"))
-		require.True(t, authz.KeyRead("foo"))
-		require.True(t, authz.ServiceRead("foo"))
-		require.False(t, authz.ACLRead())
+		require.Equal(t, acl.Allow, authz.NodeRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.AgentRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 	})
 
 	t.Run("Check Cache", func(t *testing.T) {
@@ -678,11 +678,11 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		authz := entry.Authorizer
 		require.NotNil(t, authz)
 
-		require.True(t, authz.NodeRead("foo"))
-		require.True(t, authz.AgentRead("foo"))
-		require.True(t, authz.KeyRead("foo"))
-		require.True(t, authz.ServiceRead("foo"))
-		require.False(t, authz.ACLRead())
+		require.Equal(t, acl.Allow, authz.NodeRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.AgentRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 
 		// setup the cache for the next test
 		cache.PutAuthorizer(testPolicies.HashKey(), acl.DenyAll())
@@ -694,10 +694,10 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		require.NotNil(t, authz)
 
 		// we reset the Authorizer in the cache so now everything should be denied
-		require.False(t, authz.NodeRead("foo"))
-		require.False(t, authz.AgentRead("foo"))
-		require.False(t, authz.KeyRead("foo"))
-		require.False(t, authz.ServiceRead("foo"))
-		require.False(t, authz.ACLRead())
+		require.Equal(t, acl.Deny, authz.NodeRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.AgentRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 	})
 }

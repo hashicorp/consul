@@ -18,6 +18,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -28,7 +29,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
@@ -107,8 +107,9 @@ var (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// sentinel is the Sentinel code engine (can be nil).
-	sentinel sentinel.Evaluator
+	// enterpriseACLConfig is the Consul Enterprise specific items
+	// necessary for ACLs
+	enterpriseACLConfig *acl.EnterpriseACLConfig
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
@@ -391,15 +392,15 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.sentinel = sentinel.New(logger)
+	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
-		Delegate:    s,
-		CacheConfig: serverACLCacheConfig,
-		AutoDisable: false,
-		Logger:      logger,
-		Sentinel:    s.sentinel,
+		Config:           config,
+		Delegate:         s,
+		CacheConfig:      serverACLCacheConfig,
+		AutoDisable:      false,
+		Logger:           logger,
+		EnterpriseConfig: s.enterpriseACLConfig,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {

@@ -195,10 +195,10 @@ func TestACL_AgentMasterToken(t *testing.T) {
 	require.NotNil(t, authz)
 	require.Nil(t, err)
 
-	require.True(t, authz.AgentRead(a.config.NodeName))
-	require.True(t, authz.AgentWrite(a.config.NodeName))
-	require.True(t, authz.NodeRead("foobarbaz"))
-	require.False(t, authz.NodeWrite("foobarbaz", nil))
+	require.Equal(t, acl.Allow, authz.AgentRead(a.config.NodeName, nil))
+	require.Equal(t, acl.Allow, authz.AgentWrite(a.config.NodeName, nil))
+	require.Equal(t, acl.Allow, authz.NodeRead("foobarbaz", nil))
+	require.Equal(t, acl.Deny, authz.NodeWrite("foobarbaz", nil))
 }
 
 func TestACL_RootAuthorizersDenied(t *testing.T) {
@@ -225,7 +225,7 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 }
 
 func authzFromPolicy(policy *acl.Policy) (acl.Authorizer, error) {
-	return acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 }
 
 // catalogPolicy supplies some standard policies to help with testing the
@@ -235,32 +235,42 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 
 	case "node-ro":
 		return authzFromPolicy(&acl.Policy{
-			NodePrefixes: []*acl.NodePolicy{
-				&acl.NodePolicy{Name: "Node", Policy: "read"},
+			PolicyRules: acl.PolicyRules{
+				NodePrefixes: []*acl.NodeRule{
+					&acl.NodeRule{Name: "Node", Policy: "read"},
+				},
 			},
 		})
 	case "node-rw":
 		return authzFromPolicy(&acl.Policy{
-			NodePrefixes: []*acl.NodePolicy{
-				&acl.NodePolicy{Name: "Node", Policy: "write"},
+			PolicyRules: acl.PolicyRules{
+				NodePrefixes: []*acl.NodeRule{
+					&acl.NodeRule{Name: "Node", Policy: "write"},
+				},
 			},
 		})
 	case "service-ro":
 		return authzFromPolicy(&acl.Policy{
-			ServicePrefixes: []*acl.ServicePolicy{
-				&acl.ServicePolicy{Name: "service", Policy: "read"},
+			PolicyRules: acl.PolicyRules{
+				ServicePrefixes: []*acl.ServiceRule{
+					&acl.ServiceRule{Name: "service", Policy: "read"},
+				},
 			},
 		})
 	case "service-rw":
 		return authzFromPolicy(&acl.Policy{
-			ServicePrefixes: []*acl.ServicePolicy{
-				&acl.ServicePolicy{Name: "service", Policy: "write"},
+			PolicyRules: acl.PolicyRules{
+				ServicePrefixes: []*acl.ServiceRule{
+					&acl.ServiceRule{Name: "service", Policy: "write"},
+				},
 			},
 		})
 	case "other-rw":
 		return authzFromPolicy(&acl.Policy{
-			ServicePrefixes: []*acl.ServicePolicy{
-				&acl.ServicePolicy{Name: "other", Policy: "write"},
+			PolicyRules: acl.PolicyRules{
+				ServicePrefixes: []*acl.ServiceRule{
+					&acl.ServiceRule{Name: "other", Policy: "write"},
+				},
 			},
 		})
 	default:
