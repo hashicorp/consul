@@ -16,6 +16,8 @@ var (
 
 	// manageAll is a singleton policy which allows all
 	// actions, including management
+	// TODO (acls) - Do we need to keep this around? Our config parsing doesn't allow
+	// specifying a default "manage" policy so I believe nothing will every use this.
 	manageAll Authorizer = &StaticAuthorizer{
 		allowManage:  true,
 		defaultAllow: true,
