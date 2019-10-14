@@ -79,7 +79,7 @@ service_prefix "" {
 }
 session_prefix "" {
 	policy = "write"
-}`
+}` + EnterpriseACLPolicyGlobalManagement
 
 	// This is the policy ID for anonymous access. This is configurable by the
 	// user.
