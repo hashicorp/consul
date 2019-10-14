@@ -53,6 +53,8 @@ type ServiceState struct {
 	// WatchCh is closed when the service state changes. Suitable for use in a
 	// memdb.WatchSet when watching agent local changes with hash-based blocking.
 	WatchCh chan struct{}
+
+
 }
 
 // Clone returns a shallow copy of the object. The service record still points
@@ -1069,10 +1071,21 @@ func (l *State) deleteService(id string) error {
 	}
 	var out struct{}
 	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+	l.Lock()
+	defer l.Unlock()
 	switch {
-	case err == nil || strings.Contains(err.Error(), "Unknown service"):
-		delete(l.services, id)
+	case err == nil:
+		if service, ok := l.services[id]; ok && service.Deleted {
+			delete(l.services, id)
+		}
 		l.logger.Printf("[INFO] agent: Deregistered service %q", id)
+		return nil
+
+	case strings.Contains(err.Error(), "Unknown service"):
+		if _, ok := l.services[id]; ok {
+			delete(l.services, id)
+			l.logger.Printf("[INFO] agent: Deregistered service %q", id)
+		}
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
@@ -1103,13 +1116,29 @@ func (l *State) deleteCheck(id types.CheckID) error {
 	}
 	var out struct{}
 	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+	l.Lock()
+	defer l.Unlock()
 	switch {
-	case err == nil || strings.Contains(err.Error(), "Unknown check"):
-		c := l.checks[id]
-		if c != nil && c.DeferCheck != nil {
-			c.DeferCheck.Stop()
+	case err == nil:
+		var c *CheckState
+		var ok bool
+		if c, ok = l.checks[id]; ok && c.Deleted {
+			if c != nil && c.DeferCheck != nil {
+				c.DeferCheck.Stop()
+			}
+			delete(l.checks, id)
 		}
-		delete(l.checks, id)
+		l.logger.Printf("[INFO] agent: Deregistered check %q", id)
+		return nil
+	case strings.Contains(err.Error(), "Unknown check"):
+		var c *CheckState
+		var ok bool
+		if c, ok = l.checks[id]; ok {
+			if c != nil && c.DeferCheck != nil {
+				c.DeferCheck.Stop()
+			}
+			delete(l.checks, id)
+		}
 		l.logger.Printf("[INFO] agent: Deregistered check %q", id)
 		return nil
 
