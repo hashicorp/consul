@@ -27,21 +27,23 @@ type CheckType struct {
 	// fields copied to CheckDefinition
 	// Update CheckDefinition when adding fields here
 
-	ScriptArgs        []string
-	HTTP              string
-	Header            map[string][]string
-	Method            string
-	TCP               string
-	Interval          time.Duration
-	AliasNode         string
-	AliasService      string
-	DockerContainerID string
-	Shell             string
-	GRPC              string
-	GRPCUseTLS        bool
-	TLSSkipVerify     bool
-	Timeout           time.Duration
-	TTL               time.Duration
+	ScriptArgs             []string
+	HTTP                   string
+	Header                 map[string][]string
+	Method                 string
+	TCP                    string
+	Interval               time.Duration
+	AliasNode              string
+	AliasService           string
+	DockerContainerID      string
+	Shell                  string
+	GRPC                   string
+	GRPCUseTLS             bool
+	TLSSkipVerify          bool
+	Timeout                time.Duration
+	TTL                    time.Duration
+	SuccessBeforePassing   int
+	FailuresBeforeCritical int
 
 	// Definition fields used when exposing checks through a proxy
 	ProxyHTTP string
