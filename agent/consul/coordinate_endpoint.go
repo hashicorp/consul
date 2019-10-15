@@ -139,7 +139,8 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		if !rule.NodeWrite(args.Node, nil) {
+		// TODO (namespaces) use actual ent authz context
+		if rule.NodeWrite(args.Node, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -210,7 +211,8 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 		return err
 	}
 	if rule != nil && c.srv.config.ACLEnforceVersion8 {
-		if !rule.NodeRead(args.Node) {
+		// TODO (namespaces) use actual ent authz context
+		if rule.NodeRead(args.Node, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}

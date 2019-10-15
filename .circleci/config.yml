@@ -293,7 +293,7 @@ jobs:
 
       # make dev build of nomad
       - run:
-          command: make dev
+          command: make pkg/linux_amd64/nomad
           working_directory: *NOMAD_WORKING_DIR
 
       # update gotestsum

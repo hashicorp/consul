@@ -125,7 +125,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
-	if rule != nil && !rule.EventWrite(args.Name) {
+	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
 		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
 		return acl.ErrPermissionDenied
 	}
@@ -162,7 +162,7 @@ func (m *Internal) KeyringOperation(
 	if rule != nil {
 		switch args.Operation {
 		case structs.KeyringList:
-			if !rule.KeyringRead() {
+			if rule.KeyringRead(nil) != acl.Allow {
 				return fmt.Errorf("Reading keyring denied by ACLs")
 			}
 		case structs.KeyringInstall:
@@ -170,7 +170,7 @@ func (m *Internal) KeyringOperation(
 		case structs.KeyringUse:
 			fallthrough
 		case structs.KeyringRemove:
-			if !rule.KeyringWrite() {
+			if rule.KeyringWrite(nil) != acl.Allow {
 				return fmt.Errorf("Modifying keyring denied due to ACLs")
 			}
 		default:

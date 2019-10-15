@@ -49,12 +49,14 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 			if existing == nil {
 				return fmt.Errorf("Unknown session %q", args.Session.ID)
 			}
-			if !rule.SessionWrite(existing.Node) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.SessionWrite(existing.Node, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
 		case structs.SessionCreate:
-			if !rule.SessionWrite(args.Session.Node) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.SessionWrite(args.Session.Node, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -241,7 +243,8 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return err
 	}
 	if rule != nil && s.srv.config.ACLEnforceVersion8 {
-		if !rule.SessionWrite(session.Node) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.SessionWrite(session.Node, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}

@@ -11,8 +11,6 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sentinel"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 )
@@ -126,7 +124,8 @@ type ACLResolverConfig struct {
 	// so that it can detect when the servers have gotten ACLs enabled.
 	AutoDisable bool
 
-	Sentinel sentinel.Evaluator
+	// EnterpriseACLConfig contains Consul Enterprise specific ACL configuration
+	EnterpriseConfig *acl.EnterpriseACLConfig
 }
 
 // ACLResolver is the type to handle all your token and policy resolution needs.
@@ -159,7 +158,7 @@ type ACLResolver struct {
 	logger *log.Logger
 
 	delegate ACLResolverDelegate
-	sentinel sentinel.Evaluator
+	entConf  *acl.EnterpriseACLConfig
 
 	cache         *structs.ACLCaches
 	identityGroup singleflight.Group
@@ -212,7 +211,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		config:      config.Config,
 		logger:      config.Logger,
 		delegate:    config.Delegate,
-		sentinel:    config.Sentinel,
+		entConf:     config.EnterpriseConfig,
 		cache:       cache,
 		autoDisable: config.AutoDisable,
 		down:        down,
@@ -249,7 +248,7 @@ func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.Aut
 			policies = append(policies, policy.ConvertFromLegacy())
 		}
 
-		authorizer, err := acl.NewPolicyAuthorizer(parent, policies, r.sentinel)
+		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, policies, r.entConf)
 
 		r.cache.PutAuthorizerWithTTL(token, authorizer, reply.TTL)
 		return authorizer, err
@@ -292,7 +291,7 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 				return nil, err
 			}
 
-			return policies.Compile(acl.RootAuthorizer(r.config.ACLDefaultPolicy), r.cache, r.sentinel)
+			return policies.Compile(acl.RootAuthorizer(r.config.ACLDefaultPolicy), r.cache, r.entConf)
 		}
 
 		return nil, err
@@ -1005,7 +1004,7 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 	}
 
 	// Build the Authorizer
-	authorizer, err := policies.Compile(acl.RootAuthorizer(r.config.ACLDefaultPolicy), r.cache, r.sentinel)
+	authorizer, err := policies.Compile(acl.RootAuthorizer(r.config.ACLDefaultPolicy), r.cache, r.entConf)
 	return authorizer, err
 
 }
@@ -1035,7 +1034,7 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 		return nil, acl.ErrNotFound
 	}
 
-	return policies.Merge(r.cache, r.sentinel)
+	return policies.Merge(r.cache, r.entConf)
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules
@@ -1059,15 +1058,15 @@ func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, enforceVersion8
 }
 
 // allowNode is used to determine if a node is accessible for an ACL.
-func (f *aclFilter) allowNode(node string) bool {
+func (f *aclFilter) allowNode(node string, ent *acl.EnterpriseAuthorizerContext) bool {
 	if !f.enforceVersion8 {
 		return true
 	}
-	return f.authorizer.NodeRead(node)
+	return f.authorizer.NodeRead(node, ent) == acl.Allow
 }
 
 // allowService is used to determine if a service is accessible for an ACL.
-func (f *aclFilter) allowService(service string) bool {
+func (f *aclFilter) allowService(service string, ent *acl.EnterpriseAuthorizerContext) bool {
 	if service == "" {
 		return true
 	}
@@ -1075,16 +1074,16 @@ func (f *aclFilter) allowService(service string) bool {
 	if !f.enforceVersion8 && service == structs.ConsulServiceID {
 		return true
 	}
-	return f.authorizer.ServiceRead(service)
+	return f.authorizer.ServiceRead(service, ent) == acl.Allow
 }
 
 // allowSession is used to determine if a session for a node is accessible for
 // an ACL.
-func (f *aclFilter) allowSession(node string) bool {
+func (f *aclFilter) allowSession(node string, ent *acl.EnterpriseAuthorizerContext) bool {
 	if !f.enforceVersion8 {
 		return true
 	}
-	return f.authorizer.SessionRead(node)
+	return f.authorizer.SessionRead(node, ent) == acl.Allow
 }
 
 // filterHealthChecks is used to filter a set of health checks down based on
@@ -1093,7 +1092,8 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 	hc := *checks
 	for i := 0; i < len(hc); i++ {
 		check := hc[i]
-		if f.allowNode(check.Node) && f.allowService(check.ServiceName) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowNode(check.Node, nil) && f.allowService(check.ServiceName, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
@@ -1106,7 +1106,8 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
 // filterServices is used to filter a set of services based on ACLs.
 func (f *aclFilter) filterServices(services structs.Services) {
 	for svc := range services {
-		if f.allowService(svc) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowService(svc, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -1120,7 +1121,8 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 	sn := *nodes
 	for i := 0; i < len(sn); i++ {
 		node := sn[i]
-		if f.allowNode(node.Node) && f.allowService(node.ServiceName) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowNode(node.Node, nil) && f.allowService(node.ServiceName, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node)
@@ -1136,13 +1138,15 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 		return
 	}
 
-	if !f.allowNode((*services).Node.Node) {
+	// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+	if !f.allowNode((*services).Node.Node, nil) {
 		*services = nil
 		return
 	}
 
 	for svc := range (*services).Services {
-		if f.allowService(svc) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowService(svc, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -1155,7 +1159,8 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	csn := *nodes
 	for i := 0; i < len(csn); i++ {
 		node := csn[i]
-		if f.allowNode(node.Node.Node) && f.allowService(node.Service.Service) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowNode(node.Node.Node, nil) && f.allowService(node.Service.Service, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
@@ -1170,7 +1175,8 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 	s := *sessions
 	for i := 0; i < len(s); i++ {
 		session := s[i]
-		if f.allowSession(session.Node) {
+		// TODO (namespaces) update to call with an actual ent authz context once sessions supports ns
+		if f.allowSession(session.Node, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping session %q from result due to ACLs", session.ID)
@@ -1186,7 +1192,8 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	c := *coords
 	for i := 0; i < len(c); i++ {
 		node := c[i].Node
-		if f.allowNode(node) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowNode(node, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
@@ -1201,7 +1208,8 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 // if the user doesn't have a management token.
 func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
 	// Management tokens can see everything with no filtering.
-	if f.authorizer.ACLRead() {
+	// TODO (namespaces) update to call with an actual ent authz context once acls support it
+	if f.authorizer.ACLRead(nil) == acl.Allow {
 		return
 	}
 
@@ -1212,7 +1220,8 @@ func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
 		// we know at this point the user doesn't have a management
 		// token, otherwise see what the policy says.
 		prefix, ok := ixn.GetACLPrefix()
-		if !ok || !f.authorizer.IntentionRead(prefix) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if !ok || f.authorizer.IntentionRead(prefix, nil) != acl.Allow {
 			f.logger.Printf("[DEBUG] consul: dropping intention %q from result due to ACLs", ixn.ID)
 			continue
 		}
@@ -1231,7 +1240,8 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info := nd[i]
 
 		// Filter nodes
-		if node := info.Node; !f.allowNode(node) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if node := info.Node; !f.allowNode(node, nil) {
 			f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
 			nd = append(nd[:i], nd[i+1:]...)
 			i--
@@ -1241,7 +1251,8 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		// Filter services
 		for j := 0; j < len(info.Services); j++ {
 			svc := info.Services[j].Service
-			if f.allowService(svc) {
+			// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+			if f.allowService(svc, nil) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
@@ -1252,7 +1263,8 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		// Filter checks
 		for j := 0; j < len(info.Checks); j++ {
 			chk := info.Checks[j]
-			if f.allowService(chk.ServiceName) {
+			// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+			if f.allowService(chk.ServiceName, nil) {
 				continue
 			}
 			f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", chk.CheckID)
@@ -1269,7 +1281,8 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 	n := *nodes
 	for i := 0; i < len(n); i++ {
 		node := n[i].Node
-		if f.allowNode(node) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if f.allowNode(node, nil) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node)
@@ -1287,7 +1300,8 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 // captured tokens, but they can at least see whether or not a token is set.
 func (f *aclFilter) redactPreparedQueryTokens(query **structs.PreparedQuery) {
 	// Management tokens can see everything with no filtering.
-	if f.authorizer.ACLWrite() {
+	// TODO (namespaces) update to call with an actual ent authz context once acls support it
+	if f.authorizer.ACLWrite(nil) == acl.Allow {
 		return
 	}
 
@@ -1312,7 +1326,11 @@ func (f *aclFilter) redactPreparedQueryTokens(query **structs.PreparedQuery) {
 // if the user doesn't have a management token.
 func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 	// Management tokens can see everything with no filtering.
-	if f.authorizer.ACLWrite() {
+	// TODO (namespaces) update to call with an actual ent authz context once acls support it
+	// TODO (namespaces) is this check even necessary - this looks like a search replace from
+	// the 1.4 ACL rewrite. The global-management token will provide unrestricted query privileges
+	// so asking for ACLWrite should be unnecessary.
+	if f.authorizer.ACLWrite(nil) == acl.Allow {
 		return
 	}
 
@@ -1323,7 +1341,7 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 		// we know at this point the user doesn't have a management
 		// token, otherwise see what the policy says.
 		prefix, ok := query.GetACLPrefix()
-		if !ok || !f.authorizer.PreparedQueryRead(prefix) {
+		if !ok || f.authorizer.PreparedQueryRead(prefix, nil) != acl.Allow {
 			f.logger.Printf("[DEBUG] consul: dropping prepared query %q from result due to ACLs", query.ID)
 			continue
 		}
@@ -1338,7 +1356,8 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 }
 
 func (f *aclFilter) redactTokenSecret(token **structs.ACLToken) {
-	if token == nil || *token == nil || f == nil || f.authorizer.ACLWrite() {
+	// TODO (namespaces) update to call with an actual ent authz context once acls support it
+	if token == nil || *token == nil || f == nil || f.authorizer.ACLWrite(nil) == acl.Allow {
 		return
 	}
 	clone := *(*token)
@@ -1454,46 +1473,49 @@ func vetRegisterWithACL(rule acl.Authorizer, subj *structs.RegisterRequest,
 		return nil
 	}
 
+	// TODO (namespaces) update to create a sentinel scope - technically we never check this
+	// scope but we used to set it so we probably should continue?
 	// This gets called potentially from a few spots so we save it and
 	// return the structure we made if we have it.
-	var memo map[string]interface{}
-	scope := func() map[string]interface{} {
-		if memo != nil {
-			return memo
-		}
+	// var memo map[string]interface{}
+	// scope := func() map[string]interface{} {
+	// 	if memo != nil {
+	// 		return memo
+	// 	}
 
-		node := &api.Node{
-			ID:              string(subj.ID),
-			Node:            subj.Node,
-			Address:         subj.Address,
-			Datacenter:      subj.Datacenter,
-			TaggedAddresses: subj.TaggedAddresses,
-			Meta:            subj.NodeMeta,
-		}
+	// 	node := &api.Node{
+	// 		ID:              string(subj.ID),
+	// 		Node:            subj.Node,
+	// 		Address:         subj.Address,
+	// 		Datacenter:      subj.Datacenter,
+	// 		TaggedAddresses: subj.TaggedAddresses,
+	// 		Meta:            subj.NodeMeta,
+	// 	}
 
-		var service *api.AgentService
-		if subj.Service != nil {
-			service = &api.AgentService{
-				ID:                subj.Service.ID,
-				Service:           subj.Service.Service,
-				Tags:              subj.Service.Tags,
-				Meta:              subj.Service.Meta,
-				Address:           subj.Service.Address,
-				Port:              subj.Service.Port,
-				EnableTagOverride: subj.Service.EnableTagOverride,
-			}
-		}
+	// 	var service *api.AgentService
+	// 	if subj.Service != nil {
+	// 		service = &api.AgentService{
+	// 			ID:                subj.Service.ID,
+	// 			Service:           subj.Service.Service,
+	// 			Tags:              subj.Service.Tags,
+	// 			Meta:              subj.Service.Meta,
+	// 			Address:           subj.Service.Address,
+	// 			Port:              subj.Service.Port,
+	// 			EnableTagOverride: subj.Service.EnableTagOverride,
+	// 		}
+	// 	}
 
-		memo = sentinel.ScopeCatalogUpsert(node, service)
-		return memo
-	}
+	// 	memo = sentinel.ScopeCatalogUpsert(node, service)
+	// 	return memo
+	// }
 
 	// Vet the node info. This allows service updates to re-post the required
 	// node info for each request without having to have node "write"
 	// privileges.
 	needsNode := ns == nil || subj.ChangesNode(ns.Node)
 
-	if needsNode && !rule.NodeWrite(subj.Node, scope) {
+	// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+	if needsNode && rule.NodeWrite(subj.Node, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1501,7 +1523,8 @@ func vetRegisterWithACL(rule acl.Authorizer, subj *structs.RegisterRequest,
 	// the given service, and that we can write to any existing service that
 	// is being modified by id (if any).
 	if subj.Service != nil {
-		if !rule.ServiceWrite(subj.Service.Service, scope) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if rule.ServiceWrite(subj.Service.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -1511,7 +1534,8 @@ func vetRegisterWithACL(rule acl.Authorizer, subj *structs.RegisterRequest,
 			// This is effectively a delete, so we DO NOT apply the
 			// sentinel scope to the service we are overwriting, just
 			// the regular ACL policy.
-			if ok && !rule.ServiceWrite(other.Service, nil) {
+			// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+			if ok && rule.ServiceWrite(other.Service, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -1540,7 +1564,8 @@ func vetRegisterWithACL(rule acl.Authorizer, subj *structs.RegisterRequest,
 
 		// Node-level check.
 		if check.ServiceID == "" {
-			if !rule.NodeWrite(subj.Node, scope) {
+			// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+			if rule.NodeWrite(subj.Node, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 			continue
@@ -1568,7 +1593,7 @@ func vetRegisterWithACL(rule acl.Authorizer, subj *structs.RegisterRequest,
 		// We are only adding a check here, so we don't add the scope,
 		// since the sentinel policy doesn't apply to adding checks at
 		// this time.
-		if !rule.ServiceWrite(other.Service, nil) {
+		if rule.ServiceWrite(other.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -1595,7 +1620,8 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 	// Allow service deregistration if the token has write permission for the node.
 	// This accounts for cases where the agent no longer has a token with write permission
 	// on the service to deregister it.
-	if rule.NodeWrite(subj.Node, nil) {
+	// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+	if rule.NodeWrite(subj.Node, nil) == acl.Allow {
 		return nil
 	}
 
@@ -1607,7 +1633,8 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 		if ns == nil {
 			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
 		}
-		if !rule.ServiceWrite(ns.Service, nil) {
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if rule.ServiceWrite(ns.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else if subj.CheckID != "" {
@@ -1615,11 +1642,13 @@ func vetDeregisterWithACL(rule acl.Authorizer, subj *structs.DeregisterRequest,
 			return fmt.Errorf("Unknown check '%s'", subj.CheckID)
 		}
 		if nc.ServiceID != "" {
-			if !rule.ServiceWrite(nc.ServiceName, nil) {
+			// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+			if rule.ServiceWrite(nc.ServiceName, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if !rule.NodeWrite(subj.Node, nil) {
+			// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+			if rule.NodeWrite(subj.Node, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -1641,24 +1670,27 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 
 	node := op.Node
 
-	n := &api.Node{
-		Node:            node.Node,
-		ID:              string(node.ID),
-		Address:         node.Address,
-		Datacenter:      node.Datacenter,
-		TaggedAddresses: node.TaggedAddresses,
-		Meta:            node.Meta,
-	}
+	// TODO (namespaces) uncomment once we bring back sentinel scope creation in the authz ctx
+	// n := &api.Node{
+	// 	Node:            node.Node,
+	// 	ID:              string(node.ID),
+	// 	Address:         node.Address,
+	// 	Datacenter:      node.Datacenter,
+	// 	TaggedAddresses: node.TaggedAddresses,
+	// 	Meta:            node.Meta,
+	// }
 
+	// TODO (namespaces) update to create a authz context with a scope once the catalog supports it
 	// Sentinel doesn't apply to deletes, only creates/updates, so we don't need the scopeFn.
-	var scope func() map[string]interface{}
-	if op.Verb != api.NodeDelete && op.Verb != api.NodeDeleteCAS {
-		scope = func() map[string]interface{} {
-			return sentinel.ScopeCatalogUpsert(n, nil)
-		}
-	}
+	// var scope func() map[string]interface{}
+	// if op.Verb != api.NodeDelete && op.Verb != api.NodeDeleteCAS {
+	// 	scope = func() map[string]interface{} {
+	// 		return sentinel.ScopeCatalogUpsert(n, nil)
+	// 	}
+	// }
 
-	if rule != nil && !rule.NodeWrite(node.Node, scope) {
+	// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+	if rule != nil && rule.NodeWrite(node.Node, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1674,23 +1706,25 @@ func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
 
 	service := op.Service
 
-	n := &api.Node{Node: op.Node}
-	svc := &api.AgentService{
-		ID:                service.ID,
-		Service:           service.Service,
-		Tags:              service.Tags,
-		Meta:              service.Meta,
-		Address:           service.Address,
-		Port:              service.Port,
-		EnableTagOverride: service.EnableTagOverride,
-	}
-	var scope func() map[string]interface{}
-	if op.Verb != api.ServiceDelete && op.Verb != api.ServiceDeleteCAS {
-		scope = func() map[string]interface{} {
-			return sentinel.ScopeCatalogUpsert(n, svc)
-		}
-	}
-	if !rule.ServiceWrite(service.Service, scope) {
+	// TODO (namespaces) update to create authz context with the sentinel scope
+	// n := &api.Node{Node: op.Node}
+	// svc := &api.AgentService{
+	// 	ID:                service.ID,
+	// 	Service:           service.Service,
+	// 	Tags:              service.Tags,
+	// 	Meta:              service.Meta,
+	// 	Address:           service.Address,
+	// 	Port:              service.Port,
+	// 	EnableTagOverride: service.EnableTagOverride,
+	// }
+	// var scope func() map[string]interface{}
+	// if op.Verb != api.ServiceDelete && op.Verb != api.ServiceDeleteCAS {
+	// 	scope = func() map[string]interface{} {
+	// 		return sentinel.ScopeCatalogUpsert(n, svc)
+	// 	}
+	// }
+	// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+	if rule.ServiceWrite(service.Service, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1704,31 +1738,36 @@ func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
 		return nil
 	}
 
-	n := &api.Node{Node: op.Check.Node}
-	svc := &api.AgentService{
-		ID:      op.Check.ServiceID,
-		Service: op.Check.ServiceID,
-		Tags:    op.Check.ServiceTags,
-	}
-	var scope func() map[string]interface{}
+	// TODO (namespaces) uncomment once these are used for sentinel scope creation
+	// n := &api.Node{Node: op.Check.Node}
+	// svc := &api.AgentService{
+	// 	ID:      op.Check.ServiceID,
+	// 	Service: op.Check.ServiceID,
+	// 	Tags:    op.Check.ServiceTags,
+	// }
+	// var scope func() map[string]interface{}
 	if op.Check.ServiceID == "" {
 		// Node-level check.
-		if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
-			scope = func() map[string]interface{} {
-				return sentinel.ScopeCatalogUpsert(n, svc)
-			}
-		}
-		if !rule.NodeWrite(op.Check.Node, scope) {
+		// TODO (namespaces) update to create authz with sentinel scope
+		// if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
+		// 	scope = func() map[string]interface{} {
+		// 		return sentinel.ScopeCatalogUpsert(n, svc)
+		// 	}
+		// }
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if rule.NodeWrite(op.Check.Node, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else {
 		// Service-level check.
-		if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
-			scope = func() map[string]interface{} {
-				return sentinel.ScopeCatalogUpsert(n, svc)
-			}
-		}
-		if !rule.ServiceWrite(op.Check.ServiceName, scope) {
+		// TODO (namespaces) update to create authz with sentinel scope
+		// if op.Verb == api.CheckDelete || op.Verb == api.CheckDeleteCAS {
+		// 	scope = func() map[string]interface{} {
+		// 		return sentinel.ScopeCatalogUpsert(n, svc)
+		// 	}
+		// }
+		// TODO (namespaces) update to call with an actual ent authz context once the catalog supports it
+		if rule.ServiceWrite(op.Check.ServiceName, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}

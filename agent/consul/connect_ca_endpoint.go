@@ -119,7 +119,7 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -151,7 +151,7 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -431,7 +431,8 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 	if isService {
-		if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
+		// TODO (namespaces) use actual ent authz context
+		if rule != nil && rule.ServiceWrite(serviceID.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -442,7 +443,8 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		if rule != nil && !rule.NodeWrite(agentID.Agent, nil) {
+		// TODO (namespaces) use actual ent authz context
+		if rule != nil && rule.NodeWrite(agentID.Agent, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -569,7 +571,7 @@ func (s *ConnectCA) SignIntermediate(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

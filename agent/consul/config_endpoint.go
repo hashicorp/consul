@@ -231,7 +231,8 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.ServiceRead(args.Name) {
+	// TODO (namespaces) use actual ent authz context
+	if rule != nil && rule.ServiceRead(args.Name, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

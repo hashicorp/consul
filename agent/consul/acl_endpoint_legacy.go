@@ -114,7 +114,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 		}
 
 		// Validate the rules compile
-		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.sentinel)
+		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.enterpriseACLConfig)
 		if err != nil {
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}
@@ -160,9 +160,10 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	}
 
 	// Verify token is permitted to modify ACLs
+	// NOTE: We will not support enterprise authorizer contexts with legacy ACLs
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || !rule.ACLWrite() {
+	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -197,6 +198,10 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	if done, err := a.srv.forward("ACL.Get", args, args, reply); done {
 		return err
 	}
+
+	// NOTE: This has no ACL check because legacy ACLs were managed with
+	// the secrets and therefore the argument to the Get request is
+	// authorization in and of itself.
 
 	// Verify we are allowed to serve this request
 	if !a.srv.ACLsEnabled() {
@@ -246,9 +251,11 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	}
 
 	// Verify token is permitted to list ACLs
+	// NOTES: Previously with legacy ACL there was no read-only ACL permissions
+	// and this check for ACLWrite is basically what it did before.
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || !rule.ACLWrite() {
+	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

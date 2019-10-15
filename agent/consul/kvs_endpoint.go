@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -32,7 +31,8 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 	if rule != nil {
 		switch op {
 		case api.KVDeleteTree:
-			if !rule.KeyWritePrefix(dirEnt.Key) {
+			// TODO (namespaces) use actual ent authz context - ensure we set the Sentinel Scope
+			if rule.KeyWritePrefix(dirEnt.Key, nil) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 
@@ -43,15 +43,13 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 			// These could reveal information based on the outcome
 			// of the transaction, and they operate on individual
 			// keys so we check them here.
-			if !rule.KeyRead(dirEnt.Key) {
+			if rule.KeyRead(dirEnt.Key, nil) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 
 		default:
-			scope := func() map[string]interface{} {
-				return sentinel.ScopeKVUpsert(dirEnt.Key, dirEnt.Value, dirEnt.Flags)
-			}
-			if !rule.KeyWrite(dirEnt.Key, scope) {
+			// TODO (namespaces) use actual ent authz context - ensure we set the Sentinel Scope
+			if rule.KeyWrite(dirEnt.Key, nil) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 		}
@@ -132,7 +130,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if aclRule != nil && !aclRule.KeyRead(args.Key) {
+			if aclRule != nil && aclRule.KeyRead(args.Key, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -164,7 +162,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	if aclToken != nil && k.srv.config.ACLEnableKeyListPolicy && !aclToken.KeyList(args.Key) {
+	if aclToken != nil && k.srv.config.ACLEnableKeyListPolicy && aclToken.KeyList(args.Key, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -208,7 +206,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	if aclToken != nil && k.srv.config.ACLEnableKeyListPolicy && !aclToken.KeyList(args.Prefix) {
+	if aclToken != nil && k.srv.config.ACLEnableKeyListPolicy && aclToken.KeyList(args.Prefix, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

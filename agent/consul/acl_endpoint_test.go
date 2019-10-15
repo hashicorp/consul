@@ -212,7 +212,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	if acl1 == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl1.KeyRead("foo") {
+	if acl1.KeyRead("foo", nil) != acl.Allow {
 		t.Fatalf("should be allowed")
 	}
 
@@ -234,7 +234,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	if acl2 == acl1 {
 		t.Fatalf("should not be cached")
 	}
-	if acl2.KeyRead("foo") {
+	if acl2.KeyRead("foo", nil) == acl.Allow {
 		t.Fatalf("should not be allowed")
 	}
 
