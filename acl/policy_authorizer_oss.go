@@ -9,8 +9,8 @@ func (authz *enterprisePolicyAuthorizer) init(*EnterpriseACLConfig) {
 	// nothing to do
 }
 
-func (authz *enterprisePolicyAuthorizer) enforce(*EnterpriseRule, *EnterpriseAuthorizerContext) EnforcementDecision {
-	return Allow
+func (authz *enterprisePolicyAuthorizer) enforce(_ *EnterpriseRule, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+	return Default
 }
 
 // NewPolicyAuthorizer merges the policies and returns an Authorizer that will enforce them

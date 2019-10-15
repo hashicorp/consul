@@ -147,6 +147,15 @@ func enforce(rule AccessLevel, requiredPermission AccessLevel) EnforcementDecisi
 	}
 }
 
+func defaultIsAllow(decision EnforcementDecision) EnforcementDecision {
+	switch decision {
+	case Allow, Default:
+		return Allow
+	default:
+		return Deny
+	}
+}
+
 func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 	// Load the agent policy (exact matches)
 	for _, ap := range policy.Agents {
@@ -437,7 +446,7 @@ func (p *policyAuthorizer) KeyWrite(key string, entCtx *EnterpriseAuthorizerCont
 	if rule, ok := getPolicy(key, p.keyRules); ok {
 		decision := enforce(rule.access, AccessWrite)
 		if decision == Allow {
-			return p.enterprisePolicyAuthorizer.enforce(&rule.EnterpriseRule, entCtx)
+			return defaultIsAllow(p.enterprisePolicyAuthorizer.enforce(&rule.EnterpriseRule, entCtx))
 		}
 		return decision
 	}
