@@ -3,12 +3,12 @@ package acl
 type EnforcementDecision int
 
 const (
-	// Allow returned from an Authorizer enforcement method indicates
-	// that a corresponding rule was found and that access should be allowed
-	Allow EnforcementDecision = iota
 	// Deny returned from an Authorizer enforcement method indicates
 	// that a corresponding rule was found and that access should be denied
-	Deny
+	Deny EnforcementDecision = iota
+	// Allow returned from an Authorizer enforcement method indicates
+	// that a corresponding rule was found and that access should be allowed
+	Allow
 	// Default returned from an Authorizer enforcement method indicates
 	// that a corresponding rule was not found and that whether access
 	// should be granted or denied should be deferred to the default
