@@ -97,7 +97,7 @@ func readKeyPair(public, private string) (Pair, error) {
 	switch signer := privkey.(type) {
 	case *ecdsa.PrivateKey:
 		return Pair{Public: dnskey.(*dns.DNSKEY), KeyTag: dnskey.(*dns.DNSKEY).KeyTag(), Private: signer}, nil
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return Pair{Public: dnskey.(*dns.DNSKEY), KeyTag: dnskey.(*dns.DNSKEY).KeyTag(), Private: signer}, nil
 	case *rsa.PrivateKey:
 		return Pair{Public: dnskey.(*dns.DNSKEY), KeyTag: dnskey.(*dns.DNSKEY).KeyTag(), Private: signer}, nil

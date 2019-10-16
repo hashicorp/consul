@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/coredns/coredns/request"
-
 	"github.com/miekg/dns"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // DNSKEY holds a DNSSEC public and private key used for on-the-fly signing.
@@ -53,6 +54,9 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 		return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: s, tag: dk.KeyTag()}, nil
 	}
 	if s, ok := p.(*ecdsa.PrivateKey); ok {
+		return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: s, tag: dk.KeyTag()}, nil
+	}
+	if s, ok := p.(ed25519.PrivateKey); ok {
 		return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: s, tag: dk.KeyTag()}, nil
 	}
 	return &DNSKEY{K: dk, D: dk.ToDS(dns.SHA256), s: nil, tag: 0}, errors.New("no private key found")
