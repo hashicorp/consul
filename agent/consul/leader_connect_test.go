@@ -29,7 +29,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	// Initialize primary as the primary DC
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "primary"
-		c.PrimaryDatacenter = "primary"
+		c.ACLDatacenter = "primary"
 		c.Build = "1.6.0"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = masterToken
@@ -45,7 +45,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	// secondary as a secondary DC
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "secondary"
-		c.PrimaryDatacenter = "primary"
+		c.ACLDatacenter = "primary"
 		c.Build = "1.6.0"
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
@@ -643,7 +643,6 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.PrimaryDatacenter = "dc1"
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
@@ -670,7 +669,6 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	// dc2 as a secondary DC
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.PrimaryDatacenter = "dc1"
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
