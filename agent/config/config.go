@@ -182,7 +182,11 @@ type Config struct {
 	ACL                              ACL                      `json:"acl,omitempty" hcl:"acl" mapstructure:"acl"`
 	Addresses                        Addresses                `json:"addresses,omitempty" hcl:"addresses" mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string                  `json:"advertise_addr,omitempty" hcl:"advertise_addr" mapstructure:"advertise_addr"`
+	AdvertiseAddrLANIPv4             *string                  `json:"advertise_addr_ipv4,omitempty" hcl:"advertise_addr_ipv4" mapstructure:"advertise_addr_ipv4"`
+	AdvertiseAddrLANIPv6             *string                  `json:"advertise_addr_ipv6,omitempty" hcl:"advertise_addr_ipv6" mapstructure:"advertise_addr_ipv6"`
 	AdvertiseAddrWAN                 *string                  `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
+	AdvertiseAddrWANIPv4             *string                  `json:"advertise_addr_wan_ipv4,omitempty" hcl:"advertise_addr_wan_ipv4" mapstructure:"advertise_addr_wan_ipv4"`
+	AdvertiseAddrWANIPv6             *string                  `json:"advertise_addr_wan_ipv6,omitempty" hcl:"advertise_addr_wan_ipv6" mapstructure:"advertise_addr_ipv6"`
 	Autopilot                        Autopilot                `json:"autopilot,omitempty" hcl:"autopilot" mapstructure:"autopilot"`
 	BindAddr                         *string                  `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
 	Bootstrap                        *bool                    `json:"bootstrap,omitempty" hcl:"bootstrap" mapstructure:"bootstrap"`
