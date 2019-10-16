@@ -376,7 +376,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		leaveCh:           make(chan struct{}),
 		reconcileCh:       make(chan serf.Member, reconcileChSize),
 		router:            router.NewRouter(logger, config.Datacenter),
-		resolverBuilder:   NewServerResolverBuilder(),
+		resolverBuilder:   resolverBuilder,
 		rpcServer:         rpc.NewServer(),
 		insecureRPCServer: rpc.NewServer(),
 		tlsConfigurator:   tlsConfigurator,

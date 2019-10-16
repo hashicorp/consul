@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/resolver"
 )
 
 const (
@@ -145,7 +144,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
 		logger:          logger,
-		resolverBuilder: NewServerResolverBuilder(),
+		resolverBuilder: resolverBuilder,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
 	}
@@ -183,9 +182,6 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	if c.acls.ACLsEnabled() {
 		go c.monitorACLMode()
 	}
-
-	// Register the gRPC resolver.
-	resolver.Register(c.resolverBuilder)
 
 	// Start maintenance task for servers
 	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
