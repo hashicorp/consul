@@ -52,8 +52,10 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				Address:    "127.0.0.1",
 				Datacenter: "dc1",
 				TaggedAddresses: map[string]string{
-					"lan": "127.0.0.1",
-					"wan": "127.0.0.1",
+					"lan":      "127.0.0.1",
+					"lan_ipv4": "127.0.0.1",
+					"wan":      "127.0.0.1",
+					"wan_ipv4": "127.0.0.1",
 				},
 				Meta: map[string]string{
 					"consul-network-segment": "",

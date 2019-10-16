@@ -110,8 +110,12 @@ const (
 )
 
 const (
-	TaggedAddressWAN = "wan"
-	TaggedAddressLAN = "lan"
+	TaggedAddressWAN     = "wan"
+	TaggedAddressWANIPv4 = "wan_ipv4"
+	TaggedAddressWANIPv6 = "wan_ipv6"
+	TaggedAddressLAN     = "lan"
+	TaggedAddressLANIPv4 = "lan_ipv4"
+	TaggedAddressLANIPv6 = "lan_ipv6"
 )
 
 // metaKeyFormat checks if a metadata key string is valid
