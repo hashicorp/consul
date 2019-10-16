@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -22,8 +23,6 @@ import (
 
 func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	t.Parallel()
-
-	require := require.New(t)
 
 	masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
 
@@ -69,25 +68,34 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
-	_, caRoot := s1.getCAProvider()
-	secondaryProvider, _ := s2.getCAProvider()
-	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
-	require.NoError(err)
+	// Wait until the providers are fully bootstrapped.
+	var (
+		caRoot            *structs.CARoot
+		secondaryProvider ca.Provider
+		intermediatePEM   string
+		err               error
+	)
+	retry.Run(t, func(r *retry.R) {
+		_, caRoot = s1.getCAProvider()
+		secondaryProvider, _ = s2.getCAProvider()
+		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+		require.NoError(r, err)
 
-	// Verify the root lists are equal in each DC's state store.
-	state1 := s1.fsm.State()
-	_, roots1, err := state1.CARoots(nil)
-	require.NoError(err)
+		// Verify the root lists are equal in each DC's state store.
+		state1 := s1.fsm.State()
+		_, roots1, err := state1.CARoots(nil)
+		require.NoError(r, err)
 
-	state2 := s2.fsm.State()
-	_, roots2, err := state2.CARoots(nil)
-	require.NoError(err)
-	require.Equal(roots1[0].ID, roots2[0].ID)
-	require.Equal(roots1[0].RootCert, roots2[0].RootCert)
-	require.Equal(1, len(roots1))
-	require.Equal(len(roots1), len(roots2))
-	require.Empty(roots1[0].IntermediateCerts)
-	require.NotEmpty(roots2[0].IntermediateCerts)
+		state2 := s2.fsm.State()
+		_, roots2, err := state2.CARoots(nil)
+		require.NoError(r, err)
+		require.Len(r, roots1, 1)
+		require.Len(r, roots1, 1)
+		require.Equal(r, roots1[0].ID, roots2[0].ID)
+		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
+		require.Empty(r, roots1[0].IntermediateCerts)
+		require.NotEmpty(r, roots2[0].IntermediateCerts)
+	})
 
 	// Have secondary sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -99,13 +107,13 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	raw, _ := connect.TestCSR(t, spiffeService)
 
 	leafCsr, err := connect.ParseCSR(raw)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Check that the leaf signed by the new cert can be verified using the
 	// returned cert chain (signed intermediate + remote root).
@@ -118,7 +126,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		Intermediates: intermediatePool,
 		Roots:         rootPool,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 }
 
 func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
