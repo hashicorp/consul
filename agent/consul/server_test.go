@@ -247,6 +247,48 @@ func TestServer_StartStop(t *testing.T) {
 	}
 }
 
+func TestServer_fixupACLDatacenter(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "aye"
+		c.PrimaryDatacenter = "aye"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "bee"
+		c.PrimaryDatacenter = "aye"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s1 WAN members want %d", got, want)
+		}
+		if got, want := len(s2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s2 WAN members want %d", got, want)
+		}
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "aye")
+	testrpc.WaitForLeader(t, s2.RPC, "bee")
+
+	require.Equal(t, "aye", s1.config.Datacenter)
+	require.Equal(t, "aye", s1.config.ACLDatacenter)
+	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
+
+	require.Equal(t, "bee", s2.config.Datacenter)
+	require.Equal(t, "aye", s2.config.ACLDatacenter)
+	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
+}
+
 func TestServer_JoinLAN(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
