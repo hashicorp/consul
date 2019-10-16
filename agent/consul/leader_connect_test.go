@@ -262,8 +262,6 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
 	})
@@ -288,6 +286,8 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	// Restore the pre-1.6.1 behavior of the SigningKeyID not being derived
 	// from the intermediates.
 	{
+		require := require.New(t)
+
 		state := s2pre.fsm.State()
 
 		// Get the highest index
@@ -335,7 +335,13 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
-	{ // verify that the root is now corrected
+	// Retry since it will take some time to init the secondary CA fully and there
+	// isn't a super clean way to watch specifically until it's done than polling
+	// the CA provider anyway.
+	retry.Run(t, func(r *retry.R) {
+		require := require.New(r)
+
+		// verify that the root is now corrected
 		provider, activeRoot := s2.getCAProvider()
 		require.NotNil(provider)
 		require.NotNil(activeRoot)
@@ -349,7 +355,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 		// Force this to be derived just from the root, not the intermediate.
 		expect := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 		require.Equal(expect, activeRoot.SigningKeyID)
-	}
+	})
 }
 
 func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
