@@ -339,22 +339,20 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	// isn't a super clean way to watch specifically until it's done than polling
 	// the CA provider anyway.
 	retry.Run(t, func(r *retry.R) {
-		require := require.New(r)
-
 		// verify that the root is now corrected
 		provider, activeRoot := s2.getCAProvider()
-		require.NotNil(provider)
-		require.NotNil(activeRoot)
+		require.NotNil(r, provider)
+		require.NotNil(r, activeRoot)
 
 		activeIntermediate, err := provider.ActiveIntermediate()
-		require.NoError(err)
+		require.NoError(r, err)
 
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
-		require.NoError(err)
+		require.NoError(r, err)
 
 		// Force this to be derived just from the root, not the intermediate.
 		expect := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-		require.Equal(expect, activeRoot.SigningKeyID)
+		require.Equal(r, expect, activeRoot.SigningKeyID)
 	})
 }
 
