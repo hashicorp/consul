@@ -11,7 +11,7 @@ import (
 // parameter is the dc the datacenter this node is from.
 func (a *Agent) TranslateServicePort(dc string, port int, taggedAddresses map[string]structs.ServiceAddress) int {
 	if a.config.TranslateWANAddrs && (a.config.Datacenter != dc) {
-		if wanAddr, ok := taggedAddresses["wan"]; ok && wanAddr.Port != 0 {
+		if wanAddr, ok := taggedAddresses[structs.TaggedAddressWAN]; ok && wanAddr.Port != 0 {
 			return wanAddr.Port
 		}
 	}
@@ -23,7 +23,7 @@ func (a *Agent) TranslateServicePort(dc string, port int, taggedAddresses map[st
 // parameter is the dc the datacenter this node is from.
 func (a *Agent) TranslateServiceAddress(dc string, addr string, taggedAddresses map[string]structs.ServiceAddress) string {
 	if a.config.TranslateWANAddrs && (a.config.Datacenter != dc) {
-		if wanAddr, ok := taggedAddresses["wan"]; ok && wanAddr.Address != "" {
+		if wanAddr, ok := taggedAddresses[structs.TaggedAddressWAN]; ok && wanAddr.Address != "" {
 			return wanAddr.Address
 		}
 	}
@@ -35,7 +35,7 @@ func (a *Agent) TranslateServiceAddress(dc string, addr string, taggedAddresses 
 // parameter is the dc the datacenter this node is from.
 func (a *Agent) TranslateAddress(dc string, addr string, taggedAddresses map[string]string) string {
 	if a.config.TranslateWANAddrs && (a.config.Datacenter != dc) {
-		wanAddr := taggedAddresses["wan"]
+		wanAddr := taggedAddresses[structs.TaggedAddressWAN]
 		if wanAddr != "" {
 			addr = wanAddr
 		}

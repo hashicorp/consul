@@ -115,6 +115,11 @@ var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
 )
 
+const (
+	TaggedAddressWAN = "wan"
+	TaggedAddressLAN = "lan"
+)
+
 // metaKeyFormat checks if a metadata key string is valid
 var metaKeyFormat = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
 
@@ -608,7 +613,7 @@ type Node struct {
 
 func (n *Node) BestAddress(wan bool) string {
 	if wan {
-		if addr, ok := n.TaggedAddresses["wan"]; ok {
+		if addr, ok := n.TaggedAddresses[TaggedAddressWAN]; ok {
 			return addr
 		}
 	}
@@ -915,7 +920,7 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	port := ns.Port
 
 	if wan {
-		if wan, ok := ns.TaggedAddresses["wan"]; ok {
+		if wan, ok := ns.TaggedAddresses[TaggedAddressWAN]; ok {
 			addr = wan.Address
 			if wan.Port != 0 {
 				port = wan.Port
