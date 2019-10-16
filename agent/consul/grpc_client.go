@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
@@ -23,8 +22,6 @@ type ServerProvider interface {
 }
 
 type GRPCClient struct {
-	grpcConn        *grpc.ClientConn
-	grpcConnLock    sync.Mutex
 	serverProvider  ServerProvider
 	tlsConfigurator *tlsutil.Configurator
 }
@@ -37,13 +34,6 @@ func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigu
 }
 
 func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
-	c.grpcConnLock.Lock()
-	defer c.grpcConnLock.Unlock()
-
-	if c.grpcConn != nil {
-		return c.grpcConn, nil
-	}
-
 	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
 	conn, err := grpc.Dial("consul:///server.local",
 		grpc.WithInsecure(),
@@ -54,7 +44,6 @@ func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	c.grpcConn = conn
 	return conn, nil
 }
 
