@@ -50,6 +50,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		c.Build = "1.6.0"
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
+		c.ACLTokenReplication = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -57,9 +58,16 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
 	s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
 
+	testrpc.WaitForLeader(t, s2.RPC, "secondary")
+
 	// Create the WAN link
 	joinWAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s2.RPC, "secondary")
+
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+
+	// Ensure s2 is authoritative.
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	_, caRoot := s1.getCAProvider()
 	secondaryProvider, _ := s2.getCAProvider()
