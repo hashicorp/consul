@@ -509,8 +509,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
 	}
-	c.TaggedAddresses["lan"] = advertiseAddrLAN.IP.String()
-	c.TaggedAddresses["wan"] = advertiseAddrWAN.IP.String()
+	c.TaggedAddresses[structs.TaggedAddressLAN] = advertiseAddrLAN.IP.String()
+	c.TaggedAddresses[structs.TaggedAddressWAN] = advertiseAddrWAN.IP.String()
 
 	// segments
 	var segments []structs.NetworkSegment
