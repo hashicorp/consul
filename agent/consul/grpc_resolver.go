@@ -9,6 +9,13 @@ import (
 
 const grpcResolverScheme = "consul"
 
+var resolverBuilder *ServerResolverBuilder
+
+func init() {
+	resolverBuilder = NewServerResolverBuilder()
+	resolver.Register(resolverBuilder)
+}
+
 // ServerResolverBuilder tracks the current server list and keeps any
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {

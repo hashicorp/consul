@@ -800,6 +800,70 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 	}
 }
 
+func TestStreaming_TLSReload(t *testing.T) {
+	t.Parallel()
+
+	// Set up a server with initially bad certificates.
+	require := require.New(t)
+	dir1, conf1 := testServerConfig(t)
+	conf1.VerifyIncoming = true
+	conf1.VerifyOutgoing = true
+	conf1.CAFile = "../../test/ca/root.cer"
+	conf1.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
+	conf1.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+
+	server, err := newServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer server.Shutdown()
+
+	// Set up a client with valid certs and verify_outgoing = true
+	dir2, conf2 := testClientConfig(t)
+	conf2.VerifyOutgoing = true
+	configureTLS(conf2)
+	client, err := NewClient(conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+
+	// Subscribe calls should fail initially
+	joinLAN(t, client, server)
+	{
+		conn, err := client.GRPCConn()
+		require.NoError(err)
+
+		streamClient := stream.NewConsulClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_, err = streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.Error(err, "tls: bad certificate")
+	}
+
+	// Reload the server with valid certs
+	newConf := server.config.ToTLSUtilConfig()
+	newConf.CertFile = "../../test/key/ourdomain.cer"
+	newConf.KeyFile = "../../test/key/ourdomain.key"
+	server.tlsConfigurator.Update(newConf)
+
+	// Try the subscribe call again
+	{
+		conn, err := client.GRPCConn()
+		require.NoError(err)
+
+		streamClient := stream.NewConsulClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_, err = streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.NoError(err)
+	}
+}
+
 func TestStreaming_Filter(t *testing.T) {
 	t.Parallel()
 
