@@ -135,15 +135,11 @@ func TestSignatureMismatches(t *testing.T) {
 				r.Equal(p1.keyType, ca.PrivateKeyType)
 				r.Equal(p1.keyBits, ca.PrivateKeyBits)
 				certPEM, keyPEM, err := testLeaf(t, "foobar.service.consul", ca, p2.keyType, p2.keyBits)
-				if p1.keyType == p2.keyType {
-					r.NoError(err)
-					_, err := ParseCert(certPEM)
-					r.NoError(err)
-					_, err = ParseSigner(keyPEM)
-					r.NoError(err)
-				} else {
-					r.Error(err)
-				}
+				r.NoError(err)
+				_, err = ParseCert(certPEM)
+				r.NoError(err)
+				_, err = ParseSigner(keyPEM)
+				r.NoError(err)
 			})
 		}
 	}

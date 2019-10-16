@@ -3,6 +3,7 @@ package ca
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -333,6 +334,11 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("error parsing CA cert: %s", err)
 	}
 
+	sigAlgo := x509.ECDSAWithSHA256
+	if _, ok := signer.(*rsa.PrivateKey); ok {
+		sigAlgo = x509.SHA256WithRSA
+	}
+
 	// Cert template for generation
 	sn := &big.Int{}
 	sn.SetUint64(idx + 1)
@@ -341,11 +347,13 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// cluster. A minute is more than enough for typical DC clock drift.
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
-		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: subject},
-		URIs:                  csr.URIs,
-		Signature:             csr.Signature,
-		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		SerialNumber: sn,
+		Subject:      pkix.Name{CommonName: subject},
+		URIs:         csr.URIs,
+		Signature:    csr.Signature,
+		// We use the correct signature algorithm for the CA key we are signing with
+		// regardless of the algorithm used to sign the CSR signature above.
+		SignatureAlgorithm:    sigAlgo,
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,

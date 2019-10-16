@@ -27,6 +27,27 @@ const TestClusterID = "11111111-2222-3333-4444-555555555555"
 // unique names for the CA certs.
 var testCACounter uint64
 
+// ValidateLeaf is a convenience helper that returns an error if the certificate
+// provided in leadPEM does not validate against the CAs provided. If there is
+// an intermediate CA then it's cert must be in caPEMs as well as the root.
+func ValidateLeaf(caPEMs []string, leafPEM string) error {
+	roots := x509.NewCertPool()
+	for idx, ca := range caPEMs {
+		ok := roots.AppendCertsFromPEM([]byte(ca))
+		if !ok {
+			return fmt.Errorf("Failed to add CA at index %d to pool", idx)
+		}
+	}
+	leaf, err := ParseCert(leafPEM)
+	if err != nil {
+		return err
+	}
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots: roots,
+	})
+	return err
+}
+
 func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
 	var result structs.CARoot
 	result.Active = true
@@ -175,7 +196,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 	}
 
 	sigAlgo := x509.ECDSAWithSHA256
-	if keyType == "rsa" {
+	if root.PrivateKeyType == "rsa" {
 		sigAlgo = x509.SHA256WithRSA
 	}
 
@@ -218,7 +239,12 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 // TestLeaf returns a valid leaf certificate and it's private key for the named
 // service with the given CA Root.
 func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
-	certPEM, keyPEM, err := testLeaf(t, service, root, root.PrivateKeyType, root.PrivateKeyBits)
+	// Currently we only support EC leaf keys and certs even if the CA is using
+	// RSA. We might allow Leafs to follow the signing CA key type later if we
+	// need to for compatibility sake but this is allowe by TLS 1.2 and works with
+	// both openssl verify (which we use as a sanity check in our tests of this
+	// package) and Go's TLS verification.
+	certPEM, keyPEM, err := testLeaf(t, service, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

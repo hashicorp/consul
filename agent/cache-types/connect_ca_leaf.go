@@ -525,6 +525,13 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a new private key
+
+	// TODO: parse active root cert and check it's key
+	// type and match it so we are generating RSA keys for an RSA CA etc. This is
+	// not technically required by TLS but it's more compatible and simpler to end
+	// up with chains that use the same key type and signature algorithm
+	// throughout. Some legacy systems also might cope better since TLS 1.1
+	// _required_ ECDHE signatures for EC certs while 1.2 relaxed that.
 	pk, pkPEM, err := connect.GeneratePrivateKey()
 	if err != nil {
 		return result, err

@@ -302,14 +302,14 @@ func (c CommonCAProviderConfig) Validate() error {
 	switch c.PrivateKeyType {
 	case "ec":
 		if c.PrivateKeyBits != 224 && c.PrivateKeyBits != 256 && c.PrivateKeyBits != 384 && c.PrivateKeyBits != 521 {
-			return fmt.Errorf("ECDSA key length must be one of (224, 256, 384, 521) bits")
+			return fmt.Errorf("EC key length must be one of (224, 256, 384, 521) bits")
 		}
 	case "rsa":
 		if c.PrivateKeyBits != 2048 && c.PrivateKeyBits != 4096 {
 			return fmt.Errorf("RSA key length must be 2048 or 4096 bits")
 		}
 	default:
-		return fmt.Errorf("private key type must be either 'ecdsa' or 'rsa'")
+		return fmt.Errorf("private key type must be either 'ec' or 'rsa'")
 	}
 
 	return nil

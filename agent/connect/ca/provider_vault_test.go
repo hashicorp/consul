@@ -1,6 +1,7 @@
 package ca
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -90,61 +91,109 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		return
 	}
 
-	require := require.New(t)
-	provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
-		"LeafCertTTL": "1h",
-	})
-	defer testVault.Stop()
-
-	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
-		Namespace:  "default",
-		Datacenter: "dc1",
-		Service:    "foo",
+	tests := []struct {
+		name    string
+		keyType string
+		keyBits int
+	}{
+		{
+			name:    "EC P256 CA Key",
+			keyType: connect.DefaultPrivateKeyType,
+			keyBits: connect.DefaultPrivateKeyBits,
+		},
+		{
+			name:    "RSA 2048 CA Key (EC leaf)",
+			keyType: "rsa",
+			keyBits: 2048,
+		},
 	}
 
-	// Generate a leaf cert for the service.
-	var firstSerial uint64
-	{
-		raw, _ := connect.TestCSR(t, spiffeService)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+			provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tt.keyType,
+				"PrivateKeyBits": tt.keyBits,
+			})
+			defer testVault.Stop()
 
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
+			spiffeService := &connect.SpiffeIDService{
+				Host:       "node1",
+				Namespace:  "default",
+				Datacenter: "dc1",
+				Service:    "foo",
+			}
 
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
+			rootPEM, err := provider.ActiveRoot()
+			require.NoError(err)
 
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		firstSerial = parsed.SerialNumber.Uint64()
+			// Sanity check the CA is using the key type requested
+			root, err := connect.ParseCert(rootPEM)
+			require.NoError(err)
+			switch tt.keyType {
+			case "ec":
+				require.Equal(x509.ECDSA, root.PublicKeyAlgorithm)
+			case "rsa":
+				require.Equal(x509.RSA, root.PublicKeyAlgorithm)
+			default:
+				t.Fatal("test doesn't support key type")
+			}
+			intPEM, err := provider.ActiveIntermediate()
+			require.NoError(err)
 
-		// Ensure the cert is valid now and expires within the correct limit.
-		now := time.Now()
-		require.True(parsed.NotAfter.Sub(now) < time.Hour)
-		require.True(parsed.NotBefore.Before(now))
-	}
+			CAPems := []string{rootPEM, intPEM}
 
-	// Generate a new cert for another service and make sure
-	// the serial number is unique.
-	spiffeService.Service = "bar"
-	{
-		raw, _ := connect.TestCSR(t, spiffeService)
+			// Generate a leaf cert for the service.
+			var firstSerial uint64
+			{
+				raw, _ := connect.TestCSR(t, spiffeService)
 
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
 
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
 
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(parsed.URIs[0], spiffeService.URI())
+				firstSerial = parsed.SerialNumber.Uint64()
 
-		// Ensure the cert is valid now and expires within the correct limit.
-		require.True(time.Until(parsed.NotAfter) < time.Hour)
-		require.True(parsed.NotBefore.Before(time.Now()))
+				// Ensure the cert is valid now and expires within the correct limit.
+				now := time.Now()
+				require.True(parsed.NotAfter.Sub(now) < time.Hour)
+				require.True(parsed.NotBefore.Before(now))
+
+				// Make sure we can validate the cert as expected.
+				require.NoError(connect.ValidateLeaf(CAPems, cert))
+			}
+
+			// Generate a new cert for another service and make sure
+			// the serial number is unique.
+			spiffeService.Service = "bar"
+			{
+				raw, _ := connect.TestCSR(t, spiffeService)
+
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
+
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
+
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(parsed.URIs[0], spiffeService.URI())
+				require.NotEqual(firstSerial, parsed.SerialNumber.Uint64())
+
+				// Ensure the cert is valid now and expires within the correct limit.
+				require.True(time.Until(parsed.NotAfter) < time.Hour)
+				require.True(parsed.NotBefore.Before(time.Now()))
+
+				// Make sure we can validate the cert as expected.
+				require.NoError(connect.ValidateLeaf(CAPems, cert))
+			}
+		})
 	}
 }
 
