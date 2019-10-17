@@ -22,6 +22,7 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 		SecretID:    "4268ce0d-d7ae-4718-8613-42eba9036020",
 		Description: "something",
 	}
+	token.SetHash(false)
 	require.NoError(s.ACLTokenSet(2, token.Clone(), false))
 
 	// Register the subscription.
@@ -45,6 +46,7 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 		AccessorID: "a7bbf480-8440-4f55-acfc-6fdca25cb13e",
 		SecretID:   "72e81982-7a0f-491f-a60e-c9c802ac1402",
 	}
+	token2.SetHash(false)
 	require.NoError(s.ACLTokenSet(3, token2.Clone(), false))
 
 	// Ensure there's no reload event.
@@ -60,6 +62,7 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 		SecretID:    "4268ce0d-d7ae-4718-8613-42eba9036020",
 		Description: "something else",
 	}
+	token3.SetHash(false)
 	require.NoError(s.ACLTokenSet(4, token3.Clone(), false))
 
 	// Ensure the reload event was sent.
@@ -116,7 +119,13 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 				ID: testPolicyID_A,
 			},
 		},
+		Roles: []structs.ACLTokenRoleLink{
+			structs.ACLTokenRoleLink{
+				ID: testRoleID_B,
+			},
+		},
 	}
+	token.SetHash(false)
 	require.NoError(s.ACLTokenSet(2, token.Clone(), false))
 
 	// Register the subscription.
@@ -137,12 +146,13 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Update an unrelated policy.
 	policy2 := structs.ACLPolicy{
-		ID:          testPolicyID_B,
+		ID:          testPolicyID_C,
 		Name:        "foo-read",
 		Rules:       `node "foo" { policy = "read" }`,
 		Syntax:      acl.SyntaxCurrent,
 		Datacenters: []string{"dc1"},
 	}
+	policy2.SetHash(false)
 	require.NoError(s.ACLPolicySet(3, &policy2))
 
 	// Ensure there's no reload event.
@@ -160,6 +170,7 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 		Syntax:      acl.SyntaxCurrent,
 		Datacenters: []string{"dc1"},
 	}
+	policy3.SetHash(false)
 	require.NoError(s.ACLPolicySet(4, &policy3))
 
 	// Ensure the reload event was sent.
@@ -180,7 +191,7 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 	require.NoError(err)
 
 	// Delete the unrelated policy.
-	require.NoError(s.ACLPolicyDeleteByID(5, testPolicyID_B))
+	require.NoError(s.ACLPolicyDeleteByID(5, testPolicyID_C))
 
 	// Ensure there's no reload event.
 	select {
@@ -191,6 +202,34 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Delete the policy used by the subscriber.
 	require.NoError(s.ACLPolicyDeleteByID(6, testPolicyID_A))
+
+	// Ensure the reload event was sent.
+	select {
+	case e := <-eventCh:
+		require.True(e.GetReloadStream())
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("did not get event")
+	}
+
+	// Register another subscription.
+	subscription3 := &stream.SubscribeRequest{
+		Topic: stream.Topic_ServiceHealth,
+		Key:   "nope",
+		Token: token.SecretID,
+	}
+	eventCh, err = s.publisher.Subscribe(subscription3)
+	require.NoError(err)
+
+	// Now update the policy used in role B, but not directly in the token.
+	policy4 := structs.ACLPolicy{
+		ID:          testPolicyID_B,
+		Name:        "node-read",
+		Rules:       `node_prefix "foo" { policy = "read" }`,
+		Syntax:      acl.SyntaxCurrent,
+		Datacenters: []string{"dc1"},
+	}
+	policy4.SetHash(false)
+	require.NoError(s.ACLPolicySet(7, &policy4))
 
 	// Ensure the reload event was sent.
 	select {
@@ -217,6 +256,7 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 			},
 		},
 	}
+	token.SetHash(false)
 	require.NoError(s.ACLTokenSet(2, token.Clone(), false))
 
 	// Register the subscription.
@@ -241,6 +281,7 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 		Name:        "unrelated-role",
 		Description: "test",
 	}
+	role.SetHash(false)
 	require.NoError(s.ACLRoleSet(3, &role))
 
 	// Ensure there's no reload event.
@@ -256,6 +297,7 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 		Name:        "my-new-role",
 		Description: "changed",
 	}
+	role2.SetHash(false)
 	require.NoError(s.ACLRoleSet(4, &role2))
 
 	// Ensure the reload event was sent.

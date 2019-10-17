@@ -792,9 +792,6 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	if err != nil {
 		return err
 	}
-	if existing != nil {
-		existing.SetHash(false)
-	}
 
 	// Call set on the ACL
 	if err := s.aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
@@ -826,9 +823,6 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 		existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id")
 		if err != nil {
 			return err
-		}
-		if existing != nil {
-			existing.SetHash(false)
 		}
 
 		if err := s.aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, false); err != nil {
@@ -1051,6 +1045,19 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	tokens, err := s.aclTokenListTxn(tx, ws, local, global, policy, role, methodName)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "acl-tokens")
+
+	return idx, tokens, nil
+}
+
+// aclTokenListTxn is used to list out all of the ACLs in the state store within a transaction.
+func (s *Store) aclTokenListTxn(tx *memdb.Txn, ws memdb.WatchSet, local, global bool, policy, role, methodName string) (structs.ACLTokens, error) {
 	var iter memdb.ResultIterator
 	var err error
 
@@ -1081,11 +1088,11 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		needLocalityFilter = true
 
 	} else {
-		return 0, nil, fmt.Errorf("can only filter by one of policy, role, or methodName at a time")
+		return nil, fmt.Errorf("can only filter by one of policy, role, or methodName at a time")
 	}
 
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
+		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
 
 	if needLocalityFilter && global != local {
@@ -1112,19 +1119,16 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		token := raw.(*structs.ACLToken)
 		token, err := s.fixupTokenPolicyLinks(tx, token)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 		token, err = s.fixupTokenRoleLinks(tx, token)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 		result = append(result, token)
 	}
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-tokens")
-
-	return idx, result, nil
+	return result, nil
 }
 
 func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
@@ -1324,9 +1328,6 @@ func (s *Store) ACLPolicyBatchSet(idx uint64, policies structs.ACLPolicies) erro
 		if err != nil {
 			return err
 		}
-		if existing != nil {
-			existing.SetHash(false)
-		}
 
 		if err := s.aclPolicySetTxn(tx, idx, policy); err != nil {
 			return err
@@ -1357,9 +1358,6 @@ func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
 	existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, "id")
 	if err != nil {
 		return err
-	}
-	if existing != nil {
-		existing.SetHash(false)
 	}
 
 	if err := s.aclPolicySetTxn(tx, idx, policy); err != nil {
@@ -1606,9 +1604,6 @@ func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissing
 		if err != nil {
 			return err
 		}
-		if existing != nil {
-			existing.SetHash(false)
-		}
 
 		if err := s.aclRoleSetTxn(tx, idx, role, allowMissingPolicyIDs); err != nil {
 			return err
@@ -1639,9 +1634,6 @@ func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
 	existing, err := s.getRoleWithTxn(tx, nil, role.ID, "id")
 	if err != nil {
 		return err
-	}
-	if existing != nil {
-		existing.SetHash(false)
 	}
 
 	if err := s.aclRoleSetTxn(tx, idx, role, false); err != nil {
@@ -1778,6 +1770,18 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	roles, err := s.aclRoleListTxn(tx, ws, policy)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "acl-roles")
+
+	return idx, roles, nil
+}
+
+func (s *Store) aclRoleListTxn(tx *memdb.Txn, ws memdb.WatchSet, policy string) (structs.ACLRoles, error) {
 	var iter memdb.ResultIterator
 	var err error
 
@@ -1788,7 +1792,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 	}
 
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl role lookup: %v", err)
+		return nil, fmt.Errorf("failed acl role lookup: %v", err)
 	}
 	ws.Add(iter.WatchCh())
 
@@ -1797,15 +1801,12 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 		role := raw.(*structs.ACLRole)
 		role, err := s.fixupRolePolicyLinks(tx, role)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 		result = append(result, role)
 	}
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-roles")
-
-	return idx, result, nil
+	return result, nil
 }
 
 func (s *Store) ACLRoleDeleteByID(idx uint64, id string) error {
