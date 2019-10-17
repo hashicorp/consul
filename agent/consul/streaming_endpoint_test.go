@@ -362,27 +362,41 @@ func TestStreaming_Subscribe_FilterACL(t *testing.T) {
 	joinLAN(t, client, server)
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create a new token that only has access to one node.
-	var token string
-	arg := structs.ACLRequest{
+	// Create a policy for the test token.
+	policyReq := structs.ACLPolicySetRequest{
 		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "Service/node token",
-			Type: structs.ACLTokenTypeClient,
+		Policy: structs.ACLPolicy{
+			Description: "foobar",
+			Name:        "baz",
 			Rules: fmt.Sprintf(`
-service "foo" {
-	policy = "write"
-}
-node "%s" {
-	policy = "write"
-}
-`, server.config.NodeName),
+			service "foo" {
+				policy = "write"
+			}
+			node "%s" {
+				policy = "write"
+			}
+			`, server.config.NodeName),
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
-	auth, err := server.ResolveToken(token)
+	resp := structs.ACLPolicy{}
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &policyReq, &resp))
+
+	// Create a new token that only has access to one node.
+	var token structs.ACLToken
+	arg := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: resp.ID,
+				},
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &arg, &token))
+	auth, err := server.ResolveToken(token.SecretID)
 	require.NoError(err)
 	require.False(auth.NodeRead("denied"))
 
@@ -412,7 +426,7 @@ node "%s" {
 		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
 			Topic: stream.Topic_ServiceHealth,
 			Key:   "foo",
-			Token: token,
+			Token: token.SecretID,
 		})
 		require.NoError(err)
 
@@ -498,7 +512,7 @@ node "%s" {
 		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
 			Topic: stream.Topic_ServiceHealth,
 			Key:   "bar",
-			Token: token,
+			Token: token.SecretID,
 		})
 		require.NoError(err)
 
