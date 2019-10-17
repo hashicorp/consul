@@ -1,7 +1,7 @@
 {{#if (not loading)}}
     {{outlet}}
 {{else}}
-{{#hashicorp-consul id="wrapper" dc=dc}}
+{{#hashicorp-consul id="wrapper" dc=dc nspaces=nspaces nspace=nspace}}
     {{#app-view class="loading show"}}
         {{#block-slot 'content'}}
             {{partial 'consul-loading'}}
