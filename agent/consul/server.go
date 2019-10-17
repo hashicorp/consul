@@ -327,6 +327,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		}
 	}
 
+	if config.PrimaryDatacenter != "" {
+		config.ACLDatacenter = config.PrimaryDatacenter
+	}
+
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
