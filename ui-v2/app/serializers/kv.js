@@ -2,6 +2,8 @@ import Serializer from './application';
 import { inject as service } from '@ember/service';
 
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
+import { NSPACE_KEY } from 'consul-ui/models/nspace';
+import { NSPACE_QUERY_PARAM as API_NSPACE_KEY } from 'consul-ui/adapters/application';
 import removeNull from 'consul-ui/utils/remove-null';
 
 export default Serializer.extend({
@@ -25,6 +27,7 @@ export default Serializer.extend({
             body.map(item => {
               return {
                 [this.slugKey]: item,
+                [NSPACE_KEY]: query[API_NSPACE_KEY],
               };
             })
           );

@@ -21,6 +21,7 @@ export default Model.extend({
     defaultValue: '',
   }),
   Datacenter: attr('string'),
+  Namespace: attr('string'),
   Local: attr('boolean'),
   Policies: attr({
     defaultValue: function() {
