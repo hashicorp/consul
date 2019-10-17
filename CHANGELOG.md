@@ -10,6 +10,7 @@ FEATURES
 IMPROVEMENTS
 
 * licensing (Consul Enterprise): Increase initial server temporary license duration to 6 hours to allow for longer upgrades/migrations.
+* server: ensure the primary datacenter and ACL datacenter match [[GH-6634](https://github.com/hashicorp/consul/issues/6634)]
 
 BUG FIXES
 
