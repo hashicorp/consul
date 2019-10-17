@@ -1,76 +1,127 @@
 <form>
-    <fieldset>
+  <fieldset>
+    <div role="group">
+      <fieldset>
+        <h2>Source</h2>
         <label data-test-source-element class="type-text{{if item.error.SourceName ' has-error'}}">
-            <span>Source Service</span>
-            {{#power-select-with-create
-              options=items
-              searchField='Name'
-              selected=SourceName
-              searchPlaceholder='Type service name'
-              buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
-              showCreateWhen=(action "isUnique")
-              oncreate=(action 'change' 'SourceName')
-              onchange=(action 'change' 'SourceName') as |service search|
-            }}
-              {{#if (eq service.Name '*') }}
-                * (All Services)
-              {{else}}
-                {{service.Name}}
-              {{/if}}
-            {{/power-select-with-create}}
-            <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
+          <span>Source Service</span>
+          {{#power-select-with-create
+            options=services
+            searchField='Name'
+            selected=SourceName
+            searchPlaceholder='Type service name'
+            buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
+            showCreateWhen=(action "isUnique")
+            oncreate=(action 'change' 'SourceName')
+            onchange=(action 'change' 'SourceName') as |service|
+          }}
+            {{#if (eq service.Name '*') }}
+              * (All Services)
+            {{else}}
+              {{service.Name}}
+            {{/if}}
+          {{/power-select-with-create}}
+          <em>Search for an existing service, write in a future one, or write in any Service URI.</em>
         </label>
+{{#if (gt nspaces.length 0)}}
+        <label data-test-source-nspace class="type-text{{if item.error.SourceNS ' has-error'}}">
+          <span>Source Namespace</span>
+          {{#power-select-with-create
+            options=nspaces
+            searchField='Name'
+            selected=SourceNS
+            searchPlaceholder='Type namespace name'
+            buildSuggestion=(action 'createNewLabel' "Use a future Consul Namespace called '{{term}}'")
+            showCreateWhen=(action "isUnique")
+            oncreate=(action 'change' 'SourceNS')
+            onchange=(action 'change' 'SourceNS') as |nspace|
+          }}
+            {{#if (eq nspace.Name '*') }}
+              * (All Namespaces)
+            {{else}}
+              {{nspace.Name}}
+            {{/if}}
+          {{/power-select-with-create}}
+          <em>Search for an existing namespace, write in a future one.</em>
+        </label>
+{{/if}}
+      </fieldset>
+      <fieldset>
+        <h2>Destination</h2>
         <label data-test-destination-element class="type-text{{if item.error.DestinationName ' has-error'}}">
-            <span>Destination Service</span>
-            {{#power-select-with-create
-              options=items
-              searchField='Name'
-              selected=DestinationName
-              searchPlaceholder='Type service name'
-              buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
-              showCreateWhen=(action "isUnique")
-              oncreate=(action 'change' 'DestinationName')
-              onchange=(action 'change' 'DestinationName') as |service|
-            }}
-              {{#if (eq service.Name '*') }}
-                * (All Services)
-              {{else}}
-                {{service.Name}}
-              {{/if}}
-            {{/power-select-with-create}}
-            <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
+          <span>Destination Service</span>
+          {{#power-select-with-create
+            options=services
+            searchField='Name'
+            selected=DestinationName
+            searchPlaceholder='Type service name'
+            buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
+            showCreateWhen=(action "isUnique")
+            oncreate=(action 'change' 'DestinationName')
+            onchange=(action 'change' 'DestinationName') as |service|
+          }}
+            {{#if (eq service.Name '*') }}
+              * (All Services)
+            {{else}}
+              {{service.Name}}
+            {{/if}}
+          {{/power-select-with-create}}
+          <em>Search for an existing service or write in a future one.</em>
         </label>
-        <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
-            {{#each intents as |intent|}}
-                <label>
-                    <span>{{ capitalize intent }}</span>
-                    <input type="radio" name="Action" value="{{intent}}" checked={{if (eq item.Action intent) 'checked'}} onchange={{ action 'change' }}/>
-                </label>
-            {{/each}}
-        </div>
-        <label class="type-text{{if item.error.Description ' has-error'}}">
-            <span>Description</span>
-            <input type="text" name="Description" value="{{item.Description}}" placeholder="Description" onchange={{action 'change'}} />
-            <em>Choose a Consul Service, write in a future Consul Service, or write any Service URL</em>
+{{#if (gt nspaces.length 0)}}
+        <label data-test-destination-nspace class="type-text{{if item.error.DestinationNS ' has-error'}}">
+          <span>Destination Namespace</span>
+          {{#power-select-with-create
+            options=nspaces
+            searchField='Name'
+            selected=DestinationNS
+            searchPlaceholder='Type namespace name'
+            buildSuggestion=(action 'createNewLabel' "Use a future Consul Namespace called '{{term}}'")
+            showCreateWhen=(action "isUnique")
+            oncreate=(action 'change' 'DestinationNS')
+            onchange=(action 'change' 'DestinationNS') as |nspace|
+          }}
+            {{#if (eq nspace.Name '*') }}
+              * (All Namespaces)
+            {{else}}
+              {{nspace.Name}}
+            {{/if}}
+          {{/power-select-with-create}}
+          <em>For the destination, you may choose any namespace for which you have access.</em>
         </label>
-    </fieldset>
-    <div>
-{{#if create }}
-        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid) 'disabled'}}>Save</button>
-{{ else }}
-        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
 {{/if}}
-        <button type="reset" {{ action "cancel" item}}>Cancel</button>
-{{# if (and item.ID (not-eq item.ID 'anonymous')) }}
-        {{#confirmation-dialog message='Are you sure you want to delete this Intention?'}}
-            {{#block-slot 'action' as |confirm|}}
-                <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
-            {{/block-slot}}
-            {{#block-slot 'dialog' as |execute cancel message|}}
-              {{delete-confirmation message=message execute=execute cancel=cancel}}
-            {{/block-slot}}
-        {{/confirmation-dialog}}
-{{/if}}
+      </fieldset>
     </div>
+    <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
+      {{#each (array 'allow' 'deny') as |intent|}}
+        <label>
+          <span>{{ capitalize intent }}</span>
+          <input type="radio" name="Action" value="{{intent}}" checked={{if (eq item.Action intent) 'checked'}} onchange={{ action 'change' }}/>
+        </label>
+      {{/each}}
+    </div>
+    <label class="type-text{{if item.error.Description ' has-error'}}">
+      <span>Description (Optional)</span>
+      <input type="text" name="Description" value="{{item.Description}}" placeholder="Description (Optional)" onchange={{action 'change'}} />
+    </label>
+  </fieldset>
+  <div>
+{{#if create }}
+    <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid) 'disabled'}}>Save</button>
+{{ else }}
+    <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+{{/if}}
+    <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (and item.ID (not-eq item.ID 'anonymous')) }}
+    {{#confirmation-dialog message='Are you sure you want to delete this Intention?'}}
+      {{#block-slot 'action' as |confirm|}}
+        <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
+      {{/block-slot}}
+      {{#block-slot 'dialog' as |execute cancel message|}}
+        {{delete-confirmation message=message execute=execute cancel=cancel}}
+      {{/block-slot}}
+    {{/confirmation-dialog}}
+{{/if}}
+  </div>
 </form>
 

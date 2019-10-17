@@ -38,17 +38,23 @@
                         {{else}}
                           {{item.SourceName}}
                         {{/if}}
+                        {{! TODO: slugify }}
+                        <em class={{concat 'nspace-' (nspace/or item.SourceNS)}}>{{nspace/or item.SourceNS}}</em>
                       </a>
                     </td>
                     <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
                         <strong>{{item.Action}}</strong>
                     </td>
                     <td class="destination" data-test-intention-destination="{{item.DestinationName}}">
+                      <span>
                         {{#if (eq item.DestinationName '*') }}
                           All Services (*)
                         {{else}}
                           {{item.DestinationName}}
                         {{/if}}
+                        {{! TODO: slugify }}
+                        <em class={{concat 'nspace-' (nspace/or item.DestinationNS)}}>{{nspace/or item.DestinationNS}}</em>
+                      </span>
                     </td>
                     <td class="precedence">
                         {{item.Precedence}}
