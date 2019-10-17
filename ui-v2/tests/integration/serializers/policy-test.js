@@ -6,53 +6,61 @@ module('Integration | Serializer | policy', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'policy-name';
-  test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:policy');
-    const request = {
-      url: `/v1/acl/policies?dc=${dc}`,
-    };
-    return get(request.url).then(function(payload) {
-      const expected = payload.map(item =>
-        Object.assign({}, item, {
-          Datacenter: dc,
-          uid: `["${dc}","${item.ID}"]`,
-        })
-      );
-      const actual = serializer.respondForQuery(
-        function(cb) {
-          const headers = {};
-          const body = payload;
-          return cb(headers, body);
-        },
-        {
-          dc: dc,
-        }
-      );
-      assert.deepEqual(actual, expected);
-    });
-  });
-  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:policy');
-    const request = {
-      url: `/v1/acl/policy/${id}?dc=${dc}`,
-    };
-    return get(request.url).then(function(payload) {
-      const expected = Object.assign({}, payload, {
-        Datacenter: dc,
-        [META]: {},
-        uid: `["${dc}","${id}"]`,
+  const undefinedNspace = 'default';
+  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+    test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+      const serializer = this.owner.lookup('serializer:policy');
+      const request = {
+        url: `/v1/acl/policies?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}`,
+      };
+      return get(request.url).then(function(payload) {
+        const expected = payload.map(item =>
+          Object.assign({}, item, {
+            Datacenter: dc,
+            Namespace: item.Namespace || undefinedNspace,
+            uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
+          })
+        );
+        const actual = serializer.respondForQuery(
+          function(cb) {
+            const headers = {};
+            const body = payload;
+            return cb(headers, body);
+          },
+          {
+            dc: dc,
+            ns: nspace,
+          }
+        );
+        assert.deepEqual(actual, expected);
       });
-      const actual = serializer.respondForQueryRecord(
-        function(cb) {
-          const headers = {};
-          const body = payload;
-          return cb(headers, body);
-        },
-        {
-          dc: dc,
-        }
-      );
-      assert.deepEqual(actual, expected);
+    });
+    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+      const serializer = this.owner.lookup('serializer:policy');
+      const request = {
+        url: `/v1/acl/policy/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}`,
+      };
+      return get(request.url).then(function(payload) {
+        const expected = Object.assign({}, payload, {
+          Datacenter: dc,
+          [META]: {},
+          Namespace: payload.Namespace || undefinedNspace,
+          uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
+        });
+        const actual = serializer.respondForQueryRecord(
+          function(cb) {
+            const headers = {};
+            const body = payload;
+            return cb(headers, body);
+          },
+          {
+            dc: dc,
+            ns: nspace,
+            id: id,
+          }
+        );
+        assert.deepEqual(actual, expected);
+      });
     });
   });
 });

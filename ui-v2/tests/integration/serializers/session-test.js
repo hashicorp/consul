@@ -6,54 +6,66 @@ module('Integration | Adapter | session | response', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'session-id';
-  test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:session');
-    const node = 'node-id';
-    const request = {
-      url: `/v1/session/node/${node}?dc=${dc}`,
-    };
-    return get(request.url).then(function(payload) {
-      const expected = payload.map(item =>
-        Object.assign({}, item, {
-          Datacenter: dc,
-          uid: `["${dc}","${item.ID}"]`,
-        })
-      );
-      const actual = serializer.respondForQuery(
-        function(cb) {
-          const headers = {};
-          const body = payload;
-          return cb(headers, body);
-        },
-        {
-          dc: dc,
-        }
-      );
-      assert.deepEqual(actual, expected);
-    });
-  });
-  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:session');
-    const request = {
-      url: `/v1/session/info/${id}?dc=${dc}`,
-    };
-    return get(request.url).then(function(payload) {
-      const expected = Object.assign({}, payload[0], {
-        Datacenter: dc,
-        [META]: {},
-        uid: `["${dc}","${id}"]`,
+  const undefinedNspace = 'default';
+  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+    test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+      const serializer = this.owner.lookup('serializer:session');
+      const node = 'node-id';
+      const request = {
+        url: `/v1/session/node/${node}?dc=${dc}${
+          typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        }`,
+      };
+      return get(request.url).then(function(payload) {
+        const expected = payload.map(item =>
+          Object.assign({}, item, {
+            Datacenter: dc,
+            Namespace: item.Namespace || undefinedNspace,
+            uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
+          })
+        );
+        const actual = serializer.respondForQuery(
+          function(cb) {
+            const headers = {};
+            const body = payload;
+            return cb(headers, body);
+          },
+          {
+            dc: dc,
+            ns: nspace,
+          }
+        );
+        assert.deepEqual(actual, expected);
       });
-      const actual = serializer.respondForQueryRecord(
-        function(cb) {
-          const headers = {};
-          const body = payload;
-          return cb(headers, body);
-        },
-        {
-          dc: dc,
-        }
-      );
-      assert.deepEqual(actual, expected);
+    });
+    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+      const serializer = this.owner.lookup('serializer:session');
+      const request = {
+        url: `/v1/session/info/${id}?dc=${dc}${
+          typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        }`,
+      };
+      return get(request.url).then(function(payload) {
+        const expected = Object.assign({}, payload[0], {
+          Datacenter: dc,
+          [META]: {},
+          Namespace: payload[0].Namespace || undefinedNspace,
+          uid: `["${payload[0].Namespace || undefinedNspace}","${dc}","${id}"]`,
+        });
+        const actual = serializer.respondForQueryRecord(
+          function(cb) {
+            const headers = {};
+            const body = payload;
+            return cb(headers, body);
+          },
+          {
+            dc: dc,
+            ns: nspace,
+            id: id,
+          }
+        );
+        assert.deepEqual(actual, expected);
+      });
     });
   });
 });
