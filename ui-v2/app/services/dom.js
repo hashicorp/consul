@@ -1,5 +1,6 @@
 import Service from '@ember/service';
 import { getOwner } from '@ember/application';
+import { guidFor } from '@ember/object/internals';
 
 // selecting
 import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
@@ -8,6 +9,7 @@ import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
 // see if its possible to standardize
 import sibling from 'consul-ui/utils/dom/sibling';
 import closest from 'consul-ui/utils/dom/closest';
+import isOutside from 'consul-ui/utils/dom/is-outside';
 import getComponentFactory from 'consul-ui/utils/dom/get-component-factory';
 
 // events
@@ -33,10 +35,14 @@ export default Service.extend({
   viewport: function() {
     return this.win;
   },
+  guid: function(el) {
+    return guidFor(el);
+  },
   // TODO: should this be here? Needs a better name at least
   clickFirstAnchor: clickFirstAnchor,
   closest: closest,
   sibling: sibling,
+  isOutside: isOutside,
   normalizeEvent: normalizeEvent,
   listeners: createListeners,
   root: function() {
