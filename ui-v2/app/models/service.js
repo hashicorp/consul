@@ -28,6 +28,7 @@ export default Model.extend({
   ChecksWarning: attr(),
   Nodes: attr(),
   Datacenter: attr('string'),
+  Namespace: attr('string'),
   Node: attr(),
   Service: attr(),
   Checks: attr(),
