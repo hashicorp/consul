@@ -107,5 +107,20 @@ export default function(scenario, assert, lastNthRequest) {
           `Expected the request url to be ${item}, was ${requests[i].url}`
         );
       });
+    })
+    .then('the last $method requests included from yaml\n$yaml', function(method, data) {
+      const requests = lastNthRequest(null, method);
+      const a = new Set(data);
+      const b = new Set(
+        requests.map(function(item) {
+          return item.url;
+        })
+      );
+      const diff = new Set(
+        [...a].filter(function(item) {
+          return !b.has(item);
+        })
+      );
+      assert.equal(diff.size, 0, `Expected requests "${[...diff].join(', ')}"`);
     });
 }
