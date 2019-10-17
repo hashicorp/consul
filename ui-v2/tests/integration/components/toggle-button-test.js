@@ -3,22 +3,24 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('Integration | Component | datacenter picker', function(hooks) {
+module('Integration | Component | toggle-button', function(hooks) {
   setupRenderingTest(hooks);
 
   test('it renders', async function(assert) {
     // Set any properties with this.set('myProperty', 'value');
-    // Handle any actions with this.on('myAction', function(val) { ... });
+    // Handle any actions with this.set('myAction', function(val) { ... });
 
-    await render(hbs`{{datacenter-picker}}`);
+    await render(hbs`<ToggleButton />`);
 
-    assert.dom('*').hasText('');
+    assert.equal(this.element.textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
-      {{#datacenter-picker}}{{/datacenter-picker}}
+      <ToggleButton>
+        template block text
+      </ToggleButton>
     `);
 
-    assert.dom('*').hasText('');
+    assert.equal(this.element.textContent.trim(), 'template block text');
   });
 });
