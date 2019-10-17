@@ -11,7 +11,13 @@
     {{/block-slot}}
     {{#block-slot 'row'}}
       <td>
-        <span data-test-destination-name>{{item.DestinationName}}</span>
+        <a data-test-destination-name>
+          {{item.DestinationName}}
+          {{#if (not-eq item.DestinationType 'prepared_query')}}
+            {{! TODO: slugify }}
+            <em class={{concat 'nspace-' (nspace/or item.DestinationNamespace)}}>{{nspace/or item.DestinationNamespace}}</em>
+          {{/if}}
+        </a>
       </td>
       <td data-test-destination-datacenter>
         {{item.Datacenter}}
