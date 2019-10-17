@@ -12,6 +12,7 @@ IMPROVEMENTS
 * licensing (Consul Enterprise): Increase initial server temporary license duration to 6 hours to allow for longer upgrades/migrations.
 * server: ensure the primary datacenter and ACL datacenter match [[GH-6634](https://github.com/hashicorp/consul/issues/6634)]
 * sdk: ignore panics due to stray goroutines logging after a test completes [[GH-6632](https://github.com/hashicorp/consul/issues/6632)]
+* agent: allow mesh gateways to initialize even if there are no connect services registered yet [[GH-6576](https://github.com/hashicorp/consul/issues/6576)]
 
 BUG FIXES
 
