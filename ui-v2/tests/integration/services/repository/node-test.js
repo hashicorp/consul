@@ -10,6 +10,7 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 const dc = 'dc-1';
 const id = 'token-name';
 const now = new Date().getTime();
+const nspace = 'default';
 test('findByDatacenter returns the correct data for list endpoint', function(assert) {
   get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
     return now;
@@ -34,7 +35,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
             Object.assign({}, item, {
               SyncTime: now,
               Datacenter: dc,
-              uid: `["${dc}","${item.ID}"]`,
+              uid: `["${nspace}","${dc}","${item.ID}"]`,
             })
           );
         })
@@ -60,7 +61,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           const item = payload;
           return Object.assign({}, item, {
             Datacenter: dc,
-            uid: `["${dc}","${item.ID}"]`,
+            uid: `["${nspace}","${dc}","${item.ID}"]`,
             meta: {
               cursor: undefined,
             },
