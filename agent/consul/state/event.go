@@ -142,55 +142,55 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 	case stream.Topic_ACLPolicies:
 		policy := event.GetACLPolicy()
 		affectedSubs := make(map[*stream.SubscribeRequest]chan stream.Event)
-		for token, subscribers := range e.tokenSubs {
-			token, err := e.store.aclTokenGetTxn(tx, nil, token, "id", nil)
+		tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, policy.PolicyID, "", "")
+		if err != nil {
+			return err
+		}
+
+		// Loop through the tokens used by the policy.
+		for _, token := range tokens {
+			if subs, ok := e.tokenSubs[token.SecretID]; ok {
+				for sub, ch := range subs {
+					affectedSubs[sub] = ch
+				}
+			}
+		}
+
+		// Find any roles using this policy so tokens with those roles can be reloaded.
+		roles, err := e.store.aclRoleListTxn(tx, nil, policy.PolicyID)
+		if err != nil {
+			return err
+		}
+		for _, role := range roles {
+			tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, "", role.ID, "")
 			if err != nil {
 				return err
 			}
-			if token == nil {
-				continue
-			}
-
-			// If the updated policy was used in this token, add any subscribers using it
-			// to the affected set.
-			for _, p := range token.Policies {
-				if p.ID == policy.PolicyID {
-					for sub, ch := range subscribers {
+			for _, token := range tokens {
+				if subs, ok := e.tokenSubs[token.SecretID]; ok {
+					for sub, ch := range subs {
 						affectedSubs[sub] = ch
 					}
-					break
 				}
 			}
 		}
 
 		// Send a reload to the affected subscribers.
 		e.reloadSubscribers(affectedSubs)
+
 	case stream.Topic_ACLRoles:
 		role := event.GetACLRole()
-		affectedSubs := make(map[*stream.SubscribeRequest]chan stream.Event)
-		for token, subscribers := range e.tokenSubs {
-			token, err := e.store.aclTokenGetTxn(tx, nil, token, "id", nil)
-			if err != nil {
-				return err
-			}
-			if token == nil {
-				continue
-			}
-
-			// If the updated role was used in this token, add any subscribers using it
-			// to the affected set.
-			for _, r := range token.Roles {
-				if r.ID == role.RoleID {
-					for sub, ch := range subscribers {
-						affectedSubs[sub] = ch
-					}
-					break
-				}
-			}
+		tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, "", role.RoleID, "")
+		if err != nil {
+			return err
 		}
 
-		// Send a reload to the affected subscribers.
-		e.reloadSubscribers(affectedSubs)
+		// Loop through the tokens used by the role and add the affected subscribers to the list.
+		for _, token := range tokens {
+			if subs, ok := e.tokenSubs[token.SecretID]; ok {
+				e.reloadSubscribers(subs)
+			}
+		}
 	}
 
 	return nil

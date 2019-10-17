@@ -54,14 +54,9 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	} else {
 		// If there wasn't a snapshot, just send an end of snapshot message
 		// so the client knows not to wait for one.
-		idx, err := state.ComputeIndex()
-		if err != nil {
-			return err
-		}
-
 		endSnapshotEvent := stream.Event{
 			Topic:   req.Topic,
-			Index:   idx,
+			Index:   lastSentIndex,
 			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		}
 		if err := server.Send(&endSnapshotEvent); err != nil {
