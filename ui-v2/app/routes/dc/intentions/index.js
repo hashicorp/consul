@@ -14,7 +14,10 @@ export default Route.extend(WithIntentionActions, {
   },
   model: function(params) {
     return hash({
-      items: this.repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
+      items: this.repo.findAllByDatacenter(
+        this.modelFor('dc').dc.Name,
+        this.modelFor('nspace').nspace.substr(1)
+      ),
     });
   },
   setupController: function(controller, model) {

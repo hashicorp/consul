@@ -24,10 +24,12 @@ export default Route.extend(WithTokenActions, {
     });
   },
   model: function(params) {
-    const repo = this.repo;
     return hash({
-      ...repo.status({
-        items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
+      ...this.repo.status({
+        items: this.repo.findAllByDatacenter(
+          this.modelFor('dc').dc.Name,
+          this.modelFor('nspace').nspace.substr(1)
+        ),
       }),
       isLoading: false,
       token: this.settings.findBySlug('token'),

@@ -11,6 +11,7 @@ export default RepositoryService.extend({
   },
   findAll: function() {
     return this.store.findAll(this.getModelName()).then(function(items) {
+      // TODO: Move to view/template
       return items.sortBy('Name');
     });
   },
