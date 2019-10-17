@@ -15,7 +15,6 @@ h3 {
   font-size: $typo-header-300;
 }
 fieldset > header,
-%header-nav,
 %app-view-content div > dl > dt,
 %table caption,
 %tbody-th,
@@ -24,6 +23,7 @@ fieldset > header,
 }
 %internal-button,
 %breadcrumbs li > *,
+%main-nav-horizontal-action,
 %tab-nav {
   @extend %h5;
 }
@@ -61,6 +61,7 @@ pre code,
   @extend %p3;
 }
 
+%main-nav-horizontal-action,
 %button {
   font-weight: $typo-weight-semibold;
 }
@@ -68,7 +69,6 @@ pre code,
 %radio-group label {
   line-height: $typo-lead-200;
 }
-%header-nav,
 %tab-nav {
   letter-spacing: 0.03em;
 }
