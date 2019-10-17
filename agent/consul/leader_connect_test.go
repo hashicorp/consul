@@ -2,6 +2,7 @@ package consul
 
 import (
 	"crypto/x509"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -24,109 +25,117 @@ import (
 func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	t.Parallel()
 
-	masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
-
-	// Initialize primary as the primary DC
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "primary"
-		c.ACLDatacenter = "primary"
-		c.Build = "1.6.0"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = masterToken
-		c.ACLDefaultPolicy = "deny"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
-	s1.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
-
-	testrpc.WaitForLeader(t, s1.RPC, "primary")
-
-	// secondary as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "secondary"
-		c.ACLDatacenter = "primary"
-		c.Build = "1.6.0"
-		c.ACLsEnabled = true
-		c.ACLDefaultPolicy = "deny"
-		c.ACLTokenReplication = true
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
-	s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
-
-	testrpc.WaitForLeader(t, s2.RPC, "secondary")
-
-	// Create the WAN link
-	joinWAN(t, s2, s1)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
-
-	// Ensure s2 is authoritative.
-	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
-
-	// Wait until the providers are fully bootstrapped.
-	var (
-		caRoot            *structs.CARoot
-		secondaryProvider ca.Provider
-		intermediatePEM   string
-		err               error
-	)
-	retry.Run(t, func(r *retry.R) {
-		_, caRoot = s1.getCAProvider()
-		secondaryProvider, _ = s2.getCAProvider()
-		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
-		require.NoError(r, err)
-
-		// Verify the root lists are equal in each DC's state store.
-		state1 := s1.fsm.State()
-		_, roots1, err := state1.CARoots(nil)
-		require.NoError(r, err)
-
-		state2 := s2.fsm.State()
-		_, roots2, err := state2.CARoots(nil)
-		require.NoError(r, err)
-		require.Len(r, roots1, 1)
-		require.Len(r, roots1, 1)
-		require.Equal(r, roots1[0].ID, roots2[0].ID)
-		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
-		require.Empty(r, roots1[0].IntermediateCerts)
-		require.NotEmpty(r, roots2[0].IntermediateCerts)
-	})
-
-	// Have secondary sign a leaf cert and make sure the chain is correct.
-	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
-		Namespace:  "default",
-		Datacenter: "primary",
-		Service:    "foo",
+	tests := []struct {
+		keyType string
+		keyBits int
+	}{
+		{connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits},
+		{"rsa", 2048},
 	}
-	raw, _ := connect.TestCSR(t, spiffeService)
 
-	leafCsr, err := connect.ParseCSR(raw)
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s-%d", tt.keyType, tt.keyBits), func(t *testing.T) {
+			masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
 
-	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(t, err)
+			// Initialize primary as the primary DC
+			dir1, s1 := testServerWithConfig(t, func(c *Config) {
+				c.Datacenter = "primary"
+				c.ACLDatacenter = "primary"
+				c.Build = "1.6.0"
+				c.ACLsEnabled = true
+				c.ACLMasterToken = masterToken
+				c.ACLDefaultPolicy = "deny"
+				c.CAConfig.Config["PrivateKeyType"] = tt.keyType
+				c.CAConfig.Config["PrivateKeyBits"] = tt.keyBits
+			})
+			defer os.RemoveAll(dir1)
+			defer s1.Shutdown()
 
-	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(t, err)
+			s1.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
 
-	// Check that the leaf signed by the new cert can be verified using the
-	// returned cert chain (signed intermediate + remote root).
-	intermediatePool := x509.NewCertPool()
-	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
-	rootPool := x509.NewCertPool()
-	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
+			testrpc.WaitForLeader(t, s1.RPC, "primary")
 
-	_, err = cert.Verify(x509.VerifyOptions{
-		Intermediates: intermediatePool,
-		Roots:         rootPool,
-	})
-	require.NoError(t, err)
+			// secondary as a secondary DC
+			dir2, s2 := testServerWithConfig(t, func(c *Config) {
+				c.Datacenter = "secondary"
+				c.ACLDatacenter = "primary"
+				c.Build = "1.6.0"
+				c.ACLsEnabled = true
+				c.ACLDefaultPolicy = "deny"
+				c.ACLTokenReplication = true
+				c.CAConfig.Config["PrivateKeyType"] = tt.keyType
+				c.CAConfig.Config["PrivateKeyBits"] = tt.keyBits
+			})
+			defer os.RemoveAll(dir2)
+			defer s2.Shutdown()
+
+			s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
+			s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
+
+			testrpc.WaitForLeader(t, s2.RPC, "secondary")
+
+			// Create the WAN link
+			joinWAN(t, s2, s1)
+
+			waitForNewACLs(t, s1)
+			waitForNewACLs(t, s2)
+
+			// Ensure s2 is authoritative.
+			waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
+			// Wait until the providers are fully bootstrapped.
+			var (
+				caRoot            *structs.CARoot
+				secondaryProvider ca.Provider
+				intermediatePEM   string
+				err               error
+			)
+			retry.Run(t, func(r *retry.R) {
+				_, caRoot = s1.getCAProvider()
+				secondaryProvider, _ = s2.getCAProvider()
+				intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+				require.NoError(r, err)
+
+				// Sanity check CA is using the correct key type
+				require.Equal(r, tt.keyType, caRoot.PrivateKeyType)
+				require.Equal(r, tt.keyBits, caRoot.PrivateKeyBits)
+
+				// Verify the root lists are equal in each DC's state store.
+				state1 := s1.fsm.State()
+				_, roots1, err := state1.CARoots(nil)
+				require.NoError(r, err)
+
+				state2 := s2.fsm.State()
+				_, roots2, err := state2.CARoots(nil)
+				require.NoError(r, err)
+				require.Len(r, roots1, 1)
+				require.Len(r, roots1, 1)
+				require.Equal(r, roots1[0].ID, roots2[0].ID)
+				require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
+				require.Empty(r, roots1[0].IntermediateCerts)
+				require.NotEmpty(r, roots2[0].IntermediateCerts)
+			})
+
+			// Have secondary sign a leaf cert and make sure the chain is correct.
+			spiffeService := &connect.SpiffeIDService{
+				Host:       "node1",
+				Namespace:  "default",
+				Datacenter: "primary",
+				Service:    "foo",
+			}
+			raw, _ := connect.TestCSR(t, spiffeService)
+
+			leafCsr, err := connect.ParseCSR(raw)
+			require.NoError(t, err)
+
+			leafPEM, err := secondaryProvider.Sign(leafCsr)
+			require.NoError(t, err)
+
+			// Check that the leaf signed by the new cert can be verified using the
+			// returned cert chain (signed intermediate + remote root).
+			require.NoError(t, connect.ValidateLeaf(caRoot.RootCert, leafPEM, []string{intermediatePEM}))
+		})
+	}
 }
 
 func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {

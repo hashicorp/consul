@@ -3,7 +3,6 @@ package ca
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -334,11 +333,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("error parsing CA cert: %s", err)
 	}
 
-	sigAlgo := x509.ECDSAWithSHA256
-	if _, ok := signer.(*rsa.PrivateKey); ok {
-		sigAlgo = x509.SHA256WithRSA
-	}
-
 	// Cert template for generation
 	sn := &big.Int{}
 	sn.SetUint64(idx + 1)
@@ -352,8 +346,9 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		URIs:         csr.URIs,
 		Signature:    csr.Signature,
 		// We use the correct signature algorithm for the CA key we are signing with
-		// regardless of the algorithm used to sign the CSR signature above.
-		SignatureAlgorithm:    sigAlgo,
+		// regardless of the algorithm used to sign the CSR signature above since
+		// the leaf might use a different key type.
+		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
