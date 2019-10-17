@@ -9,17 +9,27 @@ export default Controller.extend({
     this.form = this.builder.form('intention');
   },
   setProperties: function(model) {
-    const sourceName = get(model.item, 'SourceName');
-    const destinationName = get(model.item, 'DestinationName');
-    let source = model.items.findBy('Name', sourceName);
-    let destination = model.items.findBy('Name', destinationName);
+    let source = model.services.findBy('Name', model.item.SourceName);
+
     if (!source) {
-      source = { Name: sourceName };
-      model.items = [source].concat(model.items);
+      source = { Name: model.item.SourceName };
+      model.services = [source].concat(model.services);
     }
+    let destination = model.services.findBy('Name', model.item.DestinationName);
     if (!destination) {
-      destination = { Name: destinationName };
-      model.items = [destination].concat(model.items);
+      destination = { Name: model.item.DestinationName };
+      model.services = [destination].concat(model.services);
+    }
+
+    let sourceNS = model.nspaces.findBy('Name', model.item.SourceNS);
+    if (!sourceNS) {
+      sourceNS = { Name: model.item.SourceNS };
+      model.nspaces = [sourceNS].concat(model.nspaces);
+    }
+    let destinationNS = model.nspaces.findBy('Name', model.item.DestinationNS);
+    if (!destinationNS) {
+      destinationNS = { Name: model.item.DestinationNS };
+      model.nspaces = [destinationNS].concat(model.nspaces);
     }
     this._super({
       ...model,
@@ -27,6 +37,8 @@ export default Controller.extend({
         item: this.form.setData(model.item).getData(),
         SourceName: source,
         DestinationName: destination,
+        SourceNS: sourceNS,
+        DestinationNS: destinationNS,
       },
     });
   },
@@ -35,33 +47,24 @@ export default Controller.extend({
       return template.replace(/{{term}}/g, term);
     },
     isUnique: function(term) {
-      return !this.items.findBy('Name', term);
+      return !this.services.findBy('Name', term);
     },
     change: function(e, value, item) {
       const event = this.dom.normalizeEvent(e, value);
       const form = this.form;
       const target = event.target;
 
-      let name;
-      let selected;
-      let match;
+      let name, selected, match;
       switch (target.name) {
         case 'SourceName':
         case 'DestinationName':
+        case 'SourceNS':
+        case 'DestinationNS':
           name = selected = target.value;
           // Names can be selected Service EmberObjects or typed in strings
           // if its not a string, use the `Name` from the Service EmberObject
           if (typeof name !== 'string') {
             name = get(target.value, 'Name');
-          }
-          // see if the name is already in the list
-          match = this.items.filterBy('Name', name);
-          if (match.length === 0) {
-            // if its not make a new 'fake' Service that doesn't exist yet
-            // and add it to the possible services to make an intention between
-            selected = { Name: name };
-            const items = [selected].concat(this.items.toArray());
-            set(this, 'items', items);
           }
           // mutate the value with the string name
           // which will be handled by the form
@@ -71,6 +74,23 @@ export default Controller.extend({
           // the current selection
           // basically the difference between
           // `item.DestinationName` and just `DestinationName`
+          // see if the name is already in the list
+          match = this.services.filterBy('Name', name);
+          if (match.length === 0) {
+            // if its not make a new 'fake' Service that doesn't exist yet
+            // and add it to the possible services to make an intention between
+            selected = { Name: name };
+            switch (target.name) {
+              case 'SourceName':
+              case 'DestinationName':
+                set(this, 'services', [selected].concat(this.services.toArray()));
+                break;
+              case 'SourceNS':
+              case 'DestinationNS':
+                set(this, 'nspaces', [selected].concat(this.nspaces.toArray()));
+                break;
+            }
+          }
           set(this, target.name, selected);
           break;
       }
