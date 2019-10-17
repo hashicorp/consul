@@ -2,6 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 module.exports = function(environment) {
+  const isDevLike = ['development', 'staging', 'test'].indexOf(environment) > -1;
+  const isProdLike = ['production', 'staging'].indexOf(environment) > -1;
   let ENV = {
     modulePrefix: 'consul-ui',
     environment,
@@ -63,6 +65,8 @@ module.exports = function(environment) {
       }
       return 'oss';
     })(),
+    CONSUL_NSPACES_ENABLED: true,
+    CONSUL_NSPACES_UNDEFINED_NAME: 'default',
     CONSUL_HOME_URL: 'https://www.consul.io',
     CONSUL_DOCS_URL: 'https://www.consul.io/docs',
     CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com/consul',
@@ -76,9 +80,6 @@ module.exports = function(environment) {
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
     // ENV.APP.LOG_VIEW_LOOKUPS = true;
-    // ENV['ember-cli-mirage'] = {
-    //   enabled: false,
-    // };
   }
 
   if (environment === 'test') {
@@ -105,6 +106,14 @@ module.exports = function(environment) {
   }
 
   if (environment === 'production') {
+    // ENV = Object.assign(
+    //   {},
+    //   ENV,
+    //   {
+    //     CONSUL_NSPACES_ENABLED: '{{.NamepacesEnabled}}',
+    //     CONSUL_NSPACES_UNDEFINED_NAME: '{{.NamepacesUndefinedName}}',
+    //   }
+    // );
     // here you can enable a production-specific feature
   }
 
