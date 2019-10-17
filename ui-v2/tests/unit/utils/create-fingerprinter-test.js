@@ -8,15 +8,16 @@ module('Unit | Utility | create fingerprinter', function() {
     };
     const expected = {
       Datacenter: 'dc',
+      Namespace: 'default',
       ID: 'slug',
-      uid: '["dc","slug"]',
+      uid: '["default","dc","slug"]',
     };
-    const fingerprint = createFingerprinter('Datacenter');
+    const fingerprint = createFingerprinter('Datacenter', 'Namespace', 'default');
     const actual = fingerprint('uid', 'ID', 'dc')(obj);
     assert.deepEqual(actual, expected);
   });
   test("fingerprint throws an error if it can't find a foreignKey", function(assert) {
-    const fingerprint = createFingerprinter('Datacenter');
+    const fingerprint = createFingerprinter('Datacenter', 'Namespace', 'default');
     [undefined, null].forEach(function(item) {
       assert.throws(function() {
         fingerprint('uid', 'ID', item);
@@ -24,7 +25,7 @@ module('Unit | Utility | create fingerprinter', function() {
     });
   });
   test("fingerprint throws an error if it can't find a slug", function(assert) {
-    const fingerprint = createFingerprinter('Datacenter');
+    const fingerprint = createFingerprinter('Datacenter', 'Namespace', 'default');
     [
       {},
       {
