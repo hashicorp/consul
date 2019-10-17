@@ -9,6 +9,7 @@ import node from 'consul-ui/search/filters/node';
 import nodeService from 'consul-ui/search/filters/node/service';
 import serviceNode from 'consul-ui/search/filters/service/node';
 import service from 'consul-ui/search/filters/service';
+import nspace from 'consul-ui/search/filters/nspace';
 
 import filterableFactory from 'consul-ui/utils/search/filterable';
 const filterable = filterableFactory();
@@ -27,6 +28,7 @@ export function initialize(application) {
     serviceInstance: serviceNode(filterable),
     nodeservice: nodeService(filterable),
     service: service(filterable),
+    nspace: nspace(filterable),
   };
   Builder.reopen({
     searchable: function(name) {
