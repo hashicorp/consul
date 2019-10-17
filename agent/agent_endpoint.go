@@ -492,6 +492,9 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	// Store the type of check based on the definition
+	health.Type = chkType.Type()
+
 	if health.ServiceID != "" {
 		// fixup the service name so that vetCheckRegister requires the right ACLs
 		service := s.agent.State.Service(health.ServiceID)

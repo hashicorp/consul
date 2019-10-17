@@ -126,3 +126,24 @@ func (c *CheckType) IsDocker() bool {
 func (c *CheckType) IsGRPC() bool {
 	return c.GRPC != "" && c.Interval > 0
 }
+
+func (c *CheckType) Type() string {
+	switch {
+	case c.IsGRPC():
+		return "grpc"
+	case c.IsHTTP():
+		return "http"
+	case c.IsTTL():
+		return "ttl"
+	case c.IsTCP():
+		return "tcp"
+	case c.IsAlias():
+		return "alias"
+	case c.IsDocker():
+		return "docker"
+	case c.IsScript():
+		return "script"
+	default:
+		return ""
+	}
+}

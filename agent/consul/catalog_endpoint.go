@@ -127,6 +127,13 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			check.Node = args.Node
 		}
 		checkPreApply(check)
+
+		// Populate check type for cases when a check is registered in the catalog directly
+		// and not via anti-entropy
+		if check.Type == "" {
+			chkType := check.CheckType()
+			check.Type = chkType.Type()
+		}
 	}
 
 	// Check the complete register request against the given ACL policy.
