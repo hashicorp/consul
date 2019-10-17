@@ -23,6 +23,13 @@ func TestDebug(t *testing.T) {
 	if x := f.String(); !strings.Contains(x, debug+"debug") {
 		t.Errorf("Expected debug log to be %s, got %s", debug+"debug", x)
 	}
+	f.Reset()
+
+	D.Clear()
+	Debug("debug")
+	if x := f.String(); x != "" {
+		t.Errorf("Expected no debug logs, got %s", x)
+	}
 }
 
 func TestDebugx(t *testing.T) {

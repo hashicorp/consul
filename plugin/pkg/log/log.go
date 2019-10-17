@@ -1,7 +1,7 @@
-// Package log implements a small wrapper around the std lib log package.
-// It implements log levels by prefixing the logs with the current time
-// with in RFC3339Milli and [INFO], [DEBUG], [WARNING] or [ERROR].
-// Debug logging is available and enabled if the *debug* plugin is used.
+// Package log implements a small wrapper around the std lib log package. It
+// implements log levels by prefixing the logs with [INFO], [DEBUG], [WARNING]
+// or [ERROR]. Debug logging is available and enabled if the *debug* plugin is
+// used.
 //
 // log.Info("this is some logging"), will log on the Info level.
 //
@@ -25,14 +25,21 @@ type d struct {
 	sync.RWMutex
 }
 
-// Set sets d to true.
+// Set enables debug logging.
 func (d *d) Set() {
 	d.Lock()
 	d.on = true
 	d.Unlock()
 }
 
-// Value return the boolean value of d.
+// Clear disables debug logging.
+func (d *d) Clear() {
+	d.Lock()
+	d.on = false
+	d.Unlock()
+}
+
+// Value returns if debug logging is enabled.
 func (d *d) Value() bool {
 	d.RLock()
 	b := d.on
