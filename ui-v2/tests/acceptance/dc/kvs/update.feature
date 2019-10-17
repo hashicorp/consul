@@ -20,7 +20,7 @@ Feature: dc / kvs / update: KV Update
       value: [Value]
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/[EncodedName]?dc=datacenter" with the body "[Value]"
+    Then a PUT request is made to "/v1/kv/[EncodedName]?dc=datacenter&ns=default" with the body "[Value]"
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Where:
@@ -50,7 +50,7 @@ Feature: dc / kvs / update: KV Update
       value: '   '
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/key?dc=datacenter" with the body "   "
+    Then a PUT request is made to "/v1/kv/key?dc=datacenter&ns=default" with the body "   "
     Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
@@ -72,7 +72,7 @@ Feature: dc / kvs / update: KV Update
       value: ''
     ---
     And I submit
-    Then a PUT request is made to "/v1/kv/key?dc=datacenter" with no body
+    Then a PUT request is made to "/v1/kv/key?dc=datacenter&ns=default" with no body
     Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
@@ -89,7 +89,7 @@ Feature: dc / kvs / update: KV Update
     ---
     Then the url should be /datacenter/kv/key/edit
     And I submit
-    Then a PUT request is made to "/v1/kv/key?dc=datacenter" with no body
+    Then a PUT request is made to "/v1/kv/key?dc=datacenter&ns=default" with no body
     Then the url should be /datacenter/kv
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class

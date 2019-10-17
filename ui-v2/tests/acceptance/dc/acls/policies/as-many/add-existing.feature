@@ -27,7 +27,7 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
     And I click ".ember-power-select-option:nth-child(1)"
     And I see 2 policy models on the policies component
     And I submit
-    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Policies:
       - ID: policy-1

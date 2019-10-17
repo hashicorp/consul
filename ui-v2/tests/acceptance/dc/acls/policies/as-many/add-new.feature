@@ -29,7 +29,7 @@ Feature: dc / acls / policies / as many / add new: Add new policy
       Rules: key {}
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Policies:
         - Name: New-Policy
@@ -53,7 +53,7 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     And I click serviceIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
-    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter&ns=default" with the body from yaml
     ---
       ServiceIdentities:
         - ServiceName: New-Service-Identity
