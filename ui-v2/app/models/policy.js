@@ -21,6 +21,7 @@ const model = Model.extend({
   CreateTime: attr('date'),
   //
   Datacenter: attr('string'),
+  Namespace: attr('string'),
   Datacenters: attr(),
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),

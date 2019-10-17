@@ -1,11 +1,13 @@
 import Serializer from './http';
 
 import { set } from '@ember/object';
+import config from 'consul-ui/config/environment';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
 } from 'consul-ui/utils/http/consul';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
 
 const map = function(obj, cb) {
@@ -26,7 +28,12 @@ const attachHeaders = function(headers, body) {
 };
 
 export default Serializer.extend({
-  fingerprint: createFingerprinter(DATACENTER_KEY),
+  attachHeaders: attachHeaders,
+  fingerprint: createFingerprinter(
+    DATACENTER_KEY,
+    NSPACE_KEY,
+    config.CONSUL_NSPACES_UNDEFINED_NAME
+  ),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
       attachHeaders(headers, map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)))
@@ -54,6 +61,10 @@ export default Serializer.extend({
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
       // If updates are true use the info we already have
+      // TODO: We may aswell avoid re-fingerprinting here if we are just
+      // going to reuse data then its already fingerprinted and as the response
+      // is true we don't have anything changed so the old fingerprint stays the same
+      // as long as nothing in the fingerprint has been edited (the namespace?)
       if (body === true) {
         body = data;
       }
