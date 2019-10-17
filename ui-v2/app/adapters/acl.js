@@ -2,6 +2,8 @@ import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './applica
 import { SLUG_KEY } from 'consul-ui/models/acl';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
+// The old ACL system doesn't support the `ns=` query param
+// TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
   requestForQuery: function(request, { dc, index }) {
     // https://www.consul.io/api/acl.html#list-acls
