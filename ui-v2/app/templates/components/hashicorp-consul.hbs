@@ -9,18 +9,59 @@
                 <span>Close</span>
             </label>
             <nav>
-{{#if dc }}
+{{#if dc}}
                 <ul>
-                    <li class={{if isDropdownVisible 'is-active'}}>
-    {{#if (gt dcs.length 0) }}
-                        <a data-test-datacenter-selected="{{dc.Name}}" {{action 'dropdown'}}>{{dc.Name}}</a>
+                    <li>
+  {{#if (eq dcs.length 1) }}
+                        <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
+  {{ else }}
+                        {{#toggle-button data-test-toggle-button="datacenters"}}
+                          {{dc.Name}}
+                        {{/toggle-button}}
+                        <div>
+                          <ul>
+                            {{#each dcs as |item|}}
+                              <li data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>
+                                <a href={{href-to 'dc.services' item.Name}}>{{item.Name}}</a>
+                              </li>
+                            {{/each}}
+                          </ul>
+                        </div>
+  {{/if}}
+                    </li>
+  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+                    <li>
+    {{#if (and false (eq nspaces.length 1)) }}
+                        <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
-                        <a href={{href-to 'dc.services' dc.Name }} data-test-datacenter-selected="{{dc.Name}}">{{dc.Name}}</a>
-    {{/if}}
-    {{#if isDropdownVisible}}
-                        {{datacenter-picker items=dcs selected=dc onchange=(action 'dropdown') onblur=(action 'dropdown')}}
+                        {{#toggle-button data-test-toggle-button="nspaces"}}
+                          {{nspace.Name}}
+                        {{/toggle-button}}
+                        <div>
+      {{#if (is-href 'dc.nspaces')}}
+                          <div>
+                            <p>
+														  Namespaces themselves are not namespaced, so switching will not change the current view.
+                            </p>
+                          </div>
+      {{/if}}
+                          <ul>
+                            {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
+                              <li class={{if (eq nspace.Name item.Name) 'is-active'}}>
+                                  <a href={{href-to 'nspace.dc.services' (concat '~' item.Name) dc.Name}}>{{item.Name}}</a>
+                              </li>
+                            {{/each}}
+      {{!FIXME only show this if I'm allowed to see it }}
+      {{#if true }}
+                            <li data-test-main-nav-nspaces>
+                                <a href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
+                            </li>
+      {{/if}}
+                          </ul>
+                        </div>
     {{/if}}
                     </li>
+  {{/if}}
                     <li data-test-main-nav-services class={{if (is-href 'dc.services' dc.Name) 'is-active'}}>
                         <a href={{href-to 'dc.services' dc.Name}}>Services</a>
                     </li>
