@@ -21,13 +21,13 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
   Where:
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    | Edit     | Listing     | Method | URL                                                                       | Data                                                                 | Slug                                            |
-    # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                   | {"Name": "something", "ID": "something"}                             | acl: something                                  |
-    | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter                                             | ["key-name"]                                                         | kv: key-name                                    |
-    | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
-    | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter          | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    | Edit     | Listing     | Method | URL                                                                         | Data                                                                 | Slug                                            |
+    # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                    | {"Name": "something", "ID": "something"}                             | acl: something                                  |
+    | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter&ns=default                                    | ["key-name"]                                                         | kv: key-name                                    |
+    | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter   | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
+    | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=default | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
     When I visit the [Model] page for yaml
     ---
@@ -50,13 +50,13 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "error" class
   Where:
-    ----------------------------------------------------------------------------------------------------------------------------------------------------
-    | Model     | Method | URL                                                                       | Slug                                            |
-    # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                   | acl: something                                  |
-    | kv        | DELETE | /v1/kv/key-name?dc=datacenter                                             | kv: key-name                                    |
-    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
-    | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter          | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    ----------------------------------------------------------------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------------------------------------------------------------------
+    | Model     | Method | URL                                                                          | Slug                                            |
+    # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                      | acl: something                                  |
+      | kv        | DELETE | /v1/kv/key-name?dc=datacenter&ns=default                                   | kv: key-name                                    |
+    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter    | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
+    | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=default  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
+    -------------------------------------------------------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Sort out the wide tables ^
     Then ok

@@ -22,7 +22,7 @@ Feature: dc / acls / policies / as many / remove: Remove
     And I click confirmDelete on the policies.selectedOptions
     And I see 0 policy models on the policies component
     And I submit
-    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/[Model]/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Policies: [[]]
     ---

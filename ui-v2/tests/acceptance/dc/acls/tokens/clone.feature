@@ -14,7 +14,7 @@ Feature: dc / acls / tokens / clone: Cloning an ACL token
     ---
     And I click actions on the tokens
     And I click clone on the tokens
-    Then a PUT request is made to "/v1/acl/token/token/clone?dc=datacenter"
+    Then a PUT request is made to "/v1/acl/token/token/clone?dc=datacenter&ns=default"
     Then "[data-notification]" has the "notification-clone" class
     And "[data-notification]" has the "success" class
   Scenario: Using an ACL token from the detail page
