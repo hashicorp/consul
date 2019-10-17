@@ -2269,6 +2269,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
 			ServiceTags: service.Tags,
+			Type:        chkType.Type(),
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
@@ -3614,6 +3615,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason, token string) error 
 		ServiceID:   service.ID,
 		ServiceName: service.Service,
 		Status:      api.HealthCritical,
+		Type:        "maintenance",
 	}
 	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
 	a.logger.Printf("[INFO] agent: Service %q entered maintenance mode", serviceID)
@@ -3660,6 +3662,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 		Name:    "Node Maintenance Mode",
 		Notes:   reason,
 		Status:  api.HealthCritical,
+		Type:    "maintenance",
 	}
 	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
 	a.logger.Printf("[INFO] agent: Node entered maintenance mode")
