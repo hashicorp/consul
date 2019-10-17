@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 
 import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 
@@ -12,8 +12,9 @@ export default Route.extend(WithAclActions, {
     this.repo.invalidate();
   },
   model: function(params) {
-    this.item = this.repo.create();
-    set(this.item, 'Datacenter', this.modelFor('dc').dc.Name);
+    this.item = this.repo.create({
+      Datacenter: this.modelFor('dc').dc.Name,
+    });
     return hash({
       create: true,
       isLoading: false,

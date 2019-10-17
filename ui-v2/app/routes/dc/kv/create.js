@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
+import { get } from '@ember/object';
 import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
 export default Route.extend(WithKvActions, {
@@ -12,15 +12,17 @@ export default Route.extend(WithKvActions, {
   },
   model: function(params) {
     const key = params.key || '/';
-    const repo = this.repo;
     const dc = this.modelFor('dc').dc.Name;
-    this.item = repo.create();
-    set(this.item, 'Datacenter', dc);
+    const nspace = this.modelFor('nspace').nspace.substr(1);
+    this.item = this.repo.create({
+      Datacenter: dc,
+      Namespace: nspace,
+    });
     return hash({
       create: true,
       isLoading: false,
       item: this.item,
-      parent: repo.findBySlug(key, dc),
+      parent: this.repo.findBySlug(key, dc, nspace),
     });
   },
   setupController: function(controller, model) {

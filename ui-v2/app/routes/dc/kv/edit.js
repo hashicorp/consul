@@ -12,11 +12,11 @@ export default Route.extend(WithKvActions, {
   model: function(params) {
     const key = params.key;
     const dc = this.modelFor('dc').dc.Name;
-    const repo = this.repo;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
       isLoading: false,
-      parent: repo.findBySlug(ascend(key, 1) || '/', dc),
-      item: repo.findBySlug(key, dc),
+      parent: this.repo.findBySlug(ascend(key, 1) || '/', dc, nspace),
+      item: this.repo.findBySlug(key, dc, nspace),
       session: null,
     }).then(model => {
       // TODO: Consider loading this after initial page load
@@ -25,7 +25,7 @@ export default Route.extend(WithKvActions, {
         return hash({
           ...model,
           ...{
-            session: this.sessionRepo.findByKey(session, dc),
+            session: this.sessionRepo.findByKey(session, dc, nspace),
           },
         });
       }
