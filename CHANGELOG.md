@@ -1,6 +1,7 @@
 ## UNRELEASED
 
 FEATURES
+* agent: store check type in catalog [[GH-6561](https://github.com/hashicorp/consul/pull/6561)]
 * agent: update force-leave to allow for complete removal of members [[GH-6571](https://github.com/hashicorp/consul/issues/6571)]
 * agent: updates to the agent token trigger anti-entropy full syncs [[GH-6577](https://github.com/hashicorp/consul/issues/6577)]
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Google Cloud Storage.
