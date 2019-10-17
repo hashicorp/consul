@@ -1,29 +1,42 @@
-import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
+import Adapter from './application';
 import { inject as service } from '@ember/service';
+
 import { SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
+// TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
   store: service('store'),
 
-  requestForQuery: function(request, { dc, index, role, policy }) {
+  requestForQuery: function(request, { dc, ns, index, role, policy }) {
     return request`
       GET /v1/acl/tokens?${{ role, policy, dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
-  requestForQueryRecord: function(request, { dc, index, id }) {
+  requestForQueryRecord: function(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
       GET /v1/acl/token/${id}?${{ dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
   requestForCreateRecord: function(request, serialized, data) {
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
       PUT /v1/acl/token?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
@@ -44,14 +57,19 @@ export default Adapter.extend({
     // If a token has Rules, use the old API
     if (typeof data['Rules'] !== 'undefined') {
       // https://www.consul.io/api/acl/legacy.html#update-acl-token
+      // as we are using the old API we don't need to specify a nspace
       return request`
-        PUT /v1/acl/update?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+        PUT /v1/acl/update?${this.formatDatacenter(data[DATACENTER_KEY])}
 
         ${serialized}
       `;
     }
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
-      PUT /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/token/${data[SLUG_KEY]}?${params}
 
       ${{
         Description: serialized.Description,
@@ -63,8 +81,12 @@ export default Adapter.extend({
     `;
   },
   requestForDeleteRecord: function(request, serialized, data) {
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
-      DELETE /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      DELETE /v1/acl/token/${data[SLUG_KEY]}?${params}
     `;
   },
   requestForSelf: function(request, serialized, { dc, index, secret }) {
@@ -77,15 +99,18 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForCloneRecord: function(request, serialized, unserialized) {
+  requestForCloneRecord: function(request, serialized, data) {
     // this uses snapshots
-    const id = unserialized[SLUG_KEY];
-    const dc = unserialized[DATACENTER_KEY];
+    const id = data[SLUG_KEY];
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
-      PUT /v1/acl/token/${id}/clone?${{ [API_DATACENTER_KEY]: dc }}
+      PUT /v1/acl/token/${id}/clone?${params}
     `;
   },
   // TODO: self doesn't get passed a snapshot right now
@@ -94,11 +119,11 @@ export default Adapter.extend({
   // plus we can't create Snapshots as they are private, see services/store.js
   self: function(store, type, id, unserialized) {
     return this.request(
-      function(adapter, request, serialized, unserialized) {
-        return adapter.requestForSelf(request, serialized, unserialized);
+      function(adapter, request, serialized, data) {
+        return adapter.requestForSelf(request, serialized, data);
       },
-      function(serializer, respond, serialized, unserialized) {
-        return serializer.respondForQueryRecord(respond, serialized, unserialized);
+      function(serializer, respond, serialized, data) {
+        return serializer.respondForQueryRecord(respond, serialized, data);
       },
       unserialized,
       type.modelName
@@ -106,16 +131,18 @@ export default Adapter.extend({
   },
   clone: function(store, type, id, snapshot) {
     return this.request(
-      function(adapter, request, serialized, unserialized) {
-        return adapter.requestForCloneRecord(request, serialized, unserialized);
+      function(adapter, request, serialized, data) {
+        return adapter.requestForCloneRecord(request, serialized, data);
       },
-      function(serializer, respond, serialized, unserialized) {
+      (serializer, respond, serialized, data) => {
         // here we just have to pass through the dc (like when querying)
-        // eventually the id is created with this dc value and the id talen from the
+        // eventually the id is created with this dc value and the id taken from the
         // json response of `acls/token/*/clone`
-        return serializer.respondForQueryRecord(respond, {
-          [API_DATACENTER_KEY]: unserialized[SLUG_KEY],
-        });
+        const params = {
+          ...this.formatDatacenter(data[DATACENTER_KEY]),
+          ...this.formatNspace(data[NSPACE_KEY]),
+        };
+        return serializer.respondForQueryRecord(respond, params);
       },
       snapshot,
       type.modelName

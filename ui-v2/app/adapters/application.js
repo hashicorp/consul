@@ -1,10 +1,23 @@
 import Adapter from './http';
 import { inject as service } from '@ember/service';
+import config from 'consul-ui/config/environment';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
+export const NSPACE_QUERY_PARAM = 'ns';
 export default Adapter.extend({
   repo: service('settings'),
+  nspaceRepo: service('repository/nspace/enabled'),
   client: service('client/http'),
+  formatNspace: function(nspace) {
+    if (config.CONSUL_NSPACES_ENABLED) {
+      return nspace !== '' ? { [NSPACE_QUERY_PARAM]: nspace } : undefined;
+    }
+  },
+  formatDatacenter: function(dc) {
+    return {
+      [DATACENTER_QUERY_PARAM]: dc,
+    };
+  },
   // TODO: kinda protected for the moment
   // decide where this should go either read/write from http
   // should somehow use this or vice versa
