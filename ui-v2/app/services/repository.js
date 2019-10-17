@@ -13,18 +13,20 @@ export default Service.extend({
   },
   //
   store: service('store'),
-  findAllByDatacenter: function(dc, configuration = {}) {
+  findAllByDatacenter: function(dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
+      ns: nspace,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
     return this.store.query(this.getModelName(), query);
   },
-  findBySlug: function(slug, dc, configuration = {}) {
+  findBySlug: function(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
+      ns: nspace,
       id: slug,
     };
     if (typeof configuration.cursor !== 'undefined') {
@@ -44,6 +46,9 @@ export default Service.extend({
     if (typeof obj.destroyRecord === 'undefined') {
       item = obj.get('data');
     }
+    // TODO: Change this to use vanilla JS
+    // I think this was originally looking for a plain object
+    // as opposed to an ember one
     if (typeOf(item) === 'object') {
       item = this.store.peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
     }
@@ -52,6 +57,7 @@ export default Service.extend({
     });
   },
   invalidate: function() {
+    // TODO: This should probably return a Promise
     this.store.unloadAll(this.getModelName());
   },
 });
