@@ -3,6 +3,42 @@
 /* most probably a centralized module */
 @import '../icons/index';
 @import './loader';
-@import './main-header';
-@import './header-nav';
+@import './main-header-horizontal';
+@import '../main-nav-horizontal/index';
 @import './footer';
+[role='banner'] {
+  @extend %main-header-horizontal;
+}
+%main-header-horizontal > div {
+  @extend %main-nav-horizontal-panel;
+}
+%main-header-horizontal label[for='main-nav-toggle'] {
+  @extend %main-nav-horizontal-toggle-button;
+}
+%main-header-horizontal > input {
+  @extend %main-nav-horizontal-toggle;
+}
+%main-header-horizontal nav:first-of-type {
+  @extend %primary-nav;
+}
+%main-header-horizontal nav:last-of-type {
+  @extend %secondary-nav;
+}
+%primary-nav,
+%secondary-nav {
+  @extend %main-nav-horizontal;
+}
+%primary-nav label + div {
+  @extend %main-nav-horizontal-drop-nav;
+}
+@media #{$--lt-horizontal-nav} {
+  %primary-nav {
+    margin-top: 45px;
+  }
+  %secondary-nav li:first-child {
+    display: none;
+  }
+  %primary-nav > ul > li.is-active > a {
+    font-weight: $typo-weight-bold;
+  }
+}

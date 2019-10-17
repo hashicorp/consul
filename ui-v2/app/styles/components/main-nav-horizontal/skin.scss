@@ -1,0 +1,69 @@
+%main-nav-horizontal-drop-nav .is-active a::after {
+  @extend %with-inverted-tick;
+}
+%main-nav-horizontal-toggle-button::before,
+%main-nav-horizontal-toggle-button::after,
+%main-nav-horizontal-toggle-button span::before {
+  @extend %with-dot;
+}
+
+%main-nav-horizontal-action {
+  border-radius: $decor-radius-200;
+}
+%main-nav-horizontal-action {
+  cursor: default;
+}
+%main-nav-horizontal-action:not(span) {
+  cursor: pointer;
+}
+%main-nav-horizontal-action,
+%main-nav-horizontal-action-intent,
+%main-nav-horizontal-action-active {
+  color: $white;
+}
+%main-nav-horizontal-toggle,
+%main-nav-horizontal input {
+  display: none;
+}
+%main-nav-horizontal-toggle-button span {
+  visibility: hidden;
+}
+%main-nav-horizontal-drop-nav {
+  border: $decor-border-100;
+  box-shadow: 0 2px 7px 0 rgba(0, 0, 0, 0.21);
+}
+%main-nav-horizontal-drop-nav li {
+  border-bottom: $decor-border-100;
+}
+%main-nav-horizontal-drop-nav div + ul {
+  border-top: $decor-border-100;
+}
+%main-nav-horizontal-drop-nav div + ul,
+%main-nav-horizontal-drop-nav li {
+  border-color: $gray-300;
+}
+%main-nav-horizontal-drop-nav {
+  border-color: $gray-300;
+  background-color: $white;
+}
+%main-nav-horizontal-drop-nav div::before {
+  @extend %with-info-circle-fill-color-icon, %as-pseudo;
+}
+%main-nav-horizontal-drop-nav a {
+  color: $gray-900 !important;
+}
+%main-nav-horizontal-drop-nav a:hover,
+%main-nav-horizontal-drop-nav a:focus,
+%main-nav-horizontal-drop-nav a:active,
+%main-nav-horizontal-drop-nav a.selected {
+  background-color: $gray-050;
+}
+
+@media #{$--lt-horizontal-nav} {
+  %main-nav-horizontal-toggle-button {
+    cursor: pointer;
+  }
+  %main-nav-horizontal-toggle:checked + label {
+    background-color: rgba($black, 0.4);
+  }
+}

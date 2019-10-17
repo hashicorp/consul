@@ -1,0 +1,21 @@
+%main-header-horizontal {
+  display: flex;
+}
+%main-header-horizontal {
+  align-items: center;
+  height: 48px;
+}
+%main-header-horizontal::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  width: 100vw;
+  height: 48px;
+}
+%main-header-horizontal > a {
+  display: block;
+  margin-right: 12px;
+  line-height: 0;
+  font-size: 0;
+}
