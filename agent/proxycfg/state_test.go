@@ -290,6 +290,16 @@ func genVerifyServiceWatch(expectedService, expectedFilter, expectedDatacenter s
 func TestState_WatchesAndUpdates(t *testing.T) {
 	t.Parallel()
 
+	indexedRoots, issuedCert := TestCerts(t)
+
+	rootWatchEvent := func() cache.UpdateEvent {
+		return cache.UpdateEvent{
+			CorrelationID: rootsWatchID,
+			Result:        indexedRoots,
+			Err:           nil,
+		}
+	}
+
 	type verificationStage struct {
 		requiredWatches map[string]verifyWatchRequest
 		events          []cache.UpdateEvent
@@ -417,6 +427,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				}),
 			},
 			events: []cache.UpdateEvent{
+				rootWatchEvent(),
+				cache.UpdateEvent{
+					CorrelationID: leafWatchID,
+					Result:        issuedCert,
+					Err:           nil,
+				},
 				cache.UpdateEvent{
 					CorrelationID: "discovery-chain:api",
 					Result: &structs.DiscoveryChainResponse{
@@ -477,6 +493,21 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Err: nil,
 				},
 			},
+			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+				require.True(t, snap.Valid())
+				require.True(t, snap.MeshGateway.IsEmpty())
+				require.Equal(t, indexedRoots, snap.Roots)
+
+				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+				require.Len(t, snap.ConnectProxy.DiscoveryChain, 5, "%+v", snap.ConnectProxy.DiscoveryChain)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 5, "%+v", snap.ConnectProxy.WatchedUpstreams)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 5, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.WatchedGateways, 5, "%+v", snap.ConnectProxy.WatchedGateways)
+				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 5, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+
+				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Len(t, snap.ConnectProxy.UpstreamEndpoints, 0, "%+v", snap.ConnectProxy.UpstreamEndpoints)
+			},
 		}
 
 		stage1 := verificationStage{
@@ -487,6 +518,21 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"upstream-target:api-failover-direct.default.dc2:api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
 				"mesh-gateway:dc2:api-failover-remote?dc=dc2":                                genVerifyGatewayWatch("dc2"),
 				"mesh-gateway:dc1:api-failover-local?dc=dc2":                                 genVerifyGatewayWatch("dc1"),
+			},
+			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+				require.True(t, snap.Valid())
+				require.True(t, snap.MeshGateway.IsEmpty())
+				require.Equal(t, indexedRoots, snap.Roots)
+
+				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+				require.Len(t, snap.ConnectProxy.DiscoveryChain, 5, "%+v", snap.ConnectProxy.DiscoveryChain)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 5, "%+v", snap.ConnectProxy.WatchedUpstreams)
+				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 5, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.WatchedGateways, 5, "%+v", snap.ConnectProxy.WatchedGateways)
+				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 5, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
+
+				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
+				require.Len(t, snap.ConnectProxy.UpstreamEndpoints, 0, "%+v", snap.ConnectProxy.UpstreamEndpoints)
 			},
 		}
 
@@ -517,6 +563,48 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID:       genVerifyRootsWatch("dc1"),
 						serviceListWatchID: genVerifyListServicesWatch("dc1"),
 						datacentersWatchID: verifyDatacentersWatch,
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "gateway without root is not valid")
+						require.True(t, snap.ConnectProxy.IsEmpty())
+					},
+				},
+				verificationStage{
+					events: []cache.UpdateEvent{
+						rootWatchEvent(),
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "gateway without services is valid")
+						require.True(t, snap.ConnectProxy.IsEmpty())
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Empty(t, snap.MeshGateway.WatchedServices)
+						require.False(t, snap.MeshGateway.WatchedServicesSet)
+						require.Empty(t, snap.MeshGateway.WatchedDatacenters)
+						require.Empty(t, snap.MeshGateway.ServiceGroups)
+						require.Empty(t, snap.MeshGateway.ServiceResolvers)
+						require.Empty(t, snap.MeshGateway.GatewayGroups)
+					},
+				},
+				verificationStage{
+					events: []cache.UpdateEvent{
+						cache.UpdateEvent{
+							CorrelationID: serviceListWatchID,
+							Result: &structs.IndexedServices{
+								Services: make(structs.Services),
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with empty service list is vaild")
+						require.True(t, snap.ConnectProxy.IsEmpty())
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Empty(t, snap.MeshGateway.WatchedServices)
+						require.True(t, snap.MeshGateway.WatchedServicesSet)
+						require.Empty(t, snap.MeshGateway.WatchedDatacenters)
+						require.Empty(t, snap.MeshGateway.ServiceGroups)
+						require.Empty(t, snap.MeshGateway.ServiceResolvers)
+						require.Empty(t, snap.MeshGateway.GatewayGroups)
 					},
 				},
 			},
