@@ -10,7 +10,7 @@ export const routes = {
   // Our parent datacenter resource sets the namespace
   // for the entire application
   dc: {
-    _options: { path: ':dc' },
+    _options: { path: '/:dc' },
     // Services represent a consul service
     services: {
       _options: { path: '/services' },
@@ -107,4 +107,19 @@ export const routes = {
     _options: { path: '/*path' },
   },
 };
+if (config.CONSUL_NSPACES_ENABLED) {
+  routes.dc.nspaces = {
+    _options: { path: '/namespaces' },
+    edit: {
+      _options: { path: '/:name' },
+    },
+    create: {
+      _options: { path: '/create' },
+    },
+  };
+  routes.nspace = {
+    _options: { path: '/:nspace' },
+    dc: routes.dc,
+  };
+}
 export default Router.map(walk(routes));
