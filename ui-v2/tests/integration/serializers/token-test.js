@@ -9,55 +9,63 @@ module('Integration | Serializer | token', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'token-name';
-  test('respondForQuery returns the correct data for list endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:token');
-    const request = {
-      url: `/v1/acl/tokens?dc=${dc}`,
-    };
-    return get(request.url).then(function(payload) {
-      const expected = payload.map(item =>
-        Object.assign({}, item, {
-          Datacenter: dc,
-          uid: `["${dc}","${item.AccessorID}"]`,
-          Policies: createPolicies(item),
-        })
-      );
-      const actual = serializer.respondForQuery(
-        function(cb) {
-          const headers = {};
-          const body = payload;
-          return cb(headers, body);
-        },
-        {
-          dc: dc,
-        }
-      );
-      assert.deepEqual(actual, expected);
-    });
-  });
-  test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
-    const serializer = this.owner.lookup('serializer:token');
-    const request = {
-      url: `/v1/acl/token/${id}?dc=${dc}`,
-    };
-    return get(request.url).then(function(payload) {
-      const expected = Object.assign({}, payload, {
-        Datacenter: dc,
-        [META]: {},
-        uid: `["${dc}","${id}"]`,
-        Policies: createPolicies(payload),
+  const undefinedNspace = 'default';
+  [undefinedNspace, 'team-1', undefined].forEach(nspace => {
+    test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+      const serializer = this.owner.lookup('serializer:token');
+      const request = {
+        url: `/v1/acl/tokens?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}`,
+      };
+      return get(request.url).then(function(payload) {
+        const expected = payload.map(item =>
+          Object.assign({}, item, {
+            Datacenter: dc,
+            Namespace: item.Namespace || undefinedNspace,
+            uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.AccessorID}"]`,
+            Policies: createPolicies(item),
+          })
+        );
+        const actual = serializer.respondForQuery(
+          function(cb) {
+            const headers = {};
+            const body = payload;
+            return cb(headers, body);
+          },
+          {
+            dc: dc,
+            ns: nspace,
+          }
+        );
+        assert.deepEqual(actual, expected);
       });
-      const actual = serializer.respondForQueryRecord(
-        function(cb) {
-          const headers = {};
-          const body = payload;
-          return cb(headers, body);
-        },
-        {
-          dc: dc,
-        }
-      );
-      assert.deepEqual(actual, expected);
+    });
+    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+      const serializer = this.owner.lookup('serializer:token');
+      const request = {
+        url: `/v1/acl/token/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}`,
+      };
+      return get(request.url).then(function(payload) {
+        const expected = Object.assign({}, payload, {
+          Datacenter: dc,
+          [META]: {},
+          Namespace: payload.Namespace || undefinedNspace,
+          uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
+          Policies: createPolicies(payload),
+        });
+        const actual = serializer.respondForQueryRecord(
+          function(cb) {
+            const headers = {};
+            const body = payload;
+            return cb(headers, body);
+          },
+          {
+            dc: dc,
+            ns: nspace,
+            id: id,
+          }
+        );
+        assert.deepEqual(actual, expected);
+      });
     });
   });
 });
