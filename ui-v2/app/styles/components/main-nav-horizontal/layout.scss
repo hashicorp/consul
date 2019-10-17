@@ -1,0 +1,134 @@
+%main-nav-horizontal [type='checkbox'] ~ div {
+  display: none;
+}
+%main-nav-horizontal [type='checkbox']:checked ~ div {
+  display: block;
+}
+
+%main-nav-horizontal-action {
+  display: block;
+  padding: 3px 12px;
+  white-space: nowrap;
+}
+%main-nav-horizontal-drop-nav {
+  display: block;
+  position: absolute;
+  z-index: 400;
+}
+%main-nav-horizontal-drop-nav div {
+  padding: 10px;
+  padding-left: 26px;
+  max-width: fit-content;
+}
+%main-nav-horizontal-drop-nav div::before {
+  position: absolute;
+  left: 5px;
+  top: calc(10px + 0.1em);
+}
+@supports not (max-width: fit-content) {
+  %main-nav-horizontal-drop-nav div {
+    max-width: 200px;
+  }
+}
+%main-nav-horizontal-drop-nav a {
+  text-align: left;
+  position: relative;
+  padding: 12px 25px;
+}
+%main-nav-horizontal-drop-nav .is-active a::after {
+  position: absolute;
+  top: 50%;
+  margin-top: -8px;
+  right: 10px;
+}
+%main-nav-horizontal-toggle-button::before,
+%main-nav-horizontal-toggle-button::after,
+%main-nav-horizontal-toggle-button span::before {
+  right: 10px;
+  left: auto !important;
+  top: 23px !important;
+}
+%main-nav-horizontal-toggle-button::before {
+  margin-top: -6px;
+}
+%main-nav-horizontal-toggle-button::after {
+  margin-top: 6px;
+}
+%main-nav-horizontal-toggle-button {
+  top: 0;
+  position: absolute;
+}
+@media #{$--lt-horizontal-nav} {
+  %main-nav-horizontal-panel label span {
+    visibility: visible !important;
+    display: inline-block;
+    padding-right: 47px;
+    padding-top: 13px;
+  }
+  %main-nav-horizontal-panel {
+    transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
+    transition-duration: 0.2s;
+    transition-property: width right;
+  }
+  %main-nav-horizontal-panel {
+    box-sizing: border-box;
+    padding: 15px 35px;
+    z-index: 499;
+    text-align: right;
+  }
+  %main-nav-horizontal-toggle-button {
+    position: absolute;
+    right: 0px;
+    width: 100px;
+    height: 40px;
+    z-index: 200;
+  }
+  %main-nav-horizontal-panel {
+    width: 0%;
+    overflow: auto;
+    height: 100%;
+    position: absolute;
+    top: 0px;
+    z-index: 300;
+    padding: 0;
+    padding-top: 15px;
+    right: -100%;
+  }
+  %main-nav-horizontal-toggle:checked ~ div {
+    width: 250px;
+    right: 0;
+    padding: 15px 35px;
+  }
+  %main-nav-horizontal-toggle:checked + label {
+    width: 100vw;
+    height: 100%;
+    left: 0;
+    top: 0;
+  }
+  %main-nav-horizontal-drop-nav {
+    width: 180px;
+  }
+  %main-nav-horizontal > ul > li > a {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    display: block;
+  }
+}
+@media #{$--horizontal-nav} {
+  %main-nav-horizontal-panel {
+    display: flex;
+  }
+  %main-nav-horizontal-panel {
+    justify-content: space-between;
+    flex-grow: 1;
+  }
+  %main-nav-horizontal-toggle-button {
+    display: none;
+  }
+  %main-nav-horizontal > ul {
+    display: flex;
+  }
+  %main-nav-horizontal-drop-nav {
+    min-width: 266px;
+  }
+}

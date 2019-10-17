@@ -18,7 +18,7 @@ h3,
 %filter-bar [role='radiogroup'] label {
   line-height: 1.7;
 }
-%header-nav,
+%main-nav-horizontal-action,
 %tab-nav {
   letter-spacing: 0.03em;
 }
@@ -32,14 +32,14 @@ h3,
 /* Weighting */
 h1,
 %app-content div > dt,
-%header-drop-nav .is-active {
+%main-nav-horizontal-drop-nav .is-active {
   font-weight: $typo-weight-bold;
 }
 h2,
 h3,
 fieldset > header,
 caption,
-%header-nav,
+%main-nav-horizontal-action,
 %healthcheck-output dt,
 %copy-button,
 %app-content div > dl > dt,
@@ -88,7 +88,7 @@ h2 {
 h3 {
   font-size: $typo-header-300;
 }
-%header-drop-nav .is-active,
+%main-nav-horizontal-drop-nav .is-active,
 %app-view h1 em {
   font-size: $typo-size-500;
 }
@@ -109,6 +109,7 @@ caption,
 %tooltip-bubble,
 %stats-card header a span,
 %footer,
+%main-nav-horizontal p,
 %app-view h1 span.kind-proxy {
   font-size: $typo-size-700;
 }
