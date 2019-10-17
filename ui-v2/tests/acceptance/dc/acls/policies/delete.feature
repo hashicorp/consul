@@ -14,10 +14,10 @@ Feature: dc / acls / policies / delete: Policy Delete
     And I click actions on the policies
     And I click delete on the policies
     And I click confirmDelete on the policies
-    Then a DELETE request is made to "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter"
+    Then a DELETE request is made to "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=default"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
-    Given the url "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter" responds with a 500 status
+    Given the url "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=default" responds with a 500 status
     And I click actions on the policies
     And I click delete on the policies
     And I click confirmDelete on the policies
@@ -31,7 +31,7 @@ Feature: dc / acls / policies / delete: Policy Delete
     ---
     And I click delete
     And I click confirmDelete on the deleteModal
-    Then a DELETE request is made to "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter"
+    Then a DELETE request is made to "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=default"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
     When I visit the policy page for yaml
@@ -39,7 +39,7 @@ Feature: dc / acls / policies / delete: Policy Delete
       dc: datacenter
       policy: 1981f51d-301a-497b-89a0-05112ef02b4b
     ---
-    Given the url "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter" responds with a 500 status
+    Given the url "/v1/acl/policy/1981f51d-301a-497b-89a0-05112ef02b4b?dc=datacenter&ns=default" responds with a 500 status
     And I click delete
     And I click confirmDelete on the deleteModal
     And "[data-notification]" has the "notification-delete" class

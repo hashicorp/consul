@@ -23,5 +23,5 @@ Feature: dc / services / error
       dc: dc-1
     ---
     Then I see the text "500 (The backend responded with an error)" in "[data-test-error]"
-    And I click "[data-test-datacenter-selected]"
+    And I click "[data-test-toggle-button='datacenters']"
     And I see 2 datacenter models

@@ -19,12 +19,12 @@ Feature: dc / kvs / sessions / invalidate: Invalidate Lock Sessions
   Scenario: Invalidating the lock session
     And I click delete on the session
     And I click confirmDelete on the session
-    Then the last PUT request was made to "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter"
+    Then the last PUT request was made to "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter&ns=default"
     Then the url should be /datacenter/kv/key/edit
     And "[data-notification]" has the "notification-deletesession" class
     And "[data-notification]" has the "success" class
   Scenario: Invalidating a lock session and receiving an error
-    Given the url "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter" responds with a 500 status
+    Given the url "/v1/session/destroy/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter&ns=default" responds with a 500 status
     And I click delete on the session
     And I click confirmDelete on the session
     Then the url should be /datacenter/kv/key/edit
