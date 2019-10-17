@@ -1,10 +1,12 @@
 import env from 'consul-ui/env';
+import config from 'consul-ui/config/environment';
 
 export function initialize(container) {
   if (env('CONSUL_UI_DISABLE_REALTIME')) {
     return;
   }
   ['node', 'coordinate', 'session', 'service', 'proxy']
+    .concat(config.CONSUL_NSPACES_ENABLED ? ['nspace/enabled'] : [])
     .map(function(item) {
       // create repositories that return a promise resolving to an EventSource
       return {
@@ -76,6 +78,18 @@ export function initialize(container) {
         },
       },
     ])
+    .concat(
+      config.CONSUL_NSPACES_ENABLED
+        ? [
+            {
+              route: 'dc/nspaces/index',
+              services: {
+                repo: 'repository/nspace/enabled/event-source',
+              },
+            },
+          ]
+        : []
+    )
     .forEach(function(definition) {
       if (typeof definition.extend !== 'undefined') {
         // Create the class instances that we need
@@ -90,6 +104,9 @@ export function initialize(container) {
         // but hardcode this for the moment
         if (typeof definition.route !== 'undefined') {
           container.inject(`route:${definition.route}`, name, `service:${servicePath}`);
+          if (config.CONSUL_NSPACES_ENABLED && definition.route.startsWith('dc/')) {
+            container.inject(`route:nspace/${definition.route}`, name, `service:${servicePath}`);
+          }
         } else {
           container.inject(`service:${definition.service}`, name, `service:${servicePath}`);
         }
