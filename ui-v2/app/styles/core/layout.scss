@@ -12,6 +12,9 @@ html.template-with-vertical-menu,
 html.template-with-vertical-menu body {
   overflow: hidden;
 }
+html:not(.has-nspaces) [class*='nspace-'] {
+  display: none;
+}
 #wrapper {
   @extend %viewport-container;
 }
