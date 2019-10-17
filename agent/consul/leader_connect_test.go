@@ -1202,44 +1202,127 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 
 func TestLeader_ParseCARoot(t *testing.T) {
 	type test struct {
-		pem           string
-		expectedError bool
+		name             string
+		pem              string
+		wantSerial       uint64
+		wantSigningKeyID string
+		wantKeyType      string
+		wantKeyBits      int
+		wantErr          bool
 	}
+	// Test certs generated with
+	//   go run connect/certgen/certgen.go -out-dir /tmp/connect-certs -key-type ec -key-bits 384
+	// for various key types. This does limit the exposure to formats that might
+	// exist in external certificates which can be used as Connect CAs.
+	// Specifically many other certs will have serial numbers that don't fit into
+	// 64 bits but for reasons we truncate down to 64 bits which means our
+	// `SerialNumber` will not match the one reported by openssl. We should
+	// probably fix that at some point as it seems like a big footgun but it would
+	// be a breaking API change to change the type to not be a JSON number and
+	// JSON numbers don't even support the full range of a uint64...
 	tests := []test{
-		{"", true},
-		{`-----BEGIN CERTIFICATE-----
-MIIDHDCCAsKgAwIBAgIQS+meruRVzrmVwEhXNrtk9jAKBggqhkjOPQQDAjCBuTEL
-MAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2Nv
-MRowGAYDVQQJExExMDEgU2Vjb25kIFN0cmVldDEOMAwGA1UEERMFOTQxMDUxFzAV
-BgNVBAoTDkhhc2hpQ29ycCBJbmMuMUAwPgYDVQQDEzdDb25zdWwgQWdlbnQgQ0Eg
-MTkzNzYxNzQwMjcxNzUxOTkyMzAyMzE1NDkxNjUzODYyMzAwNzE3MB4XDTE5MDQx
-MjA5MTg0NVoXDTIwMDQxMTA5MTg0NVowHDEaMBgGA1UEAxMRY2xpZW50LmRjMS5j
-b25zdWwwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS2UroGUh5k7eR//iPsn9ne
-CMCVsERnjqQnK6eDWnM5kTXgXcPPe5pcAS9xs0g8BZ+oVsJSc7sH6RYvX+gw6bCl
-o4IBRjCCAUIwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggr
-BgEFBQcDATAMBgNVHRMBAf8EAjAAMGgGA1UdDgRhBF84NDphNDplZjoxYTpjODo1
-MzoxMDo1YTpjNTplYTpjZTphYTowZDo2ZjpjOTozODozZDphZjo0NTphZTo5OTo4
-YzpiYjoyNzpiYzpiMzpmYTpmMDozMToxNDo4ZTozNDBqBgNVHSMEYzBhgF8yYTox
-MjpjYTo0Mzo0NzowODpiZjoxYTo0Yjo4MTpkNDo2MzowNTo1ODowZToxYzo3Zjoy
-NTo0ZjozNDpmNDozYjpmYzo5YTpkNzo4Mjo2YjpkYzpmODo3YjphMTo5ZDAtBgNV
-HREEJjAkghFjbGllbnQuZGMxLmNvbnN1bIIJbG9jYWxob3N0hwR/AAABMAoGCCqG
-SM49BAMCA0gAMEUCIHcLS74KSQ7RA+edwOprmkPTh1nolwXz9/y9CJ5nMVqEAiEA
-h1IHCbxWsUT3AiARwj5/D/CUppy6BHIFkvcpOCQoVyo=
------END CERTIFICATE-----`, false},
+		{"no cert", "", 0, "", "", 0, true},
+		{
+			name: "default cert",
+			// Watchout for indentations they will break PEM format
+			pem: `-----BEGIN CERTIFICATE-----
+MIIB3DCCAYKgAwIBAgIIc8ST19qlIDUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ
+VGVzdCBDQSAxMB4XDTE5MTAxNzExNDYyOVoXDTI5MTAxNzExNDYyOVowFDESMBAG
+A1UEAxMJVGVzdCBDQSAxMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAErA61DUlq
+qDnXAcHIHVJKBUtyDYoQmZB1T1H7NHTn4XezkF23RjL9Ha8DghMR/bwz7YhZ1Tv6
+UnYSq5r28P6b06OBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB
+/zApBgNVHQ4EIgQgl00XgWT4tK8F6Gx5xUA7Dj6LwK44UVSKLwXb4+jkJOwwKwYD
+VR0jBCQwIoAgl00XgWT4tK8F6Gx5xUA7Dj6LwK44UVSKLwXb4+jkJOwwPwYDVR0R
+BDgwNoY0c3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1
+NTU1LmNvbnN1bDAKBggqhkjOPQQDAgNIADBFAiEA/x2MeYU5vCk2hwP7zlrv7bx3
+9zx5YSbn04sgP6sNK30CIEPfjxDGy6K2dPDckATboYkZVQ4CJpPd6WrgwQaHpWC9
+-----END CERTIFICATE-----`,
+			// Based on `openssl x509 -noout -text` report from the cert
+			wantSerial:       8341954965092507701,
+			wantSigningKeyID: "97:4D:17:81:64:F8:B4:AF:05:E8:6C:79:C5:40:3B:0E:3E:8B:C0:AE:38:51:54:8A:2F:05:DB:E3:E8:E4:24:EC",
+			wantKeyType:      "ec",
+			wantKeyBits:      256,
+			wantErr:          false,
+		},
+		{
+			name: "ec 384 cert",
+			// Watchout for indentations they will break PEM format
+			pem: `-----BEGIN CERTIFICATE-----
+MIICGTCCAZ+gAwIBAgIIKLuaeLzq/R0wCgYIKoZIzj0EAwMwFDESMBAGA1UEAxMJ
+VGVzdCBDQSAxMB4XDTE5MTAxNzExNTUxOFoXDTI5MTAxNzExNTUxOFowFDESMBAG
+A1UEAxMJVGVzdCBDQSAxMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEFWtdx2o3c9qv
+ka8vxPO2Iv9NAbiwh3cl1a90miRzhQMP7s6wycXfl1xKE02PRxiLQtuukKwE6ohv
+Ha5h4kkqGB+YdOT+18JS+ixJwmmSZL5pkAh6SMEGby3wf5sap5F/o4G9MIG6MA4G
+A1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MCkGA1UdDgQiBCALoIib3JUx
+US491PlC0GqgYkaC0nwi5ympquiljM/HQjArBgNVHSMEJDAigCALoIib3JUxUS49
+1PlC0GqgYkaC0nwi5ympquiljM/HQjA/BgNVHREEODA2hjRzcGlmZmU6Ly8xMTEx
+MTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqGSM49
+BAMDA2gAMGUCMBT0orKHSATvulb6nRxVHq3OWOfmVgHu8VUCq9yuyAu1AAy/przY
+/U0ury3g8T4jhwIxAIoCqYwWSJMFb13DZAR3XY+aFssVP5+vzhlaulqtg+YqjpKP
+KzuCBpS3yUyAwWDphg==
+-----END CERTIFICATE-----`,
+			// Based on `openssl x509 -noout -text` report from the cert
+			wantSerial:       2935109425518279965,
+			wantSigningKeyID: "0B:A0:88:9B:DC:95:31:51:2E:3D:D4:F9:42:D0:6A:A0:62:46:82:D2:7C:22:E7:29:A9:AA:E8:A5:8C:CF:C7:42",
+			wantKeyType:      "ec",
+			wantKeyBits:      384,
+			wantErr:          false,
+		},
+		{
+			name: "rsa 4096 cert",
+			// Watchout for indentations they will break PEM format
+			pem: `-----BEGIN CERTIFICATE-----
+MIIFaDCCA1CgAwIBAgIIR/rYTE2KZtMwDQYJKoZIhvcNAQELBQAwFDESMBAGA1UE
+AxMJVGVzdCBDQSAxMB4XDTE5MTAxNzExNTMxNVoXDTI5MTAxNzExNTMxNVowFDES
+MBAGA1UEAxMJVGVzdCBDQSAxMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKC
+AgEAlIsTpCearMRx0fW2BKmGXHUYCf1ATALcRn31VQCuzszyt77RRbQn+v/XB+Q5
+Td+/o3ZkpKvCTAF31oZI0ihXEEq7o13pERGPZdD//jNvgePIoauzxjkWfEX5bQGx
+PxY3mGWakmiunQHm3ls8bm+ZYBfDM8rJTaKFBUCaNe6xi5znQ953+YELV0YHpSXm
+H0lP93/RVeua9094+YNadUfB1nOWvlayn/YX3oXPAwQsoT1DlqRlGFDAp3MPFNkC
+RvymdigxAf1HrsyZ+MlD99Htgx2YkmHRXidRW9OzMmVSTe5gT6AOCvC4Zd5udH2H
+bH+DUNuyJr2YC0VB7RBWbqCvpmxItLaDoSHLndRjP0wY9chMDqrKKRIzupeaYfVK
+isFdSwj39EnNQEfm7ZJT/8aRNtF8pVFYHO0fZ+2eObpteWyQj0iOJjHuRpUWI2LT
+ZMEPkj0N2I1tAvg1g/RYasXKwme+L7ejxzyYnC8kqDf4/C4tNaDURXP5fWn8aVsI
+Sp8gMZHxXD8e8FAMPuDQi4y0FZu9bY9mJ71OSqcR5u0DHKzaCfAwr+qheFxCCly0
+UnP7FAOSg96mRYAzgYGTFM5/HSmj0vvnsfAAebuiloE4IKfeBzp9kPuauEbcGbTa
+4bBbaoamqdEUT3bFqRXWCXCQ6kT1xos+YcfjBkpfmdOrrdUCAwEAAaOBvTCBujAO
+BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zApBgNVHQ4EIgQgkvrMl1ce
+MYSiM92baqh8/L7ilMqsszMXOTu4Z5vcwQgwKwYDVR0jBCQwIoAgkvrMl1ceMYSi
+M92baqh8/L7ilMqsszMXOTu4Z5vcwQgwPwYDVR0RBDgwNoY0c3BpZmZlOi8vMTEx
+MTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1NTU1LmNvbnN1bDANBgkqhkiG
+9w0BAQsFAAOCAgEAaGorq69i6S6RIsOXx6zou2gr2ez6siVFkxoJEXx8lZKS8UXs
+mmAxJXXKePv921zFeUB5jcdxIaBlxyEHiJGr9KUDYWnkAY0g8343JueY8epPOGpb
+u1QoTpCRSJBdOyakK3ZhYqRa28G0fP0eQQ+mF54X2YA4jtg7pb30wahQd9U0M2ey
+A6VLw4xdmqC7KOfJSvQcCZJPi5Wkqv/pf55WmS28zhxrwMC9U4vaKVRsGKJi/p/X
+WUmyPpOUM41nEylcpFvs/Xx8eKUSlWRaMTWYHUKTdaXKYL/1op2PhuyoYkH384aj
+P7RzLkC1fRC8MPXo9L1YSoK7vxL5K/zLkJFb3KopDzujGx1cZbgO8QREe16bVN4b
+gFLwIzW+VzywmtoSur5V9ythVfvRT1XesmsK/G2ySxWvipYIDYYJrwgKR5b0ikfz
+RPw2YW6oqaMmZ9Uehxym8RDWqyyFPg9S0C73MTK7FitIROLW88hWKSpDDhFck/32
+FVaRL8cC0KVlMCFByL/o6u0AsRNCOux1q3BJEdmAh7VI84+SPgztHFkptR4VnlHZ
+kKTj2Mj/OylHHwhe6AU9pbtAGM6DtcqSjmd4wrkRX8WJDd/F3RlYZ8WhOToOj9gP
+ra4mUhGz/OlDg6vN9TSeVlb5Ap7c38KoCmmt2n+F/KUpe6V4L1QA5yfz0S8=
+-----END CERTIFICATE-----`,
+			// Based on `openssl x509 -noout -text` report from the cert
+			wantSerial:       5186695743100577491,
+			wantSigningKeyID: "92:FA:CC:97:57:1E:31:84:A2:33:DD:9B:6A:A8:7C:FC:BE:E2:94:CA:AC:B3:33:17:39:3B:B8:67:9B:DC:C1:08",
+			wantKeyType:      "rsa",
+			wantKeyBits:      4096,
+			wantErr:          false,
+		},
 	}
-	for _, test := range tests {
-		root, err := parseCARoot(test.pem, "consul", "cluster")
-		if err == nil && test.expectedError {
-			require.Error(t, err)
-		}
-		if test.pem != "" {
-			rootCert, err := connect.ParseCert(test.pem)
-			require.NoError(t, err)
-
-			// just to make sure these two are not the same
-			require.NotEqual(t, rootCert.AuthorityKeyId, rootCert.SubjectKeyId)
-
-			require.Equal(t, connect.EncodeSigningKeyID(rootCert.SubjectKeyId), root.SigningKeyID)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require := require.New(t)
+			root, err := parseCARoot(tt.pem, "consul", "cluster")
+			if tt.wantErr {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
+			require.Equal(tt.wantSerial, root.SerialNumber)
+			require.Equal(strings.ToLower(tt.wantSigningKeyID), root.SigningKeyID)
+			require.Equal(tt.wantKeyType, root.PrivateKeyType)
+			require.Equal(tt.wantKeyBits, root.PrivateKeyBits)
+		})
 	}
 }

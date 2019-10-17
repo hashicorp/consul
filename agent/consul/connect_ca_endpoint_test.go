@@ -357,7 +357,7 @@ func TestConnectCASign(t *testing.T) {
 			require.NoError(err)
 
 			// Verify that the cert is signed by the CA
-			require.NoError(connect.ValidateLeaf([]string{ca.RootCert}, reply.CertPEM))
+			require.NoError(connect.ValidateLeaf(ca.RootCert, reply.CertPEM, nil))
 
 			// Verify other fields
 			assert.Equal("web", reply.Service)

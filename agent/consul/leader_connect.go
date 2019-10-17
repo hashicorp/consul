@@ -81,6 +81,10 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error parsing root cert: %v", err)
 	}
+	keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting root key info: %v", err)
+	}
 	return &structs.CARoot{
 		ID:                  id,
 		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
@@ -90,6 +94,8 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 		NotBefore:           rootCert.NotBefore,
 		NotAfter:            rootCert.NotAfter,
 		RootCert:            pemValue,
+		PrivateKeyType:      keyType,
+		PrivateKeyBits:      keyBits,
 		Active:              true,
 	}, nil
 }
@@ -223,13 +229,6 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	if err != nil {
 		return fmt.Errorf("error getting intermediate cert: %v", err)
 	}
-
-	commonConfig, err := conf.GetCommonConfig()
-	if err != nil {
-		return err
-	}
-	rootCA.PrivateKeyType = commonConfig.PrivateKeyType
-	rootCA.PrivateKeyBits = commonConfig.PrivateKeyBits
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly

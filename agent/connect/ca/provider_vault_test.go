@@ -84,6 +84,22 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	}
 }
 
+func assertCorrectKeyType(t *testing.T, want, certPEM string) {
+	t.Helper()
+
+	cert, err := connect.ParseCert(certPEM)
+	require.NoError(t, err)
+
+	switch want {
+	case "ec":
+		require.Equal(t, x509.ECDSA, cert.PublicKeyAlgorithm)
+	case "rsa":
+		require.Equal(t, x509.RSA, cert.PublicKeyAlgorithm)
+	default:
+		t.Fatal("test doesn't support key type")
+	}
+}
+
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
@@ -127,22 +143,11 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 			rootPEM, err := provider.ActiveRoot()
 			require.NoError(err)
+			assertCorrectKeyType(t, tt.keyType, rootPEM)
 
-			// Sanity check the CA is using the key type requested
-			root, err := connect.ParseCert(rootPEM)
-			require.NoError(err)
-			switch tt.keyType {
-			case "ec":
-				require.Equal(x509.ECDSA, root.PublicKeyAlgorithm)
-			case "rsa":
-				require.Equal(x509.RSA, root.PublicKeyAlgorithm)
-			default:
-				t.Fatal("test doesn't support key type")
-			}
 			intPEM, err := provider.ActiveIntermediate()
 			require.NoError(err)
-
-			CAPems := []string{rootPEM, intPEM}
+			assertCorrectKeyType(t, tt.keyType, intPEM)
 
 			// Generate a leaf cert for the service.
 			var firstSerial uint64
@@ -166,7 +171,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				require.True(parsed.NotBefore.Before(now))
 
 				// Make sure we can validate the cert as expected.
-				require.NoError(connect.ValidateLeaf(CAPems, cert))
+				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
 			}
 
 			// Generate a new cert for another service and make sure
@@ -191,7 +196,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 				require.True(parsed.NotBefore.Before(time.Now()))
 
 				// Make sure we can validate the cert as expected.
-				require.NoError(connect.ValidateLeaf(CAPems, cert))
+				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
 			}
 		})
 	}

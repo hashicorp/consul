@@ -121,7 +121,8 @@ func TestValidateBadConfigs(t *testing.T) {
 	}
 }
 
-// Tests the ability of a CA to sign a CSR using a different key type. If the key types differ, the test should fail.
+// Tests the ability of a CA to sign a CSR using a different key type. This is
+// allowed by TLS 1.2 and should succeed in all combinations.
 func TestSignatureMismatches(t *testing.T) {
 	t.Parallel()
 	r := require.New(t)

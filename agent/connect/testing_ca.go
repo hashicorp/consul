@@ -30,20 +30,28 @@ var testCACounter uint64
 // ValidateLeaf is a convenience helper that returns an error if the certificate
 // provided in leadPEM does not validate against the CAs provided. If there is
 // an intermediate CA then it's cert must be in caPEMs as well as the root.
-func ValidateLeaf(caPEMs []string, leafPEM string) error {
+func ValidateLeaf(caPEM string, leafPEM string, intermediatePEMs []string) error {
 	roots := x509.NewCertPool()
-	for idx, ca := range caPEMs {
-		ok := roots.AppendCertsFromPEM([]byte(ca))
+	ok := roots.AppendCertsFromPEM([]byte(caPEM))
+	if !ok {
+		return fmt.Errorf("Failed to add root CA")
+	}
+
+	intermediates := x509.NewCertPool()
+	for idx, ca := range intermediatePEMs {
+		ok := intermediates.AppendCertsFromPEM([]byte(ca))
 		if !ok {
-			return fmt.Errorf("Failed to add CA at index %d to pool", idx)
+			return fmt.Errorf("Failed to add intermediate CA at index %d to pool", idx)
 		}
 	}
+
 	leaf, err := ParseCert(leafPEM)
 	if err != nil {
 		return err
 	}
 	_, err = leaf.Verify(x509.VerifyOptions{
-		Roots: roots,
+		Roots:         roots,
+		Intermediates: intermediates,
 	})
 	return err
 }
@@ -57,8 +65,6 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	signer, keyPEM := testPrivateKey(t, keyType, keyBits)
 	result.SigningKey = keyPEM
 	result.SigningKeyID = EncodeSigningKeyID(testKeyID(t, signer.Public()))
-	result.PrivateKeyType = keyType
-	result.PrivateKeyBits = keyBits
 
 	// The serial number for the cert
 	sn, err := testSerialNumber()
@@ -196,7 +202,11 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 	}
 
 	sigAlgo := x509.ECDSAWithSHA256
-	if root.PrivateKeyType == "rsa" {
+	rootKeyType, _, err := KeyInfoFromCert(caCert)
+	if err != nil {
+		return "", "", fmt.Errorf("error getting CA key type: %s", err)
+	}
+	if rootKeyType == "rsa" {
 		sigAlgo = x509.SHA256WithRSA
 	}
 
@@ -351,8 +361,6 @@ func testCAConfigSet(t testing.T, a TestAgentRPC,
 			"PrivateKey":     ca.SigningKey,
 			"RootCert":       ca.RootCert,
 			"RotationPeriod": 180 * 24 * time.Hour,
-			"PrivateKeyType": ca.PrivateKeyType,
-			"PrivateKeyBits": ca.PrivateKeyBits,
 		},
 	}
 	args := &structs.CARequest{
