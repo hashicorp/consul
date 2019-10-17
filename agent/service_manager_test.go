@@ -50,9 +50,10 @@ func TestServiceManager_RegisterService(t *testing.T) {
 	redisService := a.State.Service("redis")
 	require.NotNil(redisService)
 	require.Equal(&structs.NodeService{
-		ID:      "redis",
-		Service: "redis",
-		Port:    8000,
+		ID:              "redis",
+		Service:         "redis",
+		Port:            8000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -114,10 +115,11 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 	sidecarService := a.State.Service("web-sidecar-proxy")
 	require.NotNil(sidecarService)
 	require.Equal(&structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -180,10 +182,11 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 	gateway := a.State.Service("mesh-gateway")
 	require.NotNil(gateway)
 	require.Equal(&structs.NodeService{
-		Kind:    structs.ServiceKindMeshGateway,
-		ID:      "mesh-gateway",
-		Service: "mesh-gateway",
-		Port:    443,
+		Kind:            structs.ServiceKindMeshGateway,
+		ID:              "mesh-gateway",
+		Service:         "mesh-gateway",
+		Port:            443,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			Config: map[string]interface{}{
 				"foo":      int64(1),
@@ -270,10 +273,11 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	}
 
 	expectState := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -478,10 +482,11 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	svcID := "web-sidecar-proxy"
 
 	expectState := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -627,10 +632,11 @@ func TestServiceManager_Disabled(t *testing.T) {
 	sidecarService := a.State.Service("web-sidecar-proxy")
 	require.NotNil(sidecarService)
 	require.Equal(&structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
+		Kind:            structs.ServiceKindConnectProxy,
+		ID:              "web-sidecar-proxy",
+		Service:         "web-sidecar-proxy",
+		Port:            21000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
