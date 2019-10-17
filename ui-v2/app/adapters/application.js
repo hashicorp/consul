@@ -6,6 +6,7 @@ export const DATACENTER_QUERY_PARAM = 'dc';
 export const NSPACE_QUERY_PARAM = 'ns';
 export default Adapter.extend({
   repo: service('settings'),
+  nspaceRepo: service('repository/nspace/enabled'),
   client: service('client/http'),
   formatNspace: function(nspace) {
     if (config.CONSUL_NSPACES_ENABLED) {
