@@ -2,12 +2,12 @@ package consul
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strings"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	bexpr "github.com/hashicorp/go-bexpr"
-	"golang.org/x/crypto/blake2b"
 )
 
 type ConsulGRPCAdapter struct {
@@ -128,11 +128,8 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 	// hash it to save space. This is only used to determine if an object has been
 	// removed and needs to be deleted from the client's cache so we make the tradeoff
 	// of using less memory here at the extremely small risk of a hash collision.
-	rawId := event.ID()
-	hash, err := blake2b.New256(nil)
-	if err != nil {
-		return err
-	}
+	rawId := event.ContentID()
+	hash := fnv.New32a()
 	hash.Write([]byte(rawId))
 	bytes := hash.Sum(nil)
 	idHash := string(bytes)

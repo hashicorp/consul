@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/go-memdb"
+	"golang.org/x/crypto/blake2b"
 )
 
 type EventPublisher struct {
@@ -132,7 +133,7 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 	switch event.Topic {
 	case stream.Topic_ACLTokens:
 		token := event.GetACLToken()
-		subscribers, ok := e.tokenSubs[token.Token.SecretID]
+		subscribers, ok := e.tokenSubs[secretHash(token.Token.SecretID)]
 
 		// If there are subscribers using the updated/deleted token, signal them
 		// to reload their connection.
@@ -149,7 +150,7 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 
 		// Loop through the tokens used by the policy.
 		for _, token := range tokens {
-			if subs, ok := e.tokenSubs[token.SecretID]; ok {
+			if subs, ok := e.tokenSubs[secretHash(token.SecretID)]; ok {
 				for sub, ch := range subs {
 					affectedSubs[sub] = ch
 				}
@@ -167,7 +168,7 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 				return err
 			}
 			for _, token := range tokens {
-				if subs, ok := e.tokenSubs[token.SecretID]; ok {
+				if subs, ok := e.tokenSubs[secretHash(token.SecretID)]; ok {
 					for sub, ch := range subs {
 						affectedSubs[sub] = ch
 					}
@@ -187,13 +188,23 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 
 		// Loop through the tokens used by the role and add the affected subscribers to the list.
 		for _, token := range tokens {
-			if subs, ok := e.tokenSubs[token.SecretID]; ok {
+			if subs, ok := e.tokenSubs[secretHash(token.SecretID)]; ok {
 				e.reloadSubscribers(subs)
 			}
 		}
 	}
 
 	return nil
+}
+
+// secretHash returns a 256-bit Blake2 hash of the given string.
+func secretHash(token string) string {
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+	hash.Write([]byte(token))
+	return string(hash.Sum(nil))
 }
 
 // reloadSubscribers sends a reload signal to all subscribers in the given map. This
@@ -240,10 +251,11 @@ func (e *EventPublisher) Subscribe(subscription *stream.SubscribeRequest) (<-cha
 	}
 
 	// Add the subscription to the ACL token map.
-	if subs, ok := e.tokenSubs[subscription.Token]; ok {
+	tokenHash := secretHash(subscription.Token)
+	if subs, ok := e.tokenSubs[tokenHash]; ok {
 		subs[subscription] = ch
 	} else {
-		e.tokenSubs[subscription.Token] = map[*stream.SubscribeRequest]chan stream.Event{
+		e.tokenSubs[tokenHash] = map[*stream.SubscribeRequest]chan stream.Event{
 			subscription: ch,
 		}
 	}
@@ -266,8 +278,9 @@ func (e *EventPublisher) unsubscribeLocked(subscription *stream.SubscribeRequest
 	}
 
 	// Clean up the token -> subscribers map.
-	delete(e.tokenSubs[subscription.Token], subscription)
-	if len(e.tokenSubs[subscription.Token]) == 0 {
-		delete(e.tokenSubs, subscription.Token)
+	tokenHash := secretHash(subscription.Token)
+	delete(e.tokenSubs[tokenHash], subscription)
+	if len(e.tokenSubs[tokenHash]) == 0 {
+		delete(e.tokenSubs, tokenHash)
 	}
 }

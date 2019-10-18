@@ -19,9 +19,10 @@ func (e *Event) FilterObject() interface{} {
 	}
 }
 
-// ID returns an identifier for the event based on the object referred to by
-// the payload.
-func (e *Event) ID() string {
+// ContentID returns an identifier for the event based on the object referred to by
+// the payload. For example, in events with the CheckServiceNode payload type, this
+// ID will be unique to the node/service combination of the event.
+func (e *Event) ContentID() string {
 	if e == nil || e.Payload == nil {
 		return ""
 	}
