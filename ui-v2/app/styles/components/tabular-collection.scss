@@ -95,6 +95,9 @@ html.template-token.template-list main table tr th {
 html.template-node.template-show main table.sessions tr {
   @extend %node-sessions-row;
 }
+html.template-instance.template-show main table.exposedpaths tr {
+  @extend %instance-paths-row;
+}
 // this will get auto calculated later in tabular-collection.js
 // keeping this here for reference
 // %services-row > * {
@@ -109,6 +112,15 @@ html.template-node.template-show main table.sessions tr {
 }
 %instances-row > * {
   width: calc(100% / 5);
+}
+%instance-paths-row > *:nth-child(1),
+%instance-paths-row > *:nth-child(5) {
+  width: calc(50% - 165px) !important;
+}
+%instance-paths-row > *:nth-child(2),
+%instance-paths-row > *:nth-child(3),
+%instance-paths-row > *:nth-child(4) {
+  width: 110px !important;
 }
 %tokens-row > *:first-child,
 %tokens-minimal-row > *:not(last-child),

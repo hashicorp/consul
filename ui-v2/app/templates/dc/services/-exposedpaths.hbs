@@ -1,5 +1,9 @@
+<p>
+	You can expose individual HTTP paths like /metrics through Envoy for external services like Prometheus.
+</p>
 {{#tabular-collection
     data-test-exposedpaths
+    class="exposedpaths"
     items=item.Proxy.Expose.Paths as |path index|
 }}
     {{#block-slot 'header'}}
@@ -7,11 +11,11 @@
       <th>Protocol</th>
       <th>Listener port</th>
       <th>Local path port</th>
-      <th>Combined address</th>
+      <th>Combined address<span><em role="tooltip">Service address, listener port, and path all combined into one URL.</em></span></th>
     {{/block-slot}}
     {{#block-slot 'row'}}
       <td>
-        <a>{{path.Path}}</a>
+        <span>{{path.Path}}</span>
       </td>
       <td>
         {{path.Protocol}}
