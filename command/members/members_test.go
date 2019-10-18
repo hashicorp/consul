@@ -120,3 +120,29 @@ func TestMembersCommand_statusFilter_failed(t *testing.T) {
 		t.Fatalf("bad: %d", code)
 	}
 }
+
+func TestMembersCommand_verticalBar(t *testing.T) {
+	t.Parallel()
+
+	nodeName := "name|with|bars"
+	a := agent.NewTestAgent(t, "", `node_name = "`+nodeName+`"`)
+	defer a.Shutdown()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+	}
+
+	code := c.Run(args)
+	if code == 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	// Check for nodeName presense because it should not be parsed by columnize
+	if !strings.Contains(ui.OutputWriter.String(), nodeName) {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
