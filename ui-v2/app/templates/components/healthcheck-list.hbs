@@ -27,13 +27,11 @@
         <dt>
           Exposed
           <span>
-            <em role="tooltip">
   {{#if (contains item.Type (array 'http' 'grpc'))}}
-              Even though expose.checks is set to true, this path is not HTTP or gRPC, so it is not exposed.
+            <em data-test-exposed="true" role="tooltip">Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent.</em>
   {{else}}
-              Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent.
+            <em data-test-exposed="false" role="tooltip">Even though expose.checks is set to true, this path is not HTTP or gRPC, so it is not exposed.</em>
   {{/if}}
-            </em>
           </span>
         </dt>
   {{#if (contains item.Type (array 'http' 'grpc'))}}
