@@ -862,10 +862,6 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 	if rawToken != nil {
 		token := rawToken.(*structs.ACLToken)
 
-		if !fixLinks {
-			return token, nil
-		}
-
 		token, err := s.fixupTokenPolicyLinks(tx, token)
 		if err != nil {
 			return nil, err
