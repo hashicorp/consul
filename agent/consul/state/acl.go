@@ -1009,10 +1009,6 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 }
 
 func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLToken, error) {
-	return s.aclTokenGetTxnFixupLinks(tx, ws, value, index, true)
-}
-
-func (s *Store) aclTokenGetTxnFixupLinks(tx *memdb.Txn, ws memdb.WatchSet, value, index string, fixLinks bool) (*structs.ACLToken, error) {
 	watchCh, rawToken, err := tx.FirstWatch("acl-tokens", index, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
@@ -1021,10 +1017,6 @@ func (s *Store) aclTokenGetTxnFixupLinks(tx *memdb.Txn, ws memdb.WatchSet, value
 
 	if rawToken != nil {
 		token := rawToken.(*structs.ACLToken)
-
-		if !fixLinks {
-			return token, nil
-		}
 
 		token, err := s.fixupTokenPolicyLinks(tx, token)
 		if err != nil {
