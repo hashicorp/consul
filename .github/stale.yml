@@ -33,7 +33,7 @@ unmarkComment: false
 closeComment: >
   Hey there,
   This issue has been automatically closed because there hasn't been any activity for at least 90 days. 
-  If you are still experiencing problems feel free to [open a new one](https://github.com/hashicorp/consul/issues/new), or if you have questions, visit our [community forum](https://discuss.hashicorp.com/c/consul) :+1:
+  If you are still experiencing problems, or still have questions, feel free to [open a new one](https://github.com/hashicorp/consul/issues/new) :+1:
 
 # Limit to only `issues`
 only: issues
