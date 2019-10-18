@@ -9,11 +9,12 @@ import (
 
 const grpcResolverScheme = "consul"
 
-var resolverBuilder *ServerResolverBuilder
+var grpcResolverBuilder *ServerResolverBuilder
 
+// Register our custom grpc resolver for the "consul://" scheme.
 func init() {
-	resolverBuilder = NewServerResolverBuilder()
-	resolver.Register(resolverBuilder)
+	grpcResolverBuilder = NewServerResolverBuilder()
+	resolver.Register(grpcResolverBuilder)
 }
 
 // ServerResolverBuilder tracks the current server list and keeps any
@@ -31,6 +32,8 @@ func NewServerResolverBuilder() *ServerResolverBuilder {
 	}
 }
 
+// Build returns a new ServerResolver for the given ClientConn. The resolver
+// will keep the ClientConn's state updated based on updates from Serf.
 func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -53,6 +56,7 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 
 func (s *ServerResolverBuilder) Scheme() string { return grpcResolverScheme }
 
+// AddServer updates the resolvers' states to include the new server's address.
 func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -64,6 +68,7 @@ func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 	}
 }
 
+// RemoveServer updates the resolvers' states with the given server removed.
 func (s *ServerResolverBuilder) RemoveServer(server *metadata.Server) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -89,11 +94,14 @@ func (s *ServerResolverBuilder) getAddrs() []resolver.Address {
 	return addrs
 }
 
+// ServerResolver is a grpc Resolver that will keep a grpc.ClientConn up to date
+// on the list of server addresses to use.
 type ServerResolver struct {
 	cc            resolver.ClientConn
 	closeCallback func()
 }
 
+// updateAddrs updates this ServerResolver's ClientConn to use the given set of addrs.
 func (r *ServerResolver) updateAddrs(addrs []resolver.Address) {
 	r.cc.NewAddress(addrs)
 }

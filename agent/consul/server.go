@@ -198,8 +198,8 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
-	// resolverBuilder is the gRPC resolver used for connection balancing.
-	resolverBuilder *ServerResolverBuilder
+	// grpcResolverBuilder is the gRPC resolver used for connection balancing.
+	grpcResolverBuilder *ServerResolverBuilder
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -363,10 +363,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		connPool:                connPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
+		grpcResolverBuilder:     grpcResolverBuilder,
 		logger:                  logger,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		resolverBuilder:         resolverBuilder,
 		router:                  router.NewRouter(logger, config.Datacenter),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),

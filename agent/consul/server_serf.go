@@ -221,7 +221,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 
 		// Update server lookup
 		s.serverLookup.AddServer(serverMeta)
-		s.resolverBuilder.AddServer(serverMeta)
+		s.grpcResolverBuilder.AddServer(serverMeta)
 
 		// If we're still expecting to bootstrap, may need to handle this.
 		if s.config.BootstrapExpect != 0 {
@@ -367,6 +367,6 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 
 		// Update id to address map
 		s.serverLookup.RemoveServer(serverMeta)
-		s.resolverBuilder.RemoveServer(serverMeta)
+		s.grpcResolverBuilder.RemoveServer(serverMeta)
 	}
 }
