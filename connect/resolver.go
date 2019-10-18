@@ -69,6 +69,9 @@ type ConsulResolver struct {
 	// Name of the query target.
 	Name string
 
+	// Tag of the query target.
+	Tag string
+
 	// Type of the query target. Should be one of the defined ConsulResolverType*
 	// constants. Currently defaults to ConsulResolverTypeService.
 	Type int
@@ -93,7 +96,7 @@ func (cr *ConsulResolver) Resolve(ctx context.Context) (string, connect.CertURI,
 func (cr *ConsulResolver) resolveService(ctx context.Context) (string, connect.CertURI, error) {
 	health := cr.Client.Health()
 
-	svcs, _, err := health.Connect(cr.Name, "", true, cr.queryOptions(ctx))
+	svcs, _, err := health.Connect(cr.Name, cr.Tag, true, cr.queryOptions(ctx))
 	if err != nil {
 		return "", nil, err
 	}
@@ -219,22 +222,40 @@ func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver,
 		// To simplify logic for now, we must match one of the following (not domain
 		// is stripped):
 		//  <name>.[service|query]
+		//  <tag>.<name>.[service]
 		//  <name>.[service|query].<dc>
-		if numParts < 2 || numParts > 3 || !supportedTypeLabel(parts[1]) {
+		//  <tag>.<name>.[service].<dc>
+
+		// Supported type can be present in index 1 or 2.
+		// This is assuming datacenter or service name will never be `service` or `query`
+		typeIndex := getSupportedTypeIndex(parts[1], parts[2])
+
+		// Check if DNS name is valid
+		if numParts < 2 || numParts > 4 || typeIndex < 0 {
 			return nil, fmt.Errorf("unsupported Consul DNS domain: must be either " +
-				"<name>.service[.<datacenter>].consul or " +
+				"[tag.]<name>.service[.<datacenter>].consul or " +
 				"<name>.query[.<datacenter>].consul")
 		}
 
-		if numParts == 3 {
-			// Must be datacenter case
-			r.Datacenter = parts[2]
+		// Tags are not allowed for type query
+		if parts[typeIndex] == "query" {
+			return nil, fmt.Errorf("unsupported Consul DNS domain: tag cannot be present for prepared queries")
 		}
 
-		// By know we must have a supported query type which means at least 2
-		// elements with first 2 being name, and type respectively.
-		r.Name = parts[0]
-		switch parts[1] {
+		// if type index isn't the last index, datacenter is provided
+		if isDatacenterProvided(numParts-1, typeIndex) {
+			r.Datacenter = parts[numParts-1]
+		}
+
+		// The name of the service is always one segment prior to the type index
+		r.Name = parts[typeIndex-1]
+
+		// The tag is provided if type index == 2
+		if typeIndex == 2 {
+			r.Tag = parts[0]
+		}
+
+		switch parts[typeIndex] {
 		case "service":
 			r.Type = ConsulResolverTypeService
 		case "query":
@@ -249,8 +270,18 @@ func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver,
 	}
 }
 
-func supportedTypeLabel(label string) bool {
-	return label == "service" || label == "query"
+func isDatacenterProvided(maxIndex, typeIndex int) bool {
+	return maxIndex != typeIndex
+}
+
+func getSupportedTypeIndex(label1, label2 string) int {
+	if label1 == "service" || label1 == "query" {
+		return 1
+	} else if label2 == "service" || label2 == "query" {
+		return 2
+	}
+
+	return -1
 }
 
 // stripPort copied from net/url/url.go
