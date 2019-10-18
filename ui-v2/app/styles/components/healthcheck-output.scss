@@ -2,3 +2,22 @@
 .healthcheck-output {
   @extend %healthcheck-output;
 }
+/* TODO: This could somehow be merged with the (i) icons in */
+/* table headers see table.scss */
+/* Header Tooltips/Icon */
+%healthcheck-output dt span::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  opacity: 0.6;
+}
+%healthcheck-output dt span {
+  @extend %with-tooltip;
+  margin-left: 2px;
+}
+%healthcheck-output dt span em {
+  width: 250px;
+  font-style: normal;
+  /* TODO: All tooltips previously used */
+  /* nowrap, they shouldn't */
+  white-space: normal !important;
+}
+/**/

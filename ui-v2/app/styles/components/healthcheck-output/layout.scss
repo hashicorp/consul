@@ -39,15 +39,7 @@
 %healthcheck-output dd {
   position: relative;
 }
-%healthcheck-output dd[data-tooltip] {
-  @extend %tooltip-bottom;
-}
-%healthcheck-output dd[data-tooltip]::before {
-  width: 242px;
-  /* TODO: All tooltips previously used */
-  /* nowrap, they shouldn't */
-  white-space: normal;
-}
+
 %healthcheck-output dl:nth-last-of-type(2) {
   width: 50%;
 }

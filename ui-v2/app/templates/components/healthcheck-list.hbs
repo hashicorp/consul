@@ -24,9 +24,20 @@
       </dl>
 {{#if exposed}}
       <dl>
-        <dt>Exposed</dt>
+        <dt>
+          Exposed
+          <span>
+            <em role="tooltip">
   {{#if (contains item.Type (array 'http' 'grpc'))}}
-        <dd data-tooltip="Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent."><em>Yes</em></dd>
+              Even though expose.checks is set to true, this path is not HTTP or gRPC, so it is not exposed.
+  {{else}}
+              Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent.
+  {{/if}}
+            </em>
+          </span>
+        </dt>
+  {{#if (contains item.Type (array 'http' 'grpc'))}}
+        <dd>Yes</dd>
   {{else}}
         <dd>No</dd>
   {{/if}}
