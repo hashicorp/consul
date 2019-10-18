@@ -58,9 +58,9 @@ type Client struct {
 	useNewACLs int32
 
 	// Connection pool to consul servers
-	connPool        *pool.ConnPool
-	grpcClient      *GRPCClient
-	resolverBuilder *ServerResolverBuilder
+	connPool            *pool.ConnPool
+	grpcClient          *GRPCClient
+	grpcResolverBuilder *ServerResolverBuilder
 
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -140,13 +140,13 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	// Create client
 	c := &Client{
-		config:          config,
-		connPool:        connPool,
-		eventCh:         make(chan serf.Event, serfEventBacklog),
-		logger:          logger,
-		resolverBuilder: resolverBuilder,
-		shutdownCh:      make(chan struct{}),
-		tlsConfigurator: tlsConfigurator,
+		config:              config,
+		connPool:            connPool,
+		eventCh:             make(chan serf.Event, serfEventBacklog),
+		logger:              logger,
+		grpcResolverBuilder: grpcResolverBuilder,
+		shutdownCh:          make(chan struct{}),
+		tlsConfigurator:     tlsConfigurator,
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))

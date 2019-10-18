@@ -209,8 +209,8 @@ type Server struct {
 	// is only ever closed.
 	leaveCh chan struct{}
 
-	// resolverBuilder is the gRPC resolver used for connection balancing.
-	resolverBuilder *ServerResolverBuilder
+	// grpcResolverBuilder is the gRPC resolver used for connection balancing.
+	grpcResolverBuilder *ServerResolverBuilder
 
 	// router is used to map out Consul servers in the WAN and in Consul
 	// Enterprise user-defined areas.
@@ -367,25 +367,25 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Create server.
 	s := &Server{
-		config:            config,
-		tokens:            tokens,
-		connPool:          connPool,
-		eventChLAN:        make(chan serf.Event, serfEventChSize),
-		eventChWAN:        make(chan serf.Event, serfEventChSize),
-		logger:            logger,
-		leaveCh:           make(chan struct{}),
-		reconcileCh:       make(chan serf.Member, reconcileChSize),
-		router:            router.NewRouter(logger, config.Datacenter),
-		resolverBuilder:   resolverBuilder,
-		rpcServer:         rpc.NewServer(),
-		insecureRPCServer: rpc.NewServer(),
-		tlsConfigurator:   tlsConfigurator,
-		reassertLeaderCh:  make(chan chan error),
-		segmentLAN:        make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:     NewSessionTimers(),
-		tombstoneGC:       gc,
-		serverLookup:      NewServerLookup(),
-		shutdownCh:        shutdownCh,
+		config:              config,
+		tokens:              tokens,
+		connPool:            connPool,
+		eventChLAN:          make(chan serf.Event, serfEventChSize),
+		eventChWAN:          make(chan serf.Event, serfEventChSize),
+		logger:              logger,
+		leaveCh:             make(chan struct{}),
+		reconcileCh:         make(chan serf.Member, reconcileChSize),
+		router:              router.NewRouter(logger, config.Datacenter),
+		grpcResolverBuilder: grpcResolverBuilder,
+		rpcServer:           rpc.NewServer(),
+		insecureRPCServer:   rpc.NewServer(),
+		tlsConfigurator:     tlsConfigurator,
+		reassertLeaderCh:    make(chan chan error),
+		segmentLAN:          make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:       NewSessionTimers(),
+		tombstoneGC:         gc,
+		serverLookup:        NewServerLookup(),
+		shutdownCh:          shutdownCh,
 	}
 
 	// Initialize enterprise specific server functionality
