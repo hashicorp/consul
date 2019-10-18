@@ -991,10 +991,10 @@
     faker "^4.1.0"
     js-yaml "^3.13.1"
 
-"@hashicorp/consul-api-double@^2.0.1":
-  version "2.5.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.5.0.tgz#d9540a38ee652d55ed90956850c9e5cbcde89454"
-  integrity sha512-RZcVIPQ4M4TZzFe2mWm7M5w28yOIpVgiYZI5ax+JG0Yr5TVbhJPMxhdb1es73cILuqIi9Fr+73OJ5IAospgPBw==
+"@hashicorp/consul-api-double@^2.6.2":
+  version "2.6.2"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.6.2.tgz#6378eee837cbf2e38e73a174720351b000705b39"
+  integrity sha512-Pro8DiiWmuWAH06y8BLnnwVQablwVF1wFzql1PLDKTsX4mbINfITNLCunNy3cD0wtb2JuagQWG5rd8OfDPZCrQ==
 
 "@hashicorp/ember-cli-api-double@^2.0.0":
   version "2.0.0"
@@ -2173,6 +2173,10 @@ babel-plugin-transform-es2015-sticky-regex@^6.22.0:
   version "6.24.1"
   resolved "https://registry.yarnpkg.com/babel-plugin-transform-es2015-sticky-regex/-/babel-plugin-transform-es2015-sticky-regex-6.24.1.tgz#00c1cdb1aca71112cdf0cf6126c2ed6b457ccdbc"
   integrity sha1-AMHNsaynERLN8M9hJsLta0V8zbw=
+  dependencies:
+    babel-helper-regex "^6.24.1"
+    babel-runtime "^6.22.0"
+    babel-types "^6.24.1"
 
 babel-plugin-transform-es2015-template-literals@^6.22.0:
   version "6.22.0"
