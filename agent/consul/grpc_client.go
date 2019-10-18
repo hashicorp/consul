@@ -36,6 +36,8 @@ func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigu
 func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
 	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
 	conn, err := grpc.Dial("consul:///server.local",
+		// use WithInsecure mode here because we handle the TLS wrapping in the custom dialer
+		// based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),
 		grpc.WithDialer(dialer),
 		grpc.WithDisableRetry(),
