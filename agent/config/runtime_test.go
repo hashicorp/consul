@@ -3520,6 +3520,7 @@ func TestFullConfig(t *testing.T) {
 				"disable_upgrade_migration": true,
 				"last_contact_threshold": "12705s",
 				"max_trailing_logs": 17849,
+				"min_quorum":		 3,
 				"redundancy_zone_tag": "3IsufDJf",
 				"server_stabilization_time": "23057s",
 				"upgrade_version_tag": "W9pDwFAL"
@@ -4117,6 +4118,7 @@ func TestFullConfig(t *testing.T) {
 				disable_upgrade_migration = true
 				last_contact_threshold = "12705s"
 				max_trailing_logs = 17849
+				min_quorum = 3
 				redundancy_zone_tag = "3IsufDJf"
 				server_stabilization_time = "23057s"
 				upgrade_version_tag = "W9pDwFAL"
@@ -4819,6 +4821,7 @@ func TestFullConfig(t *testing.T) {
 		AutopilotDisableUpgradeMigration: true,
 		AutopilotLastContactThreshold:    12705 * time.Second,
 		AutopilotMaxTrailingLogs:         17849,
+		AutopilotMinQuorum:               3,
 		AutopilotRedundancyZoneTag:       "3IsufDJf",
 		AutopilotServerStabilizationTime: 23057 * time.Second,
 		AutopilotUpgradeVersionTag:       "W9pDwFAL",
@@ -5703,6 +5706,7 @@ func TestSanitize(t *testing.T) {
 		"AutopilotDisableUpgradeMigration": false,
 		"AutopilotLastContactThreshold": "0s",
 		"AutopilotMaxTrailingLogs": 0,
+		"AutopilotMinQuorum": 0,
 		"AutopilotRedundancyZoneTag": "",
 		"AutopilotServerStabilizationTime": "0s",
 		"AutopilotUpgradeVersionTag": "",

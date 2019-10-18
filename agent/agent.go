@@ -1204,6 +1204,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
 	base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
 	base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
+	base.AutopilotConfig.MinQuorum = a.config.AutopilotMinQuorum
 	base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
 	base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
 	base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
