@@ -228,18 +228,13 @@ func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver,
 
 		// Supported type can be present in index 1 or 2.
 		// This is assuming datacenter or service name will never be `service` or `query`
-		typeIndex := getSupportedTypeIndex(parts[1], parts[2])
+		typeIndex := getSupportedTypeIndex(parts)
 
 		// Check if DNS name is valid
 		if numParts < 2 || numParts > 4 || typeIndex < 0 {
 			return nil, fmt.Errorf("unsupported Consul DNS domain: must be either " +
 				"[tag.]<name>.service[.<datacenter>].consul or " +
 				"<name>.query[.<datacenter>].consul")
-		}
-
-		// Tags are not allowed for type query
-		if parts[typeIndex] == "query" {
-			return nil, fmt.Errorf("unsupported Consul DNS domain: tag cannot be present for prepared queries")
 		}
 
 		// if type index isn't the last index, datacenter is provided
@@ -252,6 +247,12 @@ func ConsulResolverFromAddrFunc(client *api.Client) func(addr string) (Resolver,
 
 		// The tag is provided if type index == 2
 		if typeIndex == 2 {
+
+			// Tags are not allowed for type query
+			if parts[typeIndex] == "query" {
+				return nil, fmt.Errorf("unsupported Consul DNS domain: tag cannot be present for prepared queries")
+			}
+
 			r.Tag = parts[0]
 		}
 
@@ -274,14 +275,25 @@ func isDatacenterProvided(maxIndex, typeIndex int) bool {
 	return maxIndex != typeIndex
 }
 
-func getSupportedTypeIndex(label1, label2 string) int {
-	if label1 == "service" || label1 == "query" {
+func getSupportedTypeIndex(parts []string) int {
+	if supportedTypeLabel(parts[1]) {
 		return 1
-	} else if label2 == "service" || label2 == "query" {
+	}
+
+	if len(parts) == 2 {
+		// Obviously type isn't present in the DNS name
+		return -1
+	}
+
+	if supportedTypeLabel(parts[2]) {
 		return 2
 	}
 
 	return -1
+}
+
+func supportedTypeLabel(label string) bool {
+	return label == "service" || label == "query"
 }
 
 // stripPort copied from net/url/url.go

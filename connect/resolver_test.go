@@ -306,16 +306,6 @@ func TestConsulResolverFromAddrFunc(t *testing.T) {
 			addr:    "foo.connect.dc1.consul",
 			wantErr: "unsupported Consul DNS domain",
 		},
-		{
-			name:    "unsupported tag filter",
-			addr:    "tag1.foo.service.consul",
-			wantErr: "unsupported Consul DNS domain",
-		},
-		{
-			name:    "unsupported tag filter with DC",
-			addr:    "tag1.foo.service.dc1.consul",
-			wantErr: "unsupported Consul DNS domain",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
