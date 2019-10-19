@@ -583,6 +583,7 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 
 	var raw interface{}
 	dec := json.NewDecoder(req.Body)
+	dec.UseNumber()
 	if err := dec.Decode(&raw); err != nil {
 		return err
 	}

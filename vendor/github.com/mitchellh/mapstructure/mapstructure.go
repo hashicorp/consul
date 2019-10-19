@@ -438,6 +438,7 @@ func (d *Decoder) decodeInt(name string, data interface{}, val reflect.Value) er
 func (d *Decoder) decodeUint(name string, data interface{}, val reflect.Value) error {
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataKind := getKind(dataVal)
+	dataType := dataVal.Type()
 
 	switch {
 	case dataKind == reflect.Int:
@@ -469,6 +470,14 @@ func (d *Decoder) decodeUint(name string, data interface{}, val reflect.Value) e
 		} else {
 			return fmt.Errorf("cannot parse '%s' as uint: %s", name, err)
 		}
+	case dataType.PkgPath() == "encoding/json" && dataType.Name() == "Number":
+		jn := data.(json.Number)
+		i, err := strconv.ParseUint(jn.String(), 10, val.Type().Bits())
+		if err != nil {
+			return fmt.Errorf(
+				"error decoding json.Number into %s: %s", name, err)
+		}
+		val.SetUint(i)
 	default:
 		return fmt.Errorf(
 			"'%s' expected type '%s', got unconvertible type '%s'",
