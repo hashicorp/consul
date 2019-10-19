@@ -83,6 +83,17 @@ func TestHostNormalize(t *testing.T) {
 	}
 }
 
+func TestHostMustNormalizeFail(t *testing.T) {
+	hosts := []string{"..:53", "::", ""}
+	for i := 0; i < len(hosts); i++ {
+		ts := hosts[i]
+		h, err := Host(ts).MustNormalize()
+		if err == nil {
+			t.Errorf("Expected error, got %v", h)
+		}
+	}
+}
+
 func TestSplitHostPortReverse(t *testing.T) {
 	tests := map[string]int{
 		"example.org.": 0,

@@ -61,13 +61,26 @@ type (
 
 // Normalize will return the host portion of host, stripping
 // of any port or transport. The host will also be fully qualified and lowercased.
+// An empty string is returned on failure
 func (h Host) Normalize() string {
+	// The error can be ignored here, because this function should only be called after the corefile has already been vetted.
+	host, _ := h.MustNormalize()
+	return host
+}
+
+// MustNormalize will return the host portion of host, stripping
+// of any port or transport. The host will also be fully qualified and lowercased.
+// An error is returned on error
+func (h Host) MustNormalize() (string, error) {
 	s := string(h)
 	_, s = parse.Transport(s)
 
 	// The error can be ignored here, because this function is called after the corefile has already been vetted.
-	host, _, _, _ := SplitHostPort(s)
-	return Name(host).Normalize()
+	host, _, _, err := SplitHostPort(s)
+	if err != nil {
+		return "", err
+	}
+	return Name(host).Normalize(), nil
 }
 
 // SplitHostPort splits s up in a host and port portion, taking reverse address notation into account.
