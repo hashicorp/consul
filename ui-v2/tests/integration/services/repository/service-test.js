@@ -73,7 +73,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
           const nodes = payload.Nodes;
           const service = payload.Nodes[0];
           service.Nodes = nodes;
-          service.Tags = payload.Nodes[0].Service.Tags;
+          service.Tags = [...new Set(payload.Nodes[0].Service.Tags)];
           service.meta = {
             cursor: undefined,
           };
