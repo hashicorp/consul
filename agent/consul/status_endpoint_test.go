@@ -29,7 +29,7 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 
 func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	addr := s.config.RPCAdvertise
-	configurator, err := tlsutil.NewConfigurator(c, nil)
+	configurator, err := tlsutil.NewConfigurator(c, s.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,17 @@ func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	if wrapper == nil {
 		return nil, err
 	}
-	conn, _, err := pool.DialTimeoutWithRPCType(s.config.Datacenter, addr, nil, time.Second, true, wrapper, pool.RPCTLSInsecure)
+	conn, _, err := pool.DialTimeoutWithRPCTypeDirectly(
+		s.config.Datacenter,
+		s.config.NodeName,
+		addr,
+		nil,
+		time.Second,
+		true,
+		wrapper,
+		pool.RPCTLSInsecure,
+		pool.RPCTLSInsecure,
+	)
 	if err != nil {
 		return nil, err
 	}

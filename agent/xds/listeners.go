@@ -517,7 +517,8 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
 	// We need 1 Filter Chain per datacenter
-	for dc := range cfgSnap.MeshGateway.GatewayGroups {
+	datacenters := cfgSnap.MeshGateway.Datacenters()
+	for _, dc := range datacenters {
 		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 		filterName := fmt.Sprintf("%s_%s", name, dc)
 		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote_")
@@ -533,6 +534,46 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 				dcTCPProxy,
 			},
 		})
+	}
+
+	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+		for _, dc := range datacenters {
+			clusterName := cfgSnap.ServerSNIFn(dc, "")
+			filterName := fmt.Sprintf("%s_%s", name, dc)
+			dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote_")
+			if err != nil {
+				return nil, err
+			}
+
+			l.FilterChains = append(l.FilterChains, envoylistener.FilterChain{
+				FilterChainMatch: &envoylistener.FilterChainMatch{
+					ServerNames: []string{fmt.Sprintf("*.%s", clusterName)},
+				},
+				Filters: []envoylistener.Filter{
+					dcTCPProxy,
+				},
+			})
+		}
+
+		// Wildcard all flavors to each server.
+		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
+
+			filterName := fmt.Sprintf("%s_%s", name, cfgSnap.Datacenter)
+			dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_local_server_")
+			if err != nil {
+				return nil, err
+			}
+
+			l.FilterChains = append(l.FilterChains, envoylistener.FilterChain{
+				FilterChainMatch: &envoylistener.FilterChainMatch{
+					ServerNames: []string{fmt.Sprintf("%s", clusterName)},
+				},
+				Filters: []envoylistener.Filter{
+					dcTCPProxy,
+				},
+			})
+		}
 	}
 
 	// This needs to get tacked on at the end as it has no

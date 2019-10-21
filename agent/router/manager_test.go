@@ -32,7 +32,7 @@ type fauxConnPool struct {
 	failAddr net.Addr
 }
 
-func (cp *fauxConnPool) Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error) {
+func (cp *fauxConnPool) Ping(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (bool, error) {
 	var success bool
 
 	successProb := rand.Float64()

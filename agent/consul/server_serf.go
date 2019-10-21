@@ -7,11 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
@@ -115,10 +117,52 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		}
 	}
 
+	if wan {
+		nt, err := memberlist.NewNetTransport(&memberlist.NetTransportConfig{
+			BindAddrs: []string{conf.MemberlistConfig.BindAddr},
+			BindPort:  conf.MemberlistConfig.BindPort,
+			Logger:    conf.MemberlistConfig.Logger,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if s.config.ConnectMeshGatewayWANFederationEnabled {
+			mgwTransport, err := wanfed.NewTransport(
+				s.logger,
+				s.tlsConfigurator,
+				nt,
+				s.config.Datacenter,
+				s.gatewayLocator.PickGateway,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			conf.MemberlistConfig.Transport = mgwTransport
+		} else {
+			conf.MemberlistConfig.Transport = nt
+		}
+	}
+
 	// Until Consul supports this fully, we disable automatic resolution.
 	// When enabled, the Serf gossip may just turn off if we are the minority
 	// node which is rather unexpected.
 	conf.EnableNameConflictResolution = false
+
+	if wan && s.config.ConnectMeshGatewayWANFederationEnabled {
+		conf.MemberlistConfig.RequireNodeNames = true
+		conf.MemberlistConfig.DisableTcpPingsForNode = func(nodeName string) bool {
+			_, dc, err := wanfed.SplitNodeName(nodeName)
+			if err != nil {
+				return false // don't disable anything if we don't understand the node name
+			}
+
+			// If doing cross-dc we will be using TCP via the gateways so
+			// there's no need for an extra TCP request.
+			return s.config.Datacenter != dc
+		}
+	}
 
 	if !s.config.DevMode {
 		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
@@ -319,7 +363,7 @@ func (s *Server) maybeBootstrap() {
 
 		// Retry with exponential backoff to get peer status from this server
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
-			if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
+			if err := s.connPool.RPC(s.config.Datacenter, server.ShortName, server.Addr, server.Version,
 				"Status.Peers", server.UseTLS, &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
 				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
 				s.logger.Error("Failed to confirm peer status for server (will retry).",

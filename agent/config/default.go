@@ -64,6 +64,7 @@ func DefaultSource() Source {
 		encrypt_verify_outgoing = true
 		log_level = "INFO"
 		max_query_time = "600s"
+		primary_gateways_interval = "30s"
 		protocol =  2
 		retry_interval = "30s"
 		retry_interval_wan = "30s"

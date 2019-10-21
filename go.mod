@@ -8,6 +8,12 @@ replace github.com/hashicorp/consul/sdk => ./sdk
 
 replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
 
+// NOTE memberlist points to the wan-mgw branch
+// replace github.com/hashicorp/memberlist => ../memberlist
+
+// NOTE serf points to the wan-mgw branch
+// replace github.com/hashicorp/serf => ../serf
+
 require (
 	github.com/Azure/go-autorest v10.15.3+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.3 // indirect
@@ -27,6 +33,7 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
+	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/hashicorp/consul/api v1.4.0
 	github.com/hashicorp/consul/sdk v0.4.0
 	github.com/hashicorp/go-bexpr v0.1.2
@@ -46,12 +53,11 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
-	github.com/hashicorp/mdns v1.0.1 // indirect
-	github.com/hashicorp/memberlist v0.1.6
+	github.com/hashicorp/memberlist v0.1.7-0.20200203201656-7dbad1a981ff
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v1.1.2
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/serf v0.8.5
+	github.com/hashicorp/serf v0.8.6-0.20200203201721-3146d2ae8160
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6

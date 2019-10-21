@@ -11,8 +11,10 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2870,6 +2872,108 @@ func TestACL_filterNodes(t *testing.T) {
 	filt.filterNodes(&nodes)
 	if len(nodes) != 0 {
 		t.Fatalf("bad: %#v", nodes)
+	}
+}
+
+func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
+	t.Parallel()
+	// Create some data.
+	fixture := map[string]structs.CheckServiceNodes{
+		"dc1": []structs.CheckServiceNode{
+			newTestMeshGatewayNode(
+				"dc1", "gateway1a", "1.2.3.4", 5555, map[string]string{structs.MetaWANFederationKey: "1"}, api.HealthPassing,
+			),
+			newTestMeshGatewayNode(
+				"dc1", "gateway2a", "4.3.2.1", 9999, map[string]string{structs.MetaWANFederationKey: "1"}, api.HealthPassing,
+			),
+		},
+		"dc2": []structs.CheckServiceNode{
+			newTestMeshGatewayNode(
+				"dc2", "gateway1b", "5.6.7.8", 9999, map[string]string{structs.MetaWANFederationKey: "1"}, api.HealthPassing,
+			),
+			newTestMeshGatewayNode(
+				"dc2", "gateway2b", "8.7.6.5", 1111, map[string]string{structs.MetaWANFederationKey: "1"}, api.HealthPassing,
+			),
+		},
+	}
+
+	fill := func(t *testing.T) map[string]structs.CheckServiceNodes {
+		t.Helper()
+		dup, err := copystructure.Copy(fixture)
+		require.NoError(t, err)
+		return dup.(map[string]structs.CheckServiceNodes)
+	}
+
+	// TODO(rb): switch all newACLFilter calls to use a test logger that uses (*testing.T).Logf
+
+	// Try permissive filtering.
+	{
+		dcNodes := fill(t)
+		filt := newACLFilter(acl.AllowAll(), nil, true)
+		filt.filterDatacenterCheckServiceNodes(&dcNodes)
+		require.Len(t, dcNodes, 2)
+		require.Equal(t, fill(t), dcNodes)
+	}
+
+	// Try restrictive filtering.
+	{
+		dcNodes := fill(t)
+		filt := newACLFilter(acl.DenyAll(), nil, true)
+		filt.filterDatacenterCheckServiceNodes(&dcNodes)
+		require.Len(t, dcNodes, 0)
+	}
+
+	var (
+		policy *acl.Policy
+		err    error
+		perms  acl.Authorizer
+	)
+	// Allowed to see the service but not the node.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+	service_prefix "" { policy = "read" }
+	`, acl.SyntaxCurrent, nil, nil)
+	require.NoError(t, err)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	{
+		dcNodes := fill(t)
+		filt := newACLFilter(perms, nil, true)
+		filt.filterDatacenterCheckServiceNodes(&dcNodes)
+		require.Len(t, dcNodes, 0)
+	}
+
+	// Allowed to see the node but not the service.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+	node_prefix "" { policy = "read" }
+	`, acl.SyntaxCurrent, nil, nil)
+	require.NoError(t, err)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	{
+		dcNodes := fill(t)
+		filt := newACLFilter(perms, nil, true)
+		filt.filterDatacenterCheckServiceNodes(&dcNodes)
+		require.Len(t, dcNodes, 0)
+	}
+
+	// Allowed to see the service AND the node
+	policy, err = acl.NewPolicyFromSource("", 0, `
+	service_prefix "" { policy = "read" }
+	node_prefix "" { policy = "read" }
+	`, acl.SyntaxCurrent, nil, nil)
+	require.NoError(t, err)
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	// Now it should go through.
+	{
+		dcNodes := fill(t)
+		filt := newACLFilter(acl.AllowAll(), nil, true)
+		filt.filterDatacenterCheckServiceNodes(&dcNodes)
+		require.Len(t, dcNodes, 2)
+		require.Equal(t, fill(t), dcNodes)
 	}
 }
 

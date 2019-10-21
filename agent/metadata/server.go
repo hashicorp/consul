@@ -24,7 +24,8 @@ func (k *Key) Equal(x *Key) bool {
 
 // Server is used to return details of a consul server
 type Server struct {
-	Name         string
+	Name         string // <node>.<dc>
+	ShortName    string // <node>
 	ID           string
 	Datacenter   string
 	Segment      string
@@ -165,6 +166,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 
 	parts := &Server{
 		Name:         m.Name,
+		ShortName:    strings.TrimSuffix(m.Name, "."+datacenter),
 		ID:           m.Tags["id"],
 		Datacenter:   datacenter,
 		Segment:      segment,

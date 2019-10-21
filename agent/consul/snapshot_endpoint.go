@@ -37,7 +37,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			return nil, structs.ErrNoDCPath
 		}
 
-		snap, err := SnapshotRPC(s.connPool, dc, server.Addr, server.UseTLS, args, in, reply)
+		snap, err := SnapshotRPC(s.connPool, dc, server.ShortName, server.Addr, server.UseTLS, args, in, reply)
 		if err != nil {
 			manager.NotifyFailedServer(server)
 			return nil, err
@@ -52,7 +52,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 			if server == nil {
 				return nil, structs.ErrNoLeader
 			}
-			return SnapshotRPC(s.connPool, args.Datacenter, server.Addr, server.UseTLS, args, in, reply)
+			return SnapshotRPC(s.connPool, args.Datacenter, server.ShortName, server.Addr, server.UseTLS, args, in, reply)
 		}
 	}
 
@@ -189,10 +189,21 @@ RESPOND:
 // the streaming output (for a snapshot). If the reply contains an error, this
 // will always return an error as well, so you don't need to check the error
 // inside the filled-in reply.
-func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
-	args *structs.SnapshotRequest, in io.Reader, reply *structs.SnapshotResponse) (io.ReadCloser, error) {
-
-	conn, hc, err := connPool.DialTimeout(dc, addr, 10*time.Second, useTLS)
+func SnapshotRPC(
+	connPool *pool.ConnPool,
+	dc string,
+	nodeName string,
+	addr net.Addr,
+	useTLS bool,
+	args *structs.SnapshotRequest,
+	in io.Reader,
+	reply *structs.SnapshotResponse,
+) (io.ReadCloser, error) {
+	// TODO(rb): should this work dc-to-dc via a mesh gateway?
+	//
+	// Write the snapshot RPC byte to set the mode, then perform the
+	// request.
+	conn, hc, err := connPool.DialTimeout(dc, nodeName, addr, 10*time.Second, useTLS, pool.RPCSnapshot)
 	if err != nil {
 		return nil, err
 	}
@@ -205,12 +216,6 @@ func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 			conn.Close()
 		}
 	}()
-
-	// Write the snapshot RPC byte to set the mode, then perform the
-	// request.
-	if _, err := conn.Write([]byte{byte(pool.RPCSnapshot)}); err != nil {
-		return nil, fmt.Errorf("failed to write stream type: %v", err)
-	}
 
 	// Push the header encoded as msgpack, then stream the input.
 	enc := codec.NewEncoder(conn, structs.MsgpackHandle)

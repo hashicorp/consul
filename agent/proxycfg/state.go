@@ -23,17 +23,19 @@ type CacheNotifier interface {
 }
 
 const (
-	coalesceTimeout                  = 200 * time.Millisecond
-	rootsWatchID                     = "roots"
-	leafWatchID                      = "leaf"
-	intentionsWatchID                = "intentions"
-	serviceListWatchID               = "service-list"
-	datacentersWatchID               = "datacenters"
-	serviceResolversWatchID          = "service-resolvers"
-	svcChecksWatchIDPrefix           = cachetype.ServiceHTTPChecksName + ":"
-	serviceIDPrefix                  = string(structs.UpstreamDestTypeService) + ":"
-	preparedQueryIDPrefix            = string(structs.UpstreamDestTypePreparedQuery) + ":"
-	defaultPreparedQueryPollInterval = 30 * time.Second
+	coalesceTimeout                    = 200 * time.Millisecond
+	rootsWatchID                       = "roots"
+	leafWatchID                        = "leaf"
+	intentionsWatchID                  = "intentions"
+	serviceListWatchID                 = "service-list"
+	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"
+	consulServerListWatchID            = "consul-server-list"
+	datacentersWatchID                 = "datacenters"
+	serviceResolversWatchID            = "service-resolvers"
+	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
+	serviceIDPrefix                    = string(structs.UpstreamDestTypeService) + ":"
+	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
+	defaultPreparedQueryPollInterval   = 30 * time.Second
 )
 
 // state holds all the state needed to maintain the config for a registered
@@ -41,9 +43,10 @@ const (
 // is discarded and a new one created.
 type state struct {
 	// logger, source and cache are required to be set before calling Watch.
-	logger hclog.Logger
-	source *structs.QuerySource
-	cache  CacheNotifier
+	logger      hclog.Logger
+	source      *structs.QuerySource
+	cache       CacheNotifier
+	serverSNIFn ServerSNIFunc
 
 	// ctx and cancel store the context created during initWatches call
 	ctx    context.Context
@@ -54,6 +57,7 @@ type state struct {
 	proxyID         structs.ServiceID
 	address         string
 	port            int
+	meta            map[string]string
 	taggedAddresses map[string]structs.ServiceAddress
 	proxyCfg        structs.ConnectProxyConfig
 	token           string
@@ -62,6 +66,8 @@ type state struct {
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
 }
+
+type ServerSNIFunc func(dc, nodeName string) string
 
 func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error) {
 	if ns == nil {
@@ -114,12 +120,18 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 		taggedAddresses[k] = v
 	}
 
+	meta := make(map[string]string)
+	for k, v := range ns.Meta {
+		meta[k] = v
+	}
+
 	return &state{
 		kind:            ns.Kind,
 		service:         ns.Service,
 		proxyID:         ns.CompoundServiceID(),
 		address:         ns.Address,
 		port:            ns.Port,
+		meta:            meta,
 		taggedAddresses: taggedAddresses,
 		proxyCfg:        proxyCfg,
 		token:           token,
@@ -365,6 +377,29 @@ func (s *state) initWatchesMeshGateway() error {
 		return err
 	}
 
+	if s.meta[structs.MetaWANFederationKey] == "1" {
+		// TODO(wanfed): conveniently we can just use this attribute in one
+		// place here to set the machinery in motion and leave the conditional
+		// behavior out of the rest
+		err = s.cache.Notify(s.ctx, cachetype.FederationStateListMeshGatewaysName, &structs.DCSpecificRequest{
+			Datacenter:   s.source.Datacenter,
+			QueryOptions: structs.QueryOptions{Token: s.token},
+			Source:       *s.source,
+		}, federationStateListGatewaysWatchID, s.ch)
+		if err != nil {
+			return err
+		}
+
+		err = s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+			Datacenter:   s.source.Datacenter,
+			QueryOptions: structs.QueryOptions{Token: s.token},
+			ServiceName:  structs.ConsulServiceName,
+		}, consulServerListWatchID, s.ch)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Eventually we will have to watch connect enable instances for each service as well as the
 	// destination services themselves but those notifications will be setup later. However we
 	// cannot setup those watches until we know what the services are. from the service list
@@ -405,9 +440,11 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		ProxyID:         s.proxyID,
 		Address:         s.address,
 		Port:            s.port,
+		ServiceMeta:     s.meta,
 		TaggedAddresses: s.taggedAddresses,
 		Proxy:           s.proxyCfg,
 		Datacenter:      s.source.Datacenter,
+		ServerSNIFn:     s.serverSNIFn,
 	}
 
 	switch s.kind {
@@ -759,6 +796,12 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		snap.Roots = roots
+	case federationStateListGatewaysWatchID:
+		dcIndexedNodes, ok := u.Result.(*structs.DatacenterIndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		snap.MeshGateway.FedStateGateways = dcIndexedNodes.DatacenterNodes
 	case serviceListWatchID:
 		services, ok := u.Result.(*structs.IndexedServiceList)
 		if !ok {
@@ -866,6 +909,27 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 			}
 		}
 		snap.MeshGateway.ServiceResolvers = resolvers
+
+	case consulServerListWatchID:
+		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		// Do some initial sanity checks to avoid doing something dumb.
+		for _, csn := range resp.Nodes {
+			if csn.Service.Service != structs.ConsulServiceName {
+				return fmt.Errorf("expected service name %q but got %q",
+					structs.ConsulServiceName, csn.Service.Service)
+			}
+			if csn.Node.Datacenter != snap.Datacenter {
+				return fmt.Errorf("expected datacenter %q but got %q",
+					snap.Datacenter, csn.Node.Datacenter)
+			}
+		}
+
+		snap.MeshGateway.ConsulServers = resp.Nodes
+
 	default:
 		switch {
 		case strings.HasPrefix(u.CorrelationID, "connect-service:"):

@@ -17,6 +17,12 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// ALPNWrapper is a function that is used to wrap a non-TLS connection and
+// returns an appropriate TLS connection or error. This taks a datacenter and
+// node name as argument to configure the desired SNI value and the desired
+// next proto for configuring ALPN.
+type ALPNWrapper func(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, error)
+
 // DCWrapper is a function that is used to wrap a non-TLS connection
 // and returns an appropriate TLS connection or error. This takes
 // a datacenter as an argument.
@@ -536,6 +542,17 @@ func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	return true
 }
 
+func (c *Configurator) MutualTLSCapable() bool {
+	return c.mutualTLSCapable()
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) mutualTLSCapable() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.caPool != nil && (c.autoEncrypt.cert != nil || c.manual.cert != nil)
+}
+
 // This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyOutgoing() bool {
 	c.RLock()
@@ -548,6 +565,17 @@ func (c *Configurator) verifyOutgoing() bool {
 	}
 
 	return c.base.VerifyOutgoing
+}
+
+func (c *Configurator) ServerSNI(dc, nodeName string) string {
+	// Strip the trailing '.' from the domain if any
+	domain := strings.TrimSuffix(c.domain(), ".")
+
+	if nodeName == "" || nodeName == "*" {
+		return "server." + dc + "." + domain
+	}
+
+	return nodeName + ".server." + dc + "." + domain
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -621,6 +649,22 @@ func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	return config
 }
 
+// IncomingALPNRPCConfig generates a *tls.Config for incoming RPC connections
+// directly using TLS with ALPN instead of the older byte-prefixed protocol.
+func (c *Configurator) IncomingALPNRPCConfig(alpnProtos []string) *tls.Config {
+	c.log("IncomingALPNRPCConfig")
+	// Since the ALPN-RPC variation is indirectly exposed to the internet via
+	// mesh gateways we force mTLS and full server name verification.
+	config := c.commonTLSConfig(true)
+	config.InsecureSkipVerify = false
+
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingALPNRPCConfig(alpnProtos), nil
+	}
+	config.NextProtos = alpnProtos
+	return config
+}
+
 // IncomingInsecureRPCConfig means that it doesn't verify incoming even thought
 // it might have been configured. This is only supposed to be used by the
 // servers for the insecure RPC server. At the time of writing only the
@@ -676,6 +720,24 @@ func (c *Configurator) OutgoingRPCConfig() *tls.Config {
 	return c.commonTLSConfig(false)
 }
 
+// OutgoingALPNRPCConfig generates a *tls.Config for outgoing RPC connections
+// directly using TLS with ALPN instead of the older byte-prefixed protocol.
+// If there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
+// otherwise we assume that no TLS should be used which completely disables the
+// ALPN variation.
+func (c *Configurator) OutgoingALPNRPCConfig() *tls.Config {
+	c.log("OutgoingALPNRPCConfig")
+	if !c.mutualTLSCapable() {
+		return nil // ultimately this will hard-fail as TLS is required
+	}
+
+	// Since the ALPN-RPC variation is indirectly exposed to the internet via
+	// mesh gateways we force mTLS and full server name verification.
+	config := c.commonTLSConfig(true)
+	config.InsecureSkipVerify = false
+	return config
+}
+
 // OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
 // decides if verify server hostname should be used.
 func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
@@ -687,6 +749,19 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	// Generate the wrapper based on dc
 	return func(dc string, conn net.Conn) (net.Conn, error) {
 		return c.wrapTLSClient(dc, conn)
+	}
+}
+
+// OutgoingALPNRPCWrapper wraps the result of OutgoingALPNRPCConfig in an
+// ALPNWrapper. It configures all of the negotiation plumbing.
+func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
+	c.log("OutgoingALPNRPCWrapper")
+	if !c.mutualTLSCapable() {
+		return nil
+	}
+
+	return func(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, error) {
+		return c.wrapALPNTLSClient(dc, nodeName, alpnProto, conn)
 	}
 }
 
@@ -716,7 +791,7 @@ func (c *Configurator) log(name string) {
 	if c.logger != nil {
 		c.RLock()
 		defer c.RUnlock()
-		c.logger.Debug(name, "version", c.version)
+		c.logger.Trace(name, "version", c.version)
 	}
 }
 
@@ -784,6 +859,48 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 	}
 
 	return tlsConn, err
+}
+
+// Wrap a net.Conn into a client tls connection suitable for secure ALPN-RPC,
+// performing any additional verification as needed.
+func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, error) {
+	if dc == "" {
+		return nil, fmt.Errorf("cannot dial using ALPN-RPC without a target datacenter")
+	} else if nodeName == "" {
+		return nil, fmt.Errorf("cannot dial using ALPN-RPC without a target node")
+	} else if alpnProto == "" {
+		return nil, fmt.Errorf("cannot dial using ALPN-RPC without a target alpn protocol")
+	}
+
+	config := c.OutgoingALPNRPCConfig()
+	if config == nil {
+		return nil, fmt.Errorf("cannot dial via a mesh gateway when outgoing TLS is disabled")
+	}
+
+	// Since the ALPN-RPC variation is indirectly exposed to the internet via
+	// mesh gateways we force mTLS and full hostname validation (forcing
+	// verify_server_hostname and verify_outgoing to be effectively true).
+
+	config.ServerName = c.ServerSNI(dc, nodeName)
+	config.NextProtos = []string{alpnProto}
+
+	tlsConn := tls.Client(conn, config)
+
+	// NOTE: For this handshake to succeed the server must have key material
+	// for either "<nodename>.server.<datacenter>.<domain>" or
+	// "*.server.<datacenter>.<domain>" in addition to the
+	// "server.<datacenter>.<domain>" required for standard TLS'd RPC.
+	if err := tlsConn.Handshake(); err != nil {
+		tlsConn.Close()
+		return nil, err
+	}
+
+	if cs := tlsConn.ConnectionState(); !cs.NegotiatedProtocolIsMutual {
+		tlsConn.Close()
+		return nil, fmt.Errorf("could not negotiate ALPN protocol %q with %q", alpnProto, config.ServerName)
+	}
+
+	return tlsConn, nil
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into

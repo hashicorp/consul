@@ -461,7 +461,11 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 
 	// Get the address
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/join/")
+
 	if wan {
+		if s.agent.config.ConnectMeshGatewayWANFederationEnabled {
+			return nil, fmt.Errorf("WAN join is disabled when wan federation via mesh gateways is enabled")
+		}
 		_, err = s.agent.JoinWAN([]string{addr})
 	} else {
 		_, err = s.agent.JoinLAN([]string{addr})

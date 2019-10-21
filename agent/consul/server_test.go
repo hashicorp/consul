@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/tcpproxy"
 	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/ipaddr"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -60,6 +62,7 @@ func configureTLS(config *Config) {
 var id int64
 
 func uniqueNodeName(name string) string {
+	name = strings.ReplaceAll(name, "/", "_")
 	return fmt.Sprintf("%s-node-%d", name, atomic.AddInt64(&id, 1))
 }
 
@@ -543,6 +546,241 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 	}
 }
 
+// This is a mirror of a similar test in agent/agent_test.go
+func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
+	t.Parallel()
+
+	gwPort := freeport.MustTake(1)
+	defer freeport.Return(gwPort)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Domain = "consul"
+		c.NodeName = "bob"
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = true
+		// tls
+		c.CAFile = "../../test/hostname/CertAuth.crt"
+		c.CertFile = "../../test/hostname/Bob.crt"
+		c.KeyFile = "../../test/hostname/Bob.key"
+		c.VerifyIncoming = true
+		c.VerifyOutgoing = true
+		c.VerifyServerHostname = true
+		// wanfed
+		c.ConnectMeshGatewayWANFederationEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Domain = "consul"
+		c.NodeName = "betty"
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = true
+		// tls
+		c.CAFile = "../../test/hostname/CertAuth.crt"
+		c.CertFile = "../../test/hostname/Betty.crt"
+		c.KeyFile = "../../test/hostname/Betty.key"
+		c.VerifyIncoming = true
+		c.VerifyOutgoing = true
+		c.VerifyServerHostname = true
+		// wanfed
+		c.ConnectMeshGatewayWANFederationEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Domain = "consul"
+		c.NodeName = "bonnie"
+		c.Datacenter = "dc3"
+		c.PrimaryDatacenter = "dc1"
+		c.Bootstrap = true
+		// tls
+		c.CAFile = "../../test/hostname/CertAuth.crt"
+		c.CertFile = "../../test/hostname/Bonnie.crt"
+		c.KeyFile = "../../test/hostname/Bonnie.key"
+		c.VerifyIncoming = true
+		c.VerifyOutgoing = true
+		c.VerifyServerHostname = true
+		// wanfed
+		c.ConnectMeshGatewayWANFederationEnabled = true
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// We'll use the same gateway for all datacenters since it doesn't care.
+	var p tcpproxy.Proxy
+	p.AddSNIRoute(gwAddr, "bob.server.dc1.consul", tcpproxy.To(s1.config.RPCAddr.String()))
+	p.AddSNIRoute(gwAddr, "betty.server.dc2.consul", tcpproxy.To(s2.config.RPCAddr.String()))
+	p.AddSNIRoute(gwAddr, "bonnie.server.dc3.consul", tcpproxy.To(s3.config.RPCAddr.String()))
+	p.AddStopACMESearch(gwAddr)
+	require.NoError(t, p.Start())
+	defer func() {
+		p.Close()
+		p.Wait()
+	}()
+
+	t.Logf("routing %s => %s", "bob.server.dc1.consul", s1.config.RPCAddr.String())
+	t.Logf("routing %s => %s", "betty.server.dc2.consul", s2.config.RPCAddr.String())
+	t.Logf("routing %s => %s", "bonnie.server.dc3.consul", s3.config.RPCAddr.String())
+
+	// Register this into the catalog in dc1.
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bob",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
+				Port:    gwPort[0],
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, s1.RPC("Catalog.Register", &arg, &out))
+	}
+
+	// Wait for it to make it into the gateway locator.
+	retry.Run(t, func(r *retry.R) {
+		require.NotEmpty(r, s1.gatewayLocator.PickGateway("dc1"))
+	})
+
+	// Seed the secondaries with the address of the primary and wait for that to
+	// be in their locators.
+	_, err := s2.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
+	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		require.NotEmpty(r, s2.gatewayLocator.PickGateway("dc1"))
+	})
+	_, err = s3.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
+	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		require.NotEmpty(r, s3.gatewayLocator.PickGateway("dc1"))
+	})
+
+	// Try to join from secondary to primary. We can't use joinWAN() because we
+	// are simulating proper bootstrapping and if ACLs were on we would have to
+	// delay gateway registration in the secondary until after one directional
+	// join. So this way we explicitly join secondary-to-primary as a standalone
+	// operation and follow it up later with a full join.
+	_, err = s2.JoinWAN([]string{joinAddrWAN(s1)})
+	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s2 WAN members want %d", got, want)
+		}
+	})
+	_, err = s3.JoinWAN([]string{joinAddrWAN(s1)})
+	require.NoError(t, err)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s3.WANMembers()), 3; got != want {
+			r.Fatalf("got %d s3 WAN members want %d", got, want)
+		}
+	})
+
+	// Now we can register this into the catalog in dc2 and dc3.
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "betty",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
+				Port:    gwPort[0],
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, s2.RPC("Catalog.Register", &arg, &out))
+	}
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc3",
+			Node:       "bonnie",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindMeshGateway,
+				ID:      "mesh-gateway",
+				Service: "mesh-gateway",
+				Meta:    map[string]string{structs.MetaWANFederationKey: "1"},
+				Port:    gwPort[0],
+			},
+		}
+
+		var out struct{}
+		require.NoError(t, s3.RPC("Catalog.Register", &arg, &out))
+	}
+
+	// Wait for it to make it into the gateway locator in dc2 and then for
+	// AE to carry it back to the primary
+	retry.Run(t, func(r *retry.R) {
+		require.NotEmpty(r, s3.gatewayLocator.PickGateway("dc2"))
+		require.NotEmpty(r, s2.gatewayLocator.PickGateway("dc2"))
+		require.NotEmpty(r, s1.gatewayLocator.PickGateway("dc2"))
+
+		require.NotEmpty(r, s3.gatewayLocator.PickGateway("dc3"))
+		require.NotEmpty(r, s2.gatewayLocator.PickGateway("dc3"))
+		require.NotEmpty(r, s1.gatewayLocator.PickGateway("dc3"))
+	})
+
+	// Try to join again using the standard verification method now that
+	// all of the plumbing is in place.
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 3; got != want {
+			r.Fatalf("got %d s1 WAN members want %d", got, want)
+		}
+		if got, want := len(s2.WANMembers()), 3; got != want {
+			r.Fatalf("got %d s2 WAN members want %d", got, want)
+		}
+	})
+
+	// Check the router has all of them
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.router.GetDatacenters()), 3; got != want {
+			r.Fatalf("got %d routes want %d", got, want)
+		}
+		if got, want := len(s2.router.GetDatacenters()), 3; got != want {
+			r.Fatalf("got %d datacenters want %d", got, want)
+		}
+		if got, want := len(s3.router.GetDatacenters()), 3; got != want {
+			r.Fatalf("got %d datacenters want %d", got, want)
+		}
+	})
+
+	// Ensure we can do some trivial RPC in all directions.
+	servers := map[string]*Server{"dc1": s1, "dc2": s2, "dc3": s3}
+	names := map[string]string{"dc1": "bob", "dc2": "betty", "dc3": "bonnie"}
+	for _, srcDC := range []string{"dc1", "dc2", "dc3"} {
+		srv := servers[srcDC]
+		for _, dstDC := range []string{"dc1", "dc2", "dc3"} {
+			if srcDC == dstDC {
+				continue
+			}
+			t.Run(srcDC+" to "+dstDC, func(t *testing.T) {
+				arg := structs.DCSpecificRequest{
+					Datacenter: dstDC,
+				}
+				var out structs.IndexedNodes
+				require.NoError(t, srv.RPC("Catalog.ListNodes", &arg, &out))
+				require.Len(t, out.Nodes, 1)
+				node := out.Nodes[0]
+				require.Equal(t, dstDC, node.Datacenter)
+				require.Equal(t, names[dstDC], node.Node)
+			})
+		}
+	}
+}
+
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -999,7 +1237,7 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 	if leader == nil {
 		t.Fatal("no leader")
 	}
-	return s2.connPool.Ping(leader.Datacenter, leader.Addr, leader.Version, leader.UseTLS)
+	return s2.connPool.Ping(leader.Datacenter, leader.ShortName, leader.Addr, leader.Version, leader.UseTLS)
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {

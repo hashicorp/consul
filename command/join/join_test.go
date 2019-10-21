@@ -39,6 +39,8 @@ func TestJoinCommandJoin_lan(t *testing.T) {
 	}
 }
 
+// TODO(wanfed): add test for joining with the name specified
+
 func TestJoinCommand_wan(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, t.Name(), ``)

@@ -212,6 +212,12 @@ function initVars {
   fi
 }
 
+function global_setup {
+  if [ -f "${CASE_DIR}global-setup.sh" ] ; then
+    source "${CASE_DIR}global-setup.sh"
+  fi
+}
+
 function runTest {
   initVars
 
@@ -222,6 +228,8 @@ function runTest {
   then
     init_workdir secondary
   fi
+
+  global_setup
 
   # Wipe state
   docker-compose up wipe-volumes

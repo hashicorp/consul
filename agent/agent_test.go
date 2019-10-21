@@ -17,8 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
-
+	"github.com/google/tcpproxy"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
@@ -26,11 +25,14 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -4147,6 +4149,276 @@ LOOP:
 			t.Logf("took %s to get first success", time.Since(start))
 		case <-deadlineCh:
 			t.Fatal("did not get notified successfully")
+		}
+	}
+}
+
+// This is a mirror of a similar test in agent/consul/server_test.go
+func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	t.Parallel()
+
+	gwPort := freeport.MustTake(1)
+	defer freeport.Return(gwPort)
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
+
+	// Due to some ordering, we'll have to manually configure these ports in
+	// advance.
+	secondaryRPCPorts := freeport.MustTake(2)
+	defer freeport.Return(secondaryRPCPorts)
+
+	a1 := NewTestAgent(t, t.Name()+"-bob", `
+		domain = "consul"
+		node_name = "bob"
+		datacenter = "dc1"
+		primary_datacenter = "dc1"
+		# tls
+		ca_file = "../test/hostname/CertAuth.crt"
+		cert_file = "../test/hostname/Bob.crt"
+		key_file = "../test/hostname/Bob.key"
+		verify_incoming               = true
+		verify_outgoing               = true
+		verify_server_hostname        = true
+		# wanfed
+		connect {
+			enabled = true
+			enable_mesh_gateway_wan_federation = true
+		}
+	`)
+	defer a1.Shutdown()
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
+
+	// We'll use the same gateway for all datacenters since it doesn't care.
+	var (
+		rpcAddr1 = ipaddr.FormatAddressPort("127.0.0.1", a1.Config.ServerPort)
+		rpcAddr2 = ipaddr.FormatAddressPort("127.0.0.1", secondaryRPCPorts[0])
+		rpcAddr3 = ipaddr.FormatAddressPort("127.0.0.1", secondaryRPCPorts[1])
+	)
+	var p tcpproxy.Proxy
+	p.AddSNIRoute(gwAddr, "bob.server.dc1.consul", tcpproxy.To(rpcAddr1))
+	p.AddSNIRoute(gwAddr, "server.dc1.consul", tcpproxy.To(rpcAddr1))
+	p.AddSNIRoute(gwAddr, "betty.server.dc2.consul", tcpproxy.To(rpcAddr2))
+	p.AddSNIRoute(gwAddr, "server.dc2.consul", tcpproxy.To(rpcAddr2))
+	p.AddSNIRoute(gwAddr, "bonnie.server.dc3.consul", tcpproxy.To(rpcAddr3))
+	p.AddSNIRoute(gwAddr, "server.dc3.consul", tcpproxy.To(rpcAddr3))
+	p.AddStopACMESearch(gwAddr)
+	require.NoError(t, p.Start())
+	defer func() {
+		p.Close()
+		p.Wait()
+	}()
+
+	t.Logf("routing %s => %s", "{bob.,}server.dc1.consul", rpcAddr1)
+	t.Logf("routing %s => %s", "{betty.,}server.dc2.consul", rpcAddr2)
+	t.Logf("routing %s => %s", "{bonnie.,}server.dc3.consul", rpcAddr3)
+
+	// Register this into the agent in dc1.
+	{
+		args := &structs.ServiceDefinition{
+			Kind: structs.ServiceKindMeshGateway,
+			ID:   "mesh-gateway",
+			Name: "mesh-gateway",
+			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
+			Port: gwPort[0],
+		}
+		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		require.NoError(t, err)
+
+		obj, err := a1.srv.AgentRegisterService(nil, req)
+		require.NoError(t, err)
+		require.Nil(t, obj)
+	}
+
+	waitForFederationState := func(t *testing.T, a *TestAgent, dc string) {
+		retry.Run(t, func(r *retry.R) {
+			req, err := http.NewRequest("GET", "/v1/internal/federation-state/"+dc, nil)
+			require.NoError(r, err)
+
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.FederationStateGet(resp, req)
+			require.NoError(r, err)
+			require.NotNil(r, obj)
+
+			out, ok := obj.(structs.FederationStateResponse)
+			require.True(r, ok)
+			require.NotNil(r, out.State)
+			require.Len(r, out.State.MeshGateways, 1)
+		})
+	}
+
+	// Wait until at least catalog AE and federation state AE fire.
+	waitForFederationState(t, a1, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		require.NotEmpty(r, a1.PickRandomMeshGatewaySuitableForDialing("dc1"))
+	})
+
+	a2 := NewTestAgent(t, t.Name()+"-betty", `
+		domain = "consul"
+		node_name = "betty"
+		datacenter = "dc2"
+		primary_datacenter = "dc1"
+		# tls
+		ca_file = "../test/hostname/CertAuth.crt"
+		cert_file = "../test/hostname/Betty.crt"
+		key_file = "../test/hostname/Betty.key"
+		verify_incoming               = true
+		verify_outgoing               = true
+		verify_server_hostname        = true
+		ports {
+			server = `+strconv.Itoa(secondaryRPCPorts[0])+`
+		}
+		# wanfed
+		primary_gateways = ["`+gwAddr+`"]
+		connect {
+			enabled = true
+			enable_mesh_gateway_wan_federation = true
+		}
+	`)
+	defer a2.Shutdown()
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
+
+	a3 := NewTestAgent(t, t.Name()+"-bonnie", `
+		domain = "consul"
+		node_name = "bonnie"
+		datacenter = "dc3"
+		primary_datacenter = "dc1"
+		# tls
+		ca_file = "../test/hostname/CertAuth.crt"
+		cert_file = "../test/hostname/Bonnie.crt"
+		key_file = "../test/hostname/Bonnie.key"
+		verify_incoming               = true
+		verify_outgoing               = true
+		verify_server_hostname        = true
+		ports {
+			server = `+strconv.Itoa(secondaryRPCPorts[1])+`
+		}
+		# wanfed
+		primary_gateways = ["`+gwAddr+`"]
+		connect {
+			enabled = true
+			enable_mesh_gateway_wan_federation = true
+		}
+	`)
+	defer a3.Shutdown()
+	testrpc.WaitForTestAgent(t, a3.RPC, "dc3")
+
+	// The primary_gateways config setting should cause automatic mesh join.
+	// Assert that the secondaries have joined the primary.
+	findPrimary := func(r *retry.R, a *TestAgent) *serf.Member {
+		var primary *serf.Member
+		for _, m := range a.WANMembers() {
+			if m.Tags["dc"] == "dc1" {
+				require.Nil(r, primary, "already found one node in dc1")
+				primary = &m
+			}
+		}
+		require.NotNil(r, primary)
+		return primary
+	}
+	retry.Run(t, func(r *retry.R) {
+		p2, p3 := findPrimary(r, a2), findPrimary(r, a3)
+		require.Equal(r, "bob.dc1", p2.Name)
+		require.Equal(r, "bob.dc1", p3.Name)
+	})
+
+	testrpc.WaitForLeader(t, a2.RPC, "dc2")
+	testrpc.WaitForLeader(t, a3.RPC, "dc3")
+
+	// Now we can register this into the catalog in dc2 and dc3.
+	{
+		args := &structs.ServiceDefinition{
+			Kind: structs.ServiceKindMeshGateway,
+			ID:   "mesh-gateway",
+			Name: "mesh-gateway",
+			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
+			Port: gwPort[0],
+		}
+		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		require.NoError(t, err)
+
+		obj, err := a2.srv.AgentRegisterService(nil, req)
+		require.NoError(t, err)
+		require.Nil(t, obj)
+	}
+	{
+		args := &structs.ServiceDefinition{
+			Kind: structs.ServiceKindMeshGateway,
+			ID:   "mesh-gateway",
+			Name: "mesh-gateway",
+			Meta: map[string]string{structs.MetaWANFederationKey: "1"},
+			Port: gwPort[0],
+		}
+		req, err := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		require.NoError(t, err)
+
+		obj, err := a3.srv.AgentRegisterService(nil, req)
+		require.NoError(t, err)
+		require.Nil(t, obj)
+	}
+
+	// Wait until federation state replication functions
+	waitForFederationState(t, a1, "dc1")
+	waitForFederationState(t, a1, "dc2")
+	waitForFederationState(t, a1, "dc3")
+
+	waitForFederationState(t, a2, "dc1")
+	waitForFederationState(t, a2, "dc2")
+	waitForFederationState(t, a2, "dc3")
+
+	waitForFederationState(t, a3, "dc1")
+	waitForFederationState(t, a3, "dc2")
+	waitForFederationState(t, a3, "dc3")
+
+	retry.Run(t, func(r *retry.R) {
+		require.NotEmpty(r, a1.PickRandomMeshGatewaySuitableForDialing("dc1"))
+		require.NotEmpty(r, a1.PickRandomMeshGatewaySuitableForDialing("dc2"))
+		require.NotEmpty(r, a1.PickRandomMeshGatewaySuitableForDialing("dc3"))
+
+		require.NotEmpty(r, a2.PickRandomMeshGatewaySuitableForDialing("dc1"))
+		require.NotEmpty(r, a2.PickRandomMeshGatewaySuitableForDialing("dc2"))
+		require.NotEmpty(r, a2.PickRandomMeshGatewaySuitableForDialing("dc3"))
+
+		require.NotEmpty(r, a3.PickRandomMeshGatewaySuitableForDialing("dc1"))
+		require.NotEmpty(r, a3.PickRandomMeshGatewaySuitableForDialing("dc2"))
+		require.NotEmpty(r, a3.PickRandomMeshGatewaySuitableForDialing("dc3"))
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.WANMembers()), 3; got != want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+		if got, want := len(a2.WANMembers()), 3; got != want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+		if got, want := len(a3.WANMembers()), 3; got != want {
+			r.Fatalf("got %d WAN members want at least %d", got, want)
+		}
+	})
+
+	// Ensure we can do some trivial RPC in all directions.
+	agents := map[string]*TestAgent{"dc1": a1, "dc2": a2, "dc3": a3}
+	names := map[string]string{"dc1": "bob", "dc2": "betty", "dc3": "bonnie"}
+	for _, srcDC := range []string{"dc1", "dc2", "dc3"} {
+		a := agents[srcDC]
+		for _, dstDC := range []string{"dc1", "dc2", "dc3"} {
+			if srcDC == dstDC {
+				continue
+			}
+			t.Run(srcDC+" to "+dstDC, func(t *testing.T) {
+				req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
+				require.NoError(t, err)
+
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.CatalogNodes(resp, req)
+				require.NoError(t, err)
+				require.NotNil(t, obj)
+
+				nodes, ok := obj.(structs.Nodes)
+				require.True(t, ok)
+				require.Len(t, nodes, 1)
+				node := nodes[0]
+				require.Equal(t, dstDC, node.Datacenter)
+				require.Equal(t, names[dstDC], node.Node)
+			})
 		}
 	}
 }

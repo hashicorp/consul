@@ -1320,6 +1320,20 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	*nodes = csn
 }
 
+// filterDatacenterCheckServiceNodes is used to filter nodes based on ACL rules.
+func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) {
+	dn := *datacenterNodes
+	out := make(map[string]structs.CheckServiceNodes)
+	for dc, _ := range dn {
+		nodes := dn[dc]
+		f.filterCheckServiceNodes(&nodes)
+		if len(nodes) > 0 {
+			out[dc] = nodes
+		}
+	}
+	*datacenterNodes = out
+}
+
 // filterSessions is used to filter a set of sessions based on ACLs.
 func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 	s := *sessions
@@ -1697,6 +1711,9 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 
 	case *structs.IndexedCheckServiceNodes:
 		filt.filterCheckServiceNodes(&v.Nodes)
+
+	case *structs.DatacenterIndexedCheckServiceNodes:
+		filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
 
 	case *structs.IndexedCoordinates:
 		filt.filterCoordinates(&v.Coordinates)

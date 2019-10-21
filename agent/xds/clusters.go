@@ -113,11 +113,13 @@ func makeExposeClusterName(destinationPort int) string {
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
 func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+	datacenters := cfgSnap.MeshGateway.Datacenters()
+
 	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
-	clusters := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
+	clusters := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the remote dc clusters
-	for dc, _ := range cfgSnap.MeshGateway.GatewayGroups {
+	for _, dc := range datacenters {
 		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 
 		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
@@ -125,6 +127,30 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			return nil, err
 		}
 		clusters = append(clusters, cluster)
+	}
+
+	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+		// Add all of the remote wildcard datacenter mappings for servers.
+		for _, dc := range datacenters {
+			clusterName := cfgSnap.ServerSNIFn(dc, "")
+
+			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+			clusters = append(clusters, cluster)
+		}
+
+		// And for the current datacenter, send all flavors appropriately.
+		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
+			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
+
+			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+			clusters = append(clusters, cluster)
+		}
 	}
 
 	// generate the per-service clusters
