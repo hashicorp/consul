@@ -22,9 +22,9 @@ markComment: |
   If you think this is still an important issue in the latest version of [Consul](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md)
   or [its documentation](https://www.consul.io/docs) please reply with a comment here which will cause it to stay open for investigation.
   If there is still no activity on this issue for 30 more days, we will go ahead and close it.
-
- Feel free to check out the [community forum](https://discuss.hashicorp.com/c/consul) as well!
- Thank you!
+  
+  Feel free to check out the [community forum](https://discuss.hashicorp.com/c/consul) as well!
+  Thank you!
 
 # Comment to post when removing the stale label. Set to `false` to disable
 unmarkComment: false
