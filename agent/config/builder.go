@@ -1090,10 +1090,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 
-	//MinQuorum is set to BootstrarpExpect if available
-	if rt.BootstrapExpect != 0 {
-		rt.AutopilotMinQuorum = uint(rt.BootstrapExpect)
-	}
 	// Validate the given Connect CA provider config
 	validCAProviders := map[string]bool{
 		"":                       true,

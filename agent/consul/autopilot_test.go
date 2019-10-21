@@ -377,6 +377,7 @@ func TestAutopilot_BootstrapExpect(t *testing.T) {
 		c.Datacenter = dc
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
+		c.AutopilotConfig.MinQuorum = 3
 		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(2)
 		c.AutopilotInterval = 100 * time.Millisecond
 		//Let us know when a server is actually gone
