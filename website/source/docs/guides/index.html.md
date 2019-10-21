@@ -10,9 +10,9 @@ description: |-
 
 # Consul Guides
 
-~> The Consul guides have moved to the [HashiCorp Learn platform](https://learn.hashicorp.com/consul).
+~> The Consul guides have moved to the [HashiCorp Learn platform](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_medium=docs&utm_content=guide-index).
 
-[Guides](https://learn.hashicorp.com/consul) are step by step command-line
+[Guides](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_medium=docs&utm_content=guide-index) are step by step command-line
 walkthroughs that demonstrate how to perform common operations using Consul, and
 complement the feature-focused Consul documentation.
 
@@ -28,13 +28,14 @@ Tracks include:
 
 - Getting Started
 - Getting Started with Kubernetes
+- Setup a Secure Development Environment
 - Day 1: Deploying Your First Datacenter
 - Day 1: Security and Network Operations
-- Day 1: Kubernetes Operations
-- Day 2: Advanced Operations and Maintenance
-- Development: Service Discovery
-- Development: Service Segmentation
-- Development: Service Configuration
-- Integrations
+- Day 1: Kubernetes Production Deployment
+- Maintenance and Monitoring Operations
+- Service Discovery and Consul DNS
+- Service Segmentation and Consul Connect
+- Service Configuration and Consul KV
+- Cloud and Load Balancer Integrations
 
-[**Explore the Learn platform**](https://learn.hashicorp.com/consul)
+[**Explore the Learn platform**](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_content=guide-index)
