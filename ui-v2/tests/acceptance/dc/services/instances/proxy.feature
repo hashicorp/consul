@@ -94,8 +94,8 @@ Feature: dc / services / instances / proxy: Show Proxy Service Instance
     And I see 2 of the exposedPaths object
     And I see combinedAddress on the exposedPaths like yaml
     ---
-    - 10.0.0.1/grpc-metrics:8080
-    - 10.0.0.1/http-metrics:8083
+    - 10.0.0.1:8080/grpc-metrics
+    - 10.0.0.1:8083/http-metrics
     ---
   Scenario: A Proxy Service instance with only automatically exposed checks but no paths
     Given 1 datacenter model with the value "dc1"
