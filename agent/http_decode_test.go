@@ -15,6 +15,7 @@ import (
 )
 
 // TODO:
+// - should i change ConfigApply decode code or leave it as-is (TestDecodeConfigApply)?
 // - sanity check tests, deepequal with all values filled in
 // - benchmarks
 //
@@ -2210,7 +2211,7 @@ func TestDecodeCatalogDeregister(t *testing.T) {
 // ==================================
 func TestDecodeConfigApply(t *testing.T) {
 	// TODO $$
-	t.Skip("Leave this fn as-is. Decoding code should probably be the same for all config parsing.")
+	t.Skip("Leave this fn as-is? Decoding code should probably be the same for all config parsing.")
 
 }
 
