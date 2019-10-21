@@ -12,7 +12,7 @@ description: |-
 
 ~> The Consul guides have moved to the [HashiCorp Learn platform](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_medium=docs&utm_content=guide-index).
 
-[Guides](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_content=guide-index) are step by step command-line
+[Guides](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_medium=docs&utm_content=guide-index) are step by step command-line
 walkthroughs that demonstrate how to perform common operations using Consul, and
 complement the feature-focused Consul documentation.
 
