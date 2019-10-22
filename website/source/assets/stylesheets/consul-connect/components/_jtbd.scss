@@ -57,6 +57,10 @@
   .g-btn {
     @media (min-width: 768px) {
       margin-top: 22px;
+      border: 1px solid #ca2171;
+      background-color: #c62a71;
+      transition: all 0.25s ease;
+      color: #ffffff;
     }
   }
 }
