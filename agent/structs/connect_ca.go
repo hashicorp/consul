@@ -289,7 +289,7 @@ type CommonCAProviderConfig struct {
 	CSRMaxConcurrent int
 
 	// PrivateKeyType specifies which type of key the CA should generate. It only
-	// applies when the provider is generating it's own key and is ignored if the
+	// applies when the provider is generating its own key and is ignored if the
 	// provider already has a key or an external key is provided. Supported values
 	// are "ec" or "rsa". "ec" is the default and will generate a NIST P-256
 	// Elliptic key.

@@ -249,7 +249,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
 	// Currently we only support EC leaf keys and certs even if the CA is using
 	// RSA. We might allow Leafs to follow the signing CA key type later if we
-	// need to for compatibility sake but this is allowe by TLS 1.2 and works with
+	// need to for compatibility sake but this is allowed by TLS 1.2 and works with
 	// both openssl verify (which we use as a sanity check in our tests of this
 	// package) and Go's TLS verification.
 	certPEM, keyPEM, err := testLeaf(t, service, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
