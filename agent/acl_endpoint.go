@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -327,7 +328,7 @@ func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.Policy, fixTimeAndHashFields); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args.Policy); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
@@ -511,7 +512,7 @@ func (s *HTTPServer) aclTokenSetInternal(resp http.ResponseWriter, req *http.Req
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args.ACLToken); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
@@ -555,7 +556,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 		Create:     true,
 	}
 
-	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil && err.Error() != "EOF" {
+	if err := json.NewDecoder(req.Body).Decode(&args.ACLToken); err != nil && err.Error() != "EOF" {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)
@@ -689,7 +690,7 @@ func (s *HTTPServer) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, r
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.Role, fixTimeAndHashFields); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args.Role); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Role decoding failed: %v", err)}
 	}
 
@@ -822,7 +823,7 @@ func (s *HTTPServer) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Req
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.BindingRule, fixTimeAndHashFields); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args.BindingRule); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("BindingRule decoding failed: %v", err)}
 	}
 
@@ -954,7 +955,7 @@ func (s *HTTPServer) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Requ
 	}
 	s.parseToken(req, &args.Token)
 
-	if err := decodeBody(req, &args.AuthMethod, fixTimeAndHashFields); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args.AuthMethod); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("AuthMethod decoding failed: %v", err)}
 	}
 
@@ -1000,7 +1001,7 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 	}
 	s.parseDC(req, &args.Datacenter)
 
-	if err := decodeBody(req, &args.Auth, nil); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args.Auth); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
 	}
 

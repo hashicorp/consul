@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -103,7 +104,7 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	var raw map[string]interface{}
-	if err := decodeBody(req, &raw, nil); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&raw); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 

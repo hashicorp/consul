@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -150,7 +151,7 @@ func (s *HTTPServer) CoordinateUpdate(resp http.ResponseWriter, req *http.Reques
 	}
 
 	args := structs.CoordinateUpdateRequest{}
-	if err := decodeBody(req, &args, nil); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil

@@ -29,7 +29,7 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 
 	if req.Method == "POST" {
 		var raw map[string]interface{}
-		if err := decodeBody(req, &raw, nil); err != nil {
+		if err := json.NewDecoder(req.Body).Decode(&raw); err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 		}
 
