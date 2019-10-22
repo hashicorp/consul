@@ -154,12 +154,12 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
-		Delegate:    c,
-		Logger:      logger,
-		AutoDisable: true,
-		CacheConfig: clientACLCacheConfig,
-		Sentinel:    nil,
+		Config:           config,
+		Delegate:         c,
+		Logger:           logger,
+		AutoDisable:      true,
+		CacheConfig:      clientACLCacheConfig,
+		EnterpriseConfig: newEnterpriseACLConfig(logger),
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -265,7 +265,7 @@ func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
 // RemoveFailedNode is used to remove a failed node from the cluster
 func (c *Client) RemoveFailedNode(node string, prune bool) error {
 	if prune {
-		c.serf.RemoveFailedNodePrune(node)
+		return c.serf.RemoveFailedNodePrune(node)
 	}
 	return c.serf.RemoveFailedNode(node)
 }

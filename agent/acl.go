@@ -41,20 +41,22 @@ func (a *Agent) initializeACLs() error {
 	// only. This used to allow a prefix match on agent names but that seems
 	// entirely unnecessary so it is now using an exact match.
 	policy := &acl.Policy{
-		Agents: []*acl.AgentPolicy{
-			&acl.AgentPolicy{
-				Node:   a.config.NodeName,
-				Policy: acl.PolicyWrite,
+		PolicyRules: acl.PolicyRules{
+			Agents: []*acl.AgentRule{
+				&acl.AgentRule{
+					Node:   a.config.NodeName,
+					Policy: acl.PolicyWrite,
+				},
 			},
-		},
-		NodePrefixes: []*acl.NodePolicy{
-			&acl.NodePolicy{
-				Name:   "",
-				Policy: acl.PolicyRead,
+			NodePrefixes: []*acl.NodeRule{
+				&acl.NodeRule{
+					Name:   "",
+					Policy: acl.PolicyRead,
+				},
 			},
 		},
 	}
-	master, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	master, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	if err != nil {
 		return err
 	}
@@ -75,14 +77,16 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 	}
 
 	// Vet the service itself.
-	if !rule.ServiceWrite(service.Service, nil) {
+	// TODO (namespaces) - pass through a real ent authz ctx
+	if rule.ServiceWrite(service.Service, nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	// Vet any service that might be getting overwritten.
 	services := a.State.Services()
 	if existing, ok := services[service.ID]; ok {
-		if !rule.ServiceWrite(existing.Service, nil) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.ServiceWrite(existing.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -90,7 +94,8 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 	// If the service is a proxy, ensure that it has write on the destination too
 	// since it can be discovered as an instance of that service.
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if !rule.ServiceWrite(service.Proxy.DestinationServiceName, nil) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.ServiceWrite(service.Proxy.DestinationServiceName, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -113,7 +118,8 @@ func (a *Agent) vetServiceUpdate(token string, serviceID string) error {
 	// Vet any changes based on the existing services's info.
 	services := a.State.Services()
 	if existing, ok := services[serviceID]; ok {
-		if !rule.ServiceWrite(existing.Service, nil) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.ServiceWrite(existing.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else {
@@ -137,11 +143,13 @@ func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error
 
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
-		if !rule.ServiceWrite(check.ServiceName, nil) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.ServiceWrite(check.ServiceName, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else {
-		if !rule.NodeWrite(a.config.NodeName, nil) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.NodeWrite(a.config.NodeName, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -150,11 +158,13 @@ func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error
 	checks := a.State.Checks()
 	if existing, ok := checks[check.CheckID]; ok {
 		if len(existing.ServiceName) > 0 {
-			if !rule.ServiceWrite(existing.ServiceName, nil) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.ServiceWrite(existing.ServiceName, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if !rule.NodeWrite(a.config.NodeName, nil) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.NodeWrite(a.config.NodeName, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -178,11 +188,13 @@ func (a *Agent) vetCheckUpdate(token string, checkID types.CheckID) error {
 	checks := a.State.Checks()
 	if existing, ok := checks[checkID]; ok {
 		if len(existing.ServiceName) > 0 {
-			if !rule.ServiceWrite(existing.ServiceName, nil) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.ServiceWrite(existing.ServiceName, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if !rule.NodeWrite(a.config.NodeName, nil) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.NodeWrite(a.config.NodeName, nil) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -208,7 +220,8 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	m := *members
 	for i := 0; i < len(m); i++ {
 		node := m[i].Name
-		if rule.NodeRead(node) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.NodeRead(node, nil) == acl.Allow {
 			continue
 		}
 		a.logger.Printf("[DEBUG] agent: dropping node %q from result due to ACLs", node)
@@ -232,7 +245,8 @@ func (a *Agent) filterServices(token string, services *map[string]*structs.NodeS
 
 	// Filter out services based on the service policy.
 	for id, service := range *services {
-		if rule.ServiceRead(service.Service) {
+		// TODO (namespaces) - pass through a real ent authz ctx
+		if rule.ServiceRead(service.Service, nil) == acl.Allow {
 			continue
 		}
 		a.logger.Printf("[DEBUG] agent: dropping service %q from result due to ACLs", id)
@@ -255,11 +269,13 @@ func (a *Agent) filterChecks(token string, checks *map[types.CheckID]*structs.He
 	// Filter out checks based on the node or service policy.
 	for id, check := range *checks {
 		if len(check.ServiceName) > 0 {
-			if rule.ServiceRead(check.ServiceName) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.ServiceRead(check.ServiceName, nil) == acl.Allow {
 				continue
 			}
 		} else {
-			if rule.NodeRead(a.config.NodeName) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule.NodeRead(a.config.NodeName, nil) == acl.Allow {
 				continue
 			}
 		}

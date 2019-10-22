@@ -87,100 +87,100 @@ func TestPolicySourceParse(t *testing.T) {
 				`query "bar" {      `,
 				`	policy = "deny"  `,
 				`}                  `),
-			&Policy{
-				AgentPrefixes: []*AgentPolicy{
-					&AgentPolicy{
+			&Policy{PolicyRules: PolicyRules{
+				AgentPrefixes: []*AgentRule{
+					&AgentRule{
 						Node:   "foo",
 						Policy: PolicyRead,
 					},
-					&AgentPolicy{
+					&AgentRule{
 						Node:   "bar",
 						Policy: PolicyWrite,
 					},
 				},
-				EventPrefixes: []*EventPolicy{
-					&EventPolicy{
+				EventPrefixes: []*EventRule{
+					&EventRule{
 						Event:  "",
 						Policy: PolicyRead,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Keyring: PolicyDeny,
-				KeyPrefixes: []*KeyPolicy{
-					&KeyPolicy{
+				KeyPrefixes: []*KeyRule{
+					&KeyRule{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "foo/",
 						Policy: PolicyWrite,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "foo/bar/",
 						Policy: PolicyRead,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "foo/bar/baz",
 						Policy: PolicyDeny,
 					},
 				},
-				NodePrefixes: []*NodePolicy{
-					&NodePolicy{
+				NodePrefixes: []*NodeRule{
+					&NodeRule{
 						Name:   "",
 						Policy: PolicyRead,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Operator: PolicyDeny,
-				PreparedQueryPrefixes: []*PreparedQueryPolicy{
-					&PreparedQueryPolicy{
+				PreparedQueryPrefixes: []*PreparedQueryRule{
+					&PreparedQueryRule{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "bar",
 						Policy: PolicyDeny,
 					},
 				},
-				ServicePrefixes: []*ServicePolicy{
-					&ServicePolicy{
+				ServicePrefixes: []*ServiceRule{
+					&ServiceRule{
 						Name:   "",
 						Policy: PolicyWrite,
 					},
-					&ServicePolicy{
+					&ServiceRule{
 						Name:   "foo",
 						Policy: PolicyRead,
 					},
 				},
-				SessionPrefixes: []*SessionPolicy{
-					&SessionPolicy{
+				SessionPrefixes: []*SessionRule{
+					&SessionRule{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionPolicy{
+					&SessionRule{
 						Node:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 			"",
 		},
 		{
@@ -262,100 +262,100 @@ func TestPolicySourceParse(t *testing.T) {
 				`		}                    `,
 				`	}                       `,
 				`}                         `),
-			&Policy{
-				AgentPrefixes: []*AgentPolicy{
-					&AgentPolicy{
+			&Policy{PolicyRules: PolicyRules{
+				AgentPrefixes: []*AgentRule{
+					&AgentRule{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&AgentPolicy{
+					&AgentRule{
 						Node:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
-				EventPrefixes: []*EventPolicy{
-					&EventPolicy{
+				EventPrefixes: []*EventRule{
+					&EventRule{
 						Event:  "",
 						Policy: PolicyRead,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Keyring: PolicyDeny,
-				KeyPrefixes: []*KeyPolicy{
-					&KeyPolicy{
+				KeyPrefixes: []*KeyRule{
+					&KeyRule{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "foo/",
 						Policy: PolicyWrite,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "foo/bar/",
 						Policy: PolicyRead,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "foo/bar/baz",
 						Policy: PolicyDeny,
 					},
 				},
-				NodePrefixes: []*NodePolicy{
-					&NodePolicy{
+				NodePrefixes: []*NodeRule{
+					&NodeRule{
 						Name:   "",
 						Policy: PolicyRead,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
 				Operator: PolicyDeny,
-				PreparedQueryPrefixes: []*PreparedQueryPolicy{
-					&PreparedQueryPolicy{
+				PreparedQueryPrefixes: []*PreparedQueryRule{
+					&PreparedQueryRule{
 						Prefix: "",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "bar",
 						Policy: PolicyDeny,
 					},
 				},
-				ServicePrefixes: []*ServicePolicy{
-					&ServicePolicy{
+				ServicePrefixes: []*ServiceRule{
+					&ServiceRule{
 						Name:   "",
 						Policy: PolicyWrite,
 					},
-					&ServicePolicy{
+					&ServiceRule{
 						Name:   "foo",
 						Policy: PolicyRead,
 					},
 				},
-				SessionPrefixes: []*SessionPolicy{
-					&SessionPolicy{
+				SessionPrefixes: []*SessionRule{
+					&SessionRule{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionPolicy{
+					&SessionRule{
 						Node:   "bar",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 			"",
 		},
 		{
@@ -365,14 +365,14 @@ func TestPolicySourceParse(t *testing.T) {
 				`service "foo" {    `,
 				`   policy = "write"`,
 				`}                  `),
-			&Policy{
-				ServicePrefixes: []*ServicePolicy{
+			&Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
 					{
 						Name:   "foo",
 						Policy: "write",
 					},
 				},
-			},
+			}},
 			"",
 		},
 		{
@@ -383,15 +383,15 @@ func TestPolicySourceParse(t *testing.T) {
 				`   policy = "write"   `,
 				`   intentions = "read"`,
 				`}                     `),
-			&Policy{
-				ServicePrefixes: []*ServicePolicy{
+			&Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
 					{
 						Name:       "foo",
 						Policy:     "write",
 						Intentions: "read",
 					},
 				},
-			},
+			}},
 			"",
 		},
 		{
@@ -409,7 +409,7 @@ func TestPolicySourceParse(t *testing.T) {
 			"Bad Policy - ACL",
 
 			SyntaxCurrent,
-			`acl = "nope"`,
+			`acl = "list"`, // there is no list policy but this helps to exercise another check in isPolicyValid
 			nil,
 			"Invalid acl policy",
 		},
@@ -529,14 +529,14 @@ func TestPolicySourceParse(t *testing.T) {
 			"Keyring Empty",
 			SyntaxCurrent,
 			`keyring = ""`,
-			&Policy{Keyring: ""},
+			&Policy{PolicyRules: PolicyRules{Keyring: ""}},
 			"",
 		},
 		{
 			"Operator Empty",
 			SyntaxCurrent,
 			`operator = ""`,
-			&Policy{Operator: ""},
+			&Policy{PolicyRules: PolicyRules{Operator: ""}},
 			"",
 		},
 	}
@@ -565,707 +565,707 @@ func TestMergePolicies(t *testing.T) {
 		{
 			name: "Agents",
 			input: []*Policy{
-				&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
+				&Policy{PolicyRules: PolicyRules{
+					Agents: []*AgentRule{
+						&AgentRule{
 							Node:   "foo",
 							Policy: PolicyWrite,
 						},
-						&AgentPolicy{
+						&AgentRule{
 							Node:   "bar",
 							Policy: PolicyRead,
 						},
-						&AgentPolicy{
+						&AgentRule{
 							Node:   "baz",
 							Policy: PolicyWrite,
 						},
 					},
-					AgentPrefixes: []*AgentPolicy{
-						&AgentPolicy{
+					AgentPrefixes: []*AgentRule{
+						&AgentRule{
 							Node:   "000",
 							Policy: PolicyWrite,
 						},
-						&AgentPolicy{
+						&AgentRule{
 							Node:   "111",
 							Policy: PolicyRead,
 						},
-						&AgentPolicy{
+						&AgentRule{
 							Node:   "222",
 							Policy: PolicyWrite,
 						},
 					},
-				},
-				&Policy{
-					Agents: []*AgentPolicy{
-						&AgentPolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					Agents: []*AgentRule{
+						&AgentRule{
 							Node:   "foo",
 							Policy: PolicyRead,
 						},
-						&AgentPolicy{
+						&AgentRule{
 							Node:   "baz",
 							Policy: PolicyDeny,
 						},
 					},
-					AgentPrefixes: []*AgentPolicy{
-						&AgentPolicy{
+					AgentPrefixes: []*AgentRule{
+						&AgentRule{
 							Node:   "000",
 							Policy: PolicyRead,
 						},
-						&AgentPolicy{
+						&AgentRule{
 							Node:   "222",
 							Policy: PolicyDeny,
 						},
 					},
 				},
-			},
-			expected: &Policy{
-				Agents: []*AgentPolicy{
-					&AgentPolicy{
+				}},
+			expected: &Policy{PolicyRules: PolicyRules{
+				Agents: []*AgentRule{
+					&AgentRule{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&AgentPolicy{
+					&AgentRule{
 						Node:   "bar",
 						Policy: PolicyRead,
 					},
-					&AgentPolicy{
+					&AgentRule{
 						Node:   "baz",
 						Policy: PolicyDeny,
 					},
 				},
-				AgentPrefixes: []*AgentPolicy{
-					&AgentPolicy{
+				AgentPrefixes: []*AgentRule{
+					&AgentRule{
 						Node:   "000",
 						Policy: PolicyWrite,
 					},
-					&AgentPolicy{
+					&AgentRule{
 						Node:   "111",
 						Policy: PolicyRead,
 					},
-					&AgentPolicy{
+					&AgentRule{
 						Node:   "222",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Events",
 			input: []*Policy{
-				&Policy{
-					Events: []*EventPolicy{
-						&EventPolicy{
+				&Policy{PolicyRules: PolicyRules{
+					Events: []*EventRule{
+						&EventRule{
 							Event:  "foo",
 							Policy: PolicyWrite,
 						},
-						&EventPolicy{
+						&EventRule{
 							Event:  "bar",
 							Policy: PolicyRead,
 						},
-						&EventPolicy{
+						&EventRule{
 							Event:  "baz",
 							Policy: PolicyWrite,
 						},
 					},
-					EventPrefixes: []*EventPolicy{
-						&EventPolicy{
+					EventPrefixes: []*EventRule{
+						&EventRule{
 							Event:  "000",
 							Policy: PolicyWrite,
 						},
-						&EventPolicy{
+						&EventRule{
 							Event:  "111",
 							Policy: PolicyRead,
 						},
-						&EventPolicy{
+						&EventRule{
 							Event:  "222",
 							Policy: PolicyWrite,
 						},
 					},
-				},
-				&Policy{
-					Events: []*EventPolicy{
-						&EventPolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					Events: []*EventRule{
+						&EventRule{
 							Event:  "foo",
 							Policy: PolicyRead,
 						},
-						&EventPolicy{
+						&EventRule{
 							Event:  "baz",
 							Policy: PolicyDeny,
 						},
 					},
-					EventPrefixes: []*EventPolicy{
-						&EventPolicy{
+					EventPrefixes: []*EventRule{
+						&EventRule{
 							Event:  "000",
 							Policy: PolicyRead,
 						},
-						&EventPolicy{
+						&EventRule{
 							Event:  "222",
 							Policy: PolicyDeny,
 						},
 					},
-				},
+				}},
 			},
-			expected: &Policy{
-				Events: []*EventPolicy{
-					&EventPolicy{
+			expected: &Policy{PolicyRules: PolicyRules{
+				Events: []*EventRule{
+					&EventRule{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "bar",
 						Policy: PolicyRead,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "baz",
 						Policy: PolicyDeny,
 					},
 				},
-				EventPrefixes: []*EventPolicy{
-					&EventPolicy{
+				EventPrefixes: []*EventRule{
+					&EventRule{
 						Event:  "000",
 						Policy: PolicyWrite,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "111",
 						Policy: PolicyRead,
 					},
-					&EventPolicy{
+					&EventRule{
 						Event:  "222",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Node",
 			input: []*Policy{
-				&Policy{
-					Nodes: []*NodePolicy{
-						&NodePolicy{
+				&Policy{PolicyRules: PolicyRules{
+					Nodes: []*NodeRule{
+						&NodeRule{
 							Name:   "foo",
 							Policy: PolicyWrite,
 						},
-						&NodePolicy{
+						&NodeRule{
 							Name:   "bar",
 							Policy: PolicyRead,
 						},
-						&NodePolicy{
+						&NodeRule{
 							Name:   "baz",
 							Policy: PolicyWrite,
 						},
 					},
-					NodePrefixes: []*NodePolicy{
-						&NodePolicy{
+					NodePrefixes: []*NodeRule{
+						&NodeRule{
 							Name:   "000",
 							Policy: PolicyWrite,
 						},
-						&NodePolicy{
+						&NodeRule{
 							Name:   "111",
 							Policy: PolicyRead,
 						},
-						&NodePolicy{
+						&NodeRule{
 							Name:   "222",
 							Policy: PolicyWrite,
 						},
 					},
-				},
-				&Policy{
-					Nodes: []*NodePolicy{
-						&NodePolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					Nodes: []*NodeRule{
+						&NodeRule{
 							Name:   "foo",
 							Policy: PolicyRead,
 						},
-						&NodePolicy{
+						&NodeRule{
 							Name:   "baz",
 							Policy: PolicyDeny,
 						},
 					},
-					NodePrefixes: []*NodePolicy{
-						&NodePolicy{
+					NodePrefixes: []*NodeRule{
+						&NodeRule{
 							Name:   "000",
 							Policy: PolicyRead,
 						},
-						&NodePolicy{
+						&NodeRule{
 							Name:   "222",
 							Policy: PolicyDeny,
 						},
 					},
 				},
-			},
-			expected: &Policy{
-				Nodes: []*NodePolicy{
-					&NodePolicy{
+				}},
+			expected: &Policy{PolicyRules: PolicyRules{
+				Nodes: []*NodeRule{
+					&NodeRule{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "bar",
 						Policy: PolicyRead,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "baz",
 						Policy: PolicyDeny,
 					},
 				},
-				NodePrefixes: []*NodePolicy{
-					&NodePolicy{
+				NodePrefixes: []*NodeRule{
+					&NodeRule{
 						Name:   "000",
 						Policy: PolicyWrite,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "111",
 						Policy: PolicyRead,
 					},
-					&NodePolicy{
+					&NodeRule{
 						Name:   "222",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Keys",
 			input: []*Policy{
-				&Policy{
-					Keys: []*KeyPolicy{
-						&KeyPolicy{
+				&Policy{PolicyRules: PolicyRules{
+					Keys: []*KeyRule{
+						&KeyRule{
 							Prefix: "foo",
 							Policy: PolicyWrite,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "bar",
 							Policy: PolicyRead,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "baz",
 							Policy: PolicyWrite,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "zoo",
 							Policy: PolicyList,
 						},
 					},
-					KeyPrefixes: []*KeyPolicy{
-						&KeyPolicy{
+					KeyPrefixes: []*KeyRule{
+						&KeyRule{
 							Prefix: "000",
 							Policy: PolicyWrite,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "111",
 							Policy: PolicyRead,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "222",
 							Policy: PolicyWrite,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "333",
 							Policy: PolicyList,
 						},
 					},
-				},
-				&Policy{
-					Keys: []*KeyPolicy{
-						&KeyPolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					Keys: []*KeyRule{
+						&KeyRule{
 							Prefix: "foo",
 							Policy: PolicyRead,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "baz",
 							Policy: PolicyDeny,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "zoo",
 							Policy: PolicyRead,
 						},
 					},
-					KeyPrefixes: []*KeyPolicy{
-						&KeyPolicy{
+					KeyPrefixes: []*KeyRule{
+						&KeyRule{
 							Prefix: "000",
 							Policy: PolicyRead,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "222",
 							Policy: PolicyDeny,
 						},
-						&KeyPolicy{
+						&KeyRule{
 							Prefix: "333",
 							Policy: PolicyRead,
 						},
 					},
-				},
+				}},
 			},
-			expected: &Policy{
-				Keys: []*KeyPolicy{
-					&KeyPolicy{
+			expected: &Policy{PolicyRules: PolicyRules{
+				Keys: []*KeyRule{
+					&KeyRule{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "bar",
 						Policy: PolicyRead,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "baz",
 						Policy: PolicyDeny,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "zoo",
 						Policy: PolicyList,
 					},
 				},
-				KeyPrefixes: []*KeyPolicy{
-					&KeyPolicy{
+				KeyPrefixes: []*KeyRule{
+					&KeyRule{
 						Prefix: "000",
 						Policy: PolicyWrite,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "111",
 						Policy: PolicyRead,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "222",
 						Policy: PolicyDeny,
 					},
-					&KeyPolicy{
+					&KeyRule{
 						Prefix: "333",
 						Policy: PolicyList,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Services",
 			input: []*Policy{
-				&Policy{
-					Services: []*ServicePolicy{
-						&ServicePolicy{
+				&Policy{PolicyRules: PolicyRules{
+					Services: []*ServiceRule{
+						&ServiceRule{
 							Name:       "foo",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
-						&ServicePolicy{
+						&ServiceRule{
 							Name:       "bar",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServicePolicy{
+						&ServiceRule{
 							Name:       "baz",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
 					},
-					ServicePrefixes: []*ServicePolicy{
-						&ServicePolicy{
+					ServicePrefixes: []*ServiceRule{
+						&ServiceRule{
 							Name:       "000",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
-						&ServicePolicy{
+						&ServiceRule{
 							Name:       "111",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServicePolicy{
+						&ServiceRule{
 							Name:       "222",
 							Policy:     PolicyWrite,
 							Intentions: PolicyWrite,
 						},
 					},
-				},
-				&Policy{
-					Services: []*ServicePolicy{
-						&ServicePolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					Services: []*ServiceRule{
+						&ServiceRule{
 							Name:       "foo",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServicePolicy{
+						&ServiceRule{
 							Name:       "baz",
 							Policy:     PolicyDeny,
 							Intentions: PolicyDeny,
 						},
 					},
-					ServicePrefixes: []*ServicePolicy{
-						&ServicePolicy{
+					ServicePrefixes: []*ServiceRule{
+						&ServiceRule{
 							Name:       "000",
 							Policy:     PolicyRead,
 							Intentions: PolicyRead,
 						},
-						&ServicePolicy{
+						&ServiceRule{
 							Name:       "222",
 							Policy:     PolicyDeny,
 							Intentions: PolicyDeny,
 						},
 					},
-				},
+				}},
 			},
-			expected: &Policy{
-				Services: []*ServicePolicy{
-					&ServicePolicy{
+			expected: &Policy{PolicyRules: PolicyRules{
+				Services: []*ServiceRule{
+					&ServiceRule{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
-					&ServicePolicy{
+					&ServiceRule{
 						Name:       "bar",
 						Policy:     PolicyRead,
 						Intentions: PolicyRead,
 					},
-					&ServicePolicy{
+					&ServiceRule{
 						Name:       "baz",
 						Policy:     PolicyDeny,
 						Intentions: PolicyDeny,
 					},
 				},
-				ServicePrefixes: []*ServicePolicy{
-					&ServicePolicy{
+				ServicePrefixes: []*ServiceRule{
+					&ServiceRule{
 						Name:       "000",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
-					&ServicePolicy{
+					&ServiceRule{
 						Name:       "111",
 						Policy:     PolicyRead,
 						Intentions: PolicyRead,
 					},
-					&ServicePolicy{
+					&ServiceRule{
 						Name:       "222",
 						Policy:     PolicyDeny,
 						Intentions: PolicyDeny,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Sessions",
 			input: []*Policy{
-				&Policy{
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
+				&Policy{PolicyRules: PolicyRules{
+					Sessions: []*SessionRule{
+						&SessionRule{
 							Node:   "foo",
 							Policy: PolicyWrite,
 						},
-						&SessionPolicy{
+						&SessionRule{
 							Node:   "bar",
 							Policy: PolicyRead,
 						},
-						&SessionPolicy{
+						&SessionRule{
 							Node:   "baz",
 							Policy: PolicyWrite,
 						},
 					},
-					SessionPrefixes: []*SessionPolicy{
-						&SessionPolicy{
+					SessionPrefixes: []*SessionRule{
+						&SessionRule{
 							Node:   "000",
 							Policy: PolicyWrite,
 						},
-						&SessionPolicy{
+						&SessionRule{
 							Node:   "111",
 							Policy: PolicyRead,
 						},
-						&SessionPolicy{
+						&SessionRule{
 							Node:   "222",
 							Policy: PolicyWrite,
 						},
 					},
-				},
-				&Policy{
-					Sessions: []*SessionPolicy{
-						&SessionPolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					Sessions: []*SessionRule{
+						&SessionRule{
 							Node:   "foo",
 							Policy: PolicyRead,
 						},
-						&SessionPolicy{
+						&SessionRule{
 							Node:   "baz",
 							Policy: PolicyDeny,
 						},
 					},
-					SessionPrefixes: []*SessionPolicy{
-						&SessionPolicy{
+					SessionPrefixes: []*SessionRule{
+						&SessionRule{
 							Node:   "000",
 							Policy: PolicyRead,
 						},
-						&SessionPolicy{
+						&SessionRule{
 							Node:   "222",
 							Policy: PolicyDeny,
 						},
 					},
-				},
+				}},
 			},
-			expected: &Policy{
-				Sessions: []*SessionPolicy{
-					&SessionPolicy{
+			expected: &Policy{PolicyRules: PolicyRules{
+				Sessions: []*SessionRule{
+					&SessionRule{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionPolicy{
+					&SessionRule{
 						Node:   "bar",
 						Policy: PolicyRead,
 					},
-					&SessionPolicy{
+					&SessionRule{
 						Node:   "baz",
 						Policy: PolicyDeny,
 					},
 				},
-				SessionPrefixes: []*SessionPolicy{
-					&SessionPolicy{
+				SessionPrefixes: []*SessionRule{
+					&SessionRule{
 						Node:   "000",
 						Policy: PolicyWrite,
 					},
-					&SessionPolicy{
+					&SessionRule{
 						Node:   "111",
 						Policy: PolicyRead,
 					},
-					&SessionPolicy{
+					&SessionRule{
 						Node:   "222",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Prepared Queries",
 			input: []*Policy{
-				&Policy{
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
+				&Policy{PolicyRules: PolicyRules{
+					PreparedQueries: []*PreparedQueryRule{
+						&PreparedQueryRule{
 							Prefix: "foo",
 							Policy: PolicyWrite,
 						},
-						&PreparedQueryPolicy{
+						&PreparedQueryRule{
 							Prefix: "bar",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryPolicy{
+						&PreparedQueryRule{
 							Prefix: "baz",
 							Policy: PolicyWrite,
 						},
 					},
-					PreparedQueryPrefixes: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
+					PreparedQueryPrefixes: []*PreparedQueryRule{
+						&PreparedQueryRule{
 							Prefix: "000",
 							Policy: PolicyWrite,
 						},
-						&PreparedQueryPolicy{
+						&PreparedQueryRule{
 							Prefix: "111",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryPolicy{
+						&PreparedQueryRule{
 							Prefix: "222",
 							Policy: PolicyWrite,
 						},
 					},
-				},
-				&Policy{
-					PreparedQueries: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
+					PreparedQueries: []*PreparedQueryRule{
+						&PreparedQueryRule{
 							Prefix: "foo",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryPolicy{
+						&PreparedQueryRule{
 							Prefix: "baz",
 							Policy: PolicyDeny,
 						},
 					},
-					PreparedQueryPrefixes: []*PreparedQueryPolicy{
-						&PreparedQueryPolicy{
+					PreparedQueryPrefixes: []*PreparedQueryRule{
+						&PreparedQueryRule{
 							Prefix: "000",
 							Policy: PolicyRead,
 						},
-						&PreparedQueryPolicy{
+						&PreparedQueryRule{
 							Prefix: "222",
 							Policy: PolicyDeny,
 						},
 					},
-				},
+				}},
 			},
-			expected: &Policy{
-				PreparedQueries: []*PreparedQueryPolicy{
-					&PreparedQueryPolicy{
+			expected: &Policy{PolicyRules: PolicyRules{
+				PreparedQueries: []*PreparedQueryRule{
+					&PreparedQueryRule{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "bar",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "baz",
 						Policy: PolicyDeny,
 					},
 				},
-				PreparedQueryPrefixes: []*PreparedQueryPolicy{
-					&PreparedQueryPolicy{
+				PreparedQueryPrefixes: []*PreparedQueryRule{
+					&PreparedQueryRule{
 						Prefix: "000",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "111",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryPolicy{
+					&PreparedQueryRule{
 						Prefix: "222",
 						Policy: PolicyDeny,
 					},
 				},
-			},
+			}},
 		},
 		{
 			name: "Write Precedence",
 			input: []*Policy{
-				&Policy{
+				&Policy{PolicyRules: PolicyRules{
 					ACL:      PolicyRead,
 					Keyring:  PolicyRead,
 					Operator: PolicyRead,
-				},
-				&Policy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
 					ACL:      PolicyWrite,
 					Keyring:  PolicyWrite,
 					Operator: PolicyWrite,
-				},
+				}},
 			},
-			expected: &Policy{
+			expected: &Policy{PolicyRules: PolicyRules{
 				ACL:      PolicyWrite,
 				Keyring:  PolicyWrite,
 				Operator: PolicyWrite,
-			},
+			}},
 		},
 		{
 			name: "Deny Precedence",
 			input: []*Policy{
-				&Policy{
+				&Policy{PolicyRules: PolicyRules{
 					ACL:      PolicyWrite,
 					Keyring:  PolicyWrite,
 					Operator: PolicyWrite,
-				},
-				&Policy{
+				}},
+				&Policy{PolicyRules: PolicyRules{
 					ACL:      PolicyDeny,
 					Keyring:  PolicyDeny,
 					Operator: PolicyDeny,
-				},
+				}},
 			},
-			expected: &Policy{
+			expected: &Policy{PolicyRules: PolicyRules{
 				ACL:      PolicyDeny,
 				Keyring:  PolicyDeny,
 				Operator: PolicyDeny,
-			},
+			}},
 		},
 		{
 			name: "Read Precedence",
 			input: []*Policy{
-				&Policy{
+				&Policy{PolicyRules: PolicyRules{
 					ACL:      PolicyRead,
 					Keyring:  PolicyRead,
 					Operator: PolicyRead,
-				},
+				}},
 				&Policy{},
 			},
-			expected: &Policy{
+			expected: &Policy{PolicyRules: PolicyRules{
 				ACL:      PolicyRead,
 				Keyring:  PolicyRead,
 				Operator: PolicyRead,
-			},
+			}},
 		},
 	}
 

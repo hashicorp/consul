@@ -48,7 +48,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -101,7 +101,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
@@ -130,7 +130,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -281,7 +281,8 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			if err != nil {
 				return "", nil, err
 			}
-			if rule != nil && !rule.ServiceRead(svc.Service) {
+			// TODO (namespaces) - pass through a real ent authz ctx
+			if rule != nil && rule.ServiceRead(svc.Service, nil) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied
 			}
 
@@ -388,7 +389,7 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -416,7 +417,7 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -434,7 +435,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -490,6 +491,9 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
 		return nil, nil
 	}
+
+	// Store the type of check based on the definition
+	health.Type = chkType.Type()
 
 	if health.ServiceID != "" {
 		// fixup the service name so that vetCheckRegister requires the right ACLs
@@ -1052,7 +1056,8 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.NodeWrite(s.agent.config.NodeName, nil) {
+	// TODO (namespaces) - pass through a real ent authz ctx?
+	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1073,7 +1078,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentRead(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1168,7 +1173,7 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && !rule.AgentWrite(s.agent.config.NodeName) {
+	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1373,7 +1378,8 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 
-	if rule != nil && !rule.OperatorRead() {
+	// TODO (namespaces) - pass through a real ent authz ctx
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 

@@ -24,7 +24,9 @@ of their own.
 ## Running an Agent
 
 The agent is started with the [`consul agent`](/docs/commands/agent.html) command. This
-command blocks, running forever or until told to quit. The agent command takes a variety
+command blocks, running forever or until told to quit. You can test a local agent by following the [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs).
+
+The agent command takes a variety
 of [`configuration options`](/docs/agent/options.html#command-line-options), but most have sane defaults.
 
 When running [`consul agent`](/docs/commands/agent.html), you should see output similar to this:

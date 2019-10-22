@@ -15,7 +15,7 @@ a server running inside or outside of Kubernetes.
 
 This page starts with a large how-to section for various specific tasks.
 To learn more about the general architecture of Consul on Kubernetes, scroll
-down to the [architecture](/docs/platform/k8s/run.html#architecture) section.
+down to the [architecture](/docs/platform/k8s/run.html#architecture) section. If you would like to get hands-on experience testing Consul on Kubernetes, try the step-by-step beginner tutorial with an accompanying video in the [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
 
 ## Helm Chart
 

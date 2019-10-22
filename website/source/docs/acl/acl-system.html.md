@@ -13,7 +13,9 @@ description: |-
 Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs.
 The ACL is [Capability-based](https://en.wikipedia.org/wiki/Capability-based_security), relying on tokens which
 are associated with policies to determine which fine grained rules can be applied. Consul's capability based
-ACL system is very similar to the design of [AWS IAM](https://aws.amazon.com/iam/).
+ACL system is very similar to the design of [AWS IAM](https://aws.amazon.com/iam/). 
+
+To learn how to setup the ACL system on an existing Consul datacenter, use the [Bootstrapping The ACL System guide](https://learn.hashicorp.com/consul/day-0/acl-guide?utm_source=consul.io&utm_medium=docs).
 
 ## ACL System Overview
 
@@ -270,5 +272,5 @@ The `service_prefix` policy needs read access for any services that can be regis
 
 ## Next Steps
 
-Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) or continue reading about
+Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/security-networking/production-acls?utm_source=consul.io&utm_medium=docs) or continue reading about
 [ACL rules](/docs/acl/acl-rules.html).

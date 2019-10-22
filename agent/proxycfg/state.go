@@ -726,6 +726,8 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 				cancelFn()
 			}
 		}
+
+		snap.MeshGateway.WatchedServicesSet = true
 	case datacentersWatchID:
 		datacentersRaw, ok := u.Result.(*[]string)
 		if !ok {

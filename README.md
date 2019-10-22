@@ -1,8 +1,7 @@
-# Consul [![Build Status](https://travis-ci.org/hashicorp/consul.svg?branch=master)](https://travis-ci.org/hashicorp/consul) [![Join the chat at https://gitter.im/hashicorp-consul/Lobby](https://badges.gitter.im/hashicorp-consul/Lobby.svg)](https://gitter.im/hashicorp-consul/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+# Consul [![CircleCI](https://circleci.com/gh/hashicorp/consul/tree/master.svg?style=svg)](https://circleci.com/gh/hashicorp/consul/tree/master) [![Discuss](https://img.shields.io/badge/discuss-consul-ca2171.svg?style=flat)](https://discuss.hashicorp.com/c/consul)
 
 * Website: https://www.consul.io
-* Chat: [Gitter](https://gitter.im/hashicorp-consul/Lobby)
-* Mailing list: [Google Groups](https://groups.google.com/group/consul-tool/)
+* Forum: [Discuss](https://discuss.hashicorp.com/c/consul)
 
 Consul is a tool for service discovery and configuration. Consul is
 distributed, highly available, and extremely scalable.
@@ -25,15 +24,15 @@ Consul provides several key features:
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
 
-* **Service Segmentation** - Consul Connect enables secure service-to-service 
+* **Service Segmentation** - Consul Connect enables secure service-to-service
 communication with automatic TLS encryption and identity-based authorization.
 
 Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
 version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
 is also available.
 
-**Please note**: We take Consul's security and our users' trust very seriously. If you 
-believe you have found a security issue in Consul, please [responsibly disclose](https://www.hashicorp.com/security#vulnerability-reporting) by 
+**Please note**: We take Consul's security and our users' trust very seriously. If you
+believe you have found a security issue in Consul, please [responsibly disclose](https://www.hashicorp.com/security#vulnerability-reporting) by
 contacting us at security@hashicorp.com.
 
 ## Quick Start

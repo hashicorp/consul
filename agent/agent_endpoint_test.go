@@ -2478,6 +2478,11 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	if len(checks) != 3 {
 		t.Fatalf("bad: %v", checks)
 	}
+	for _, c := range checks {
+		if c.Type != "ttl" {
+			t.Fatalf("expected ttl check type, got %s", c.Type)
+		}
+	}
 
 	if len(a.checkTTLs) != 3 {
 		t.Fatalf("missing test check ttls: %v", a.checkTTLs)
@@ -4114,6 +4119,11 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 	// Make sure the new check is associated with the service
 	if result["memcache_check2"].ServiceID != "memcache" {
 		t.Fatalf("bad: %#v", result["memcached_check2"])
+	}
+
+	// Make sure the new check has the right type
+	if result["memcache_check2"].Type != "ttl" {
+		t.Fatalf("expected TTL type, got %s", result["memcache_check2"].Type)
 	}
 }
 

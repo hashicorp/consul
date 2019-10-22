@@ -27,7 +27,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 		policy, err := acl.NewPolicyFromSource("", 0, buf.String(), acl.SyntaxCurrent, nil)
 		require.NoError(t, err)
 
-		authorizer, err := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 		require.NoError(t, err)
 		return authorizer
 	}

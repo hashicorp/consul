@@ -893,7 +893,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:                  c.TaggedAddresses,
 		TranslateWANAddrs:                b.boolVal(c.TranslateWANAddrs),
 		UIDir:                            b.stringVal(c.UIDir),
-		UIContentPath:                    UIPathBuilder(b.stringVal(b.Flags.Config.UIContentPath)),
+		UIContentPath:                    UIPathBuilder(b.stringVal(c.UIContentPath)),
 		UnixSocketGroup:                  b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:                   b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                   b.stringVal(c.UnixSocket.User),
@@ -1211,6 +1211,8 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		AliasService:                   b.stringVal(v.AliasService),
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
+		SuccessBeforePassing:           b.intVal(v.SuccessBeforePassing),
+		FailuresBeforeCritical:         b.intVal(v.FailuresBeforeCritical),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 	}

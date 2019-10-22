@@ -10,7 +10,8 @@ description: |-
 
 One of the primary roles of the agent is management of system-level and application-level health
 checks. A health check is considered to be application-level if it is associated with a
-service. If not associated with a service, the check monitors the health of the entire node.
+service. Review the [Getting Started guide](https://learn.hashicorp.com/consul/getting-started/services?utm_source=consul.io&utm_medium=docs) for a complete example of a application-level health check. 
+If not associated with a service, the check monitors the health of the entire node.
 
 A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
 created via the HTTP interface persist with that node.
@@ -364,5 +365,23 @@ key in your configuration file.
     },
     ...
   ]
+}
+```
+
+## Success/Failures before passing/critical
+
+A check may be set to become passing/critical only if a specified number of consecutive
+checks return passing/critical. Status will stay identical as before until
+the threshold is reached.
+This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
+By default, both passing and critical thresholds will be set to 0 so the check status will always reflect the last check result.
+
+```javascript
+{
+  "checks": {
+    ...
+    "success_before_passing" : 3
+    "failures_before_critical" : 3
+  },
 }
 ```

@@ -23,6 +23,10 @@ core design allows data to be replicated automatically across all the servers.
 Having a quorum of servers will decrease the risk of data loss if an outage
 occurs.
 
+If you have not used Consul KV, check out this [Getting Started
+guide](https://learn.hashicorp.com/consul/getting-started/kv?utm_source=consul.io&utm_medium=docs) on HashiCorp
+Learn. 
+
 ## Accessing the KV store
 
 The KV store can be accessed by the [consul kv CLI
@@ -40,6 +44,7 @@ The datastore itself is located on the Consul servers in the [data
 directory](/docs/agent/options.html#_data_dir). To ensure data is not lost in
 the event of a complete outage, use the [`consul
 snapshot`](/docs/commands/snapshot/restore.html) feature to backup the data. 
+
 
 ## Using Consul KV
 
@@ -59,9 +64,6 @@ and when recursively searching within the data store. We also recommend that
 you avoid the use of  `*`, `?`, `'`, and `%` because they can cause issues when
 using the API and in shell scripts. 
 
-If you have not used Consul KV, check out this [Getting Started
-guide](https://learn.hashicorp.com/consul/getting-started/kv) on HashiCorp
-Learn. 
 
 ## Extending Consul KV
 
@@ -89,7 +91,10 @@ API supports an `acquire` and `release` operation. The `acquire` operation acts
 like a Check-And-Set operation. On success, there is a key update and an
 increment to the `LockIndex` and the session value is updated to reflect the
 session holding the lock. Review the session documentation for more information
-on the [integration](/docs/internals/sessions.html#k-v-integration)
+on the [integration](/docs/internals/sessions.html#k-v-integration). 
+
+Review the following guides to learn how to use Consul sessions for [application leader election](https://learn.hashicorp.com/consul/developer-configuration/elections) and 
+to [build distributed semaphores](https://learn.hashicorp.com/consul/developer-configuration/semaphore).
 
 ### Vault
 

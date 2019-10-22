@@ -27,21 +27,23 @@ type CheckType struct {
 	// fields copied to CheckDefinition
 	// Update CheckDefinition when adding fields here
 
-	ScriptArgs        []string
-	HTTP              string
-	Header            map[string][]string
-	Method            string
-	TCP               string
-	Interval          time.Duration
-	AliasNode         string
-	AliasService      string
-	DockerContainerID string
-	Shell             string
-	GRPC              string
-	GRPCUseTLS        bool
-	TLSSkipVerify     bool
-	Timeout           time.Duration
-	TTL               time.Duration
+	ScriptArgs             []string
+	HTTP                   string
+	Header                 map[string][]string
+	Method                 string
+	TCP                    string
+	Interval               time.Duration
+	AliasNode              string
+	AliasService           string
+	DockerContainerID      string
+	Shell                  string
+	GRPC                   string
+	GRPCUseTLS             bool
+	TLSSkipVerify          bool
+	Timeout                time.Duration
+	TTL                    time.Duration
+	SuccessBeforePassing   int
+	FailuresBeforeCritical int
 
 	// Definition fields used when exposing checks through a proxy
 	ProxyHTTP string
@@ -123,4 +125,25 @@ func (c *CheckType) IsDocker() bool {
 // IsGRPC checks if this is a GRPC type
 func (c *CheckType) IsGRPC() bool {
 	return c.GRPC != "" && c.Interval > 0
+}
+
+func (c *CheckType) Type() string {
+	switch {
+	case c.IsGRPC():
+		return "grpc"
+	case c.IsHTTP():
+		return "http"
+	case c.IsTTL():
+		return "ttl"
+	case c.IsTCP():
+		return "tcp"
+	case c.IsAlias():
+		return "alias"
+	case c.IsDocker():
+		return "docker"
+	case c.IsScript():
+		return "script"
+	default:
+		return ""
+	}
 }
