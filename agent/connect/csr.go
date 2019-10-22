@@ -12,10 +12,10 @@ import (
 	"net/url"
 )
 
-// SigAlfoForKey returns the preferred x509.SignatureAlgorithm for a given key
-// type. If the key type is not supported we return ECDSAWithSHA256 on the basis
-// that it will fail anyway and we've already type checked keys by the time we
-// call this in general.
+// SigAlgoForKey returns the preferred x509.SignatureAlgorithm for a given key
+// based on it's type. If the key type is not supported we return
+// ECDSAWithSHA256 on the basis that it will fail anyway and we've already type
+// checked keys by the time we call this in general.
 func SigAlgoForKey(key crypto.Signer) x509.SignatureAlgorithm {
 	if _, ok := key.(*rsa.PrivateKey); ok {
 		return x509.SHA256WithRSA
@@ -24,6 +24,21 @@ func SigAlgoForKey(key crypto.Signer) x509.SignatureAlgorithm {
 	// that in lots of other places and it will fail anyway if we try to sign with
 	// an incompatible type.
 	return x509.ECDSAWithSHA256
+}
+
+// SigAlgoForKeyType returns the preferred x509.SignatureAlgorithm for a given
+// key type string from configuration or an existing cert. If the key type is
+// not supported we return ECDSAWithSHA256 on the basis that it will fail anyway
+// and we've already type checked config by the time we call this in general.
+func SigAlgoForKeyType(keyType string) x509.SignatureAlgorithm {
+	switch keyType {
+	case "rsa":
+		return x509.SHA256WithRSA
+	case "ec":
+		fallthrough
+	default:
+		return x509.ECDSAWithSHA256
+	}
 }
 
 // CreateCSR returns a CSR to sign the given service along with the PEM-encoded

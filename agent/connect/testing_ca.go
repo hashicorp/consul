@@ -110,6 +110,8 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	result.SerialNumber = uint64(sn.Int64())
 	result.NotBefore = template.NotBefore.UTC()
 	result.NotAfter = template.NotAfter.UTC()
+	result.PrivateKeyType = keyType
+	result.PrivateKeyBits = keyBits
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.
@@ -201,13 +203,9 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 		return "", "", fmt.Errorf("failed to generate private key: %s", err)
 	}
 
-	sigAlgo := x509.ECDSAWithSHA256
 	rootKeyType, _, err := KeyInfoFromCert(caCert)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting CA key type: %s", err)
-	}
-	if rootKeyType == "rsa" {
-		sigAlgo = x509.SHA256WithRSA
 	}
 
 	// Cert template for generation
@@ -215,7 +213,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: service},
 		URIs:                  []*url.URL{spiffeId.URI()},
-		SignatureAlgorithm:    sigAlgo,
+		SignatureAlgorithm:    SigAlgoForKeyType(rootKeyType),
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageDataEncipherment |
 			x509.KeyUsageKeyAgreement |

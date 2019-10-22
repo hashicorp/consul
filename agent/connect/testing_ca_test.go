@@ -45,8 +45,7 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 	// Create a temporary directory for storing the certs
 	td, err := ioutil.TempDir("", "consul")
 	require.NoError(err)
-	//defer os.RemoveAll(td)
-	t.Log(td)
+	defer os.RemoveAll(td)
 
 	// Write the cert
 	require.NoError(ioutil.WriteFile(filepath.Join(td, "ca.pem"), []byte(ca.RootCert), 0644))

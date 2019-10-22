@@ -107,30 +107,14 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		return
 	}
 
-	tests := []struct {
-		name    string
-		keyType string
-		keyBits int
-	}{
-		{
-			name:    "EC P256 CA Key",
-			keyType: connect.DefaultPrivateKeyType,
-			keyBits: connect.DefaultPrivateKeyBits,
-		},
-		{
-			name:    "RSA 2048 CA Key (EC leaf)",
-			keyType: "rsa",
-			keyBits: 2048,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range KeyTestCases {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
 			require := require.New(t)
 			provider, testVault := testVaultProviderWithConfig(t, true, map[string]interface{}{
 				"LeafCertTTL":    "1h",
-				"PrivateKeyType": tt.keyType,
-				"PrivateKeyBits": tt.keyBits,
+				"PrivateKeyType": tc.KeyType,
+				"PrivateKeyBits": tc.KeyBits,
 			})
 			defer testVault.Stop()
 
@@ -143,11 +127,11 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 			rootPEM, err := provider.ActiveRoot()
 			require.NoError(err)
-			assertCorrectKeyType(t, tt.keyType, rootPEM)
+			assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 			intPEM, err := provider.ActiveIntermediate()
 			require.NoError(err)
-			assertCorrectKeyType(t, tt.keyType, intPEM)
+			assertCorrectKeyType(t, tc.KeyType, intPEM)
 
 			// Generate a leaf cert for the service.
 			var firstSerial uint64
@@ -209,13 +193,54 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		return
 	}
 
-	provider1, testVault1 := testVaultProvider(t)
-	defer testVault1.Stop()
+	tests := CASigningKeyTypeCases()
 
-	provider2, testVault2 := testVaultProvider(t)
-	defer testVault2.Stop()
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			require := require.New(t)
 
-	testCrossSignProviders(t, provider1, provider2)
+			if tc.SigningKeyType != tc.CSRKeyType {
+				// See https://github.com/hashicorp/vault/issues/7709
+				t.Skip("Vault doesn't support cross-signing different key types yet.")
+			}
+			provider1, testVault1 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.SigningKeyType,
+				"PrivateKeyBits": tc.SigningKeyBits,
+			})
+			defer testVault1.Stop()
+
+			{
+				rootPEM, err := provider1.ActiveRoot()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
+
+				intPEM, err := provider1.ActiveIntermediate()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.SigningKeyType, intPEM)
+			}
+
+			provider2, testVault2 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.CSRKeyType,
+				"PrivateKeyBits": tc.CSRKeyBits,
+			})
+			defer testVault2.Stop()
+
+			{
+				rootPEM, err := provider2.ActiveRoot()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
+
+				intPEM, err := provider2.ActiveIntermediate()
+				require.NoError(err)
+				assertCorrectKeyType(t, tc.CSRKeyType, intPEM)
+			}
+
+			testCrossSignProviders(t, provider1, provider2)
+		})
+	}
 }
 
 func TestVaultProvider_SignIntermediate(t *testing.T) {
@@ -225,13 +250,28 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 		return
 	}
 
-	provider1, testVault1 := testVaultProvider(t)
-	defer testVault1.Stop()
+	tests := CASigningKeyTypeCases()
 
-	provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
-	defer testVault2.Stop()
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			provider1, testVault1 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.SigningKeyType,
+				"PrivateKeyBits": tc.SigningKeyBits,
+			})
+			defer testVault1.Stop()
 
-	testSignIntermediateCrossDC(t, provider1, provider2)
+			provider2, testVault2 := testVaultProviderWithConfig(t, false, map[string]interface{}{
+				"LeafCertTTL":    "1h",
+				"PrivateKeyType": tc.CSRKeyType,
+				"PrivateKeyBits": tc.CSRKeyBits,
+			})
+			defer testVault2.Stop()
+
+			testSignIntermediateCrossDC(t, provider1, provider2)
+		})
+	}
 }
 
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
@@ -295,7 +335,7 @@ func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]i
 
 	provider := &VaultProvider{}
 
-	if err := provider.Configure("asdf", isRoot, conf); err != nil {
+	if err := provider.Configure(connect.TestClusterID, isRoot, conf); err != nil {
 		testVault.Stop()
 		t.Fatalf("err: %v", err)
 	}

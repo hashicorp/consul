@@ -416,7 +416,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	if err != nil {
 		return "", err
 	}
-	subjectKeyId, err := connect.KeyId(csr.PublicKey)
+	subjectKeyID, err := connect.KeyId(csr.PublicKey)
 	if err != nil {
 		return "", err
 	}
@@ -439,7 +439,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		Subject:               csr.Subject,
 		URIs:                  csr.URIs,
 		Signature:             csr.Signature,
-		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
@@ -450,7 +450,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		MaxPathLenZero: true,
 		NotAfter:       effectiveNow.AddDate(1, 0, 0),
 		NotBefore:      effectiveNow,
-		SubjectKeyId:   subjectKeyId,
+		SubjectKeyId:   subjectKeyID,
 	}
 
 	// Create the certificate, PEM encode it and return that value.

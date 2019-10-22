@@ -104,12 +104,12 @@ type CARoot struct {
 
 	// PrivateKeyType is the type of the private key used to sign certificates. It
 	// may be "rsa" or "ec". This is provided as a convenience to avoid parsing
-	// the public key from the certificate.
+	// the public key to from the certificate to infer the type.
 	PrivateKeyType string
 
 	// PrivateKeyBits is the length of the private key used to sign certificates.
 	// This is provided as a convenience to avoid parsing the public key from the
-	// certificate.
+	// certificate to infer the type.
 	PrivateKeyBits int
 
 	RaftIndex

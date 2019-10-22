@@ -3,7 +3,9 @@ package consul
 import (
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -33,8 +35,9 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		{"rsa", 2048},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%s-%d", tt.keyType, tt.keyBits), func(t *testing.T) {
+	for _, tc := range tests {
+		tc := tc
+		t.Run(fmt.Sprintf("%s-%d", tc.keyType, tc.keyBits), func(t *testing.T) {
 			masterToken := "8a85f086-dd95-4178-b128-e10902767c5c"
 
 			// Initialize primary as the primary DC
@@ -45,8 +48,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				c.ACLsEnabled = true
 				c.ACLMasterToken = masterToken
 				c.ACLDefaultPolicy = "deny"
-				c.CAConfig.Config["PrivateKeyType"] = tt.keyType
-				c.CAConfig.Config["PrivateKeyBits"] = tt.keyBits
+				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
+				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
@@ -63,8 +66,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				c.ACLsEnabled = true
 				c.ACLDefaultPolicy = "deny"
 				c.ACLTokenReplication = true
-				c.CAConfig.Config["PrivateKeyType"] = tt.keyType
-				c.CAConfig.Config["PrivateKeyBits"] = tt.keyBits
+				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
+				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 			})
 			defer os.RemoveAll(dir2)
 			defer s2.Shutdown()
@@ -97,8 +100,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				require.NoError(r, err)
 
 				// Sanity check CA is using the correct key type
-				require.Equal(r, tt.keyType, caRoot.PrivateKeyType)
-				require.Equal(r, tt.keyBits, caRoot.PrivateKeyBits)
+				require.Equal(r, tc.keyType, caRoot.PrivateKeyType)
+				require.Equal(r, tc.keyBits, caRoot.PrivateKeyBits)
 
 				// Verify the root lists are equal in each DC's state store.
 				state1 := s1.fsm.State()
@@ -109,7 +112,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				_, roots2, err := state2.CARoots(nil)
 				require.NoError(r, err)
 				require.Len(r, roots1, 1)
-				require.Len(r, roots1, 1)
+				require.Len(r, roots2, 1)
 				require.Equal(r, roots1[0].ID, roots2[0].ID)
 				require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
 				require.Empty(r, roots1[0].IntermediateCerts)
@@ -1234,18 +1237,7 @@ func TestLeader_ParseCARoot(t *testing.T) {
 		{
 			name: "default cert",
 			// Watchout for indentations they will break PEM format
-			pem: `-----BEGIN CERTIFICATE-----
-MIIB3DCCAYKgAwIBAgIIc8ST19qlIDUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ
-VGVzdCBDQSAxMB4XDTE5MTAxNzExNDYyOVoXDTI5MTAxNzExNDYyOVowFDESMBAG
-A1UEAxMJVGVzdCBDQSAxMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAErA61DUlq
-qDnXAcHIHVJKBUtyDYoQmZB1T1H7NHTn4XezkF23RjL9Ha8DghMR/bwz7YhZ1Tv6
-UnYSq5r28P6b06OBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB
-/zApBgNVHQ4EIgQgl00XgWT4tK8F6Gx5xUA7Dj6LwK44UVSKLwXb4+jkJOwwKwYD
-VR0jBCQwIoAgl00XgWT4tK8F6Gx5xUA7Dj6LwK44UVSKLwXb4+jkJOwwPwYDVR0R
-BDgwNoY0c3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1
-NTU1LmNvbnN1bDAKBggqhkjOPQQDAgNIADBFAiEA/x2MeYU5vCk2hwP7zlrv7bx3
-9zx5YSbn04sgP6sNK30CIEPfjxDGy6K2dPDckATboYkZVQ4CJpPd6WrgwQaHpWC9
------END CERTIFICATE-----`,
+			pem: readTestData(t, "cert-with-ec-256-key.pem"),
 			// Based on `openssl x509 -noout -text` report from the cert
 			wantSerial:       8341954965092507701,
 			wantSigningKeyID: "97:4D:17:81:64:F8:B4:AF:05:E8:6C:79:C5:40:3B:0E:3E:8B:C0:AE:38:51:54:8A:2F:05:DB:E3:E8:E4:24:EC",
@@ -1256,20 +1248,7 @@ NTU1LmNvbnN1bDAKBggqhkjOPQQDAgNIADBFAiEA/x2MeYU5vCk2hwP7zlrv7bx3
 		{
 			name: "ec 384 cert",
 			// Watchout for indentations they will break PEM format
-			pem: `-----BEGIN CERTIFICATE-----
-MIICGTCCAZ+gAwIBAgIIKLuaeLzq/R0wCgYIKoZIzj0EAwMwFDESMBAGA1UEAxMJ
-VGVzdCBDQSAxMB4XDTE5MTAxNzExNTUxOFoXDTI5MTAxNzExNTUxOFowFDESMBAG
-A1UEAxMJVGVzdCBDQSAxMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEFWtdx2o3c9qv
-ka8vxPO2Iv9NAbiwh3cl1a90miRzhQMP7s6wycXfl1xKE02PRxiLQtuukKwE6ohv
-Ha5h4kkqGB+YdOT+18JS+ixJwmmSZL5pkAh6SMEGby3wf5sap5F/o4G9MIG6MA4G
-A1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MCkGA1UdDgQiBCALoIib3JUx
-US491PlC0GqgYkaC0nwi5ympquiljM/HQjArBgNVHSMEJDAigCALoIib3JUxUS49
-1PlC0GqgYkaC0nwi5ympquiljM/HQjA/BgNVHREEODA2hjRzcGlmZmU6Ly8xMTEx
-MTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqGSM49
-BAMDA2gAMGUCMBT0orKHSATvulb6nRxVHq3OWOfmVgHu8VUCq9yuyAu1AAy/przY
-/U0ury3g8T4jhwIxAIoCqYwWSJMFb13DZAR3XY+aFssVP5+vzhlaulqtg+YqjpKP
-KzuCBpS3yUyAwWDphg==
------END CERTIFICATE-----`,
+			pem: readTestData(t, "cert-with-ec-384-key.pem"),
 			// Based on `openssl x509 -noout -text` report from the cert
 			wantSerial:       2935109425518279965,
 			wantSigningKeyID: "0B:A0:88:9B:DC:95:31:51:2E:3D:D4:F9:42:D0:6A:A0:62:46:82:D2:7C:22:E7:29:A9:AA:E8:A5:8C:CF:C7:42",
@@ -1280,37 +1259,7 @@ KzuCBpS3yUyAwWDphg==
 		{
 			name: "rsa 4096 cert",
 			// Watchout for indentations they will break PEM format
-			pem: `-----BEGIN CERTIFICATE-----
-MIIFaDCCA1CgAwIBAgIIR/rYTE2KZtMwDQYJKoZIhvcNAQELBQAwFDESMBAGA1UE
-AxMJVGVzdCBDQSAxMB4XDTE5MTAxNzExNTMxNVoXDTI5MTAxNzExNTMxNVowFDES
-MBAGA1UEAxMJVGVzdCBDQSAxMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKC
-AgEAlIsTpCearMRx0fW2BKmGXHUYCf1ATALcRn31VQCuzszyt77RRbQn+v/XB+Q5
-Td+/o3ZkpKvCTAF31oZI0ihXEEq7o13pERGPZdD//jNvgePIoauzxjkWfEX5bQGx
-PxY3mGWakmiunQHm3ls8bm+ZYBfDM8rJTaKFBUCaNe6xi5znQ953+YELV0YHpSXm
-H0lP93/RVeua9094+YNadUfB1nOWvlayn/YX3oXPAwQsoT1DlqRlGFDAp3MPFNkC
-RvymdigxAf1HrsyZ+MlD99Htgx2YkmHRXidRW9OzMmVSTe5gT6AOCvC4Zd5udH2H
-bH+DUNuyJr2YC0VB7RBWbqCvpmxItLaDoSHLndRjP0wY9chMDqrKKRIzupeaYfVK
-isFdSwj39EnNQEfm7ZJT/8aRNtF8pVFYHO0fZ+2eObpteWyQj0iOJjHuRpUWI2LT
-ZMEPkj0N2I1tAvg1g/RYasXKwme+L7ejxzyYnC8kqDf4/C4tNaDURXP5fWn8aVsI
-Sp8gMZHxXD8e8FAMPuDQi4y0FZu9bY9mJ71OSqcR5u0DHKzaCfAwr+qheFxCCly0
-UnP7FAOSg96mRYAzgYGTFM5/HSmj0vvnsfAAebuiloE4IKfeBzp9kPuauEbcGbTa
-4bBbaoamqdEUT3bFqRXWCXCQ6kT1xos+YcfjBkpfmdOrrdUCAwEAAaOBvTCBujAO
-BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zApBgNVHQ4EIgQgkvrMl1ce
-MYSiM92baqh8/L7ilMqsszMXOTu4Z5vcwQgwKwYDVR0jBCQwIoAgkvrMl1ceMYSi
-M92baqh8/L7ilMqsszMXOTu4Z5vcwQgwPwYDVR0RBDgwNoY0c3BpZmZlOi8vMTEx
-MTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1NTU1LmNvbnN1bDANBgkqhkiG
-9w0BAQsFAAOCAgEAaGorq69i6S6RIsOXx6zou2gr2ez6siVFkxoJEXx8lZKS8UXs
-mmAxJXXKePv921zFeUB5jcdxIaBlxyEHiJGr9KUDYWnkAY0g8343JueY8epPOGpb
-u1QoTpCRSJBdOyakK3ZhYqRa28G0fP0eQQ+mF54X2YA4jtg7pb30wahQd9U0M2ey
-A6VLw4xdmqC7KOfJSvQcCZJPi5Wkqv/pf55WmS28zhxrwMC9U4vaKVRsGKJi/p/X
-WUmyPpOUM41nEylcpFvs/Xx8eKUSlWRaMTWYHUKTdaXKYL/1op2PhuyoYkH384aj
-P7RzLkC1fRC8MPXo9L1YSoK7vxL5K/zLkJFb3KopDzujGx1cZbgO8QREe16bVN4b
-gFLwIzW+VzywmtoSur5V9ythVfvRT1XesmsK/G2ySxWvipYIDYYJrwgKR5b0ikfz
-RPw2YW6oqaMmZ9Uehxym8RDWqyyFPg9S0C73MTK7FitIROLW88hWKSpDDhFck/32
-FVaRL8cC0KVlMCFByL/o6u0AsRNCOux1q3BJEdmAh7VI84+SPgztHFkptR4VnlHZ
-kKTj2Mj/OylHHwhe6AU9pbtAGM6DtcqSjmd4wrkRX8WJDd/F3RlYZ8WhOToOj9gP
-ra4mUhGz/OlDg6vN9TSeVlb5Ap7c38KoCmmt2n+F/KUpe6V4L1QA5yfz0S8=
------END CERTIFICATE-----`,
+			pem: readTestData(t, "cert-with-rsa-4096-key.pem"),
 			// Based on `openssl x509 -noout -text` report from the cert
 			wantSerial:       5186695743100577491,
 			wantSigningKeyID: "92:FA:CC:97:57:1E:31:84:A2:33:DD:9B:6A:A8:7C:FC:BE:E2:94:CA:AC:B3:33:17:39:3B:B8:67:9B:DC:C1:08",
@@ -1334,4 +1283,14 @@ ra4mUhGz/OlDg6vN9TSeVlb5Ap7c38KoCmmt2n+F/KUpe6V4L1QA5yfz0S8=
 			require.Equal(tt.wantKeyBits, root.PrivateKeyBits)
 		})
 	}
+}
+
+func readTestData(t *testing.T, name string) string {
+	t.Helper()
+	path := filepath.Join("testdata", name)
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed reading fixture file %s: %s", name, err)
+	}
+	return string(bs)
 }
