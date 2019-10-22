@@ -37,6 +37,8 @@ type CheckDefinition struct {
 	AliasService                   string
 	Timeout                        time.Duration
 	TTL                            time.Duration
+	SuccessBeforePassing           int
+	FailuresBeforeCritical         int
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
 }
@@ -172,6 +174,8 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		TLSSkipVerify:                  c.TLSSkipVerify,
 		Timeout:                        c.Timeout,
 		TTL:                            c.TTL,
+		SuccessBeforePassing:           c.SuccessBeforePassing,
+		FailuresBeforeCritical:         c.FailuresBeforeCritical,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
 	}
 }

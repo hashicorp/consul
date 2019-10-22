@@ -65,14 +65,16 @@ func servicePreApply(service *structs.NodeService, rule acl.Authorizer) error {
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if rule != nil && !rule.ServiceWrite(service.Service, nil) {
+		// TODO (namespaces) update to send an actual enterprise authorizer context
+		if rule != nil && rule.ServiceWrite(service.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if rule != nil && !rule.ServiceWrite(service.Proxy.DestinationServiceName, nil) {
+		// TODO (namespaces) update to send an actual enterprise authorizer context
+		if rule != nil && rule.ServiceWrite(service.Proxy.DestinationServiceName, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -125,6 +127,13 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 			check.Node = args.Node
 		}
 		checkPreApply(check)
+
+		// Populate check type for cases when a check is registered in the catalog directly
+		// and not via anti-entropy
+		if check.Type == "" {
+			chkType := check.CheckType()
+			check.Type = chkType.Type()
+		}
 	}
 
 	// Check the complete register request against the given ACL policy.
@@ -334,7 +343,8 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			return err
 		}
 
-		if rule != nil && !rule.ServiceRead(args.ServiceName) {
+		// TODO (namespaces) update to send an actual enterprise authorizer context
+		if rule != nil && rule.ServiceRead(args.ServiceName, nil) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}

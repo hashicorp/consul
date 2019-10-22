@@ -22,8 +22,10 @@ If you are using Envoy as your sidecar proxy, you will need to [enable
 gRPC](/docs/agent/options.html#grpc_port) on your client agents. To define the
 metrics destination and service protocol you may want to enable [configuration
 entries](/docs/agent/options.html#config_entries) and [centralized service
-configuration](/docs/agent/options.html#enable_central_service_config). If you
-are using Kubernetes, the Helm chart can simpify much of the necessary
+configuration](/docs/agent/options.html#enable_central_service_config). 
+
+If you
+are using Kubernetes, the Helm chart can simplify much of the necessary
 configuration, which you can learn about in the [observability
 guide](https://learn.hashicorp.com/consul/getting-started-k8s/l7-observability-k8s).
 

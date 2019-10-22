@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/sentinel"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -81,7 +80,7 @@ service_prefix "" {
 }
 session_prefix "" {
 	policy = "write"
-}`
+}` + EnterpriseACLPolicyGlobalManagement
 
 	// This is the policy ID for anonymous access. This is configurable by the
 	// user.
@@ -692,7 +691,7 @@ func (policies ACLPolicyListStubs) Sort() {
 	})
 }
 
-func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, sentinel sentinel.Evaluator) ([]*acl.Policy, error) {
+func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) ([]*acl.Policy, error) {
 	// Parse the policies
 	parsed := make([]*acl.Policy, 0, len(policies))
 	for _, policy := range policies {
@@ -705,7 +704,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, sentinel sentinel
 			continue
 		}
 
-		p, err := acl.NewPolicyFromSource(policy.ID, policy.ModifyIndex, policy.Rules, policy.Syntax, sentinel)
+		p, err := acl.NewPolicyFromSource(policy.ID, policy.ModifyIndex, policy.Rules, policy.Syntax, entConf)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}
@@ -717,7 +716,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, sentinel sentinel
 	return parsed, nil
 }
 
-func (policies ACLPolicies) Compile(parent acl.Authorizer, cache *ACLCaches, sentinel sentinel.Evaluator) (acl.Authorizer, error) {
+func (policies ACLPolicies) Compile(parent acl.Authorizer, cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
 	// Determine the cache key
 	cacheKey := policies.HashKey()
 	entry := cache.GetAuthorizer(cacheKey)
@@ -726,13 +725,13 @@ func (policies ACLPolicies) Compile(parent acl.Authorizer, cache *ACLCaches, sen
 		return entry.Authorizer, nil
 	}
 
-	parsed, err := policies.resolveWithCache(cache, sentinel)
+	parsed, err := policies.resolveWithCache(cache, entConf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the ACL policies: %v", err)
 	}
 
 	// Create the ACL object
-	authorizer, err := acl.NewPolicyAuthorizer(parent, parsed, sentinel)
+	authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, parsed, entConf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct ACL Authorizer: %v", err)
 	}
@@ -742,8 +741,8 @@ func (policies ACLPolicies) Compile(parent acl.Authorizer, cache *ACLCaches, sen
 	return authorizer, nil
 }
 
-func (policies ACLPolicies) Merge(cache *ACLCaches, sentinel sentinel.Evaluator) (*acl.Policy, error) {
-	parsed, err := policies.resolveWithCache(cache, sentinel)
+func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (*acl.Policy, error) {
+	parsed, err := policies.resolveWithCache(cache, entConf)
 	if err != nil {
 		return nil, err
 	}

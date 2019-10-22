@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	bexpr "github.com/hashicorp/go-bexpr"
@@ -171,7 +172,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			return err
 		}
 
-		if rule != nil && !rule.ServiceRead(args.ServiceName) {
+		if rule != nil && rule.ServiceRead(args.ServiceName, nil) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}

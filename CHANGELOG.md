@@ -1,10 +1,19 @@
 ## UNRELEASED
 
 FEATURES
+* agent: store check type in catalog [[GH-6561](https://github.com/hashicorp/consul/pull/6561)]
 * agent: update force-leave to allow for complete removal of members [[GH-6571](https://github.com/hashicorp/consul/issues/6571)]
 * agent: updates to the agent token trigger anti-entropy full syncs [[GH-6577](https://github.com/hashicorp/consul/issues/6577)]
 * snapshot agent (Consul Enterprise): Added support for saving snapshots to Google Cloud Storage.
 * connect: Added proxy config stanza to allow exposing HTTP paths through Envoy for non-Connect-enabled services [[GH-5396](https://github.com/hashicorp/consul/issues/5396)]
+
+IMPROVEMENTS
+
+* licensing (Consul Enterprise): Increase initial server temporary license duration to 6 hours to allow for longer upgrades/migrations.
+* agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
+* server: ensure the primary datacenter and ACL datacenter match [[GH-6634](https://github.com/hashicorp/consul/issues/6634)]
+* sdk: ignore panics due to stray goroutines logging after a test completes [[GH-6632](https://github.com/hashicorp/consul/issues/6632)]
+* agent: allow mesh gateways to initialize even if there are no connect services registered yet [[GH-6576](https://github.com/hashicorp/consul/issues/6576)]
 
 BUG FIXES
 
@@ -14,6 +23,8 @@ BUG FIXES
 * connect: connect CA Roots in secondary datacenters should use a SigningKeyID derived from their local intermediate [[GH-6513](https://github.com/hashicorp/consul/issues/6513)]
 * connect: don't colon-hex-encode the AuthorityKeyId and SubjectKeyId fields in connect certs [[GH-6492](https://github.com/hashicorp/consul/issues/6492)]
 * connect: intermediate CA certs generated with the vault provider lack URI SANs [[GH-6491](https://github.com/hashicorp/consul/issues/6491)]
+* xds: tcp services using the discovery chain should not assume RDS during LDS [[GH-6623](https://github.com/hashicorp/consul/issues/6623)]
+* debug: Fixed potential issue with adding to a wait group inside of go routines instead of prior to running them [[GH-6649](https://github.com/hashicorp/consul/pull/6649)]
 
 ## 1.6.1 (September 12, 2019)
 

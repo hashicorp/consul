@@ -212,7 +212,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	if acl1 == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl1.KeyRead("foo") {
+	if acl1.KeyRead("foo", nil) != acl.Allow {
 		t.Fatalf("should be allowed")
 	}
 
@@ -234,7 +234,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	if acl2 == acl1 {
 		t.Fatalf("should not be cached")
 	}
-	if acl2.KeyRead("foo") {
+	if acl2.KeyRead("foo", nil) == acl.Allow {
 		t.Fatalf("should not be allowed")
 	}
 
@@ -1861,6 +1861,12 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	// Try to join
 	joinWAN(t, s2, s1)
 
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+
+	// Ensure s2 is authoritative.
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
 
@@ -2004,8 +2010,6 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		}
 
 		var resp string
-
-		waitForNewACLs(t, s2)
 
 		err = acl2.TokenDelete(&req, &resp)
 		require.NoError(t, err)
@@ -4118,6 +4122,9 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	waitForNewACLs(t, s1)
 	waitForNewACLs(t, s2)
 
+	// Ensure s2 is authoritative.
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
 
@@ -5286,10 +5293,10 @@ func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, d
 
 func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
 	arg := structs.ACLTokenGetRequest{
-		TokenID:      "root",
+		TokenID:      id,
 		TokenIDType:  structs.ACLTokenSecret,
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: "root"},
+		Datacenter:   datacenter,
+		QueryOptions: structs.QueryOptions{Token: masterToken},
 	}
 
 	var out structs.ACLTokenResponse

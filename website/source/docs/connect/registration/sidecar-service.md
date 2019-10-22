@@ -17,6 +17,9 @@ To simplify the configuration experience when deploying a sidecar for a service
 instance, Consul 1.3 introduced a new field in the Connect block of the [service
 definition](/docs/agent/services.html).
 
+To deploy a service and sidecar proxy locally, complete the
+[Getting Started guide](https://learn.hashicorp.com/consul/getting-started/connect?utm_source=consul.io&utm_medium=docs).
+
 The `connect.sidecar_service` field is a complete nested service definition on
 which almost any regular service definition field can be set. The exceptions are
 [noted below](#limitations). If used, the service definition is treated

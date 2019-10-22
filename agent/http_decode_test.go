@@ -1,9 +1,40 @@
 package agent
 
+// This file contains tests for JSON unmarshaling.
+// These tests were originally written as regression tests to capture existing decoding behavior
+// when we moved from mapstructure to encoding/json as a JSON decoder.
+// See https://github.com/hashicorp/consul/pull/6624.
+//
+// Most likely, if you are adding new tests, you will only need to check your struct
+// for the special values in 'translateValueTestCases' (time.Durations, etc).
+// You can easily copy the structure of an existing test such as
+// 'TestDecodeACLPolicyWrite'.
+//
+// There are two main categories of tests in this file:
+//
+// 1. translateValueTestCase: test decoding of special values such as:
+//    - time.Duration
+//    - api.ReadableDuration
+//    - time.Time
+//    - Hash []byte
+//
+// 2. translateKeyTestCase: test decoding with alias keys such as "FooBar" => "foo_bar" (see lib.TranslateKeys)
+//   For these test cases, one must write an 'equalityFn' which takes an output interface{} (struct, usually)
+//   as well as 'want' interface{} value, and returns an error if the test
+//   condition failed, or nil if it passed.
+//
+// There are some test cases which are easily generalizable, and have been pulled
+// out of the scope of a single test so that many tests may use them.
+// These include the durationTestCases, hashTestCases etc (value) as well as
+// some common field alias translations, such as translateScriptArgsTCs for
+// CheckTypes.
+//
+
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -13,13 +44,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
-
-// TODO:
-// - benchmarks
-//
-// Impl Notes:
-// - should leave existing decodeBody code in so it's an easy switch back on failure
-// - make sure to translate struct field tags eg. `mapstructure:"-"` to json (code change)
 
 // =======================================================
 // TranslateValues:
@@ -623,6 +647,7 @@ func TestDecodeACLPolicyWrite(t *testing.T) {
 
 	for _, tc := range hashTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
+
 			jsonStr := fmt.Sprintf(`{
 		"Hash": %s
 	}`, tc.hashes.in)
@@ -632,6 +657,7 @@ func TestDecodeACLPolicyWrite(t *testing.T) {
 			var out structs.ACLPolicy
 			err := json.Unmarshal([]byte(jsonStr), &out)
 			//err := decodeBody(req, &out, fixTimeAndHashFields)
+
 			if err != nil && !tc.wantErr {
 				t.Fatal(err)
 			}
@@ -702,11 +728,11 @@ func TestDecodeACLToken(t *testing.T) {
 				expTTL = tc.durations.in
 			}
 			bodyBytes := []byte(fmt.Sprintf(`{
-		"ExpirationTime": %s,
-		"ExpirationTTL": %s,
-		"CreateTime": %s,
-		"Hash": %s
-	}`, expTime, expTTL, createTime, hash))
+				"ExpirationTime": %s,
+				"ExpirationTTL": %s,
+				"CreateTime": %s,
+				"Hash": %s
+			}`, expTime, expTTL, createTime, hash))
 
 			// set up request
 			// body := bytes.NewBuffer(bodyBytes)
@@ -800,6 +826,7 @@ func TestDecodeACLRoleWrite(t *testing.T) {
 
 	for _, tc := range hashTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
+
 			jsonStr := fmt.Sprintf(`{
 		"Hash": %s
 	}`, tc.hashes.in)
@@ -809,6 +836,7 @@ func TestDecodeACLRoleWrite(t *testing.T) {
 			var out structs.ACLRole
 			err := json.Unmarshal([]byte(jsonStr), &out)
 			//err := decodeBody(req, &out, fixTimeAndHashFields)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected error, got nil")
 			}
@@ -960,11 +988,12 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"Interval": %[1]s,
-		"Timeout": %[1]s,
-		"TTL": %[1]s,
-		"DeregisterCriticalServiceAfter": %[1]s
-	}`, tc.durations.in)
+
+				"Interval": %[1]s,
+				"Timeout": %[1]s,
+				"TTL": %[1]s,
+				"DeregisterCriticalServiceAfter": %[1]s
+			}`, tc.durations.in)
 			//body := bytes.NewBuffer([]byte(jsonStr))
 			//req := httptest.NewRequest("POST", "http://foo.com", body)
 
@@ -991,12 +1020,14 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{"Header": %s}`, tc.in)
+
 			// body := bytes.NewBuffer([]byte(jsonStr))
 			// req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.CheckDefinition
 			err := json.Unmarshal([]byte(jsonStr), &out)
 			// err := decodeBody(req, &out, FixupCheckType)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -1013,12 +1044,14 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.desc, func(t *testing.T) {
 				jsonStr := fmt.Sprintf(tc.jsonFmtStr, tc.in...)
+
 				// body := bytes.NewBuffer([]byte(jsonStr))
 				// req := httptest.NewRequest("POST", "http://foo.com", body)
 
 				var out structs.CheckDefinition
 				err := json.Unmarshal([]byte(jsonStr), &out)
 				// err := decodeBody(req, &out, FixupCheckType)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1138,6 +1171,7 @@ func TestDecodeAgentCheckUpdate(t *testing.T) {
 //     Native	bool
 //     SidecarService	*structs.ServiceDefinition
 func TestDecodeAgentRegisterService(t *testing.T) {
+
 	// var callback = registerServiceDecodeCB
 
 	// key translation tests:
@@ -1313,6 +1347,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			in:         []interface{}{`"a"`, `"b"`},
 			want:       "a",
 			jsonFmtStr: `{"Proxy": {"Upstreams": [{` + strings.Join(destinationNamespaceFields, ",") + `}]}}`,
+
 			equalityFn: destinationNamespaceEqFn,
 		},
 		{
@@ -1852,21 +1887,21 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"Check": {
-			"Interval": %[1]s,
-			"Timeout": %[1]s,
-			"TTL": %[1]s,
-			"DeregisterCriticalServiceAfter": %[1]s
-		},
-		"Checks": [
-			{
-				"Interval": %[1]s,
-				"Timeout": %[1]s,
-				"TTL": %[1]s,
-				"DeregisterCriticalServiceAfter": %[1]s
-			}
-		]
-	}`, tc.durations.in)
+				"Check": {
+					"Interval": %[1]s,
+					"Timeout": %[1]s,
+					"TTL": %[1]s,
+					"DeregisterCriticalServiceAfter": %[1]s
+				},
+				"Checks": [
+					{
+						"Interval": %[1]s,
+						"Timeout": %[1]s,
+						"TTL": %[1]s,
+						"DeregisterCriticalServiceAfter": %[1]s
+					}
+				]
+			}`, tc.durations.in)
 			//body := bytes.NewBuffer([]byte(jsonStr))
 			//req := httptest.NewRequest("POST", "http://foo.com", body)
 
@@ -1911,6 +1946,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			var out structs.ServiceDefinition
 			err := json.Unmarshal([]byte(jsonStr), &out)
 			//err := decodeBody(req, &out, callback)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -1937,15 +1973,16 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			t.Run(tc.desc, func(t *testing.T) {
 				checkJSONStr := fmt.Sprintf(tc.jsonFmtStr, tc.in...)
 				jsonStr := fmt.Sprintf(`{
-				"Check": %[1]s,
-				"Checks": [%[1]s]
-			}`, checkJSONStr)
+					"Check": %[1]s,
+					"Checks": [%[1]s]
+				}`, checkJSONStr)
 				// body := bytes.NewBuffer([]byte(jsonStr))
 				// req := httptest.NewRequest("POST", "http://foo.com", body)
 
 				var out structs.ServiceDefinition
 				err := json.Unmarshal([]byte(jsonStr), &out)
 				//err := decodeBody(req, &out, callback)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -2130,33 +2167,34 @@ func TestDecodeCatalogRegister(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"Service": {
-			"Connect": {
-				"SidecarService": {
-					"Check": {
+				"Service": {
+					"Connect": {
+						"SidecarService": {
+							"Check": {
+								"Interval": %[1]s,
+								"Timeout": %[1]s,
+								"TTL": %[1]s,
+								"DeregisterCriticalServiceAfter": %[1]s
+							}
+						}
+					}
+				},
+				"Check": {
+					"Definition": {
 						"Interval": %[1]s,
 						"Timeout": %[1]s,
 						"TTL": %[1]s,
-						"DeregisterCriticalServiceAfter": %[1]s
+						"DeregisterCriticalServiceAfter": %[1]s	
 					}
 				}
-			}
-		},
-		"Check": {
-			"Definition": {
-				"Interval": %[1]s,
-				"Timeout": %[1]s,
-				"TTL": %[1]s,
-				"DeregisterCriticalServiceAfter": %[1]s	
-			}
-		}
-	}`, tc.durations.in)
+			}`, tc.durations.in)
 			// body := bytes.NewBuffer([]byte(jsonStr))
 			// req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.RegisterRequest
 			err := json.Unmarshal([]byte(jsonStr), &out)
 			//err := decodeBody(req, &out, durations.FixupDurations)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -2327,8 +2365,8 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"OverrideConnectTimeout": %s
-	}`, tc.durations.in)
+				"OverrideConnectTimeout": %s
+			}`, tc.durations.in)
 			// body := bytes.NewBuffer([]byte(jsonStr))
 			// req := httptest.NewRequest("POST", "http://foo.com", body)
 
@@ -2390,9 +2428,9 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"OverrideProtocol": %[1]s,
-		"OverrideMeshGateway": {"Mode": %[1]s}
-	}`, tc.in)
+				"OverrideProtocol": %[1]s,
+				"OverrideMeshGateway": {"Mode": %[1]s}
+			}`, tc.in)
 			// body := bytes.NewBuffer([]byte(jsonStr))
 			// req := httptest.NewRequest("POST", "http://foo.com", body)
 
@@ -2400,6 +2438,7 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 			// fullDecodeFn is declared above in this test.
 			// err := fullDecodeFn(req, &out)
 			err := json.Unmarshal([]byte(jsonStr), &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -2632,10 +2671,10 @@ func TestDecodeIntentionCreate(t *testing.T) {
 				updatedAt = tc.timestamps.in
 			}
 			bodyBytes := []byte(fmt.Sprintf(`{
-		"CreatedAt": %s,
-		"UpdatedAt": %s,
-		"Hash": %s
-	}`, createdAt, updatedAt, hash))
+				"CreatedAt": %s,
+				"UpdatedAt": %s,
+				"Hash": %s
+			}`, createdAt, updatedAt, hash))
 
 			// set up request
 			//body := bytes.NewBuffer(bodyBytes)
@@ -2645,6 +2684,7 @@ func TestDecodeIntentionCreate(t *testing.T) {
 			var out structs.Intention
 			err := json.Unmarshal(bodyBytes, &out)
 			// err := decodeBody(req, &out, fixHashField)
+
 			if tc.hashes != nil {
 				// We should only check tc.wantErr for hashes in this case.
 				//
@@ -2739,9 +2779,9 @@ func TestDecodeOperatorAutopilotConfiguration(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"LastContactThreshold": %[1]s,
-		"ServerStabilizationTime": %[1]s
-	}`, tc.durations.in)
+				"LastContactThreshold": %[1]s,
+				"ServerStabilizationTime": %[1]s
+			}`, tc.durations.in)
 
 			//body := bytes.NewBuffer([]byte(jsonStr))
 			//req := httptest.NewRequest("POST", "http://foo.com", body)
@@ -2931,8 +2971,8 @@ func TestDecodeSessionCreate(t *testing.T) {
 
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"LockDelay": %s
-	}`, tc.durations.in)
+				"LockDelay": %s
+			}`, tc.durations.in)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
 			req := httptest.NewRequest("POST", "http://foo.com", body)
@@ -2998,8 +3038,8 @@ func TestDecodeSessionCreate(t *testing.T) {
 
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"Checks": %s
-	}`, tc.in)
+				"Checks": %s
+			}`, tc.in)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
 			req := httptest.NewRequest("POST", "http://foo.com", body)
@@ -3166,19 +3206,19 @@ func TestDecodeTxnConvertOps(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`[{
-		"Check": {
-			"Check": {
-				"Definition": {
-					"IntervalDuration": %[1]s,
-					"TimeoutDuration": %[1]s,
-					"DeregisterCriticalServiceAfterDuration": %[1]s,
-					"Interval": %[1]s,
-					"Timeout": %[1]s,
-					"DeregisterCriticalServiceAfter": %[1]s
+				"Check": {
+					"Check": {
+						"Definition": {
+							"IntervalDuration": %[1]s,
+							"TimeoutDuration": %[1]s,
+							"DeregisterCriticalServiceAfterDuration": %[1]s,
+							"Interval": %[1]s,
+							"Timeout": %[1]s,
+							"DeregisterCriticalServiceAfter": %[1]s
+						}
+					}
 				}
-			}
-		}
-	}]`, tc.durations.in)
+			}]`, tc.durations.in)
 
 			// body := bytes.NewBuffer([]byte(jsonStr))
 			// req := httptest.NewRequest("POST", "http://foo.com", body)

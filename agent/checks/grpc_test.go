@@ -4,16 +4,17 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/hashicorp/consul/agent/mock"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/types"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/mock"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/types"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -106,13 +107,15 @@ func TestGRPC_Proxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	check := &CheckGRPC{
-		Notify:    notif,
-		CheckID:   types.CheckID("foo"),
-		GRPC:      "",
-		Interval:  10 * time.Millisecond,
-		Logger:    log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		ProxyGRPC: server,
+		CheckID:       types.CheckID("foo"),
+		GRPC:          "",
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		ProxyGRPC:     server,
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()
@@ -132,13 +135,15 @@ func TestGRPC_NotProxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
+	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	check := &CheckGRPC{
-		Notify:    notif,
-		CheckID:   types.CheckID("foo"),
-		GRPC:      server,
-		Interval:  10 * time.Millisecond,
-		Logger:    log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
-		ProxyGRPC: "",
+		CheckID:       types.CheckID("foo"),
+		GRPC:          server,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		ProxyGRPC:     "",
+		StatusHandler: statusHandler,
 	}
 	check.Start()
 	defer check.Stop()

@@ -967,8 +967,16 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 }
 
 func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotMeshGateway(t, true)
+}
+
+func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotMeshGateway(t, false)
+}
+
+func testConfigSnapshotMeshGateway(t testing.T, populateServices bool) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
-	return &ConfigSnapshot{
+	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindMeshGateway,
 		Service: "mesh-gateway",
 		ProxyID: "mesh-gateway",
@@ -990,10 +998,17 @@ func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 		Roots:      roots,
 		Datacenter: "dc1",
 		MeshGateway: configSnapshotMeshGateway{
+			WatchedServicesSet: true,
+		},
+	}
+
+	if populateServices {
+		snap.MeshGateway = configSnapshotMeshGateway{
 			WatchedServices: map[string]context.CancelFunc{
 				"foo": nil,
 				"bar": nil,
 			},
+			WatchedServicesSet: true,
 			WatchedDatacenters: map[string]context.CancelFunc{
 				"dc2": nil,
 			},
@@ -1004,8 +1019,10 @@ func TestConfigSnapshotMeshGateway(t testing.T) *ConfigSnapshot {
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
 			},
-		},
+		}
 	}
+
+	return snap
 }
 
 func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {

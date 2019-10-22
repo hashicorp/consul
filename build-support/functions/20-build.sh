@@ -298,14 +298,10 @@ function build_consul {
    local container_id=$(docker create -it \
       ${volume_mount} \
       -e CGO_ENABLED=0 \
+      -e GOLDFLAGS="${GOLDFLAGS}" \
+      -e GOTAGS="${GOTAGS}" \
       ${image_name} \
-      gox \
-         -os="${XC_OS}" \
-         -arch="${XC_ARCH}" \
-         -osarch="!darwin/arm !freebsd/arm !darwin/arm64" \
-         -ldflags "${GOLDFLAGS}" \
-         -output "pkg/bin/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
-         -tags="${GOTAGS}")
+      ./build-support/scripts/build-local.sh -o "${XC_OS}" -a "${XC_ARCH}")
    ret=$?
 
    if test $ret -eq 0
@@ -349,8 +345,6 @@ function build_consul_local {
    #   If the CONSUL_DEV environment var is truthy only the local platform/architecture is built.
    #   If the XC_OS or the XC_ARCH environment vars are present then only those platforms/architectures
    #   will be built. Otherwise all supported platform/architectures are built
-   #   The NOGOX environment variable will be used if present. This will prevent using gox and instead
-   #   build with go install.
    #   The GOXPARALLEL environment variable is used if set
 
    if ! test -d "$1"
@@ -396,73 +390,75 @@ function build_consul_local {
       build_arch="${XC_ARCH}"
    fi
 
-   local use_gox=1
-   is_set "${NOGOX}" && use_gox=0
-   which gox > /dev/null || use_gox=0
-
    status_stage "==> Building Consul - OSes: ${build_os}, Architectures: ${build_arch}"
    mkdir pkg.bin.new 2> /dev/null
-   if is_set "${use_gox}"
-   then
-      status "Using gox for concurrent compilation"
 
-      CGO_ENABLED=0 gox \
-         -os="${build_os}" \
-         -arch="${build_arch}" \
-         -osarch="!darwin/arm !darwin/arm64 !freebsd/arm"  \
-         -ldflags="${GOLDFLAGS}" \
-         -parallel="${GOXPARALLEL:-"-1"}" \
-         -output "pkg.bin.new/${extra_dir}{{.OS}}_{{.Arch}}/consul" \
-         -tags="${GOTAGS}" \
-         .
-
-      if test $? -ne 0
-      then
-         err "ERROR: Failed to build Consul"
-         rm -r pkg.bin.new
-         return 1
-      fi
-   else
-      status "Building sequentially with go install"
-      for os in ${build_os}
+   status "Building sequentially with go install"
+   for os in ${build_os}
+   do
+      for arch in ${build_arch}
       do
-         for arch in ${build_arch}
-         do
-            outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
-            osarch="${os}/${arch}"
-            if test "${osarch}" == "darwin/arm" -o "${osarch}" == "darwin/arm64" -o "${osarch}" == "freebsd/arm64" -o "${osarch}" == "windows/arm" -o "${osarch}" == "windows/arm64" -o "${osarch}" == "freebsd/arm"
-            then
+         outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
+         osarch="${os}/${arch}"
+
+         case "${os}" in
+            "darwin" )
+               # Do not build ARM binaries for macOS
+               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               then
+                  continue
+               fi
+               ;;
+            "windows" )
+               # Do not build ARM binaries for Windows
+               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               then
+                  continue
+               fi
+               ;;
+            "freebsd" )
+               # Do not build ARM binaries for FreeBSD
+               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               then
+                  continue
+               fi
+               ;;
+            "solaris" )
+               # Only build amd64 for Solaris
+               if test "${arch}" != "amd64"
+               then
+                  continue
+               fi            
+               ;;
+            "linux" )
+               # build all the binaries for Linux
+               ;;
+            *)
                continue
-            fi
+            ;;
+         esac         
 
-            if test "${os}" == "solaris" -a "${arch}" != "amd64"
-            then
-               continue
-            fi
+         echo "--->   ${osarch}"
 
-            echo "--->   ${osarch}"
-
-
-            mkdir -p "${outdir}"
-            GOBIN_EXTRA=""
-            if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
-            then
-               GOBIN_EXTRA="${os}_${arch}/"
-            fi
-            binname="consul"
-            if [ $os == "windows" ];then
-                binname="consul.exe"
-            fi
-            CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
-            if test $? -ne 0
-            then
-               err "ERROR: Failed to build Consul for ${osarch}"
-               rm -r pkg.bin.new
-               return 1
-            fi
-         done
+         mkdir -p "${outdir}"
+         GOBIN_EXTRA=""
+         if test "${os}" != "$(go env GOHOSTOS)" -o "${arch}" != "$(go env GOHOSTARCH)"
+         then
+            GOBIN_EXTRA="${os}_${arch}/"
+         fi
+         binname="consul"
+         if [ $os == "windows" ];then
+               binname="consul.exe"
+         fi
+         debug_run env CGO_ENABLED=0 GOOS=${os} GOARCH=${arch} go install -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}" && cp "${MAIN_GOPATH}/bin/${GOBIN_EXTRA}${binname}" "${outdir}/${binname}"
+         if test $? -ne 0
+         then
+            err "ERROR: Failed to build Consul for ${osarch}"
+            rm -r pkg.bin.new
+            return 1
+         fi
       done
-   fi
+   done
 
    build_consul_post "${sdir}" "${extra_dir_name}"
    if test $? -ne 0

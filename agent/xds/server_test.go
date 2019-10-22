@@ -450,7 +450,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				// Parse the ACL and enforce it
 				policy, err := acl.NewPolicyFromSource("", 0, tt.acl, acl.SyntaxLegacy, nil)
 				require.NoError(t, err)
-				return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
 			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
 			defer envoy.Close()
@@ -521,7 +521,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 			return nil, acl.ErrNotFound
 		}
 
-		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 	}
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 	defer envoy.Close()
@@ -612,7 +612,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 			return nil, acl.ErrNotFound
 		}
 
-		return acl.NewPolicyAuthorizer(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
+		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 	}
 	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
 	defer envoy.Close()

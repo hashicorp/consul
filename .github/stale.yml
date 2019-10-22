@@ -1,0 +1,40 @@
+# Number of days of inactivity before an Issue or Pull Request becomes stale
+daysUntilStale: 60
+# Set to false to disable. If disabled, issues still need to be closed manually, but will remain marked as stale.
+daysUntilClose: 30
+
+# Issues with these labels will never be considered stale. Set to `[]` to disable
+# We don't close any issue that is an enhancement or confirmed bug, but issues
+# waiting for reproduction cases and questions tend to get outdated.
+exemptLabels:
+  - "enhancement"
+  - "bug"
+  - "thinking"
+  - "docs"
+
+# Label to use when marking as stale
+staleLabel: "waiting-reply"
+
+# Comment to post when marking as stale. Set to `false` to disable
+markComment: |
+  Hey there,
+  We wanted to check in on this request since it has been inactive for at least 60 days.
+  If you think this is still an important issue in the latest version of [Consul](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md)
+  or [its documentation](https://www.consul.io/docs) please reply with a comment here which will cause it to stay open for investigation.
+  If there is still no activity on this issue for 30 more days, we will go ahead and close it.
+  
+  Feel free to check out the [community forum](https://discuss.hashicorp.com/c/consul) as well!
+  Thank you!
+
+# Comment to post when removing the stale label. Set to `false` to disable
+unmarkComment: false
+
+# Comment to post when closing a stale Issue. Set to `false` to disable
+closeComment: >
+  Hey there,
+  This issue has been automatically closed because there hasn't been any activity for at least 90 days. 
+  If you are still experiencing problems, or still have questions, feel free to [open a new one](https://github.com/hashicorp/consul/issues/new) :+1:
+
+# Limit to only `issues`
+only: issues
+

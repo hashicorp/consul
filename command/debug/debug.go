@@ -428,9 +428,8 @@ func (c *cmd) captureDynamic() error {
 					s = 1
 				}
 
+				wgProf.Add(1)
 				go func() {
-					wgProf.Add(1)
-
 					prof, err := c.client.Debug().Profile(int(s))
 					if err != nil {
 						errCh <- err
@@ -444,9 +443,8 @@ func (c *cmd) captureDynamic() error {
 					wgProf.Done()
 				}()
 
+				wgProf.Add(1)
 				go func() {
-					wgProf.Add(1)
-
 					trace, err := c.client.Debug().Trace(int(s))
 					if err != nil {
 						errCh <- err

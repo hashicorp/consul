@@ -31,7 +31,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
 	github.com/hashicorp/go-hclog v0.9.2
-	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
+	github.com/hashicorp/go-memdb v1.0.3
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-plugin v1.0.1
