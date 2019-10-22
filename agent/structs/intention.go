@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -82,6 +83,26 @@ type Intention struct {
 	Hash []byte
 
 	RaftIndex
+}
+
+func (t *Intention) UnmarshalJSON(data []byte) (err error) {
+	type Alias Intention
+	aux := &struct {
+		Hash                 string
+		CreatedAt, UpdatedAt string // effectively `json:"-"` on Intention type
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
 }
 
 func (x *Intention) SetHash(force bool) []byte {

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -89,6 +90,63 @@ type discoveryChainReadRequest struct {
 	OverrideMeshGateway    structs.MeshGatewayConfig
 	OverrideProtocol       string
 	OverrideConnectTimeout time.Duration
+}
+
+func (t *discoveryChainReadRequest) UnmarshalJSON(data []byte) (err error) {
+	type Alias discoveryChainReadRequest
+	aux := &struct {
+		OverrideConnectTimeout interface{}
+		OverrideProtocol       interface{}
+		OverrideMeshGateway    *struct{ Mode interface{} }
+
+		OverrideConnectTimeoutCamel interface{}                 `json:"override_connect_timeout"`
+		OverrideProtocolCamel       interface{}                 `json:"override_protocol"`
+		OverrideMeshGatewayCamel    *struct{ Mode interface{} } `json:"override_mesh_gateway"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.OverrideConnectTimeout == nil {
+		aux.OverrideConnectTimeout = aux.OverrideConnectTimeoutCamel
+	}
+	if aux.OverrideProtocol == nil {
+		aux.OverrideProtocol = aux.OverrideProtocolCamel
+	}
+	if aux.OverrideMeshGateway == nil {
+		aux.OverrideMeshGateway = aux.OverrideMeshGatewayCamel
+	}
+
+	// weakly typed input
+	if aux.OverrideProtocol != nil {
+		switch v := aux.OverrideProtocol.(type) {
+		case string, float64, bool:
+			t.OverrideProtocol = fmt.Sprintf("%v", v)
+		default:
+			return fmt.Errorf("OverrideProtocol: invalid type %T", v)
+		}
+	}
+	if aux.OverrideMeshGateway != nil {
+		t.OverrideMeshGateway.Mode = structs.MeshGatewayMode(fmt.Sprintf("%v", aux.OverrideMeshGateway.Mode))
+	}
+
+	// duration
+	if aux.OverrideConnectTimeout != nil {
+		switch v := aux.OverrideConnectTimeout.(type) {
+		case string:
+			if t.OverrideConnectTimeout, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.OverrideConnectTimeout = time.Duration(v)
+		}
+	}
+
+	return nil
 }
 
 // discoveryChainReadResponse is the API variation of structs.DiscoveryChainResponse

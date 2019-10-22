@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"encoding/json"
+
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -29,6 +31,29 @@ type ServiceDefinition struct {
 	Proxy *ConnectProxyConfig
 
 	Connect *ServiceConnect
+}
+
+func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
+	type Alias ServiceDefinition
+	aux := &struct {
+		EnableTagOverrideCamel bool                      `json:"enable_tag_override"`
+		TaggedAddressesCamel   map[string]ServiceAddress `json:"tagged_addresses"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.EnableTagOverrideCamel {
+		t.EnableTagOverride = aux.EnableTagOverrideCamel
+	}
+	if t.TaggedAddresses == nil {
+		t.TaggedAddresses = aux.TaggedAddressesCamel
+	}
+
+	return nil
 }
 
 func (s *ServiceDefinition) NodeService() *NodeService {

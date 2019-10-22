@@ -91,6 +91,31 @@ func FixupCheckType(raw interface{}) error {
 	return nil
 }
 
+func ParseHeaderMap(v interface{}) (map[string][]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	vm, ok := v.(map[string]interface{})
+	if !ok {
+		return nil, errInvalidHeaderFormat
+	}
+	m := map[string][]string{}
+	for k, vv := range vm {
+		vs, ok := vv.([]interface{})
+		if !ok {
+			return nil, errInvalidHeaderFormat
+		}
+		for _, vs := range vs {
+			s, ok := vs.(string)
+			if !ok {
+				return nil, errInvalidHeaderFormat
+			}
+			m[k] = append(m[k], s)
+		}
+	}
+	return m, nil
+}
+
 func ParseMetaPair(raw string) (string, string) {
 	pair := strings.SplitN(raw, ":", 2)
 	if len(pair) == 2 {

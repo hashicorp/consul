@@ -877,6 +877,24 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
+func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
+	type Alias ServiceConnect
+	aux := &struct {
+		SidecarServiceCamel *ServiceDefinition `json:"sidecar_service"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.SidecarService == nil {
+		t.SidecarService = aux.SidecarServiceCamel
+	}
+	return nil
+}
+
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
 	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
@@ -1193,33 +1211,58 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	return json.Marshal(exported)
 }
 
-func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
+func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	type Alias HealthCheckDefinition
 	aux := &struct {
-		Interval                       string
-		Timeout                        string
-		DeregisterCriticalServiceAfter string
+		Interval                       interface{}
+		Timeout                        interface{}
+		DeregisterCriticalServiceAfter interface{}
+		TTL                            interface{}
 		*Alias
 	}{
-		Alias: (*Alias)(d),
+		Alias: (*Alias)(t),
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	var err error
-	if aux.Interval != "" {
-		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
-			return err
+	if aux.Interval != nil {
+		switch v := aux.Interval.(type) {
+		case string:
+			if t.Interval, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Interval = time.Duration(v)
 		}
 	}
-	if aux.Timeout != "" {
-		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
-			return err
+	if aux.Timeout != nil {
+		switch v := aux.Timeout.(type) {
+		case string:
+			if t.Timeout, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Timeout = time.Duration(v)
 		}
 	}
-	if aux.DeregisterCriticalServiceAfter != "" {
-		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
-			return err
+	if aux.DeregisterCriticalServiceAfter != nil {
+		switch v := aux.DeregisterCriticalServiceAfter.(type) {
+		case string:
+			if t.DeregisterCriticalServiceAfter, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.DeregisterCriticalServiceAfter = time.Duration(v)
+		}
+	}
+	if aux.TTL != nil {
+		switch v := aux.TTL.(type) {
+		case string:
+			if t.TTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTL = time.Duration(v)
 		}
 	}
 	return nil
