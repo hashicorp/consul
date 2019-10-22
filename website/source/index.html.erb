@@ -10,7 +10,7 @@ description: |-
       <div>
         <div>
           <div>
-            <h1>Easy Service Networking</h1>
+            <h1>Secure Service Networking</h1>
             <p>Consul is a service networking solution to connect and secure services across any runtime platform and public or private cloud</p>
             <a href='/downloads.html' class='g-btn download'>
               <svg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22'>
@@ -65,7 +65,44 @@ description: |-
     </div>
   </section>
 
-  <section id='static-dynamic' class='g-section bg-light'>
+  <section id='use-cases' class='g-section bg-light'>
+    <div class='g-container'>
+      <div class='intro'>
+        <h2>Common Tasks</h2>
+        <p>Consul can be run as a platform to solve a range of use-cases
+      in service networking.</p>
+      </div>
+      <div class='g-jtbd'>
+        <div>
+          <div>
+            <h3>Service Deployments</h3>
+            <p>Zero downtime deployments with L7 traffic splitting.</p>
+          </div>
+           <div>
+            <a href='https://learn.hashicorp.com/consul/developer-mesh/consul-splitting' class='g-btn dark-outline'>Learn more</a>
+          </div>
+          <div>
+            <h3>Connect Services across Datacenters</h3>
+            <p>Secure inter-datacenter communication with Connect.</p>
+          </div>
+          <div>
+            <a href='https://learn.hashicorp.com/consul/developer-mesh/connect-gateways' class='g-btn dark-outline'>Learn more</a>
+          </div>
+        </div>
+        <div>
+          <div>
+            <h3>Configure Load Balancers Automatically</h3>
+          <p>Load balance services registered with Consul.</p>
+          </div>
+          <div>
+            <a href='https://learn.hashicorp.com/consul/integrations/haproxy-consul' class='g-btn dark-outline'>Learn more</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id='static-dynamic' class='g-section'>
     <div class='g-container'>
       <div class='intro'>
         <h2>Service-based networking for dynamic infrastructure</h2>
@@ -95,100 +132,6 @@ description: |-
           <div id='index-dynamic-animation'>
             <%= inline_svg 'consul-connect/svgs/dynamic.svg' %>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id='use-cases' class='g-section'>
-    <div class='g-container'>
-      <div class='intro'>
-        <h2>Use Cases</h2>
-        <p>Consul can be run as a platform to solve a range of use-cases
-      in service networking.</p>
-      </div>
-      <div class='g-use-cases'>
-        <div>
-          <div>
-            <img src='/assets/images/consul-connect/svgs/discovery-simple.svg' alt='Service Discovery'>
-            <h3>Service Discovery</h3>
-            <p>Use the service registry to address and discover services across multiple runtime platforms, cloud providers and regions.</p>
-          </div>
-          <div>
-            <a href='/discovery.html' class='g-btn dark-outline'>Learn more</a>
-          </div>
-        </div>
-        <div>
-          <div>
-            <img src='/assets/images/consul-connect/svgs/segmentation-simple.svg' alt='Service Mesh'>
-            <h3>Service Mesh</h3>
-          <p>Service discovery, identity-based authorization, and L7 traffic management abstracted from application code with proxies in the service mesh pattern.</p>
-          </div>
-          <div>
-            <a href='/mesh.html' class='g-btn dark-outline'>Learn more</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class='g-section bg-light'>
-    <div class='g-container'>
-      <div class='intro'>
-        <h2>Consul Principles</h2>
-      </div>
-      <div class='g-text-asset'>
-        <div>
-          <div>
-            <h3>API-Driven</h3>
-            <p>Codify and automate service definitions, health checks, service
-              authorization policies, failover logic, and more.</p>
-          </div>
-        </div>
-        <div class='code-sample'>
-          <div>
-            <span></span>
-            <div class='code'>
-              <code>$ curl <code class='keyword'>http://localhost:8500/v1/kv/deployment</code>
-[
-  {
-    "LockIndex": 1,
-    "Session": "1c3f5836-4df4-0e26-6697-90dcce78acd9",
-    "Value": "Zm9v",
-    "Flags": 0,
-    "Key": "deployment",
-    "CreateIndex": 13,
-    "ModifyIndex": 19
-  }
-]</code>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class='g-section bg-light border-top'>
-    <div class='g-container'>
-      <div class='g-text-asset reverse'>
-        <div>
-          <div>
-            <h3>Run and Connect Anywhere</h3>
-            <p>Connect services across any runtime platform and public or private cloud. Connect services from Kubernetes to VMs, Containers to Serverless functions.</p>
-          </div>
-        </div>
-        <div>
-          <picture>
-            <source type="image/webp" srcset="
-              /assets/images/consul-connect/grid_1/grid_1_300.webp 300w,
-              /assets/images/consul-connect/grid_1/grid_1_715.webp 715w,
-              /assets/images/consul-connect/grid_1/grid_1_1256.webp 1256w" />
-             <source type="image/png" srcset="
-              /assets/images/consul-connect/grid_1/grid_1_300.png 300w,
-              /assets/images/consul-connect/grid_1/grid_1_715.png 715w,
-              /assets/images/consul-connect/grid_1/grid_1_1256.png 1256w" />
-              <img src='/assets/images/consul-connect/grid_1/grid_1_1256.png' alt='Run and Connect Anywhere'>
-          </picture>
         </div>
       </div>
     </div>
