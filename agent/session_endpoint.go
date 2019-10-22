@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -44,22 +43,22 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	s.parseToken(req, &args.Token)
 
 	// Handle optional request body
-	if req.ContentLength > 0 {
-		fixup := func(raw interface{}) error {
-			if err := FixupLockDelay(raw); err != nil {
-				return err
-			}
-			if err := FixupChecks(raw, &args.Session); err != nil {
-				return err
-			}
-			return nil
-		}
-		if err := json.NewDecoder(req.Body).Decode(&args.Session); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Request decode failed: %v", err)
-			return nil, nil
-		}
-	}
+	// if req.ContentLength > 0 {
+	// 	fixup := func(raw interface{}) error {
+	// 		if err := FixupLockDelay(raw); err != nil {
+	// 			return err
+	// 		}
+	// 		if err := FixupChecks(raw, &args.Session); err != nil {
+	// 			return err
+	// 		}
+	// 		return nil
+	// 	}
+	// 	if err := json.NewDecoder(req.Body).Decode(&args.Session); err != nil {
+	// 		resp.WriteHeader(http.StatusBadRequest)
+	// 		fmt.Fprintf(resp, "Request decode failed: %v", err)
+	// 		return nil, nil
+	// 	}
+	// }
 
 	// Create the session, get the ID
 	var out string

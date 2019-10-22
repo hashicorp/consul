@@ -218,7 +218,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		s.parseToken(req, &args.Token)
 
 		var conf api.AutopilotConfiguration
-		durations := NewDurationFixer("lastcontactthreshold", "serverstabilizationtime")
+		// durations := NewDurationFixer("lastcontactthreshold", "serverstabilizationtime")
 		if err := json.NewDecoder(req.Body).Decode(&conf); err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}
