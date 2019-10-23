@@ -2,7 +2,10 @@
 set -xe
 
 # Install netlify-cli
-sudo npm install netlify-cli -g
+npm install netlify-cli
+
+# set path to grab the netlify binary
+export PATH=$PATH:$(npm bin)
 
 # Deploy site to netlify
 # Assumes NETLIFY_SITE_ID and NETLIFY_AUTH_TOKEN env variables are set
