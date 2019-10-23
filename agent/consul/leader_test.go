@@ -1049,12 +1049,12 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master)
+				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master, nil)
 				require.NoError(t, err)
 				require.NotNil(t, master)
 			}
 
-			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken)
+			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
 			require.NoError(t, err)
 			require.NotNil(t, anon)
 
@@ -1062,7 +1062,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tt.bootstrap, canBootstrap)
 
-			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 			require.NoError(t, err)
 			require.NotNil(t, policy)
 		})
@@ -1096,7 +1096,7 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 
 	// wait for it to be upgraded
 	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id)
+		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id, nil)
 		require.NoError(t, err)
 		require.NotNil(t, token)
 		require.NotEqual(t, "", token.AccessorID)
@@ -1121,7 +1121,7 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 
 	// wait for it to be upgraded
 	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id)
+		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id, nil)
 		require.NoError(t, err)
 		require.NotNil(t, token)
 		require.NotEqual(t, "", token.AccessorID)

@@ -1808,6 +1808,35 @@ func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
+type ProtoMarshaller interface {
+	Size() int
+	MarshalTo([]byte) (int, error)
+	Unmarshal([]byte) error
+	ProtoMessage()
+}
+
+func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
+	if marshaller, ok := message.(ProtoMarshaller); ok {
+		return EncodeProto(t, marshaller)
+	}
+
+	return nil, fmt.Errorf("message does not implement the ProtoMarshaller interface: %T", message)
+}
+
+func EncodeProto(t MessageType, message ProtoMarshaller) ([]byte, error) {
+	data := make([]byte, message.Size()+1)
+	data[0] = uint8(t)
+	if _, err := message.MarshalTo(data[1:]); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func DecodeProto(buf []byte, out ProtoMarshaller) error {
+	// Note that this assumes the leading byte indicating the type as already been stripped off.
+	return out.Unmarshal(buf)
+}
+
 // CompoundResponse is an interface for gathering multiple responses. It is
 // used in cross-datacenter RPC calls where more than 1 datacenter is
 // expected to reply.

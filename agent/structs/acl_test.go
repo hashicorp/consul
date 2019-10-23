@@ -192,7 +192,7 @@ node_prefix "" {
 				Rules:       test.expectRules,
 			}
 
-			got := svcid.SyntheticPolicy()
+			got := svcid.SyntheticPolicy(nil)
 			require.NotEmpty(t, got.ID)
 			require.True(t, strings.HasPrefix(got.Name, "synthetic-policy-"))
 			// strip irrelevant fields before equality
