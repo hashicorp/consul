@@ -51,7 +51,7 @@ Consul operators via Consul's [ACL API](/api/acl/acl.html),
 [ACL CLI](/docs/commands/acl.html), or systems like 
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
-If the ACL system become inoperable, you can follow the 
+If the ACL system becomes inoperable, you can follow the 
 [reset procedure](https://learn.hashicorp.com/consul/security-networking/acl-troubleshooting?utm_source=consul.io&utm_medium=docs) at any time.
 
 ### ACL Policies
