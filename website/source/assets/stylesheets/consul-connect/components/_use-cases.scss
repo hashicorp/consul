@@ -49,6 +49,7 @@
       margin-top: 56px;
 
       @media (min-width: 768px) {
+        border-left: 1px solid $consul-red;
         margin-top: 0;
       }
     }
