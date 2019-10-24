@@ -103,7 +103,7 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	var raw map[string]interface{}
-	if err := decodeBody(req, &raw, nil); err != nil {
+	if err := decodeBodyDeprecated(req, &raw, nil); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
 

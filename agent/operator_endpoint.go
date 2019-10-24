@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -77,12 +76,9 @@ type keyringArgs struct {
 func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args keyringArgs
 	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
-		if req.Body != nil {
-			if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
-				return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
-			}
+		if err := decodeBody(req.Body, &args); err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
-
 	}
 	s.parseToken(req, &args.Token)
 
@@ -221,8 +217,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		s.parseToken(req, &args.Token)
 
 		var conf api.AutopilotConfiguration
-		// durations := NewDurationFixer("lastcontactthreshold", "serverstabilizationtime")
-		if err := json.NewDecoder(req.Body).Decode(&conf); err != nil {
+		if err := decodeBody(req.Body, &conf); err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}
 

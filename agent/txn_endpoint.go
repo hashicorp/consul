@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -116,7 +115,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.
 	var ops api.TxnOps
-	if err := json.NewDecoder(req.Body).Decode(&ops); err != nil {
+	if err := decodeBody(req.Body, &ops); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Failed to parse body: %v", err)
 		return nil, 0, false

@@ -462,7 +462,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	// decodeCB := func(raw interface{}) error {
 	// 	return FixupCheckType(raw)
 	// }
-	if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -607,7 +607,7 @@ type checkUpdate struct {
 // APIs.
 func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
-	if err := json.NewDecoder(req.Body).Decode(&update); err != nil {
+	if err := decodeBody(req.Body, &update); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -759,7 +759,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
 
-	if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -1181,7 +1181,7 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	// The body is just the token, but it's in a JSON object so we can add
 	// fields to this later if needed.
 	var args api.AgentToken
-	if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -1340,7 +1340,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 
 	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
-	if err := json.NewDecoder(req.Body).Decode(&authReq); err != nil {
+	if err := decodeBody(req.Body, &authReq); err != nil {
 		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
