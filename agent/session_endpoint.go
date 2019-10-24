@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -8,16 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
-)
-
-const (
-	// lockDelayMinThreshold is used to convert a numeric lock
-	// delay value from nanoseconds to seconds if it is below this
-	// threshold. Users often send a value like 5, which they assume
-	// is seconds, but because Go uses nanosecond granularity, ends
-	// up being very small. If we see a value below this threshold,
-	// we multiply by time.Second
-	lockDelayMinThreshold = 1000
 )
 
 // sessionCreateResponse is used to wrap the session ID
@@ -43,22 +34,22 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	s.parseToken(req, &args.Token)
 
 	// Handle optional request body
-	// if req.ContentLength > 0 {
-	// 	fixup := func(raw interface{}) error {
-	// 		if err := FixupLockDelay(raw); err != nil {
-	// 			return err
-	// 		}
-	// 		if err := FixupChecks(raw, &args.Session); err != nil {
-	// 			return err
-	// 		}
-	// 		return nil
-	// 	}
-	// 	if err := json.NewDecoder(req.Body).Decode(&args.Session); err != nil {
-	// 		resp.WriteHeader(http.StatusBadRequest)
-	// 		fmt.Fprintf(resp, "Request decode failed: %v", err)
-	// 		return nil, nil
-	// 	}
-	// }
+	if req.ContentLength > 0 {
+		// fixup := func(raw interface{}) error {
+		// 	if err := FixupLockDelay(raw); err != nil {
+		// 		return err
+		// 	}
+		// 	if err := FixupChecks(raw, &args.Session); err != nil {
+		// 		return err
+		// 	}
+		// 	return nil
+		// }
+		if err := json.NewDecoder(req.Body).Decode(&args.Session); err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Request decode failed: %v", err)
+			return nil, nil
+		}
+	}
 
 	// Create the session, get the ID
 	var out string
@@ -72,42 +63,42 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 
 // FixupLockDelay is used to handle parsing the JSON body to session/create
 // and properly parsing out the lock delay duration value.
-func FixupLockDelay(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	var key string
-	for k := range rawMap {
-		if strings.ToLower(k) == "lockdelay" {
-			key = k
-			break
-		}
-	}
-	if key != "" {
-		val := rawMap[key]
-		// Convert a string value into an integer
-		if vStr, ok := val.(string); ok {
-			dur, err := time.ParseDuration(vStr)
-			if err != nil {
-				return err
-			}
-			if dur < lockDelayMinThreshold {
-				dur = dur * time.Second
-			}
-			rawMap[key] = dur
-		}
-		// Convert low value integers into seconds
-		if vNum, ok := val.(float64); ok {
-			dur := time.Duration(vNum)
-			if dur < lockDelayMinThreshold {
-				dur = dur * time.Second
-			}
-			rawMap[key] = dur
-		}
-	}
-	return nil
-}
+// func FixupLockDelay(raw interface{}) error {
+// 	rawMap, ok := raw.(map[string]interface{})
+// 	if !ok {
+// 		return nil
+// 	}
+// 	var key string
+// 	for k := range rawMap {
+// 		if strings.ToLower(k) == "lockdelay" {
+// 			key = k
+// 			break
+// 		}
+// 	}
+// 	if key != "" {
+// 		val := rawMap[key]
+// 		// Convert a string value into an integer
+// 		if vStr, ok := val.(string); ok {
+// 			dur, err := time.ParseDuration(vStr)
+// 			if err != nil {
+// 				return err
+// 			}
+// 			if dur < lockDelayMinThreshold {
+// 				dur = dur * time.Second
+// 			}
+// 			rawMap[key] = dur
+// 		}
+// 		// Convert low value integers into seconds
+// 		if vNum, ok := val.(float64); ok {
+// 			dur := time.Duration(vNum)
+// 			if dur < lockDelayMinThreshold {
+// 				dur = dur * time.Second
+// 			}
+// 			rawMap[key] = dur
+// 		}
+// 	}
+// 	return nil
+// }
 
 // FixupChecks is used to handle parsing the JSON body to default-add the Serf
 // health check if they didn't specify any checks, but to allow an empty list

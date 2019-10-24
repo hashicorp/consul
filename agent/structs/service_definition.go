@@ -35,6 +35,7 @@ type ServiceDefinition struct {
 
 func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
 	type Alias ServiceDefinition
+
 	aux := &struct {
 		EnableTagOverrideCamel bool                      `json:"enable_tag_override"`
 		TaggedAddressesCamel   map[string]ServiceAddress `json:"tagged_addresses"`
@@ -49,7 +50,7 @@ func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
 	if aux.EnableTagOverrideCamel {
 		t.EnableTagOverride = aux.EnableTagOverrideCamel
 	}
-	if t.TaggedAddresses == nil {
+	if len(t.TaggedAddresses) == 0 {
 		t.TaggedAddresses = aux.TaggedAddressesCamel
 	}
 

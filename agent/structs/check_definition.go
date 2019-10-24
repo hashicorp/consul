@@ -72,10 +72,10 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	if aux.DeregisterCriticalServiceAfter == nil {
 		aux.DeregisterCriticalServiceAfter = aux.DeregisterCriticalServiceAfterCamel
 	}
-	if t.ScriptArgs == nil {
+	if len(t.ScriptArgs) == 0 {
 		t.ScriptArgs = aux.ArgsCamel
 	}
-	if t.ScriptArgs == nil {
+	if len(t.ScriptArgs) == 0 {
 		t.ScriptArgs = aux.ScriptArgsCamel
 	}
 	if t.DockerContainerID == "" {
@@ -90,7 +90,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 
 	// Parse special values
 	if aux.Interval != nil {
-		switch v := aux.TTL.(type) {
+		switch v := aux.Interval.(type) {
 		case string:
 			if t.Interval, err = time.ParseDuration(v); err != nil {
 				return err
@@ -100,7 +100,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		}
 	}
 	if aux.Timeout != nil {
-		switch v := aux.TTL.(type) {
+		switch v := aux.Timeout.(type) {
 		case string:
 			if t.Timeout, err = time.ParseDuration(v); err != nil {
 				return err

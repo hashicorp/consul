@@ -457,6 +457,7 @@ func (s *HTTPServer) syncChanges() {
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.CheckDefinition
+
 	// Fixup the type decode of TTL or Interval.
 	// decodeCB := func(raw interface{}) error {
 	// 	return FixupCheckType(raw)

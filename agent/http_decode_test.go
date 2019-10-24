@@ -35,7 +35,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -2900,15 +2899,15 @@ func TestDecodeSessionCreate(t *testing.T) {
 	var outSession structs.Session
 
 	// copied from agent/session_endpoint.go
-	fixupCB := func(raw interface{}) error {
-		if err := FixupLockDelay(raw); err != nil {
-			return err
-		}
-		if err := FixupChecks(raw, &outSession); err != nil {
-			return err
-		}
-		return nil
-	}
+	// fixupCB := func(raw interface{}) error {
+	// 	if err := FixupLockDelay(raw); err != nil {
+	// 		return err
+	// 	}
+	// 	if err := FixupChecks(raw, &outSession); err != nil {
+	// 		return err
+	// 	}
+	// 	return nil
+	// }
 
 	// lockDelayMinThreshold = 1000
 
@@ -2974,11 +2973,12 @@ func TestDecodeSessionCreate(t *testing.T) {
 				"LockDelay": %s
 			}`, tc.durations.in)
 
-			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
+			// body := bytes.NewBuffer([]byte(jsonStr))
+			// req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			// outSession var is shared among test cases
-			err := decodeBody(req, &outSession, fixupCB)
+			// err := decodeBody(req, &outSession, fixupCB)
+			err := json.Unmarshal([]byte(jsonStr), &outSession)
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -3041,11 +3041,12 @@ func TestDecodeSessionCreate(t *testing.T) {
 				"Checks": %s
 			}`, tc.in)
 
-			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
+			// body := bytes.NewBuffer([]byte(jsonStr))
+			// req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			// outSession var is shared among test cases
-			err := decodeBody(req, &outSession, fixupCB)
+			// err := decodeBody(req, &outSession, fixupCB)
+			err := json.Unmarshal([]byte(jsonStr), &outSession)
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}

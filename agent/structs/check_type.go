@@ -78,16 +78,16 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = json.Unmarshal(data, aux); err != nil {
 		return err
 	}
 	if aux.DeregisterCriticalServiceAfter == nil {
 		aux.DeregisterCriticalServiceAfter = aux.DeregisterCriticalServiceAfterCamel
 	}
-	if t.ScriptArgs == nil {
+	if len(t.ScriptArgs) == 0 {
 		t.ScriptArgs = aux.ArgsCamel
 	}
-	if t.ScriptArgs == nil {
+	if len(t.ScriptArgs) == 0 {
 		t.ScriptArgs = aux.ScriptArgsCamel
 	}
 	if t.DockerContainerID == "" {

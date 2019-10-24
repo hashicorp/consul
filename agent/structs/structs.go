@@ -99,6 +99,14 @@ const (
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
+
+	// lockDelayMinThreshold is used in JSON decoding to convert a
+	// numeric lockdelay value from nanoseconds to seconds if it is
+	// below thisthreshold. Users often send a value like 5, which
+	// they assumeis seconds, but because Go uses nanosecond granularity,
+	// ends up being very small. If we see a value below this threshold,
+	// we multiply by time.Second
+	lockDelayMinThreshold = 1000
 )
 
 // metaKeyFormat checks if a metadata key string is valid
@@ -1697,6 +1705,8 @@ const (
 	SessionTTLMultiplier = 2
 )
 
+type Sessions []*Session
+
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
@@ -1710,7 +1720,36 @@ type Session struct {
 
 	RaftIndex
 }
-type Sessions []*Session
+
+func (t *Session) UnmarshalJSON(data []byte) (err error) {
+	type Alias Session
+	aux := &struct {
+		LockDelay interface{}
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.LockDelay != nil {
+		var dur time.Duration
+		switch v := aux.LockDelay.(type) {
+		case string:
+			if dur, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			dur = time.Duration(v)
+		}
+		// Convert low value integers into seconds
+		if dur < lockDelayMinThreshold {
+			dur = dur * time.Second
+		}
+		t.LockDelay = dur
+	}
+	return nil
+}
 
 type SessionOp string
 
