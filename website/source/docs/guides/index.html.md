@@ -38,4 +38,4 @@ Tracks include:
 - Service Configuration and Consul KV
 - Cloud and Load Balancer Integrations
 
-[**Explore the Learn platform**](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_content=guide-index)
+[**Explore the Learn platform**](https://learn.hashicorp.com/consul?utm_source=consul.io&utm_medium=docs&utm_content=guide-index)
