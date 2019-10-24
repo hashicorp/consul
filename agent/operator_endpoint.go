@@ -77,9 +77,12 @@ type keyringArgs struct {
 func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args keyringArgs
 	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
-		if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
-			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+		if req.Body != nil {
+			if err := json.NewDecoder(req.Body).Decode(&args); err != nil {
+				return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+			}
 		}
+
 	}
 	s.parseToken(req, &args.Token)
 
