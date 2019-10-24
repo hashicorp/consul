@@ -9,6 +9,21 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+type Cache interface {
+	// GetValidator retrieves the Validator from the cache.
+	// It returns the modify index of struct that the validator was created from,
+	// the validator and a boolean indicating whether the value was found
+	GetValidator(method *structs.ACLAuthMethod) (uint64, Validator, bool)
+
+	// PutValidatorIfNewer inserts a new validator into the cache if the index is greater
+	// than the modify index of any existing entry in the cache. This method will return
+	// the newest validator which may or may not be the one from the method parameter
+	PutValidatorIfNewer(method *structs.ACLAuthMethod, validator Validator, idx uint64) Validator
+
+	// Purge removes all cached validators
+	Purge()
+}
+
 type ValidatorFactory func(method *structs.ACLAuthMethod) (Validator, error)
 
 type Validator interface {
@@ -62,6 +77,54 @@ func IsRegisteredType(typeName string) bool {
 	_, ok := types[typeName]
 	typesMu.RUnlock()
 	return ok
+}
+
+type authMethodValidatorEntry struct {
+	Validator   Validator
+	ModifyIndex uint64
+}
+
+// authMethodCache is an non-thread-safe cache that maps ACLAuthMethods to their Validators
+type authMethodCache struct {
+	entries map[string]*authMethodValidatorEntry
+}
+
+func newCache() Cache {
+	c := &authMethodCache{}
+	c.init()
+	return c
+}
+
+func (c *authMethodCache) init() {
+	c.Purge()
+}
+
+func (c *authMethodCache) GetValidator(method *structs.ACLAuthMethod) (uint64, Validator, bool) {
+	entry, ok := c.entries[method.Name]
+	if ok {
+		return entry.ModifyIndex, entry.Validator, true
+	}
+
+	return 0, nil, false
+}
+
+func (c *authMethodCache) PutValidatorIfNewer(method *structs.ACLAuthMethod, validator Validator, idx uint64) Validator {
+	prev, ok := c.entries[method.Name]
+	if ok {
+		if prev.ModifyIndex >= idx {
+			return prev.Validator
+		}
+	}
+
+	c.entries[method.Name] = &authMethodValidatorEntry{
+		Validator:   validator,
+		ModifyIndex: idx,
+	}
+	return validator
+}
+
+func (c *authMethodCache) Purge() {
+	c.entries = make(map[string]*authMethodValidatorEntry)
 }
 
 // NewValidator instantiates a new Validator for the given auth method

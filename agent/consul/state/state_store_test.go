@@ -26,6 +26,27 @@ func testUUID() string {
 		buf[10:16])
 }
 
+func snapshotIndexes(snap *Snapshot) ([]*IndexEntry, error) {
+	iter, err := snap.Indexes()
+	if err != nil {
+		return nil, err
+	}
+	var indexes []*IndexEntry
+	for index := iter.Next(); index != nil; index = iter.Next() {
+		indexes = append(indexes, index.(*IndexEntry))
+	}
+	return indexes, nil
+}
+
+func restoreIndexes(indexes []*IndexEntry, r *Restore) error {
+	for _, index := range indexes {
+		if err := r.IndexRestore(index); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func testStateStore(t *testing.T) *Store {
 	s, err := NewStateStore(nil)
 	if err != nil {

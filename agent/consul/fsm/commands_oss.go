@@ -172,7 +172,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 
 		// No need to check expiration times as those did not exist in legacy tokens.
-		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID); err != nil {
+		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID, nil); err != nil {
 			return err
 		} else {
 			acl, err := token.Convert()
@@ -188,7 +188,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 		return req.ACL.ID
 	case structs.ACLDelete:
-		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID)
+		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID, nil)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
@@ -533,5 +533,5 @@ func (c *FSM) applyACLAuthMethodDeleteOperation(buf []byte, index uint64) interf
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "authmethod"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
-	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames)
+	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames, &req.EnterpriseMeta)
 }

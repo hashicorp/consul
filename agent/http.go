@@ -192,7 +192,7 @@ var endpoints map[string]unboundEndpoint
 
 // allowedMethods is a map from endpoint prefix to supported HTTP methods.
 // An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
-var allowedMethods map[string][]string
+var allowedMethods map[string][]string = make(map[string][]string)
 
 // registerEndpoint registers a new endpoint, which should be done at package
 // init() time.

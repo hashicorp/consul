@@ -211,195 +211,6 @@ func (s *TokenExpirationIndex) FromArgs(args ...interface{}) ([]byte, error) {
 	return buf, nil
 }
 
-func tokensTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acl-tokens",
-		Indexes: map[string]*memdb.IndexSchema{
-			"accessor": &memdb.IndexSchema{
-				Name: "accessor",
-				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
-				AllowMissing: true,
-				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "AccessorID",
-				},
-			},
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "SecretID",
-					Lowercase: false,
-				},
-			},
-			"policies": &memdb.IndexSchema{
-				Name: "policies",
-				// Need to allow missing for the anonymous token
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &TokenPoliciesIndex{},
-			},
-			"roles": &memdb.IndexSchema{
-				Name:         "roles",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &TokenRolesIndex{},
-			},
-			"authmethod": &memdb.IndexSchema{
-				Name:         "authmethod",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "AuthMethod",
-					Lowercase: false,
-				},
-			},
-			"local": &memdb.IndexSchema{
-				Name:         "local",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.ConditionalIndex{
-					Conditional: func(obj interface{}) (bool, error) {
-						if token, ok := obj.(*structs.ACLToken); ok {
-							return token.Local, nil
-						}
-						return false, nil
-					},
-				},
-			},
-			"expires-global": {
-				Name:         "expires-global",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &TokenExpirationIndex{LocalFilter: false},
-			},
-			"expires-local": {
-				Name:         "expires-local",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &TokenExpirationIndex{LocalFilter: true},
-			},
-
-			//DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
-			// This table indexes all the ACL tokens that do not have an AccessorID
-			"needs-upgrade": &memdb.IndexSchema{
-				Name:         "needs-upgrade",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.ConditionalIndex{
-					Conditional: func(obj interface{}) (bool, error) {
-						if token, ok := obj.(*structs.ACLToken); ok {
-							return token.AccessorID == "", nil
-						}
-						return false, nil
-					},
-				},
-			},
-		},
-	}
-}
-
-func policiesTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acl-policies",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
-				},
-			},
-			"name": &memdb.IndexSchema{
-				Name:         "name",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field: "Name",
-					// TODO (ACL-V2) - should we coerce to lowercase?
-					Lowercase: true,
-				},
-			},
-		},
-	}
-}
-
-func rolesTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acl-roles",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
-				},
-			},
-			"name": &memdb.IndexSchema{
-				Name:         "name",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
-				},
-			},
-			"policies": &memdb.IndexSchema{
-				Name: "policies",
-				// Need to allow missing for the anonymous token
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &RolePoliciesIndex{},
-			},
-		},
-	}
-}
-
-func bindingRulesTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acl-binding-rules",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
-				},
-			},
-			"authmethod": &memdb.IndexSchema{
-				Name:         "authmethod",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "AuthMethod",
-					Lowercase: true,
-				},
-			},
-		},
-	}
-}
-
-func authMethodsTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "acl-auth-methods",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
-				},
-			},
-		},
-	}
-}
-
 func init() {
 	registerSchema(tokensTableSchema)
 	registerSchema(policiesTableSchema)
@@ -410,7 +221,6 @@ func init() {
 
 // ACLTokens is used when saving a snapshot
 func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
-	// DEPRECATED (ACL-Legacy-Compat) - This could use the "id" index when we remove v1 compat
 	iter, err := s.tx.Get("acl-tokens", "id")
 	if err != nil {
 		return nil, err
@@ -420,14 +230,7 @@ func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
 
 // ACLToken is used when restoring from a snapshot. For general inserts, use ACL.
 func (s *Restore) ACLToken(token *structs.ACLToken) error {
-	if err := s.tx.Insert("acl-tokens", token); err != nil {
-		return fmt.Errorf("failed restoring acl token: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(s.tx, token.ModifyIndex, "acl-tokens"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-	return nil
+	return s.store.aclTokenInsert(s.tx, token, false)
 }
 
 // ACLPolicies is used when saving a snapshot
@@ -440,14 +243,7 @@ func (s *Snapshot) ACLPolicies() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
-	if err := s.tx.Insert("acl-policies", policy); err != nil {
-		return fmt.Errorf("failed restoring acl policy: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(s.tx, policy.ModifyIndex, "acl-policies"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-	return nil
+	return s.store.aclPolicyInsert(s.tx, policy, false)
 }
 
 // ACLRoles is used when saving a snapshot
@@ -460,14 +256,7 @@ func (s *Snapshot) ACLRoles() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLRole(role *structs.ACLRole) error {
-	if err := s.tx.Insert("acl-roles", role); err != nil {
-		return fmt.Errorf("failed restoring acl role: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(s.tx, role.ModifyIndex, "acl-roles"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-	return nil
+	return s.store.aclRoleInsert(s.tx, role, false)
 }
 
 // ACLBindingRules is used when saving a snapshot
@@ -480,14 +269,7 @@ func (s *Snapshot) ACLBindingRules() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLBindingRule(rule *structs.ACLBindingRule) error {
-	if err := s.tx.Insert("acl-binding-rules", rule); err != nil {
-		return fmt.Errorf("failed restoring acl binding rule: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(s.tx, rule.ModifyIndex, "acl-binding-rules"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-	return nil
+	return s.store.aclBindingRuleInsert(s.tx, rule, false)
 }
 
 // ACLAuthMethods is used when saving a snapshot
@@ -500,14 +282,7 @@ func (s *Snapshot) ACLAuthMethods() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLAuthMethod(method *structs.ACLAuthMethod) error {
-	if err := s.tx.Insert("acl-auth-methods", method); err != nil {
-		return fmt.Errorf("failed restoring acl auth method: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(s.tx, method.ModifyIndex, "acl-auth-methods"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-	return nil
+	return s.store.aclAuthMethodInsert(s.tx, method, false)
 }
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on a
@@ -531,9 +306,6 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 
 	if err := s.aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
 		return fmt.Errorf("failed to mark ACL bootstrapping as complete: %v", err)
@@ -638,7 +410,7 @@ func (s *Store) resolveTokenPolicyLinks(tx *memdb.Txn, token *structs.ACLToken, 
 	var numValid int
 	for linkIndex, link := range token.Policies {
 		if link.ID != "" {
-			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
+			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &token.EnterpriseMeta)
 
 			if err != nil {
 				return 0, err
@@ -678,7 +450,7 @@ func (s *Store) fixupTokenPolicyLinks(tx *memdb.Txn, original *structs.ACLToken)
 			return nil, fmt.Errorf("Detected corrupted token within the state store - missing policy link ID")
 		}
 
-		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
+		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &token.EnterpriseMeta)
 
 		if err != nil {
 			return nil, err
@@ -712,7 +484,7 @@ func (s *Store) resolveTokenRoleLinks(tx *memdb.Txn, token *structs.ACLToken, al
 	var numValid int
 	for linkIndex, link := range token.Roles {
 		if link.ID != "" {
-			role, err := s.getRoleWithTxn(tx, nil, link.ID, "id")
+			role, err := s.getRoleWithTxn(tx, nil, link.ID, s.aclRoleGetByID, &token.EnterpriseMeta)
 
 			if err != nil {
 				return 0, err
@@ -752,7 +524,7 @@ func (s *Store) fixupTokenRoleLinks(tx *memdb.Txn, original *structs.ACLToken) (
 			return nil, fmt.Errorf("Detected corrupted token within the state store - missing role link ID")
 		}
 
-		role, err := s.getRoleWithTxn(tx, nil, link.ID, "id")
+		role, err := s.getRoleWithTxn(tx, nil, link.ID, s.aclRoleGetByID, &original.EnterpriseMeta)
 
 		if err != nil {
 			return nil, err
@@ -785,7 +557,7 @@ func (s *Store) fixupTokenRoleLinks(tx *memdb.Txn, original *structs.ACLToken) (
 func (s *Store) resolveRolePolicyLinks(tx *memdb.Txn, role *structs.ACLRole, allowMissing bool) error {
 	for linkIndex, link := range role.Policies {
 		if link.ID != "" {
-			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
+			policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &role.EnterpriseMeta)
 
 			if err != nil {
 				return err
@@ -824,7 +596,7 @@ func (s *Store) fixupRolePolicyLinks(tx *memdb.Txn, original *structs.ACLRole) (
 			return nil, fmt.Errorf("Detected corrupted role within the state store - missing policy link ID")
 		}
 
-		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, "id")
+		policy, err := s.getPolicyWithTxn(tx, nil, link.ID, s.aclPolicyGetByID, &original.EnterpriseMeta)
 
 		if err != nil {
 			return nil, err
@@ -864,10 +636,6 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 		return err
 	}
 
-	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
 	tx.Commit()
 	return nil
 }
@@ -880,10 +648,6 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 		if err := s.aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, false); err != nil {
 			return err
 		}
-	}
-
-	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	tx.Commit()
@@ -915,7 +679,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 
 	// Check for an existing ACL
 	// DEPRECATED (ACL-Legacy-Compat) - transition to using accessor index instead of secret once v1 compat is removed
-	existing, err := tx.First("acl-tokens", "id", token.SecretID)
+	_, existing, err := s.aclTokenGetFromIndex(tx, token.SecretID, "id", nil)
 	if err != nil {
 		return fmt.Errorf("failed token lookup: %s", err)
 	}
@@ -949,6 +713,10 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		token.AccessorID = original.AccessorID
 	}
 
+	if err := s.aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
+		return err
+	}
+
 	var numValidPolicies int
 	if numValidPolicies, err = s.resolveTokenPolicyLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
 		return err
@@ -960,7 +728,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 	}
 
 	if token.AuthMethod != "" {
-		method, err := s.getAuthMethodWithTxn(tx, nil, token.AuthMethod, "id")
+		method, err := s.getAuthMethodWithTxn(tx, nil, token.AuthMethod, &token.EnterpriseMeta)
 		if err != nil {
 			return err
 		} else if method == nil {
@@ -997,35 +765,30 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		token.ModifyIndex = idx
 	}
 
-	// Insert the ACL
-	if err := tx.Insert("acl-tokens", token); err != nil {
-		return fmt.Errorf("failed inserting acl token: %v", err)
-	}
-
-	return nil
+	return s.aclTokenInsert(tx, token, true)
 }
 
 // ACLTokenGetBySecret is used to look up an existing ACL token by its SecretID.
-func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, secret, "id")
+func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
+	return s.aclTokenGet(ws, secret, "id", entMeta)
 }
 
 // ACLTokenGetByAccessor is used to look up an existing ACL token by its AccessorID.
-func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, accessor, "accessor")
+func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
+	return s.aclTokenGet(ws, accessor, "accessor", entMeta)
 }
 
 // aclTokenGet looks up a token using one of the indexes provided
-func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string) (uint64, *structs.ACLToken, error) {
+func (s *Store) aclTokenGet(ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	token, err := s.aclTokenGetTxn(tx, ws, value, index)
+	token, err := s.aclTokenGetTxn(tx, ws, value, index, entMeta)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
+		return 0, nil, err
 	}
 
-	idx := maxIndexTxn(tx, "acl-tokens")
+	idx := s.aclTokenMaxIndex(tx, token, entMeta)
 	return idx, token, nil
 }
 
@@ -1035,7 +798,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 
 	tokens := make(structs.ACLTokens, 0)
 	for _, accessor := range accessors {
-		token, err := s.aclTokenGetTxn(tx, ws, accessor, "accessor")
+		token, err := s.aclTokenGetTxn(tx, ws, accessor, "accessor", nil)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 		}
@@ -1051,8 +814,8 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 	return idx, tokens, nil
 }
 
-func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLToken, error) {
-	watchCh, rawToken, err := tx.FirstWatch("acl-tokens", index, value)
+func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+	watchCh, rawToken, err := s.aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -1075,7 +838,7 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 }
 
 // ACLTokenList is used to list out all of the ACLs in the state store.
-func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string) (uint64, structs.ACLTokens, error) {
+func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1089,23 +852,23 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	needLocalityFilter := false
 	if policy == "" && role == "" && methodName == "" {
 		if global == local {
-			iter, err = tx.Get("acl-tokens", "id")
+			iter, err = s.aclTokenListAll(tx, entMeta)
 		} else if global {
-			iter, err = tx.Get("acl-tokens", "local", false)
+			iter, err = s.aclTokenListGlobal(tx, entMeta)
 		} else {
-			iter, err = tx.Get("acl-tokens", "local", true)
+			iter, err = s.aclTokenListLocal(tx, entMeta)
 		}
 
 	} else if policy != "" && role == "" && methodName == "" {
-		iter, err = tx.Get("acl-tokens", "policies", policy)
+		iter, err = s.aclTokenListByPolicy(tx, policy, entMeta)
 		needLocalityFilter = true
 
 	} else if policy == "" && role != "" && methodName == "" {
-		iter, err = tx.Get("acl-tokens", "roles", role)
+		iter, err = s.aclTokenListByRole(tx, role, entMeta)
 		needLocalityFilter = true
 
 	} else if policy == "" && role == "" && methodName != "" {
-		iter, err = tx.Get("acl-tokens", "authmethod", methodName)
+		iter, err = s.aclTokenListByAuthMethod(tx, methodName, entMeta)
 		needLocalityFilter = true
 
 	} else {
@@ -1150,7 +913,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-tokens")
+	idx := s.aclTokenMaxIndex(tx, nil, entMeta)
 
 	return idx, result, nil
 }
@@ -1235,14 +998,14 @@ func (s *Store) expiresIndexName(local bool) string {
 
 // ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
-func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string) error {
-	return s.aclTokenDelete(idx, secret, "id")
+func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclTokenDelete(idx, secret, "id", entMeta)
 }
 
 // ACLTokenDeleteByAccessor is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
-func (s *Store) ACLTokenDeleteByAccessor(idx uint64, accessor string) error {
-	return s.aclTokenDelete(idx, accessor, "accessor")
+func (s *Store) ACLTokenDeleteByAccessor(idx uint64, accessor string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclTokenDelete(idx, accessor, "accessor", entMeta)
 }
 
 func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
@@ -1250,7 +1013,7 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	defer tx.Abort()
 
 	for _, tokenID := range tokenIDs {
-		if err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor"); err != nil {
+		if err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor", nil); err != nil {
 			return err
 		}
 	}
@@ -1259,11 +1022,11 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	return nil
 }
 
-func (s *Store) aclTokenDelete(idx uint64, value, index string) error {
+func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclTokenDeleteTxn(tx, idx, value, index); err != nil {
+	if err := s.aclTokenDeleteTxn(tx, idx, value, index, entMeta); err != nil {
 		return err
 	}
 
@@ -1271,9 +1034,9 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string) error {
 	return nil
 }
 
-func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing token
-	token, err := tx.First("acl-tokens", index, value)
+	_, token, err := s.aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -1286,18 +1049,12 @@ func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string
 		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 
-	if err := tx.Delete("acl-tokens", token); err != nil {
-		return fmt.Errorf("failed deleting acl token: %v", err)
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
-	}
-	return nil
+	return s.aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
 }
 
-func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string) error {
+func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string, entMeta *structs.EnterpriseMeta) error {
 	// collect them all
-	iter, err := tx.Get("acl-tokens", "authmethod", methodName)
+	iter, err := s.aclTokenListByAuthMethod(tx, methodName, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -1311,13 +1068,9 @@ func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, met
 	if len(tokens) > 0 {
 		// delete them all
 		for _, token := range tokens {
-			if err := tx.Delete("acl-tokens", token); err != nil {
-				return fmt.Errorf("failed deleting acl token: %v", err)
+			if err := s.aclTokenDeleteWithToken(tx, token, idx); err != nil {
+				return err
 			}
-		}
-
-		if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
-			return fmt.Errorf("failed updating index: %v", err)
 		}
 	}
 
@@ -1334,10 +1087,6 @@ func (s *Store) ACLPolicyBatchSet(idx uint64, policies structs.ACLPolicies) erro
 		}
 	}
 
-	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
 	tx.Commit()
 	return nil
 }
@@ -1348,9 +1097,6 @@ func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
 
 	if err := s.aclPolicySetTxn(tx, idx, policy); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	tx.Commit()
@@ -1367,9 +1113,14 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 		return ErrMissingACLPolicyName
 	}
 
-	existing, err := tx.First("acl-policies", "id", policy.ID)
+	var existing *structs.ACLPolicy
+	_, existingRaw, err := s.aclPolicyGetByID(tx, policy.ID, nil)
 	if err != nil {
-		return fmt.Errorf("failed acl policy lookup: %v", err)
+		return err
+	}
+
+	if existingRaw != nil {
+		existing = existingRaw.(*structs.ACLPolicy)
 	}
 
 	if existing != nil {
@@ -1390,17 +1141,21 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 	}
 
 	// ensure the name is unique (cannot conflict with another policy with a different ID)
-	nameMatch, err := tx.First("acl-policies", "name", policy.Name)
+	_, nameMatch, err := s.aclPolicyGetByName(tx, policy.Name, &policy.EnterpriseMeta)
 	if err != nil {
-		return fmt.Errorf("failed acl policy lookup: %v", err)
+		return err
 	}
 	if nameMatch != nil && policy.ID != nameMatch.(*structs.ACLPolicy).ID {
 		return fmt.Errorf("A policy with name %q already exists", policy.Name)
 	}
 
+	if err := s.aclPolicyUpsertValidateEnterprise(tx, policy, existing); err != nil {
+		return err
+	}
+
 	// Set the indexes
 	if existing != nil {
-		policy.CreateIndex = existing.(*structs.ACLPolicy).CreateIndex
+		policy.CreateIndex = existing.CreateIndex
 		policy.ModifyIndex = idx
 	} else {
 		policy.CreateIndex = idx
@@ -1408,18 +1163,15 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 	}
 
 	// Insert the ACL
-	if err := tx.Insert("acl-policies", policy); err != nil {
-		return fmt.Errorf("failed inserting acl policy: %v", err)
-	}
-	return nil
+	return s.aclPolicyInsert(tx, policy, true)
 }
 
-func (s *Store) ACLPolicyGetByID(ws memdb.WatchSet, id string) (uint64, *structs.ACLPolicy, error) {
-	return s.aclPolicyGet(ws, id, "id")
+func (s *Store) ACLPolicyGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
+	return s.aclPolicyGet(ws, id, s.aclPolicyGetByID, entMeta)
 }
 
-func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string) (uint64, *structs.ACLPolicy, error) {
-	return s.aclPolicyGet(ws, name, "name")
+func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
+	return s.aclPolicyGet(ws, name, s.aclPolicyGetByName, entMeta)
 }
 
 func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
@@ -1428,7 +1180,7 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 
 	policies := make(structs.ACLPolicies, 0)
 	for _, pid := range ids {
-		policy, err := s.getPolicyWithTxn(tx, ws, pid, "id")
+		policy, err := s.getPolicyWithTxn(tx, ws, pid, s.aclPolicyGetByID, nil)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1438,13 +1190,17 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 		}
 	}
 
+	// We are specifically not wanting to call aclPolicyMaxIndex here as we always want the
+	// index entry for the "acl-policies" table.
 	idx := maxIndexTxn(tx, "acl-policies")
 
 	return idx, policies, nil
 }
 
-func (s *Store) getPolicyWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLPolicy, error) {
-	watchCh, policy, err := tx.FirstWatch("acl-policies", index, value)
+type aclPolicyGetFn func(*memdb.Txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
+
+func (s *Store) getPolicyWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLPolicy, error) {
+	watchCh, policy, err := fn(tx, value, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
@@ -1457,25 +1213,25 @@ func (s *Store) getPolicyWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index 
 	return policy.(*structs.ACLPolicy), nil
 }
 
-func (s *Store) aclPolicyGet(ws memdb.WatchSet, value, index string) (uint64, *structs.ACLPolicy, error) {
+func (s *Store) aclPolicyGet(ws memdb.WatchSet, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	policy, err := s.getPolicyWithTxn(tx, ws, value, index)
+	policy, err := s.getPolicyWithTxn(tx, ws, value, fn, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	idx := maxIndexTxn(tx, "acl-policies")
+	idx := s.aclPolicyMaxIndex(tx, policy, entMeta)
 
 	return idx, policy, nil
 }
 
-func (s *Store) ACLPolicyList(ws memdb.WatchSet) (uint64, structs.ACLPolicies, error) {
+func (s *Store) ACLPolicyList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLPolicies, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := tx.Get("acl-policies", "id")
+	iter, err := s.aclPolicyList(tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
@@ -1487,17 +1243,17 @@ func (s *Store) ACLPolicyList(ws memdb.WatchSet) (uint64, structs.ACLPolicies, e
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-policies")
+	idx := s.aclPolicyMaxIndex(tx, nil, entMeta)
 
 	return idx, result, nil
 }
 
-func (s *Store) ACLPolicyDeleteByID(idx uint64, id string) error {
-	return s.aclPolicyDelete(idx, id, "id")
+func (s *Store) ACLPolicyDeleteByID(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclPolicyDelete(idx, id, s.aclPolicyGetByID, entMeta)
 }
 
-func (s *Store) ACLPolicyDeleteByName(idx uint64, name string) error {
-	return s.aclPolicyDelete(idx, name, "name")
+func (s *Store) ACLPolicyDeleteByName(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclPolicyDelete(idx, name, s.aclPolicyGetByName, entMeta)
 }
 
 func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
@@ -1505,36 +1261,29 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	defer tx.Abort()
 
 	for _, policyID := range policyIDs {
-		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, "id"); err != nil {
+		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, s.aclPolicyGetByID, nil); err != nil {
 			return err
 		}
 	}
-
-	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
-	}
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclPolicyDelete(idx uint64, value, index string) error {
+func (s *Store) aclPolicyDelete(idx uint64, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclPolicyDeleteTxn(tx, idx, value, index); err != nil {
+	if err := s.aclPolicyDeleteTxn(tx, idx, value, fn, entMeta); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
 	}
 
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclPolicyDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclPolicyDeleteTxn(tx *memdb.Txn, idx uint64, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing token
-	rawPolicy, err := tx.First("acl-policies", index, value)
+	_, rawPolicy, err := fn(tx, value, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl policy lookup: %v", err)
 	}
@@ -1549,10 +1298,7 @@ func (s *Store) aclPolicyDeleteTxn(tx *memdb.Txn, idx uint64, value, index strin
 		return fmt.Errorf("Deletion of the builtin global-management policy is not permitted")
 	}
 
-	if err := tx.Delete("acl-policies", policy); err != nil {
-		return fmt.Errorf("failed deleting acl policy: %v", err)
-	}
-	return nil
+	return s.aclPolicyDeleteWithPolicy(tx, policy, idx)
 }
 
 func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissingPolicyIDs bool) error {
@@ -1565,10 +1311,6 @@ func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissing
 		}
 	}
 
-	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
 	tx.Commit()
 	return nil
 }
@@ -1579,9 +1321,6 @@ func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
 
 	if err := s.aclRoleSetTxn(tx, idx, role, false); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	tx.Commit()
@@ -1598,13 +1337,18 @@ func (s *Store) aclRoleSetTxn(tx *memdb.Txn, idx uint64, role *structs.ACLRole, 
 		return ErrMissingACLRoleName
 	}
 
-	existing, err := tx.First("acl-roles", "id", role.ID)
+	_, existingRaw, err := s.aclRoleGetByID(tx, role.ID, nil)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
 
+	var existing *structs.ACLRole
+	if existingRaw != nil {
+		existing = existingRaw.(*structs.ACLRole)
+	}
+
 	// ensure the name is unique (cannot conflict with another role with a different ID)
-	nameMatch, err := tx.First("acl-roles", "name", role.Name)
+	_, nameMatch, err := s.aclRoleGetByName(tx, role.Name, &role.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1622,27 +1366,30 @@ func (s *Store) aclRoleSetTxn(tx *memdb.Txn, idx uint64, role *structs.ACLRole, 
 		}
 	}
 
+	if err := s.aclRoleUpsertValidateEnterprise(tx, role, existing); err != nil {
+		return err
+	}
+
 	// Set the indexes
 	if existing != nil {
-		role.CreateIndex = existing.(*structs.ACLRole).CreateIndex
+		role.CreateIndex = existing.CreateIndex
 		role.ModifyIndex = idx
 	} else {
 		role.CreateIndex = idx
 		role.ModifyIndex = idx
 	}
 
-	if err := tx.Insert("acl-roles", role); err != nil {
-		return fmt.Errorf("failed inserting acl role: %v", err)
-	}
-	return nil
+	return s.aclRoleInsert(tx, role, true)
 }
 
-func (s *Store) ACLRoleGetByID(ws memdb.WatchSet, id string) (uint64, *structs.ACLRole, error) {
-	return s.aclRoleGet(ws, id, "id")
+type aclRoleGetFn func(*memdb.Txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
+
+func (s *Store) ACLRoleGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
+	return s.aclRoleGet(ws, id, s.aclRoleGetByID, entMeta)
 }
 
-func (s *Store) ACLRoleGetByName(ws memdb.WatchSet, name string) (uint64, *structs.ACLRole, error) {
-	return s.aclRoleGet(ws, name, "name")
+func (s *Store) ACLRoleGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
+	return s.aclRoleGet(ws, name, s.aclRoleGetByName, entMeta)
 }
 
 func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLRoles, error) {
@@ -1651,7 +1398,7 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 
 	roles := make(structs.ACLRoles, 0, len(ids))
 	for _, rid := range ids {
-		role, err := s.getRoleWithTxn(tx, ws, rid, "id")
+		role, err := s.getRoleWithTxn(tx, ws, rid, s.aclRoleGetByID, nil)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1666,8 +1413,8 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 	return idx, roles, nil
 }
 
-func (s *Store) getRoleWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLRole, error) {
-	watchCh, rawRole, err := tx.FirstWatch("acl-roles", index, value)
+func (s *Store) getRoleWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) (*structs.ACLRole, error) {
+	watchCh, rawRole, err := fn(tx, value, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1685,21 +1432,21 @@ func (s *Store) getRoleWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 	return nil, nil
 }
 
-func (s *Store) aclRoleGet(ws memdb.WatchSet, value, index string) (uint64, *structs.ACLRole, error) {
+func (s *Store) aclRoleGet(ws memdb.WatchSet, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	role, err := s.getRoleWithTxn(tx, ws, value, index)
+	role, err := s.getRoleWithTxn(tx, ws, value, fn, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	idx := maxIndexTxn(tx, "acl-roles")
+	idx := s.aclRoleMaxIndex(tx, role, entMeta)
 
 	return idx, role, nil
 }
 
-func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.ACLRoles, error) {
+func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLRoles, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1707,9 +1454,9 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 	var err error
 
 	if policy != "" {
-		iter, err = tx.Get("acl-roles", "policies", policy)
+		iter, err = s.aclRoleListByPolicy(tx, policy, entMeta)
 	} else {
-		iter, err = tx.Get("acl-roles", "id")
+		iter, err = s.aclRoleList(tx, entMeta)
 	}
 
 	if err != nil {
@@ -1728,17 +1475,17 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-roles")
+	idx := s.aclRoleMaxIndex(tx, nil, entMeta)
 
 	return idx, result, nil
 }
 
-func (s *Store) ACLRoleDeleteByID(idx uint64, id string) error {
-	return s.aclRoleDelete(idx, id, "id")
+func (s *Store) ACLRoleDeleteByID(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclRoleDelete(idx, id, s.aclRoleGetByID, entMeta)
 }
 
-func (s *Store) ACLRoleDeleteByName(idx uint64, name string) error {
-	return s.aclRoleDelete(idx, name, "name")
+func (s *Store) ACLRoleDeleteByName(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclRoleDelete(idx, name, s.aclRoleGetByName, entMeta)
 }
 
 func (s *Store) ACLRoleBatchDelete(idx uint64, roleIDs []string) error {
@@ -1746,36 +1493,29 @@ func (s *Store) ACLRoleBatchDelete(idx uint64, roleIDs []string) error {
 	defer tx.Abort()
 
 	for _, roleID := range roleIDs {
-		if err := s.aclRoleDeleteTxn(tx, idx, roleID, "id"); err != nil {
+		if err := s.aclRoleDeleteTxn(tx, idx, roleID, s.aclRoleGetByID, nil); err != nil {
 			return err
 		}
 	}
-
-	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
-	}
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclRoleDelete(idx uint64, value, index string) error {
+func (s *Store) aclRoleDelete(idx uint64, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclRoleDeleteTxn(tx, idx, value, index); err != nil {
+	if err := s.aclRoleDeleteTxn(tx, idx, value, fn, entMeta); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
 	}
 
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclRoleDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclRoleDeleteTxn(tx *memdb.Txn, idx uint64, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing role
-	rawRole, err := tx.First("acl-roles", index, value)
+	_, rawRole, err := fn(tx, value, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1786,10 +1526,7 @@ func (s *Store) aclRoleDeleteTxn(tx *memdb.Txn, idx uint64, value, index string)
 
 	role := rawRole.(*structs.ACLRole)
 
-	if err := tx.Delete("acl-roles", role); err != nil {
-		return fmt.Errorf("failed deleting acl role: %v", err)
-	}
-	return nil
+	return s.aclRoleDeleteWithRole(tx, role, idx)
 }
 
 func (s *Store) ACLBindingRuleBatchSet(idx uint64, rules structs.ACLBindingRules) error {
@@ -1800,10 +1537,6 @@ func (s *Store) ACLBindingRuleBatchSet(idx uint64, rules structs.ACLBindingRules
 		if err := s.aclBindingRuleSetTxn(tx, idx, rule); err != nil {
 			return err
 		}
-	}
-
-	if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	tx.Commit()
@@ -1817,10 +1550,6 @@ func (s *Store) ACLBindingRuleSet(idx uint64, rule *structs.ACLBindingRule) erro
 	if err := s.aclBindingRuleSetTxn(tx, idx, rule); err != nil {
 		return err
 	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
 	tx.Commit()
 	return nil
 }
@@ -1833,41 +1562,44 @@ func (s *Store) aclBindingRuleSetTxn(tx *memdb.Txn, idx uint64, rule *structs.AC
 		return ErrMissingACLBindingRuleAuthMethod
 	}
 
-	existing, err := tx.First("acl-binding-rules", "id", rule.ID)
+	var existing *structs.ACLBindingRule
+	_, existingRaw, err := s.aclBindingRuleGetByID(tx, rule.ID, nil)
 	if err != nil {
 		return fmt.Errorf("failed acl binding rule lookup: %v", err)
 	}
 
 	// Set the indexes
-	if existing != nil {
-		rule.CreateIndex = existing.(*structs.ACLBindingRule).CreateIndex
+	if existingRaw != nil {
+		existing = existingRaw.(*structs.ACLBindingRule)
+		rule.CreateIndex = existing.CreateIndex
 		rule.ModifyIndex = idx
 	} else {
 		rule.CreateIndex = idx
 		rule.ModifyIndex = idx
 	}
 
-	if method, err := tx.First("acl-auth-methods", "id", rule.AuthMethod); err != nil {
+	if err := s.aclBindingRuleUpsertValidateEnterprise(tx, rule, existing); err != nil {
+		return err
+	}
+
+	if _, method, err := s.aclAuthMethodGetByName(tx, rule.AuthMethod, &rule.EnterpriseMeta); err != nil {
 		return fmt.Errorf("failed acl auth method lookup: %v", err)
 	} else if method == nil {
 		return fmt.Errorf("failed inserting acl binding rule: auth method not found")
 	}
 
-	if err := tx.Insert("acl-binding-rules", rule); err != nil {
-		return fmt.Errorf("failed inserting acl binding rule: %v", err)
-	}
-	return nil
+	return s.aclBindingRuleInsert(tx, rule, true)
 }
 
-func (s *Store) ACLBindingRuleGetByID(ws memdb.WatchSet, id string) (uint64, *structs.ACLBindingRule, error) {
-	return s.aclBindingRuleGet(ws, id, "id")
+func (s *Store) ACLBindingRuleGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLBindingRule, error) {
+	return s.aclBindingRuleGet(ws, id, entMeta)
 }
 
-func (s *Store) aclBindingRuleGet(ws memdb.WatchSet, value, index string) (uint64, *structs.ACLBindingRule, error) {
+func (s *Store) aclBindingRuleGet(ws memdb.WatchSet, value string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLBindingRule, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	watchCh, rawRule, err := tx.FirstWatch("acl-binding-rules", index, value)
+	watchCh, rawRule, err := s.aclBindingRuleGetByID(tx, value, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl binding rule lookup: %v", err)
 	}
@@ -1878,12 +1610,12 @@ func (s *Store) aclBindingRuleGet(ws memdb.WatchSet, value, index string) (uint6
 		rule = rawRule.(*structs.ACLBindingRule)
 	}
 
-	idx := maxIndexTxn(tx, "acl-binding-rules")
+	idx := s.aclBindingRuleMaxIndex(tx, rule, entMeta)
 
 	return idx, rule, nil
 }
 
-func (s *Store) ACLBindingRuleList(ws memdb.WatchSet, methodName string) (uint64, structs.ACLBindingRules, error) {
+func (s *Store) ACLBindingRuleList(ws memdb.WatchSet, methodName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLBindingRules, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1892,9 +1624,9 @@ func (s *Store) ACLBindingRuleList(ws memdb.WatchSet, methodName string) (uint64
 		err  error
 	)
 	if methodName != "" {
-		iter, err = tx.Get("acl-binding-rules", "authmethod", methodName)
+		iter, err = s.aclBindingRuleListByAuthMethod(tx, methodName, entMeta)
 	} else {
-		iter, err = tx.Get("acl-binding-rules", "id")
+		iter, err = s.aclBindingRuleList(tx, entMeta)
 	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl binding rule lookup: %v", err)
@@ -1908,13 +1640,13 @@ func (s *Store) ACLBindingRuleList(ws memdb.WatchSet, methodName string) (uint64
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-binding-rules")
+	idx := s.aclBindingRuleMaxIndex(tx, nil, entMeta)
 
 	return idx, result, nil
 }
 
-func (s *Store) ACLBindingRuleDeleteByID(idx uint64, id string) error {
-	return s.aclBindingRuleDelete(idx, id, "id")
+func (s *Store) ACLBindingRuleDeleteByID(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclBindingRuleDelete(idx, id, entMeta)
 }
 
 func (s *Store) ACLBindingRuleBatchDelete(idx uint64, bindingRuleIDs []string) error {
@@ -1922,34 +1654,27 @@ func (s *Store) ACLBindingRuleBatchDelete(idx uint64, bindingRuleIDs []string) e
 	defer tx.Abort()
 
 	for _, bindingRuleID := range bindingRuleIDs {
-		s.aclBindingRuleDeleteTxn(tx, idx, bindingRuleID, "id")
-	}
-
-	if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
+		s.aclBindingRuleDeleteTxn(tx, idx, bindingRuleID, nil)
 	}
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclBindingRuleDelete(idx uint64, value, index string) error {
+func (s *Store) aclBindingRuleDelete(idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclBindingRuleDeleteTxn(tx, idx, value, index); err != nil {
+	if err := s.aclBindingRuleDeleteTxn(tx, idx, id, entMeta); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
 	}
 
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclBindingRuleDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclBindingRuleDeleteTxn(tx *memdb.Txn, idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing binding rule
-	rawRule, err := tx.First("acl-binding-rules", index, value)
+	_, rawRule, err := s.aclBindingRuleGetByID(tx, id, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl binding rule lookup: %v", err)
 	}
@@ -1960,15 +1685,15 @@ func (s *Store) aclBindingRuleDeleteTxn(tx *memdb.Txn, idx uint64, value, index 
 
 	rule := rawRule.(*structs.ACLBindingRule)
 
-	if err := tx.Delete("acl-binding-rules", rule); err != nil {
+	if err := s.aclBindingRuleDeleteWithRule(tx, rule, idx); err != nil {
 		return fmt.Errorf("failed deleting acl binding rule: %v", err)
 	}
 	return nil
 }
 
-func (s *Store) aclBindingRuleDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string) error {
+func (s *Store) aclBindingRuleDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string, entMeta *structs.EnterpriseMeta) error {
 	// collect them all
-	iter, err := tx.Get("acl-binding-rules", "authmethod", methodName)
+	iter, err := s.aclBindingRuleListByAuthMethod(tx, methodName, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl binding rule lookup: %v", err)
 	}
@@ -1982,13 +1707,9 @@ func (s *Store) aclBindingRuleDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint6
 	if len(rules) > 0 {
 		// delete them all
 		for _, rule := range rules {
-			if err := tx.Delete("acl-binding-rules", rule); err != nil {
-				return fmt.Errorf("failed deleting acl binding rule: %v", err)
+			if err := s.aclBindingRuleDeleteWithRule(tx, rule, idx); err != nil {
+				return err
 			}
-		}
-
-		if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
-			return fmt.Errorf("failed updating index: %v", err)
 		}
 	}
 
@@ -2006,11 +1727,6 @@ func (s *Store) ACLAuthMethodBatchSet(idx uint64, methods structs.ACLAuthMethods
 			return err
 		}
 	}
-
-	if err := indexUpdateMaxTxn(tx, idx, "acl-auth-methods"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
 	tx.Commit()
 	return nil
 }
@@ -2021,9 +1737,6 @@ func (s *Store) ACLAuthMethodSet(idx uint64, method *structs.ACLAuthMethod) erro
 
 	if err := s.aclAuthMethodSetTxn(tx, idx, method); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-auth-methods"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	tx.Commit()
@@ -2038,46 +1751,49 @@ func (s *Store) aclAuthMethodSetTxn(tx *memdb.Txn, idx uint64, method *structs.A
 		return ErrMissingACLAuthMethodType
 	}
 
-	existing, err := tx.First("acl-auth-methods", "id", method.Name)
+	var existing *structs.ACLAuthMethod
+	_, existingRaw, err := s.aclAuthMethodGetByName(tx, method.Name, &method.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl auth method lookup: %v", err)
 	}
 
+	if err := s.aclAuthMethodUpsertValidateEnterprise(tx, method, existing); err != nil {
+		return err
+	}
+
 	// Set the indexes
-	if existing != nil {
-		method.CreateIndex = existing.(*structs.ACLAuthMethod).CreateIndex
+	if existingRaw != nil {
+		existing = existingRaw.(*structs.ACLAuthMethod)
+		method.CreateIndex = existing.CreateIndex
 		method.ModifyIndex = idx
 	} else {
 		method.CreateIndex = idx
 		method.ModifyIndex = idx
 	}
 
-	if err := tx.Insert("acl-auth-methods", method); err != nil {
-		return fmt.Errorf("failed inserting acl auth method: %v", err)
-	}
-	return nil
+	return s.aclAuthMethodInsert(tx, method, true)
 }
 
-func (s *Store) ACLAuthMethodGetByName(ws memdb.WatchSet, name string) (uint64, *structs.ACLAuthMethod, error) {
-	return s.aclAuthMethodGet(ws, name, "id")
+func (s *Store) ACLAuthMethodGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLAuthMethod, error) {
+	return s.aclAuthMethodGet(ws, name, entMeta)
 }
 
-func (s *Store) aclAuthMethodGet(ws memdb.WatchSet, value, index string) (uint64, *structs.ACLAuthMethod, error) {
+func (s *Store) aclAuthMethodGet(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLAuthMethod, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	method, err := s.getAuthMethodWithTxn(tx, ws, value, index)
+	method, err := s.getAuthMethodWithTxn(tx, ws, name, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	idx := maxIndexTxn(tx, "acl-auth-methods")
+	idx := s.aclAuthMethodMaxIndex(tx, method, entMeta)
 
 	return idx, method, nil
 }
 
-func (s *Store) getAuthMethodWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index string) (*structs.ACLAuthMethod, error) {
-	watchCh, rawMethod, err := tx.FirstWatch("acl-auth-methods", index, value)
+func (s *Store) getAuthMethodWithTxn(tx *memdb.Txn, ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (*structs.ACLAuthMethod, error) {
+	watchCh, rawMethod, err := s.aclAuthMethodGetByName(tx, name, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl auth method lookup: %v", err)
 	}
@@ -2090,11 +1806,11 @@ func (s *Store) getAuthMethodWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value, in
 	return nil, nil
 }
 
-func (s *Store) ACLAuthMethodList(ws memdb.WatchSet) (uint64, structs.ACLAuthMethods, error) {
+func (s *Store) ACLAuthMethodList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLAuthMethods, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := tx.Get("acl-auth-methods", "id")
+	iter, err := s.aclAuthMethodList(tx, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl auth method lookup: %v", err)
 	}
@@ -2107,48 +1823,46 @@ func (s *Store) ACLAuthMethodList(ws memdb.WatchSet) (uint64, structs.ACLAuthMet
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-auth-methods")
+	idx := s.aclAuthMethodMaxIndex(tx, nil, entMeta)
 
 	return idx, result, nil
 }
 
-func (s *Store) ACLAuthMethodDeleteByName(idx uint64, name string) error {
-	return s.aclAuthMethodDelete(idx, name, "id")
+func (s *Store) ACLAuthMethodDeleteByName(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
+	return s.aclAuthMethodDelete(idx, name, entMeta)
 }
 
-func (s *Store) ACLAuthMethodBatchDelete(idx uint64, names []string) error {
+func (s *Store) ACLAuthMethodBatchDelete(idx uint64, names []string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	for _, name := range names {
-		s.aclAuthMethodDeleteTxn(tx, idx, name, "id")
+		// NOTE: it may seem odd that one EnterpriseMeta is being used for all of the auth methods being
+		// deleted. However we never actually batch these deletions as auth methods are not replicated
+		// Therefore this is fine but if we ever change that precondition then this will be wrong (unless
+		// we ensure all deletions in a batch should have the same enterprise meta)
+		s.aclAuthMethodDeleteTxn(tx, idx, name, entMeta)
 	}
 
-	if err := indexUpdateMaxTxn(tx, idx, "acl-auth-methods"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
-	}
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclAuthMethodDelete(idx uint64, value, index string) error {
+func (s *Store) aclAuthMethodDelete(idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclAuthMethodDeleteTxn(tx, idx, value, index); err != nil {
+	if err := s.aclAuthMethodDeleteTxn(tx, idx, name, entMeta); err != nil {
 		return err
-	}
-	if err := indexUpdateMaxTxn(tx, idx, "acl-auth-methods"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
 	}
 
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclAuthMethodDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclAuthMethodDeleteTxn(tx *memdb.Txn, idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing method
-	rawMethod, err := tx.First("acl-auth-methods", index, value)
+	_, rawMethod, err := s.aclAuthMethodGetByName(tx, name, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed acl auth method lookup: %v", err)
 	}
@@ -2159,16 +1873,13 @@ func (s *Store) aclAuthMethodDeleteTxn(tx *memdb.Txn, idx uint64, value, index s
 
 	method := rawMethod.(*structs.ACLAuthMethod)
 
-	if err := s.aclBindingRuleDeleteAllForAuthMethodTxn(tx, idx, method.Name); err != nil {
+	if err := s.aclBindingRuleDeleteAllForAuthMethodTxn(tx, idx, method.Name, entMeta); err != nil {
 		return err
 	}
 
-	if err := s.aclTokenDeleteAllForAuthMethodTxn(tx, idx, method.Name); err != nil {
+	if err := s.aclTokenDeleteAllForAuthMethodTxn(tx, idx, method.Name, entMeta); err != nil {
 		return err
 	}
 
-	if err := tx.Delete("acl-auth-methods", method); err != nil {
-		return fmt.Errorf("failed deleting acl auth method: %v", err)
-	}
-	return nil
+	return s.aclAuthMethodDeleteWithMethod(tx, method, idx)
 }

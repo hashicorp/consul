@@ -20,6 +20,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -114,8 +115,7 @@ type Server struct {
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
-	aclAuthMethodValidators    map[string]*authMethodValidatorEntry
-	aclAuthMethodValidatorLock sync.RWMutex
+	aclAuthMethodValidators authmethod.Cache
 
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
@@ -351,25 +351,26 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Create server.
 	s := &Server{
-		config:               config,
-		tokens:               tokens,
-		connPool:             connPool,
-		eventChLAN:           make(chan serf.Event, serfEventChSize),
-		eventChWAN:           make(chan serf.Event, serfEventChSize),
-		logger:               logger,
-		leaveCh:              make(chan struct{}),
-		reconcileCh:          make(chan serf.Member, reconcileChSize),
-		router:               router.NewRouter(logger, config.Datacenter),
-		rpcServer:            rpc.NewServer(),
-		insecureRPCServer:    rpc.NewServer(),
-		tlsConfigurator:      tlsConfigurator,
-		reassertLeaderCh:     make(chan chan error),
-		segmentLAN:           make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:        NewSessionTimers(),
-		tombstoneGC:          gc,
-		serverLookup:         NewServerLookup(),
-		shutdownCh:           shutdownCh,
-		leaderRoutineManager: NewLeaderRoutineManager(logger),
+		config:                  config,
+		tokens:                  tokens,
+		connPool:                connPool,
+		eventChLAN:              make(chan serf.Event, serfEventChSize),
+		eventChWAN:              make(chan serf.Event, serfEventChSize),
+		logger:                  logger,
+		leaveCh:                 make(chan struct{}),
+		reconcileCh:             make(chan serf.Member, reconcileChSize),
+		router:                  router.NewRouter(logger, config.Datacenter),
+		rpcServer:               rpc.NewServer(),
+		insecureRPCServer:       rpc.NewServer(),
+		tlsConfigurator:         tlsConfigurator,
+		reassertLeaderCh:        make(chan chan error),
+		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:           NewSessionTimers(),
+		tombstoneGC:             gc,
+		serverLookup:            NewServerLookup(),
+		shutdownCh:              shutdownCh,
+		leaderRoutineManager:    NewLeaderRoutineManager(logger),
+		aclAuthMethodValidators: authmethod.NewCache(),
 	}
 
 	// Initialize enterprise specific server functionality
