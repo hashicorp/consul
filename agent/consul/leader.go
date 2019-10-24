@@ -371,7 +371,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Create anonymous token if missing.
 	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -395,7 +395,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Check for configured master token.
 	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master)
+		_, token, err = state.ACLTokenGetBySecret(nil, master, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
@@ -473,11 +473,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.
-	s.purgeAuthMethodValidators()
+	s.aclAuthMethodValidators.Purge()
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InACLDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},
@@ -499,7 +499,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		s.logger.Printf("[INFO] acl: initializing acls")
 
 		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
@@ -516,6 +516,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				newPolicy.Description = policy.Description
 			}
 
+			newPolicy.EnterpriseMeta.InitDefault()
 			newPolicy.SetHash(true)
 
 			req := structs.ACLPolicyBatchSetRequest{
@@ -535,7 +536,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				s.logger.Printf("[WARN] consul: Configuring a non-UUID master token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master)
+			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
@@ -562,6 +563,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					Type: structs.ACLTokenTypeManagement,
 				}
 
+				token.EnterpriseMeta.InitDefault()
 				token.SetHash(true)
 
 				done := false
@@ -597,7 +599,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		}
 
 		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID)
+		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
@@ -605,7 +607,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
-			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}
@@ -620,6 +622,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					CreateTime:  time.Now(),
 				}
 				token.SetHash(true)
+				token.EnterpriseMeta.InitDefault()
 
 				req := structs.ACLTokenBatchSetRequest{
 					Tokens: structs.ACLTokens{token},

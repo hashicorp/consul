@@ -544,7 +544,7 @@ func TestPolicySourceParse(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			req := require.New(t)
-			actual, err := NewPolicyFromSource("", 0, tc.Rules, tc.Syntax, nil)
+			actual, err := NewPolicyFromSource("", 0, tc.Rules, tc.Syntax, nil, nil)
 			if tc.Err != "" {
 				errStartsWith(t, err, tc.Err)
 			} else {

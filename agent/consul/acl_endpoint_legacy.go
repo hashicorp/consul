@@ -94,7 +94,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 		}
 
 		// No need to check expiration times as those did not exist in legacy tokens.
-		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID)
+		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID, nil)
 		if existing != nil && existing.UsesNonLegacyFields() {
 			return fmt.Errorf("Cannot use legacy endpoint to modify a non-legacy token")
 		}
@@ -114,7 +114,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 		}
 
 		// Validate the rules compile
-		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.enterpriseACLConfig)
+		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.enterpriseACLConfig, nil)
 		if err != nil {
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}
@@ -211,7 +211,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL)
+			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL, nil)
 			if err != nil {
 				return err
 			}
@@ -262,7 +262,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "")
+			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "", nil)
 			if err != nil {
 				return err
 			}

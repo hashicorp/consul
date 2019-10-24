@@ -2176,7 +2176,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 service "foo" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2210,7 +2210,7 @@ service "foo" {
 node "node1" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2268,7 +2268,7 @@ func TestACL_filterIntentions(t *testing.T) {
 service "foo" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	assert.Nil(err)
 	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	assert.Nil(err)
@@ -2353,7 +2353,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 service "foo" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2387,7 +2387,7 @@ service "foo" {
 node "node1" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2459,7 +2459,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 service "foo" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2493,7 +2493,7 @@ service "foo" {
 node "node1" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2565,7 +2565,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 service "foo" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2602,7 +2602,7 @@ service "foo" {
 node "node1" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2756,7 +2756,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 service "foo" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -2796,7 +2796,7 @@ service "foo" {
 node "node1" {
   policy = "read"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3052,7 +3052,7 @@ func TestACL_vetRegisterWithACL(t *testing.T) {
 node "node" {
   policy = "write"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3097,7 +3097,7 @@ node "node" {
 service "service" {
   policy = "write"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3127,7 +3127,7 @@ service "service" {
 service "other" {
   policy = "write"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3201,7 +3201,7 @@ service "other" {
 service "other" {
   policy = "deny"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3231,7 +3231,7 @@ service "other" {
 node "node" {
   policy = "deny"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3278,7 +3278,7 @@ func TestACL_vetDeregisterWithACL(t *testing.T) {
 node "node" {
   policy = "write"
 }
-`, acl.SyntaxLegacy, nil)
+`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3291,7 +3291,7 @@ node "node" {
 	service "my-service" {
 	  policy = "write"
 	}
-	`, acl.SyntaxLegacy, nil)
+	`, acl.SyntaxLegacy, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
