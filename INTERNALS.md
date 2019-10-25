@@ -50,7 +50,7 @@ There are several other top-level packages used internally by Consul as well as 
 | [api](https://github.com/hashicorp/consul/tree/master/api) | This `api` package provides an official Go API client for Consul, which is also used by Consul's [CLI](https://www.consul.io/docs/commands/index.html) commands to communicate with the local Consul agent. |
 | [command](https://github.com/hashicorp/consul/tree/master/command) | This contains a sub-package for each of Consul's [CLI](https://www.consul.io/docs/commands/index.html) command implementations. |
 | [snapshot](https://github.com/hashicorp/consul/tree/master/snapshot) | This has implementation details for Consul's [snapshot archives](https://www.consul.io/api/snapshot.html). |
-| [watch](https://github.com/hashicorp/consul/tree/master/watch) | This has implementation details for Consul's [watches](https://www.consul.io/docs/agent/watches.html), used both internally to Consul and by the [watch CLI command]](https://www.consul.io/docs/commands/watch.html). |
+| [api/watch](https://github.com/hashicorp/consul/tree/master/api/watch) | This has implementation details for Consul's [watches](https://www.consul.io/docs/agent/watches.html), used both internally to Consul and by the [watch CLI command](https://www.consul.io/docs/commands/watch.html). |
 | [website](https://github.com/hashicorp/consul/tree/master/website) | This has the full source code for [consul.io](https://www.consul.io/). Pull requests can update the source code and Consul's documentation all together. |
 
 ## FAQ
