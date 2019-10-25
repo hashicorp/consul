@@ -382,11 +382,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
-		Name:        "Config Entry",
-		ReplicateFn: s.replicateConfig,
-		Rate:        s.config.ConfigReplicationRate,
-		Burst:       s.config.ConfigReplicationBurst,
-		Logger:      logger,
+		Name:     "Config Entry",
+		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig},
+		Rate:     s.config.ConfigReplicationRate,
+		Burst:    s.config.ConfigReplicationBurst,
+		Logger:   logger,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {
