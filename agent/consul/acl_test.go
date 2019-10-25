@@ -693,10 +693,10 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 func TestACLResolver_DownPolicy(t *testing.T) {
 	t.Parallel()
 
-	requireIdentityCached := func(t *testing.T, r *ACLResolver, token string, present bool, msg string) {
+	requireIdentityCached := func(t *testing.T, r *ACLResolver, id string, present bool, msg string) {
 		t.Helper()
 
-		cacheVal := r.cache.GetIdentity(token)
+		cacheVal := r.cache.GetIdentity(id)
 		require.NotNil(t, cacheVal)
 		if present {
 			require.NotNil(t, cacheVal.Identity, msg)
@@ -738,7 +738,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz)
 		require.Equal(t, authz, acl.DenyAll())
 
-		requireIdentityCached(t, r, "foo", false, "not present")
+		requireIdentityCached(t, r, tokenSecretCacheID("foo"), false, "not present")
 	})
 
 	t.Run("Allow", func(t *testing.T) {
@@ -763,7 +763,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz)
 		require.Equal(t, authz, acl.AllowAll())
 
-		requireIdentityCached(t, r, "foo", false, "not present")
+		requireIdentityCached(t, r, tokenSecretCacheID("foo"), false, "not present")
 	})
 
 	t.Run("Expired-Policy", func(t *testing.T) {
@@ -857,7 +857,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
-		requireIdentityCached(t, r, "found", true, "cached")
+		requireIdentityCached(t, r, tokenSecretCacheID("found"), true, "cached")
 
 		authz2, err := r.ResolveToken("found")
 		require.NoError(t, err)
@@ -888,7 +888,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
-		requireIdentityCached(t, r, "found-role", true, "still cached")
+		requireIdentityCached(t, r, tokenSecretCacheID("found-role"), true, "still cached")
 
 		authz2, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
@@ -1154,7 +1154,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
-		requireIdentityCached(t, r, "found", true, "cached")
+		requireIdentityCached(t, r, tokenSecretCacheID("found"), true, "cached")
 
 		// The identity should have been cached so this should still be valid
 		authz2, err := r.ResolveToken("found")
@@ -1171,7 +1171,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			assert.Nil(t, authz3)
 		})
 
-		requireIdentityCached(t, r, "found", false, "no longer cached")
+		requireIdentityCached(t, r, tokenSecretCacheID("found"), false, "no longer cached")
 	})
 
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
@@ -1225,7 +1225,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// Verify that the caches are setup properly.
-		requireIdentityCached(t, r, secretID, true, "cached")
+		requireIdentityCached(t, r, tokenSecretCacheID(secretID), true, "cached")
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
 
@@ -1236,7 +1236,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		_, err = r.ResolveToken(secretID)
 		require.True(t, acl.IsErrNotFound(err))
 
-		requireIdentityCached(t, r, secretID, false, "identity not found cached")
+		requireIdentityCached(t, r, tokenSecretCacheID(secretID), false, "identity not found cached")
 		requirePolicyCached(t, r, "node-wr", true, "still cached")
 		require.Nil(t, r.cache.GetPolicy("dc2-key-wr"), "not stored at all")
 	})
@@ -1287,7 +1287,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// Verify that the caches are setup properly.
-		requireIdentityCached(t, r, secretID, true, "cached")
+		requireIdentityCached(t, r, tokenSecretCacheID(secretID), true, "cached")
 		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
 		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
 
@@ -1298,7 +1298,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		_, err = r.ResolveToken(secretID)
 		require.True(t, acl.IsErrPermissionDenied(err))
 
-		require.Nil(t, r.cache.GetIdentity(secretID), "identity not stored at all")
+		require.Nil(t, r.cache.GetIdentity(tokenSecretCacheID(secretID)), "identity not stored at all")
 		requirePolicyCached(t, r, "node-wr", true, "still cached")
 		require.Nil(t, r.cache.GetPolicy("dc2-key-wr"), "not stored at all")
 	})

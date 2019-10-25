@@ -89,6 +89,10 @@ func IsACLRemoteError(err error) bool {
 	return ok
 }
 
+func tokenSecretCacheID(token string) string {
+	return "token-secret:" + token
+}
+
 type ACLResolverDelegate interface {
 	ACLsEnabled() bool
 	ACLDatacenter(legacy bool) string
@@ -343,6 +347,8 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
+	cacheID := tokenSecretCacheID(token)
+
 	req := structs.ACLTokenGetRequest{
 		Datacenter:  r.delegate.ACLDatacenter(false),
 		TokenID:     token,
@@ -357,17 +363,17 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	err := r.delegate.RPC("ACL.TokenRead", &req, &resp)
 	if err == nil {
 		if resp.Token == nil {
-			r.cache.PutIdentity(token, nil)
+			r.cache.PutIdentity(cacheID, nil)
 			return nil, acl.ErrNotFound
 		} else {
-			r.cache.PutIdentity(token, resp.Token)
+			r.cache.PutIdentity(cacheID, resp.Token)
 			return resp.Token, nil
 		}
 	}
 
 	if acl.IsErrNotFound(err) {
 		// Make sure to remove from the cache if it was deleted
-		r.cache.PutIdentity(token, nil)
+		r.cache.PutIdentity(cacheID, nil)
 		return nil, acl.ErrNotFound
 
 	}
@@ -375,11 +381,11 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	// some other RPC error
 	if cached != nil && (r.config.ACLDownPolicy == "extend-cache" || r.config.ACLDownPolicy == "async-cache") {
 		// extend the cache
-		r.cache.PutIdentity(token, cached.Identity)
+		r.cache.PutIdentity(cacheID, cached.Identity)
 		return cached.Identity, nil
 	}
 
-	r.cache.PutIdentity(token, nil)
+	r.cache.PutIdentity(cacheID, nil)
 	return nil, err
 }
 
@@ -390,7 +396,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 	}
 
 	// Check the cache before making any RPC requests
-	cacheEntry := r.cache.GetIdentity(token)
+	cacheEntry := r.cache.GetIdentity(tokenSecretCacheID(token))
 	if cacheEntry != nil && cacheEntry.Age() <= r.config.ACLTokenTTL {
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
 		return cacheEntry.Identity, nil
@@ -540,7 +546,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 	if acl.IsErrNotFound(err) {
 		// make sure to indicate that this identity is no longer valid within
 		// the cache
-		r.cache.PutIdentity(identity.SecretToken(), nil)
+		r.cache.PutIdentity(tokenSecretCacheID(identity.SecretToken()), nil)
 
 		// Do not touch the cache. Getting a top level ACL not found error
 		// only indicates that the secret token used in the request
@@ -551,7 +557,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 	if acl.IsErrPermissionDenied(err) {
 		// invalidate our ID cache so that identity resolution will take place
 		// again in the future
-		r.cache.RemoveIdentity(identity.SecretToken())
+		r.cache.RemoveIdentity(tokenSecretCacheID(identity.SecretToken()))
 
 		// Do not remove from the cache for permission denied
 		// what this does indicate is that our view of the token is out of date
