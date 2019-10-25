@@ -186,7 +186,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 
 	// Clear the cache if applicable
 	if args.ACL.ID != "" {
-		a.srv.acls.cache.RemoveIdentity(args.ACL.ID)
+		a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(args.ACL.ID))
 	}
 
 	return nil

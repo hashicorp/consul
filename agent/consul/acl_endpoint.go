@@ -634,7 +634,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(token.SecretID)
+	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if respErr, ok := resp.(error); ok {
 		return respErr
@@ -776,7 +776,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(token.SecretID)
+	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if respErr, ok := resp.(error); ok {
 		return respErr
@@ -2249,7 +2249,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
 	if token != nil {
-		a.srv.acls.cache.RemoveIdentity(token.SecretID)
+		a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 	}
 
 	if respErr, ok := resp.(error); ok {
