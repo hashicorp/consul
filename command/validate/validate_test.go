@@ -143,3 +143,19 @@ func TestValidateCommand_Quiet(t *testing.T) {
 	require.Equalf(t, 0, code, "return code - expected: 0, bad: %d, %s", code, ui.ErrorWriter.String())
 	require.Equal(t, "", ui.OutputWriter.String())
 }
+
+func TestValidateCommand_SucceedWithBindAddrAsParam(t *testing.T) {
+	t.Parallel()
+	td := testutil.TempDir(t, "consul")
+	defer os.RemoveAll(td)
+
+	fp := filepath.Join(td, "json.conf")
+	err := ioutil.WriteFile(fp, []byte(`{"data_dir":"`+td+`"}`), 0644)
+	require.Nilf(t, err, "err: %s", err)
+
+	cmd := New(cli.NewMockUi())
+	args := []string{"--bind", "10.0.0.1", "--config-format", "json", fp}
+
+	code := cmd.Run(args)
+	require.Equal(t, 0, code)
+}

@@ -23,6 +23,7 @@ type cmd struct {
 	configFormat string
 	quiet        bool
 	help         string
+	bindAddr     string
 }
 
 func (c *cmd) init() {
@@ -31,6 +32,8 @@ func (c *cmd) init() {
 		"Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	c.flags.BoolVar(&c.quiet, "quiet", false,
 		"When given, a successful run will produce no output.")
+	c.flags.StringVar(&c.bindAddr, "bind", "",
+		"Sets the bind address for cluster communication.")
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -51,11 +54,17 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	b, err := config.NewBuilder(config.Flags{ConfigFiles: configFiles, ConfigFormat: &c.configFormat})
+	bindAddr := &c.bindAddr
+	if c.bindAddr == "" {
+		bindAddr = nil
+	}
+
+	b, err := config.NewBuilder(config.Flags{ConfigFiles: configFiles, ConfigFormat: &c.configFormat, Config: config.Config{BindAddr: bindAddr}})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1
 	}
+
 	if _, err := b.BuildAndValidate(); err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1
