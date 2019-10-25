@@ -192,6 +192,10 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
@@ -258,6 +262,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.ACLToken.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
@@ -320,6 +328,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 
 func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.ACLToken.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -711,6 +723,10 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -791,6 +807,10 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 
 func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTokenListResponse) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -900,6 +920,10 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := a.srv.forward("ACL.PolicyRead", args, args, reply); done {
 		return err
 	}
@@ -958,6 +982,10 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 
 func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPolicy) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.Policy.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1093,6 +1121,10 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.InACLDatacenter() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -1150,6 +1182,10 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 
 func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLPolicyListResponse) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -1302,6 +1338,10 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := a.srv.forward("ACL.RoleRead", args, args, reply); done {
 		return err
 	}
@@ -1369,6 +1409,10 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 
 func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.Role.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1513,6 +1557,10 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.InACLDatacenter() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -1566,6 +1614,10 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 
 func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleListResponse) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -1644,6 +1696,10 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1677,6 +1733,10 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 
 func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *structs.ACLBindingRule) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.BindingRule.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1807,6 +1867,10 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1859,6 +1923,10 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1890,6 +1958,10 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 
 func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *structs.ACLAuthMethodResponse) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -1925,6 +1997,10 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 
 func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *structs.ACLAuthMethod) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.AuthMethod.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -2012,6 +2088,10 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -2065,6 +2145,10 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -2106,6 +2190,14 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
+	}
+
+	if args.Auth == nil {
+		return fmt.Errorf("Invalid Login request: Missing auth parameters")
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.Auth.EnterpriseMeta, true); err != nil {
+		return err
 	}
 
 	if args.Token != "" { // This shouldn't happen.
