@@ -40,6 +40,24 @@ type asyncResolutionResult struct {
 	err   error
 }
 
+func verifyAuthorizerChain(t *testing.T, expected acl.Authorizer, actual acl.Authorizer) {
+	expectedChainAuthz, ok := expected.(*acl.ChainedAuthorizer)
+	require.True(t, ok, "expected Authorizer is not a ChainedAuthorizer")
+	actualChainAuthz, ok := actual.(*acl.ChainedAuthorizer)
+	require.True(t, ok, "actual Authorizer is not a ChainedAuthorizer")
+
+	expectedChain := expectedChainAuthz.AuthorizerChain()
+	actualChain := actualChainAuthz.AuthorizerChain()
+
+	require.Equal(t, len(expectedChain), len(actualChain), "ChainedAuthorizers have different length chains")
+	for idx, expectedAuthz := range expectedChain {
+		actualAuthz := actualChain[idx]
+
+		// pointer equality - because we want to verify authorizer reuse
+		require.True(t, expectedAuthz == actualAuthz, "Authorizer pointers are not equal")
+	}
+}
+
 func resolveTokenAsync(r *ACLResolver, token string, ch chan *asyncResolutionResult) {
 	authz, err := r.ResolveToken(token)
 	ch <- &asyncResolutionResult{authz: authz, err: err}
@@ -226,7 +244,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			},
 		}, nil
 	default:
-		return true, nil, acl.ErrNotFound
+		return testIdentityForTokenEnterprise(token)
 	}
 }
 
@@ -289,7 +307,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}, nil
 	default:
-		return true, nil, acl.ErrNotFound
+		return testPolicyForIDEnterprise(policyID)
 	}
 }
 
@@ -424,7 +442,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			},
 		}, nil
 	default:
-		return true, nil, acl.ErrNotFound
+		return testRoleForIDEnterprise(roleID)
 	}
 }
 
@@ -448,6 +466,8 @@ type ACLResolverTestDelegate struct {
 	policyCached bool
 	// state for the optional default resolver function defaultRoleResolveFn
 	roleCached bool
+
+	EnterpriseACLResolverTestDelegate
 }
 
 func (d *ACLResolverTestDelegate) Reset() {
@@ -589,6 +609,9 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 			return d.roleResolveFn(args.(*structs.ACLRoleBatchGetRequest), reply.(*structs.ACLRoleBatchResponse))
 		}
 		panic("Bad Test Implementation: should provide a roleResolveFn to the ACLResolverTestDelegate")
+	}
+	if handled, err := d.EnterpriseACLResolverTestDelegate.RPC(method, args, reply); handled {
+		return err
 	}
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
 }
@@ -773,7 +796,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz2, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
-		require.False(t, authz == authz2)
+		require.NotEqual(t, authz, authz2)
 		require.Equal(t, acl.Deny, authz2.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", false, "expired")    // from "found" token
@@ -839,8 +862,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz2, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
-		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
@@ -872,7 +894,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
@@ -906,7 +928,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz2, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		requirePolicyCached(t, r, "node-wr", true, "still cached")    // from "found" token
@@ -941,7 +963,8 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz2, err := r.ResolveToken("found-role")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
+
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
@@ -978,11 +1001,8 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-
-		requirePolicyCached(t, r, "node-wr", true, "cached")    // from "found" token
-		requirePolicyCached(t, r, "dc2-key-wr", true, "cached") // from "found" token
 
 		// the go routine spawned will eventually return with a authz that doesn't have the policy
 		retry.Run(t, func(t *retry.R) {
@@ -1027,7 +1047,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 
 		// the go routine spawned will eventually return with a authz that doesn't have the policy
@@ -1071,7 +1091,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
@@ -1108,7 +1128,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
 		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2, "\n[1]={%+v} != \n[2]={%+v}", authz, authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
@@ -1140,11 +1160,8 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		authz2, err := r.ResolveToken("found")
 		require.NoError(t, err)
 		require.NotNil(t, authz2)
-		// testing pointer equality - these will be the same object because it is cached.
-		require.True(t, authz == authz2)
+		verifyAuthorizerChain(t, authz, authz2)
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
-
-		requireIdentityCached(t, r, "found", true, "cached")
 
 		// the go routine spawned will eventually return and this will be a not found error
 		retry.Run(t, func(t *retry.R) {

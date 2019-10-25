@@ -661,7 +661,7 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 	}
 
 	t.Run("Cache Miss", func(t *testing.T) {
-		authz, err := testPolicies.Compile(acl.DenyAll(), cache, nil)
+		authz, err := testPolicies.Compile(cache, nil)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 
@@ -669,7 +669,7 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		require.Equal(t, acl.Allow, authz.AgentRead("foo", nil))
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
 		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
-		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Default, authz.ACLRead(nil))
 	})
 
 	t.Run("Check Cache", func(t *testing.T) {
@@ -682,18 +682,18 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		require.Equal(t, acl.Allow, authz.AgentRead("foo", nil))
 		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
 		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
-		require.Equal(t, acl.Deny, authz.ACLRead(nil))
+		require.Equal(t, acl.Default, authz.ACLRead(nil))
 
 		// setup the cache for the next test
 		cache.PutAuthorizer(testPolicies.HashKey(), acl.DenyAll())
 	})
 
 	t.Run("Cache Hit", func(t *testing.T) {
-		authz, err := testPolicies.Compile(acl.DenyAll(), cache, nil)
+		authz, err := testPolicies.Compile(cache, nil)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 
-		// we reset the Authorizer in the cache so now everything should be denied
+		// we reset the Authorizer in the cache so now everything should be defaulted
 		require.Equal(t, acl.Deny, authz.NodeRead("foo", nil))
 		require.Equal(t, acl.Deny, authz.AgentRead("foo", nil))
 		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
