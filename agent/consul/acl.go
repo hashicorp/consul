@@ -97,6 +97,7 @@ type ACLResolverDelegate interface {
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
 	RPC(method string, args interface{}, reply interface{}) error
+	EnterpriseACLResolverDelegate
 }
 
 type policyOrRoleTokenError struct {
@@ -291,7 +292,12 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 				return nil, err
 			}
 
-			return policies.Compile(acl.RootAuthorizer(r.config.ACLDefaultPolicy), r.cache, r.entConf)
+			authz, err := policies.Compile(r.cache, r.entConf)
+			if err != nil {
+				return nil, err
+			}
+
+			return acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.RootAuthorizer(r.config.ACLDefaultPolicy)}), nil
 		}
 
 		return nil, err
@@ -992,7 +998,7 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
 
-	policies, err := r.resolveTokenToPolicies(token)
+	identity, policies, err := r.resolveTokenToIdentityAndPolicies(token)
 	if err != nil {
 		r.disableACLsWhenUpstreamDisabled(err)
 		if IsACLRemoteError(err) {
@@ -1004,9 +1010,27 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 	}
 
 	// Build the Authorizer
-	authorizer, err := policies.Compile(acl.RootAuthorizer(r.config.ACLDefaultPolicy), r.cache, r.entConf)
-	return authorizer, err
+	var chain []acl.Authorizer
 
+	authz, err := policies.Compile(r.cache, r.entConf)
+	if err != nil {
+		return nil, err
+	}
+	chain = append(chain, authz)
+
+	authz, err = r.resolveEnterpriseDefaultsForIdentity(identity)
+	if err != nil {
+		if IsACLRemoteError(err) {
+			r.logger.Printf("[ERR] consul.acl: %v", err)
+			return r.down, nil
+		}
+		return nil, err
+	} else if authz != nil {
+		chain = append(chain, authz)
+	}
+
+	chain = append(chain, acl.RootAuthorizer(r.config.ACLDefaultPolicy))
+	return acl.NewChainedAuthorizer(chain), nil
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {

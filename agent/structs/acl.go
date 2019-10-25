@@ -169,7 +169,6 @@ func (s *ACLServiceIdentity) EstimateSize() int {
 func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
 	// Given that we validate this string name before persisting, we do not
 	// have to escape it before doing the following interpolation.
-	// TODO (namespaces) include namespace
 	rules := aclServiceIdentityRules(s.ServiceName, entMeta)
 
 	hasher := fnv.New128a()
@@ -673,7 +672,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Ente
 	return parsed, nil
 }
 
-func (policies ACLPolicies) Compile(parent acl.Authorizer, cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
 	// Determine the cache key
 	cacheKey := policies.HashKey()
 	entry := cache.GetAuthorizer(cacheKey)
@@ -688,7 +687,7 @@ func (policies ACLPolicies) Compile(parent acl.Authorizer, cache *ACLCaches, ent
 	}
 
 	// Create the ACL object
-	authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, parsed, entConf)
+	authorizer, err := acl.NewPolicyAuthorizer(parsed, entConf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct ACL Authorizer: %v", err)
 	}
@@ -1083,8 +1082,6 @@ type ACLTokenListResponse struct {
 type ACLTokenBatchGetRequest struct {
 	AccessorIDs []string // List of accessor ids to fetch
 	Datacenter  string   // The datacenter to perform the request within
-	// TODO (namespaces) should this use enterprise meta? - it would be hard to
-	// update in a backwards compatible manner an accessor ids should be unique
 	QueryOptions
 }
 
@@ -1111,7 +1108,6 @@ type ACLTokenBatchSetRequest struct {
 // multiple tokens need to be removed from the local DCs state.
 type ACLTokenBatchDeleteRequest struct {
 	TokenIDs []string // Tokens to delete
-	// TODO (namespaces) should we update with ent meta?
 }
 
 // ACLTokenBootstrapRequest is used only at the Raft layer
@@ -1496,8 +1492,6 @@ func (r *ACLLoginRequest) RequestDatacenter() string {
 
 type ACLLogoutRequest struct {
 	Datacenter string // The datacenter to perform the request within
-	// TODO (namespaces) do we need the ent meta here? tokens are again
-	// unique across namespaces so its likely we don't need it.
 	WriteRequest
 }
 
