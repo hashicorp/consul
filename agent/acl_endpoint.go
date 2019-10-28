@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -271,53 +270,6 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 	}
 
 	return s.aclPolicyWriteInternal(resp, req, "", true)
-}
-
-// fixTimeAndHashFields is used to help in decoding the ExpirationTTL, ExpirationTime, CreateTime, and Hash
-// attributes from the ACL Token/Policy create/update requests. It is needed
-// to help mapstructure decode things properly when decodeBody is used.
-func fixTimeAndHashFields(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	if val, ok := rawMap["ExpirationTTL"]; ok {
-		if sval, ok := val.(string); ok {
-			d, err := time.ParseDuration(sval)
-			if err != nil {
-				return err
-			}
-			rawMap["ExpirationTTL"] = d
-		}
-	}
-
-	if val, ok := rawMap["ExpirationTime"]; ok {
-		if sval, ok := val.(string); ok {
-			t, err := time.Parse(time.RFC3339, sval)
-			if err != nil {
-				return err
-			}
-			rawMap["ExpirationTime"] = t
-		}
-	}
-
-	if val, ok := rawMap["CreateTime"]; ok {
-		if sval, ok := val.(string); ok {
-			t, err := time.Parse(time.RFC3339, sval)
-			if err != nil {
-				return err
-			}
-			rawMap["CreateTime"] = t
-		}
-	}
-
-	if val, ok := rawMap["Hash"]; ok {
-		if sval, ok := val.(string); ok {
-			rawMap["Hash"] = []byte(sval)
-		}
-	}
-	return nil
 }
 
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {

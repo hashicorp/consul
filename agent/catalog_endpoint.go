@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var durations = NewDurationFixer("interval", "timeout", "deregistercriticalserviceafter")
-
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})

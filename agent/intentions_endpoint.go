@@ -9,21 +9,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// fixHashField is used to convert the JSON string to a []byte before handing to mapstructure
-func fixHashField(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	if val, ok := rawMap["Hash"]; ok {
-		if sval, ok := val.(string); ok {
-			rawMap["Hash"] = []byte(sval)
-		}
-	}
-	return nil
-}
-
 // /v1/connection/intentions
 func (s *HTTPServer) IntentionEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
