@@ -24,6 +24,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
       '${appName}',
       {
         rootURL: '${rootURL}',
+        CONSUL_ACLS_ENABLED: ${config.CONSUL_ACLS_ENABLED},
         CONSUL_NSPACES_ENABLED: ${config.CONSUL_NSPACES_ENABLED},
         CONSUL_NSPACES_UNDEFINED_NAME: '${config.CONSUL_NSPACES_UNDEFINED_NAME}'
       }

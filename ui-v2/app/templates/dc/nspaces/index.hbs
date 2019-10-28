@@ -24,7 +24,9 @@
           {{#block-slot 'header'}}
               <th>Name</th>
               <th>Description</th>
+{{#if (env 'CONSUL_ACLS_ENABLED')}}
               <th>Roles &amp; Policies</th>
+{{/if}}
           {{/block-slot}}
           {{#block-slot 'row'}}
 {{#if item.DeletedAt}}
@@ -40,11 +42,13 @@
               <td data-test-description>
                 <p>{{item.Description}}</p>
               </td>
+  {{#if (env 'CONSUL_ACLS_ENABLED')}}
               <td>
                 {{#each (compact (append item.ACLs.PolicyDefaults item.ACLs.RoleDefaults)) as |item|}}
                   <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
                 {{/each}}
               </td>
+  {{/if}}
 {{/if}}
           {{/block-slot}}
           {{#block-slot 'actions' as |index change checked|}}
