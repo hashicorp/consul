@@ -39,7 +39,7 @@ The `server` label is explained in the *metrics* plugin documentation.
 autopath my-resolv.conf
 ~~~
 
-Use `my-resolv.conf` as the file to get the search path from. This file only needs so have one line:
+Use `my-resolv.conf` as the file to get the search path from. This file only needs to have one line:
 `search domain1 domain2 ...`
 
 ~~~
