@@ -2,6 +2,10 @@
   background-repeat: no-repeat;
   background-position: center;
 }
+%with-mask {
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
 %as-pseudo {
   display: inline-block;
   content: '';

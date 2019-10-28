@@ -5,8 +5,8 @@
 %main-nav-horizontal > ul > li label {
   @extend %main-nav-horizontal-action;
 }
-%main-nav-horizontal-action:hover,
-%main-nav-horizontal-action:focus {
+%main-nav-horizontal-action:not(span):hover,
+%main-nav-horizontal-action:not(span):focus {
   @extend %main-nav-horizontal-action-intent;
 }
 %main-nav-horizontal [type='checkbox']:checked + label,
