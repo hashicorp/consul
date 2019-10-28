@@ -72,7 +72,10 @@ table.has-actions tr > *:nth-last-child(5):first-child ~ * {
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
-html.template-nspace.template-list main table tr {
+html.template-nspace.has-acls.template-list main table tr {
+  @extend %with-acls-nspaces-row;
+}
+html.template-nspace:not(.has-acls).template-list main table tr {
   @extend %nspaces-row;
 }
 html.template-service.template-show #instances table tr {
@@ -156,13 +159,19 @@ html.template-instance.template-show main table.exposedpaths tr {
 
 %roles-row > *:nth-child(1),
 %roles-row > *:nth-child(2),
-%nspaces-row > *:nth-child(1),
-%nspaces-row > *:nth-child(2) {
+%with-acls-nspaces-row > *:nth-child(1),
+%with-acls-nspaces-row > *:nth-child(2) {
   width: calc(22% - 20px) !important;
 }
-%nspaces-row > *:nth-child(3),
+%with-acls-nspaces-row > *:nth-child(3),
 %roles-row > *:nth-child(3) {
   width: calc(56% - 20px) !important;
+}
+%nspaces-row > *:nth-child(1) {
+  width: 30%;
+}
+%nspaces-row > *:nth-child(2) {
+  width: calc(70% - 60px);
 }
 
 @media #{$--horizontal-session-list} {
