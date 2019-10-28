@@ -19,7 +19,7 @@ const (
 	RPCTLSInsecure = 7
 	
 	// NOTE: Currently we use values between 0 and 7 for the different
-	// "protocols" that we may ride over our "rpc" port. I had an idea of
+	// "protocols" that we may ride over our "rpc" port. We had an idea of
 	// using TLS + ALPN for negotiating the protocol instead of our own
 	// bytes as it could provide other benefits. Currently our 0-7 values
 	// are mutually exclusive with any valid first byte of a TLS header
