@@ -18,12 +18,15 @@ export default Route.extend({
         ...model,
         ...{
           dc: repo.findBySlug(params.dc, model.dcs),
+          // if there is only 1 namespace then use that
+          // otherwise find the namespace object that corresponds
+          // to the active one
           nspace:
-            model.nspaces.length > 0
+            model.nspaces.length > 1
               ? model.nspaces.find(function(item) {
                   return item.Name === nspace.Name;
                 })
-              : null,
+              : model.nspaces.firstObject,
         },
       });
     });
