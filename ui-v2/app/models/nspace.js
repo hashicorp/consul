@@ -15,4 +15,6 @@ export default Model.extend({
   ACLs: attr(undefined, function() {
     return { defaultValue: { PolicyDefaults: [], RoleDefaults: [] } };
   }),
+
+  SyncTime: attr('number'),
 });
