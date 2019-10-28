@@ -453,8 +453,6 @@ func TestAutopilot_BootstrapExpect(t *testing.T) {
 	dead.Shutdown()
 	<-closeMap[dead.config.NodeName]
 
-	//To allow for pruning to finish
-	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
 		leader := findStatus(true)
 		for _, m := range leader.LANMembers() {
