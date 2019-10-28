@@ -117,7 +117,10 @@
   @extend %with-icon;
   background-image: $chevron-down-svg;
 }
-
+%with-chevron-down-mask {
+  @extend %with-mask;
+  mask-image: $chevron-down-svg;
+}
 %with-chevron-left-icon {
   @extend %with-icon;
   background-image: $chevron-left-svg;
@@ -131,6 +134,10 @@
 %with-chevron-up-icon {
   @extend %with-icon;
   background-image: $chevron-up-svg;
+}
+%with-chevron-up-mask {
+  @extend %with-mask;
+  mask-image: $chevron-up-svg;
 }
 
 %with-chevron-icon {

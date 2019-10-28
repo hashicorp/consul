@@ -11,27 +11,9 @@
             <nav>
 {{#if dc}}
                 <ul>
-                    <li>
-  {{#if (eq dcs.length 1) }}
-                        <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
-  {{ else }}
-                        {{#toggle-button data-test-toggle-button="datacenters"}}
-                          {{dc.Name}}
-                        {{/toggle-button}}
-                        <div>
-                          <ul>
-                            {{#each dcs as |item|}}
-                              <li data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>
-                                <a href={{href-to 'dc.services' item.Name}}>{{item.Name}}</a>
-                              </li>
-                            {{/each}}
-                          </ul>
-                        </div>
-  {{/if}}
-                    </li>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
                     <li>
-    {{#if (and false (eq nspaces.length 1)) }}
+    {{#if (eq nspaces.length 1) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
                         {{#toggle-button data-test-toggle-button="nspaces"}}
@@ -51,8 +33,8 @@
                                   <a href={{href-to 'nspace.dc.services' (concat '~' item.Name) dc.Name}}>{{item.Name}}</a>
                               </li>
                             {{/each}}
-      {{!FIXME only show this if I'm allowed to see it }}
-      {{#if true }}
+      {{!FIXME only show this if I'm allowed to see it right now we can only be sure you are allowed to see this if ACLs are disabled until we have further API support}}
+      {{#if (not (env 'CONSUL_ACLS_ENABLED')) }}
                             <li data-test-main-nav-nspaces>
                                 <a href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
                             </li>
@@ -62,6 +44,24 @@
     {{/if}}
                     </li>
   {{/if}}
+                    <li>
+  {{#if (eq dcs.length 1) }}
+                        <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
+  {{ else }}
+                        {{#toggle-button data-test-toggle-button="datacenters"}}
+                          {{dc.Name}}
+                        {{/toggle-button}}
+                        <div>
+                          <ul>
+                            {{#each dcs as |item|}}
+                              <li data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>
+                                <a href={{href-to 'dc.services' item.Name}}>{{item.Name}}</a>
+                              </li>
+                            {{/each}}
+                          </ul>
+                        </div>
+  {{/if}}
+                    </li>
                     <li data-test-main-nav-services class={{if (is-href 'dc.services' dc.Name) 'is-active'}}>
                         <a href={{href-to 'dc.services' dc.Name}}>Services</a>
                     </li>

@@ -25,6 +25,19 @@
 %main-nav-horizontal input {
   display: none;
 }
+%primary-nav input + label {
+  padding-right: 5px !important;
+}
+%primary-nav input + label::after {
+  position: relative;
+  top: 2px;
+  @extend %as-pseudo;
+  @extend %with-chevron-down-mask;
+  background-color: $white;
+}
+%primary-nav input:checked + label::after {
+  @extend %with-chevron-up-mask;
+}
 %main-nav-horizontal-toggle-button span {
   visibility: hidden;
 }
