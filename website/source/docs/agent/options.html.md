@@ -399,7 +399,7 @@ The options below are all specified on the command-line.
   path for the agent to store its PID. This is useful for sending signals (for example, `SIGINT`
   to close the agent or `SIGHUP` to update check definite
 
-* <a name="_protocol"></a><a href="#_protocol">`-protocol`</a> - The Consul protocol version to use. Protocol 2 is spoken by default,
+* <a name="_protocol"></a><a href="#_protocol">`-protocol`</a> - The Consul protocol version to use. Consul agents speak protocol 2 by default,
   however agents will automatically use protocol >2 when speaking to compatible agents. This should be set only when
   [upgrading](/docs/upgrading.html). You can view the protocol versions supported by Consul by running `consul -v`.
 
