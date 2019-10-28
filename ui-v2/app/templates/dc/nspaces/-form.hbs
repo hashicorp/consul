@@ -11,7 +11,7 @@
       <textarea name="Description" oninput={{action 'change'}}>{{item.Description}}</textarea>
     </label>
   </fieldset>
-{{#if true}}
+{{#if (env 'CONSUL_ACLS_ENABLED')}}
   <fieldset id="roles">
     <h2>Roles</h2>
     {{role-selector dc=dc items=item.ACLs.RoleDefaults}}
