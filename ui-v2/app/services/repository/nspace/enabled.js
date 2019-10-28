@@ -44,8 +44,9 @@ export default RepositoryService.extend({
         }
       }
     }
+    // If we can't figure out the nspace from the URL just use default
     return {
-      Name: (routeParams.nspace || `~`).substr(1),
+      Name: (routeParams.nspace || `~default`).substr(1),
     };
   },
 });
