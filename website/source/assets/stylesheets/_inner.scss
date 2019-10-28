@@ -3,7 +3,7 @@
     font-size: $font-size;
     font-family: $font-family-open-sans;
     font-weight: $font-weight-reg;
-    line-height: 1.84em;
+    line-height: 1.80em;
     margin: 0 0 $font-size;
     -webkit-font-smoothing: antialiased;
   }
@@ -82,7 +82,6 @@
   tt,
   .alert code {
     font-family: $font-family-monospace;
-    font-size: 90%;
     color: inherit;
   }
 

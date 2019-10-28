@@ -20,12 +20,12 @@ $vault-gray: #919fa8;
 $font-family-klavika: 'klavika-web', Helvetica, sans-serif;
 $font-family-open-sans: 'Open Sans', sans-serif;
 $font-family-monospace: 'Fira Mono', monospace;
-$font-size: 15px;
+$font-size: 16px;
 $font-weight-reg: 400;
 $font-weight-bold: 600;
 
 // Body
-$body-font-color: $gray-darker;
+$body-font-color: #373942;
 $body-link-color: $consul-red;
 
 // Home
@@ -35,7 +35,7 @@ $home-header-link-color-hover: $black;
 
 // Sidebar
 $sidebar-background-color: $white;
-$sidebar-font-size: $font-size - 2;
+$sidebar-font-size: $font-size - 1;
 $sidebar-link-color: $body-font-color;
 $sidebar-link-color-hover: $black;
 $sidebar-link-color-active: $body-link-color;
