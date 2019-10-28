@@ -533,7 +533,7 @@ default will automatically work with some tooling.
 
 #### Configuration Key Reference
 
--> TTL values are parsed by Go's `time` package, and have the following
+-> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
 [formatting specification](https://golang.org/pkg/time/#ParseDuration):
 
 > A duration string is a possibly signed sequence of decimal numbers, each
