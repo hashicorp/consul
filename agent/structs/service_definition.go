@@ -37,8 +37,8 @@ func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
 	type Alias ServiceDefinition
 
 	aux := &struct {
-		EnableTagOverrideCamel bool                      `json:"enable_tag_override"`
-		TaggedAddressesCamel   map[string]ServiceAddress `json:"tagged_addresses"`
+		EnableTagOverrideSnake bool                      `json:"enable_tag_override"`
+		TaggedAddressesSnake   map[string]ServiceAddress `json:"tagged_addresses"`
 
 		*Alias
 	}{
@@ -47,11 +47,11 @@ func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if aux.EnableTagOverrideCamel {
-		t.EnableTagOverride = aux.EnableTagOverrideCamel
+	if aux.EnableTagOverrideSnake {
+		t.EnableTagOverride = aux.EnableTagOverrideSnake
 	}
 	if len(t.TaggedAddresses) == 0 {
-		t.TaggedAddresses = aux.TaggedAddressesCamel
+		t.TaggedAddresses = aux.TaggedAddressesSnake
 	}
 
 	return nil

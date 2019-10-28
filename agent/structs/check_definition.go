@@ -53,12 +53,14 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		DeregisterCriticalServiceAfter interface{}
 
 		// Translate fields
-		ArgsCamel                           []string    `json:"args"`
-		ScriptArgsCamel                     []string    `json:"script_args"`
-		DeregisterCriticalServiceAfterCamel interface{} `json:"deregister_critical_service_after"`
-		DockerContainerIDCamel              string      `json:"docker_container_id"`
-		TLSSkipVerifyCamel                  bool        `json:"tls_skip_verify"`
-		ServiceIDCamel                      string      `json:"service_id"`
+
+		// "args" -> ScriptArgs
+		Args                                []string    `json:"args"`
+		ScriptArgsSnake                     []string    `json:"script_args"`
+		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
+		DockerContainerIDSnake              string      `json:"docker_container_id"`
+		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+		ServiceIDSnake                      string      `json:"service_id"`
 
 		*Alias
 	}{
@@ -70,22 +72,22 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 
 	// Translate Fields
 	if aux.DeregisterCriticalServiceAfter == nil {
-		aux.DeregisterCriticalServiceAfter = aux.DeregisterCriticalServiceAfterCamel
+		aux.DeregisterCriticalServiceAfter = aux.DeregisterCriticalServiceAfterSnake
 	}
 	if len(t.ScriptArgs) == 0 {
-		t.ScriptArgs = aux.ArgsCamel
+		t.ScriptArgs = aux.Args
 	}
 	if len(t.ScriptArgs) == 0 {
-		t.ScriptArgs = aux.ScriptArgsCamel
+		t.ScriptArgs = aux.ScriptArgsSnake
 	}
 	if t.DockerContainerID == "" {
-		t.DockerContainerID = aux.DockerContainerIDCamel
+		t.DockerContainerID = aux.DockerContainerIDSnake
 	}
-	if aux.TLSSkipVerifyCamel {
-		t.TLSSkipVerify = aux.TLSSkipVerifyCamel
+	if aux.TLSSkipVerifySnake {
+		t.TLSSkipVerify = aux.TLSSkipVerifySnake
 	}
 	if t.ServiceID == "" {
-		t.ServiceID = aux.ServiceIDCamel
+		t.ServiceID = aux.ServiceIDSnake
 	}
 
 	// Parse special values

@@ -574,7 +574,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 
 func decodeBody(body io.Reader, out interface{}) error {
 	if body == nil {
-		return nil
+		return io.EOF
 	}
 
 	return json.NewDecoder(body).Decode(&out)

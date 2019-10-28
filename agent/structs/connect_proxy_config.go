@@ -124,10 +124,10 @@ type ConnectProxyConfig struct {
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	type Alias ConnectProxyConfig
 	aux := &struct {
-		DestinationServiceNameCamel string `json:"destination_service_name"`
-		DestinationServiceIDCamel   string `json:"destination_service_id"`
-		LocalServiceAddressCamel    string `json:"local_service_address"`
-		LocalServicePortCamel       int    `json:"local_service_port"`
+		DestinationServiceNameSnake string `json:"destination_service_name"`
+		DestinationServiceIDSnake   string `json:"destination_service_id"`
+		LocalServiceAddressSnake    string `json:"local_service_address"`
+		LocalServicePortSnake       int    `json:"local_service_port"`
 
 		*Alias
 	}{
@@ -137,16 +137,16 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 	if t.DestinationServiceName == "" {
-		t.DestinationServiceName = aux.DestinationServiceNameCamel
+		t.DestinationServiceName = aux.DestinationServiceNameSnake
 	}
 	if t.DestinationServiceID == "" {
-		t.DestinationServiceID = aux.DestinationServiceIDCamel
+		t.DestinationServiceID = aux.DestinationServiceIDSnake
 	}
 	if t.LocalServiceAddress == "" {
-		t.LocalServiceAddress = aux.LocalServiceAddressCamel
+		t.LocalServiceAddress = aux.LocalServiceAddressSnake
 	}
 	if t.LocalServicePort == 0 {
-		t.LocalServicePort = aux.LocalServicePortCamel
+		t.LocalServicePort = aux.LocalServicePortSnake
 	}
 
 	return nil
@@ -253,11 +253,11 @@ type Upstream struct {
 func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	type Alias Upstream
 	aux := &struct {
-		DestinationTypeCamel      string `json:"destination_type"`
-		DestinationNamespaceCamel string `json:"destination_namespace"`
-		DestinationNameCamel      string `json:"destination_name"`
-		LocalBindPortCamel        int    `json:"local_bind_port"`
-		LocalBindAddressCamel     string `json:"local_bind_address"`
+		DestinationTypeSnake      string `json:"destination_type"`
+		DestinationNamespaceSnake string `json:"destination_namespace"`
+		DestinationNameSnake      string `json:"destination_name"`
+		LocalBindPortSnake        int    `json:"local_bind_port"`
+		LocalBindAddressSnake     string `json:"local_bind_address"`
 
 		*Alias
 	}{
@@ -267,19 +267,19 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 	if t.DestinationType == "" {
-		t.DestinationType = aux.DestinationTypeCamel
+		t.DestinationType = aux.DestinationTypeSnake
 	}
 	if t.DestinationNamespace == "" {
-		t.DestinationNamespace = aux.DestinationNamespaceCamel
+		t.DestinationNamespace = aux.DestinationNamespaceSnake
 	}
 	if t.DestinationName == "" {
-		t.DestinationName = aux.DestinationNameCamel
+		t.DestinationName = aux.DestinationNameSnake
 	}
 	if t.LocalBindPort == 0 {
-		t.LocalBindPort = aux.LocalBindPortCamel
+		t.LocalBindPort = aux.LocalBindPortSnake
 	}
 	if t.LocalBindAddress == "" {
-		t.LocalBindAddress = aux.LocalBindAddressCamel
+		t.LocalBindAddress = aux.LocalBindAddressSnake
 	}
 
 	return nil
@@ -423,8 +423,8 @@ type ExposePath struct {
 func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 	type Alias ExposePath
 	aux := &struct {
-		LocalPathPortCamel int `json:"local_path_port"`
-		ListenerPortCamel  int `json:"listener_port"`
+		LocalPathPortSnake int `json:"local_path_port"`
+		ListenerPortSnake  int `json:"listener_port"`
 
 		*Alias
 	}{
@@ -434,10 +434,10 @@ func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 	if t.LocalPathPort == 0 {
-		t.LocalPathPort = aux.LocalPathPortCamel
+		t.LocalPathPort = aux.LocalPathPortSnake
 	}
 	if t.ListenerPort == 0 {
-		t.ListenerPort = aux.ListenerPortCamel
+		t.ListenerPort = aux.ListenerPortSnake
 	}
 
 	return nil

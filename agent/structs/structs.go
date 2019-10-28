@@ -888,7 +888,7 @@ type ServiceConnect struct {
 func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	type Alias ServiceConnect
 	aux := &struct {
-		SidecarServiceCamel *ServiceDefinition `json:"sidecar_service"`
+		SidecarServiceSnake *ServiceDefinition `json:"sidecar_service"`
 
 		*Alias
 	}{
@@ -898,7 +898,7 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 	if t.SidecarService == nil {
-		t.SidecarService = aux.SidecarServiceCamel
+		t.SidecarService = aux.SidecarServiceSnake
 	}
 	return nil
 }

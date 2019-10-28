@@ -99,9 +99,9 @@ func (t *discoveryChainReadRequest) UnmarshalJSON(data []byte) (err error) {
 		OverrideProtocol       interface{}
 		OverrideMeshGateway    *struct{ Mode interface{} }
 
-		OverrideConnectTimeoutCamel interface{}                 `json:"override_connect_timeout"`
-		OverrideProtocolCamel       interface{}                 `json:"override_protocol"`
-		OverrideMeshGatewayCamel    *struct{ Mode interface{} } `json:"override_mesh_gateway"`
+		OverrideConnectTimeoutSnake interface{}                 `json:"override_connect_timeout"`
+		OverrideProtocolSnake       interface{}                 `json:"override_protocol"`
+		OverrideMeshGatewaySnake    *struct{ Mode interface{} } `json:"override_mesh_gateway"`
 
 		*Alias
 	}{
@@ -112,13 +112,13 @@ func (t *discoveryChainReadRequest) UnmarshalJSON(data []byte) (err error) {
 	}
 
 	if aux.OverrideConnectTimeout == nil {
-		aux.OverrideConnectTimeout = aux.OverrideConnectTimeoutCamel
+		aux.OverrideConnectTimeout = aux.OverrideConnectTimeoutSnake
 	}
 	if aux.OverrideProtocol == nil {
-		aux.OverrideProtocol = aux.OverrideProtocolCamel
+		aux.OverrideProtocol = aux.OverrideProtocolSnake
 	}
 	if aux.OverrideMeshGateway == nil {
-		aux.OverrideMeshGateway = aux.OverrideMeshGatewayCamel
+		aux.OverrideMeshGateway = aux.OverrideMeshGatewaySnake
 	}
 
 	// weakly typed input
