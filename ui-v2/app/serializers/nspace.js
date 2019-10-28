@@ -42,6 +42,17 @@ export default Serializer.extend({
   },
   respondForCreateRecord: function(respond, serialized, data) {
     return respond((headers, body) => {
+      // potentially this could be default functionality
+      // we are basically making the assumption here that if a create
+      // comes back with a record then we should prefer that over the local
+      // one seeing as it has come from the backend, could we potenitally lose
+      // data that is stored in the frontend here?
+      // if we were to do this as a default thing we'd have to use uid here
+      // which we don't know until its gone through the serializer after this
+      const item = this.store.peekRecord('nspace', body.Name);
+      if (item) {
+        this.store.unloadRecord(item);
+      }
       return body;
     });
   },
