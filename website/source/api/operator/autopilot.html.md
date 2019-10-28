@@ -109,7 +109,7 @@ The table below shows this endpoint's support for
   that a server can trail the leader by before being considered unhealthy.
 
 - `MinQuorum` `int: 0` - specifies the minimum number of servers needed before
-  autopilot can prune dead servers
+  Autopilot can prune dead servers.
 
 - `ServerStabilizationTime` `(string: "10s")` - Specifies the minimum amount of
   time a server must be stable in the 'healthy' state before being added to the
