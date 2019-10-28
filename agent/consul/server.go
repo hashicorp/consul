@@ -523,7 +523,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Start the metrics handlers.
-	go s.sessionStats()
+	go s.updateMetrics()
 
 	return s, nil
 }
