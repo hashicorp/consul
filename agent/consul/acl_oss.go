@@ -12,6 +12,8 @@ import (
 // EnterpriseACLResolverDelegate stub
 type EnterpriseACLResolverDelegate interface{}
 
+func (s *Server) fillReplicationEnterpriseMeta(_ *structs.EnterpriseMeta) {}
+
 func newEnterpriseACLConfig(*log.Logger) *acl.EnterpriseACLConfig {
 	return nil
 }
