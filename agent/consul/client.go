@@ -183,7 +183,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	}
 
 	// Register the gRPC resolver used for connection balancing.
-	c.grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter)
+	c.grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, c.shutdownCh)
 	go c.grpcResolverBuilder.periodicServerRebalance(c.serf)
 
 	// Start maintenance task for servers

@@ -13,8 +13,8 @@ import (
 )
 
 // registerResolverBuilder registers our custom grpc resolver with the given scheme.
-func registerResolverBuilder(scheme, datacenter string) *ServerResolverBuilder {
-	grpcResolverBuilder := NewServerResolverBuilder(scheme, datacenter)
+func registerResolverBuilder(scheme, datacenter string, shutdownCh <-chan struct{}) *ServerResolverBuilder {
+	grpcResolverBuilder := NewServerResolverBuilder(scheme, datacenter, shutdownCh)
 	resolver.Register(grpcResolverBuilder)
 	return grpcResolverBuilder
 }
@@ -28,10 +28,11 @@ type ServerResolverBuilder struct {
 	datacenter string
 	servers    map[string]*metadata.Server
 	resolvers  map[string]*ServerResolver
+	shutdownCh <-chan struct{}
 	lock       sync.Mutex
 }
 
-func NewServerResolverBuilder(scheme, datacenter string) *ServerResolverBuilder {
+func NewServerResolverBuilder(scheme, datacenter string, shutdownCh <-chan struct{}) *ServerResolverBuilder {
 	return &ServerResolverBuilder{
 		scheme:     scheme,
 		datacenter: datacenter,
@@ -55,6 +56,9 @@ func (s *ServerResolverBuilder) periodicServerRebalance(serf *serf.Serf) {
 			// Re-compute the wait duration.
 			newTimerDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), serf.NumNodes())
 			timer.Reset(newTimerDuration)
+		case <-s.shutdownCh:
+			timer.Stop()
+			return
 		}
 	}
 }
