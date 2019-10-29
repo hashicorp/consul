@@ -369,3 +369,97 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		}
 	})
 }
+
+func TestAutopilot_BootstrapExpect(t *testing.T) {
+	dc := "dc1"
+	closeMap := make(map[string]chan struct{})
+	conf := func(c *Config) {
+		c.Datacenter = dc
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.AutopilotConfig.MinQuorum = 3
+		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(2)
+		c.AutopilotInterval = 100 * time.Millisecond
+		//Let us know when a server is actually gone
+		ch := make(chan struct{})
+		c.NotifyShutdown = func() {
+			t.Logf("%v is shutdown", c.NodeName)
+			close(ch)
+		}
+		closeMap[c.NodeName] = ch
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	dir4, s4 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	servers := map[string]*Server{s1.config.NodeName: s1,
+		s2.config.NodeName: s2,
+		s3.config.NodeName: s3,
+		s4.config.NodeName: s4}
+
+	// Try to join
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	joinLAN(t, s4, s1)
+
+	//Differentiate between leader and server
+	findStatus := func(leader bool) *Server {
+		for _, mem := range servers {
+			if mem.IsLeader() && leader {
+				return mem
+			}
+			if !leader && !mem.IsLeader() {
+				return mem
+			}
+		}
+
+		t.Fatalf("no members set")
+		return nil
+	}
+
+	for _, s := range servers {
+		testrpc.WaitForLeader(t, s.RPC, dc)
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 4)) })
+	}
+
+	// Have autopilot take one into left
+	dead := findStatus(false)
+	dead.Shutdown()
+	<-closeMap[dead.config.NodeName]
+	retry.Run(t, func(r *retry.R) {
+		leader := findStatus(true)
+		for _, m := range leader.LANMembers() {
+			if m.Name == dead.config.NodeName && m.Status != serf.StatusLeft {
+				r.Fatalf("%v should be left, got %v", m.Name, m.Status.String())
+			}
+		}
+	})
+
+	delete(servers, dead.config.NodeName)
+	//Autopilot should not take this one into left
+	dead = findStatus(false)
+	dead.Shutdown()
+	<-closeMap[dead.config.NodeName]
+
+	retry.Run(t, func(r *retry.R) {
+		leader := findStatus(true)
+		for _, m := range leader.LANMembers() {
+			if m.Name == dead.config.NodeName && m.Status != serf.StatusFailed {
+				r.Fatalf("%v should be failed, got %v", m.Name, m.Status.String())
+			}
+		}
+	})
+
+}
