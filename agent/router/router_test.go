@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
@@ -70,6 +71,11 @@ func (m *mockCluster) AddMember(dc string, name string, coord *coordinate.Coordi
 	m.addr++
 }
 
+type mockTracker struct{}
+
+func (m *mockTracker) AddServer(s *metadata.Server)    {}
+func (m *mockTracker) RemoveServer(s *metadata.Server) {}
+
 // testCluster is used to generate a single WAN-like area with a known set of
 // member and RTT topology.
 //
@@ -96,7 +102,7 @@ func testCluster(self string) *mockCluster {
 
 func testRouter(dc string) *Router {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
-	return NewRouter(logger, dc)
+	return NewRouter(logger, dc, &mockTracker{})
 }
 
 func TestRouter_Shutdown(t *testing.T) {

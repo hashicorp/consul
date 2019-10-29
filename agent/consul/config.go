@@ -425,6 +425,10 @@ type Config struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
+	// GRPCResolverScheme is the gRPC resolver scheme to use. This is only used for
+	// tests running in parallel to avoid overwriting each other.
+	GRPCResolverScheme string
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -547,6 +551,7 @@ func DefaultConfig() *Config {
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
 		EnterpriseConfig:     DefaultEnterpriseConfig(),
+		GRPCResolverScheme:   "consul",
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

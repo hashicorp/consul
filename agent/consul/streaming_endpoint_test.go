@@ -17,6 +17,7 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 )
 
 func TestStreaming_Subscribe(t *testing.T) {
@@ -89,7 +90,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
 
 	// Start a Subscribe call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn()
+	conn, err := client.grpcClient.GRPCConn("dc1")
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
@@ -279,7 +280,7 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 	}
 
 	// Start a Subscribe call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn()
+	conn, err := client.grpcClient.GRPCConn("dc1")
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
@@ -414,7 +415,7 @@ func TestStreaming_Subscribe_FilterACL(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &regArg, nil))
 
 	// Set up the gRPC client.
-	conn, err := client.grpcClient.GRPCConn()
+	conn, err := client.grpcClient.GRPCConn("dc1")
 	require.NoError(err)
 	streamClient := stream.NewConsulClient(conn)
 
@@ -597,7 +598,7 @@ node "%s" {
 	require.False(auth.NodeRead("denied"))
 
 	// Set up the gRPC client.
-	conn, err := client.grpcClient.GRPCConn()
+	conn, err := client.grpcClient.GRPCConn("dc1")
 	require.NoError(err)
 	streamClient := stream.NewConsulClient(conn)
 
@@ -757,7 +758,7 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 
 	// Start a Subscribe call to our streaming endpoint from the client.
 	{
-		conn, err := client.grpcClient.GRPCConn()
+		conn, err := client.grpcClient.GRPCConn("dc1")
 		require.NoError(err)
 
 		streamClient := stream.NewConsulClient(conn)
@@ -788,6 +789,8 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 	{
 		conn, err := server.GRPCConn()
 		require.NoError(err)
+
+		retryFailedConn(t, conn)
 
 		streamClient := stream.NewConsulClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -848,10 +851,9 @@ func TestStreaming_TLSReload(t *testing.T) {
 
 	// Subscribe calls should fail initially
 	joinLAN(t, client, server)
+	conn, err := client.GRPCConn()
+	require.NoError(err)
 	{
-		conn, err := client.GRPCConn()
-		require.NoError(err)
-
 		streamClient := stream.NewConsulClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
@@ -867,15 +869,30 @@ func TestStreaming_TLSReload(t *testing.T) {
 
 	// Try the subscribe call again
 	{
-		conn, err := client.GRPCConn()
-		require.NoError(err)
+		retryFailedConn(t, conn)
 
-		streamClient := stream.NewConsulClient(conn)
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		streamClient := stream.NewConsulClient(conn)
 		_, err = streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
 		require.NoError(err)
 	}
+}
+
+// retryFailedConn forces the ClientConn to reset its backoff timer and retry the connection,
+// to simulate the client eventually retrying after the initial failure. This is used both to simulate
+// retrying after an expected failure as well as to avoid flakiness when running many tests in parallel.
+func retryFailedConn(t *testing.T, conn *grpc.ClientConn) {
+	state := conn.GetState()
+	if state.String() != "TRANSIENT_FAILURE" {
+		return
+	}
+
+	// If the connection has failed, retry and wait for a state change.
+	conn.ResetConnectBackoff()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	require.True(t, conn.WaitForStateChange(ctx, state))
 }
 
 func TestStreaming_Filter(t *testing.T) {
@@ -897,6 +914,9 @@ func TestStreaming_Filter(t *testing.T) {
 	testSubscribe := func(t *testing.T, req stream.SubscribeRequest, numEvents int) []*stream.Event {
 		conn, err := server.GRPCConn()
 		require.NoError(t, err)
+
+		// Make sure the connection succeeded.
+		retryFailedConn(t, conn)
 
 		streamClient := stream.NewConsulClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

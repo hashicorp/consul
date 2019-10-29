@@ -22,20 +22,22 @@ type ServerProvider interface {
 }
 
 type GRPCClient struct {
+	scheme          string
 	serverProvider  ServerProvider
 	tlsConfigurator *tlsutil.Configurator
 }
 
-func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator) *GRPCClient {
+func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator, scheme string) *GRPCClient {
 	return &GRPCClient{
+		scheme:          scheme,
 		serverProvider:  serverProvider,
 		tlsConfigurator: tlsConfigurator,
 	}
 }
 
-func (c *GRPCClient) GRPCConn() (*grpc.ClientConn, error) {
+func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
 	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
-	conn, err := grpc.Dial("consul:///server.local",
+	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", c.scheme, datacenter),
 		// use WithInsecure mode here because we handle the TLS wrapping in the custom dialer
 		// based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),
