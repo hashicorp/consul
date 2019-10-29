@@ -36,6 +36,10 @@ type Router struct {
 	// routeFn is a hook to actually do the routing.
 	routeFn func(datacenter string) (*Manager, *metadata.Server, bool)
 
+	// grpcServerTracker is used to balance grpc connections across servers,
+	// and has callbacks for adding or removing a server.
+	grpcServerTracker ServerTracker
+
 	// isShutdown prevents adding new routes to a router after it is shut
 	// down.
 	isShutdown bool
@@ -82,12 +86,13 @@ type areaInfo struct {
 }
 
 // NewRouter returns a new Router with the given configuration.
-func NewRouter(logger *log.Logger, localDatacenter string) *Router {
+func NewRouter(logger *log.Logger, localDatacenter string, tracker ServerTracker) *Router {
 	router := &Router{
-		logger:          logger,
-		localDatacenter: localDatacenter,
-		areas:           make(map[types.AreaID]*areaInfo),
-		managers:        make(map[string][]*Manager),
+		logger:            logger,
+		localDatacenter:   localDatacenter,
+		areas:             make(map[types.AreaID]*areaInfo),
+		managers:          make(map[string][]*Manager),
+		grpcServerTracker: tracker,
 	}
 
 	// Hook the direct route lookup by default.
@@ -212,7 +217,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	info, ok := area.managers[s.Datacenter]
 	if !ok {
 		shutdownCh := make(chan struct{})
-		manager := New(r.logger, shutdownCh, area.cluster, area.pinger)
+		manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.grpcServerTracker)
 		info = &managerInfo{
 			manager:    manager,
 			shutdownCh: shutdownCh,

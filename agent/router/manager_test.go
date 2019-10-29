@@ -55,24 +55,29 @@ func (s *fauxSerf) NumNodes() int {
 	return 16384
 }
 
+type fauxTracker struct{}
+
+func (m *fauxTracker) AddServer(s *metadata.Server)    {}
+func (m *fauxTracker) RemoveServer(s *metadata.Server) {}
+
 func testManager() (m *router.Manager) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{}, &fauxTracker{})
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *router.Manager) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, &fauxTracker{})
 	return m
 }
 
 func testManagerFailAddr(failAddr net.Addr) (m *router.Manager) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr}, &fauxTracker{})
 	return m
 }
 
@@ -197,7 +202,7 @@ func TestServers_FindServer(t *testing.T) {
 func TestServers_New(t *testing.T) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{}, &fauxTracker{})
 	if m == nil {
 		t.Fatalf("Manager nil")
 	}

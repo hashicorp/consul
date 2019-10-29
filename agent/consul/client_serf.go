@@ -99,7 +99,6 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
 		c.routers.AddServer(parts)
-		c.grpcResolverBuilder.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -117,7 +116,6 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
 		c.routers.RemoveServer(parts)
-		c.grpcResolverBuilder.RemoveServer(parts)
 	}
 }
 
