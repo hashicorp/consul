@@ -83,12 +83,12 @@ func (d Dnssec) getDNSKEY(state request.Request, zone string, do bool, server st
 	return m
 }
 
-// Return true if this is a zone key with the SEP bit unset. This implies a ZSK (rfc4034 2.1.1).
+// Return true if, and only if, this is a zone key with the SEP bit unset. This implies a ZSK (rfc4034 2.1.1).
 func (k DNSKEY) isZSK() bool {
 	return k.K.Flags&(1<<8) == (1<<8) && k.K.Flags&1 == 0
 }
 
-// Return true if this is a zone key with the SEP bit set. This implies a KSK (rfc4034 2.1.1).
+// Return true if, and only if, this is a zone key with the SEP bit set. This implies a KSK (rfc4034 2.1.1).
 func (k DNSKEY) isKSK() bool {
 	return k.K.Flags&(1<<8) == (1<<8) && k.K.Flags&1 == 1
 }
