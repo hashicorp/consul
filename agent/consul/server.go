@@ -357,7 +357,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Register the gRPC resolver used for connection balancing.
-	grpcResolverBuilder := registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter)
+	grpcResolverBuilder := registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, shutdownCh)
 
 	// Create server.
 	s := &Server{
