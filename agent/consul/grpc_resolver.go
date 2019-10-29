@@ -1,34 +1,36 @@
 package consul
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"google.golang.org/grpc/resolver"
 )
 
-const grpcResolverScheme = "consul"
-
-var grpcResolverBuilder *ServerResolverBuilder
-
-// Register our custom grpc resolver for the "consul://" scheme.
-func init() {
-	grpcResolverBuilder = NewServerResolverBuilder()
+// registerResolverBuilder registers our custom grpc resolver with the given scheme.
+func registerResolverBuilder(scheme string) *ServerResolverBuilder {
+	grpcResolverBuilder := NewServerResolverBuilder(scheme)
 	resolver.Register(grpcResolverBuilder)
+	return grpcResolverBuilder
 }
 
 // ServerResolverBuilder tracks the current server list and keeps any
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {
+	// Allow overriding the scheme to support parallel tests, since
+	// the resolver builder is registered globally.
+	scheme    string
 	servers   map[string]*metadata.Server
-	resolvers map[*ServerResolver]struct{}
+	resolvers map[string]*ServerResolver
 	lock      sync.Mutex
 }
 
-func NewServerResolverBuilder() *ServerResolverBuilder {
+func NewServerResolverBuilder(scheme string) *ServerResolverBuilder {
 	return &ServerResolverBuilder{
+		scheme:    scheme,
 		servers:   make(map[string]*metadata.Server),
-		resolvers: make(map[*ServerResolver]struct{}),
+		resolvers: make(map[string]*ServerResolver),
 	}
 }
 
@@ -38,23 +40,29 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	// Make a new resolver and add it to the list of active ones.
-	resolver := &ServerResolver{
-		cc: cc,
+	// If there's already a resolver for this datacenter, return it.
+	datacenter := strings.TrimPrefix(target.Endpoint, "server.")
+	if resolver, ok := s.resolvers[datacenter]; ok {
+		return resolver, nil
 	}
-	resolver.updateAddrs(s.getAddrs())
+
+	// Make a new resolver for the dc and add it to the list of active ones.
+	resolver := &ServerResolver{
+		clientConn: cc,
+	}
+	resolver.updateAddrs(s.getAddrs(datacenter))
 	resolver.closeCallback = func() {
 		s.lock.Lock()
 		defer s.lock.Unlock()
-		delete(s.resolvers, resolver)
+		delete(s.resolvers, datacenter)
 	}
 
-	s.resolvers[resolver] = struct{}{}
+	s.resolvers[datacenter] = resolver
 
 	return resolver, nil
 }
 
-func (s *ServerResolverBuilder) Scheme() string { return grpcResolverScheme }
+func (s *ServerResolverBuilder) Scheme() string { return s.scheme }
 
 // AddServer updates the resolvers' states to include the new server's address.
 func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
@@ -62,8 +70,8 @@ func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 	defer s.lock.Unlock()
 
 	s.servers[server.ID] = server
-	addrs := s.getAddrs()
-	for resolver, _ := range s.resolvers {
+	if resolver, ok := s.resolvers[server.Datacenter]; ok {
+		addrs := s.getAddrs(server.Datacenter)
 		resolver.updateAddrs(addrs)
 	}
 }
@@ -74,17 +82,21 @@ func (s *ServerResolverBuilder) RemoveServer(server *metadata.Server) {
 	defer s.lock.Unlock()
 
 	delete(s.servers, server.ID)
-	addrs := s.getAddrs()
-	for resolver, _ := range s.resolvers {
+	if resolver, ok := s.resolvers[server.Datacenter]; ok {
+		addrs := s.getAddrs(server.Datacenter)
 		resolver.updateAddrs(addrs)
 	}
 }
 
 // getAddrs returns a list of the current servers' addresses. This method assumes
 // the lock is held.
-func (s *ServerResolverBuilder) getAddrs() []resolver.Address {
+func (s *ServerResolverBuilder) getAddrs(dc string) []resolver.Address {
 	var addrs []resolver.Address
 	for _, server := range s.servers {
+		if server.Datacenter != dc {
+			continue
+		}
+
 		addrs = append(addrs, resolver.Address{
 			Addr:       server.Addr.String(),
 			Type:       resolver.Backend,
@@ -97,17 +109,18 @@ func (s *ServerResolverBuilder) getAddrs() []resolver.Address {
 // ServerResolver is a grpc Resolver that will keep a grpc.ClientConn up to date
 // on the list of server addresses to use.
 type ServerResolver struct {
-	cc            resolver.ClientConn
+	clientConn    resolver.ClientConn
 	closeCallback func()
 }
 
 // updateAddrs updates this ServerResolver's ClientConn to use the given set of addrs.
 func (r *ServerResolver) updateAddrs(addrs []resolver.Address) {
-	r.cc.NewAddress(addrs)
+	r.clientConn.NewAddress(addrs)
 }
 
 func (s *ServerResolver) Close() {
 	s.closeCallback()
 }
 
+// Unneeded since we only update the ClientConn when our server list changes.
 func (*ServerResolver) ResolveNow(o resolver.ResolveNowOption) {}
