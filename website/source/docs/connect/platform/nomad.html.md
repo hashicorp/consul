@@ -8,14 +8,15 @@ description: |-
 
 # Connect on Nomad
 
-Connect can be used with [Nomad](https://www.nomadproject.io) to provide
+Consul Connect can be used with [Nomad](https://www.nomadproject.io) to provide
 secure service-to-service communication between Nomad jobs and task groups. The ability to
 use the [dynamic port](https://www.nomadproject.io/docs/job-specification/network.html#dynamic-ports)
-feature of Nomad makes Connect particularly easy to use. For more information
-about using Consul Connect with Nomad, you might find the following resources
-useful.
+feature of Nomad makes Connect reduces operational complexity. 
 
-For a step-by-step guide to introduce you to using Consul Connect with Nomad:
+For more information
+about using Consul Connect with Nomad, select one of the following resources.
+
+For a step-by-step guide on using Consul Connect with Nomad:
 
 - [Nomad Consul Connect Guide](https://www.nomadproject.io/guides/integrations/consul-connect/index.html)
 
