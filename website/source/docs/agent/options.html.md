@@ -1300,6 +1300,10 @@ default will automatically work with some tooling.
         bucket used to recharge the RPC rate limiter. Defaults to 1000 tokens, and each token is
         good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket
         for more details about how token bucket rate limiters operate.
+    *   <a name="kv_max_value_size"></a><a href="#kv_max_value_size">`kv_max_value_size`</a> - Available in Consul 1.5.3.
+        The maximum size of a single KV entries. Defaults to 524288. Increasing beyond this risks RPC IO taking too long
+        and preventing timely heartbeat signals which are sent in serial in current transports, potentially causing leadership
+        instability.
 
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).
