@@ -37,11 +37,12 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 	}
 
 	subscribeReq := stream.SubscribeRequest{
-		Topic:  stream.Topic_ServiceHealth,
-		Key:    reqReal.ServiceName,
-		Token:  reqReal.Token,
-		Index:  reqReal.MinQueryIndex,
-		Filter: reqReal.Filter,
+		Topic:      stream.Topic_ServiceHealth,
+		Key:        reqReal.ServiceName,
+		Token:      reqReal.Token,
+		Index:      reqReal.MinQueryIndex,
+		Filter:     reqReal.Filter,
+		Datacenter: reqReal.Datacenter,
 	}
 
 	// Switch the topic if Connect is enabled.
