@@ -6,6 +6,9 @@ import "structs.proto";
 
 service Consul {
     rpc Subscribe(SubscribeRequest) returns (stream Event) {}
+
+    // Test is only used internally for testing connectivity/balancing logic.
+    rpc Test(TestRequest) returns (TestResponse) {}
 } 
 
 enum Topic {
@@ -15,13 +18,14 @@ enum Topic {
     ACLPolicies = 3;
     ACLRoles = 4;
 }
-  
+
 message SubscribeRequest {
     Topic Topic = 1;
     string Key = 2;
     string Token = 3;
     uint64 Index = 4;
     string Filter = 5;
+    string Datacenter = 6;
 }
 
 message Event {
@@ -81,4 +85,11 @@ message ACLPolicyUpdate {
 message ACLRoleUpdate {
     ACLOp Op = 1;
     string RoleID = 2;
+}
+
+message TestRequest {
+    string Datacenter = 1;
+}
+message TestResponse {
+    string ServerName = 1;
 }

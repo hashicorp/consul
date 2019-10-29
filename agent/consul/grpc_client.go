@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
@@ -25,6 +26,8 @@ type GRPCClient struct {
 	scheme          string
 	serverProvider  ServerProvider
 	tlsConfigurator *tlsutil.Configurator
+	grpcConns       map[string]*grpc.ClientConn
+	grpcConnLock    sync.Mutex
 }
 
 func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator, scheme string) *GRPCClient {
@@ -32,10 +35,19 @@ func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigu
 		scheme:          scheme,
 		serverProvider:  serverProvider,
 		tlsConfigurator: tlsConfigurator,
+		grpcConns:       make(map[string]*grpc.ClientConn),
 	}
 }
 
 func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
+	c.grpcConnLock.Lock()
+	defer c.grpcConnLock.Unlock()
+
+	// If there's an existing ClientConn for the given DC, return it.
+	if conn, ok := c.grpcConns[datacenter]; ok {
+		return conn, nil
+	}
+
 	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
 	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", c.scheme, datacenter),
 		// use WithInsecure mode here because we handle the TLS wrapping in the custom dialer
@@ -47,6 +59,8 @@ func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	c.grpcConns[datacenter] = conn
 
 	return conn, nil
 }
