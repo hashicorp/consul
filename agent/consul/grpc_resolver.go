@@ -1,16 +1,20 @@
 package consul
 
 import (
+	"math/rand"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/serf/serf"
 	"google.golang.org/grpc/resolver"
 )
 
 // registerResolverBuilder registers our custom grpc resolver with the given scheme.
-func registerResolverBuilder(scheme string) *ServerResolverBuilder {
-	grpcResolverBuilder := NewServerResolverBuilder(scheme)
+func registerResolverBuilder(scheme, datacenter string) *ServerResolverBuilder {
+	grpcResolverBuilder := NewServerResolverBuilder(scheme, datacenter)
 	resolver.Register(grpcResolverBuilder)
 	return grpcResolverBuilder
 }
@@ -20,18 +24,86 @@ func registerResolverBuilder(scheme string) *ServerResolverBuilder {
 type ServerResolverBuilder struct {
 	// Allow overriding the scheme to support parallel tests, since
 	// the resolver builder is registered globally.
-	scheme    string
-	servers   map[string]*metadata.Server
-	resolvers map[string]*ServerResolver
-	lock      sync.Mutex
+	scheme     string
+	datacenter string
+	servers    map[string]*metadata.Server
+	resolvers  map[string]*ServerResolver
+	lock       sync.Mutex
 }
 
-func NewServerResolverBuilder(scheme string) *ServerResolverBuilder {
+func NewServerResolverBuilder(scheme, datacenter string) *ServerResolverBuilder {
 	return &ServerResolverBuilder{
-		scheme:    scheme,
-		servers:   make(map[string]*metadata.Server),
-		resolvers: make(map[string]*ServerResolver),
+		scheme:     scheme,
+		datacenter: datacenter,
+		servers:    make(map[string]*metadata.Server),
+		resolvers:  make(map[string]*ServerResolver),
 	}
+}
+
+// periodicServerRebalance periodically reshuffles the order of server addresses
+// within the resolvers to ensure the load is balanced across servers.
+func (s *ServerResolverBuilder) periodicServerRebalance(serf *serf.Serf) {
+	// Compute the rebalance timer based on the number of local servers and nodes.
+	rebalanceDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), serf.NumNodes())
+	timer := time.NewTimer(rebalanceDuration)
+
+	for {
+		select {
+		case <-timer.C:
+			s.rebalanceResolvers()
+
+			// Re-compute the wait duration.
+			newTimerDuration := router.ComputeRebalanceTimer(s.serversInDC(s.datacenter), serf.NumNodes())
+			timer.Reset(newTimerDuration)
+		}
+	}
+}
+
+// rebalanceResolvers shuffles the server list for resolvers in all datacenters.
+func (s *ServerResolverBuilder) rebalanceResolvers() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, resolver := range s.resolvers {
+		// Shuffle the list of addresses using the last list given to the resolver.
+		resolver.addrLock.Lock()
+		addrs := resolver.lastAddrs
+		rand.Shuffle(len(addrs), func(i, j int) {
+			addrs[i], addrs[j] = addrs[j], addrs[i]
+		})
+		resolver.addrLock.Unlock()
+
+		// Pass the shuffled list to the resolver.
+		resolver.updateAddrs(addrs)
+	}
+}
+
+// serversInDC returns the number of servers in the given datacenter.
+func (s *ServerResolverBuilder) serversInDC(dc string) int {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	var serverCount int
+	for _, server := range s.servers {
+		if server.Datacenter == dc {
+			serverCount++
+		}
+	}
+
+	return serverCount
+}
+
+// Servers returns metadata for all currently known servers. This is used
+// by grpc.ClientConn through our custom dialer.
+func (s *ServerResolverBuilder) Servers() []*metadata.Server {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	servers := make([]*metadata.Server, 0, len(s.servers))
+	for _, server := range s.servers {
+		servers = append(servers, server)
+	}
+	return servers
 }
 
 // Build returns a new ServerResolver for the given ClientConn. The resolver
@@ -50,7 +122,7 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 	resolver := &ServerResolver{
 		clientConn: cc,
 	}
-	resolver.updateAddrs(s.getAddrs(datacenter))
+	resolver.updateAddrs(s.getDCAddrs(datacenter))
 	resolver.closeCallback = func() {
 		s.lock.Lock()
 		defer s.lock.Unlock()
@@ -71,7 +143,7 @@ func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 
 	s.servers[server.ID] = server
 	if resolver, ok := s.resolvers[server.Datacenter]; ok {
-		addrs := s.getAddrs(server.Datacenter)
+		addrs := s.getDCAddrs(server.Datacenter)
 		resolver.updateAddrs(addrs)
 	}
 }
@@ -83,14 +155,14 @@ func (s *ServerResolverBuilder) RemoveServer(server *metadata.Server) {
 
 	delete(s.servers, server.ID)
 	if resolver, ok := s.resolvers[server.Datacenter]; ok {
-		addrs := s.getAddrs(server.Datacenter)
+		addrs := s.getDCAddrs(server.Datacenter)
 		resolver.updateAddrs(addrs)
 	}
 }
 
-// getAddrs returns a list of the current servers' addresses. This method assumes
-// the lock is held.
-func (s *ServerResolverBuilder) getAddrs(dc string) []resolver.Address {
+// getDCAddrs returns a list of the server addresses for the given datacenter.
+// This method assumes the lock is held.
+func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
 	var addrs []resolver.Address
 	for _, server := range s.servers {
 		if server.Datacenter != dc {
@@ -111,11 +183,31 @@ func (s *ServerResolverBuilder) getAddrs(dc string) []resolver.Address {
 type ServerResolver struct {
 	clientConn    resolver.ClientConn
 	closeCallback func()
+
+	lastAddrs []resolver.Address
+	addrLock  sync.Mutex
 }
 
 // updateAddrs updates this ServerResolver's ClientConn to use the given set of addrs.
 func (r *ServerResolver) updateAddrs(addrs []resolver.Address) {
-	r.clientConn.NewAddress(addrs)
+	// Only pass the first address initially, which will cause the
+	// balancer to spin down the connection for its previous first address
+	// if it is different. If we don't do this, it will keep using the old
+	// first address as long as it is still in the list, making it impossible to
+	// rebalance until that address is removed.
+	var firstAddr []resolver.Address
+	if len(addrs) > 0 {
+		firstAddr = []resolver.Address{addrs[0]}
+	}
+	r.clientConn.UpdateState(resolver.State{Addresses: firstAddr})
+
+	// Call UpdateState again with the entire list of addrs in case we need them
+	// for failover.
+	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
+
+	r.addrLock.Lock()
+	defer r.addrLock.Unlock()
+	r.lastAddrs = addrs
 }
 
 func (s *ServerResolver) Close() {

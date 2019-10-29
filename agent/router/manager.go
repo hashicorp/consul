@@ -456,17 +456,22 @@ func (m *Manager) RemoveServer(s *metadata.Server) {
 func (m *Manager) refreshServerRebalanceTimer() time.Duration {
 	l := m.getServerList()
 	numServers := len(l.servers)
+	connRebalanceTimeout := ComputeRebalanceTimer(numServers, m.clusterInfo.NumNodes())
+
+	m.rebalanceTimer.Reset(connRebalanceTimeout)
+	return connRebalanceTimeout
+}
+
+// ComputeRebalanceTimer returns a time to wait before rebalancing connections given
+// a number of servers and LAN nodes.
+func ComputeRebalanceTimer(numServers, numLANMembers int) time.Duration {
 	// Limit this connection's life based on the size (and health) of the
 	// cluster.  Never rebalance a connection more frequently than
 	// connReuseLowWatermarkDuration, and make sure we never exceed
 	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
 	clusterWideRebalanceConnsPerSec := float64(numServers * newRebalanceConnsPerSecPerServer)
 	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
-	numLANMembers := m.clusterInfo.NumNodes()
-	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
-
-	m.rebalanceTimer.Reset(connRebalanceTimeout)
-	return connRebalanceTimeout
+	return lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 }
 
 // ResetRebalanceTimer resets the rebalance timer.  This method exists for

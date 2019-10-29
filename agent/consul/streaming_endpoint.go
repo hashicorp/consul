@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"hash/fnv"
 	"strings"
@@ -18,6 +19,34 @@ type ConsulGRPCAdapter struct {
 // of state for the requested topic, then only sends updates.
 func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
 	metrics.IncrCounter([]string{"subscribe", strings.ToLower(req.Topic.String())}, 1)
+
+	// Forward the request to a remote DC if applicable.
+	if req.Datacenter != "" && req.Datacenter != h.srv.config.Datacenter {
+		conn, err := h.srv.grpcClient.GRPCConn(req.Datacenter)
+		if err != nil {
+			return err
+		}
+
+		// Open a Subscribe call to the remote DC.
+		client := stream.NewConsulClient(conn)
+		streamHandle, err := client.Subscribe(server.Context(), req)
+		if err != nil {
+			return err
+		}
+
+		// Relay the events back to the client.
+		for {
+			event, err := streamHandle.Recv()
+			if err != nil {
+				return err
+			}
+			if err := server.Send(event); err != nil {
+				return err
+			}
+		}
+	}
+
+	h.srv.logger.Printf("consul: stream starting in %s", h.srv.config.Datacenter)
 
 	// Resolve the token and create the ACL filter.
 	rule, err := h.srv.ResolveToken(req.Token)
@@ -166,4 +195,22 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 	sent[idHash] = struct{}{}
 
 	return nil
+}
+
+// Test is an internal endpoint used for checking connectivity/balancing logic.
+func (h *ConsulGRPCAdapter) Test(ctx context.Context, req *stream.TestRequest) (*stream.TestResponse, error) {
+	if req.Datacenter != "" && req.Datacenter != h.srv.config.Datacenter {
+		conn, err := h.srv.grpcClient.GRPCConn(req.Datacenter)
+		if err != nil {
+			return nil, err
+		}
+
+		h.srv.logger.Printf("server conn state %s", conn.GetState())
+
+		// Open a Test call to the remote DC.
+		client := stream.NewConsulClient(conn)
+		return client.Test(ctx, req)
+	}
+
+	return &stream.TestResponse{ServerName: h.srv.config.NodeName}, nil
 }

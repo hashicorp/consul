@@ -211,6 +211,9 @@ type Server struct {
 	GRPCListener *grpcListener
 	rpcServer    *rpc.Server
 
+	// grpcClient is used for gRPC calls to remote datacenters.
+	grpcClient *GRPCClient
+
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
 	// to request client certificates. At this point a client doesn't have
@@ -354,7 +357,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Register the gRPC resolver used for connection balancing.
-	grpcResolverBuilder := registerResolverBuilder(config.GRPCResolverScheme)
+	grpcResolverBuilder := registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter)
 
 	// Create server.
 	s := &Server{
@@ -487,11 +490,17 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 	go s.lanEventHandler()
 
+	// Start the gRPC server shuffling using the LAN serf for node count.
+	go grpcResolverBuilder.periodicServerRebalance(s.serfLAN)
+
 	// Initialize the GRPC listener.
 	if err := s.setupGRPC(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
 	}
+
+	// Start the GRPC client.
+	s.grpcClient = NewGRPCClient(s.logger, grpcResolverBuilder, tlsConfigurator, config.GRPCResolverScheme)
 
 	// Start the flooders after the LAN event handler is wired up.
 	s.floodSegments(config)
@@ -882,6 +891,10 @@ func (s *Server) Shutdown() error {
 
 	if s.Listener != nil {
 		s.Listener.Close()
+	}
+
+	if s.GRPCListener != nil {
+		s.GRPCListener.Close()
 	}
 
 	// Close the connection pool

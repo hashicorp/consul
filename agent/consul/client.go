@@ -58,8 +58,9 @@ type Client struct {
 	useNewACLs int32
 
 	// Connection pool to consul servers
-	connPool   *pool.ConnPool
-	grpcClient *GRPCClient
+	connPool            *pool.ConnPool
+	grpcClient          *GRPCClient
+	grpcResolverBuilder *ServerResolverBuilder
 
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -182,13 +183,14 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	}
 
 	// Register the gRPC resolver used for connection balancing.
-	grpcResolverBuilder := registerResolverBuilder(config.GRPCResolverScheme)
+	c.grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter)
+	go c.grpcResolverBuilder.periodicServerRebalance(c.serf)
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, grpcResolverBuilder)
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, c.grpcResolverBuilder)
 	go c.routers.Start()
 
-	// Start GRPC client.
+	// Start the GRPC client.
 	c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator, config.GRPCResolverScheme)
 
 	// Start LAN event handlers after the router is complete since the event
