@@ -1004,7 +1004,7 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 		t.Fatalf("missing service association for check: %v", check)
 	}
 	if check.Type != "docker" {
-		t.Fatalf("expected type ttl, got %s", check.Type)
+		t.Fatalf("expected type docker, got %s", check.Type)
 	}
 }
 

@@ -99,6 +99,14 @@ const (
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
+
+	// lockDelayMinThreshold is used in JSON decoding to convert a
+	// numeric lockdelay value from nanoseconds to seconds if it is
+	// below thisthreshold. Users often send a value like 5, which
+	// they assumeis seconds, but because Go uses nanosecond granularity,
+	// ends up being very small. If we see a value below this threshold,
+	// we multiply by time.Second
+	lockDelayMinThreshold = 1000
 )
 
 // metaKeyFormat checks if a metadata key string is valid
@@ -877,6 +885,24 @@ type ServiceConnect struct {
 	SidecarService *ServiceDefinition `json:",omitempty" bexpr:"-"`
 }
 
+func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
+	type Alias ServiceConnect
+	aux := &struct {
+		SidecarServiceSnake *ServiceDefinition `json:"sidecar_service"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.SidecarService == nil {
+		t.SidecarService = aux.SidecarServiceSnake
+	}
+	return nil
+}
+
 // IsSidecarProxy returns true if the NodeService is a sidecar proxy.
 func (s *NodeService) IsSidecarProxy() bool {
 	return s.Kind == ServiceKindConnectProxy && s.Proxy.DestinationServiceID != ""
@@ -1194,33 +1220,58 @@ func (d *HealthCheckDefinition) MarshalJSON() ([]byte, error) {
 	return json.Marshal(exported)
 }
 
-func (d *HealthCheckDefinition) UnmarshalJSON(data []byte) error {
+func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	type Alias HealthCheckDefinition
 	aux := &struct {
-		Interval                       string
-		Timeout                        string
-		DeregisterCriticalServiceAfter string
+		Interval                       interface{}
+		Timeout                        interface{}
+		DeregisterCriticalServiceAfter interface{}
+		TTL                            interface{}
 		*Alias
 	}{
-		Alias: (*Alias)(d),
+		Alias: (*Alias)(t),
 	}
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	var err error
-	if aux.Interval != "" {
-		if d.Interval, err = time.ParseDuration(aux.Interval); err != nil {
-			return err
+	if aux.Interval != nil {
+		switch v := aux.Interval.(type) {
+		case string:
+			if t.Interval, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Interval = time.Duration(v)
 		}
 	}
-	if aux.Timeout != "" {
-		if d.Timeout, err = time.ParseDuration(aux.Timeout); err != nil {
-			return err
+	if aux.Timeout != nil {
+		switch v := aux.Timeout.(type) {
+		case string:
+			if t.Timeout, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Timeout = time.Duration(v)
 		}
 	}
-	if aux.DeregisterCriticalServiceAfter != "" {
-		if d.DeregisterCriticalServiceAfter, err = time.ParseDuration(aux.DeregisterCriticalServiceAfter); err != nil {
-			return err
+	if aux.DeregisterCriticalServiceAfter != nil {
+		switch v := aux.DeregisterCriticalServiceAfter.(type) {
+		case string:
+			if t.DeregisterCriticalServiceAfter, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.DeregisterCriticalServiceAfter = time.Duration(v)
+		}
+	}
+	if aux.TTL != nil {
+		switch v := aux.TTL.(type) {
+		case string:
+			if t.TTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTL = time.Duration(v)
 		}
 	}
 	return nil
@@ -1654,6 +1705,8 @@ const (
 	SessionTTLMultiplier = 2
 )
 
+type Sessions []*Session
+
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
@@ -1667,7 +1720,36 @@ type Session struct {
 
 	RaftIndex
 }
-type Sessions []*Session
+
+func (t *Session) UnmarshalJSON(data []byte) (err error) {
+	type Alias Session
+	aux := &struct {
+		LockDelay interface{}
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.LockDelay != nil {
+		var dur time.Duration
+		switch v := aux.LockDelay.(type) {
+		case string:
+			if dur, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			dur = time.Duration(v)
+		}
+		// Convert low value integers into seconds
+		if dur < lockDelayMinThreshold {
+			dur = dur * time.Second
+		}
+		t.LockDelay = dur
+	}
+	return nil
+}
 
 type SessionOp string
 

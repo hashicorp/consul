@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
@@ -273,6 +274,35 @@ type ACLToken struct {
 	RaftIndex
 }
 
+func (t *ACLToken) UnmarshalJSON(data []byte) (err error) {
+	type Alias ACLToken
+	aux := &struct {
+		ExpirationTTL interface{}
+		Hash          string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.ExpirationTTL != nil {
+		switch v := aux.ExpirationTTL.(type) {
+		case string:
+			if t.ExpirationTTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.ExpirationTTL = time.Duration(v)
+		}
+
+	}
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
+}
+
 func (t *ACLToken) Clone() *ACLToken {
 	t2 := *t
 	t2.Policies = nil
@@ -541,6 +571,23 @@ type ACLPolicy struct {
 	RaftIndex `hash:"ignore"`
 }
 
+func (t *ACLPolicy) UnmarshalJSON(data []byte) error {
+	type Alias ACLPolicy
+	aux := &struct {
+		Hash string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
+}
+
 func (p *ACLPolicy) Clone() *ACLPolicy {
 	p2 := *p
 	p2.Datacenters = cloneStringSlice(p.Datacenters)
@@ -761,6 +808,23 @@ type ACLRole struct {
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+func (t *ACLRole) UnmarshalJSON(data []byte) error {
+	type Alias ACLRole
+	aux := &struct {
+		Hash string
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
 }
 
 func (r *ACLRole) Clone() *ACLRole {
