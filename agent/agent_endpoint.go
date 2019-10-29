@@ -457,11 +457,8 @@ func (s *HTTPServer) syncChanges() {
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.CheckDefinition
-	// Fixup the type decode of TTL or Interval.
-	decodeCB := func(raw interface{}) error {
-		return FixupCheckType(raw)
-	}
-	if err := decodeBody(req, &args, decodeCB); err != nil {
+
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -606,7 +603,7 @@ type checkUpdate struct {
 // APIs.
 func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var update checkUpdate
-	if err := decodeBody(req, &update, nil); err != nil {
+	if err := decodeBody(req.Body, &update); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -758,7 +755,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
 
-	if err := decodeBody(req, &args, registerServiceDecodeCB); err != nil {
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -892,76 +889,6 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 	s.syncChanges()
 	return nil, nil
-}
-
-// registerServiceDecodeCB is used in AgentRegisterService for request body decoding
-func registerServiceDecodeCB(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	// see https://github.com/hashicorp/consul/pull/3557 why we need this
-	// and why we should get rid of it.
-	lib.TranslateKeys(rawMap, map[string]string{
-		"enable_tag_override": "EnableTagOverride",
-		// Proxy Upstreams
-		"destination_name":      "DestinationName",      // string
-		"destination_type":      "DestinationType",      // string
-		"destination_namespace": "DestinationNamespace", // string
-		"local_bind_port":       "LocalBindPort",        // int
-		"local_bind_address":    "LocalBindAddress",     // string
-		// Proxy Config
-		"destination_service_name": "DestinationServiceName", // string (Proxy.)
-		"destination_service_id":   "DestinationServiceID",   // string
-		"local_service_port":       "LocalServicePort",       // int
-		"local_service_address":    "LocalServiceAddress",    // string
-		// SidecarService
-		"sidecar_service": "SidecarService", // ServiceDefinition (Connect.)
-		// Expose Config
-		"local_path_port": "LocalPathPort", // int (Proxy.Expose.Paths.)
-		"listener_port":   "ListenerPort",  // int
-
-		// DON'T Recurse into these opaque config maps or we might mangle user's
-		// keys. Note empty canonical is a special sentinel to prevent recursion.
-		"Meta": "",
-
-		"tagged_addresses": "TaggedAddresses", // map[string]structs.ServiceAddress{Address string; Port int}
-
-		// upstreams is an array but this prevents recursion into config field of
-		// any item in the array.
-		"Proxy.Config":                   "",
-		"Proxy.Upstreams.Config":         "",
-		"Connect.Proxy.Config":           "",
-		"Connect.Proxy.Upstreams.Config": "",
-
-		// Same exceptions as above, but for a nested sidecar_service note we use
-		// the canonical form SidecarService since that is translated by the time
-		// the lookup here happens.
-		"Connect.SidecarService.Meta":                   "",
-		"Connect.SidecarService.Proxy.Config":           "",
-		"Connect.SidecarService.Proxy.Upstreams.config": "",
-	})
-
-	for k, v := range rawMap {
-		switch strings.ToLower(k) {
-		case "check":
-			if err := FixupCheckType(v); err != nil {
-				return err
-			}
-		case "checks":
-			chkTypes, ok := v.([]interface{})
-			if !ok {
-				continue
-			}
-			for _, chkType := range chkTypes {
-				if err := FixupCheckType(chkType); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -1180,7 +1107,7 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	// The body is just the token, but it's in a JSON object so we can add
 	// fields to this later if needed.
 	var args api.AgentToken
-	if err := decodeBody(req, &args, nil); err != nil {
+	if err := decodeBody(req.Body, &args); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -1339,7 +1266,7 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 
 	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
-	if err := decodeBody(req, &authReq, nil); err != nil {
+	if err := decodeBody(req.Body, &authReq); err != nil {
 		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 

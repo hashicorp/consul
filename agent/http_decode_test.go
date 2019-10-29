@@ -33,8 +33,7 @@ package agent
 import (
 	"bytes"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
+
 	"strings"
 	"testing"
 	"time"
@@ -348,13 +347,13 @@ var translateScriptArgsTCs = []translateKeyTestCase{
 		jsonFmtStr: "{" + scriptFields[0] + "," + scriptFields[2] + "}",
 		equalityFn: scriptArgsEqFn,
 	},
-	// {
-	// 	desc:       "scriptArgs: second and third set",
-	// 	in:         []interface{}{`["2"]`, `["3"]`},
-	// 	want:       []string{"2"},
-	// 	jsonFmtStr: "{" + scriptFields[1] + "," + scriptFields[2] + "}",
-	// 	equalityFn: scriptArgsEqFn,
-	// },
+	{
+		desc:       "scriptArgs: second and third set",
+		in:         []interface{}{`["2"]`, `["3"]`},
+		want:       []string{"2"},
+		jsonFmtStr: "{" + scriptFields[1] + "," + scriptFields[2] + "}",
+		equalityFn: scriptArgsEqFn,
+	},
 	{
 		desc:       "scriptArgs: first set",
 		in:         []interface{}{`["1"]`},
@@ -618,15 +617,6 @@ var translateServiceIDTCs = []translateKeyTestCase{
 	},
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//   327  	s.parseToken(req, &args.Token)
-//   328
-//   329: 	if err := decodeBody(req, &args.Policy, fixTimeAndHashFields); err != nil {
-//   330  		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
-//   331  	}
-// ==================================
-
 // ACLPolicySetRequest:
 // Policy	structs.ACLPolicy
 //     ID	string
@@ -646,12 +636,15 @@ func TestDecodeACLPolicyWrite(t *testing.T) {
 
 	for _, tc := range hashTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			jsonStr := fmt.Sprintf(`{"Hash": %s}`, tc.hashes.in)
+
+			jsonStr := fmt.Sprintf(`{
+		"Hash": %s
+	}`, tc.hashes.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.ACLPolicy
-			err := decodeBody(req, &out, fixTimeAndHashFields)
+			err := decodeBody(body, &out)
+
 			if err != nil && !tc.wantErr {
 				t.Fatal(err)
 			}
@@ -665,15 +658,6 @@ func TestDecodeACLPolicyWrite(t *testing.T) {
 
 	}
 }
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//   511  	s.parseToken(req, &args.Token)
-//   512
-//   513: 	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil {
-//   514  		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
-//   515  	}
-// ==================================
 
 // ACLTokenSetRequest:
 // ACLToken	structs.ACLToken
@@ -704,9 +688,7 @@ func TestDecodeACLPolicyWrite(t *testing.T) {
 // Datacenter	string
 // WriteRequest	structs.WriteRequest
 //     Token	string
-
 func TestDecodeACLToken(t *testing.T) {
-
 	for _, tc := range translateValueTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
@@ -728,13 +710,12 @@ func TestDecodeACLToken(t *testing.T) {
 				"Hash": %s
 			}`, expTime, expTTL, createTime, hash))
 
-			// set up request
 			body := bytes.NewBuffer(bodyBytes)
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			// decode body
 			var out structs.ACLToken
-			err := decodeBody(req, &out, fixTimeAndHashFields)
+
+			err := decodeBody(body, &out)
 			if err != nil && !tc.wantErr {
 				t.Fatal(err)
 			}
@@ -775,27 +756,6 @@ func TestDecodeACLToken(t *testing.T) {
 	}
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//   555  	}
-//   556
-//   557: 	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil && err.Error() != "EOF" {
-//   558  		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
-//   559  	}
-// ==================================
-func TestDecodeACLTokenClone(t *testing.T) {
-	t.Skip("COVERED BY ABOVE (same structs.ACLTokenSetRequest).")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//   689  	s.parseToken(req, &args.Token)
-//   690
-//   691: 	if err := decodeBody(req, &args.Role, fixTimeAndHashFields); err != nil {
-//   692  		return nil, BadRequestError{Reason: fmt.Sprintf("Role decoding failed: %v", err)}
-//   693  	}
-// ==================================
-
 // ACLRoleSetRequest:
 // Role	structs.ACLRole
 //     ID	string
@@ -816,15 +776,17 @@ func TestDecodeACLTokenClone(t *testing.T) {
 //     Token	string
 
 func TestDecodeACLRoleWrite(t *testing.T) {
-
 	for _, tc := range hashTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			jsonStr := fmt.Sprintf(`{"Hash": %s}`, tc.hashes.in)
+
+			jsonStr := fmt.Sprintf(`{
+		"Hash": %s
+	}`, tc.hashes.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.ACLRole
-			err := decodeBody(req, &out, fixTimeAndHashFields)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected error, got nil")
 			}
@@ -839,111 +801,6 @@ func TestDecodeACLRoleWrite(t *testing.T) {
 	}
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//   822  	s.parseToken(req, &args.Token)
-//   823
-//   824: 	if err := decodeBody(req, &args.BindingRule, fixTimeAndHashFields); err != nil {
-//   825  		return nil, BadRequestError{Reason: fmt.Sprintf("BindingRule decoding failed: %v", err)}
-//   826  	}
-// ==================================
-//
-// ACLBindingRuleSetRequest:
-// BindingRule	structs.ACLBindingRule
-//     ID	string
-//     Description	string
-//     AuthMethod	string
-//     Selector	string
-//     BindType	string
-//     BindName	string
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// Datacenter	string
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodeACLBindingRuleWrite(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; fixTimeAndHashFields: no time or hash fields.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//   954  	s.parseToken(req, &args.Token)
-//   955
-//   956: 	if err := decodeBody(req, &args.AuthMethod, fixTimeAndHashFields); err != nil {
-//   957  		return nil, BadRequestError{Reason: fmt.Sprintf("AuthMethod decoding failed: %v", err)}
-//   958  	}
-// ==================================
-// ACLAuthMethodSetRequest:
-// AuthMethod	structs.ACLAuthMethod
-//     Name	string
-//     Type	string
-//     Description	string
-//     Config	map[string]interface {}
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// Datacenter	string
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodeACLAuthMethodWrite(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; fixTimeAndHashFields: no time or hash fields.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint.go:
-//  1000  	s.parseDC(req, &args.Datacenter)
-//  1001
-//  1002: 	if err := decodeBody(req, &args.Auth, nil); err != nil {
-//  1003  		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
-//  1004  	}
-// ==================================
-// ACLLoginRequest:
-// Auth	*structs.ACLLoginParams
-//     AuthMethod	string
-//     BearerToken	string
-//     Meta	map[string]string
-// Datacenter	string
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodeACLLogin(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/acl_endpoint_legacy.go:
-//    66  	// Handle optional request body
-//    67  	if req.ContentLength > 0 {
-//    68: 		if err := decodeBody(req, &args.ACL, nil); err != nil {
-//    69  			resp.WriteHeader(http.StatusBadRequest)
-//    70  			fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-//
-// ACLRequest:
-// Datacenter	string
-// Op	structs.ACLOp
-// ACL	structs.ACL
-//     ID	string
-//     Name	string
-//     Type	string
-//     Rules	string
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodeACLUpdate(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/agent_endpoint.go:
-//   461  		return FixupCheckType(raw)
-//   462  	}
-//   463: 	if err := decodeBody(req, &args, decodeCB); err != nil {
-//   464  		resp.WriteHeader(http.StatusBadRequest)
-//   465  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
 // CheckDefinition:
 // ID	types.CheckID
 // Name	string
@@ -976,16 +833,17 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
+
 				"Interval": %[1]s,
 				"Timeout": %[1]s,
 				"TTL": %[1]s,
 				"DeregisterCriticalServiceAfter": %[1]s
 			}`, tc.durations.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.CheckDefinition
-			err := decodeBody(req, &out, FixupCheckType)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -998,19 +856,17 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 			}
 		})
 	}
-	// decodeCB:
-	// - Header field
-	// - translate keys
 
 	for _, tc := range checkTypeHeaderTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{"Header": %s}`, tc.in)
+
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.CheckDefinition
-			err := decodeBody(req, &out, FixupCheckType)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -1027,11 +883,12 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.desc, func(t *testing.T) {
 				jsonStr := fmt.Sprintf(tc.jsonFmtStr, tc.in...)
+
 				body := bytes.NewBuffer([]byte(jsonStr))
-				req := httptest.NewRequest("POST", "http://foo.com", body)
 
 				var out structs.CheckDefinition
-				err := decodeBody(req, &out, FixupCheckType)
+				err := decodeBody(body, &out)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1045,42 +902,6 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/agent_endpoint.go:
-//   603  func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-//   604  	var update checkUpdate
-//   605: 	if err := decodeBody(req, &update, nil); err != nil {
-//   606  		resp.WriteHeader(http.StatusBadRequest)
-//   607  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-// type checkUpdate struct {
-// 	Status string
-// 	Output string
-// }
-func TestDecodeAgentCheckUpdate(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/agent_endpoint.go:
-//   822  		return nil
-//   823  	}
-//   824: 	if err := decodeBody(req, &args, decodeCB); err != nil {
-//   825  		resp.WriteHeader(http.StatusBadRequest)
-//   826  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-//
-// decodeCB:
-// -----------
-// 1. lib.TranslateKeys()
-// 2. FixupCheckType
-//    a. lib.TranslateKeys()
-//    b. parseDuration()
-//    c. parseHeaderMap()
-//
-//
-// Type fields:
-// -----------
 // ServiceDefinition:
 // Kind	structs.ServiceKind
 // ID	string
@@ -1151,8 +972,6 @@ func TestDecodeAgentCheckUpdate(t *testing.T) {
 //     Native	bool
 //     SidecarService	*structs.ServiceDefinition
 func TestDecodeAgentRegisterService(t *testing.T) {
-	var callback = registerServiceDecodeCB
-
 	// key translation tests:
 	// decodeCB fields:
 	// --------------------
@@ -1325,14 +1144,15 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			desc:       "DestinationNamespace: both set",
 			in:         []interface{}{`"a"`, `"b"`},
 			want:       "a",
-			jsonFmtStr: `{"Proxy": {"Upstreams": [{` + destinationNamespaceFields[1] + `}]}}`,
+			jsonFmtStr: `{"Proxy": {"Upstreams": [{` + strings.Join(destinationNamespaceFields, ",") + `}]}}`,
+
 			equalityFn: destinationNamespaceEqFn,
 		},
 		{
 			desc:       "DestinationNamespace: first set",
 			in:         []interface{}{`"a"`},
 			want:       "a",
-			jsonFmtStr: `{"Proxy": {"Upstreams": [{` + destinationNamespaceFields[1] + `}]}}`,
+			jsonFmtStr: `{"Proxy": {"Upstreams": [{` + destinationNamespaceFields[0] + `}]}}`,
 			equalityFn: destinationNamespaceEqFn,
 		},
 		{
@@ -1843,10 +1663,10 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			t.Run(tc.desc, func(t *testing.T) {
 				checkJSONStr := fmt.Sprintf(tc.jsonFmtStr, tc.in...)
 				body := bytes.NewBuffer([]byte(checkJSONStr))
-				req := httptest.NewRequest("POST", "http://foo.com", body)
 
 				var out structs.ServiceDefinition
-				err := decodeBody(req, &out, callback)
+				err := decodeBody(body, &out)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1864,26 +1684,26 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-			"Check": {
-				"Interval": %[1]s,
-				"Timeout": %[1]s,
-				"TTL": %[1]s,
-				"DeregisterCriticalServiceAfter": %[1]s
-			},
-			"Checks": [
-				{
+				"Check": {
 					"Interval": %[1]s,
 					"Timeout": %[1]s,
 					"TTL": %[1]s,
 					"DeregisterCriticalServiceAfter": %[1]s
-				}
-			]
-	}`, tc.durations.in)
+				},
+				"Checks": [
+					{
+						"Interval": %[1]s,
+						"Timeout": %[1]s,
+						"TTL": %[1]s,
+						"DeregisterCriticalServiceAfter": %[1]s
+					}
+				]
+			}`, tc.durations.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.ServiceDefinition
-			err := decodeBody(req, &out, callback)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -1917,10 +1737,10 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 			}`, checkJSONStr)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.ServiceDefinition
-			err := decodeBody(req, &out, callback)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -1951,10 +1771,10 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 					"Checks": [%[1]s]
 				}`, checkJSONStr)
 				body := bytes.NewBuffer([]byte(jsonStr))
-				req := httptest.NewRequest("POST", "http://foo.com", body)
 
 				var out structs.ServiceDefinition
-				err := decodeBody(req, &out, callback)
+				err := decodeBody(body, &out)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1971,44 +1791,6 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/agent_endpoint.go:
-//  1173  	// fields to this later if needed.
-//  1174  	var args api.AgentToken
-//  1175: 	if err := decodeBody(req, &args, nil); err != nil {
-//  1176  		resp.WriteHeader(http.StatusBadRequest)
-//  1177  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-// AgentToken:
-// Token	string
-func TestDecodeAgentToken(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/agent_endpoint.go:
-//  1332  	// Decode the request from the request body
-//  1333  	var authReq structs.ConnectAuthorizeRequest
-//  1334: 	if err := decodeBody(req, &authReq, nil); err != nil {
-//  1335  		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
-//  1336  	}
-// ==================================
-// ConnectAuthorizeRequest:
-// Target	string
-// ClientCertURI	string
-// ClientCertSerial	string
-func TestDecodeAgentConnectAuthorize(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/catalog_endpoint.go:
-//    18
-//    19  	var args structs.RegisterRequest
-//    20: 	if err := decodeBody(req, &args, durations.FixupDurations); err != nil {
-//    21  		resp.WriteHeader(http.StatusBadRequest)
-//    22  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
 // RegisterRequest:
 // Datacenter	string
 // ID	types.NodeID
@@ -2161,15 +1943,18 @@ func TestDecodeCatalogRegister(t *testing.T) {
 				}
 			}`, tc.durations.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out structs.RegisterRequest
-			err := decodeBody(req, &out, durations.FixupDurations)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
 			if err != nil && !tc.wantErr {
 				t.Fatalf("expected nil error, got %v", err)
+			}
+			if err != nil && tc.wantErr {
+				return // no point continuing
 			}
 
 			// Service and Check will be nil if tc.wantErr == true && err != nil.
@@ -2199,118 +1984,12 @@ func TestDecodeCatalogRegister(t *testing.T) {
 	}
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/catalog_endpoint.go:
-//    47
-//    48  	var args structs.DeregisterRequest
-//    49: 	if err := decodeBody(req, &args, nil); err != nil {
-//    50  		resp.WriteHeader(http.StatusBadRequest)
-//    51  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-// DeregisterRequest:
-// Datacenter	string
-// Node	string
-// ServiceID	string
-// CheckID	types.CheckID
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodeCatalogDeregister(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/config_endpoint.go:
-//   104
-//   105  	var raw map[string]interface{}
-//   106: 	if err := decodeBody(req, &raw, nil); err != nil {
-//   107  		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
-//   108  	}
-// ==================================
-func TestDecodeConfigApply(t *testing.T) {
-	// TODO $$
-	t.Skip("Leave this fn as-is? Decoding code should probably be the same for all config parsing.")
-
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/connect_ca_endpoint.go:
-//    63  	s.parseDC(req, &args.Datacenter)
-//    64  	s.parseToken(req, &args.Token)
-//    65: 	if err := decodeBody(req, &args.Config, nil); err != nil {
-//    66  		resp.WriteHeader(http.StatusBadRequest)
-//    67  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-// CARequest:
-// Config	*structs.CAConfiguration
-//     ClusterID	string
-//     Provider	string
-//     Config	map[string]interface {}
-//     RaftIndex	structs.RaftIndex
-func TestDecodeConnectCAConfigurationSet(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/coordinate_endpoint.go:
-//   151
-//   152  	args := structs.CoordinateUpdateRequest{}
-//   153: 	if err := decodeBody(req, &args, nil); err != nil {
-//   154  		resp.WriteHeader(http.StatusBadRequest)
-//   155  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-// CoordinateUpdateRequest:
-// Datacenter	string
-// Node	string
-// Segment	string
-// Coord	*coordinate.Coordinate
-//     Vec	[]float64
-//     Error	float64
-//     Adjustment	float64
-//     Height	float64
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodeCoordinateUpdate(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/discovery_chain_endpoint.go:
-//    29  	if req.Method == "POST" {
-//    30  		var raw map[string]interface{}
-//    31: 		if err := decodeBody(req, &raw, nil); err != nil {
-//    32  			return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
-//    33  		}
-// ==================================
 // discoveryChainReadRequest:
 // OverrideMeshGateway	structs.MeshGatewayConfig
 //     Mode	structs.MeshGatewayMode	// string
 // OverrideProtocol	string
 // OverrideConnectTimeout	time.Duration
 func TestDecodeDiscoveryChainRead(t *testing.T) {
-	// Special Beast!
-
-	// This decodeBody call is a special beast, in that it decodes with decodeBody
-	// into a map[string]interface{} and runs subsequent decoding logic outside of
-	// the call.
-
-	// decode code copied from agent/discovery_chain_endpoint.go
-	fullDecodeFn := func(req *http.Request, v *discoveryChainReadRequest) error {
-		var raw map[string]interface{}
-		if err := decodeBody(req, &raw, nil); err != nil {
-			return fmt.Errorf("Request decoding failed: %v", err)
-		}
-
-		apiReq, err := decodeDiscoveryChainReadRequest(raw)
-		if err != nil {
-			return fmt.Errorf("Request decoding failed: %v", err)
-		}
-
-		*v = *apiReq
-
-		return nil
-	}
-
-	// It doesn't seem as though mapstructure does weakly typed durations.
 	var weaklyTypedDurationTCs = []translateValueTestCase{
 		{
 			desc: "positive string integer (weakly typed)",
@@ -2335,11 +2014,9 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 				"OverrideConnectTimeout": %s
 			}`, tc.durations.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out discoveryChainReadRequest
-			// fullDecodeFn is declared above in this test.
-			err := fullDecodeFn(req, &out)
+			err := decodeBody(body, &out)
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -2371,7 +2048,7 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 		{
 			desc: "bool for string field (weakly typed)",
 			in:   `true`,
-			want: "1",
+			want: "true", // previously: "1"
 		},
 		{
 			desc: "float for string field (weakly typed)",
@@ -2384,9 +2061,9 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc: "slice for string field (weakly typed)",
-			in:   `[]`,
-			want: "",
+			desc:    "slice for string field (weakly typed)",
+			in:      `[]`,
+			wantErr: true, // previously: want: ""
 		},
 	}
 
@@ -2394,15 +2071,14 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			// set up request body
 			jsonStr := fmt.Sprintf(`{
-		"OverrideProtocol": %[1]s,
-		"OverrideMeshGateway": {"Mode": %[1]s}
-	}`, tc.in)
+				"OverrideProtocol": %[1]s,
+				"OverrideMeshGateway": {"Mode": %[1]s}
+			}`, tc.in)
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out discoveryChainReadRequest
-			// fullDecodeFn is declared above in this test.
-			err := fullDecodeFn(req, &out)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -2552,8 +2228,6 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 		},
 	}
 
-	// from decodeDiscoveryChainReadRequest:
-	//
 	// lib.TranslateKeys(raw, map[string]string{
 	// 	"override_mesh_gateway":    "overridemeshgateway",
 	// 	"override_protocol":        "overrideprotocol",
@@ -2571,11 +2245,9 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 			t.Run(tc.desc, func(t *testing.T) {
 				jsonStr := fmt.Sprintf(tc.jsonFmtStr, tc.in...)
 				body := bytes.NewBuffer([]byte(jsonStr))
-				req := httptest.NewRequest("POST", "http://foo.com", body)
 
 				var out discoveryChainReadRequest
-				// fullDecodeFn is declared above in this test.
-				err := fullDecodeFn(req, &out)
+				err := decodeBody(body, &out)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -2589,14 +2261,6 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/intentions_endpoint.go:
-//    66  	s.parseDC(req, &args.Datacenter)
-//    67  	s.parseToken(req, &args.Token)
-//    68: 	if err := decodeBody(req, &args.Intention, fixHashField); err != nil {
-//    69  		return nil, fmt.Errorf("Failed to decode request body: %s", err)
-//    70  	}
-// ==================================
 // IntentionRequest:
 // Datacenter	string
 // Op	structs.IntentionOp
@@ -2639,13 +2303,12 @@ func TestDecodeIntentionCreate(t *testing.T) {
 				"Hash": %s
 			}`, createdAt, updatedAt, hash))
 
-			// set up request
 			body := bytes.NewBuffer(bodyBytes)
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			// decode body
 			var out structs.Intention
-			err := decodeBody(req, &out, fixHashField)
+			err := decodeBody(body, &out)
+
 			if tc.hashes != nil {
 				// We should only check tc.wantErr for hashes in this case.
 				//
@@ -2687,44 +2350,6 @@ func TestDecodeIntentionCreate(t *testing.T) {
 	}
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/intentions_endpoint.go:
-//   259  	s.parseDC(req, &args.Datacenter)
-//   260  	s.parseToken(req, &args.Token)
-//   261: 	if err := decodeBody(req, &args.Intention, fixHashField); err != nil {
-//   262  		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
-//   263  	}
-// ==================================
-func TestDecodeIntentionSpecificUpdate(t *testing.T) {
-	t.Skip("DONE. COVERED BY ABOVE (same structs.Intention)")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/operator_endpoint.go:
-//    77  	var args keyringArgs
-//    78  	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
-//    79: 		if err := decodeBody(req, &args, nil); err != nil {
-//    80  			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
-//    81  		}
-// ==================================
-// type keyringArgs struct {
-// 	Key         string
-// 	Token       string
-// 	RelayFactor uint8
-// 	LocalOnly   bool // ?local-only; only used for GET requests
-// }
-func TestDecodeOperatorKeyringEndpoint(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/operator_endpoint.go:
-//   219  		var conf api.AutopilotConfiguration
-//   220  		durations := NewDurationFixer("lastcontactthreshold", "serverstabilizationtime")
-//   221: 		if err := decodeBody(req, &conf, durations.FixupDurations); err != nil {
-//   222  			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
-//   223  		}
-// ==================================
 // AutopilotConfiguration:
 // CleanupDeadServers	bool
 // LastContactThreshold	*api.ReadableDuration
@@ -2745,10 +2370,10 @@ func TestDecodeOperatorAutopilotConfiguration(t *testing.T) {
 			}`, tc.durations.in)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out api.AutopilotConfiguration
-			err := decodeBody(req, &out, durations.FixupDurations)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -2774,69 +2399,6 @@ func TestDecodeOperatorAutopilotConfiguration(t *testing.T) {
 	}
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/prepared_query_endpoint.go:
-//    24  	s.parseDC(req, &args.Datacenter)
-//    25  	s.parseToken(req, &args.Token)
-//    26: 	if err := decodeBody(req, &args.Query, nil); err != nil {
-//    27  		resp.WriteHeader(http.StatusBadRequest)
-//    28  		fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-// PreparedQueryRequest:
-// Datacenter	string
-// Op	structs.PreparedQueryOp
-// Query	*structs.PreparedQuery
-//     ID	string
-//     Name	string
-//     Session	string
-//     Token	string
-//     Template	structs.QueryTemplateOptions
-//         Type	string
-//         Regexp	string
-//         RemoveEmptyTags	bool
-//     Service	structs.ServiceQuery
-//         Service	string
-//         Failover	structs.QueryDatacenterOptions
-//             NearestN	int
-//             Datacenters	[]string
-//         OnlyPassing	bool
-//         IgnoreCheckIDs	[]types.CheckID
-//         Near	string
-//         Tags	[]string
-//         NodeMeta	map[string]string
-//         ServiceMeta	map[string]string
-//         Connect	bool
-//     DNS	structs.QueryDNSOptions
-//         TTL	string
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// WriteRequest	structs.WriteRequest
-//     Token	string
-func TestDecodePreparedQueryGeneral_Create(t *testing.T) {
-	t.Skip("DONE. no special fields to parse; no decodeBody callback used.")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/prepared_query_endpoint.go:
-//   254  	s.parseToken(req, &args.Token)
-//   255  	if req.ContentLength > 0 {
-//   256: 		if err := decodeBody(req, &args.Query, nil); err != nil {
-//   257  			resp.WriteHeader(http.StatusBadRequest)
-//   258  			fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
-func TestDecodePreparedQueryGeneral_Update(t *testing.T) {
-	t.Skip("DONE. COVERED BY ABOVE (same structs.PreparedQuery)")
-}
-
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/session_endpoint.go:
-//    54  			return nil
-//    55  		}
-//    56: 		if err := decodeBody(req, &args.Session, fixup); err != nil {
-//    57  			resp.WriteHeader(http.StatusBadRequest)
-//    58  			fmt.Fprintf(resp, "Request decode failed: %v", err)
-// ==================================
 // SessionRequest:
 // Datacenter	string
 // Op	structs.SessionOp
@@ -2854,21 +2416,9 @@ func TestDecodePreparedQueryGeneral_Update(t *testing.T) {
 // WriteRequest	structs.WriteRequest
 //     Token	string
 func TestDecodeSessionCreate(t *testing.T) {
-
 	// outSession var is shared among test cases b/c of the
 	// nature/signature of the FixupChecks callback.
 	var outSession structs.Session
-
-	// copied from agent/session_endpoint.go
-	fixupCB := func(raw interface{}) error {
-		if err := FixupLockDelay(raw); err != nil {
-			return err
-		}
-		if err := FixupChecks(raw, &outSession); err != nil {
-			return err
-		}
-		return nil
-	}
 
 	// lockDelayMinThreshold = 1000
 
@@ -2901,25 +2451,6 @@ func TestDecodeSessionCreate(t *testing.T) {
 				want: -5 * time.Second,
 			},
 		},
-		// // Test cases that illicit bad behavior; Don't run them.
-		// translateValueTestCase{
-		// 	desc: "durations large, numeric and negative",
-		// 	durations: &durationTC{
-		// 		in:   `-2000`,
-		// 		want: time.Duration(-2000),
-		// 	},
-		// 	// --- FAIL: TestDecodeSessionCreate/durations_large,_numeric_and_negative (0.00s)
-		// 	// http_decode_test.go:2665: expected LockDelay to be -2µs, got -33m20s
-		// },
-		// translateValueTestCase{
-		// 	desc: "durations string, negative",
-		// 	durations: &durationTC{
-		// 		in:   `"-50ms"`,
-		// 		want: -50 * time.Millisecond,
-		// 	},
-		// 	// --- FAIL: TestDecodeSessionCreate/durations_string,_negative (0.00s)
-		// 	// http_decode_test.go:2665: expected LockDelay to be -50ms, got -13888h53m20s
-		// },
 	)
 
 	for _, tc := range sessionDurationTCs {
@@ -2935,10 +2466,10 @@ func TestDecodeSessionCreate(t *testing.T) {
 			}`, tc.durations.in)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			// outSession var is shared among test cases
-			err := decodeBody(req, &outSession, fixupCB)
+
+			err := decodeBody(body, &outSession)
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -3002,10 +2533,8 @@ func TestDecodeSessionCreate(t *testing.T) {
 			}`, tc.in)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
-			// outSession var is shared among test cases
-			err := decodeBody(req, &outSession, fixupCB)
+			err := decodeBody(body, &outSession)
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -3022,17 +2551,8 @@ func TestDecodeSessionCreate(t *testing.T) {
 			}
 		})
 	}
-
 }
 
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/txn_endpoint.go:
-//   116  	// associate the error with a given operation.
-//   117  	var ops api.TxnOps
-//   118: 	if err := decodeBody(req, &ops, fixupTxnOps); err != nil {
-//   119  		resp.WriteHeader(http.StatusBadRequest)
-//   120  		fmt.Fprintf(resp, "Failed to parse body: %v", err)
-// ==================================
 // TxnOps:
 //         KV	*api.KVTxnOp
 //             Verb	api.KVOp
@@ -3181,10 +2701,10 @@ func TestDecodeTxnConvertOps(t *testing.T) {
 			}]`, tc.durations.in)
 
 			body := bytes.NewBuffer([]byte(jsonStr))
-			req := httptest.NewRequest("POST", "http://foo.com", body)
 
 			var out api.TxnOps
-			err := decodeBody(req, &out, fixupTxnOps)
+			err := decodeBody(body, &out)
+
 			if err == nil && tc.wantErr {
 				t.Fatal("expected err, got nil")
 			}
@@ -3224,20 +2744,6 @@ func TestDecodeTxnConvertOps(t *testing.T) {
 			}
 		})
 	}
-}
-
-// =======================================
-// Benchmarks:
-// ==================================
-// $GOPATH/github.com/hashicorp/consul/agent/http.go:
-//   574
-//   575  // decodeBody is used to decode a JSON request body
-//   576: func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
-//   577  	// This generally only happens in tests since real HTTP requests set
-//   578  	// a non-nil body with no content. We guard against it anyways to prevent
-// ==================================
-func BenchmarkDecodeBody(b *testing.B) {
-	b.Skip() // TODO: benchmark
 }
 
 // =========================================

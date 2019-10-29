@@ -3,9 +3,10 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"log"
 )
 
 const (
@@ -120,6 +121,38 @@ type ConnectProxyConfig struct {
 	Expose ExposeConfig `json:",omitempty"`
 }
 
+func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
+	type Alias ConnectProxyConfig
+	aux := &struct {
+		DestinationServiceNameSnake string `json:"destination_service_name"`
+		DestinationServiceIDSnake   string `json:"destination_service_id"`
+		LocalServiceAddressSnake    string `json:"local_service_address"`
+		LocalServicePortSnake       int    `json:"local_service_port"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.DestinationServiceName == "" {
+		t.DestinationServiceName = aux.DestinationServiceNameSnake
+	}
+	if t.DestinationServiceID == "" {
+		t.DestinationServiceID = aux.DestinationServiceIDSnake
+	}
+	if t.LocalServiceAddress == "" {
+		t.LocalServiceAddress = aux.LocalServiceAddressSnake
+	}
+	if t.LocalServicePort == 0 {
+		t.LocalServicePort = aux.LocalServicePortSnake
+	}
+
+	return nil
+
+}
+
 func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	type typeCopy ConnectProxyConfig
 	copy := typeCopy(*c)
@@ -215,6 +248,41 @@ type Upstream struct {
 
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
+}
+
+func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
+	type Alias Upstream
+	aux := &struct {
+		DestinationTypeSnake      string `json:"destination_type"`
+		DestinationNamespaceSnake string `json:"destination_namespace"`
+		DestinationNameSnake      string `json:"destination_name"`
+		LocalBindPortSnake        int    `json:"local_bind_port"`
+		LocalBindAddressSnake     string `json:"local_bind_address"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.DestinationType == "" {
+		t.DestinationType = aux.DestinationTypeSnake
+	}
+	if t.DestinationNamespace == "" {
+		t.DestinationNamespace = aux.DestinationNamespaceSnake
+	}
+	if t.DestinationName == "" {
+		t.DestinationName = aux.DestinationNameSnake
+	}
+	if t.LocalBindPort == 0 {
+		t.LocalBindPort = aux.LocalBindPortSnake
+	}
+	if t.LocalBindAddress == "" {
+		t.LocalBindAddress = aux.LocalBindAddressSnake
+	}
+
+	return nil
 }
 
 // Validate sanity checks the struct is valid
@@ -350,6 +418,29 @@ type ExposePath struct {
 
 	// ParsedFromCheck is set if this path was parsed from a registered check
 	ParsedFromCheck bool
+}
+
+func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
+	type Alias ExposePath
+	aux := &struct {
+		LocalPathPortSnake int `json:"local_path_port"`
+		ListenerPortSnake  int `json:"listener_port"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if t.LocalPathPort == 0 {
+		t.LocalPathPort = aux.LocalPathPortSnake
+	}
+	if t.ListenerPort == 0 {
+		t.ListenerPort = aux.ListenerPortSnake
+	}
+
+	return nil
 }
 
 func (e *ExposeConfig) ToAPI() api.ExposeConfig {

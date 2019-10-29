@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -40,6 +41,98 @@ type CheckDefinition struct {
 	FailuresBeforeCritical         int
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
+}
+
+func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
+	type Alias CheckDefinition
+	aux := &struct {
+		// Parse special values
+		Interval                       interface{}
+		Timeout                        interface{}
+		TTL                            interface{}
+		DeregisterCriticalServiceAfter interface{}
+
+		// Translate fields
+
+		// "args" -> ScriptArgs
+		Args                                []string    `json:"args"`
+		ScriptArgsSnake                     []string    `json:"script_args"`
+		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
+		DockerContainerIDSnake              string      `json:"docker_container_id"`
+		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+		ServiceIDSnake                      string      `json:"service_id"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Translate Fields
+	if aux.DeregisterCriticalServiceAfter == nil {
+		aux.DeregisterCriticalServiceAfter = aux.DeregisterCriticalServiceAfterSnake
+	}
+	if len(t.ScriptArgs) == 0 {
+		t.ScriptArgs = aux.Args
+	}
+	if len(t.ScriptArgs) == 0 {
+		t.ScriptArgs = aux.ScriptArgsSnake
+	}
+	if t.DockerContainerID == "" {
+		t.DockerContainerID = aux.DockerContainerIDSnake
+	}
+	if aux.TLSSkipVerifySnake {
+		t.TLSSkipVerify = aux.TLSSkipVerifySnake
+	}
+	if t.ServiceID == "" {
+		t.ServiceID = aux.ServiceIDSnake
+	}
+
+	// Parse special values
+	if aux.Interval != nil {
+		switch v := aux.Interval.(type) {
+		case string:
+			if t.Interval, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Interval = time.Duration(v)
+		}
+	}
+	if aux.Timeout != nil {
+		switch v := aux.Timeout.(type) {
+		case string:
+			if t.Timeout, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Timeout = time.Duration(v)
+		}
+	}
+	if aux.TTL != nil {
+		switch v := aux.TTL.(type) {
+		case string:
+			if t.TTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTL = time.Duration(v)
+		}
+	}
+	if aux.DeregisterCriticalServiceAfter != nil {
+		switch v := aux.DeregisterCriticalServiceAfter.(type) {
+		case string:
+			if t.DeregisterCriticalServiceAfter, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.DeregisterCriticalServiceAfter = time.Duration(v)
+		}
+	}
+
+	return nil
 }
 
 func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {

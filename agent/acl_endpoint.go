@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -273,53 +272,6 @@ func (s *HTTPServer) ACLPolicyCreate(resp http.ResponseWriter, req *http.Request
 	return s.aclPolicyWriteInternal(resp, req, "", true)
 }
 
-// fixTimeAndHashFields is used to help in decoding the ExpirationTTL, ExpirationTime, CreateTime, and Hash
-// attributes from the ACL Token/Policy create/update requests. It is needed
-// to help mapstructure decode things properly when decodeBody is used.
-func fixTimeAndHashFields(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	if val, ok := rawMap["ExpirationTTL"]; ok {
-		if sval, ok := val.(string); ok {
-			d, err := time.ParseDuration(sval)
-			if err != nil {
-				return err
-			}
-			rawMap["ExpirationTTL"] = d
-		}
-	}
-
-	if val, ok := rawMap["ExpirationTime"]; ok {
-		if sval, ok := val.(string); ok {
-			t, err := time.Parse(time.RFC3339, sval)
-			if err != nil {
-				return err
-			}
-			rawMap["ExpirationTime"] = t
-		}
-	}
-
-	if val, ok := rawMap["CreateTime"]; ok {
-		if sval, ok := val.(string); ok {
-			t, err := time.Parse(time.RFC3339, sval)
-			if err != nil {
-				return err
-			}
-			rawMap["CreateTime"] = t
-		}
-	}
-
-	if val, ok := rawMap["Hash"]; ok {
-		if sval, ok := val.(string); ok {
-			rawMap["Hash"] = []byte(sval)
-		}
-	}
-	return nil
-}
-
 func (s *HTTPServer) ACLPolicyWrite(resp http.ResponseWriter, req *http.Request, policyID string) (interface{}, error) {
 	return s.aclPolicyWriteInternal(resp, req, policyID, false)
 }
@@ -331,7 +283,7 @@ func (s *HTTPServer) aclPolicyWriteInternal(resp http.ResponseWriter, req *http.
 	s.parseToken(req, &args.Token)
 	s.parseEntMeta(req, &args.Policy.EnterpriseMeta)
 
-	if err := decodeBody(req, &args.Policy, fixTimeAndHashFields); err != nil {
+	if err := decodeBody(req.Body, &args.Policy); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
@@ -521,7 +473,7 @@ func (s *HTTPServer) aclTokenSetInternal(resp http.ResponseWriter, req *http.Req
 	s.parseToken(req, &args.Token)
 	s.parseEntMeta(req, &args.ACLToken.EnterpriseMeta)
 
-	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil {
+	if err := decodeBody(req.Body, &args.ACLToken); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
@@ -567,8 +519,7 @@ func (s *HTTPServer) ACLTokenClone(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	s.parseEntMeta(req, &args.ACLToken.EnterpriseMeta)
-
-	if err := decodeBody(req, &args.ACLToken, fixTimeAndHashFields); err != nil && err.Error() != "EOF" {
+	if err := decodeBody(req.Body, &args.ACLToken); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 	s.parseToken(req, &args.Token)
@@ -705,7 +656,7 @@ func (s *HTTPServer) ACLRoleWrite(resp http.ResponseWriter, req *http.Request, r
 	s.parseToken(req, &args.Token)
 	s.parseEntMeta(req, &args.Role.EnterpriseMeta)
 
-	if err := decodeBody(req, &args.Role, fixTimeAndHashFields); err != nil {
+	if err := decodeBody(req.Body, &args.Role); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Role decoding failed: %v", err)}
 	}
 
@@ -844,7 +795,7 @@ func (s *HTTPServer) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.Req
 	s.parseToken(req, &args.Token)
 	s.parseEntMeta(req, &args.BindingRule.EnterpriseMeta)
 
-	if err := decodeBody(req, &args.BindingRule, fixTimeAndHashFields); err != nil {
+	if err := decodeBody(req.Body, &args.BindingRule); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("BindingRule decoding failed: %v", err)}
 	}
 
@@ -980,7 +931,7 @@ func (s *HTTPServer) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Requ
 	s.parseToken(req, &args.Token)
 	s.parseEntMeta(req, &args.AuthMethod.EnterpriseMeta)
 
-	if err := decodeBody(req, &args.AuthMethod, fixTimeAndHashFields); err != nil {
+	if err := decodeBody(req.Body, &args.AuthMethod); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("AuthMethod decoding failed: %v", err)}
 	}
 
@@ -1029,7 +980,7 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 	s.parseDC(req, &args.Datacenter)
 	s.parseEntMeta(req, &args.Auth.EnterpriseMeta)
 
-	if err := decodeBody(req, &args.Auth, nil); err != nil {
+	if err := decodeBody(req.Body, &args.Auth); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
 	}
 

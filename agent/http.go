@@ -572,8 +572,17 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	http.Redirect(resp, req, s.agent.config.UIContentPath, http.StatusMovedPermanently) // 301
 }
 
-// decodeBody is used to decode a JSON request body
-func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+func decodeBody(body io.Reader, out interface{}) error {
+	if body == nil {
+		return io.EOF
+	}
+
+	return json.NewDecoder(body).Decode(&out)
+}
+
+// decodeBodyDeprecated is deprecated, please ues decodeBody above.
+// decodeBodyDeprecated is used to decode a JSON request body
+func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{}) error) error {
 	// This generally only happens in tests since real HTTP requests set
 	// a non-nil body with no content. We guard against it anyways to prevent
 	// a panic. The EOF response is the same behavior as an empty reader.
