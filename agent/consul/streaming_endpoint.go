@@ -39,7 +39,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	// is lower than the last sent index of the topic.
 	state := h.srv.fsm.State()
 	lastSentIndex := state.LastTopicIndex(req.Topic)
-	sent := make(map[string]struct{})
+	sent := make(map[uint32]struct{})
 	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
 		go state.GetTopicSnapshot(server.Context(), snapshotCh, req)
@@ -101,7 +101,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 // sendEvent sends the given event along the stream if it passes ACL, boolean, and
 // any topic-specific filtering.
 func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
-	sent map[string]struct{}, server stream.Consul_SubscribeServer) error {
+	sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
 	// If it's a special case event, skip the filtering and just send it.
 	if event.GetEndOfSnapshot() || event.GetReloadStream() {
 		return server.Send(&event)
@@ -126,13 +126,15 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 
 	// Get the unique identifier for the object the event pertains to, and
 	// hash it to save space. This is only used to determine if an object has been
-	// removed and needs to be deleted from the client's cache so we make the tradeoff
-	// of using less memory here at the extremely small risk of a hash collision.
+	// removed and needs to be deleted from the client's cache. In other words, if we hit a
+	// hash collision, it only results in a redundant message being sent without affecting
+	// correctness. 32 bits means there is only a 1% chance of collision with ~9000 items in this map.
+	// For current uses that seems reasonable but when we add KV streaming we may want
+	// to revisit this.
 	rawId := event.ContentID()
 	hash := fnv.New32a()
 	hash.Write([]byte(rawId))
-	bytes := hash.Sum(nil)
-	idHash := string(bytes)
+	idHash := hash.Sum32()
 
 	// If the event would be filtered but the agent needs to know about
 	// the delete, send a delete event before removing the ID from the sent map.
