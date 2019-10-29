@@ -41,9 +41,8 @@ require (
 	github.com/gocql/gocql v0.0.0-20180617115710-e06f8c1bcd78 // indirect
 	github.com/gogo/googleapis v1.1.0
 	github.com/gogo/protobuf v1.2.1
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.3.2
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
@@ -110,7 +109,7 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190508220229-2d0786266e9c
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
-	google.golang.org/grpc v1.19.1
+	google.golang.org/grpc v1.24.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528 // indirect
 	gopkg.in/ory-am/dockertest.v3 v3.3.4 // indirect

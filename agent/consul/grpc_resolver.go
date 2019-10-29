@@ -115,7 +115,7 @@ type ServerResolver struct {
 
 // updateAddrs updates this ServerResolver's ClientConn to use the given set of addrs.
 func (r *ServerResolver) updateAddrs(addrs []resolver.Address) {
-	r.clientConn.NewAddress(addrs)
+	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
 }
 
 func (s *ServerResolver) Close() {
