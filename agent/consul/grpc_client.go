@@ -9,8 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/structs"
+
 	"github.com/hashicorp/consul/tlsutil"
 	"google.golang.org/grpc"
 )
@@ -19,63 +18,76 @@ const (
 	grpcBasePath = "/consul"
 )
 
+type ServerProvider interface {
+	Servers() []*metadata.Server
+}
+
 type GRPCClient struct {
-	grpcConns       map[string]*grpc.ClientConn
-	grpcConnsLock   sync.RWMutex
-	routers         *router.Manager
+	scheme          string
+	serverProvider  ServerProvider
 	tlsConfigurator *tlsutil.Configurator
+	grpcConns       map[string]*grpc.ClientConn
+	grpcConnLock    sync.Mutex
 }
 
-func NewGRPCClient(logger *log.Logger, routers *router.Manager, tlsConfigurator *tlsutil.Configurator) *GRPCClient {
+func NewGRPCClient(logger *log.Logger, serverProvider ServerProvider, tlsConfigurator *tlsutil.Configurator, scheme string) *GRPCClient {
 	return &GRPCClient{
-		grpcConns:       make(map[string]*grpc.ClientConn),
-		routers:         routers,
+		scheme:          scheme,
+		serverProvider:  serverProvider,
 		tlsConfigurator: tlsConfigurator,
+		grpcConns:       make(map[string]*grpc.ClientConn),
 	}
 }
 
-func (c *GRPCClient) GRPCConn(server *metadata.Server) (*grpc.ClientConn, error) {
-	if server == nil {
-		server = c.routers.FindServer()
-		if server == nil {
-			return nil, structs.ErrNoServers
-		}
-	}
+func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
+	c.grpcConnLock.Lock()
+	defer c.grpcConnLock.Unlock()
 
-	host, _, _ := net.SplitHostPort(server.Addr.String())
-	addr := fmt.Sprintf("%s:%d", host, server.Port)
-
-	c.grpcConnsLock.RLock()
-	conn, ok := c.grpcConns[addr]
-	c.grpcConnsLock.RUnlock()
-	if ok {
+	// If there's an existing ClientConn for the given DC, return it.
+	if conn, ok := c.grpcConns[datacenter]; ok {
 		return conn, nil
 	}
 
-	c.grpcConnsLock.Lock()
-	defer c.grpcConnsLock.Unlock()
-
-	dialer := newDialer(server.UseTLS, server.Datacenter, c.tlsConfigurator.OutgoingRPCWrapper())
-	co, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithDialer(dialer), grpc.WithDisableRetry())
+	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
+	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", c.scheme, datacenter),
+		// use WithInsecure mode here because we handle the TLS wrapping in the custom dialer
+		// based on logic around whether the server has TLS enabled.
+		grpc.WithInsecure(),
+		grpc.WithDialer(dialer),
+		grpc.WithDisableRetry(),
+		grpc.WithBalancerName("pick_first"))
 	if err != nil {
 		return nil, err
 	}
 
-	c.grpcConns[addr] = conn
-	return co, nil
+	c.grpcConns[datacenter] = conn
+
+	return conn, nil
 }
 
 // newDialer returns a gRPC dialer function that conditionally wraps the connection
 // with TLS depending on the given useTLS value.
-func newDialer(useTLS bool, datacenter string, wrapper tlsutil.DCWrapper) func(string, time.Duration) (net.Conn, error) {
+func newDialer(serverProvider ServerProvider, wrapper tlsutil.DCWrapper) func(string, time.Duration) (net.Conn, error) {
 	return func(addr string, _ time.Duration) (net.Conn, error) {
 		conn, err := net.Dial("tcp", addr)
 		if err != nil {
 			return nil, err
 		}
 
-		// Check if TLS is enabled
-		if useTLS {
+		// Check if TLS is enabled for the server.
+		var found bool
+		var server *metadata.Server
+		for _, s := range serverProvider.Servers() {
+			if s.Addr.String() == addr {
+				found = true
+				server = s
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("could not find Consul server for address %q", addr)
+		}
+
+		if server.UseTLS {
 			if wrapper == nil {
 				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
 			}
@@ -87,7 +99,7 @@ func newDialer(useTLS bool, datacenter string, wrapper tlsutil.DCWrapper) func(s
 			}
 
 			// Wrap the connection in a TLS client
-			tlsConn, err := wrapper(datacenter, conn)
+			tlsConn, err := wrapper(server.Datacenter, conn)
 			if err != nil {
 				conn.Close()
 				return nil, err

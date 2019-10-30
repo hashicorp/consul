@@ -3,6 +3,7 @@ package cachetype
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -11,7 +12,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-const StreamTimeout = 10 * time.Minute
+const (
+	StreamTimeout = 10 * time.Minute
+
+	// retryInterval and maxBackoffTime control the ramp up and maximum wait
+	// time between ACL stream reloads respectively.
+	retryInterval  = 5 * time.Second
+	maxBackoffTime = 60 * time.Second
+)
 
 type StreamingClient interface {
 	Subscribe(ctx context.Context, in *stream.SubscribeRequest, opts ...grpc.CallOption) (stream.Consul_SubscribeClient, error)
@@ -20,11 +28,13 @@ type StreamingClient interface {
 type EventHandler interface {
 	HandleEvent(event *stream.Event)
 	State(idx uint64) interface{}
+	Reset()
 }
 
 // Subscriber runs a streaming subscription for a single topic/key combination.
 type Subscriber struct {
 	client  StreamingClient
+	logger  *log.Logger
 	request stream.SubscribeRequest
 	handler EventHandler
 
@@ -36,10 +46,11 @@ type Subscriber struct {
 	lock sync.RWMutex
 }
 
-func NewSubscriber(client StreamingClient, req stream.SubscribeRequest, handler EventHandler) *Subscriber {
+func NewSubscriber(client StreamingClient, logger *log.Logger, req stream.SubscribeRequest, handler EventHandler) *Subscriber {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Subscriber{
 		client:     client,
+		logger:     logger,
 		request:    req,
 		handler:    handler,
 		resultCh:   make(chan interface{}, 1),
@@ -66,6 +77,9 @@ func (s *Subscriber) Close() error {
 func (s *Subscriber) run() {
 	defer s.cancelFunc()
 
+	var reloads int
+	var lastReload time.Time
+START:
 	// Start a new Subscribe call.
 	streamHandle, err := s.client.Subscribe(s.ctx, &s.request)
 
@@ -89,6 +103,54 @@ func (s *Subscriber) run() {
 			return
 		}
 
+		// Check to see if this is a special "reload stream" message before processing
+		// the event.
+		if event.GetReloadStream() {
+			s.handler.Reset()
+
+			// Start an exponential backoff if we get into a loop of reloading. If this is
+			// the first reload we've seen in the last maxBackoffTime, don't wait at all.
+			// This effectively rate-limits the amount of reloading that can happen in case
+			// something unexpectedly causes the server to get stuck sending too many reload
+			// events for some reason.
+			if time.Now().Sub(lastReload) < maxBackoffTime {
+				if reloads > 0 {
+					//s.logger.Printf("[WARN] ")
+				}
+
+				// Only bother exponentiating if we know the result will be lower than maxBackoffTime.
+				// This is less a micro-optimisation of the wasted exponentiation and more belt-and-braces
+				// protection against ever overflowing int size and causing unexpected behaviour (would
+				// happen after about a month of outage...)
+				retry := maxBackoffTime
+				if reloads < 4 {
+					retry = retryInterval * time.Duration(reloads*reloads)
+					reloads++
+				}
+
+				// Wait for the duration or for the context to be cancelled.
+				select {
+				case <-time.After(retry):
+				case <-s.ctx.Done():
+					if err := s.ctx.Err(); err != nil {
+						s.resultCh <- err
+						return
+					}
+				}
+			} else {
+				reloads = 0
+			}
+
+			// Cancel the context to end the streaming call and create a new one.
+			s.lock.Lock()
+			s.cancelFunc()
+			s.ctx, s.cancelFunc = context.WithCancel(context.Background())
+			s.lock.Unlock()
+
+			lastReload = time.Now()
+			goto START
+		}
+
 		// Update our version of the state based on the event/op.
 		switch event.Topic {
 		case s.request.Topic:
@@ -96,6 +158,9 @@ func (s *Subscriber) run() {
 				s.handler.HandleEvent(event)
 			} else {
 				snapshotDone = true
+
+				// Reset the reload count since we got a full snapshot successfully.
+				reloads = 0
 			}
 		default:
 			// should never happen
@@ -129,14 +194,14 @@ type IndexFunc func(v interface{}) uint64
 
 // watchSubscriber returns a result based on the given FetchOptions and SubscribeRequest,
 // creating a new subscriber if necessary as well as blocking based on the given index.
-func watchSubscriber(client StreamingClient, opts cache.FetchOptions, req stream.SubscribeRequest,
-	handler EventHandler, getIndex IndexFunc) (cache.FetchResult, error) {
+func watchSubscriber(client StreamingClient, logger *log.Logger, opts cache.FetchOptions,
+	req stream.SubscribeRequest, handler EventHandler, getIndex IndexFunc) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// Start a new subscription if one isn't already running.
 	var sub *Subscriber
 	if opts.LastResult == nil || opts.LastResult.State == nil {
-		sub = NewSubscriber(client, req, handler)
+		sub = NewSubscriber(client, logger, req, handler)
 		go sub.run()
 	} else {
 		sub = opts.LastResult.State.(*Subscriber)

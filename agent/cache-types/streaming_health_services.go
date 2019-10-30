@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -16,7 +17,15 @@ const (
 // StreamingHealthServices supports fetching discovering service instances via the
 // catalog using the streaming gRPC endpoint.
 type StreamingHealthServices struct {
-	Client StreamingClient
+	client StreamingClient
+	logger *log.Logger
+}
+
+func NewStreamingHealthServices(client StreamingClient, logger *log.Logger) *StreamingHealthServices {
+	return &StreamingHealthServices{
+		client: client,
+		logger: logger,
+	}
 }
 
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
@@ -28,15 +37,19 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 	}
 
 	subscribeReq := stream.SubscribeRequest{
-		Topic:  stream.Topic_ServiceHealth,
-		Key:    reqReal.ServiceName,
-		Index:  reqReal.MinQueryIndex,
-		Filter: reqReal.Filter,
-		TopicFilters: &stream.Filters{
-			Connect: reqReal.Connect,
-			Tags:    reqReal.ServiceTags,
-		},
+		Topic:      stream.Topic_ServiceHealth,
+		Key:        reqReal.ServiceName,
+		Token:      reqReal.Token,
+		Index:      reqReal.MinQueryIndex,
+		Filter:     reqReal.Filter,
+		Datacenter: reqReal.Datacenter,
 	}
+
+	// Switch the topic if Connect is enabled.
+	if reqReal.Connect {
+		subscribeReq.Topic = stream.Topic_ServiceHealthConnect
+	}
+
 	handler := healthServicesHandler{
 		state: make(map[string]structs.CheckServiceNode),
 	}
@@ -47,7 +60,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 		return 0
 	}
 
-	return watchSubscriber(c.Client, opts, subscribeReq, &handler, indexFunc)
+	return watchSubscriber(c.client, c.logger, opts, subscribeReq, &handler, indexFunc)
 }
 
 func (c *StreamingHealthServices) SupportsBlocking() bool {
@@ -66,11 +79,11 @@ func (h *healthServicesHandler) HandleEvent(event *stream.Event) {
 	node := serviceHealth.CheckServiceNode
 	id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 
-	switch event.Op {
-	case stream.Operation_Upsert:
+	switch serviceHealth.Op {
+	case stream.CatalogOp_Register:
 		checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
 		h.state[id] = checkServiceNode
-	case stream.Operation_Delete:
+	case stream.CatalogOp_Deregister:
 		delete(h.state, id)
 	}
 }
@@ -81,6 +94,11 @@ func (h *healthServicesHandler) State(idx uint64) interface{} {
 	for _, node := range h.state {
 		result.Nodes = append(result.Nodes, node)
 	}
+	result.Nodes.Sort()
 	result.Index = idx
 	return &result
+}
+
+func (h *healthServicesHandler) Reset() {
+	h.state = make(map[string]structs.CheckServiceNode)
 }

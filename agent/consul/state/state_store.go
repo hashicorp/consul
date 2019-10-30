@@ -160,8 +160,8 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		abandonCh:    make(chan struct{}),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
-		publisher:    NewEventPublisher(),
 	}
+	s.publisher = NewEventPublisher(s)
 	return s, nil
 }
 
@@ -249,6 +249,34 @@ func (s *Store) Abandon() {
 	close(s.abandonCh)
 }
 
+// ComputeIndex returns the latest index across all tables.
+func (s *Store) ComputeIndex() (uint64, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	idx, err := s.computeIndexTxn(tx)
+	if err != nil {
+		return 0, err
+	}
+
+	return idx, nil
+}
+
+// computeIndexTxn returns the latest index across all tables.
+func (s *Store) computeIndexTxn(tx *memdb.Txn) (uint64, error) {
+	iter, err := tx.Get("index", "id")
+	if err != nil {
+		return 0, err
+	}
+	highestIndex := uint64(0)
+	for index := iter.Next(); index != nil; index = iter.Next() {
+		if idx, ok := index.(*IndexEntry); ok && idx.Value > highestIndex {
+			highestIndex = idx.Value
+		}
+	}
+
+	return highestIndex, nil
+}
+
 // maxIndex is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
 func (s *Store) maxIndex(tables ...string) uint64 {
@@ -304,7 +332,7 @@ func (s *Store) LastTopicIndex(topic stream.Topic) uint64 {
 	return s.publisher.LastTopicIndex(topic)
 }
 
-func (s *Store) Subscribe(subscription *stream.SubscribeRequest) <-chan stream.Event {
+func (s *Store) Subscribe(subscription *stream.SubscribeRequest) (<-chan stream.Event, error) {
 	return s.publisher.Subscribe(subscription)
 }
 

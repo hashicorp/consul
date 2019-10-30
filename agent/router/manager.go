@@ -63,6 +63,13 @@ type Pinger interface {
 	Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error)
 }
 
+// ServerTracker is a wrapper around consul.ServerResolverBuilder to prevent a
+// cyclic import dependency.
+type ServerTracker interface {
+	AddServer(*metadata.Server)
+	RemoveServer(*metadata.Server)
+}
+
 // serverList is a local copy of the struct used to maintain the list of
 // Consul servers used by Manager.
 //
@@ -97,6 +104,10 @@ type Manager struct {
 	// client.ConnPool.
 	connPoolPinger Pinger
 
+	// grpcServerTracker is used to balance grpc connections across servers,
+	// and has callbacks for adding or removing a server.
+	grpcServerTracker ServerTracker
+
 	// notifyFailedBarrier is acts as a barrier to prevent queuing behind
 	// serverListLog and acts as a TryLock().
 	notifyFailedBarrier int32
@@ -114,6 +125,7 @@ type Manager struct {
 func (m *Manager) AddServer(s *metadata.Server) {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
+	m.grpcServerTracker.AddServer(s)
 	l := m.getServerList()
 
 	// Check if this server is known
@@ -217,6 +229,11 @@ func (m *Manager) FindServer() *metadata.Server {
 	return l.servers[0]
 }
 
+// Servers returns the current list of servers.
+func (m *Manager) Servers() []*metadata.Server {
+	return m.getServerList().servers
+}
+
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {
@@ -230,11 +247,12 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
+func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, tracker ServerTracker) (m *Manager) {
 	m = new(Manager)
 	m.logger = logger
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
+	m.grpcServerTracker = tracker     // can't pass *consul.ServerResolverBuilder: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
 	atomic.StoreInt32(&m.offline, 1)
@@ -417,6 +435,7 @@ func (m *Manager) reconcileServerList(l *serverList) bool {
 func (m *Manager) RemoveServer(s *metadata.Server) {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
+	m.grpcServerTracker.RemoveServer(s)
 	l := m.getServerList()
 
 	// Remove the server if known
@@ -437,17 +456,22 @@ func (m *Manager) RemoveServer(s *metadata.Server) {
 func (m *Manager) refreshServerRebalanceTimer() time.Duration {
 	l := m.getServerList()
 	numServers := len(l.servers)
+	connRebalanceTimeout := ComputeRebalanceTimer(numServers, m.clusterInfo.NumNodes())
+
+	m.rebalanceTimer.Reset(connRebalanceTimeout)
+	return connRebalanceTimeout
+}
+
+// ComputeRebalanceTimer returns a time to wait before rebalancing connections given
+// a number of servers and LAN nodes.
+func ComputeRebalanceTimer(numServers, numLANMembers int) time.Duration {
 	// Limit this connection's life based on the size (and health) of the
 	// cluster.  Never rebalance a connection more frequently than
 	// connReuseLowWatermarkDuration, and make sure we never exceed
 	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
 	clusterWideRebalanceConnsPerSec := float64(numServers * newRebalanceConnsPerSecPerServer)
 	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
-	numLANMembers := m.clusterInfo.NumNodes()
-	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
-
-	m.rebalanceTimer.Reset(connRebalanceTimeout)
-	return connRebalanceTimeout
+	return lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 }
 
 // ResetRebalanceTimer resets the rebalance timer.  This method exists for

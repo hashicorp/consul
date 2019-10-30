@@ -1,9 +1,12 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/consul/agent/consul/stream"
 
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
@@ -785,6 +788,11 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id")
+	if err != nil {
+		return err
+	}
+
 	// Call set on the ACL
 	if err := s.aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
 		return err
@@ -792,6 +800,14 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// Only emit an event if the token changed.
+	if existing == nil || !bytes.Equal(existing.Hash, token.Hash) {
+		event := s.ACLTokenEvent(idx, token, stream.ACLOp_Update)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -802,14 +818,29 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	var events []stream.Event
 	for _, token := range tokens {
+		existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id")
+		if err != nil {
+			return err
+		}
+
 		if err := s.aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, false); err != nil {
 			return err
+		}
+
+		// Only emit an event if the token changed.
+		if existing == nil || !bytes.Equal(existing.Hash, token.Hash) {
+			events = append(events, s.ACLTokenEvent(idx, token, stream.ACLOp_Update))
 		}
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
 	}
 
 	tx.Commit()
@@ -986,6 +1017,7 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 
 	if rawToken != nil {
 		token := rawToken.(*structs.ACLToken)
+
 		token, err := s.fixupTokenPolicyLinks(tx, token)
 		if err != nil {
 			return nil, err
@@ -1005,6 +1037,19 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	tokens, err := s.aclTokenListTxn(tx, ws, local, global, policy, role, methodName)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "acl-tokens")
+
+	return idx, tokens, nil
+}
+
+// aclTokenListTxn is used to list out all of the ACLs in the state store within a transaction.
+func (s *Store) aclTokenListTxn(tx *memdb.Txn, ws memdb.WatchSet, local, global bool, policy, role, methodName string) (structs.ACLTokens, error) {
 	var iter memdb.ResultIterator
 	var err error
 
@@ -1035,11 +1080,11 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		needLocalityFilter = true
 
 	} else {
-		return 0, nil, fmt.Errorf("can only filter by one of policy, role, or methodName at a time")
+		return nil, fmt.Errorf("can only filter by one of policy, role, or methodName at a time")
 	}
 
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
+		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
 
 	if needLocalityFilter && global != local {
@@ -1066,19 +1111,16 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		token := raw.(*structs.ACLToken)
 		token, err := s.fixupTokenPolicyLinks(tx, token)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 		token, err = s.fixupTokenRoleLinks(tx, token)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 		result = append(result, token)
 	}
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-tokens")
-
-	return idx, result, nil
+	return result, nil
 }
 
 func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
@@ -1175,10 +1217,19 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	var events []stream.Event
 	for _, tokenID := range tokenIDs {
-		if err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor"); err != nil {
+		token, err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor")
+		if err != nil {
 			return err
 		}
+		if token != nil {
+			events = append(events, s.ACLTokenEvent(idx, token, stream.ACLOp_Delete))
+		}
+	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
 	}
 
 	tx.Commit()
@@ -1189,36 +1240,45 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclTokenDeleteTxn(tx, idx, value, index); err != nil {
+	token, err := s.aclTokenDeleteTxn(tx, idx, value, index)
+	if err != nil {
 		return err
+	}
+
+	if token != nil {
+		event := s.ACLTokenEvent(idx, token, stream.ACLOp_Delete)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()
 	return nil
 }
 
-func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) error {
+func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string) (*structs.ACLToken, error) {
 	// Look up the existing token
-	token, err := tx.First("acl-tokens", index, value)
+	t, err := tx.First("acl-tokens", index, value)
 	if err != nil {
-		return fmt.Errorf("failed acl token lookup: %v", err)
+		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
 
-	if token == nil {
-		return nil
+	if t == nil {
+		return nil, nil
 	}
 
-	if token.(*structs.ACLToken).AccessorID == structs.ACLTokenAnonymousID {
-		return fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
+	token := t.(*structs.ACLToken)
+	if token.AccessorID == structs.ACLTokenAnonymousID {
+		return nil, fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 
 	if err := tx.Delete("acl-tokens", token); err != nil {
-		return fmt.Errorf("failed deleting acl token: %v", err)
+		return nil, fmt.Errorf("failed deleting acl token: %v", err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
-		return fmt.Errorf("failed updating index: %v", err)
+		return nil, fmt.Errorf("failed updating index: %v", err)
 	}
-	return nil
+	return token, nil
 }
 
 func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string) error {
@@ -1254,14 +1314,29 @@ func (s *Store) ACLPolicyBatchSet(idx uint64, policies structs.ACLPolicies) erro
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	var events []stream.Event
 	for _, policy := range policies {
+		existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, "id")
+		if err != nil {
+			return err
+		}
+
 		if err := s.aclPolicySetTxn(tx, idx, policy); err != nil {
 			return err
+		}
+
+		// Only emit an event if the role changed.
+		if existing == nil || !bytes.Equal(existing.Hash, policy.Hash) {
+			events = append(events, s.ACLPolicyEvent(idx, policy.ID, stream.ACLOp_Update))
 		}
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
 	}
 
 	tx.Commit()
@@ -1272,11 +1347,24 @@ func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, "id")
+	if err != nil {
+		return err
+	}
+
 	if err := s.aclPolicySetTxn(tx, idx, policy); err != nil {
 		return err
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// Only emit an event if the policy changed.
+	if existing == nil || !bytes.Equal(existing.Hash, policy.Hash) {
+		event := s.ACLPolicyEvent(idx, policy.ID, stream.ACLOp_Update)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -1428,15 +1516,22 @@ func (s *Store) ACLPolicyBatchDelete(idx uint64, policyIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	var events []stream.Event
 	for _, policyID := range policyIDs {
 		if err := s.aclPolicyDeleteTxn(tx, idx, policyID, "id"); err != nil {
 			return err
 		}
+		events = append(events, s.ACLPolicyEvent(idx, policyID, stream.ACLOp_Delete))
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
+	}
+
 	tx.Commit()
 	return nil
 }
@@ -1445,11 +1540,23 @@ func (s *Store) aclPolicyDelete(idx uint64, value, index string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	existing, err := s.getPolicyWithTxn(tx, nil, value, index)
+	if err != nil {
+		return err
+	}
+
 	if err := s.aclPolicyDeleteTxn(tx, idx, value, index); err != nil {
 		return err
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
+	}
+
+	if existing != nil {
+		event := s.ACLPolicyEvent(idx, existing.ID, stream.ACLOp_Delete)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -1483,14 +1590,29 @@ func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissing
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	var events []stream.Event
 	for _, role := range roles {
+		existing, err := s.getRoleWithTxn(tx, nil, role.ID, "id")
+		if err != nil {
+			return err
+		}
+
 		if err := s.aclRoleSetTxn(tx, idx, role, allowMissingPolicyIDs); err != nil {
 			return err
+		}
+
+		// Only emit an event if the role changed.
+		if existing == nil || !bytes.Equal(existing.Hash, role.Hash) {
+			events = append(events, s.ACLRoleEvent(idx, role.ID, stream.ACLOp_Update))
 		}
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
 	}
 
 	tx.Commit()
@@ -1501,11 +1623,24 @@ func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	existing, err := s.getRoleWithTxn(tx, nil, role.ID, "id")
+	if err != nil {
+		return err
+	}
+
 	if err := s.aclRoleSetTxn(tx, idx, role, false); err != nil {
 		return err
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// Only emit an event if the role changed.
+	if existing == nil || !bytes.Equal(existing.Hash, role.Hash) {
+		event := s.ACLRoleEvent(idx, role.ID, stream.ACLOp_Update)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -1627,6 +1762,18 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	roles, err := s.aclRoleListTxn(tx, ws, policy)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "acl-roles")
+
+	return idx, roles, nil
+}
+
+func (s *Store) aclRoleListTxn(tx *memdb.Txn, ws memdb.WatchSet, policy string) (structs.ACLRoles, error) {
 	var iter memdb.ResultIterator
 	var err error
 
@@ -1637,7 +1784,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 	}
 
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl role lookup: %v", err)
+		return nil, fmt.Errorf("failed acl role lookup: %v", err)
 	}
 	ws.Add(iter.WatchCh())
 
@@ -1646,15 +1793,12 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string) (uint64, structs.A
 		role := raw.(*structs.ACLRole)
 		role, err := s.fixupRolePolicyLinks(tx, role)
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
 		result = append(result, role)
 	}
 
-	// Get the table index.
-	idx := maxIndexTxn(tx, "acl-roles")
-
-	return idx, result, nil
+	return result, nil
 }
 
 func (s *Store) ACLRoleDeleteByID(idx uint64, id string) error {
@@ -1669,15 +1813,22 @@ func (s *Store) ACLRoleBatchDelete(idx uint64, roleIDs []string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	var events []stream.Event
 	for _, roleID := range roleIDs {
 		if err := s.aclRoleDeleteTxn(tx, idx, roleID, "id"); err != nil {
 			return err
 		}
+		events = append(events, s.ACLRoleEvent(idx, roleID, stream.ACLOp_Delete))
 	}
 
 	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
+
+	if err := s.emitEvents(tx, events); err != nil {
+		return err
+	}
+
 	tx.Commit()
 	return nil
 }
@@ -1686,11 +1837,23 @@ func (s *Store) aclRoleDelete(idx uint64, value, index string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	existing, err := s.getRoleWithTxn(tx, nil, value, index)
+	if err != nil {
+		return err
+	}
+
 	if err := s.aclRoleDeleteTxn(tx, idx, value, index); err != nil {
 		return err
 	}
 	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
+	}
+
+	if existing != nil {
+		event := s.ACLRoleEvent(idx, existing.ID, stream.ACLOp_Delete)
+		if err := s.emitEvents(tx, []stream.Event{event}); err != nil {
+			return err
+		}
 	}
 
 	tx.Commit()

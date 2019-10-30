@@ -87,7 +87,7 @@ func nodeServiceHealth(s *Store, tx *memdb.Txn, idx uint64, nodeName string) ([]
 		return nil, err
 	}
 
-	events := checkServiceNodesToServiceHealth(idx, nodes, nil, nil)
+	events := checkServiceNodesToServiceHealth(idx, nodes, nil, nil, false)
 	return events, nil
 }
 
@@ -95,13 +95,17 @@ func nodeServiceHealth(s *Store, tx *memdb.Txn, idx uint64, nodeName string) ([]
 // ServiceHealth events for streaming. If a non-nil channel and context are passed,
 // the events will be sent to the channel instead of appended to a slice.
 func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNodes,
-	ctx context.Context, eventCh chan stream.Event) []stream.Event {
+	ctx context.Context, eventCh chan stream.Event, connect bool) []stream.Event {
 	var events []stream.Event
 	for _, n := range nodes {
 		event := stream.Event{
-			Topic: stream.Topic_ServiceHealth,
 			Index: idx,
-			Op:    stream.Operation_Upsert,
+		}
+
+		if connect {
+			event.Topic = stream.Topic_ServiceHealthConnect
+		} else {
+			event.Topic = stream.Topic_ServiceHealth
 		}
 
 		if n.Service != nil {
@@ -110,6 +114,7 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 
 		event.Payload = &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
+				Op:               stream.CatalogOp_Register,
 				CheckServiceNode: stream.ToCheckServiceNode(&n),
 			},
 		}
@@ -126,10 +131,6 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 		}
 	}
 
-	if eventCh != nil {
-		close(eventCh)
-	}
-
 	return events
 }
 
@@ -139,9 +140,9 @@ func serviceHealthDeregisterEvent(idx uint64, node string) stream.Event {
 	return stream.Event{
 		Topic: stream.Topic_ServiceHealth,
 		Index: idx,
-		Op:    stream.Operation_Delete,
 		Payload: &stream.Event_ServiceHealth{
 			ServiceHealth: &stream.ServiceHealthUpdate{
+				Op: stream.CatalogOp_Deregister,
 				CheckServiceNode: &stream.CheckServiceNode{
 					Node: &stream.Node{Node: node},
 				},

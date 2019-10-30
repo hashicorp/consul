@@ -1,7 +1,9 @@
 package consul
 
 import (
+	"context"
 	"fmt"
+	"hash/fnv"
 	"strings"
 
 	metrics "github.com/armon/go-metrics"
@@ -18,13 +20,40 @@ type ConsulGRPCAdapter struct {
 func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
 	metrics.IncrCounter([]string{"subscribe", strings.ToLower(req.Topic.String())}, 1)
 
+	// Forward the request to a remote DC if applicable.
+	if req.Datacenter != "" && req.Datacenter != h.srv.config.Datacenter {
+		conn, err := h.srv.grpcClient.GRPCConn(req.Datacenter)
+		if err != nil {
+			return err
+		}
+
+		// Open a Subscribe call to the remote DC.
+		client := stream.NewConsulClient(conn)
+		streamHandle, err := client.Subscribe(server.Context(), req)
+		if err != nil {
+			return err
+		}
+
+		// Relay the events back to the client.
+		for {
+			event, err := streamHandle.Recv()
+			if err != nil {
+				return err
+			}
+			if err := server.Send(event); err != nil {
+				return err
+			}
+		}
+	}
+
+	h.srv.logger.Printf("consul: stream starting in %s", h.srv.config.Datacenter)
+
 	// Resolve the token and create the ACL filter.
 	rule, err := h.srv.ResolveToken(req.Token)
 	if err != nil {
 		return err
 	}
 	aclFilter := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
-	eventFilter := req.EventFilter()
 
 	// Create the boolean expression filter.
 	var eval *bexpr.Evaluator
@@ -39,7 +68,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	// is lower than the last sent index of the topic.
 	state := h.srv.fsm.State()
 	lastSentIndex := state.LastTopicIndex(req.Topic)
-	sent := make(map[string]struct{})
+	sent := make(map[uint32]struct{})
 	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
 		go state.GetTopicSnapshot(server.Context(), snapshotCh, req)
@@ -47,23 +76,28 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		// Wait for the events to come in and send them to the client.
 		for event := range snapshotCh {
 			event.SetACLRules()
-			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
+			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
 		}
-	}
-
-	// Send a marker that the snapshot is finished.
-	endSnapshotEvent := stream.Event{
-		Topic:   req.Topic,
-		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
-	}
-	if err := server.Send(&endSnapshotEvent); err != nil {
-		return err
+	} else {
+		// If there wasn't a snapshot, just send an end of snapshot message
+		// so the client knows not to wait for one.
+		endSnapshotEvent := stream.Event{
+			Topic:   req.Topic,
+			Index:   lastSentIndex,
+			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
+		}
+		if err := server.Send(&endSnapshotEvent); err != nil {
+			return err
+		}
 	}
 
 	// Register a subscription on this topic/key with the FSM.
-	eventCh := state.Subscribe(req)
+	eventCh, err := state.Subscribe(req)
+	if err != nil {
+		return err
+	}
 	defer state.Unsubscribe(req)
 
 	for {
@@ -77,7 +111,16 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 				return fmt.Errorf("handler could not keep up with events")
 			}
 
-			if err := sendEvent(event, eventFilter, aclFilter, eval, sent, server); err != nil {
+			// If we need to reload the stream (because our ACL token was updated)
+			// then pass the event along to the client and exit.
+			if event.GetReloadStream() {
+				if err := server.Send(&event); err != nil {
+					return err
+				}
+				return nil
+			}
+
+			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
 		}
@@ -86,14 +129,13 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 // sendEvent sends the given event along the stream if it passes ACL, boolean, and
 // any topic-specific filtering.
-func sendEvent(event stream.Event, eventFilter stream.EventFilterFunc, aclFilter *aclFilter,
-	eval *bexpr.Evaluator, sent map[string]struct{}, server stream.Consul_SubscribeServer) error {
-	allowEvent := true
-
-	// Check if the event should be filtered based on the request type.
-	if eventFilter != nil && !eventFilter(event) {
-		allowEvent = false
+func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
+	sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
+	// If it's a special case event, skip the filtering and just send it.
+	if event.GetEndOfSnapshot() || event.GetReloadStream() {
+		return server.Send(&event)
 	}
+	allowEvent := true
 
 	// Filter by ACL rules.
 	if !aclFilter.allowEvent(event) {
@@ -111,27 +153,64 @@ func sendEvent(event stream.Event, eventFilter stream.EventFilterFunc, aclFilter
 		}
 	}
 
+	// Get the unique identifier for the object the event pertains to, and
+	// hash it to save space. This is only used to determine if an object has been
+	// removed and needs to be deleted from the client's cache. In other words, if we hit a
+	// hash collision, it only results in a redundant message being sent without affecting
+	// correctness. 32 bits means there is only a 1% chance of collision with ~9000 items in this map.
+	// For current uses that seems reasonable but when we add KV streaming we may want
+	// to revisit this.
+	rawId := event.ContentID()
+	hash := fnv.New32a()
+	hash.Write([]byte(rawId))
+	idHash := hash.Sum32()
+
 	// If the event would be filtered but the agent needs to know about
-	// the delete, change the operation to delete and send the event
-	// before removing the ID from the sent map.
-	id := event.ID()
+	// the delete, send a delete event before removing the ID from the sent map.
 	if !allowEvent {
-		if _, ok := sent[id]; ok {
-			event.Op = stream.Operation_Delete
-			delete(sent, id)
+		if _, ok := sent[idHash]; ok {
+			deleteEvent, err := stream.MakeDeleteEvent(&event)
+			if err != nil {
+				return err
+			}
+
+			// Send the delete.
+			if err := server.Send(deleteEvent); err != nil {
+				return err
+			}
+
+			delete(sent, idHash)
+			return nil
 		} else {
 			// If the event should be filtered and the agent doesn't know about it,
 			// just return early and don't send anything.
 			return nil
 		}
-	} else {
-		sent[id] = struct{}{}
 	}
 
 	// Send the event.
 	if err := server.Send(&event); err != nil {
 		return err
 	}
+	sent[idHash] = struct{}{}
 
 	return nil
+}
+
+// Test is an internal endpoint used for checking connectivity/balancing logic.
+func (h *ConsulGRPCAdapter) Test(ctx context.Context, req *stream.TestRequest) (*stream.TestResponse, error) {
+	if req.Datacenter != "" && req.Datacenter != h.srv.config.Datacenter {
+		conn, err := h.srv.grpcClient.GRPCConn(req.Datacenter)
+		if err != nil {
+			return nil, err
+		}
+
+		h.srv.logger.Printf("server conn state %s", conn.GetState())
+
+		// Open a Test call to the remote DC.
+		client := stream.NewConsulClient(conn)
+		return client.Test(ctx, req)
+	}
+
+	return &stream.TestResponse{ServerName: h.srv.config.NodeName}, nil
 }

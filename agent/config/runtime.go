@@ -700,6 +700,13 @@ type RuntimeConfig struct {
 	// and key).
 	EnableAgentTLSForChecks bool
 
+	// EnableBackendStreaming is used to enable the new backend streaming interface when
+	// making blocking queries to the HTTP API. This greatly reduces bandwidth and server
+	// CPU load in large clusters with lots of activity.
+	//
+	// hcl: enable_backend_streaming = (true|false)
+	EnableBackendStreaming bool
+
 	// EnableCentralServiceConfig controls whether the agent should incorporate
 	// centralized config such as service-defaults into local service registrations.
 	//
