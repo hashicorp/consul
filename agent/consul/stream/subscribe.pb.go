@@ -12,6 +12,7 @@ import (
 	status "google.golang.org/grpc/status"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -160,7 +161,7 @@ func (m *SubscribeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_SubscribeRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +254,7 @@ func (m *Event) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Event.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -551,7 +552,7 @@ func (m *ACLRule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ACLRule.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -606,7 +607,7 @@ func (m *ServiceHealthUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return xxx_messageInfo_ServiceHealthUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -661,7 +662,7 @@ func (m *ACLTokenUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_ACLTokenUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -716,7 +717,7 @@ func (m *ACLPolicyUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_ACLPolicyUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -771,7 +772,7 @@ func (m *ACLRoleUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return xxx_messageInfo_ACLRoleUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -825,7 +826,7 @@ func (m *TestRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_TestRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -872,7 +873,7 @@ func (m *TestResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_TestResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1116,7 +1117,7 @@ var _Consul_serviceDesc = grpc.ServiceDesc{
 func (m *SubscribeRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1124,54 +1125,64 @@ func (m *SubscribeRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SubscribeRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SubscribeRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Topic != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
-	}
-	if len(m.Key) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if len(m.Token) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Token)))
-		i += copy(dAtA[i:], m.Token)
-	}
-	if m.Index != 0 {
-		dAtA[i] = 0x20
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
-	}
-	if len(m.Filter) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Filter)))
-		i += copy(dAtA[i:], m.Filter)
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.Datacenter) > 0 {
-		dAtA[i] = 0x32
-		i++
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
 		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
-		i += copy(dAtA[i:], m.Datacenter)
+		i--
+		dAtA[i] = 0x32
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Filter) > 0 {
+		i -= len(m.Filter)
+		copy(dAtA[i:], m.Filter)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Filter)))
+		i--
+		dAtA[i] = 0x2a
 	}
-	return i, nil
+	if m.Index != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Token) > 0 {
+		i -= len(m.Token)
+		copy(dAtA[i:], m.Token)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Token)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Topic != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Event) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1179,135 +1190,178 @@ func (m *Event) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Event) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Event) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Topic != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
-	}
-	if len(m.Key) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
-		i += copy(dAtA[i:], m.Key)
-	}
-	if m.Index != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
-	}
-	if len(m.RequiredACLs) > 0 {
-		for _, msg := range m.RequiredACLs {
-			dAtA[i] = 0x22
-			i++
-			i = encodeVarintSubscribe(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.Payload != nil {
-		nn1, err1 := m.Payload.MarshalTo(dAtA[i:])
-		if err1 != nil {
-			return 0, err1
+		{
+			size := m.Payload.Size()
+			i -= size
+			if _, err := m.Payload.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
 		}
-		i += nn1
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.RequiredACLs) > 0 {
+		for iNdEx := len(m.RequiredACLs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.RequiredACLs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintSubscribe(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
 	}
-	return i, nil
+	if m.Index != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Topic != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Event_ServiceHealth) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *Event_ServiceHealth) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.ServiceHealth != nil {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.ServiceHealth.Size()))
-		n2, err2 := m.ServiceHealth.MarshalTo(dAtA[i:])
-		if err2 != nil {
-			return 0, err2
+		{
+			size, err := m.ServiceHealth.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
-		i += n2
+		i--
+		dAtA[i] = 0x32
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Event_ACLToken) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *Event_ACLToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.ACLToken != nil {
-		dAtA[i] = 0x3a
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.ACLToken.Size()))
-		n3, err3 := m.ACLToken.MarshalTo(dAtA[i:])
-		if err3 != nil {
-			return 0, err3
+		{
+			size, err := m.ACLToken.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
-		i += n3
+		i--
+		dAtA[i] = 0x3a
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Event_ACLPolicy) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *Event_ACLPolicy) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.ACLPolicy != nil {
-		dAtA[i] = 0x42
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.ACLPolicy.Size()))
-		n4, err4 := m.ACLPolicy.MarshalTo(dAtA[i:])
-		if err4 != nil {
-			return 0, err4
+		{
+			size, err := m.ACLPolicy.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
-		i += n4
+		i--
+		dAtA[i] = 0x42
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Event_ACLRole) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *Event_ACLRole) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.ACLRole != nil {
-		dAtA[i] = 0x4a
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.ACLRole.Size()))
-		n5, err5 := m.ACLRole.MarshalTo(dAtA[i:])
-		if err5 != nil {
-			return 0, err5
+		{
+			size, err := m.ACLRole.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
-		i += n5
+		i--
+		dAtA[i] = 0x4a
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Event_EndOfSnapshot) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x50
-	i++
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *Event_EndOfSnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
 	if m.EndOfSnapshot {
 		dAtA[i] = 1
 	} else {
 		dAtA[i] = 0
 	}
-	i++
-	return i, nil
+	i--
+	dAtA[i] = 0x50
+	return len(dAtA) - i, nil
 }
 func (m *Event_ReloadStream) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x58
-	i++
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *Event_ReloadStream) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
 	if m.ReloadStream {
 		dAtA[i] = 1
 	} else {
 		dAtA[i] = 0
 	}
-	i++
-	return i, nil
+	i--
+	dAtA[i] = 0x58
+	return len(dAtA) - i, nil
 }
 func (m *ACLRule) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1315,31 +1369,38 @@ func (m *ACLRule) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLRule) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACLRule) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Resource != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Resource))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.Segment) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.Segment)
+		copy(dAtA[i:], m.Segment)
 		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Segment)))
-		i += copy(dAtA[i:], m.Segment)
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Resource != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Resource))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ServiceHealthUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1347,35 +1408,43 @@ func (m *ServiceHealthUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceHealthUpdate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ServiceHealthUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Op != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.CheckServiceNode != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.CheckServiceNode.Size()))
-		n6, err6 := m.CheckServiceNode.MarshalTo(dAtA[i:])
-		if err6 != nil {
-			return 0, err6
+		{
+			size, err := m.CheckServiceNode.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
-		i += n6
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ACLTokenUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1383,35 +1452,43 @@ func (m *ACLTokenUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLTokenUpdate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACLTokenUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Op != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if m.Token != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Token.Size()))
-		n7, err7 := m.Token.MarshalTo(dAtA[i:])
-		if err7 != nil {
-			return 0, err7
+		{
+			size, err := m.Token.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
-		i += n7
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ACLPolicyUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1419,31 +1496,38 @@ func (m *ACLPolicyUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLPolicyUpdate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACLPolicyUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Op != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.PolicyID) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.PolicyID)
+		copy(dAtA[i:], m.PolicyID)
 		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.PolicyID)))
-		i += copy(dAtA[i:], m.PolicyID)
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *ACLRoleUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1451,31 +1535,38 @@ func (m *ACLRoleUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLRoleUpdate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ACLRoleUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Op != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.RoleID) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.RoleID)
+		copy(dAtA[i:], m.RoleID)
 		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.RoleID)))
-		i += copy(dAtA[i:], m.RoleID)
+		i--
+		dAtA[i] = 0x12
 	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
+		i--
+		dAtA[i] = 0x8
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *TestRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1483,26 +1574,33 @@ func (m *TestRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TestRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TestRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Datacenter) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
-		i += copy(dAtA[i:], m.Datacenter)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.Datacenter) > 0 {
+		i -= len(m.Datacenter)
+		copy(dAtA[i:], m.Datacenter)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *TestResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -1510,30 +1608,39 @@ func (m *TestResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TestResponse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TestResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.ServerName) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.ServerName)))
-		i += copy(dAtA[i:], m.ServerName)
-	}
 	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return i, nil
+	if len(m.ServerName) > 0 {
+		i -= len(m.ServerName)
+		copy(dAtA[i:], m.ServerName)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.ServerName)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintSubscribe(dAtA []byte, offset int, v uint64) int {
+	offset -= sovSubscribe(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *SubscribeRequest) Size() (n int) {
 	if m == nil {
@@ -1794,14 +1901,7 @@ func (m *TestResponse) Size() (n int) {
 }
 
 func sovSubscribe(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozSubscribe(x uint64) (n int) {
 	return sovSubscribe(uint64((x << 1) ^ uint64((int64(x) >> 63))))

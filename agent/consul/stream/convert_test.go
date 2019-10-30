@@ -40,7 +40,6 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 			Port:              1234,
 			Weights:           &structs.Weights{Passing: 1, Warning: 2},
 			EnableTagOverride: true,
-			ProxyDestination:  "deprecated",
 			Proxy: structs.ConnectProxyConfig{
 				DestinationServiceName: "bar",
 				DestinationServiceID:   "bar1",
@@ -88,31 +87,6 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 			},
 			Connect: structs.ServiceConnect{
 				Native: true,
-				Proxy: &structs.ServiceDefinitionConnectProxy{
-					Command:  []string{"a", "b"},
-					ExecMode: "asdf",
-					Config: map[string]interface{}{
-						"e": 1,
-						"f": true,
-					},
-					Upstreams: structs.Upstreams{
-						structs.Upstream{
-							DestinationType:      "c",
-							DestinationNamespace: "default",
-							DestinationName:      "baz",
-							Datacenter:           "dc3",
-							LocalBindAddress:     "4.4.4.4",
-							LocalBindPort:        3333,
-							Config: map[string]interface{}{
-								"g": 1,
-								"h": true,
-							},
-							MeshGateway: structs.MeshGatewayConfig{
-								Mode: structs.MeshGatewayModeNone,
-							},
-						},
-					},
-				},
 				SidecarService: &structs.ServiceDefinition{
 					Kind:    structs.ServiceKindConnectProxy,
 					ID:      "asdf",
@@ -128,7 +102,6 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 					Port:              4567,
 					Weights:           &structs.Weights{Passing: 3, Warning: 4},
 					EnableTagOverride: true,
-					ProxyDestination:  "deprecated2",
 					Proxy: &structs.ConnectProxyConfig{
 						DestinationServiceName: "baz",
 						DestinationServiceID:   "baz1",

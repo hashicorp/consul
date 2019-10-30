@@ -366,7 +366,6 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		connPool:                connPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
-		grpcResolverBuilder:     grpcResolverBuilder,
 		logger:                  logger,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),

@@ -83,7 +83,7 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 	require.NoError(err)
 
 	// Delete the unrelated token.
-	require.NoError(s.ACLTokenDeleteByAccessor(5, token2.AccessorID))
+	require.NoError(s.ACLTokenDeleteByAccessor(5, token2.AccessorID, nil))
 
 	// Ensure there's no reload event.
 	select {
@@ -93,7 +93,7 @@ func TestPublisher_ACLTokenUpdate(t *testing.T) {
 	}
 
 	// Delete the token used by the subscriber.
-	require.NoError(s.ACLTokenDeleteByAccessor(6, token.AccessorID))
+	require.NoError(s.ACLTokenDeleteByAccessor(6, token.AccessorID, nil))
 
 	// Ensure the reload event was sent.
 	select {
@@ -191,7 +191,7 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 	require.NoError(err)
 
 	// Delete the unrelated policy.
-	require.NoError(s.ACLPolicyDeleteByID(5, testPolicyID_C))
+	require.NoError(s.ACLPolicyDeleteByID(5, testPolicyID_C, nil))
 
 	// Ensure there's no reload event.
 	select {
@@ -201,7 +201,7 @@ func TestPublisher_ACLPolicyUpdate(t *testing.T) {
 	}
 
 	// Delete the policy used by the subscriber.
-	require.NoError(s.ACLPolicyDeleteByID(6, testPolicyID_A))
+	require.NoError(s.ACLPolicyDeleteByID(6, testPolicyID_A, nil))
 
 	// Ensure the reload event was sent.
 	select {
@@ -318,7 +318,7 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 	require.NoError(err)
 
 	// Delete the unrelated policy.
-	require.NoError(s.ACLRoleDeleteByID(5, testRoleID_B))
+	require.NoError(s.ACLRoleDeleteByID(5, testRoleID_B, nil))
 
 	// Ensure there's no reload event.
 	select {
@@ -328,7 +328,7 @@ func TestPublisher_ACLRoleUpdate(t *testing.T) {
 	}
 
 	// Delete the policy used by the subscriber.
-	require.NoError(s.ACLRoleDeleteByID(6, testRoleID_A))
+	require.NoError(s.ACLRoleDeleteByID(6, testRoleID_A, nil))
 
 	// Ensure the reload event was sent.
 	select {
