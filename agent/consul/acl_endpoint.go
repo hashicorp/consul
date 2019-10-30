@@ -807,10 +807,13 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if rule == nil {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1157,10 +1160,13 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if rule == nil {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1573,10 +1579,13 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if rule == nil {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1867,10 +1876,13 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if rule == nil {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2073,10 +2085,13 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if rule == nil {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
