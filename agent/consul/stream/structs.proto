@@ -3,7 +3,7 @@ syntax = "proto3";
 package stream;
 
 import "google/protobuf/duration.proto";
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "gogoproto/gogo.proto";
 
 option (gogoproto.goproto_unkeyed_all) = false;
 option (gogoproto.goproto_unrecognized_all) = false;

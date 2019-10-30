@@ -105,7 +105,6 @@ function main {
       -I="${gogo_proto_path}/protobuf" \
       -I="${gogo_proto_path}" \
       -I="${gogo_proto_mod_path}" \
-      -I="vendor/github.com/gogo/protobuf/gogoproto" \
       --gofast_out="${go_proto_out}$(dirname ${proto_path})" \
       --go-binary_out="$(dirname ${proto_path})" \
       "${proto_path}"
