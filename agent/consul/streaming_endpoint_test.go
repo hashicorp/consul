@@ -17,6 +17,7 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 )
 
 func TestStreaming_Subscribe(t *testing.T) {
@@ -89,7 +90,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
 
 	// Start a Subscribe call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.GRPCConn()
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
@@ -163,6 +164,8 @@ func TestStreaming_Subscribe(t *testing.T) {
 			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		},
 	}
+
+	require.Len(snapshotEvents, 3)
 	for i := 0; i < 2; i++ {
 		// Fix up the index
 		expected[i].Index = snapshotEvents[i].Index
@@ -196,6 +199,242 @@ func TestStreaming_Subscribe(t *testing.T) {
 						Node: &stream.Node{
 							Node:       "node2",
 							Datacenter: "dc1",
+							Address:    "1.2.3.4",
+							RaftIndex:  stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+						},
+						Service: &stream.NodeService{
+							ID:        "redis1",
+							Service:   "redis",
+							Address:   "1.1.1.1",
+							Port:      8080,
+							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
+							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+						},
+						Checks: []*stream.HealthCheck{
+							{
+								CheckID:     "check1",
+								Name:        "check 1",
+								Node:        "node2",
+								Status:      "critical",
+								ServiceID:   "redis1",
+								ServiceName: "redis",
+								RaftIndex:   stream.RaftIndex{CreateIndex: 14, ModifyIndex: 14},
+							},
+						},
+					},
+				},
+			},
+		}
+		expected.SetACLRules()
+		// Fix up the index
+		expected.Index = event.Index
+		node := expected.GetServiceHealth().CheckServiceNode
+		node.Node.RaftIndex = event.GetServiceHealth().CheckServiceNode.Node.RaftIndex
+		node.Service.RaftIndex = event.GetServiceHealth().CheckServiceNode.Service.RaftIndex
+		node.Checks[0].RaftIndex = event.GetServiceHealth().CheckServiceNode.Checks[0].RaftIndex
+		verify.Values(t, "", event, expected)
+	case <-time.After(3 * time.Second):
+		t.Fatal("never got event")
+	}
+
+	// Wait and make sure there aren't any more events coming.
+	select {
+	case event := <-eventCh:
+		t.Fatalf("got another event: %v", event)
+	case <-time.After(500 * time.Millisecond):
+	}
+}
+
+func TestStreaming_Subscribe_MultiDC(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	dir1, server1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer server1.Shutdown()
+
+	dir2, server2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer server2.Shutdown()
+	codec := rpcClient(t, server2)
+	defer codec.Close()
+
+	dir3, client := testClient(t)
+	defer os.RemoveAll(dir3)
+	defer client.Shutdown()
+
+	// Join the servers via WAN
+	joinWAN(t, server2, server1)
+	testrpc.WaitForLeader(t, server1.RPC, "dc1")
+	testrpc.WaitForLeader(t, server2.RPC, "dc2")
+
+	joinLAN(t, client, server1)
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
+
+	// Register a dummy node in dc2 with a service we don't care about,
+	// to make sure we don't see updates for it.
+	{
+		req := &structs.RegisterRequest{
+			Node:       "other",
+			Address:    "2.3.4.5",
+			Datacenter: "dc2",
+			Service: &structs.NodeService{
+				ID:      "api1",
+				Service: "api",
+				Address: "2.3.4.5",
+				Port:    9000,
+			},
+		}
+		var out struct{}
+		require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
+	}
+
+	// Register a dummy node with our service on it, again in dc2.
+	{
+		req := &structs.RegisterRequest{
+			Node:       "node1",
+			Address:    "3.4.5.6",
+			Datacenter: "dc2",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "3.4.5.6",
+				Port:    8080,
+			},
+		}
+		var out struct{}
+		require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
+	}
+
+	// Register a test node in dc2 to be updated later.
+	req := &structs.RegisterRequest{
+		Node:       "node2",
+		Address:    "1.2.3.4",
+		Datacenter: "dc2",
+		Service: &structs.NodeService{
+			ID:      "redis1",
+			Service: "redis",
+			Address: "1.1.1.1",
+			Port:    8080,
+		},
+	}
+	var out struct{}
+	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
+
+	// Start a cross-DC Subscribe call to our streaming endpoint, specifying dc2.
+	conn, err := client.GRPCConn()
+	require.NoError(err)
+
+	streamClient := stream.NewConsulClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
+		Topic:      stream.Topic_ServiceHealth,
+		Key:        "redis",
+		Datacenter: "dc2",
+	})
+	require.NoError(err)
+
+	// Start a goroutine to read updates off the stream.
+	eventCh := make(chan *stream.Event, 0)
+	go testSendEvents(t, eventCh, streamHandle)
+
+	var snapshotEvents []*stream.Event
+	for i := 0; i < 3; i++ {
+		select {
+		case event := <-eventCh:
+			snapshotEvents = append(snapshotEvents, event)
+		case <-time.After(3 * time.Second):
+			t.Fatalf("did not receive events past %d", len(snapshotEvents))
+		}
+	}
+
+	expected := []*stream.Event{
+		{
+			Key: "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:       "node1",
+							Datacenter: "dc2",
+							Address:    "3.4.5.6",
+						},
+						Service: &stream.NodeService{
+							ID:      "redis1",
+							Service: "redis",
+							Address: "3.4.5.6",
+							Port:    8080,
+							Weights: &stream.Weights{Passing: 1, Warning: 1},
+						},
+					},
+				},
+			},
+		},
+		{
+			Key: "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:       "node2",
+							Datacenter: "dc2",
+							Address:    "1.2.3.4",
+						},
+						Service: &stream.NodeService{
+							ID:      "redis1",
+							Service: "redis",
+							Address: "1.1.1.1",
+							Port:    8080,
+							Weights: &stream.Weights{Passing: 1, Warning: 1},
+						},
+					},
+				},
+			},
+		},
+		{
+			Topic:   stream.Topic_ServiceHealth,
+			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
+		},
+	}
+
+	require.Len(snapshotEvents, 3)
+	for i := 0; i < 2; i++ {
+		// Fix up the index
+		expected[i].Index = snapshotEvents[i].Index
+		node := expected[i].GetServiceHealth().CheckServiceNode
+		node.Node.RaftIndex = snapshotEvents[i].GetServiceHealth().CheckServiceNode.Node.RaftIndex
+		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().CheckServiceNode.Service.RaftIndex
+		expected[i].SetACLRules()
+	}
+	expected[2].Index = snapshotEvents[2].Index
+	verify.Values(t, "", snapshotEvents, expected)
+
+	// Update the registration by adding a check.
+	req.Check = &structs.HealthCheck{
+		Node:        "node2",
+		CheckID:     types.CheckID("check1"),
+		ServiceID:   "redis1",
+		ServiceName: "redis",
+		Name:        "check 1",
+	}
+	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &out))
+
+	// Make sure we get the event for the diff.
+	select {
+	case event := <-eventCh:
+		expected := &stream.Event{
+			Key: "redis",
+			Payload: &stream.Event_ServiceHealth{
+				ServiceHealth: &stream.ServiceHealthUpdate{
+					Op: stream.CatalogOp_Register,
+					CheckServiceNode: &stream.CheckServiceNode{
+						Node: &stream.Node{
+							Node:       "node2",
+							Datacenter: "dc2",
 							Address:    "1.2.3.4",
 							RaftIndex:  stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
 						},
@@ -279,7 +518,7 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 	}
 
 	// Start a Subscribe call to our streaming endpoint.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.GRPCConn()
 	require.NoError(err)
 
 	streamClient := stream.NewConsulClient(conn)
@@ -414,7 +653,7 @@ func TestStreaming_Subscribe_FilterACL(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "Catalog.Register", &regArg, nil))
 
 	// Set up the gRPC client.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.GRPCConn()
 	require.NoError(err)
 	streamClient := stream.NewConsulClient(conn)
 
@@ -597,7 +836,7 @@ node "%s" {
 	require.False(auth.NodeRead("denied"))
 
 	// Set up the gRPC client.
-	conn, err := client.grpcClient.GRPCConn(nil)
+	conn, err := client.GRPCConn()
 	require.NoError(err)
 	streamClient := stream.NewConsulClient(conn)
 
@@ -757,7 +996,7 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 
 	// Start a Subscribe call to our streaming endpoint from the client.
 	{
-		conn, err := client.grpcClient.GRPCConn(nil)
+		conn, err := client.GRPCConn()
 		require.NoError(err)
 
 		streamClient := stream.NewConsulClient(conn)
@@ -789,6 +1028,8 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 		conn, err := server.GRPCConn()
 		require.NoError(err)
 
+		retryFailedConn(t, conn)
+
 		streamClient := stream.NewConsulClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
@@ -814,6 +1055,84 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 	}
 }
 
+func TestStreaming_TLSReload(t *testing.T) {
+	t.Parallel()
+
+	// Set up a server with initially bad certificates.
+	require := require.New(t)
+	dir1, conf1 := testServerConfig(t)
+	conf1.VerifyIncoming = true
+	conf1.VerifyOutgoing = true
+	conf1.CAFile = "../../test/ca/root.cer"
+	conf1.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
+	conf1.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+
+	server, err := newServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer server.Shutdown()
+
+	// Set up a client with valid certs and verify_outgoing = true
+	dir2, conf2 := testClientConfig(t)
+	conf2.VerifyOutgoing = true
+	configureTLS(conf2)
+	client, err := NewClient(conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	testrpc.WaitForLeader(t, server.RPC, "dc1")
+
+	// Subscribe calls should fail initially
+	joinLAN(t, client, server)
+	conn, err := client.GRPCConn()
+	require.NoError(err)
+	{
+		streamClient := stream.NewConsulClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_, err = streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.Error(err, "tls: bad certificate")
+	}
+
+	// Reload the server with valid certs
+	newConf := server.config.ToTLSUtilConfig()
+	newConf.CertFile = "../../test/key/ourdomain.cer"
+	newConf.KeyFile = "../../test/key/ourdomain.key"
+	server.tlsConfigurator.Update(newConf)
+
+	// Try the subscribe call again
+	{
+		retryFailedConn(t, conn)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		streamClient := stream.NewConsulClient(conn)
+		_, err = streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+		require.NoError(err)
+	}
+}
+
+// retryFailedConn forces the ClientConn to reset its backoff timer and retry the connection,
+// to simulate the client eventually retrying after the initial failure. This is used both to simulate
+// retrying after an expected failure as well as to avoid flakiness when running many tests in parallel.
+func retryFailedConn(t *testing.T, conn *grpc.ClientConn) {
+	state := conn.GetState()
+	if state.String() != "TRANSIENT_FAILURE" {
+		return
+	}
+
+	// If the connection has failed, retry and wait for a state change.
+	conn.ResetConnectBackoff()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	require.True(t, conn.WaitForStateChange(ctx, state))
+}
+
 func TestStreaming_Filter(t *testing.T) {
 	t.Parallel()
 
@@ -833,6 +1152,9 @@ func TestStreaming_Filter(t *testing.T) {
 	testSubscribe := func(t *testing.T, req stream.SubscribeRequest, numEvents int) []*stream.Event {
 		conn, err := server.GRPCConn()
 		require.NoError(t, err)
+
+		// Make sure the connection succeeded.
+		retryFailedConn(t, conn)
 
 		streamClient := stream.NewConsulClient(conn)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

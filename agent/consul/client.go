@@ -58,8 +58,9 @@ type Client struct {
 	useNewACLs int32
 
 	// Connection pool to consul servers
-	connPool   *pool.ConnPool
-	grpcClient *GRPCClient
+	connPool            *pool.ConnPool
+	grpcClient          *GRPCClient
+	grpcResolverBuilder *ServerResolverBuilder
 
 	// routers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
@@ -181,12 +182,16 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		go c.monitorACLMode()
 	}
 
+	// Register the gRPC resolver used for connection balancing.
+	c.grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, c.shutdownCh)
+	go c.grpcResolverBuilder.periodicServerRebalance(c.serf)
+
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, c.grpcResolverBuilder)
 	go c.routers.Start()
 
-	// Start GRPC client.
-	c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator)
+	// Start the GRPC client.
+	c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator, config.GRPCResolverScheme)
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
@@ -280,10 +285,6 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 // Encrypted determines if gossip is encrypted
 func (c *Client) Encrypted() bool {
 	return c.serf.EncryptionEnabled()
-}
-
-var grpcAbleEndpoints = map[string]bool{
-	"Health.Test": true,
 }
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
@@ -383,7 +384,7 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 // GRPCConn returns a gRPC connection to a server.
 func (c *Client) GRPCConn() (*grpc.ClientConn, error) {
-	return c.grpcClient.GRPCConn(nil)
+	return c.grpcClient.GRPCConn(c.config.Datacenter)
 }
 
 // Stats is used to return statistics for debugging and insight

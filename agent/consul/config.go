@@ -421,6 +421,10 @@ type Config struct {
 	// AutoEncryptAllowTLS is whether to enable the server responding to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	// GRPCResolverScheme is the gRPC resolver scheme to use. This is only used for
+	// tests running in parallel to avoid overwriting each other.
+	GRPCResolverScheme string
 }
 
 // ToTLSUtilConfig is only used by tests, usually the config is being passed
@@ -540,6 +544,7 @@ func DefaultConfig() *Config {
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+		GRPCResolverScheme:   "consul",
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
