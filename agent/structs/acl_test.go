@@ -143,38 +143,16 @@ func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
 func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 	t.Parallel()
 
-	for _, test := range []struct {
+	cases := []struct {
 		serviceName string
 		datacenters []string
 		expectRules string
 	}{
-		{"web", nil, `
-service "web" {
-	policy = "write"
-}
-service "web-sidecar-proxy" {
-	policy = "write"
-}
-service_prefix "" {
-	policy = "read"
-}
-node_prefix "" {
-	policy = "read"
-}`},
-		{"companion-cube-99", []string{"dc1", "dc2"}, `
-service "companion-cube-99" {
-	policy = "write"
-}
-service "companion-cube-99-sidecar-proxy" {
-	policy = "write"
-}
-service_prefix "" {
-	policy = "read"
-}
-node_prefix "" {
-	policy = "read"
-}`},
-	} {
+		{"web", nil, aclServiceIdentityRules("web", nil)},
+		{"companion-cube-99", []string{"dc1", "dc2"}, aclServiceIdentityRules("companion-cube-99", nil)},
+	}
+
+	for _, test := range cases {
 		name := test.serviceName
 		if len(test.datacenters) > 0 {
 			name += " [" + strings.Join(test.datacenters, ", ") + "]"
