@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -637,7 +638,7 @@ func TestStreaming_Subscribe_FilterACL(t *testing.T) {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &arg, &token))
 	auth, err := server.ResolveToken(token.SecretID)
 	require.NoError(err)
-	require.False(auth.NodeRead("denied"))
+	require.Equal(auth.NodeRead("denied", nil), acl.Deny)
 
 	// Register another instance of service foo on a fake node the token doesn't have access to.
 	regArg := structs.RegisterRequest{
@@ -833,7 +834,7 @@ node "%s" {
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
 	auth, err := server.ResolveToken(token)
 	require.NoError(err)
-	require.False(auth.NodeRead("denied"))
+	require.Equal(auth.NodeRead("denied", nil), acl.Deny)
 
 	// Set up the gRPC client.
 	conn, err := client.GRPCConn()

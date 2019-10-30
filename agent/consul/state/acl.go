@@ -633,7 +633,7 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id")
+	existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id", nil)
 	if err != nil {
 		return err
 	}
@@ -665,7 +665,7 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 
 	var events []stream.Event
 	for _, token := range tokens {
-		existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id")
+		existing, err := s.aclTokenGetTxn(tx, nil, token.SecretID, "id", nil)
 		if err != nil {
 			return err
 		}
@@ -881,7 +881,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	tokens, err := s.aclTokenListTxn(tx, ws, local, global, policy, role, methodName)
+	tokens, err := s.aclTokenListTxn(tx, ws, local, global, policy, role, methodName, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -893,7 +893,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 }
 
 // aclTokenListTxn is used to list out all of the ACLs in the state store within a transaction.
-func (s *Store) aclTokenListTxn(tx *memdb.Txn, ws memdb.WatchSet, local, global bool, policy, role, methodName string) (structs.ACLTokens, error) {
+func (s *Store) aclTokenListTxn(tx *memdb.Txn, ws memdb.WatchSet, local, global bool, policy, role, methodName string, entMeta *structs.EnterpriseMeta) (structs.ACLTokens, error) {
 	var iter memdb.ResultIterator
 	var err error
 
@@ -1063,7 +1063,8 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 
 	var events []stream.Event
 	for _, tokenID := range tokenIDs {
-		if err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor", nil); err != nil {
+		token, err := s.aclTokenDeleteTxn(tx, idx, tokenID, "accessor", nil)
+		if err != nil {
 			return err
 		}
 		if token != nil {
@@ -1083,7 +1084,8 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	if err := s.aclTokenDeleteTxn(tx, idx, value, index, entMeta); err != nil {
+	token, err := s.aclTokenDeleteTxn(tx, idx, value, index, entMeta)
+	if err != nil {
 		return err
 	}
 
@@ -1098,18 +1100,23 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs
 	return nil
 }
 
-func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
 	// Look up the existing token
-	_, token, err := s.aclTokenGetFromIndex(tx, value, index, entMeta)
+	_, t, err := s.aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
 	}
 
+	if t == nil {
+		return nil, nil
+	}
+
+	token := t.(*structs.ACLToken)
 	if token.AccessorID == structs.ACLTokenAnonymousID {
 		return nil, fmt.Errorf("Deletion of the builtin anonymous token is not permitted")
 	}
 
-	return s.aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
+	return token, s.aclTokenDeleteWithToken(tx, token, idx)
 }
 
 func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string, entMeta *structs.EnterpriseMeta) error {
@@ -1143,7 +1150,7 @@ func (s *Store) ACLPolicyBatchSet(idx uint64, policies structs.ACLPolicies) erro
 
 	var events []stream.Event
 	for _, policy := range policies {
-		existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, "id")
+		existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, s.aclPolicyGetByID, nil)
 		if err != nil {
 			return err
 		}
@@ -1174,7 +1181,7 @@ func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, "id")
+	existing, err := s.getPolicyWithTxn(tx, nil, policy.ID, s.aclPolicyGetByID, nil)
 	if err != nil {
 		return err
 	}
@@ -1376,7 +1383,7 @@ func (s *Store) aclPolicyDelete(idx uint64, value string, fn aclPolicyGetFn, ent
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	existing, err := s.getPolicyWithTxn(tx, nil, value, index)
+	existing, err := s.getPolicyWithTxn(tx, nil, value, fn, entMeta)
 	if err != nil {
 		return err
 	}
@@ -1422,7 +1429,7 @@ func (s *Store) ACLRoleBatchSet(idx uint64, roles structs.ACLRoles, allowMissing
 
 	var events []stream.Event
 	for _, role := range roles {
-		existing, err := s.getRoleWithTxn(tx, nil, role.ID, "id")
+		existing, err := s.getRoleWithTxn(tx, nil, role.ID, s.aclRoleGetByID, nil)
 		if err != nil {
 			return err
 		}
@@ -1453,7 +1460,7 @@ func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	existing, err := s.getRoleWithTxn(tx, nil, role.ID, "id")
+	existing, err := s.getRoleWithTxn(tx, nil, role.ID, s.aclRoleGetByID, nil)
 	if err != nil {
 		return err
 	}
@@ -1597,7 +1604,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	roles, err := s.aclRoleListTxn(tx, ws, policy)
+	roles, err := s.aclRoleListTxn(tx, ws, policy, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1608,7 +1615,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	return idx, roles, nil
 }
 
-func (s *Store) aclRoleListTxn(tx *memdb.Txn, ws memdb.WatchSet, policy string) (structs.ACLRoles, error) {
+func (s *Store) aclRoleListTxn(tx *memdb.Txn, ws memdb.WatchSet, policy string, entMeta *structs.EnterpriseMeta) (structs.ACLRoles, error) {
 	var iter memdb.ResultIterator
 	var err error
 
@@ -1672,7 +1679,7 @@ func (s *Store) aclRoleDelete(idx uint64, value string, fn aclRoleGetFn, entMeta
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	existing, err := s.getRoleWithTxn(tx, nil, value, index)
+	existing, err := s.getRoleWithTxn(tx, nil, value, fn, entMeta)
 	if err != nil {
 		return err
 	}

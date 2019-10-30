@@ -1134,11 +1134,11 @@ func (f *aclFilter) allowEvent(event stream.Event) bool {
 	for _, rule := range event.RequiredACLs {
 		switch rule.Resource {
 		case stream.ACLResource_NodeACL:
-			if !f.allowNode(rule.Segment) {
+			if !f.allowNode(rule.Segment, nil) {
 				allow = false
 			}
 		case stream.ACLResource_ServiceACL:
-			if !f.allowService(rule.Segment) {
+			if !f.allowService(rule.Segment, nil) {
 				allow = false
 			}
 		default:

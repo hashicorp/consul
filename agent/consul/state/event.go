@@ -143,7 +143,7 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 	case stream.Topic_ACLPolicies:
 		policy := event.GetACLPolicy()
 		affectedSubs := make(map[*stream.SubscribeRequest]chan stream.Event)
-		tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, policy.PolicyID, "", "")
+		tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, policy.PolicyID, "", "", nil)
 		if err != nil {
 			return err
 		}
@@ -158,12 +158,12 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 		}
 
 		// Find any roles using this policy so tokens with those roles can be reloaded.
-		roles, err := e.store.aclRoleListTxn(tx, nil, policy.PolicyID)
+		roles, err := e.store.aclRoleListTxn(tx, nil, policy.PolicyID, nil)
 		if err != nil {
 			return err
 		}
 		for _, role := range roles {
-			tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, "", role.ID, "")
+			tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, "", role.ID, "", nil)
 			if err != nil {
 				return err
 			}
@@ -181,7 +181,7 @@ func (e *EventPublisher) handleACLUpdate(tx *memdb.Txn, event stream.Event) erro
 
 	case stream.Topic_ACLRoles:
 		role := event.GetACLRole()
-		tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, "", role.RoleID, "")
+		tokens, err := e.store.aclTokenListTxn(tx, nil, true, true, "", role.RoleID, "", nil)
 		if err != nil {
 			return err
 		}

@@ -33,7 +33,6 @@ func ToCheckServiceNode(n *structs.CheckServiceNode) *CheckServiceNode {
 			Port:                       service.Port,
 			Weights:                    ToWeights(service.Weights),
 			EnableTagOverride:          service.EnableTagOverride,
-			ProxyDestination:           service.ProxyDestination,
 			LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
 			RaftIndex:                  ToRaftIndex(service.RaftIndex),
 		}
@@ -69,19 +68,6 @@ func ToRaftIndex(r structs.RaftIndex) RaftIndex {
 	return RaftIndex{
 		CreateIndex: r.CreateIndex,
 		ModifyIndex: r.ModifyIndex,
-	}
-}
-
-func ToServiceDefinitionConnectProxy(p *structs.ServiceDefinitionConnectProxy) *ServiceDefinitionConnectProxy {
-	if p == nil {
-		return nil
-	}
-
-	return &ServiceDefinitionConnectProxy{
-		Command:   p.Command,
-		ExecMode:  p.ExecMode,
-		Config:    p.Config,
-		Upstreams: ToUpstreams(p.Upstreams),
 	}
 }
 
@@ -125,7 +111,6 @@ func ToServiceConnect(s *structs.ServiceConnect) *ServiceConnect {
 
 	return &ServiceConnect{
 		Native:         s.Native,
-		Proxy:          ToServiceDefinitionConnectProxy(s.Proxy),
 		SidecarService: ToServiceDefinition(s.SidecarService),
 	}
 }
@@ -147,7 +132,6 @@ func ToServiceDefinition(s *structs.ServiceDefinition) *ServiceDefinition {
 		Weights:           ToWeights(s.Weights),
 		Token:             s.Token,
 		EnableTagOverride: s.EnableTagOverride,
-		ProxyDestination:  s.ProxyDestination,
 		Proxy:             ToConnectProxyConfig(s.Proxy),
 		Connect:           ToServiceConnect(s.Connect),
 	}
