@@ -1304,6 +1304,15 @@ default will automatically work with some tooling.
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).
 
+* <a name="log_rotate_duration"></a><a href="#log_rotate_duration">`log_rotate_duration`</a> Equivalent to the
+  [`-log-rotate-duration` command-line flag](#_log_rotate_duration).
+
+* <a name="log_rotate_bytes"></a><a href="#log_rotate_bytes">`log_rotate_bytes`</a> Equivalent to the
+  [`-log-rotate-bytes` command-line flag](#_log_rotate_bytes).
+
+* <a name="log_rotate_max_files"></a><a href="#log_rotate_max_files">`log_rotate_max_files`</a> Equivalent to the
+  [`-log-rotate-max-files` command-line flag](#_log_rotate_max_files).
+
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
 
