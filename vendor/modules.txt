@@ -5,10 +5,11 @@ github.com/Azure/azure-sdk-for-go/services/network/mgmt/2015-06-15/network
 github.com/Azure/azure-sdk-for-go/version
 # github.com/Azure/go-autorest v10.15.3+incompatible
 github.com/Azure/go-autorest/autorest
-github.com/Azure/go-autorest/autorest/adal
+github.com/Azure/go-autorest/autorest/azure/auth
 github.com/Azure/go-autorest/autorest/azure
 github.com/Azure/go-autorest/autorest/to
 github.com/Azure/go-autorest/autorest/validation
+github.com/Azure/go-autorest/autorest/adal
 github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/version
 github.com/Azure/go-autorest/autorest/date
@@ -84,6 +85,8 @@ github.com/denverdino/aliyungo/util
 github.com/dgrijalva/jwt-go
 # github.com/digitalocean/godo v1.10.0
 github.com/digitalocean/godo
+# github.com/dimchansky/utfbom v1.1.0
+github.com/dimchansky/utfbom
 # github.com/docker/go-connections v0.3.0
 github.com/docker/go-connections/sockets
 # github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
@@ -169,7 +172,7 @@ github.com/hashicorp/go-bexpr
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
+# github.com/hashicorp/go-discover v0.0.0-20190905142513-34a650575f6c
 github.com/hashicorp/go-discover
 github.com/hashicorp/go-discover/provider/k8s
 github.com/hashicorp/go-discover/provider/aliyun
@@ -177,6 +180,7 @@ github.com/hashicorp/go-discover/provider/aws
 github.com/hashicorp/go-discover/provider/azure
 github.com/hashicorp/go-discover/provider/digitalocean
 github.com/hashicorp/go-discover/provider/gce
+github.com/hashicorp/go-discover/provider/linode
 github.com/hashicorp/go-discover/provider/mdns
 github.com/hashicorp/go-discover/provider/os
 github.com/hashicorp/go-discover/provider/packet
@@ -272,6 +276,8 @@ github.com/joyent/triton-go/errors
 github.com/json-iterator/go
 # github.com/kr/text v0.1.0
 github.com/kr/text
+# github.com/linode/linodego v0.7.1
+github.com/linode/linodego
 # github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.3
@@ -395,8 +401,10 @@ golang.org/x/crypto/ed25519
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/pkcs12
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
+golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/poly1305
@@ -417,6 +425,7 @@ golang.org/x/net/internal/socket
 golang.org/x/net/internal/timeseries
 golang.org/x/net/internal/socks
 golang.org/x/net/context/ctxhttp
+golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 golang.org/x/oauth2
 golang.org/x/oauth2/google
@@ -498,6 +507,8 @@ google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/internal/syscall
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
+# gopkg.in/resty.v1 v1.12.0
+gopkg.in/resty.v1
 # gopkg.in/square/go-jose.v2 v2.3.1
 gopkg.in/square/go-jose.v2/jwt
 gopkg.in/square/go-jose.v2
