@@ -117,7 +117,7 @@ particularly with configuration management and init systems.
 
 These environment variables and their purpose are described below:
 
-## `CONSUL_HTTP_ADDR`
+### `CONSUL_HTTP_ADDR`
 
 This is the HTTP API address to the *local* Consul agent
 (not the remote server) specified as a URI with optional scheme:
