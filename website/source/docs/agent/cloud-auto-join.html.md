@@ -369,6 +369,29 @@ $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=..
 - `url` (optional) - 		 a REST URL for packet
 - `address_type` (optional) - the type of address to check for in this provider  ("private_v4", "public_v4" or "public_v6".                                   Defaults to "private_v4")
 
+### Linode
+
+This returns the first private IP address of all servers for the given `region` with the given `tag_name`.
+
+```sh
+$ consul agent -retry-join "provider=linode region=us-east tag_name=consul-server"
+```
+
+```json
+{
+        "retry-join": ["provider=linode region=us-east tag_name=consul-server"]
+}
+```
+
+- `provider` (required) is `linode`
+- `api_token` (required) - The Linode API token to use
+- `region` (optional) - The Linode region to filter on
+- `tag_name` (optional) - The tag name to filter on
+- `address_type` (optional) - the type of address to check for in this provider ("private_v4", "public_v4" or "public_v6". Defaults to "private_v4")
+
+Variables can also be provided by environment variables:
+
+- `LINODE_TOKEN` for `api_token`
 
 ### Kubernetes (k8s)
 
