@@ -202,31 +202,31 @@ Annotations can be used to configure the injection behavior.
 
         The name of the service is the name of the service registered with Consul. You can optionally specify datacenters with this annotation. 
         
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
         ```
 
     * [Prepared Query](https://www.consul.io/docs/connect/proxies.html#upstreams)
 
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams": "prepared_query:[query name]:[port]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams": "prepared_query:[query name]:[port]"
         ````
 
     * Multiple Upstreams
 
         If you would like to specify multiple services or upstreams, delimit them with commas
 
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
         ```
 
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
         ```
-        
-      
-
-
 
 * `consul.hashicorp.com/connect-service-protocol` - For pods that will be
   registered with Consul's [central configuration](/docs/agent/config_entries.html)
@@ -236,6 +236,24 @@ Annotations can be used to configure the injection behavior.
   [defaultProtocol](/docs/platform/k8s/helm.html#v-connectinject-centralconfig-defaultprotocol)
   option. Specific annotations will always override the default value.
 
+* `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
+  be applied to the Consul service and its sidecar.
+  
+    ```yaml
+    annotations:
+      consul.hashicorp.com/service-tags: foo,bar,baz
+    ```
+    
+* `consul.hashicorp.com/service-meta-<YOUR_KEY>` - Set Consul meta key/value
+   pairs that will be applied to the Consul service and its sidecar.
+   The key will be what comes after `consul.hashicorp.com/service-meta-`, e.g.
+   `consul.hashicorp.com/service-meta-foo: bar` will result in `foo: bar`.
+  
+    ```yaml
+    annotations:
+      consul.hashicorp.com/service-meta-foo: baz
+      consul.hashicorp.com/service-meta-bar: baz
+    ```
 
 ### Deployments, StatefulSets, etc.
 
