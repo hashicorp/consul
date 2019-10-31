@@ -12,8 +12,12 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
+var registerLock sync.Mutex
+
 // registerResolverBuilder registers our custom grpc resolver with the given scheme.
 func registerResolverBuilder(scheme, datacenter string, shutdownCh <-chan struct{}) *ServerResolverBuilder {
+	registerLock.Lock()
+	defer registerLock.Unlock()
 	grpcResolverBuilder := NewServerResolverBuilder(scheme, datacenter, shutdownCh)
 	resolver.Register(grpcResolverBuilder)
 	return grpcResolverBuilder
