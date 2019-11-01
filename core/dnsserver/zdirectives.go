@@ -35,6 +35,7 @@ var Directives = []string{
 	"dnssec",
 	"autopath",
 	"template",
+	"transfer",
 	"hosts",
 	"route53",
 	"azure",
