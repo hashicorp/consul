@@ -1458,17 +1458,17 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		return fmt.Errorf("Invalid Role: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
 	}
 
+	var existing *structs.ACLRole
+	var err error
 	if role.ID == "" {
 		// with no role ID one will be generated
-		var err error
-
 		role.ID, err = lib.GenerateUUID(a.srv.checkRoleUUID)
 		if err != nil {
 			return err
 		}
 
 		// validate the name is unique
-		if _, existing, err := state.ACLRoleGetByName(nil, role.Name, &role.EnterpriseMeta); err != nil {
+		if _, existing, err = state.ACLRoleGetByName(nil, role.Name, &role.EnterpriseMeta); err != nil {
 			return fmt.Errorf("acl role lookup by name failed: %v", err)
 		} else if existing != nil {
 			return fmt.Errorf("Invalid Role: A Role with Name %q already exists", role.Name)
@@ -1479,7 +1479,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		}
 
 		// Verify the role exists
-		_, existing, err := state.ACLRoleGetByID(nil, role.ID, nil)
+		_, existing, err = state.ACLRoleGetByID(nil, role.ID, nil)
 		if err != nil {
 			return fmt.Errorf("acl role lookup failed: %v", err)
 		} else if existing == nil {
@@ -1493,6 +1493,11 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 				return fmt.Errorf("Invalid Role: A role with name %q already exists", role.Name)
 			}
 		}
+	}
+
+	// validate the enterprise meta
+	if err := state.ACLRoleUpsertValidateEnterprise(role, existing); err != nil {
+		return err
 	}
 
 	policyIDs := make(map[string]struct{})
