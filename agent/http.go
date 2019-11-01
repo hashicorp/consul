@@ -892,7 +892,7 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 			value := strings.TrimSpace(strings.Join(parts[1:], " "))
 
 			// <Scheme> must be "Bearer"
-			if scheme == "Bearer" {
+			if strings.ToLower(scheme) == "bearer" {
 				// Since Bearer tokens shouldnt contain spaces (rfc6750#section-2.1)
 				// "value" is tokenized, only the first item is used
 				tok = strings.TrimSpace(strings.Split(value, " ")[0])
