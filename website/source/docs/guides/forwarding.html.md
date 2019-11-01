@@ -185,8 +185,16 @@ Binding to port 53 will usually require running either as a privileged user (or 
 CAP_NET_BIND_SERVICE capability). If using the Consul docker image you will need to add the following to the
 environment to allow Consul to use the port: `CONSUL_ALLOW_PRIVILEGED_PORTS=yes`
 
-Note: With this setup, PTR record queries will still be sent out
-to the other configured resolvers in addition to Consul.
+Note: With this setup, PTR record queries will still be sent out to the other configured resolvers in
+addition to Consul. If you wish to restrict this behavior, your `resolved.conf` should be modified to
+
+```
+DNS=127.0.0.1
+Domains=~consul ~0.10.in-addr.arpa
+```
+
+where the example corresponds to reverse lookups of addresses in the IP range `10.0.0.0/16`. Your
+configuration should match your networks.
 
 ## iptables Setup
 
