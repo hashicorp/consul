@@ -2079,15 +2079,19 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	t2, err := upsertTestToken(codec, "root", "dc1", nil)
 	require.NoError(t, err)
 
-	t3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
-		token.ExpirationTTL = 20 * time.Millisecond
-	})
-	require.NoError(t, err)
-
 	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)
 
 	t.Run("normal", func(t *testing.T) {
+		// this will still be racey even with inserting the token + ttl inside the test function
+		// however previously inserting it outside of the subtest func resulted in this being
+		// extra flakey due to there being more code that needed to run to setup the subtest
+		// between when we inserted the token and when we performed the listing.
+		t3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+			token.ExpirationTTL = 50 * time.Millisecond
+		})
+		require.NoError(t, err)
+
 		req := structs.ACLTokenListRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: "root"},
@@ -2108,7 +2112,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
 	})
 
-	time.Sleep(20 * time.Millisecond) // now 't3' is expired
+	time.Sleep(50 * time.Millisecond) // now 't3' is expired
 
 	t.Run("filter expired", func(t *testing.T) {
 		req := structs.ACLTokenListRequest{
@@ -4434,6 +4438,9 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	})
 
 	t.Run("logout of remote token in remote dc", func(t *testing.T) {
+		// if the other test fails this one will to but will now not segfault
+		require.NotNil(t, remoteToken)
+
 		req := structs.ACLLogoutRequest{
 			Datacenter:   "dc2",
 			WriteRequest: structs.WriteRequest{Token: remoteToken.SecretID},
