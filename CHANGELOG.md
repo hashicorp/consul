@@ -25,6 +25,7 @@ BUG FIXES
 * connect: connect CA Roots in secondary datacenters should use a SigningKeyID derived from their local intermediate [[GH-6513](https://github.com/hashicorp/consul/issues/6513)]
 * connect: don't colon-hex-encode the AuthorityKeyId and SubjectKeyId fields in connect certs [[GH-6492](https://github.com/hashicorp/consul/issues/6492)]
 * connect: intermediate CA certs generated with the vault provider lack URI SANs [[GH-6491](https://github.com/hashicorp/consul/issues/6491)]
+* connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
 * xds: tcp services using the discovery chain should not assume RDS during LDS [[GH-6623](https://github.com/hashicorp/consul/issues/6623)]
 * debug: Fixed potential issue with adding to a wait group inside of go routines instead of prior to running them [[GH-6649](https://github.com/hashicorp/consul/pull/6649)]
 
