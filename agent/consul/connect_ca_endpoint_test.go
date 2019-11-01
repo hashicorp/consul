@@ -144,6 +144,112 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 	}
 }
 
+// This test case tests that the logic around forcing a rotation without cross
+// signing works when requested (and is denied when not requested). This occurs
+// if the current CA is not able to cross sign external CA certificates.
+func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	// Setup a server with a built-in CA that as artificially disabled cross
+	// signing. This is simpler than running tests with external CA dependencies.
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig.Config["DisableCrossSigning"] = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Store the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+	oldRoot := rootList.Roots[0]
+
+	// Get the starting config
+	{
+		args := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var reply structs.CAConfiguration
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
+
+		actual, err := ca.ParseConsulCAConfig(reply.Config)
+		require.NoError(err)
+		expected, err := ca.ParseConsulCAConfig(s1.config.CAConfig.Config)
+		require.NoError(err)
+		require.Equal(reply.Provider, s1.config.CAConfig.Provider)
+		require.Equal(actual, expected)
+	}
+
+	// Update to a new CA with different key. This should fail since the existing
+	// CA doesn't support cross signing so can't rotate safely.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey": newKey,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+		require.EqualError(err, "The current CA Provider does not support cross-signing. "+
+			"You can try again with ForceWithoutCrossSigningSet but this may cause disruption"+
+			" - see documentation for more.")
+	}
+
+	// Now try again with the force flag set and it should work
+	{
+		newConfig.ForceWithoutCrossSigning = true
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+		require.NoError(err)
+	}
+
+	// Make sure the new root has been added but with no cross-signed intermediate
+	{
+		args := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var reply structs.IndexedCARoots
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+		require.Len(reply.Roots, 2)
+
+		for _, r := range reply.Roots {
+			if r.ID == oldRoot.ID {
+				// The old root should no longer be marked as the active root,
+				// and none of its other fields should have changed.
+				require.False(r.Active)
+				require.Equal(r.Name, oldRoot.Name)
+				require.Equal(r.RootCert, oldRoot.RootCert)
+				require.Equal(r.SigningCert, oldRoot.SigningCert)
+				require.Equal(r.IntermediateCerts, oldRoot.IntermediateCerts)
+			} else {
+				// The new root should NOT have a valid cross-signed cert from the old
+				// root as an intermediate.
+				require.True(r.Active)
+				require.Empty(r.IntermediateCerts)
+			}
+		}
+	}
+}
+
 func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	t.Parallel()
 

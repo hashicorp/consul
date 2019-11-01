@@ -138,6 +138,16 @@ func (msg *CrossSignCAResponse) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *BoolResponse) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *BoolResponse) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *Empty) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

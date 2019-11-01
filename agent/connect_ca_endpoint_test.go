@@ -5,14 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,61 +62,112 @@ func TestConnectCARoots_list(t *testing.T) {
 func TestConnectCAConfig(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-	expected := &structs.ConsulCAProviderConfig{
-		RotationPeriod: 90 * 24 * time.Hour,
-	}
-	expected.LeafCertTTL = 72 * time.Hour
-	expected.PrivateKeyType = connect.DefaultPrivateKeyType
-	expected.PrivateKeyBits = connect.DefaultPrivateKeyBits
-
-	// Get the initial config.
-	{
-		req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ConnectCAConfiguration(resp, req)
-		assert.NoError(err)
-
-		value := obj.(structs.CAConfiguration)
-		parsed, err := ca.ParseConsulCAConfig(value.Config)
-		assert.NoError(err)
-		assert.Equal("consul", value.Provider)
-		assert.Equal(expected, parsed)
-	}
-
-	// Set the config.
-	{
-		body := bytes.NewBuffer([]byte(`
+	tests := []struct {
+		name    string
+		body    string
+		wantErr bool
+		wantCfg structs.CAConfiguration
+	}{
 		{
-			"Provider": "consul",
-			"Config": {
-				"LeafCertTTL": "72h",
-				"RotationPeriod": "1h"
-			}
-		}`))
-		req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)
-		resp := httptest.NewRecorder()
-		_, err := a.srv.ConnectCAConfiguration(resp, req)
-		assert.NoError(err)
+			name: "basic",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+			},
+		},
+		{
+			name: "force without cross sign CamelCase",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
+				},
+				"ForceWithoutCrossSigning": true
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+				ForceWithoutCrossSigning: true,
+			},
+		},
+		{
+			name: "force without cross sign snake_case",
+			body: `
+			{
+				"provider": "consul",
+				"config": {
+					"leaf_cert_ttl": "72h",
+					"rotation_period": "1h"
+				},
+				"force_without_cross_signing": true
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+				ForceWithoutCrossSigning: true,
+			},
+		},
 	}
 
-	// The config should be updated now.
-	{
-		expected.RotationPeriod = time.Hour
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+			a := NewTestAgent(t, t.Name(), "")
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-		req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ConnectCAConfiguration(resp, req)
-		assert.NoError(err)
+			// Set the config.
+			{
+				body := bytes.NewBuffer([]byte(tc.body))
+				req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)
+				resp := httptest.NewRecorder()
+				_, err := a.srv.ConnectCAConfiguration(resp, req)
+				if tc.wantErr {
+					require.Error(err)
+					return
+				}
+				require.NoError(err)
+			}
 
-		value := obj.(structs.CAConfiguration)
-		parsed, err := ca.ParseConsulCAConfig(value.Config)
-		assert.NoError(err)
-		assert.Equal("consul", value.Provider)
-		assert.Equal(expected, parsed)
+			// The config should be updated now.
+			{
+				req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.ConnectCAConfiguration(resp, req)
+				require.NoError(err)
+
+				got := obj.(structs.CAConfiguration)
+				// Reset Raft indexes to make it non flaky
+				got.CreateIndex = 0
+				got.ModifyIndex = 0
+				require.Equal(tc.wantCfg, got)
+			}
+		})
 	}
 }
