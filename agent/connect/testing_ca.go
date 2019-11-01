@@ -27,6 +27,35 @@ const TestClusterID = "11111111-2222-3333-4444-555555555555"
 // unique names for the CA certs.
 var testCACounter uint64
 
+// ValidateLeaf is a convenience helper that returns an error if the certificate
+// provided in leadPEM does not validate against the CAs provided. If there is
+// an intermediate CA then it's cert must be in caPEMs as well as the root.
+func ValidateLeaf(caPEM string, leafPEM string, intermediatePEMs []string) error {
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM([]byte(caPEM))
+	if !ok {
+		return fmt.Errorf("Failed to add root CA")
+	}
+
+	intermediates := x509.NewCertPool()
+	for idx, ca := range intermediatePEMs {
+		ok := intermediates.AppendCertsFromPEM([]byte(ca))
+		if !ok {
+			return fmt.Errorf("Failed to add intermediate CA at index %d to pool", idx)
+		}
+	}
+
+	leaf, err := ParseCert(leafPEM)
+	if err != nil {
+		return err
+	}
+	_, err = leaf.Verify(x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: intermediates,
+	})
+	return err
+}
+
 func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
 	var result structs.CARoot
 	result.Active = true
@@ -36,8 +65,6 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	signer, keyPEM := testPrivateKey(t, keyType, keyBits)
 	result.SigningKey = keyPEM
 	result.SigningKeyID = EncodeSigningKeyID(testKeyID(t, signer.Public()))
-	result.PrivateKeyType = keyType
-	result.PrivateKeyBits = keyBits
 
 	// The serial number for the cert
 	sn, err := testSerialNumber()
@@ -83,6 +110,8 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	result.SerialNumber = uint64(sn.Int64())
 	result.NotBefore = template.NotBefore.UTC()
 	result.NotAfter = template.NotAfter.UTC()
+	result.PrivateKeyType = keyType
+	result.PrivateKeyBits = keyBits
 
 	// If there is a prior CA to cross-sign with, then we need to create that
 	// and set it as the signing cert.
@@ -174,9 +203,9 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 		return "", "", fmt.Errorf("failed to generate private key: %s", err)
 	}
 
-	sigAlgo := x509.ECDSAWithSHA256
-	if keyType == "rsa" {
-		sigAlgo = x509.SHA256WithRSA
+	rootKeyType, _, err := KeyInfoFromCert(caCert)
+	if err != nil {
+		return "", "", fmt.Errorf("error getting CA key type: %s", err)
 	}
 
 	// Cert template for generation
@@ -184,7 +213,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: service},
 		URIs:                  []*url.URL{spiffeId.URI()},
-		SignatureAlgorithm:    sigAlgo,
+		SignatureAlgorithm:    SigAlgoForKeyType(rootKeyType),
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageDataEncipherment |
 			x509.KeyUsageKeyAgreement |
@@ -218,7 +247,12 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 // TestLeaf returns a valid leaf certificate and it's private key for the named
 // service with the given CA Root.
 func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
-	certPEM, keyPEM, err := testLeaf(t, service, root, root.PrivateKeyType, root.PrivateKeyBits)
+	// Currently we only support EC leaf keys and certs even if the CA is using
+	// RSA. We might allow Leafs to follow the signing CA key type later if we
+	// need to for compatibility sake but this is allowed by TLS 1.2 and works with
+	// both openssl verify (which we use as a sanity check in our tests of this
+	// package) and Go's TLS verification.
+	certPEM, keyPEM, err := testLeaf(t, service, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -325,8 +359,6 @@ func testCAConfigSet(t testing.T, a TestAgentRPC,
 			"PrivateKey":     ca.SigningKey,
 			"RootCert":       ca.RootCert,
 			"RotationPeriod": 180 * 24 * time.Hour,
-			"PrivateKeyType": ca.PrivateKeyType,
-			"PrivateKeyBits": ca.PrivateKeyBits,
 		},
 	}
 	args := &structs.CARequest{

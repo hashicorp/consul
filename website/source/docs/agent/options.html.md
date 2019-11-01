@@ -914,19 +914,18 @@ default will automatically work with some tooling.
 
         <p>There are also a number of common configuration options supported by all providers:</p>
 
-        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The upper bound on the
-          lease duration of a leaf certificate issued for a service. In most
-          cases a new leaf certificate will be requested by a proxy before this
-          limit is reached. This is also the effective limit on how long a
-          server outage can last (with no leader) before network connections
-          will start being rejected, and as a result the defaults is `72h` to
-          last through a weekend without intervention. This value cannot be
-          lower than 1 hour or higher than 1 year.
-
-            This value is also used when rotating out old root certificates from
-            the cluster. When a root certificate has been inactive (rotated out)
-            for more than twice the *current* `leaf_cert_ttl`, it will be removed
-            from the trusted list.
+        * <a name="ca_csr_max_concurrent"></a><a
+          href="#ca_csr_max_concurrent">`csr_max_concurrent`</a> Sets a limit
+          on how many Certificate Signing Requests will be processed
+          concurrently. Defaults to 0 (disabled). This is useful when you have
+          more than one or two cores available to the server. For example on an
+          8 core server, setting this to 1 will ensure that even during a CA
+          rotation no more than one server core on the leader will be consumed
+          at a time with generating new certificates. Setting this is
+          recommended _instead_ of `csr_max_per_second` where you know there are
+          multiple cores available since it is simpler to reason about limiting
+          CSR resources this way without artificially slowing down rotations.
+          Added in 1.4.1.
 
         * <a name="ca_csr_max_per_second"></a><a
           href="#ca_csr_max_per_second">`csr_max_per_second`</a> Sets a rate
@@ -941,18 +940,58 @@ default will automatically work with some tooling.
           `csr_max_concurrent` instead if servers have more than one core.
           Setting this to zero disables rate limiting. Added in 1.4.1.
 
-        * <a name="ca_csr_max_concurrent"></a><a
-          href="#ca_csr_max_concurrent">`csr_max_concurrent`</a> Sets a limit
-          on how many Certificate Signing Requests will be processed
-          concurrently. Defaults to 0 (disabled). This is useful when you have
-          more than one or two cores available to the server. For example on an
-          8 core server, setting this to 1 will ensure that even during a CA
-          rotation no more than one server core on the leader will be consumed
-          at a time with generating new certificates. Setting this is
-          recommended _instead_ of `csr_max_per_second` where you know there are
-          multiple cores available since it is simpler to reason about limiting
-          CSR resources this way without artificially slowing down rotations.
-          Added in 1.4.1.
+        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The upper bound on the
+          lease duration of a leaf certificate issued for a service. In most
+          cases a new leaf certificate will be requested by a proxy before this
+          limit is reached. This is also the effective limit on how long a
+          server outage can last (with no leader) before network connections
+          will start being rejected, and as a result the defaults is `72h` to
+          last through a weekend without intervention. This value cannot be
+          lower than 1 hour or higher than 1 year.
+
+            This value is also used when rotating out old root certificates from
+            the cluster. When a root certificate has been inactive (rotated out)
+            for more than twice the *current* `leaf_cert_ttl`, it will be removed
+            from the trusted list.
+
+        * <a name="ca_private_key_type"></a><a
+          href="#ca_private_key_type">`private_key_type`</a> The type of key to
+          generate for this CA. This is only used when the provider is
+          generating a new key. If `private_key` is set for the Consul provider,
+          or existing root or intermediate PKI paths given for Vault then this
+          will be ignored. Currently supported options are `ec` or `rsa`.
+          Default is `ec`. 
+          
+            It is required that all servers in a Datacenter have
+          the same config for the CA. It is recommended that servers in
+          different Datacenters have the same CA config for key type and size
+          although the built-in CA and Vault provider will both allow mixed CA
+          key types.
+          
+            Some CA providers (currently Vault) will not allow cross-signing a
+            new CA certificate with a different key type. This means that if you
+            migrate from an RSA-keyed Vault CA to an EC-keyed CA from any
+            provider, you may have to proceed without cross-signing which risks
+            temporary connection issues for workloads during the new certificate
+            rollout. We highly recommend testing this outside of production to
+            understand the impact and suggest sticking to same key type where
+            possible.
+
+            Note that this only affects _CA_ keys generated by the provider.
+            Leaf certificate keys are always EC 256 regardless of the CA
+            configuration.
+
+        * <a name="ca_private_key_bits"></a><a
+          href="#ca_private_key_bits">`private_key_bits`</a> The length of key
+          to generate for this CA. This is only used when the provider is
+          generating a new key. If `private_key` is set for the Consul provider,
+          or existing root or intermediate PKI paths given for Vault then this
+          will be ignored.
+
+            Currently supported values are:
+             - `private_key_type = ec` (default): `224, 256, 384, 521`
+               corresponding to the NIST P-* curves of the same name.
+             - `private_key_type = rsa`: `2048, 4096`
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).

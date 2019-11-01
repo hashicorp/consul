@@ -62,7 +62,7 @@ func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockD
 
 func testConsulCAConfig() *structs.CAConfiguration {
 	return &structs.CAConfiguration{
-		ClusterID: "asdf",
+		ClusterID: connect.TestClusterID,
 		Provider:  "consul",
 		Config: map[string]interface{}{
 			// Tests duration parsing after msgpack type mangling during raft apply.
@@ -128,120 +128,138 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-	conf := testConsulCAConfig()
-	conf.Config["LeafCertTTL"] = "1h"
-	delegate := newMockDelegate(t, conf)
+	for _, tc := range KeyTestCases {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			require := require.New(t)
+			conf := testConsulCAConfig()
+			conf.Config["LeafCertTTL"] = "1h"
+			conf.Config["PrivateKeyType"] = tc.KeyType
+			conf.Config["PrivateKeyBits"] = tc.KeyBits
+			delegate := newMockDelegate(t, conf)
 
-	provider := &ConsulProvider{Delegate: delegate}
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
-	require.NoError(provider.GenerateRoot())
+			provider := &ConsulProvider{Delegate: delegate}
+			require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
+			require.NoError(provider.GenerateRoot())
 
-	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
-		Namespace:  "default",
-		Datacenter: "dc1",
-		Service:    "foo",
+			spiffeService := &connect.SpiffeIDService{
+				Host:       "node1",
+				Namespace:  "default",
+				Datacenter: "dc1",
+				Service:    "foo",
+			}
+
+			// Generate a leaf cert for the service.
+			{
+				raw, _ := connect.TestCSR(t, spiffeService)
+
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
+
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
+
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(parsed.URIs[0], spiffeService.URI())
+				require.Equal(parsed.Subject.CommonName, "foo")
+				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				requireNotEncoded(t, parsed.SubjectKeyId)
+				requireNotEncoded(t, parsed.AuthorityKeyId)
+
+				// Ensure the cert is valid now and expires within the correct limit.
+				now := time.Now()
+				require.True(parsed.NotAfter.Sub(now) < time.Hour)
+				require.True(parsed.NotBefore.Before(now))
+			}
+
+			// Generate a new cert for another service and make sure
+			// the serial number is incremented.
+			spiffeService.Service = "bar"
+			{
+				raw, _ := connect.TestCSR(t, spiffeService)
+
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
+
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
+
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(parsed.URIs[0], spiffeService.URI())
+				require.Equal(parsed.Subject.CommonName, "bar")
+				require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
+				requireNotEncoded(t, parsed.SubjectKeyId)
+				requireNotEncoded(t, parsed.AuthorityKeyId)
+
+				// Ensure the cert is valid now and expires within the correct limit.
+				require.True(time.Until(parsed.NotAfter) < 3*24*time.Hour)
+				require.True(parsed.NotBefore.Before(time.Now()))
+			}
+
+			spiffeAgent := &connect.SpiffeIDAgent{
+				Host:       "node1",
+				Datacenter: "dc1",
+				Agent:      "uuid",
+			}
+			// Generate a leaf cert for an agent.
+			{
+				raw, _ := connect.TestCSR(t, spiffeAgent)
+
+				csr, err := connect.ParseCSR(raw)
+				require.NoError(err)
+
+				cert, err := provider.Sign(csr)
+				require.NoError(err)
+
+				parsed, err := connect.ParseCert(cert)
+				require.NoError(err)
+				require.Equal(spiffeAgent.URI(), parsed.URIs[0])
+				require.Equal("uuid", parsed.Subject.CommonName)
+				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				requireNotEncoded(t, parsed.SubjectKeyId)
+				requireNotEncoded(t, parsed.AuthorityKeyId)
+
+				// Ensure the cert is valid now and expires within the correct limit.
+				now := time.Now()
+				require.True(parsed.NotAfter.Sub(now) < time.Hour)
+				require.True(parsed.NotBefore.Before(now))
+			}
+		})
 	}
-
-	// Generate a leaf cert for the service.
-	{
-		raw, _ := connect.TestCSR(t, spiffeService)
-
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
-
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
-
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.Equal(parsed.Subject.CommonName, "foo")
-		require.Equal(uint64(2), parsed.SerialNumber.Uint64())
-		requireNotEncoded(t, parsed.SubjectKeyId)
-		requireNotEncoded(t, parsed.AuthorityKeyId)
-
-		// Ensure the cert is valid now and expires within the correct limit.
-		now := time.Now()
-		require.True(parsed.NotAfter.Sub(now) < time.Hour)
-		require.True(parsed.NotBefore.Before(now))
-	}
-
-	// Generate a new cert for another service and make sure
-	// the serial number is incremented.
-	spiffeService.Service = "bar"
-	{
-		raw, _ := connect.TestCSR(t, spiffeService)
-
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
-
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
-
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(parsed.URIs[0], spiffeService.URI())
-		require.Equal(parsed.Subject.CommonName, "bar")
-		require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
-		requireNotEncoded(t, parsed.SubjectKeyId)
-		requireNotEncoded(t, parsed.AuthorityKeyId)
-
-		// Ensure the cert is valid now and expires within the correct limit.
-		require.True(time.Until(parsed.NotAfter) < 3*24*time.Hour)
-		require.True(parsed.NotBefore.Before(time.Now()))
-	}
-
-	spiffeAgent := &connect.SpiffeIDAgent{
-		Host:       "node1",
-		Datacenter: "dc1",
-		Agent:      "uuid",
-	}
-	// Generate a leaf cert for an agent.
-	{
-		raw, _ := connect.TestCSR(t, spiffeAgent)
-
-		csr, err := connect.ParseCSR(raw)
-		require.NoError(err)
-
-		cert, err := provider.Sign(csr)
-		require.NoError(err)
-
-		parsed, err := connect.ParseCert(cert)
-		require.NoError(err)
-		require.Equal(spiffeAgent.URI(), parsed.URIs[0])
-		require.Equal("uuid", parsed.Subject.CommonName)
-		require.Equal(uint64(2), parsed.SerialNumber.Uint64())
-		requireNotEncoded(t, parsed.SubjectKeyId)
-		requireNotEncoded(t, parsed.AuthorityKeyId)
-
-		// Ensure the cert is valid now and expires within the correct limit.
-		now := time.Now()
-		require.True(parsed.NotAfter.Sub(now) < time.Hour)
-		require.True(parsed.NotBefore.Before(now))
-	}
-
 }
 
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 
-	conf1 := testConsulCAConfig()
-	delegate1 := newMockDelegate(t, conf1)
-	provider1 := &ConsulProvider{Delegate: delegate1}
-	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
-	require.NoError(provider1.GenerateRoot())
+	tests := CASigningKeyTypeCases()
 
-	conf2 := testConsulCAConfig()
-	conf2.CreateIndex = 10
-	delegate2 := newMockDelegate(t, conf2)
-	provider2 := &ConsulProvider{Delegate: delegate2}
-	require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config))
-	require.NoError(provider2.GenerateRoot())
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			require := require.New(t)
 
-	testCrossSignProviders(t, provider1, provider2)
+			conf1 := testConsulCAConfig()
+			delegate1 := newMockDelegate(t, conf1)
+			provider1 := &ConsulProvider{Delegate: delegate1}
+			conf1.Config["PrivateKeyType"] = tc.SigningKeyType
+			conf1.Config["PrivateKeyBits"] = tc.SigningKeyBits
+			require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
+			require.NoError(provider1.GenerateRoot())
+
+			conf2 := testConsulCAConfig()
+			conf2.CreateIndex = 10
+			delegate2 := newMockDelegate(t, conf2)
+			provider2 := &ConsulProvider{Delegate: delegate2}
+			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
+			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
+			require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config))
+			require.NoError(provider2.GenerateRoot())
+
+			testCrossSignProviders(t, provider1, provider2)
+		})
+	}
 }
 
 func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
@@ -328,21 +346,34 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 
 func TestConsulProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 
-	conf1 := testConsulCAConfig()
-	delegate1 := newMockDelegate(t, conf1)
-	provider1 := &ConsulProvider{Delegate: delegate1}
-	require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
-	require.NoError(provider1.GenerateRoot())
+	tests := CASigningKeyTypeCases()
 
-	conf2 := testConsulCAConfig()
-	conf2.CreateIndex = 10
-	delegate2 := newMockDelegate(t, conf2)
-	provider2 := &ConsulProvider{Delegate: delegate2}
-	require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config))
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Desc, func(t *testing.T) {
+			require := require.New(t)
 
-	testSignIntermediateCrossDC(t, provider1, provider2)
+			conf1 := testConsulCAConfig()
+			delegate1 := newMockDelegate(t, conf1)
+			provider1 := &ConsulProvider{Delegate: delegate1}
+			conf1.Config["PrivateKeyType"] = tc.SigningKeyType
+			conf1.Config["PrivateKeyBits"] = tc.SigningKeyBits
+			require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
+			require.NoError(provider1.GenerateRoot())
+
+			conf2 := testConsulCAConfig()
+			conf2.CreateIndex = 10
+			delegate2 := newMockDelegate(t, conf2)
+			provider2 := &ConsulProvider{Delegate: delegate2}
+			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
+			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
+			require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config))
+
+			testSignIntermediateCrossDC(t, provider1, provider2)
+		})
+	}
+
 }
 
 func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {

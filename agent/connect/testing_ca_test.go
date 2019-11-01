@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // hasOpenSSL is used to determine if the openssl CLI exists for unit tests.
@@ -35,7 +36,7 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 		return
 	}
 
-	assert := assert.New(t)
+	require := require.New(t)
 
 	// Create the certs
 	ca := TestCAWithKeyType(t, nil, keyType, keyBits)
@@ -43,12 +44,12 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 
 	// Create a temporary directory for storing the certs
 	td, err := ioutil.TempDir("", "consul")
-	assert.Nil(err)
+	require.NoError(err)
 	defer os.RemoveAll(td)
 
 	// Write the cert
-	assert.Nil(ioutil.WriteFile(filepath.Join(td, "ca.pem"), []byte(ca.RootCert), 0644))
-	assert.Nil(ioutil.WriteFile(filepath.Join(td, "leaf.pem"), []byte(leaf), 0644))
+	require.NoError(ioutil.WriteFile(filepath.Join(td, "ca.pem"), []byte(ca.RootCert), 0644))
+	require.NoError(ioutil.WriteFile(filepath.Join(td, "leaf.pem"), []byte(leaf[:]), 0644))
 
 	// Use OpenSSL to verify so we have an external, known-working process
 	// that can verify this outside of our own implementations.
@@ -56,8 +57,11 @@ func testCAAndLeaf(t *testing.T, keyType string, keyBits int) {
 		"openssl", "verify", "-verbose", "-CAfile", "ca.pem", "leaf.pem")
 	cmd.Dir = td
 	output, err := cmd.Output()
-	t.Log(string(output))
-	assert.Nil(err)
+	t.Log("STDOUT:", string(output))
+	if ee, ok := err.(*exec.ExitError); ok {
+		t.Log("STDERR:", string(ee.Stderr))
+	}
+	require.NoError(err)
 }
 
 // Test cross-signing.

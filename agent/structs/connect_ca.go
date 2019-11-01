@@ -102,8 +102,14 @@ type CARoot struct {
 	// active root.
 	RotatedOutAt time.Time `json:"-"`
 
-	// Type of private key used to create the CA cert.
+	// PrivateKeyType is the type of the private key used to sign certificates. It
+	// may be "rsa" or "ec". This is provided as a convenience to avoid parsing
+	// the public key to from the certificate to infer the type.
 	PrivateKeyType string
+
+	// PrivateKeyBits is the length of the private key used to sign certificates.
+	// This is provided as a convenience to avoid parsing the public key from the
+	// certificate to infer the type.
 	PrivateKeyBits int
 
 	RaftIndex
@@ -282,7 +288,18 @@ type CommonCAProviderConfig struct {
 	// is used. This is ignored if CSRMaxPerSecond is non-zero.
 	CSRMaxConcurrent int
 
+	// PrivateKeyType specifies which type of key the CA should generate. It only
+	// applies when the provider is generating its own key and is ignored if the
+	// provider already has a key or an external key is provided. Supported values
+	// are "ec" or "rsa". "ec" is the default and will generate a NIST P-256
+	// Elliptic key.
 	PrivateKeyType string
+
+	// PrivateKeyBits specifies the number of bits the CA's private key should
+	// use. For RSA, supported values are 2048 and 4096. For EC, supported values
+	// are 224, 256, 384 and 521 and correspond to the NIST P-* curve of the same
+	// name. As with PrivateKeyType this is only relevant whan the provier is
+	// generating new CA keys (root or intermediate).
 	PrivateKeyBits int
 }
 
@@ -302,14 +319,14 @@ func (c CommonCAProviderConfig) Validate() error {
 	switch c.PrivateKeyType {
 	case "ec":
 		if c.PrivateKeyBits != 224 && c.PrivateKeyBits != 256 && c.PrivateKeyBits != 384 && c.PrivateKeyBits != 521 {
-			return fmt.Errorf("ECDSA key length must be one of (224, 256, 384, 521) bits")
+			return fmt.Errorf("EC key length must be one of (224, 256, 384, 521) bits")
 		}
 	case "rsa":
 		if c.PrivateKeyBits != 2048 && c.PrivateKeyBits != 4096 {
 			return fmt.Errorf("RSA key length must be 2048 or 4096 bits")
 		}
 	default:
-		return fmt.Errorf("private key type must be either 'ecdsa' or 'rsa'")
+		return fmt.Errorf("private key type must be either 'ec' or 'rsa'")
 	}
 
 	return nil
