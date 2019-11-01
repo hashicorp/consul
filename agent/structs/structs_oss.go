@@ -36,4 +36,4 @@ func (m *EnterpriseMeta) InitDefault() {}
 func (m *EnterpriseMeta) FillAuthzContext(*acl.EnterpriseAuthorizerContext) {}
 
 // FillAuthzContext stub
-func (d *DirEntry) FillAuthzContext(*acl.EnterpriseAuthorizercontext) {}
+func (d *DirEntry) FillAuthzContext(*acl.EnterpriseAuthorizerContext) {}
