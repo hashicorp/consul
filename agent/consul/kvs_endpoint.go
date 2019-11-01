@@ -48,8 +48,9 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 			}
 
 		default:
-			// TODO (namespaces) use actual ent authz context - ensure we set the Sentinel Scope
-			if rule.KeyWrite(dirEnt.Key, nil) != acl.Allow {
+			var authzContext acl.EnterpriseAuthorizerContext
+			dirEnt.FillAuthzContext(&authzContext)
+			if rule.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 		}
