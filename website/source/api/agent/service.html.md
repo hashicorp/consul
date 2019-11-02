@@ -222,10 +222,10 @@ default. In order to get the text format, you can append `?format=text` to
 the URL or use Mime Content negotiation by specifying a HTTP Header
 `Accept` starting with `text/plain`.
 
-| Method | Path                                                      | Produces           |
-| ------ | --------------------------------------------------------- | ------------------ |
-| `GET`  | `/v1/agent/health/service/name/:service_name`             | `application/json` |
-| `GET`  | `/v1/agent/health/service/name/:service_name?format=text` | `text/plain`       |
+| Method | Path                                                   | Produces           |
+| ------ | ------------------------------------------------------ | ------------------ |
+| `GET`  | `/agent/health/service/name/:service_name`             | `application/json` |
+| `GET`  | `/agent/health/service/name/:service_name?format=text` | `text/plain`       |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
@@ -451,10 +451,10 @@ Retrive an aggregated state of service(s) on the local agent by ID.
 
 See:
 
-| Method | Path                                                   | Produces           |
-| ------ | ------------------------------------------------------ | ------------------ |
-| `GET`  | `/v1/agent/health/service/id/:service_id`             | `application/json` |
-| `GET`  | `/v1/agent/health/service/id/:service_id?format=text` | `text/plain`       |
+| Method | Path                                               | Produces           |
+| ------ | -------------------------------------------------- | ------------------ |
+| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
+| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
 
 Parameters and response format are the same as
 [`/v1/agent/health/service/name/:service_name`](/api/agent/service.html#get-local-service-health).
