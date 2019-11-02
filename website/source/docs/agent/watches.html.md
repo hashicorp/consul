@@ -360,9 +360,39 @@ filter to a specific state. By default, it will watch all checks.
 This maps to the `/v1/health/state/` API if monitoring by state
 or `/v1/health/checks/` if monitoring by service.
 
+Here is an example configuration for monitoring by state:
+
+```json
+{
+  "type": "checks",
+  "state": "passing",
+  "args": ["/usr/bin/my-check-handler.sh", "-passing"]
+}
+```
+
+Here is an example configuration for monitoring by service:
+
+```json
+{
+  "type": "checks",
+  "service": "redis",
+  "args": ["/usr/bin/my-check-handler.sh", "-redis"]
+}
+```
+
+Or, using the watch command:
+
+State:
+
+    $ consul watch -type=checks -state=passing /usr/bin/my-check-handler.sh -passing
+
+Service:
+
+    $ consul watch -type=checks -service=redis /usr/bin/my-check-handler.sh -redis
+
 An example of the output of this command:
 
-```javascript
+```json
 [
   {
     "Node": "foobar",
