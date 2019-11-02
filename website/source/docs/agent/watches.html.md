@@ -165,7 +165,7 @@ Here is an example configuration:
 {
   "type": "keyprefix",
   "prefix": "foo/",
-  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+  "args": ["/usr/bin/my-prefix-handler.sh", "-redis"]
 }
 ```
 
@@ -392,13 +392,13 @@ Here is an example configuration:
 {
   "type": "event",
   "name": "web-deploy",
-  "args": ["/usr/bin/my-service-handler.sh", "-web-deploy"]
+  "args": ["/usr/bin/my-event-handler.sh", "-web-deploy"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh -web-deploy
+    $ consul watch -type=event -name=web-deploy /usr/bin/my-event-handler.sh -web-deploy
 
 An example of the output of this command:
 
