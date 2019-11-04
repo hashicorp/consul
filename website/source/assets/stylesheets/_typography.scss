@@ -11,22 +11,11 @@ h6 {
   -webkit-font-smoothing: antialiased;
 }
 
-/* .g-type-body as default */
-p,
-li,
-.alert {
-  font-family: $font-body;
-  font-weight: $font-weight-reg;
-  letter-spacing: 0.01em;
-}
-
 pre,
 code,
 pre code,
 tt {
-  font-family: $font-monospace;
-  font-weight: $font-weight-reg;
-  font-size: 0.844rem;
+  @extend .g-type-code;
 }
 
 /* Display 1 */
@@ -290,5 +279,5 @@ tt {
   font-family: $font-monospace;
   font-weight: $font-weight-reg;
   font-size: 0.844rem;
-  line-height: 1.926em;
+  line-height: 1.63em;
 }

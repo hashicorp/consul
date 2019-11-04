@@ -23,20 +23,12 @@
   p,
   li,
   .alert {
-    font-size: 1.063rem;
-    line-height: 1.647em;
+    @extend .g-type-long-body;
     margin: 0 0 $font-size-default;
   }
 
   .alert p:last-child {
     margin-bottom: 0;
-  }
-
-  pre,
-  code,
-  pre code,
-  tt {
-    line-height: 1.926em;
   }
 
   pre {
@@ -91,14 +83,8 @@
   h2 > code,
   h3 > code,
   h4 > code,
-  h5 > code h6 > code,
-  li code,
-  table code,
-  p code,
-  tt,
-  .alert code {
+  h5 > code h6 > code {
     color: inherit;
-    font-family: $font-monospace;
     font-size: 90%;
   }
 
