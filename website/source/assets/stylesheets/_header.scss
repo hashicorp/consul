@@ -1,6 +1,11 @@
 #header {
   background: $header-background-color;
 
+  .navbar-nav > li > a {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
   // Kind of gnarly override for bootstrap's nav toggle behavior
   @media (max-width: 991px) {
     .navbar-header {

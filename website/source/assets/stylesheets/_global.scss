@@ -19,6 +19,11 @@ h1 {
   margin-bottom: 24px;
 }
 
+code {
+  color: $body-font-color;
+  background: $consul-l3;
+}
+
 .sidebar .sidebar-nav li a {
   line-height: 18px;
 }
