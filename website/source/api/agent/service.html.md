@@ -487,7 +487,7 @@ The table below shows this endpoint's support for
 
 ### Query string parameters
 
-- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks whithout having to manually deregister checks.
+- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
 
 ### Parameters
 
