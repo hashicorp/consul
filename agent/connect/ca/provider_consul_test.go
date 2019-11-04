@@ -143,7 +143,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 			require.NoError(provider.GenerateRoot())
 
 			spiffeService := &connect.SpiffeIDService{
-				Host:       "node1",
+				Host:       connect.TestClusterID + ".consul",
 				Namespace:  "default",
 				Datacenter: "dc1",
 				Service:    "foo",
@@ -161,8 +161,8 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
-				require.Equal(parsed.URIs[0], spiffeService.URI())
-				require.Equal(parsed.Subject.CommonName, "foo")
+				require.Equal(spiffeService.URI(), parsed.URIs[0])
+				require.Equal(connect.ServiceCN("foo", connect.TestClusterID), parsed.Subject.CommonName)
 				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
@@ -187,8 +187,8 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
-				require.Equal(parsed.URIs[0], spiffeService.URI())
-				require.Equal(parsed.Subject.CommonName, "bar")
+				require.Equal(spiffeService.URI(), parsed.URIs[0])
+				require.Equal(connect.ServiceCN("bar", connect.TestClusterID), parsed.Subject.CommonName)
 				require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
@@ -199,7 +199,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 			}
 
 			spiffeAgent := &connect.SpiffeIDAgent{
-				Host:       "node1",
+				Host:       connect.TestClusterID + ".consul",
 				Datacenter: "dc1",
 				Agent:      "uuid",
 			}
@@ -216,7 +216,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
 				require.Equal(spiffeAgent.URI(), parsed.URIs[0])
-				require.Equal("uuid", parsed.Subject.CommonName)
+				require.Equal(connect.AgentCN("uuid", connect.TestClusterID), parsed.Subject.CommonName)
 				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
@@ -297,7 +297,11 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 	requireNotEncoded(t, oldRoot.AuthorityKeyId)
 
 	// AuthorityKeyID should now be the signing root's, SubjectKeyId should be kept.
-	require.Equal(oldRoot.AuthorityKeyId, xc.AuthorityKeyId)
+	require.Equal(oldRoot.SubjectKeyId, xc.AuthorityKeyId,
+		"newSKID=%x\nnewAKID=%x\noldSKID=%x\noldAKID=%x\nxcSKID=%x\nxcAKID=%x",
+		newRoot.SubjectKeyId, newRoot.AuthorityKeyId,
+		oldRoot.SubjectKeyId, oldRoot.AuthorityKeyId,
+		xc.SubjectKeyId, xc.AuthorityKeyId)
 	require.Equal(newRoot.SubjectKeyId, xc.SubjectKeyId)
 
 	// Subject name should not have changed.
@@ -308,7 +312,7 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 
 	// Get a leaf cert so we can verify against the cross-signed cert.
 	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
+		Host:       connect.TestClusterID + ".consul",
 		Namespace:  "default",
 		Datacenter: "dc1",
 		Service:    "foo",
@@ -396,7 +400,7 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 
 	// Have provider2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
-		Host:       "node1",
+		Host:       connect.TestClusterID + ".consul",
 		Namespace:  "default",
 		Datacenter: "dc1",
 		Service:    "foo",

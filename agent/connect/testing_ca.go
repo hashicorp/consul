@@ -211,7 +211,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 	// Cert template for generation
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: service},
+		Subject:               pkix.Name{CommonName: ServiceCN(service, TestClusterID)},
 		URIs:                  []*url.URL{spiffeId.URI()},
 		SignatureAlgorithm:    SigAlgoForKeyType(rootKeyType),
 		BasicConstraintsValid: true,
@@ -262,7 +262,12 @@ func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string
 // TestCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
 func TestCSR(t testing.T, uri CertURI) (string, string) {
+	cn, err := CNForCertURI(uri)
+	if err != nil {
+		t.Fatalf("TestCSR failed to get Common Name: %s", err)
+	}
 	template := &x509.CertificateRequest{
+		Subject:            pkix.Name{CommonName: cn},
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 	}

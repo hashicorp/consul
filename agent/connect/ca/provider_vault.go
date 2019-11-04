@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-uuid"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 )
@@ -25,7 +24,7 @@ type VaultProvider struct {
 	config    *structs.VaultCAProviderConfig
 	client    *vaultapi.Client
 	isRoot    bool
-	clusterId string
+	clusterID string
 	spiffeID  *connect.SpiffeIDSigning
 }
 
@@ -41,7 +40,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 }
 
 // Configure sets up the provider using the given configuration.
-func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
+func (v *VaultProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}) error {
 	config, err := ParseVaultCAConfig(rawConfig)
 	if err != nil {
 		return err
@@ -63,8 +62,8 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 	v.config = config
 	v.client = client
 	v.isRoot = isRoot
-	v.clusterId = clusterId
-	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterId})
+	v.clusterID = clusterID
+	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})
 
 	return nil
 }
@@ -98,12 +97,12 @@ func (v *VaultProvider) GenerateRoot() error {
 
 		fallthrough
 	case ErrBackendNotInitialized:
-		uuid, err := uuid.GenerateUUID()
+		uid, err := connect.CompactUID()
 		if err != nil {
 			return err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
-			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
+			"common_name": connect.CACN("vault", uid, v.clusterID, v.isRoot),
 			"uri_sans":    v.spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
 			"key_bits":    v.config.PrivateKeyBits,
@@ -174,8 +173,12 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	}
 
 	// Generate a new intermediate CSR for the root to sign.
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
-		"common_name": "Vault CA Intermediate Authority",
+		"common_name": connect.CACN("vault", uid, v.clusterID, v.isRoot),
 		"key_type":    v.config.PrivateKeyType,
 		"key_bits":    v.config.PrivateKeyBits,
 		"uri_sans":    v.spiffeID.URI().String(),
