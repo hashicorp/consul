@@ -10,13 +10,8 @@
 
 syntax = "proto3";
 
-<<<<<<< HEAD
-=======
-option go_package = "github.com/hashicorp/consul/agent/connect/ca/plugin";
-
 import "google/protobuf/duration.proto";
 
->>>>>>> add MinimumLeafTTL to protobuf
 package plugin;
 
 service CA {
