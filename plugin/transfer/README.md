@@ -2,16 +2,15 @@
 
 ## Name
 
-*transfer* - answer zone transfers requests for compatible authoritative
-plugins.
+*transfer* - perform zone transfers for other plugins.
 
 ## Description
 
 This plugin answers zone transfers for authoritative plugins that implement
 `transfer.Transferer`.
 
-Transfer answers AXFR requests and IXFR requests with AXFR fallback if the
-zone has changed.
+Transfer answers full zone transfer (AXFR) requests and incremental zone transfer (IXFR) requests
+with AXFR fallback if the zone has changed.
 
 Notifies are not currently supported.
 
