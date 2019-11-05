@@ -255,6 +255,10 @@ func (s *ConnectCA) ConfigurationSet(
 			"You can try again with ForceWithoutCrossSigningSet but this may cause " +
 			"disruption - see documentation for more.")
 	}
+	if !oldProvider.SupportsCrossSigning() && args.Config.ForceWithoutCrossSigning {
+		s.srv.logger.Println("[WARN] current CA doesn't support cross signing but " +
+			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
+	}
 
 	// If it's a config change that would trigger a rotation (different provider/root):
 	// 1. Get the root from the new provider.
