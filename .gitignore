@@ -7,6 +7,7 @@
 .DS_Store
 .fseventsd
 .envrc
+.gotools
 .vagrant/
 .idea/
 /pkg
