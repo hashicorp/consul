@@ -1,16 +1,17 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"log"
 	"net"
 	"os"
-	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect/ca"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -1125,7 +1126,14 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 func TestServer_CALogging(t *testing.T) {
 	t.Parallel()
 	dir1, conf1 := testServerConfig(t)
-	s1, err := NewServer(conf1)
+
+	// Setup dummy logger to catch output
+	var buf bytes.Buffer
+	logger := log.New(&buf, "", log.LstdFlags)
+
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil)
+	require.NoError(t, err)
+	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1137,8 +1145,13 @@ func TestServer_CALogging(t *testing.T) {
 		t.Fatalf("provider does not implement NeedsLogger")
 	}
 
-	v := reflect.ValueOf(s1.caProvider).Elem().FieldByName("logger")
-	if v.IsNil() {
-		t.Fatalf("provider logger is nil")
-	}
+	// Wait til CA root is setup
+	retry.Run(t, func(r *retry.R) {
+		var out structs.IndexedCARoots
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+			Datacenter: conf1.Datacenter,
+		}, &out))
+	})
+
+	require.Contains(t, buf.String(), "consul CA provider configured")
 }

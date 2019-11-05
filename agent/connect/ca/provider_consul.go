@@ -108,6 +108,9 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 		return err
 	}
 
+	c.logger.Printf("[DEBUG] consul CA provider configured ID=%s isRoot=%v",
+		c.id, c.isRoot)
+
 	return nil
 }
 
