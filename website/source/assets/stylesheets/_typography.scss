@@ -1,0 +1,283 @@
+/* HashiCorp-style headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+}
+
+pre,
+code,
+pre code,
+tt {
+  @extend .g-type-code;
+}
+
+/* Display 1 */
+.g-type-display-1 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 2.125rem;
+  letter-spacing: -0.008em;
+  line-height: 1.265em;
+
+  @media (min-width: 768px) {
+    font-size: 2.625rem;
+    letter-spacing: -0.01em;
+    line-height: 1.19em;
+  }
+
+  @media (min-width: 1120px) {
+    font-size: 3.125rem;
+    line-height: 1.2em;
+  }
+}
+
+/* Display 2 */
+.g-type-display-2 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 1.75rem;
+  letter-spacing: -0.004em;
+  line-height: 1.286em;
+
+  @media (min-width: 768px) {
+    font-size: 2.125rem;
+    letter-spacing: -0.008em;
+    line-height: 1.265em;
+  }
+
+  @media (min-width: 1120px) {
+    font-size: 2.5rem;
+    letter-spacing: -0.01em;
+    line-height: 1.25em;
+  }
+}
+
+/* Display 3 */
+.g-type-display-3 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 1.5rem;
+  letter-spacing: -0.004em;
+  line-height: 1.375em;
+
+  @media (min-width: 768px) {
+    font-size: 1.75rem;
+    line-height: 1.321em;
+  }
+
+  @media (min-width: 1120px) {
+    font-size: 2rem;
+    letter-spacing: -0.006em;
+    line-height: 1.313em;
+  }
+}
+
+/* Display 4 */
+.g-type-display-4 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 1.313rem;
+  line-height: 1.429em;
+
+  @media (min-width: 768px) {
+    font-size: 1.438rem;
+    letter-spacing: -0.004em;
+    line-height: 1.391em;
+  }
+
+  @media (min-width: 1120px) {
+    font-size: 1.5rem;
+    line-height: 1.417em;
+  }
+}
+
+/* Display 5 */
+.g-type-display-5 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 1.125rem;
+  line-height: 1.556em;
+}
+
+/* Display 6 */
+.g-type-display-6 {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 1rem;
+  line-height: 1.5em;
+}
+
+/* Body Large */
+.g-type-body-large {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 1.188rem;
+  letter-spacing: 0.01em;
+  line-height: 1.579em;
+
+  @media (min-width: 1120px) {
+    font-size: 1.25rem;
+    line-height: 1.55em;
+  }
+}
+
+/* Body */
+.g-type-body {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.647em;
+}
+
+/* Body - Strong */
+.g-type-body-strong {
+  font-family: $font-body;
+  font-weight: $font-weight-semi-bold;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.647em;
+}
+
+/* Body - X Strong */
+.g-type-body-x-strong {
+  font-family: $font-body;
+  font-weight: $font-weight-bold;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.647em;
+}
+
+/* Body - Italic */
+.g-type-body-italic {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.647em;
+  font-style: italic;
+}
+
+/* Body Small */
+.g-type-body-small {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 0.938rem;
+  letter-spacing: 0.01em;
+  line-height: 1.667em;
+}
+
+/* Body Small - Strong */
+.g-type-body-small-strong {
+  font-family: $font-body;
+  font-weight: $font-weight-semi-bold;
+  font-size: 0.938rem;
+  letter-spacing: 0.01em;
+  line-height: 1.667em;
+}
+
+/* Body Small - X Strong */
+.g-type-body-small-x-strong {
+  font-family: $font-body;
+  font-weight: $font-weight-bold;
+  font-size: 0.938rem;
+  letter-spacing: 0.01em;
+  line-height: 1.667em;
+}
+
+/* Body Small - Italic */
+.g-type-body-small-italic {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 0.938rem;
+  letter-spacing: 0.01em;
+  line-height: 1.667em;
+  font-style: italic;
+}
+
+/* Long Body */
+.g-type-long-body {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.765em;
+}
+
+/* Long Body Strong */
+.g-type-long-body-strong {
+  font-family: $font-body;
+  font-weight: $font-weight-semi-bold;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.765em;
+}
+
+/* Long Body Italic */
+.g-type-long-body-italic {
+  font-family: $font-body;
+  font-weight: $font-weight-reg;
+  font-size: 1.063rem;
+  letter-spacing: 0.01em;
+  line-height: 1.765em;
+  font-style: italic;
+}
+
+/* Buttons and standalone links */
+.g-type-buttons-and-standalone-links {
+  font-family: $font-display;
+  font-weight: $font-weight-medium;
+  font-size: 0.938rem;
+  line-height: 1.6em;
+}
+
+/* Header Nav */
+.g-type-header-nav {
+  font-family: $font-display;
+  font-weight: $font-weight-medium;
+  font-size: 0.875rem;
+  line-height: 1.429em;
+}
+
+/* Label */
+.g-type-label {
+  font-family: $font-display;
+  font-weight: $font-weight-medium;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  line-height: 1.5em;
+  text-transform: uppercase;
+}
+
+/* Label - Strong */
+.g-type-label-strong {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  line-height: 1.5em;
+  text-transform: uppercase;
+}
+
+/* Tag Label */
+.g-type-tag-label {
+  font-family: $font-body;
+  font-weight: $font-weight-bold;
+  font-size: 0.75rem;
+  line-height: 1.333em;
+}
+
+/* Code */
+.g-type-code {
+  font-family: $font-monospace;
+  font-weight: $font-weight-reg;
+  font-size: 0.844rem;
+  line-height: 1.63em;
+}

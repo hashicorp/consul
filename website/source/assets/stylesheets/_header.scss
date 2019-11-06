@@ -1,6 +1,11 @@
 #header {
   background: $header-background-color;
 
+  .navbar-nav > li > a {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
   // Kind of gnarly override for bootstrap's nav toggle behavior
   @media (max-width: 991px) {
     .navbar-header {
@@ -80,9 +85,9 @@
 
   ul.nav {
     li {
-      color: $consul-black;
+      color: $gray-1;
       font-size: $header-font-size;
-      font-family: $font-family-open-sans;
+      font-family: $font-body;
       font-weight: $font-weight-bold;
       height: $header-height;
       margin: 0;
@@ -139,10 +144,10 @@
         visibility: hidden;
         opacity: 0;
         transition: all 0.5s ease;
-        min-width: 22rem;
+        min-width: 220px;
         box-shadow: 0px 4px 12px -2px rgba(63, 68, 85, 0.5);
         border-radius: 3px;
-        padding: 2rem;
+        padding: 20px;
         position: absolute;
         height: 124px;
         z-index: 1;
@@ -158,7 +163,7 @@
           clear: both;
           width: 100%;
           display: block;
-          padding: 1rem;
+          padding: 10px;
           position: relative;
           height: 44px;
 
