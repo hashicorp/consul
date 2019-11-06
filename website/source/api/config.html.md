@@ -194,7 +194,7 @@ $ curl \
 
 ## Delete Configuration
 
-This endpoint delete the given config entry.
+This endpoint deletes the given config entry.
 
 | Method   | Path                         | Produces                   |
 | -------- | ---------------------------- | -------------------------- |
