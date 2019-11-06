@@ -1,4 +1,5 @@
 html {
+  font-size: $font-size-default;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -8,17 +9,21 @@ body {
   -webkit-font-smoothing: antialiased;
   color: $body-font-color;
   background-color: $white;
-  font-size: $font-size;
-  font-family: $font-family-open-sans;
+  font-size: $font-size-default;
+  font-family: $font-body;
   font-weight: $font-weight-reg;
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5 {
-  font-family: $font-family-klavika;
-  -webkit-font-smoothing: antialiased;
-}
-
 h1 {
   margin-bottom: 24px;
+}
+
+code {
+  color: $body-font-color;
+  background: $consul-l3;
+}
+
+.sidebar .sidebar-nav li a {
+  line-height: 18px;
 }
