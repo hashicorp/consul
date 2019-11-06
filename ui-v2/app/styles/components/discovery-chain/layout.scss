@@ -1,0 +1,166 @@
+.discovery-chain {
+  @extend %discovery-chain;
+}
+%discovery-chain .resolvers,
+%discovery-chain .splitters,
+%discovery-chain .routes {
+  @extend %chain-group;
+}
+%discovery-chain .route-card {
+  @extend %route-card;
+  @extend %with-chain-outlet;
+}
+%discovery-chain .splitter-card {
+  @extend %splitter-card;
+  @extend %with-chain-outlet;
+}
+%discovery-chain .resolver-card {
+  @extend %resolver-card;
+}
+
+%discovery-chain path {
+  @extend %discovery-chain-edge, %discovery-chain-edge-inactive;
+}
+%discovery-chain-edge:hover,
+%discovery-chain-edge:focus {
+  @extend %discovery-chain-edge-active;
+}
+%discovery-chain [id*=':']:not(path):hover {
+  @extend %chain-node-active;
+}
+%discovery-chain .tooltip.active > [role='tooltip'],
+%discovery-chain .tooltip.active > [role='tooltip']::after {
+  @extend %blink-in-fade-out-active;
+}
+%resolver-card dt {
+  @extend %with-pseudo-tooltip;
+}
+
+%discovery-chain {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+}
+%discovery-chain svg {
+  position: absolute;
+}
+%chain-group {
+  padding: 10px 1% 10px 1%;
+  width: 32%;
+}
+%chain-group > header span {
+  position: relative;
+  z-index: 1;
+  margin-left: 2px;
+}
+%chain-group [role='group'] {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+
+  height: 100%;
+}
+/* TODO: resets - these probably should be changed to be specific */
+/* to certain layouts rather than globally */
+%chain-node {
+  margin-top: 0 !important;
+}
+%chain-node dl {
+  margin: 0;
+  float: none;
+}
+/**/
+%route-card,
+%splitter-card,
+%resolver-card {
+  @extend %card;
+  @extend %chain-node;
+  margin-bottom: 20px;
+}
+/* route */
+%route-card header.short dl {
+  display: flex;
+}
+%route-card header.short dt::after {
+  content: ' ';
+  display: inline-block;
+}
+%route-card > header ul {
+  float: right;
+  margin-top: -2px;
+}
+%route-card > header ul li {
+  margin-left: 5px;
+}
+
+%route-card section {
+  display: flex;
+}
+%route-card section header {
+  display: block;
+  width: 33px;
+}
+%route-card section header > *::before {
+  padding: 0 8px;
+}
+/**/
+/* resolver */
+%resolver-card a {
+  display: block;
+}
+%resolver-card dl {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+%resolver-card dt {
+  margin-right: 6px;
+  margin-top: 1px;
+  width: 23px;
+  height: 20px;
+}
+%resolver-card ol {
+  display: flex;
+  flex-wrap: wrap;
+  list-style-type: none;
+}
+%resolver-card ol li:not(:last-child)::after {
+  display: inline-block;
+  content: ',';
+  margin-right: 0.2em;
+  margin-left: -0.3em;
+}
+/**/
+%with-chain-outlet {
+  position: relative;
+}
+%with-chain-outlet::before {
+  position: absolute;
+  z-index: 1;
+  right: -5px;
+  top: 50%;
+  margin-top: -5px;
+  width: 10px;
+  height: 10px;
+}
+%discovery-chain-joints {
+  width: 10px;
+  height: 100%;
+  z-index: 1;
+}
+%discovery-chain .splitter-inlets,
+%discovery-chain .resolver-inlets {
+  @extend %discovery-chain-joints;
+}
+%discovery-chain .splitter-inlets {
+  left: 50%;
+  /* keep the extra calculations here for doc purposes */
+  margin-left: calc(calc(-32% / 2) + 1% - 3px);
+}
+%discovery-chain .resolver-inlets {
+  /* keep the extra calculations here for doc purposes */
+  right: calc(32% - 1% - 7px);
+}

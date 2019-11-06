@@ -75,6 +75,11 @@ pre code,
 %button {
   font-weight: $typo-weight-semibold;
 }
+%route-card section dt,
+%route-card header:not(.short) dd,
+%splitter-card > header {
+  font-weight: $typo-weight-bold;
+}
 %main-nav-horizontal-drop-nav-separator {
   font-weight: $typo-weight-medium;
 }
@@ -85,7 +90,8 @@ pre code,
 %pill,
 %form-element > strong,
 %tbody-th em,
-%app-view h1 em {
+%app-view h1 em,
+%route-card header dt {
   font-weight: $typo-weight-normal;
 }
 
