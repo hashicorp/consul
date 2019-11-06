@@ -248,7 +248,7 @@ service instance(s) and will return the corresponding HTTP codes:
 | `429`  | Some healthchecks are passing, at least one is warning          |
 | `503`  | At least one of the healthchecks is critical                    |
 
-Those endpoints might be usefull for the following use-cases:
+Those endpoints might be useful for the following use-cases:
 
 * a load-balancer wants to check IP connectivity with an agent and retrieve
   the aggregated status of given service
@@ -447,7 +447,7 @@ curl localhost:8500/v1/agent/health/service/id/web1
 
 ## Get local service health by its ID
 
-Retrive an aggregated state of service(s) on the local agent by ID.
+Retrieve an aggregated state of service(s) on the local agent by ID.
 
 See:
 
