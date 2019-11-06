@@ -223,7 +223,7 @@ The table below shows this endpoint's support for
          where the query was executed from. For HTTP the source IP is the remote
          peer's IP address or the value of the X-Forwarded-For header with the
          header taking precedence. For DNS the source IP is the remote peer's IP
-         address or the value of the ENDS client IP with the EDNS client IP
+         address or the value of the EDNS client IP with the EDNS client IP
          taking precedence.
 
 
