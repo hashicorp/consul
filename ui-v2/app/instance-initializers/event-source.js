@@ -60,6 +60,7 @@ export function initialize(container) {
         route: 'dc/services/show',
         services: {
           repo: 'repository/service/event-source',
+          chainRepo: 'repository/discovery-chain/event-source',
         },
       },
       {
