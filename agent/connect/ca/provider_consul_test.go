@@ -3,8 +3,6 @@ package ca
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"testing"
 	"time"
 
@@ -85,8 +83,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	conf := testConsulCAConfig()
 	delegate := newMockDelegate(t, conf)
 
-	provider := &ConsulProvider{Delegate: delegate}
-	provider.SetLogger(log.New(ioutil.Discard, "", 0))
+	provider := TestConsulProvider(t, delegate)
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
@@ -119,7 +116,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	}
 	delegate := newMockDelegate(t, conf)
 
-	provider := &ConsulProvider{Delegate: delegate}
+	provider := TestConsulProvider(t, delegate)
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
@@ -141,7 +138,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 			conf.Config["PrivateKeyBits"] = tc.KeyBits
 			delegate := newMockDelegate(t, conf)
 
-			provider := &ConsulProvider{Delegate: delegate}
+			provider := TestConsulProvider(t, delegate)
 			require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 			require.NoError(provider.GenerateRoot())
 
@@ -245,7 +242,7 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 
 			conf1 := testConsulCAConfig()
 			delegate1 := newMockDelegate(t, conf1)
-			provider1 := &ConsulProvider{Delegate: delegate1}
+			provider1 := TestConsulProvider(t, delegate1)
 			conf1.Config["PrivateKeyType"] = tc.SigningKeyType
 			conf1.Config["PrivateKeyBits"] = tc.SigningKeyBits
 			require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
@@ -254,7 +251,7 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 			conf2 := testConsulCAConfig()
 			conf2.CreateIndex = 10
 			delegate2 := newMockDelegate(t, conf2)
-			provider2 := &ConsulProvider{Delegate: delegate2}
+			provider2 := TestConsulProvider(t, delegate2)
 			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
 			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
 			require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config))
@@ -359,7 +356,7 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 
 			conf1 := testConsulCAConfig()
 			delegate1 := newMockDelegate(t, conf1)
-			provider1 := &ConsulProvider{Delegate: delegate1}
+			provider1 := TestConsulProvider(t, delegate1)
 			conf1.Config["PrivateKeyType"] = tc.SigningKeyType
 			conf1.Config["PrivateKeyBits"] = tc.SigningKeyBits
 			require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config))
@@ -368,7 +365,7 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 			conf2 := testConsulCAConfig()
 			conf2.CreateIndex = 10
 			delegate2 := newMockDelegate(t, conf2)
-			provider2 := &ConsulProvider{Delegate: delegate2}
+			provider2 := TestConsulProvider(t, delegate2)
 			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
 			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
 			require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config))
@@ -450,7 +447,7 @@ func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 	require.NoError(err)
 	require.NotNil(providerState)
 
-	provider := &ConsulProvider{Delegate: delegate}
+	provider := TestConsulProvider(t, delegate)
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 

@@ -2,8 +2,11 @@ package ca
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/mitchellh/go-testing-interface"
 )
 
 // KeyTestCases is a list of the important CA key types that we should test
@@ -60,4 +63,13 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 		}
 	}
 	return cases
+}
+
+// TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
+// Logger so that logging calls don't panic. If logging output is important
+// SetLogger can be called again with another logger to capture logs.
+func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
+	provider := &ConsulProvider{Delegate: d}
+	provider.SetLogger(log.New(ioutil.Discard, "", 0))
+	return provider
 }
