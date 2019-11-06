@@ -83,7 +83,7 @@ The table below shows this endpoint's support for
   only a health check or service entry on a node needs to be updated or when
   a register request is intended to  update a service entry or health check.
   In both use cases, node information will not be overwritten, if the node is
-  already registered. Note, if the paramater is enabled for a node that doesn't
+  already registered. Note, if the parameter is enabled for a node that doesn't
   exist, it will still be created.
 
 It is important to note that `Check` does not have to be provided with `Service`

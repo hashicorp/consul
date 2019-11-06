@@ -159,7 +159,7 @@ $ curl \
   returned by the [`/v1/acl/list`](/api/acl/legacy.html#acl_list) endpoint to
   determine if the replication process has gotten all available ACLs. When in either
   `tokens` or `policies` mode, this index can be compared with the value of the
-  `X-Consul-Index` header returned by the [`/v1/acl/polcies`](/api/acl/policies.html#list-policies)
+  `X-Consul-Index` header returned by the [`/v1/acl/policies`](/api/acl/policies.html#list-policies)
   endpoint to determine if the policy replication process has gotten all available
   ACL policies. Note that ACL replication is rate limited so the indexes may lag behind
   the primary datacenter.

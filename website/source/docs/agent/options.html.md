@@ -1806,7 +1806,7 @@ to the old fragment -->
 * <a name="verify_server_hostname"></a><a
   href="#verify_server_hostname">`verify_server_hostname`</a> - If set to true,
   Consul verifies for all outgoing TLS connections that the TLS certificate
-  presented by the servers matches "server.&lt;datacenter&gt;.&lt;domain&gt;"
+  presented by the servers matches `server.<datacenter>.<domain>`
   hostname. By default, this is false, and Consul does not verify the hostname
   of the certificate, only that it is signed by a trusted CA. This setting is
   _critical_ to prevent a compromised client from being restarted as a server

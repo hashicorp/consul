@@ -222,10 +222,10 @@ default. In order to get the text format, you can append `?format=text` to
 the URL or use Mime Content negotiation by specifying a HTTP Header
 `Accept` starting with `text/plain`.
 
-| Method | Path                                                      | Produces           |
-| ------ | --------------------------------------------------------- | ------------------ |
-| `GET`  | `/v1/agent/health/service/name/:service_name`             | `application/json` |
-| `GET`  | `/v1/agent/health/service/name/:service_name?format=text` | `text/plain`       |
+| Method | Path                                                   | Produces           |
+| ------ | ------------------------------------------------------ | ------------------ |
+| `GET`  | `/agent/health/service/name/:service_name`             | `application/json` |
+| `GET`  | `/agent/health/service/name/:service_name?format=text` | `text/plain`       |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking.html),
@@ -248,7 +248,7 @@ service instance(s) and will return the corresponding HTTP codes:
 | `429`  | Some healthchecks are passing, at least one is warning          |
 | `503`  | At least one of the healthchecks is critical                    |
 
-Those endpoints might be usefull for the following use-cases:
+Those endpoints might be useful for the following use-cases:
 
 * a load-balancer wants to check IP connectivity with an agent and retrieve
   the aggregated status of given service
@@ -447,14 +447,14 @@ curl localhost:8500/v1/agent/health/service/id/web1
 
 ## Get local service health by its ID
 
-Retrive an aggregated state of service(s) on the local agent by ID.
+Retrieve an aggregated state of service(s) on the local agent by ID.
 
 See:
 
-| Method | Path                                                   | Produces           |
-| ------ | ------------------------------------------------------ | ------------------ |
-| `GET`  | `/v1/agent/health/service/id/:service_id`             | `application/json` |
-| `GET`  | `/v1/agent/health/service/id/:service_id?format=text` | `text/plain`       |
+| Method | Path                                               | Produces           |
+| ------ | -------------------------------------------------- | ------------------ |
+| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
+| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
 
 Parameters and response format are the same as
 [`/v1/agent/health/service/name/:service_name`](/api/agent/service.html#get-local-service-health).
@@ -487,7 +487,7 @@ The table below shows this endpoint's support for
 
 ### Query string parameters
 
-- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks whithout having to manually deregister checks.
+- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
 
 ### Parameters
 
