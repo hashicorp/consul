@@ -3,6 +3,8 @@ package ca
 import (
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"testing"
 	"time"
 
@@ -84,6 +86,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	provider := &ConsulProvider{Delegate: delegate}
+	provider.SetLogger(log.New(ioutil.Discard, "", 0))
 	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config))
 	require.NoError(provider.GenerateRoot())
 
