@@ -1,0 +1,53 @@
+<a class="route-card" onclick={{onclick}} id={{item.ID}}>
+  <header class={{if (eq path.value '/') 'short'}}>
+{{#if (gt item.Definition.Match.HTTP.Methods.length 0) }}
+    <ul class="match-methods">
+      {{#each item.Definition.Match.HTTP.Methods as |item|}}
+        <li>{{item}}</li>
+      {{/each}}
+    </ul>
+{{/if}}
+    <dl>
+      <dt>
+        {{path.type}}
+      </dt>
+      <dd>
+        {{path.value}}
+      </dd>
+    </dl>
+  </header>
+{{#if (gt item.Definition.Match.HTTP.Header.length 0) }}
+  <section class="match-headers">
+    <header data-tooltip="Header">
+      <h4>Headers</h4>
+    </header>
+    <dl>
+  {{#each item.Definition.Match.HTTP.Header as |item|}}
+      <dt>
+        {{item.Name}}
+      </dt>
+      <dd>
+        {{route-match item}}
+      </dd>
+  {{/each}}
+    </dl>
+  </section>
+{{/if}}
+{{#if (gt item.Definition.Match.HTTP.QueryParam.length 0) }}
+  <section class="match-queryparams">
+    <header data-tooltip="Query Params">
+      <h4>Query Params</h4>
+    </header>
+    <dl>
+  {{#each item.Definition.Match.HTTP.QueryParam as |item|}}
+      <dt>
+        {{item.Name}}
+      </dt>
+      <dd>
+        {{route-match item}}
+      </dd>
+  {{/each}}
+    </dl>
+  </section>
+{{/if}}
+</a>
