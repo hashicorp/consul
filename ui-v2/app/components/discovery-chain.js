@@ -1,6 +1,7 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
+import { next } from '@ember/runloop';
 
 const getNodeResolvers = function(nodes = {}) {
   const failovers = getFailovers(nodes);
@@ -39,7 +40,9 @@ const getTargetResolvers = function(targets = [], nodes = {}) {
         resolver.Subsets.push(item);
       }
       if (typeof node.Resolver.Failover !== 'undefined') {
-        failoverable.Failover = targetsToFailover(node.Resolver.Failover.Targets, item.ID);
+        // FIXME: Figure out if we can get rid of this
+        /* eslint ember/no-side-effects: "warn" */
+        set(failoverable, 'Failover', targetsToFailover(node.Resolver.Failover.Targets, item.ID));
       }
     }
   });
@@ -186,11 +189,14 @@ export default Component.extend({
     if (typeof this._listeners === 'undefined') {
       this._listeners = this.dom.listeners();
     }
-    this._listeners.remove();
-    [...this.dom.elements('path.split', this.element)].forEach(item => {
-      this._listeners.add(item, {
-        mouseover: e => this.actions.showSplit.apply(this, [e]),
-        mouseout: e => this.actions.hideSplit.apply(this, [e]),
+    // FIXME: Figure out if we can remove this next
+    next(() => {
+      this._listeners.remove();
+      [...this.dom.elements('path.split', this.element)].forEach(item => {
+        this._listeners.add(item, {
+          mouseover: e => this.actions.showSplit.apply(this, [e]),
+          mouseout: e => this.actions.hideSplit.apply(this, [e]),
+        });
       });
     });
     // TODO: currently don't think there is a way to listen
@@ -198,7 +204,7 @@ export default Component.extend({
     // using IntersectionObserver. It's a tiny detail, but we just always
     // remove the tooltip on component update as its so tiny, ideal
     // the tooltip would stay if there was no change to the <path>
-    set(this, 'activeTooltip', false);
+    // set(this, 'activeTooltip', false);
   },
   willDestroyElement: function() {
     this._listeners.remove();
