@@ -19,7 +19,12 @@ export default Controller.extend(WithEventSource, WithSearching, {
     // This method is called immediately after `Route::setupController`, and done here rather than there
     // as this is a variable used purely for view level things, if the view was different we might not
     // need this variable
-    set(this, 'selectedTab', 'instances');
+
+    // set(this, 'selectedTab', 'instances');
+    // FIXME: Just to make it easier to build for the moment
+    // We'll also need to use a similar or the same approach as our
+    // didAppear thing see components/code-editor.js plus others
+    set(this, 'selectedTab', 'routing');
   },
   item: listen('item').catch(function(e) {
     if (e.target.readyState === 1) {

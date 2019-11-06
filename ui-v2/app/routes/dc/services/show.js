@@ -4,6 +4,7 @@ import { hash } from 'rsvp';
 
 export default Route.extend({
   repo: service('repository/service'),
+  chainRepo: service('repository/discovery-chain'),
   settings: service('settings'),
   queryParams: {
     s: {
@@ -15,6 +16,7 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     return hash({
       item: this.repo.findBySlug(params.name, dc, this.modelFor('nspace').nspace.substr(1)),
+      chain: this.chainRepo.findBySlug(params.name, dc),
       urls: this.settings.findBySlug('urls'),
       dc: dc,
     });
