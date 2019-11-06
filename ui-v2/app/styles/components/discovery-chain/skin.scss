@@ -1,0 +1,112 @@
+%discovery-chain .tooltip,
+%chain-group > header span {
+  @extend %with-tooltip;
+}
+%route-card > header ul li {
+  @extend %pill;
+}
+%discovery-chain-tween {
+  transition-duration: 0.1s;
+  transition-timing-function: linear;
+}
+%discovery-chain-edge,
+%chain-node {
+  cursor: pointer;
+}
+%discovery-chain-edge {
+  @extend %discovery-chain-tween;
+  transition-property: stroke;
+
+  fill: none;
+  stroke: $gray-400;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+%discovery-chain.active [id*=':'],
+%chain-node-inactive,
+%discovery-chain-edge-inactive {
+  opacity: 0.5;
+}
+%discovery-chain-edge-active {
+  stroke: $gray-900;
+}
+%chain-group {
+  border-radius: $decor-radius-100;
+  border: 1px solid $gray-200;
+  background-color: $gray-100;
+
+  pointer-events: none;
+}
+
+%chain-group > header span,
+%chain-node {
+  pointer-events: all;
+}
+%chain-group > header > * {
+  text-transform: uppercase;
+  border: 0;
+  font-size: 12px;
+  font-weight: normal;
+}
+%chain-group > header span::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  width: 1.2em;
+  height: 1.2em;
+  opacity: 0.6;
+}
+/* TODO: this is tooltip related, we also do this elsewhere */
+/* so would be good to look and see if we can centralize this */
+%chain-group > header span em {
+  text-transform: none;
+  width: 250px;
+  font-style: normal;
+  white-space: normal !important;
+}
+%chain-node {
+  @extend %discovery-chain-tween;
+  transition-property: opacity background-color border-color;
+}
+%chain-node-active {
+  opacity: 1;
+  background-color: $white;
+  border-color: $gray-500;
+}
+/* TODO: More text truncation, centralize */
+%route-card header:not(.short) dd {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Icons */
+%route-card section header > * {
+  visibility: hidden;
+}
+%route-card section header > *::before {
+  background-color: $gray-100;
+  visibility: visible;
+}
+%route-card .match-headers header *::before {
+  content: 'H';
+}
+%route-card .match-queryparams header > *::before {
+  content: 'Q';
+}
+%resolver-card dt {
+  @extend %with-cloud-cross-icon;
+  background-color: $gray-100;
+  font-size: 0;
+  background-size: 80% 80%;
+}
+/**/
+%with-chain-outlet::before {
+  @extend %as-pseudo;
+  background-color: $white;
+
+  border-radius: $decor-radius-full;
+  border: 2px solid $gray-400;
+}
+%discovery-chain circle {
+  stroke-width: 1;
+  stroke: $gray-400;
+  fill: $white;
+}

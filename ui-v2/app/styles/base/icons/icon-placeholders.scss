@@ -148,6 +148,11 @@
   background-image: $clock-outline-svg;
 }
 
+%with-cloud-cross-icon {
+  @extend %with-icon;
+  background-image: $cloud-cross-svg;
+}
+
 %with-code-icon {
   @extend %with-icon;
   background-image: $code-svg;

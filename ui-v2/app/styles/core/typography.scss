@@ -72,6 +72,9 @@ pre code,
 %tab-nav {
   letter-spacing: 0.03em;
 }
+%route-card section dt,
+%route-card header:not(.short) dd,
+%splitter-card > header,
 %header-drop-nav .is-active {
   font-weight: $typo-weight-bold;
 }
@@ -79,7 +82,8 @@ pre code,
 %pill,
 %form-element > strong,
 %tbody-th em,
-%app-view h1 em {
+%app-view h1 em,
+%route-card header dt {
   font-weight: $typo-weight-normal;
 }
 
