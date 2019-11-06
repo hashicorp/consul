@@ -1,0 +1,46 @@
+<div class="resolver-card">
+  <header onclick={{onclick}} id={{concat 'resolver:' item.ID}}>
+    <a name="">
+      <h3>{{item.Name}}</h3>
+{{#if item.Failover}}
+      <dl>
+        <dt data-tooltip={{concat item.Failover.Type ' failover'}}>{{concat item.Failover.Type ' failover'}}</dt>
+        <dd>
+          <ol>
+  {{#each item.Failover.Targets as |item|}}
+            <li>
+              <span>{{item}}</span>
+            </li>
+  {{/each}}
+          </ol>
+        </dd>
+      </dl>
+{{/if}}
+    </a>
+  </header>
+{{#if (gt item.Subsets.length 0)}}
+    <ul>
+  {{#each item.Subsets as |item|}}
+      <li onclick={{onclick}} id={{concat 'resolver:' item.ID}}>
+        <a name="">
+          {{item.ServiceSubset}}
+        {{#if item.Failover}}
+            <dl>
+              <dt data-tooltip={{concat item.Failover.Type ' failover'}}>{{concat item.Failover.Type ' failover'}}</dt>
+              <dd>
+                <ol>
+          {{#each item.Failover.Targets as |item|}}
+                  <li>
+                    <span>{{item}}</span>
+                  </li>
+          {{/each}}
+                </ol>
+              </dd>
+            </dl>
+        {{/if}}
+        </a>
+      </li>
+  {{/each}}
+    </ul>
+{{/if}}
+</div>
