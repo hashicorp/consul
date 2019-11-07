@@ -229,13 +229,15 @@ func LookupSID(system, account string) (sid *SID, domain string, accType uint32,
 
 // String converts SID to a string format suitable for display, storage, or transmission.
 func (sid *SID) String() string {
+	// From https://docs.microsoft.com/en-us/windows/win32/secbiomet/general-constants
+	const SecurityMaxSidSize = 68
 	var s *uint16
 	e := ConvertSidToStringSid(sid, &s)
 	if e != nil {
 		return ""
 	}
 	defer LocalFree((Handle)(unsafe.Pointer(s)))
-	return UTF16ToString((*[(1 << 30) - 1]uint16)(unsafe.Pointer(s))[:])
+	return UTF16ToString((*[SecurityMaxSidSize]uint16)(unsafe.Pointer(s))[:])
 }
 
 // Len returns the length, in bytes, of a valid security identifier SID.
@@ -650,12 +652,12 @@ type Token Handle
 // OpenCurrentProcessToken opens an access token associated with current
 // process with TOKEN_QUERY access. It is a real token that needs to be closed.
 //
-// Deprecated: Explicitly call OpenProcessToken(GetCurrentProcess(), ...)
+// Deprecated: Explicitly call OpenProcessToken(CurrentProcess(), ...)
 // with the desired access instead, or use GetCurrentProcessToken for a
 // TOKEN_QUERY token.
 func OpenCurrentProcessToken() (Token, error) {
 	var token Token
-	err := OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)
+	err := OpenProcessToken(CurrentProcess(), TOKEN_QUERY, &token)
 	return token, err
 }
 

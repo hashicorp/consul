@@ -1735,3 +1735,10 @@ const (
 
 	SHUTDOWN_NORETRY = 0x1
 )
+
+// Flags used for GetModuleHandleEx
+const (
+	GET_MODULE_HANDLE_EX_FLAG_PIN                = 1
+	GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT = 2
+	GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS       = 4
+)
