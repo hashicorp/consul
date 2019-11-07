@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -15,7 +16,19 @@ type providerPluginRPCServer struct {
 }
 
 func (p *providerPluginRPCServer) Configure(args *ConfigureRPCRequest, _ *struct{}) error {
-	return p.impl.Configure(args.ClusterId, args.IsRoot, args.RawConfig)
+	return p.impl.Configure(args.ClusterId, args.IsRoot, args.RawConfig, args.State)
+}
+
+func (p *providerPluginRPCServer) State(_ struct{}, resp *StateResponse) error {
+	state, err := p.impl.State()
+	if err != nil {
+		return err
+	}
+	resp.State, err = json.Marshal(state)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *providerPluginRPCServer) GenerateRoot(struct{}, *struct{}) error {
@@ -96,12 +109,28 @@ type providerPluginRPCClient struct {
 func (p *providerPluginRPCClient) Configure(
 	clusterId string,
 	isRoot bool,
-	rawConfig map[string]interface{}) error {
+	rawConfig map[string]interface{},
+	state map[string]string) error {
 	return p.client.Call("Plugin.Configure", &ConfigureRPCRequest{
 		ClusterId: clusterId,
 		IsRoot:    isRoot,
 		RawConfig: rawConfig,
+		State:     state,
 	}, &struct{}{})
+}
+
+func (p *providerPluginRPCClient) State() (map[string]string, error) {
+	var resp StateResponse
+	err := p.client.Call("Plugin.State", struct{}{}, &resp)
+	if err != nil {
+		return nil, err
+	}
+	var state map[string]string
+	err = json.Unmarshal(resp.State, &state)
+	if err != nil {
+		return nil, err
+	}
+	return state, nil
 }
 
 func (p *providerPluginRPCClient) GenerateRoot() error {
@@ -177,6 +206,7 @@ type ConfigureRPCRequest struct {
 	ClusterId string
 	IsRoot    bool
 	RawConfig map[string]interface{}
+	State     map[string]string
 }
 
 type SetIntermediateRPCRequest struct {

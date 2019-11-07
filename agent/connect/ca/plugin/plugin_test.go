@@ -21,17 +21,22 @@ func TestProvider_Configure(t *testing.T) {
 		m.On("Configure", "foo", false, map[string]interface{}{
 			"string": "bar",
 			"number": float64(42), // because json
+		}, map[string]string{
+			"foo": "bar",
 		}).Once().Return(nil)
 		require.NoError(p.Configure("foo", false, map[string]interface{}{
 			"string": "bar",
 			"number": float64(42),
+		}, map[string]string{
+			"foo": "bar",
 		}))
 		m.AssertExpectations(t)
 
 		// Try with an error
 		m.Mock = mock.Mock{}
-		m.On("Configure", "foo", false, map[string]interface{}{}).Once().Return(errors.New("hello world"))
-		err := p.Configure("foo", false, map[string]interface{}{})
+		m.On("Configure", "foo", false, map[string]interface{}{}, map[string]string{}).
+			Once().Return(errors.New("hello world"))
+		err := p.Configure("foo", false, map[string]interface{}{}, map[string]string{})
 		require.Error(err)
 		require.Contains(err.Error(), "hello")
 		m.AssertExpectations(t)
