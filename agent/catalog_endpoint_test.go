@@ -951,27 +951,28 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(300 * time.Millisecond)
 
-	// Query again and now foo should have moved to the front of the line.
-	req, _ = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.CatalogServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Eventually foo should move to the front of the line.
+	retry.Run(t, func(r *retry.R) {
+		req, _ = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.CatalogServiceNodes(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
 
-	assertIndex(t, resp)
-	nodes = obj.(structs.ServiceNodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
+		assertIndex(t, resp)
+		nodes = obj.(structs.ServiceNodes)
+		if len(nodes) != 2 {
+			r.Fatalf("bad: %v", obj)
+		}
+		if nodes[0].Node != "foo" {
+			r.Fatalf("bad: %v", nodes)
+		}
+		if nodes[1].Node != "bar" {
+			r.Fatalf("bad: %v", nodes)
+		}
+	})
 }
 
 // Test that connect proxies can be queried via /v1/catalog/service/:service
