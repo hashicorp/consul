@@ -101,6 +101,8 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		assert.Equal(actual, expected)
 	}
 
+	testState := map[string]string{"foo": "bar"}
+
 	// Update a config value
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
@@ -108,6 +110,9 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 			"PrivateKey":     "",
 			"RootCert":       "",
 			"RotationPeriod": 180 * 24 * time.Hour,
+			// This verifies the state persistence for providers although Consul
+			// provider doesn't actually use that mechanism outside of tests.
+			"test_state": testState,
 		},
 	}
 	{
@@ -135,6 +140,7 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(reply.Provider, newConfig.Provider)
 		assert.Equal(actual, expected)
+		assert.Equal(testState, reply.State)
 	}
 }
 

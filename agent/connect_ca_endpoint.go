@@ -51,7 +51,6 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 		return nil, err
 	}
 
-	fixupConfig(&reply)
 	return reply, nil
 }
 
@@ -71,27 +70,4 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 	var reply interface{}
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
 	return nil, err
-}
-
-// A hack to fix up the config types inside of the map[string]interface{}
-// so that they get formatted correctly during json.Marshal. Without this,
-// string values that get converted to []uint8 end up getting output back
-// to the user in base64-encoded form.
-func fixupConfig(conf *structs.CAConfiguration) {
-	for k, v := range conf.Config {
-		if raw, ok := v.([]uint8); ok {
-			strVal := structs.Uint8ToString(raw)
-			conf.Config[k] = strVal
-			switch conf.Provider {
-			case structs.ConsulCAProvider:
-				if k == "PrivateKey" && strVal != "" {
-					conf.Config["PrivateKey"] = "hidden"
-				}
-			case structs.VaultCAProvider:
-				if k == "Token" && strVal != "" {
-					conf.Config["Token"] = "hidden"
-				}
-			}
-		}
-	}
 }

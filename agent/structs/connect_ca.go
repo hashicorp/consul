@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -228,7 +230,65 @@ type CAConfiguration struct {
 	// and maps).
 	Config map[string]interface{}
 
+	// State is optionally used by the provider to persist information it needs
+	// between reloads like UUIDs of resources it manages. It only supports string
+	// values to avoid gotchas with interface{} since this is encoded through
+	// msgpack when it's written through raft. For example if providers used a
+	// custom struct or even a simple `int` type, msgpack with loose type
+	// information during encode/decode and providers will end up getting back
+	// different types have have to remember to test multiple variants of state
+	// handling to account for cases where it's been through msgpack or not.
+	// Keeping this as strings only forces compatibility and leaves the input
+	// Providers have to work with unambiguous - they can parse ints or other
+	// types as they need. We expect this only to be used to store a handful of
+	// identifiers anyway so this is simpler.
+	State map[string]string
+
 	RaftIndex
+}
+
+// MarshalBinary writes CAConfiguration as msgpack encoded. It's only here
+// because we need custom decoding of the raw interface{} values and this
+// completes the interface.
+func (c *CAConfiguration) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	type Alias CAConfiguration
+
+	if err := enc.Encode((*Alias)(c)); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+// UnmarshalBinary decodes msgpack encoded CAConfiguration. It used
+// default msgpack encoding but fixes up the uint8 strings and other problems we
+// have with encoding map[string]interface{}.
+func (c *CAConfiguration) UnmarshalBinary(data []byte) error {
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+
+	type Alias CAConfiguration
+	var a Alias
+
+	if err := dec.Decode(&a); err != nil {
+		return err
+	}
+
+	*c = CAConfiguration(a)
+
+	var err error
+
+	// Fix strings and maps in the returned maps
+	c.Config, err = lib.MapWalk(c.Config)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
@@ -364,6 +424,16 @@ type VaultCAProviderConfig struct {
 	KeyFile       string
 	TLSServerName string
 	TLSSkipVerify bool
+}
+
+type AWSCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
+	PollInterval     time.Duration
+	ExistingARN      string
+	KeyAlgorithm     string
+	SigningAlgorithm string
+	DeleteOnExit     bool
 }
 
 // CALeafOp is the operation for a request related to leaf certificates.

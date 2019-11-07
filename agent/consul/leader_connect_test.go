@@ -35,6 +35,9 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		{"rsa", 2048},
 	}
 
+	dc1State := map[string]string{"foo": "dc1-value"}
+	dc2State := map[string]string{"foo": "dc2-value"}
+
 	for _, tc := range tests {
 		tc := tc
 		t.Run(fmt.Sprintf("%s-%d", tc.keyType, tc.keyBits), func(t *testing.T) {
@@ -50,6 +53,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				c.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
+				c.CAConfig.Config["test_state"] = dc1State
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
@@ -68,6 +72,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				c.ACLTokenReplication = true
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
+				c.CAConfig.Config["test_state"] = dc2State
 			})
 			defer os.RemoveAll(dir2)
 			defer s2.Shutdown()
@@ -137,6 +142,22 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// Check that the leaf signed by the new cert can be verified using the
 			// returned cert chain (signed intermediate + remote root).
 			require.NoError(t, connect.ValidateLeaf(caRoot.RootCert, leafPEM, []string{intermediatePEM}))
+
+			// Verify that both primary and secondary persisted state as expected -
+			// pass through from the config.
+			{
+				state := s1.fsm.State()
+				_, caConfig, err := state.CAConfig(nil)
+				require.NoError(t, err)
+				require.Equal(t, dc1State, caConfig.State)
+			}
+			{
+				state := s2.fsm.State()
+				_, caConfig, err := state.CAConfig(nil)
+				require.NoError(t, err)
+				require.Equal(t, dc2State, caConfig.State)
+			}
+
 		})
 	}
 }
@@ -183,8 +204,8 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	}
 
 	// Wait for current state to be reflected in both datacenters.
-	waitForActiveCARoot(t, s1, "dc1", originalRoot)
-	waitForActiveCARoot(t, s2, "dc2", originalRoot)
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", originalRoot)
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", originalRoot)
 
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
@@ -227,8 +248,8 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	})
 	require.NoError(err)
 
-	waitForActiveCARoot(t, s1, "dc1", updatedRoot)
-	waitForActiveCARoot(t, s2, "dc2", updatedRoot)
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", updatedRoot)
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", updatedRoot)
 
 	// Verify the root lists have been rotated in each DC's state store.
 	state1 := s1.fsm.State()
@@ -600,32 +621,6 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		Roots:         rootPool,
 	})
 	require.NoError(t, err)
-}
-
-func waitForActiveCARoot(t *testing.T, s *Server, datacenter string, expect *structs.CARoot) {
-	retry.Run(t, func(r *retry.R) {
-		args := &structs.DCSpecificRequest{
-			Datacenter: datacenter,
-		}
-		var reply structs.IndexedCARoots
-		if err := s.RPC("ConnectCA.Roots", args, &reply); err != nil {
-			r.Fatalf("err: %v", err)
-		}
-
-		var root *structs.CARoot
-		for _, r := range reply.Roots {
-			if r.ID == reply.ActiveRootID {
-				root = r
-				break
-			}
-		}
-		if root == nil {
-			r.Fatal("no active root")
-		}
-		if root.ID != expect.ID {
-			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
-		}
-	})
 }
 
 func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *structs.CARoot, error) {

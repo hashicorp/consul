@@ -32,6 +32,14 @@ type ConsulProvider struct {
 	spiffeID  *connect.SpiffeIDSigning
 	logger    *log.Logger
 
+	// testState is only used to test Consul leader's handling of providers that
+	// need to persist state. Consul provider actually manages it's state directly
+	// in the FSM since it is highly sensitive not (root private keys) not just
+	// metadata for lookups. We could make a whole mock provider to keep this out
+	// of Consul but that would still need to be configurable through real config
+	// and is a lot more boilerplate to test this for equivalent functionality.
+	testState map[string]string
+
 	sync.RWMutex
 }
 
@@ -41,7 +49,7 @@ type ConsulProviderStateDelegate interface {
 }
 
 // Configure sets up the provider using the given configuration.
-func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}) error {
+func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error {
 	// Parse the raw config and update our ID.
 	config, err := ParseConsulCAConfig(rawConfig)
 	if err != nil {
@@ -53,6 +61,9 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 	c.clusterID = clusterID
 	c.isRoot = isRoot
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})
+
+	// Passthrough test state for state handling tests. See testState doc.
+	c.parseTestState(rawConfig)
 
 	// Exit early if the state store has an entry for this provider's config.
 	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
@@ -112,6 +123,15 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 		c.id, c.isRoot)
 
 	return nil
+}
+
+// State implements Provider. Consul actually does store all it's state in raft
+// but it manages it independently through a separate table already so this is a
+// no-op. This method just passes through testState which allows tests to verify
+// state handling behavior without needing to plumb a full test mock provider
+// right through Consul server code.
+func (c *ConsulProvider) State() (map[string]string, error) {
+	return c.testState, nil
 }
 
 // ActiveRoot returns the active root CA certificate.
@@ -640,4 +660,29 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 // SetLogger implements the NeedsLogger interface so the provider can log important messages.
 func (c *ConsulProvider) SetLogger(logger *log.Logger) {
 	c.logger = logger
+}
+
+func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}) {
+	c.testState = nil
+	if rawTestState, ok := rawConfig["test_state"]; ok {
+		if ts, ok := rawTestState.(map[string]string); ok {
+			c.testState = ts
+			return
+		}
+
+		// Secondary's config takes a trip through the state store before Configure
+		// is called unlike primaries. This means we end up with map[string]string
+		// encoded as map[string]interface{}. Just handle that case and ignore the
+		// rest as this is test-only code and we'd rather not leave a way to error
+		// CA setup and leave cluster unavailable in prod by accidentally setting a
+		// bad test_state config.
+		if ts, ok := rawTestState.(map[string]interface{}); ok {
+			c.testState = make(map[string]string)
+			for k, v := range ts {
+				if s, ok := v.(string); ok {
+					c.testState[k] = s
+				}
+			}
+		}
+	}
 }

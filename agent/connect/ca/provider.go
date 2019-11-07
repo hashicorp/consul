@@ -11,9 +11,25 @@ import (
 // an external CA that provides leaf certificate signing for
 // given SpiffeIDServices.
 type Provider interface {
-	// Configure initializes the provider based on the given cluster ID, root status
-	// and configuration values.
-	Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error
+	// Configure initializes the provider based on the given cluster ID, root
+	// status and configuration values. rawConfig containts the user-provided
+	// Config. State contains a the State the same provider last persisted on a
+	// restart or reconfiguration.
+	Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error
+
+	// State returns the current provider state. If the provider doesn't need to
+	// store anything other than what they user configured this can return nil. It
+	// is called after any config change before the new active config is stored in
+	// the state store and the most recent value returned by the provider is given
+	// in subsequent `Configure` calls provided that the current provider is the
+	// same type as the new provider instance being configured. This provides a
+	// simple way for providers to persist information like UUIDs of resources
+	// they manage. This state is visible to anyone with operator:read via the API
+	// so it's not intended for storing secrets like root private keys. Only
+	// strings are permitted since this has to pass through msgpack and so
+	// interface values will end up mangled in many cases which is ugly for all
+	// provider code to have to remember to reason about.
+	State() (map[string]string, error)
 
 	// GenerateRoot causes the creation of a new root certificate for this provider.
 	// This can also be a no-op if a root certificate already exists for the given

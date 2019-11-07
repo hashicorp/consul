@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -211,7 +212,7 @@ func (s *Server) initializeCA() error {
 
 // initializeRootCA runs the initialization logic for a root CA.
 func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
-	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
+	if err := provider.Configure(conf.ClusterID, true, conf.Config, conf.State); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := provider.GenerateRoot(); err != nil {
@@ -236,6 +237,24 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	_, err = connect.ParseCert(interPEM)
 	if err != nil {
 		return fmt.Errorf("error getting intermediate cert: %v", err)
+	}
+
+	// If the provider has state to persist and it's changed or new then update
+	// CAConfig.
+	pState, err := provider.State()
+	if err != nil {
+		return fmt.Errorf("error getting provider state: %v", err)
+	}
+	if !reflect.DeepEqual(conf.State, pState) {
+		// Update the CAConfig in raft to persist the provider state
+		conf.State = pState
+		req := structs.CARequest{
+			Op:     structs.CAOpSetConfig,
+			Config: conf,
+		}
+		if _, err = s.raftApply(structs.ConnectCARequestType, req); err != nil {
+			return fmt.Errorf("error persisting provider state: %v", err)
+		}
 	}
 
 	// Check if the CA root is already initialized and exit if it is,
@@ -395,6 +414,12 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 		}
 		newConf := *config
 		newConf.ClusterID = newActiveRoot.ExternalTrustDomain
+
+		// Persist any state the provider needs us to
+		newConf.State, err = provider.State()
+		if err != nil {
+			return fmt.Errorf("error getting provider state: %v", err)
+		}
 
 		// Copy the root list and append the new active root, updating the old root
 		// with the time it was rotated out.
@@ -766,7 +791,7 @@ func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs
 		return err
 	}
 
-	if err := provider.Configure(clusterID, false, conf.Config); err != nil {
+	if err := provider.Configure(clusterID, false, conf.Config, conf.State); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 

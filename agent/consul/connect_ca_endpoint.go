@@ -168,6 +168,13 @@ func (s *ConnectCA) ConfigurationSet(
 		return nil
 	}
 
+	// If the provider hasn't changed, we need to load the current Provider state
+	// so it can decide if it needs to change resources or not based on the config
+	// change.
+	if args.Config.Provider == config.Provider {
+		args.Config.State = config.State
+	}
+
 	// Create a new instance of the provider described by the config
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
@@ -176,7 +183,8 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
-	if err := newProvider.Configure(args.Config.ClusterID, true, args.Config.Config); err != nil {
+	if err := newProvider.Configure(args.Config.ClusterID, true,
+		args.Config.Config, args.Config.State); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := newProvider.GenerateRoot(); err != nil {
@@ -192,6 +200,13 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
+
+	// See if the provider needs to persist any state along with the config
+	pState, err := newProvider.State()
+	if err != nil {
+		return fmt.Errorf("error getting provider state: %v", err)
+	}
+	args.Config.State = pState
 
 	// Compare the new provider's root CA ID to the current one. If they
 	// match, just update the existing provider with the new config.

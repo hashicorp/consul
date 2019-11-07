@@ -111,3 +111,34 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 		}
 	})
 }
+
+// WaitForActiveCARoot polls until the server returns an active Connect root CA
+// with the same ID field as expect. If expect is nil, it just waits until _any_
+// active root is returned. This is useful because initializing CA happens after
+// raft leadership is gained so WaitForLeader isn't sufficient to be sure that
+// the CA is fully initialized.
+func WaitForActiveCARoot(t *testing.T, rpc rpcFn, dc string, expect *structs.CARoot) {
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.DCSpecificRequest{
+			Datacenter: dc,
+		}
+		var reply structs.IndexedCARoots
+		if err := rpc("ConnectCA.Roots", args, &reply); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		var root *structs.CARoot
+		for _, r := range reply.Roots {
+			if r.ID == reply.ActiveRootID {
+				root = r
+				break
+			}
+		}
+		if root == nil {
+			r.Fatal("no active root")
+		}
+		if expect != nil && root.ID != expect.ID {
+			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
+		}
+	})
+}
