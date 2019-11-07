@@ -109,8 +109,8 @@ func (t Transfer) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	ch := make(chan *dns.Envelope)
 	tr := new(dns.Transfer)
 	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		tr.Out(w, r, ch)
 		wg.Done()
 	}()
