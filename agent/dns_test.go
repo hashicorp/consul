@@ -2366,8 +2366,8 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	_, err := a2.JoinWAN([]string{addr})
 	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
-		require.Len(t, a1.WANMembers(), 2)
-		require.Len(t, a2.WANMembers(), 2)
+		require.Len(r, a1.WANMembers(), 2)
+		require.Len(r, a2.WANMembers(), 2)
 	})
 
 	// Register an equivalent prepared query.
