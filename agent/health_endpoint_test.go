@@ -740,7 +740,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&filter="+url.QueryEscape("Node.Node == `test-health-node`"), nil)
 	resp := httptest.NewRecorder()
@@ -792,7 +792,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 
 	assertIndex(t, resp)
 
-	// Should be a non-nil empty list for checks
+	// Should be a list of checks with 1 element
 	nodes = obj.(structs.CheckServiceNodes)
 	require.Len(t, nodes, 1)
 	require.Len(t, nodes[0].Checks, 1)
@@ -978,7 +978,7 @@ func TestHealthServiceNodes_CheckType(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	resp := httptest.NewRecorder()
