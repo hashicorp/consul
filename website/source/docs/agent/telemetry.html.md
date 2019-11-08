@@ -150,7 +150,7 @@ This is a full list of metrics emitted by Consul.
     <td>counter</td>
   </tr>
   <tr>
-    <td>`consul.acl.blocked.&lt;check|node|service&gt;.registration`</td>
+    <td>`consul.acl.blocked.<check|node|service>.registration`</td>
     <td>This increments whenever a registration fails for an entity (check, node or service) is blocked by an ACL</td>
     <td>requests</td>
     <td>counter</td>

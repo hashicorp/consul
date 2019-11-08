@@ -5,7 +5,7 @@
 
   .navbar-toggle {
     .icon-bar {
-      border: 1px solid $consul-black;
+      border: 1px solid $gray-1;
     }
   }
 
@@ -20,17 +20,17 @@
         }
 
         path.center-c {
-          fill: $consul-red-dark;
+          fill: $consul-d1;
           opacity: 1;
         }
 
         path.circles {
-          fill: $consul-red;
+          fill: $consul;
           opacity: 1;
         }
 
         path.c {
-          fill: $consul-red;
+          fill: $consul;
           opacity: 1;
         }
       }
@@ -40,7 +40,7 @@
   ul.nav {
     li {
       a {
-        color: $consul-black;
+        color: $gray-1;
 
         &:hover,
         &:focus,
@@ -54,7 +54,7 @@
         }
 
         svg {
-          fill: $consul-black;
+          fill: $gray-1;
         }
       }
     }

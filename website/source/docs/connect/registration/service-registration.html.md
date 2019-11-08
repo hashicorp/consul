@@ -210,7 +210,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 }
 ```
 
-#### Direct to a Remote/Ingress in a Remote Dataceter
+#### Direct to a Remote/Ingress in a Remote Datacenter
 ```json
 {
   "mode": "remote"

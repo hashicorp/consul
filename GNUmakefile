@@ -330,7 +330,11 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	go get -v $(GOTOOLS)
+	@mkdir -p .gotools
+	@cd .gotools && if [[ ! -f go.mod ]]; then \
+		go mod init consul-tools ; \
+	fi
+	cd .gotools && go get -v $(GOTOOLS)
 
 version:
 	@echo -n "Version:                    "

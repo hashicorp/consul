@@ -192,7 +192,7 @@ var endpoints map[string]unboundEndpoint
 
 // allowedMethods is a map from endpoint prefix to supported HTTP methods.
 // An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
-var allowedMethods map[string][]string
+var allowedMethods map[string][]string = make(map[string][]string)
 
 // registerEndpoint registers a new endpoint, which should be done at package
 // init() time.
@@ -572,8 +572,17 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	http.Redirect(resp, req, s.agent.config.UIContentPath, http.StatusMovedPermanently) // 301
 }
 
-// decodeBody is used to decode a JSON request body
-func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+func decodeBody(body io.Reader, out interface{}) error {
+	if body == nil {
+		return io.EOF
+	}
+
+	return json.NewDecoder(body).Decode(&out)
+}
+
+// decodeBodyDeprecated is deprecated, please ues decodeBody above.
+// decodeBodyDeprecated is used to decode a JSON request body
+func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{}) error) error {
 	// This generally only happens in tests since real HTTP requests set
 	// a non-nil body with no content. We guard against it anyways to prevent
 	// a panic. The EOF response is the same behavior as an empty reader.
@@ -883,7 +892,7 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 			value := strings.TrimSpace(strings.Join(parts[1:], " "))
 
 			// <Scheme> must be "Bearer"
-			if scheme == "Bearer" {
+			if strings.ToLower(scheme) == "bearer" {
 				// Since Bearer tokens shouldnt contain spaces (rfc6750#section-2.1)
 				// "value" is tokenized, only the first item is used
 				tok = strings.TrimSpace(strings.Split(value, " ")[0])

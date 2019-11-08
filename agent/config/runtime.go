@@ -196,6 +196,12 @@ type RuntimeConfig struct {
 	// hcl: autopilot { max_trailing_logs = int }
 	AutopilotMaxTrailingLogs int
 
+	// AutopilotMinQuorum sets the minimum number of servers required in a cluster
+	// before autopilot can prune dead servers.
+	//
+	//hcl: autopilot { min_quorum = int }
+	AutopilotMinQuorum uint
+
 	// AutopilotRedundancyZoneTag is the Meta tag to use for separating servers
 	// into zones for redundancy. If left blank, this feature will be disabled.
 	// (Enterprise-only)

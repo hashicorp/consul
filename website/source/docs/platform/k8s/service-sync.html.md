@@ -255,7 +255,7 @@ metadata:
 ## Consul to Kubernetes
 
 This syncs Consul services into first-class Kubernetes services.
-The sync service will creat an [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname)
+The sync service will create an [`ExternalName`](https://kubernetes.io/docs/concepts/services-networking/service/#externalname)
 `Service` for each Consul service. The "external name" will be
 the Consul DNS name.
 

@@ -728,6 +728,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AutopilotDisableUpgradeMigration: b.boolVal(c.Autopilot.DisableUpgradeMigration),
 		AutopilotLastContactThreshold:    b.durationVal("autopilot.last_contact_threshold", c.Autopilot.LastContactThreshold),
 		AutopilotMaxTrailingLogs:         b.intVal(c.Autopilot.MaxTrailingLogs),
+		AutopilotMinQuorum:               b.uintVal(c.Autopilot.MinQuorum),
 		AutopilotRedundancyZoneTag:       b.stringVal(c.Autopilot.RedundancyZoneTag),
 		AutopilotServerStabilizationTime: b.durationVal("autopilot.server_stabilization_time", c.Autopilot.ServerStabilizationTime),
 		AutopilotUpgradeVersionTag:       b.stringVal(c.Autopilot.UpgradeVersionTag),
@@ -1442,6 +1443,17 @@ func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
 
 func (b *Builder) intVal(v *int) int {
 	return b.intValWithDefault(v, 0)
+}
+
+func (b *Builder) uintVal(v *uint) uint {
+	return b.uintValWithDefault(v, 0)
+}
+
+func (b *Builder) uintValWithDefault(v *uint, defaultVal uint) uint {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
 }
 
 func (b *Builder) uint64ValWithDefault(v *uint64, defaultVal uint64) uint64 {

@@ -19,6 +19,10 @@ func NewChainedAuthorizer(chain []Authorizer) *ChainedAuthorizer {
 	}
 }
 
+func (c *ChainedAuthorizer) AuthorizerChain() []Authorizer {
+	return c.chain
+}
+
 func (c *ChainedAuthorizer) executeChain(enforce func(authz Authorizer) EnforcementDecision) EnforcementDecision {
 	for _, authz := range c.chain {
 		decision := enforce(authz)

@@ -61,7 +61,7 @@ There are several ways to try Consul with Kubernetes in different environments.
    https://learn.hashicorp.com/consul/day-1-operations/kubernetes-reference?utm_source=consul.io&utm_medium=docs) guide provides recommended practices for production. 
 
  - The [Consul and Kubernetes Deployment](
-   https://learn.hashicorp.com/consul/day-1-operations/kubernetes-deployment-guide?utm_source=consul.io&utm_medium=docs) guide covers the necssary steps to install and configure a new Consul cluster on Kubernetes in production. 
+   https://learn.hashicorp.com/consul/day-1-operations/kubernetes-deployment-guide?utm_source=consul.io&utm_medium=docs) guide covers the necessary steps to install and configure a new Consul cluster on Kubernetes in production.
 
 ## "consul-k8s" Project
 

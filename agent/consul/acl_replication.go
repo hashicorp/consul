@@ -112,6 +112,7 @@ func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResp
 			Token:         s.tokens.ReplicationToken(),
 		},
 	}
+	s.fillReplicationEnterpriseMeta(&req.EnterpriseMeta)
 
 	var response structs.ACLRoleListResponse
 	if err := s.RPC("ACL.RoleList", &req, &response); err != nil {
@@ -149,6 +150,7 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 			Token:         s.tokens.ReplicationToken(),
 		},
 	}
+	s.fillReplicationEnterpriseMeta(&req.EnterpriseMeta)
 
 	var response structs.ACLPolicyListResponse
 	if err := s.RPC("ACL.PolicyList", &req, &response); err != nil {
@@ -342,6 +344,7 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 		IncludeLocal:  false,
 		IncludeGlobal: true,
 	}
+	s.fillReplicationEnterpriseMeta(&req.EnterpriseMeta)
 
 	var response structs.ACLTokenListResponse
 	if err := s.RPC("ACL.TokenList", &req, &response); err != nil {

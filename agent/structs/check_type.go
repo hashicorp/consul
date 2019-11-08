@@ -1,12 +1,15 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/types"
 )
+
+type CheckTypes []*CheckType
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
 // The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC, Alias. Script,
@@ -55,7 +58,91 @@ type CheckType struct {
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
 }
-type CheckTypes []*CheckType
+
+func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
+	type Alias CheckType
+	aux := &struct {
+		Interval                       interface{}
+		Timeout                        interface{}
+		TTL                            interface{}
+		DeregisterCriticalServiceAfter interface{}
+
+		// Translate fields
+
+		// "args" -> ScriptArgs
+		Args                                []string    `json:"args"`
+		ScriptArgsSnake                     []string    `json:"script_args"`
+		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
+		DockerContainerIDSnake              string      `json:"docker_container_id"`
+		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	if aux.DeregisterCriticalServiceAfter == nil {
+		aux.DeregisterCriticalServiceAfter = aux.DeregisterCriticalServiceAfterSnake
+	}
+	if len(t.ScriptArgs) == 0 {
+		t.ScriptArgs = aux.Args
+	}
+	if len(t.ScriptArgs) == 0 {
+		t.ScriptArgs = aux.ScriptArgsSnake
+	}
+	if t.DockerContainerID == "" {
+		t.DockerContainerID = aux.DockerContainerIDSnake
+	}
+	if aux.TLSSkipVerifySnake {
+		t.TLSSkipVerify = aux.TLSSkipVerifySnake
+	}
+
+	if aux.Interval != nil {
+		switch v := aux.Interval.(type) {
+		case string:
+			if t.Interval, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Interval = time.Duration(v)
+		}
+	}
+	if aux.Timeout != nil {
+		switch v := aux.Timeout.(type) {
+		case string:
+			if t.Timeout, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.Timeout = time.Duration(v)
+		}
+	}
+	if aux.TTL != nil {
+		switch v := aux.TTL.(type) {
+		case string:
+			if t.TTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.TTL = time.Duration(v)
+		}
+	}
+	if aux.DeregisterCriticalServiceAfter != nil {
+		switch v := aux.DeregisterCriticalServiceAfter.(type) {
+		case string:
+			if t.DeregisterCriticalServiceAfter, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			t.DeregisterCriticalServiceAfter = time.Duration(v)
+		}
+	}
+
+	return nil
+
+}
 
 // Validate returns an error message if the check is invalid
 func (c *CheckType) Validate() error {

@@ -128,12 +128,12 @@ This command will not output anything when the deletion is successful.
 ### Bootstrapping From A Configuration File
 
 
-Configuration entries can be bootstrapped by adding them inline to each Consul
-server’s configuration file. When a server gains leadership, it will attempt to
-initialize the configuration entries. If a configuration entry does not already
-exist outside of the servers configuration, then it will create it. If a
-configuration entry does exist, that matches both `kind` and `name`, then the
-server will do nothing.
+Configuration entries can be bootstrapped by adding them [inline to each Consul
+server's configuration file](/docs/agent/options.html#config_entries). When a
+server gains leadership, it will attempt to initialize the configuration entries.
+If a configuration entry does not already exist outside of the servers
+configuration, then it will create it. If a configuration entry does exist, that
+matches both `kind` and `name`, then the server will do nothing.
 
 
 ## Using Configuration Entries For Service Defaults

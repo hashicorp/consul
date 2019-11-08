@@ -166,6 +166,8 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		ResetIndex: specifiedIndex,
 	}
 
+	req.Token.EnterpriseMeta.InitDefault()
+
 	req.Token.SetHash(true)
 
 	resp, err := a.srv.raftApply(structs.ACLBootstrapRequestType, &req)
@@ -177,7 +179,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		return err
 	}
 
-	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor); err == nil {
+	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor, structs.DefaultEnterpriseMeta()); err == nil {
 		*reply = *token
 	}
 
@@ -187,6 +189,10 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 
 func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -201,15 +207,18 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 	}
 
 	var rule acl.Authorizer
+
 	if args.TokenIDType == structs.ACLTokenAccessor {
+		var entCtx acl.EnterpriseAuthorizerContext
+		args.FillAuthzContext(&entCtx)
+
 		var err error
 		// Only ACLRead privileges are required to list tokens
 		// However if you do not have ACLWrite as well the token
 		// secrets will be redacted
-		// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
 		if rule, err = a.srv.ResolveToken(args.Token); err != nil {
 			return err
-		} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+		} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -221,16 +230,18 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			var err error
 
 			if args.TokenIDType == structs.ACLTokenAccessor {
-				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID)
+				index, token, err = state.ACLTokenGetByAccessor(ws, args.TokenID, &args.EnterpriseMeta)
 				if token != nil {
 					a.srv.filterACLWithAuthorizer(rule, &token)
-					// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
-					if rule.ACLWrite(nil) != acl.Allow {
+
+					// token secret was redacted
+					if token.SecretID == redactedToken {
 						reply.Redacted = true
 					}
 				}
 			} else {
-				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID)
+				index, token, err = state.ACLTokenGetBySecret(ws, args.TokenID, nil)
+				// no extra validation is needed here. If you have the secret ID you can read it.
 			}
 
 			if token != nil && token.IsExpired(time.Now()) {
@@ -251,6 +262,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.ACLToken.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
@@ -263,14 +278,16 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 
 	defer metrics.MeasureSince([]string{"acl", "token", "clone"}, time.Now())
 
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.ACLToken.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
-	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID)
+	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.ACLToken.AccessorID, &args.ACLToken.EnterpriseMeta)
 	if err != nil {
 		return err
 	} else if token == nil || token.IsExpired(time.Now()) {
@@ -297,6 +314,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 			Local:             token.Local,
 			Description:       token.Description,
 			ExpirationTime:    token.ExpirationTime,
+			EnterpriseMeta:    args.ACLToken.EnterpriseMeta,
 		},
 		WriteRequest: args.WriteRequest,
 	}
@@ -310,6 +328,10 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 
 func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.ACLToken.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -327,10 +349,11 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 	defer metrics.MeasureSince([]string{"acl", "token", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.ACLToken.FillAuthzContext(&entCtx)
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -354,13 +377,13 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	var err error
 
 	if token.AccessorID != "" {
-		_, accessorMatch, err = state.ACLTokenGetByAccessor(nil, token.AccessorID)
+		_, accessorMatch, err = state.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 		if err != nil {
 			return fmt.Errorf("Failed acl token lookup by accessor: %v", err)
 		}
 	}
 	if token.SecretID != "" {
-		_, secretMatch, err = state.ACLTokenGetBySecret(nil, token.SecretID)
+		_, secretMatch, err = state.ACLTokenGetBySecret(nil, token.SecretID, nil)
 		if err != nil {
 			return fmt.Errorf("Failed acl token lookup by secret: %v", err)
 		}
@@ -379,7 +402,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Invalid Token: AccessorID is not a valid UUID")
 		} else if accessorMatch != nil {
 			return fmt.Errorf("Invalid Token: AccessorID is already in use")
-		} else if _, match, err := state.ACLTokenGetBySecret(nil, token.AccessorID); err != nil || match != nil {
+		} else if _, match, err := state.ACLTokenGetBySecret(nil, token.AccessorID, nil); err != nil || match != nil {
 			if err != nil {
 				return fmt.Errorf("Failed to lookup the acl token: %v", err)
 			}
@@ -388,7 +411,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Invalid Token: UUIDs with the prefix %q are reserved", structs.ACLReservedPrefix)
 		}
 
-		// Generate the AccessorID if not specified
+		// Generate the SecretID if not specified
 		if token.SecretID == "" {
 			token.SecretID, err = lib.GenerateUUID(a.srv.checkTokenUUID)
 			if err != nil {
@@ -398,7 +421,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 			return fmt.Errorf("Invalid Token: SecretID is not a valid UUID")
 		} else if secretMatch != nil {
 			return fmt.Errorf("Invalid Token: SecretID is already in use")
-		} else if _, match, err := state.ACLTokenGetByAccessor(nil, token.SecretID); err != nil || match != nil {
+		} else if _, match, err := state.ACLTokenGetByAccessor(nil, token.SecretID, nil); err != nil || match != nil {
 			if err != nil {
 				return fmt.Errorf("Failed to lookup the acl token: %v", err)
 			}
@@ -509,7 +532,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	// Validate all the policy names and convert them to policy IDs
 	for _, link := range token.Policies {
 		if link.ID == "" {
-			_, policy, err := state.ACLPolicyGetByName(nil, link.Name)
+			_, policy, err := state.ACLPolicyGetByName(nil, link.Name, &token.EnterpriseMeta)
 			if err != nil {
 				return fmt.Errorf("Error looking up policy for name %q: %v", link.Name, err)
 			}
@@ -517,6 +540,15 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 				return fmt.Errorf("No such ACL policy with name %q", link.Name)
 			}
 			link.ID = policy.ID
+		} else {
+			_, policy, err := state.ACLPolicyGetByID(nil, link.ID, &token.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("Error looking up policy for id %q: %v", link.ID, err)
+			}
+
+			if policy == nil {
+				return fmt.Errorf("No such ACL policy with ID %q", link.ID)
+			}
 		}
 
 		// Do not store the policy name within raft/memdb as the policy could be renamed in the future.
@@ -536,7 +568,7 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	// Validate all the role names and convert them to role IDs.
 	for _, link := range token.Roles {
 		if link.ID == "" {
-			_, role, err := state.ACLRoleGetByName(nil, link.Name)
+			_, role, err := state.ACLRoleGetByName(nil, link.Name, &token.EnterpriseMeta)
 			if err != nil {
 				return fmt.Errorf("Error looking up role for name %q: %v", link.Name, err)
 			}
@@ -544,6 +576,15 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 				return fmt.Errorf("No such ACL role with name %q", link.Name)
 			}
 			link.ID = role.ID
+		} else {
+			_, role, err := state.ACLRoleGetByID(nil, link.ID, &token.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("Error looking up role for id %q: %v", link.ID, err)
+			}
+
+			if role == nil {
+				return fmt.Errorf("No such ACL role with ID %q", link.ID)
+			}
 		}
 
 		// Do not store the role name within raft/memdb as the role could be renamed in the future.
@@ -580,6 +621,12 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 
 	token.SetHash(true)
 
+	// validate the enterprise meta
+	err = state.ACLTokenUpsertValidateEnterprise(token, accessorMatch)
+	if err != nil {
+		return err
+	}
+
 	req := &structs.ACLTokenBatchSetRequest{
 		Tokens: structs.ACLTokens{token},
 		CAS:    false,
@@ -599,14 +646,14 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	a.srv.acls.cache.RemoveIdentity(token.SecretID)
+	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 
 	// Don't check expiration times here as it doesn't really matter.
-	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID); err == nil && updatedToken != nil {
+	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID, nil); err == nil && updatedToken != nil {
 		*reply = *updatedToken
 	} else {
 		return fmt.Errorf("Failed to retrieve the token after insertion")
@@ -676,6 +723,10 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
@@ -687,10 +738,12 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	defer metrics.MeasureSince([]string{"acl", "token", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -703,7 +756,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// grab the token here so we can invalidate our cache later on
-	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.TokenID)
+	_, token, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, args.TokenID, &args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -715,10 +768,18 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 
 		// No need to check expiration time because it's being deleted.
 
+		// token found in secondary DC but its not local so it must be deleted in the primary
 		if !a.srv.InACLDatacenter() && !token.Local {
 			args.Datacenter = a.srv.config.ACLDatacenter
 			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
 		}
+	} else if !a.srv.InACLDatacenter() {
+		// token not found in secondary DC - attempt to delete within the primary
+		args.Datacenter = a.srv.config.ACLDatacenter
+		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+	} else {
+		// in Primary Datacenter but the token does not exist - return early as there is nothing to do.
+		return nil
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{
@@ -731,15 +792,13 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	if token != nil {
-		a.srv.acls.cache.RemoveIdentity(token.SecretID)
-	}
+	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
 
-	if reply != nil && token != nil {
+	if reply != nil {
 		*reply = token.AccessorID
 	}
 
@@ -748,6 +807,10 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 
 func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTokenListResponse) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -764,17 +827,19 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := a.srv.ResolveToken(args.Token)
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
 	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -788,6 +853,12 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 				}
 				stubs = append(stubs, token.Stub())
 			}
+
+			// filter down to just the tokens that the requester has permissions to read
+			if err := a.srv.filterACLWithAuthorizer(rule, &stubs); err != nil {
+				return err
+			}
+
 			reply.Index, reply.Tokens = index, stubs
 			return nil
 		})
@@ -807,10 +878,9 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 	}
 
 	rule, err := a.srv.ResolveToken(args.Token)
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
 	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil {
 		return acl.ErrPermissionDenied
 	}
 
@@ -823,11 +893,27 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 
 			// This RPC is used for replication, so don't filter out expired tokens here.
 
-			a.srv.filterACLWithAuthorizer(rule, &tokens)
+			// Filter the tokens down to just what we have permission to see - also redact
+			// secrets based on allowed permissions. We could just call filterACLWithAuthorizer
+			// on the whole token list but then it would require another pass through the token
+			// list to determine if any secrets were redacted. Its a small amount of code to
+			// process the loop so it was duplicated here and we instead call the filter func
+			// with just a single token.
+			ret := make(structs.ACLTokens, 0, len(tokens))
+			for _, token := range tokens {
+				final := token
+				a.srv.filterACLWithAuthorizer(rule, &final)
+				if final != nil {
+					ret = append(ret, final)
+					if final.SecretID == redactedToken {
+						reply.Redacted = true
+					}
+				} else {
+					reply.Removed = true
+				}
+			}
 
-			reply.Index, reply.Tokens = index, tokens
-			// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
-			reply.Redacted = rule.ACLWrite(nil) != acl.Allow
+			reply.Index, reply.Tokens = index, ret
 			return nil
 		})
 }
@@ -837,19 +923,26 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := a.srv.forward("ACL.PolicyRead", args, args, reply); done {
 		return err
 	}
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, policy, err := state.ACLPolicyGetByID(ws, args.PolicyID)
+			index, policy, err := state.ACLPolicyGetByID(ws, args.PolicyID, &args.EnterpriseMeta)
 
 			if err != nil {
 				return err
@@ -869,9 +962,10 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 		return err
 	}
 
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil {
 		return acl.ErrPermissionDenied
 	}
 
@@ -882,6 +976,8 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 				return err
 			}
 
+			a.srv.filterACLWithAuthorizer(rule, &policies)
+
 			reply.Index, reply.Policies = index, policies
 			return nil
 		})
@@ -889,6 +985,10 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 
 func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPolicy) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.Policy.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -903,10 +1003,12 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	defer metrics.MeasureSince([]string{"acl", "policy", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.Policy.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -935,12 +1037,12 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 			return fmt.Errorf("Policy ID invalid UUID")
 		}
 
-		_, idMatch, err = state.ACLPolicyGetByID(nil, policy.ID)
+		_, idMatch, err = state.ACLPolicyGetByID(nil, policy.ID, nil)
 		if err != nil {
 			return fmt.Errorf("acl policy lookup by id failed: %v", err)
 		}
 	}
-	_, nameMatch, err = state.ACLPolicyGetByName(nil, policy.Name)
+	_, nameMatch, err = state.ACLPolicyGetByName(nil, policy.Name, &policy.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("acl policy lookup by name failed: %v", err)
 	}
@@ -980,7 +1082,13 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.enterpriseACLConfig)
+	_, err = acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.enterpriseACLConfig, policy.EnterprisePolicyMeta())
+	if err != nil {
+		return err
+	}
+
+	// validate the enterprise meta
+	err = state.ACLPolicyUpsertValidateEnterprise(policy, idMatch)
 	if err != nil {
 		return err
 	}
@@ -1004,7 +1112,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return respErr
 	}
 
-	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID); err == nil && policy != nil {
+	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID, &policy.EnterpriseMeta); err == nil && policy != nil {
 		*reply = *policy
 	}
 
@@ -1013,6 +1121,10 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 
 func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1027,14 +1139,16 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	defer metrics.MeasureSince([]string{"acl", "policy", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
-	_, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID)
+	_, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, args.PolicyID, &args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -1074,23 +1188,33 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := a.srv.forward("ACL.PolicyList", args, args, reply); done {
 		return err
 	}
 
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, policies, err := state.ACLPolicyList(ws)
+			index, policies, err := state.ACLPolicyList(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
+
+			// filter down to just what the requester has permissions to see
+			a.srv.filterACLWithAuthorizer(rule, &policies)
 
 			var stubs structs.ACLPolicyListStubs
 			for _, policy := range policies {
@@ -1220,14 +1344,20 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := a.srv.forward("ACL.RoleRead", args, args, reply); done {
 		return err
 	}
 
-	// TODO (namespaces) update to create and use actual enterprise authorizer context
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1239,9 +1369,9 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 				err   error
 			)
 			if args.RoleID != "" {
-				index, role, err = state.ACLRoleGetByID(ws, args.RoleID)
+				index, role, err = state.ACLRoleGetByID(ws, args.RoleID, &args.EnterpriseMeta)
 			} else {
-				index, role, err = state.ACLRoleGetByName(ws, args.RoleName)
+				index, role, err = state.ACLRoleGetByName(ws, args.RoleName, &args.EnterpriseMeta)
 			}
 
 			if err != nil {
@@ -1262,10 +1392,10 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 		return err
 	}
 
-	// TODO (namespaces) update to create and use actual enterprise authorizer context
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1276,6 +1406,8 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 				return err
 			}
 
+			a.srv.filterACLWithAuthorizer(rule, &roles)
+
 			reply.Index, reply.Roles = index, roles
 			return nil
 		})
@@ -1283,6 +1415,10 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 
 func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.Role.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1297,10 +1433,12 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	defer metrics.MeasureSince([]string{"acl", "role", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.Role.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1320,17 +1458,17 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		return fmt.Errorf("Invalid Role: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
 	}
 
+	var existing *structs.ACLRole
+	var err error
 	if role.ID == "" {
 		// with no role ID one will be generated
-		var err error
-
 		role.ID, err = lib.GenerateUUID(a.srv.checkRoleUUID)
 		if err != nil {
 			return err
 		}
 
 		// validate the name is unique
-		if _, existing, err := state.ACLRoleGetByName(nil, role.Name); err != nil {
+		if _, existing, err = state.ACLRoleGetByName(nil, role.Name, &role.EnterpriseMeta); err != nil {
 			return fmt.Errorf("acl role lookup by name failed: %v", err)
 		} else if existing != nil {
 			return fmt.Errorf("Invalid Role: A Role with Name %q already exists", role.Name)
@@ -1341,7 +1479,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		}
 
 		// Verify the role exists
-		_, existing, err := state.ACLRoleGetByID(nil, role.ID)
+		_, existing, err = state.ACLRoleGetByID(nil, role.ID, nil)
 		if err != nil {
 			return fmt.Errorf("acl role lookup failed: %v", err)
 		} else if existing == nil {
@@ -1349,12 +1487,17 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		}
 
 		if existing.Name != role.Name {
-			if _, nameMatch, err := state.ACLRoleGetByName(nil, role.Name); err != nil {
+			if _, nameMatch, err := state.ACLRoleGetByName(nil, role.Name, &role.EnterpriseMeta); err != nil {
 				return fmt.Errorf("acl role lookup by name failed: %v", err)
 			} else if nameMatch != nil {
 				return fmt.Errorf("Invalid Role: A role with name %q already exists", role.Name)
 			}
 		}
+	}
+
+	// validate the enterprise meta
+	if err := state.ACLRoleUpsertValidateEnterprise(role, existing); err != nil {
+		return err
 	}
 
 	policyIDs := make(map[string]struct{})
@@ -1363,7 +1506,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	// Validate all the policy names and convert them to policy IDs
 	for _, link := range role.Policies {
 		if link.ID == "" {
-			_, policy, err := state.ACLPolicyGetByName(nil, link.Name)
+			_, policy, err := state.ACLPolicyGetByName(nil, link.Name, &role.EnterpriseMeta)
 			if err != nil {
 				return fmt.Errorf("Error looking up policy for name %q: %v", link.Name, err)
 			}
@@ -1413,7 +1556,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		return respErr
 	}
 
-	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID); err == nil && role != nil {
+	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID, &role.EnterpriseMeta); err == nil && role != nil {
 		*reply = *role
 	}
 
@@ -1422,6 +1565,10 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 
 func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1436,14 +1583,16 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	defer metrics.MeasureSince([]string{"acl", "role", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
-	_, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, args.RoleID)
+	_, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, args.RoleID, &args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -1479,23 +1628,32 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := a.srv.forward("ACL.RoleList", args, args, reply); done {
 		return err
 	}
 
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, roles, err := state.ACLRoleList(ws, args.Policy)
+			index, roles, err := state.ACLRoleList(ws, args.Policy, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
+
+			a.srv.filterACLWithAuthorizer(rule, &roles)
 
 			reply.Index, reply.Roles = index, roles
 			return nil
@@ -1552,6 +1710,10 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1560,16 +1722,19 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 		return err
 	}
 
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, rule, err := state.ACLBindingRuleGetByID(ws, args.BindingRuleID)
+			index, rule, err := state.ACLBindingRuleGetByID(ws, args.BindingRuleID, &args.EnterpriseMeta)
 
 			if err != nil {
 				return err
@@ -1585,6 +1750,10 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.BindingRule.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1595,14 +1764,17 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 
 	defer metrics.MeasureSince([]string{"acl", "bindingrule", "upsert"}, time.Now())
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.BindingRule.FillAuthzContext(&entCtx)
+
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
+	var existing *structs.ACLBindingRule
 	rule := &args.BindingRule
 	state := a.srv.fsm.State()
 
@@ -1620,7 +1792,8 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		}
 
 		// Verify the role exists
-		_, existing, err := state.ACLBindingRuleGetByID(nil, rule.ID)
+		var err error
+		_, existing, err = state.ACLBindingRuleGetByID(nil, rule.ID, nil)
 		if err != nil {
 			return fmt.Errorf("acl binding rule lookup failed: %v", err)
 		} else if existing == nil {
@@ -1638,7 +1811,12 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return fmt.Errorf("Invalid Binding Rule: no AuthMethod is set")
 	}
 
-	methodIdx, method, err := state.ACLAuthMethodGetByName(nil, rule.AuthMethod)
+	// this is done early here to produce better errors
+	if err := state.ACLBindingRuleUpsertValidateEnterprise(rule, existing); err != nil {
+		return err
+	}
+
+	methodIdx, method, err := state.ACLAuthMethodGetByName(nil, rule.AuthMethod, &args.BindingRule.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("acl auth method lookup failed: %v", err)
 	} else if method == nil {
@@ -1691,7 +1869,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return respErr
 	}
 
-	if _, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, rule.ID); err == nil && rule != nil {
+	if _, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, rule.ID, &rule.EnterpriseMeta); err == nil && rule != nil {
 		*reply = *rule
 	}
 
@@ -1700,6 +1878,10 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 
 func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply *bool) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1713,15 +1895,17 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 
 	defer metrics.MeasureSince([]string{"acl", "bindingrule", "delete"}, time.Now())
 
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
-	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID)
+	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID, &args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -1753,6 +1937,10 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1761,19 +1949,24 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return err
 	}
 
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, rules, err := state.ACLBindingRuleList(ws, args.AuthMethod)
+			index, rules, err := state.ACLBindingRuleList(ws, args.AuthMethod, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
+
+			a.srv.filterACLWithAuthorizer(rule, &rules)
 
 			reply.Index, reply.BindingRules = index, rules
 			return nil
@@ -1785,6 +1978,10 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1793,16 +1990,18 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 		return err
 	}
 
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, method, err := state.ACLAuthMethodGetByName(ws, args.AuthMethodName)
+			index, method, err := state.ACLAuthMethodGetByName(ws, args.AuthMethodName, &args.EnterpriseMeta)
 
 			if err != nil {
 				return err
@@ -1818,6 +2017,10 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.AuthMethod.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1829,10 +2032,12 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 	defer metrics.MeasureSince([]string{"acl", "authmethod", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.AuthMethod.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1848,7 +2053,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 	}
 
 	// Check to see if the method exists first.
-	_, existing, err := state.ACLAuthMethodGetByName(nil, method.Name)
+	_, existing, err := state.ACLAuthMethodGetByName(nil, method.Name, &method.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("acl auth method lookup failed: %v", err)
 	}
@@ -1871,6 +2076,10 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return fmt.Errorf("Invalid Auth Method: %v", err)
 	}
 
+	if err := a.srv.fsm.State().ACLAuthMethodUpsertValidateEnterprise(method, existing); err != nil {
+		return err
+	}
+
 	req := &structs.ACLAuthMethodBatchSetRequest{
 		AuthMethods: structs.ACLAuthMethods{method},
 	}
@@ -1884,7 +2093,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return respErr
 	}
 
-	if _, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, method.Name); err == nil && method != nil {
+	if _, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, method.Name, &method.EnterpriseMeta); err == nil && method != nil {
 		*reply = *method
 	}
 
@@ -1893,6 +2102,10 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 
 func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *bool) error {
 	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
@@ -1907,14 +2120,16 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 	defer metrics.MeasureSince([]string{"acl", "authmethod", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	// TODO (namespaces) update to call ACLWrite with an authz context once ACLs support it
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLWrite(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
-	_, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, args.AuthMethodName)
+	_, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, args.AuthMethodName, &args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -1925,6 +2140,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 
 	req := structs.ACLAuthMethodBatchDeleteRequest{
 		AuthMethodNames: []string{args.AuthMethodName},
+		EnterpriseMeta:  args.EnterpriseMeta,
 	}
 
 	resp, err := a.srv.raftApply(structs.ACLAuthMethodDeleteRequestType, &req)
@@ -1946,6 +2162,10 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return err
 	}
 
+	if err := a.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if !a.srv.LocalTokensEnabled() {
 		return errAuthMethodsRequireTokenReplication
 	}
@@ -1954,19 +2174,24 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return err
 	}
 
-	// TODO (namespaces) update to call ACLRead with an authz context once ACLs support it
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
-	} else if rule == nil || rule.ACLRead(nil) != acl.Allow {
+	} else if rule == nil || rule.ACLRead(&entCtx) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, methods, err := state.ACLAuthMethodList(ws)
+			index, methods, err := state.ACLAuthMethodList(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
+
+			a.srv.filterACLWithAuthorizer(rule, &methods)
 
 			var stubs structs.ACLAuthMethodListStubs
 			for _, method := range methods {
@@ -1987,6 +2212,14 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return errAuthMethodsRequireTokenReplication
 	}
 
+	if args.Auth == nil {
+		return fmt.Errorf("Invalid Login request: Missing auth parameters")
+	}
+
+	if err := a.srv.validateEnterpriseRequest(&args.Auth.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	if args.Token != "" { // This shouldn't happen.
 		return errors.New("do not provide a token when logging in")
 	}
@@ -2000,7 +2233,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	auth := args.Auth
 
 	// 1. take args.Data.AuthMethod to get an AuthMethod Validator
-	idx, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, auth.AuthMethod)
+	idx, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, auth.AuthMethod, &auth.EnterpriseMeta)
 	if err != nil {
 		return err
 	} else if method == nil {
@@ -2019,7 +2252,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields)
+	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -2048,6 +2281,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 			AuthMethod:        auth.AuthMethod,
 			ServiceIdentities: serviceIdentities,
 			Roles:             roleLinks,
+			EnterpriseMeta:    auth.EnterpriseMeta,
 		},
 		WriteRequest: args.WriteRequest,
 	}
@@ -2097,7 +2331,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 
 	defer metrics.MeasureSince([]string{"acl", "logout"}, time.Now())
 
-	_, token, err := a.srv.fsm.State().ACLTokenGetBySecret(nil, args.Token)
+	_, token, err := a.srv.fsm.State().ACLTokenGetBySecret(nil, args.Token, nil)
 	if err != nil {
 		return err
 
@@ -2127,7 +2361,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
 	if token != nil {
-		a.srv.acls.cache.RemoveIdentity(token.SecretID)
+		a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 	}
 
 	if respErr, ok := resp.(error); ok {

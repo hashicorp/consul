@@ -165,7 +165,7 @@ Here is an example configuration:
 {
   "type": "keyprefix",
   "prefix": "foo/",
-  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+  "args": ["/usr/bin/my-prefix-handler.sh", "-redis"]
 }
 ```
 
@@ -384,7 +384,7 @@ events. These are fired using the [consul event](/docs/commands/event.html) comm
 It takes only a single optional "name" parameter which restricts
 the watch to only events with the given name.
 
-This maps to the `v1/event/list` API internally.
+This maps to the `/v1/event/list` API internally.
 
 Here is an example configuration:
 
@@ -392,13 +392,13 @@ Here is an example configuration:
 {
   "type": "event",
   "name": "web-deploy",
-  "args": ["/usr/bin/my-service-handler.sh", "-web-deploy"]
+  "args": ["/usr/bin/my-event-handler.sh", "-web-deploy"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh -web-deploy
+    $ consul watch -type=event -name=web-deploy /usr/bin/my-event-handler.sh -web-deploy
 
 An example of the output of this command:
 

@@ -223,39 +223,6 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 }
 
-func TestFixupLockDelay(t *testing.T) {
-	t.Parallel()
-	inp := map[string]interface{}{
-		"lockdelay": float64(15),
-	}
-	if err := FixupLockDelay(inp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if inp["lockdelay"] != 15*time.Second {
-		t.Fatalf("bad: %v", inp)
-	}
-
-	inp = map[string]interface{}{
-		"lockDelay": float64(15 * time.Second),
-	}
-	if err := FixupLockDelay(inp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if inp["lockDelay"] != 15*time.Second {
-		t.Fatalf("bad: %v", inp)
-	}
-
-	inp = map[string]interface{}{
-		"LockDelay": "15s",
-	}
-	if err := FixupLockDelay(inp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if inp["LockDelay"] != 15*time.Second {
-		t.Fatalf("bad: %v", inp)
-	}
-}
-
 func makeTestSession(t *testing.T, srv *HTTPServer) string {
 	req, _ := http.NewRequest("PUT", "/v1/session/create", nil)
 	resp := httptest.NewRecorder()

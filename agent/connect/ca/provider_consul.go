@@ -341,11 +341,14 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	// cluster. A minute is more than enough for typical DC clock drift.
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
-		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: subject},
-		URIs:                  csr.URIs,
-		Signature:             csr.Signature,
-		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		SerialNumber: sn,
+		Subject:      pkix.Name{CommonName: subject},
+		URIs:         csr.URIs,
+		Signature:    csr.Signature,
+		// We use the correct signature algorithm for the CA key we are signing with
+		// regardless of the algorithm used to sign the CSR signature above since
+		// the leaf might use a different key type.
+		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
@@ -413,7 +416,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	if err != nil {
 		return "", err
 	}
-	subjectKeyId, err := connect.KeyId(csr.PublicKey)
+	subjectKeyID, err := connect.KeyId(csr.PublicKey)
 	if err != nil {
 		return "", err
 	}
@@ -436,7 +439,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		Subject:               csr.Subject,
 		URIs:                  csr.URIs,
 		Signature:             csr.Signature,
-		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
@@ -447,7 +450,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		MaxPathLenZero: true,
 		NotAfter:       effectiveNow.AddDate(1, 0, 0),
 		NotBefore:      effectiveNow,
-		SubjectKeyId:   subjectKeyId,
+		SubjectKeyId:   subjectKeyID,
 	}
 
 	// Create the certificate, PEM encode it and return that value.

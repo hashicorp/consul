@@ -24,7 +24,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			buf.WriteString(fmt.Sprintf("service %q { policy = %q }\n", s, "write"))
 		}
 
-		policy, err := acl.NewPolicyFromSource("", 0, buf.String(), acl.SyntaxCurrent, nil)
+		policy, err := acl.NewPolicyFromSource("", 0, buf.String(), acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
