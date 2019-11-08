@@ -211,10 +211,15 @@ type TestServer struct {
 	tmpdir string
 }
 
-// NewTestServer is an easy helper method to create a new Consul
-// test server with the most basic configuration.
+// Deprecated: Use NewTestServerT instead.
 func NewTestServer() (*TestServer, error) {
 	return NewTestServerConfigT(nil, nil)
+}
+
+// NewTestServerT is an easy helper method to create a new Consul
+// test server with the most basic configuration.
+func NewTestServerT(t *testing.T) (*TestServer, error) {
+	return NewTestServerConfigT(t, nil)
 }
 
 func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
