@@ -20,6 +20,7 @@ IMPROVEMENTS
 * sdk: ignore panics due to stray goroutines logging after a test completes [[GH-6632](https://github.com/hashicorp/consul/issues/6632)]
 * agent: allow mesh gateways to initialize even if there are no connect services registered yet [[GH-6576](https://github.com/hashicorp/consul/issues/6576)]
 * agent: endpoint performance improvements, Txn endpoint in particular. [[GH-6680](https://github.com/hashicorp/consul/pull/6680)]
+* sdk: add NewTestServerT, deprecate NewTestServer in testutil to prevent nil point dereference [[GH-6761](https://github.com/hashicorp/consul/pull/6761)]
 
 BUG FIXES
 
