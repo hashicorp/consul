@@ -6,12 +6,12 @@ import flat from 'flat';
 
 let initialize = function() {};
 Route.reopen(
-  ['modelFor', 'transitionTo', 'paramsFor'].reduce(function(prev, item) {
+  ['modelFor', 'transitionTo', 'replaceWith', 'paramsFor'].reduce(function(prev, item) {
     prev[item] = function(routeName, ...rest) {
       const isNspaced = this.routeName.startsWith('nspace.');
       if (routeName === 'nspace') {
         if (isNspaced || this.routeName === 'nspace') {
-          return this._super(...[routeName, ...rest]);
+          return this._super(...arguments);
         } else {
           return {
             nspace: '~',
@@ -19,9 +19,9 @@ Route.reopen(
         }
       }
       if (isNspaced && routeName.startsWith('dc')) {
-        routeName = `nspace.${routeName}`;
+        return this._super(...[`nspace.${routeName}`, ...rest]);
       }
-      return this._super(...[routeName, ...rest]);
+      return this._super(...arguments);
     };
     return prev;
   }, {})
