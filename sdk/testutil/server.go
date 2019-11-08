@@ -219,6 +219,9 @@ func NewTestServer() (*TestServer, error) {
 // NewTestServerT is an easy helper method to create a new Consul
 // test server with the most basic configuration.
 func NewTestServerT(t *testing.T) (*TestServer, error) {
+	if t == nil {
+		return nil, errors.New("testutil: a non-nil *testing.T is required")
+	}
 	return NewTestServerConfigT(t, nil)
 }
 
