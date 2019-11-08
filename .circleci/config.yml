@@ -524,7 +524,11 @@ workflows:
   version: 2
   go-tests:
     jobs:
-      - check-vendor
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - lint-consul-retry
       - go-fmt-and-vet:
           requires:
@@ -538,7 +542,11 @@ workflows:
       - go-test-api: *go-test
   build-distros:
     jobs:
-      - check-vendor
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - build-386: &require-check-vendor
           requires:
             - check-vendor
@@ -546,7 +554,11 @@ workflows:
       - build-arm: *require-check-vendor
   test-integrations:
     jobs:
-      - dev-build
+      - dev-build:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
@@ -594,7 +606,11 @@ workflows:
               only: stable-website
   frontend:
     jobs:
-      - frontend-cache
+      - frontend-cache:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - ember-build:
           requires:
             - frontend-cache
