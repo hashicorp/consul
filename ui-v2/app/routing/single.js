@@ -18,6 +18,7 @@ export default Route.extend({
     return hash({
       isLoading: false,
       dc: dc,
+      nspace: nspace,
       create: create,
       ...repo.status({
         item: create
