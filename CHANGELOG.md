@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+SECURITY
+
+* Updated to compile with Go 1.12.13 which includes a fix for CVE-2019-17596 in [[Go 1.12.11](https://groups.google.com/forum/#!msg/golang-announce/lVEm7llp0w0/VbafyRkgCgAJ)] [[GH-6319](https://github.com/hashicorp/consul/pull/6759)]
+
 FEATURES
 
 * agent: store check type in catalog [[GH-6561](https://github.com/hashicorp/consul/pull/6561)]
