@@ -51,6 +51,17 @@ See `./node_modules/@hashicorp/consul-api-double` for more details.
 If you wish to run the UI code against a running consul instance, uncomment the `proxy`
 line in `.ember-cli` to point ember-cli to your consul instance.
 
+You can also run the UI against a normal Consul installation.
+
+`make start-consul` or `yarn run start:consul` will use the `CONSUL_HTTP_ADDR`
+environment variable to locate the Consul installation. If that it not set
+`start-consul` will use `http://localhost:8500`.
+
+Example usage:
+
+```
+CONSUL_HTTP_ADDR=http://10.0.0.1:8500 make start-consul
+```
 
 ### Code Generators
 

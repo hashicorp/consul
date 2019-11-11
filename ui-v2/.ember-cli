@@ -4,10 +4,6 @@
     anonymous, but there are times when you might want to disable this behavior.
 
     Setting `disableAnalytics` to true will prevent any data from being sent.
-
-    Uncomment the proxy setting to point ember-cli to a locally running consul
-    instance.
   */
-  // "proxy": "http://localhost:8500",
   "disableAnalytics": false
 }

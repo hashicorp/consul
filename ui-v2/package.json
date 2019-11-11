@@ -19,6 +19,7 @@
     "format:css": "prettier --write \"app/styles/**/*.*\"",
     "start": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:staging": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020} --environment staging",
+    "start:consul": "ember serve --proxy=${CONSUL_HTTP_ADDR:-http://localhost:8500} --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:api": "api-double --dir ./node_modules/@hashicorp/consul-api-double",
     "test": "ember test --test-port=${EMBER_TEST_PORT:-7357}",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
