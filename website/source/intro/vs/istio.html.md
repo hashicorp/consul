@@ -41,24 +41,25 @@ updates out via Pilot. This dramatically reduces the scalability of Istio,
 whereas Consul is able to efficiently distribute updates and perform all
 work on the edge.
 
+Consul provides layer 7 features for path-based routing, traffic shifting,
+load balancing, and telemetry. Consul enforces authorization and identity to
+layer 4 only &mdash; either the TLS connection can be established or it can't.
+We believe service identity should be tied to layer 4, whereas layer 7 should be
+used for routing, telemetry, etc. We will be adding more layer 7 features to Consul in the future.
+
 The data plane for Consul is pluggable. It includes a built-in proxy with
 a larger performance trade off for ease of use. But you may also use third
-party proxies such as Envoy. The ability to use the right proxy for the job
-allows flexible heterogeneous deployments where different proxies may be
-more correct for the applications they're proxying.
+party proxies such as Envoy to leverage layer 7 features. The ability to use the
+right proxy for the job allows flexible heterogeneous deployments where
+different proxies may be more correct for the applications they're proxying. We
+encourage users leverage the pluggable data plane layer and use a proxy which
+supports the layer 7 features necessary for the cluster.
 
 In addition to third party proxy support, applications can natively integrate
 with the Connect protocol. As a result, the performance overhead of introducing
 Connect is negligible. These "Connect-native" applications can interact with
 any other Connect-capable services, whether they're using a proxy or are
 also Connect-native.
-
-Consul enforces authorization and identity to layer 4 only -- either the TLS
-connection can be established or it can't. We believe
-service identity should be tied to layer 4, whereas layer 7 should be used
-for routing, telemetry, etc. We encourage users to use the pluggable data
-plane layer to use a proxy that supports the layer 7 features necessary
-for the cluster. Consul will be adding more layer 7 features in the future.
 
 Consul implements automatic TLS certificate management complete with rotation
 support. Both leaf and root certificates can be rotated automatically across

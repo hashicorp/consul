@@ -39,6 +39,8 @@ documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
+You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent. 
+
 ## <a name="commandline_options"></a>Command-line Options
 
 The options below are all specified on the command-line.
@@ -1765,7 +1767,7 @@ to the old fragment -->
 * <a name="verify_server_hostname"></a><a
   href="#verify_server_hostname">`verify_server_hostname`</a> - If set to true,
   Consul verifies for all outgoing TLS connections that the TLS certificate
-  presented by the servers matches "server.&lt;datacenter&gt;.&lt;domain&gt;"
+  presented by the servers matches `server.<datacenter>.<domain>`
   hostname. By default, this is false, and Consul does not verify the hostname
   of the certificate, only that it is signed by a trusted CA. This setting is
   _critical_ to prevent a compromised client from being restarted as a server

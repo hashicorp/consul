@@ -91,7 +91,7 @@ In all cases the HTTP `X-Cache` header is always set in the response to either
 For cache hits, the HTTP `Age` header is always set in the response to indicate
 how many seconds since that response was fetched from the servers. As long as
 the local agent has an active connection to the servers, the age will always be
-`0` since the value is up-to-date. If the agent get's disconnected, the cached
+`0` since the value is up-to-date. If the agent gets disconnected, the cached
 result is still returned but with an `Age` that indicates how many seconds have
 elapsed since the local agent got disconnected from the servers, during which
 time updates to the result might have been missed.

@@ -43,27 +43,21 @@
           }
 
           h1 {
-            font-size: 2.4rem;
             margin: 24px 0 16px;
 
             @media (min-width: 768px) {
-              font-size: 3.2rem;
               margin-top: 32px;
             }
 
             @media (min-width: 992px) {
-              font-size: 4.8rem;
               margin-top: 40px;
             }
           }
 
           p {
-            font-size: 1.6rem;
-            font-weight: 300;
             margin: 16px 0 32px;
 
             @media (min-width: 768px) {
-              font-size: 2.4rem;
               margin-bottom: 40px;
             }
           }
@@ -73,9 +67,7 @@
             border-radius: 3px;
             color: #650d34;
             display: inline-block;
-            font-size: 1.4rem;
             padding: 16px;
-            line-height: 1.7;
 
             @media (min-width: 992px) {
               line-height: 1.4;
@@ -85,11 +77,9 @@
 
             span {
               &:first-child {
-                background: $consul-red;
+                background: $consul;
                 border-radius: 3px;
                 color: #fff;
-                font-size: 1.2rem;
-                font-weight: 700;
                 margin-right: 4px;
                 padding: 2px 9px;
                 text-transform: uppercase;
@@ -110,8 +100,7 @@
             }
           }
 
-          .g-btn {
-            min-width: 129px;
+          .button {
             margin: 0 5px 10px;
 
             @media (min-width: 400px) {
@@ -126,11 +115,7 @@
               margin: 0;
             }
 
-            @media (min-width: 992px) {
-              min-width: 144px;
-            }
-
-            & + .g-btn {
+            & + .button {
               @media (min-width: 768px) {
                 margin-left: 10px;
               }
@@ -142,17 +127,14 @@
           }
 
           .secondary-link {
-            border-bottom: 1px dashed $consul-red;
-            color: $consul-black;
+            border-bottom: 1px dashed $consul;
+            color: $gray-1;
             display: inline-block;
-            font-size: 1.4rem;
-            font-weight: 600;
             margin: 24px 0 48px;
             padding-bottom: 4px;
             transition: all 0.25s ease;
 
             @media (min-width: 992px) {
-              font-size: 1.6rem;
               margin-top: 32px;
               margin-bottom: 0;
             }
@@ -195,19 +177,17 @@
         cursor: pointer;
         display: flex;
         flex-direction: column;
-        font-size: 1.2rem;
-        font-weight: 600;
         justify-content: center;
         margin: 0 25px;
         text-transform: uppercase;
 
         &:hover,
         &.active {
-          color: $consul-black;
+          color: $gray-1;
         }
 
         &.playing {
-          color: $consul-black;
+          color: $gray-1;
         }
 
         & > span {
@@ -223,7 +203,7 @@
           width: 64px;
 
           span {
-            background: $consul-red;
+            background: $consul;
             height: 2px;
             left: 0;
             position: absolute;
@@ -304,7 +284,7 @@
         }
 
         span {
-          background: $consul-black;
+          background: $gray-1;
           border-radius: 50%;
           display: block;
           height: 5px;
@@ -371,7 +351,6 @@
   }
 
   #static-dynamic {
-    
     @media (max-width: 991px) {
       padding-top: 212px;
     }
@@ -421,7 +400,7 @@
       }
 
       &:first-child {
-        background: $consul-red;
+        background: $consul;
         position: relative;
 
         &:after {
@@ -439,7 +418,7 @@
       }
 
       &:last-child {
-        background: $consul-black;
+        background: $gray-1;
       }
 
       & > div {
