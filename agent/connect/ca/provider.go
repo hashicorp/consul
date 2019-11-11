@@ -18,7 +18,7 @@ type Provider interface {
 	Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error
 
 	// State returns the current provider state. If the provider doesn't need to
-	// store anything other than what they user configured this can return nil. It
+	// store anything other than what the user configured this can return nil. It
 	// is called after any config change before the new active config is stored in
 	// the state store and the most recent value returned by the provider is given
 	// in subsequent `Configure` calls provided that the current provider is the
