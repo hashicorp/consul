@@ -84,7 +84,6 @@ message CrossSignCAResponse {
     string crt_pem = 1;
 }
 
-// RPCs can't just return a plain bool it seems...
 message BoolResponse {
     bool ok = 1;
 }
