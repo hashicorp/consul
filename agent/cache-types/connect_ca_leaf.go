@@ -507,6 +507,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 
 	// Build the cert uri
 	var id connect.CertURI
+	var commonName string
 	if req.Service != "" {
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
@@ -514,12 +515,14 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Namespace:  "default",
 			Service:    req.Service,
 		}
+		commonName = connect.ServiceCN(req.Service, roots.TrustDomain)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
+		commonName = connect.ServiceCN(req.Agent, roots.TrustDomain)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}
@@ -542,7 +545,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	csr, err := connect.CreateCSR(id, commonName, pk)
 	if err != nil {
 		return result, err
 	}

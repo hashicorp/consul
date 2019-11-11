@@ -80,7 +80,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		require.NoError(err)
 		require.True(parsed.IsCA)
 		require.Len(parsed.URIs, 1)
-		require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", provider.clusterId))
+		require.Equal(fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
 	}
 }
 
@@ -349,7 +349,6 @@ func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]i
 			t.Fatalf("err: %v", err)
 		}
 	}
-
 	return provider, testVault
 }
 

@@ -188,7 +188,13 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	csr, err := connect.CreateCACSR(c.spiffeID, signer)
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
+	cn := connect.CACN("consul", uid, c.clusterID, c.isRoot)
+
+	csr, err := connect.CreateCACSR(c.spiffeID, cn, signer)
 	if err != nil {
 		return "", err
 	}
@@ -313,14 +319,12 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", err
 	}
 
-	subject := ""
-	switch id := spiffeId.(type) {
-	case *connect.SpiffeIDService:
-		subject = id.Service
-	case *connect.SpiffeIDAgent:
-		subject = id.Agent
-	default:
-		return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
+	// Even though leafs should be from our own CSRs which should have the same CN
+	// logic as here, override anyway to account for older version clients that
+	// didn't include the Common Name in the CSR.
+	subject, err := connect.CNForCertURI(spiffeId)
+	if err != nil {
+		return "", err
 	}
 
 	// Parse the CA cert
@@ -583,8 +587,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 		return "", fmt.Errorf("error parsing private key %q: %s", privateKey, err)
 	}
 
-	name := fmt.Sprintf("Consul CA %d", sn)
-
 	// The URI (SPIFFE compatible) for the cert
 	id := connect.SpiffeIDSigningForCluster(config)
 	keyId, err := connect.KeyId(privKey.Public())
@@ -593,11 +595,16 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	// Create the CA cert
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
+	cn := connect.CACN("consul", uid, c.clusterID, c.isRoot)
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
 		SerialNumber:          serialNum,
-		Subject:               pkix.Name{CommonName: name},
+		Subject:               pkix.Name{CommonName: cn},
 		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
