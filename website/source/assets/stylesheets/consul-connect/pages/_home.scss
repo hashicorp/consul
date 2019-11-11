@@ -1,4 +1,4 @@
-#page-home {
+  #page-home {
   #home-hero {
     padding-top: 12px;
     position: relative;
@@ -10,6 +10,14 @@
     @media (min-width: 992px) {
       padding-top: 80px;
       padding-bottom: 100px;
+    }
+
+    & + section {
+
+       @media (max-width: 991px) {
+         padding-top: 212px;
+       }
+
     }
 
     .g-container > div {
@@ -351,9 +359,6 @@
   }
 
   #static-dynamic {
-    @media (max-width: 991px) {
-      padding-top: 212px;
-    }
 
     .static-callout {
       width: 85%;

@@ -9,6 +9,10 @@
 
   img {
     width: 51%;
+
+    @media (min-width: 768px) {
+      width: 80%;
+    }
   }
 
   h3 {
