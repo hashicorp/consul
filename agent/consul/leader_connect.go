@@ -102,14 +102,22 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 
 // createProvider returns a connect CA provider from the given config.
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	var p ca.Provider
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
+		p = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
-		return &ca.VaultProvider{}, nil
+		p = &ca.VaultProvider{}
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
+
+	// If the provider implements NeedsLogger, we give it our logger.
+	if needsLogger, ok := p.(ca.NeedsLogger); ok {
+		needsLogger.SetLogger(s.logger)
+	}
+
+	return p, nil
 }
 
 func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {

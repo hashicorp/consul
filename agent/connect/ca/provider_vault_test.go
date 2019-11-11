@@ -288,7 +288,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
-		provider2 := &ConsulProvider{Delegate: delegate}
+		provider2 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider2.Configure(conf.ClusterID, false, conf.Config))
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
@@ -298,7 +298,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Run("pri=consul,sec=vault", func(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
-		provider1 := &ConsulProvider{Delegate: delegate}
+		provider1 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider1.Configure(conf.ClusterID, true, conf.Config))
 		require.NoError(t, provider1.GenerateRoot())
 

@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"net/url"
 	"sync"
@@ -29,6 +30,7 @@ type ConsulProvider struct {
 	clusterID string
 	isRoot    bool
 	spiffeID  *connect.SpiffeIDSigning
+	logger    *log.Logger
 
 	sync.RWMutex
 }
@@ -105,6 +107,9 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 	if err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
+
+	c.logger.Printf("[DEBUG] consul CA provider configured ID=%s isRoot=%v",
+		c.id, c.isRoot)
 
 	return nil
 }
@@ -546,8 +551,8 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 // getState returns the current provider state from the state delegate, and returns
 // ErrNotInitialized if no entry is found.
 func (c *ConsulProvider) getState() (uint64, *structs.CAConsulProviderState, error) {
-	state := c.Delegate.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	stateStore := c.Delegate.State()
+	idx, providerState, err := stateStore.CAProviderState(c.id)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -576,8 +581,8 @@ func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulP
 
 // generateCA makes a new root CA using the current private key
 func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
-	state := c.Delegate.State()
-	_, config, err := state.CAConfig(nil)
+	stateStore := c.Delegate.State()
+	_, config, err := stateStore.CAConfig(nil)
 	if err != nil {
 		return "", err
 	}
@@ -630,4 +635,9 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
+}
+
+// SetLogger implements the NeedsLogger interface so the provider can log important messages.
+func (c *ConsulProvider) SetLogger(logger *log.Logger) {
+	c.logger = logger
 }

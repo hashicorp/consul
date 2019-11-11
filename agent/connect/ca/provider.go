@@ -2,6 +2,7 @@ package ca
 
 import (
 	"crypto/x509"
+	"log"
 )
 
 //go:generate mockery -name Provider -inpkg
@@ -73,4 +74,12 @@ type Provider interface {
 	// is shut down permanently, such as removing a temporary PKI backend in Vault
 	// created for an intermediate CA.
 	Cleanup() error
+}
+
+// NeedsLogger is an optional interface that allows a CA provider to use the
+// Consul logger to output diagnostic messages.
+type NeedsLogger interface {
+	// SetLogger will pass a configured Logger to the provider.
+	// TODO(hclog) convert this to an hclog.Logger.
+	SetLogger(logger *log.Logger)
 }
