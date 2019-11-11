@@ -12,9 +12,10 @@ import (
 // given SpiffeIDServices.
 type Provider interface {
 	// Configure initializes the provider based on the given cluster ID, root
-	// status and configuration values. rawConfig containts the user-provided
+	// status and configuration values. rawConfig contains the user-provided
 	// Config. State contains a the State the same provider last persisted on a
-	// restart or reconfiguration.
+	// restart or reconfiguration. The provider must not modify `rawConfig` or
+	// `state` maps directly as it may be being read from other goroutines.
 	Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error
 
 	// State returns the current provider state. If the provider doesn't need to
@@ -29,6 +30,13 @@ type Provider interface {
 	// strings are permitted since this has to pass through msgpack and so
 	// interface values will end up mangled in many cases which is ugly for all
 	// provider code to have to remember to reason about.
+	//
+	// Note that the map returned will be accessed (read-only) in other goroutines
+	// - for example passed to Configure in the Connect CA Config RPC endpoint -
+	// so it must not just be a pointer to a map that may internally be modified.
+	// If the Provider only writes to it during Configure it's safe to return
+	// as-is, but otherwise it's assumed the map returned is a copy of the state
+	// in the Provider struct so it won't change after being returned.
 	State() (map[string]string, error)
 
 	// GenerateRoot causes the creation of a new root certificate for this provider.

@@ -172,6 +172,9 @@ func (s *ConnectCA) ConfigurationSet(
 	// so it can decide if it needs to change resources or not based on the config
 	// change.
 	if args.Config.Provider == config.Provider {
+		// Note this is a shallow copy since the State method doc requires the
+		// provider return a map that will not be further modified and should not
+		// modify the one we pass to Configure.
 		args.Config.State = config.State
 	}
 
