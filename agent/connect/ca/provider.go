@@ -102,7 +102,7 @@ type Provider interface {
 	// does not support this, the user will have to force an upgrade when that CA
 	// provider is the current CA as the upgrade may cause interruptions to
 	// connectivity during the rollout.
-	SupportsCrossSigning() bool
+	SupportsCrossSigning() (bool, error)
 
 	// Cleanup performs any necessary cleanup that should happen when the provider
 	// is shut down permanently, such as removing a temporary PKI backend in Vault

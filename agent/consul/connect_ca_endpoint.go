@@ -250,12 +250,16 @@ func (s *ConnectCA) ConfigurationSet(
 	if oldProvider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
-	if !oldProvider.SupportsCrossSigning() && !args.Config.ForceWithoutCrossSigning {
+	canXSign, err := oldProvider.SupportsCrossSigning()
+	if err != nil {
+		return fmt.Errorf("CA provider error: %s", err)
+	}
+	if !canXSign && !args.Config.ForceWithoutCrossSigning {
 		return errors.New("The current CA Provider does not support cross-signing. " +
 			"You can try again with ForceWithoutCrossSigningSet but this may cause " +
 			"disruption - see documentation for more.")
 	}
-	if !oldProvider.SupportsCrossSigning() && args.Config.ForceWithoutCrossSigning {
+	if !canXSign && args.Config.ForceWithoutCrossSigning {
 		s.srv.logger.Println("[WARN] current CA doesn't support cross signing but " +
 			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
 	}
@@ -271,7 +275,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	if oldProvider.SupportsCrossSigning() {
+	if canXSign {
 		// Have the old provider cross-sign the new root
 		xcCert, err := oldProvider.CrossSignCA(newRoot)
 		if err != nil {

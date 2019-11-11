@@ -192,6 +192,12 @@ func (p *providerPluginRPCClient) CrossSignCA(crt *x509.Certificate) (string, er
 	return resp.CrtPem, err
 }
 
+func (p *providerPluginRPCClient) SupportsCrossSigning() (bool, error) {
+	var out BoolResponse
+	err := p.client.Call("Plugin.SupportsCrossSigning", struct{}{}, &out)
+	return out.Ok, err
+}
+
 func (p *providerPluginRPCClient) Cleanup() error {
 	return p.client.Call("Plugin.Cleanup", struct{}{}, &struct{}{})
 }

@@ -390,8 +390,8 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 }
 
 // SupportsCrossSigning implements Provider
-func (c *VaultProvider) SupportsCrossSigning() bool {
-	return true
+func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
+	return true, nil
 }
 
 // Cleanup unmounts the configured intermediate PKI backend. It's fine to tear

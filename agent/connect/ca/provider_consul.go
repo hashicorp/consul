@@ -573,8 +573,8 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 }
 
 // SupportsCrossSigning implements Provider
-func (c *ConsulProvider) SupportsCrossSigning() bool {
-	return !c.config.DisableCrossSigning
+func (c *ConsulProvider) SupportsCrossSigning() (bool, error) {
+	return !c.config.DisableCrossSigning, nil
 }
 
 // getState returns the current provider state from the state delegate, and returns
