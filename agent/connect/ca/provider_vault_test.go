@@ -289,7 +289,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider2 := TestConsulProvider(t, delegate)
-		require.NoError(t, provider2.Configure(conf.ClusterID, false, conf.Config))
+		require.NoError(t, provider2.Configure(conf.ClusterID, false, conf.Config, nil))
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
 	})
@@ -299,7 +299,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
-		require.NoError(t, provider1.Configure(conf.ClusterID, true, conf.Config))
+		require.NoError(t, provider1.Configure(conf.ClusterID, true, conf.Config, nil))
 		require.NoError(t, provider1.GenerateRoot())
 
 		provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
@@ -335,7 +335,7 @@ func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]i
 
 	provider := &VaultProvider{}
 
-	if err := provider.Configure(connect.TestClusterID, isRoot, conf); err != nil {
+	if err := provider.Configure(connect.TestClusterID, isRoot, conf, nil); err != nil {
 		testVault.Stop()
 		t.Fatalf("err: %v", err)
 	}

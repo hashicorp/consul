@@ -19,8 +19,24 @@ func (p *providerPluginGRPCServer) Configure(_ context.Context, req *ConfigureRe
 	if err := json.Unmarshal(req.Config, &rawConfig); err != nil {
 		return nil, err
 	}
+	var state map[string]string
+	if err := json.Unmarshal(req.State, &state); err != nil {
+		return nil, err
+	}
 
-	return &Empty{}, p.impl.Configure(req.ClusterId, req.IsRoot, rawConfig)
+	return &Empty{}, p.impl.Configure(req.ClusterId, req.IsRoot, rawConfig, state)
+}
+
+func (p *providerPluginGRPCServer) State(context.Context, *Empty) (*StateResponse, error) {
+	got, err := p.impl.State()
+	var jsonBs []byte
+	if err == nil {
+		jsonBs, err = json.Marshal(got)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &StateResponse{State: jsonBs}, nil
 }
 
 func (p *providerPluginGRPCServer) GenerateRoot(context.Context, *Empty) (*Empty, error) {
@@ -96,8 +112,15 @@ type providerPluginGRPCClient struct {
 func (p *providerPluginGRPCClient) Configure(
 	clusterId string,
 	isRoot bool,
-	rawConfig map[string]interface{}) error {
+	rawConfig map[string]interface{},
+	state map[string]string) error {
+
 	config, err := json.Marshal(rawConfig)
+	if err != nil {
+		return err
+	}
+
+	stateJSON, err := json.Marshal(state)
 	if err != nil {
 		return err
 	}
@@ -106,8 +129,23 @@ func (p *providerPluginGRPCClient) Configure(
 		ClusterId: clusterId,
 		IsRoot:    isRoot,
 		Config:    config,
+		State:     stateJSON,
 	})
 	return p.err(err)
+}
+
+func (p *providerPluginGRPCClient) State() (map[string]string, error) {
+	stateResp, err := p.client.State(p.doneCtx, &Empty{})
+	if err != nil {
+		return nil, p.err(err)
+	}
+
+	var state map[string]string
+	err = json.Unmarshal(stateResp.State, &state)
+	if err != nil {
+		return nil, err
+	}
+	return state, nil
 }
 
 func (p *providerPluginGRPCClient) GenerateRoot() error {
