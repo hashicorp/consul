@@ -460,16 +460,6 @@ type VaultCAProviderConfig struct {
 	TLSSkipVerify bool
 }
 
-type AWSCAProviderConfig struct {
-	CommonCAProviderConfig `mapstructure:",squash"`
-
-	PollInterval     time.Duration
-	ExistingARN      string
-	KeyAlgorithm     string
-	SigningAlgorithm string
-	DeleteOnExit     bool
-}
-
 // CALeafOp is the operation for a request related to leaf certificates.
 type CALeafOp string
 
