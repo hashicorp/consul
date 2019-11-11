@@ -24,6 +24,7 @@ service CA {
     rpc Sign(SignRequest) returns (SignResponse);
     rpc SignIntermediate(SignIntermediateRequest) returns (SignIntermediateResponse);
     rpc CrossSignCA(CrossSignCARequest) returns (CrossSignCAResponse);
+    rpc SupportsCrossSigning(Empty) returns (BoolResponse);
     rpc Cleanup(Empty) returns (Empty);
 }
 
@@ -81,6 +82,10 @@ message SignIntermediateResponse {
 
 message CrossSignCAResponse {
     string crt_pem = 1;
+}
+
+message BoolResponse {
+    bool ok = 1;
 }
 
 // Protobufs doesn't allow no req/resp so in the cases where there are

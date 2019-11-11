@@ -132,6 +132,13 @@ The table below shows this endpoint's support for
 for the chosen provider. For more information on configuring the Connect CA
 providers, see [Provider Config](/docs/connect/ca.html).
 
+- `ForceWithoutCrossSigning` `(bool: <optional>)` - Indicates that the CA change
+  should be force to complete even if the current CA doesn't support cross
+  signing. Changing root without cross-signing may cause temporary connection
+  failures until the rollout completes. See [Forced Rotation Without
+  Cross-Signing](/docs/connect/ca.html#forced-rotation-without-cross-signing)
+  for more detail.
+
 ### Sample Payload
 
 ```json
@@ -142,7 +149,8 @@ providers, see [Provider Config](/docs/connect/ca.html).
         "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
         "RootCert": "-----BEGIN CERTIFICATE-----...",
         "RotationPeriod": "2160h"
-    }
+    },
+    "ForceWithoutCrossSigning": false
 }
 ```
 

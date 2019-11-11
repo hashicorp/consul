@@ -97,6 +97,11 @@ func (p *providerPluginGRPCServer) CrossSignCA(_ context.Context, req *CrossSign
 	return &CrossSignCAResponse{CrtPem: crtPEM}, err
 }
 
+func (p *providerPluginGRPCServer) SupportsCrossSigning(context.Context, *Empty) (*BoolResponse, error) {
+	ok, err := p.impl.SupportsCrossSigning()
+	return &BoolResponse{Ok: ok}, err
+}
+
 func (p *providerPluginGRPCServer) Cleanup(context.Context, *Empty) (*Empty, error) {
 	return &Empty{}, p.impl.Cleanup()
 }
@@ -228,6 +233,11 @@ func (p *providerPluginGRPCClient) CrossSignCA(crt *x509.Certificate) (string, e
 	}
 
 	return resp.CrtPem, nil
+}
+
+func (p *providerPluginGRPCClient) SupportsCrossSigning() (bool, error) {
+	resp, err := p.client.SupportsCrossSigning(p.doneCtx, &Empty{})
+	return resp.Ok, err
 }
 
 func (p *providerPluginGRPCClient) Cleanup() error {

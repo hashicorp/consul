@@ -62,9 +62,9 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Config); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{
+			Reason: fmt.Sprintf("Request decode failed: %v", err),
+		}
 	}
 
 	var reply interface{}

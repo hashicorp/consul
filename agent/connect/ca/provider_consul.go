@@ -508,6 +508,10 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	c.Lock()
 	defer c.Unlock()
 
+	if c.config.DisableCrossSigning {
+		return "", errors.New("cross-signing disabled")
+	}
+
 	// Get the provider state
 	idx, providerState, err := c.getState()
 	if err != nil {
@@ -566,6 +570,11 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// SupportsCrossSigning implements Provider
+func (c *ConsulProvider) SupportsCrossSigning() (bool, error) {
+	return !c.config.DisableCrossSigning, nil
 }
 
 // getState returns the current provider state from the state delegate, and returns

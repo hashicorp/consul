@@ -244,6 +244,26 @@ func (s *ConnectCA) ConfigurationSet(
 	// either by swapping the provider type or changing the provider's config
 	// to use a different root certificate.
 
+	// First up, sanity check that the current provider actually supports
+	// cross-signing.
+	oldProvider, _ := s.srv.getCAProvider()
+	if oldProvider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
+	canXSign, err := oldProvider.SupportsCrossSigning()
+	if err != nil {
+		return fmt.Errorf("CA provider error: %s", err)
+	}
+	if !canXSign && !args.Config.ForceWithoutCrossSigning {
+		return errors.New("The current CA Provider does not support cross-signing. " +
+			"You can try again with ForceWithoutCrossSigningSet but this may cause " +
+			"disruption - see documentation for more.")
+	}
+	if !canXSign && args.Config.ForceWithoutCrossSigning {
+		s.srv.logger.Println("[WARN] current CA doesn't support cross signing but " +
+			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
+	}
+
 	// If it's a config change that would trigger a rotation (different provider/root):
 	// 1. Get the root from the new provider.
 	// 2. Call CrossSignCA on the old provider to sign the new root with the old one to
@@ -255,18 +275,18 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	// Have the old provider cross-sign the new intermediate
-	oldProvider, _ := s.srv.getCAProvider()
-	if oldProvider == nil {
-		return fmt.Errorf("internal error: CA provider is nil")
-	}
-	xcCert, err := oldProvider.CrossSignCA(newRoot)
-	if err != nil {
-		return err
+	if canXSign {
+		// Have the old provider cross-sign the new root
+		xcCert, err := oldProvider.CrossSignCA(newRoot)
+		if err != nil {
+			return err
+		}
+
+		// Add the cross signed cert to the new CA's intermediates (to be attached
+		// to leaf certs).
+		newActiveRoot.IntermediateCerts = []string{xcCert}
 	}
 
-	// Add the cross signed cert to the new root's intermediates.
-	newActiveRoot.IntermediateCerts = []string{xcCert}
 	intermediate, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err

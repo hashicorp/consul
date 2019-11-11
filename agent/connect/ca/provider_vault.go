@@ -389,6 +389,11 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	return xcCert, nil
 }
 
+// SupportsCrossSigning implements Provider
+func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
+	return true, nil
+}
+
 // Cleanup unmounts the configured intermediate PKI backend. It's fine to tear
 // this down and recreate it on small config changes because the intermediate
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.

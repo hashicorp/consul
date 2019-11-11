@@ -84,15 +84,25 @@ type Provider interface {
 	// of 0 to ensure that the certificate cannot be used to generate further CA certs.
 	SignIntermediate(*x509.CertificateRequest) (string, error)
 
-	// CrossSignCA must accept a CA certificate from another CA provider
-	// and cross sign it exactly as it is such that it forms a chain back the the
+	// CrossSignCA must accept a CA certificate from another CA provider and cross
+	// sign it exactly as it is such that it forms a chain back the the
 	// CAProvider's current root. Specifically, the Distinguished Name, Subject
 	// Alternative Name, SubjectKeyID and other relevant extensions must be kept.
 	// The resulting certificate must have a distinct Serial Number and the
 	// AuthorityKeyID set to the CAProvider's current signing key as well as the
 	// Issuer related fields changed as necessary. The resulting certificate is
 	// returned as a PEM formatted string.
+	//
+	// If the CA provider does not support this operation, it may return an error
+	// provided `SupportsCrossSigning` also returns false.
 	CrossSignCA(*x509.Certificate) (string, error)
+
+	// SupportsCrossSigning should indicate whether the CA provider supports
+	// cross-signing an external root to provide a seamless rotation. If the CA
+	// does not support this, the user will have to force an upgrade when that CA
+	// provider is the current CA as the upgrade may cause interruptions to
+	// connectivity during the rollout.
+	SupportsCrossSigning() (bool, error)
 
 	// Cleanup performs any necessary cleanup that should happen when the provider
 	// is shut down permanently, such as removing a temporary PKI backend in Vault
