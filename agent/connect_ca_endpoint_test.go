@@ -112,12 +112,17 @@ func TestConnectCAConfig(t *testing.T) {
 		},
 		{
 			name: "force without cross sign snake_case",
+			// Note that config is still CamelCase. We don't currently support snake
+			// case config in the API only in config files for this. Arguably that's a
+			// bug but it's unrelated to the force options being tested here so we'll
+			// only test the new behaviour here rather than scope creep to refactoring
+			// all the CA config handling.
 			body: `
 			{
 				"provider": "consul",
 				"config": {
-					"leaf_cert_ttl": "72h",
-					"rotation_period": "1h"
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
 				},
 				"force_without_cross_signing": true
 			}`,
