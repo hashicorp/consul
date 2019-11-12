@@ -6,7 +6,10 @@ import { get } from '@ember/object';
 import URL from 'url';
 import createURL from 'consul-ui/utils/createURL';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL } from 'consul-ui/utils/http/consul';
+import {
+  HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
+  HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
+} from 'consul-ui/utils/http/consul';
 
 export const REQUEST_CREATE = 'createRecord';
 export const REQUEST_READ = 'queryRecord';
@@ -77,6 +80,11 @@ export default Adapter.extend({
       Object.keys(headers).forEach(function(key) {
         lower[key.toLowerCase()] = headers[key];
       });
+      // Add a 'pretend' Datacenter header, its not a header that comes from the
+      // request but we add it here so we can use it later
+      lower[HTTP_HEADERS_DATACENTER] = this.parseURL(requestData.url).searchParams.get(
+        DATACENTER_QUERY_PARAM
+      );
       response[HTTP_HEADERS_SYMBOL] = lower;
     }
     return this._super(status, headers, response, requestData);
