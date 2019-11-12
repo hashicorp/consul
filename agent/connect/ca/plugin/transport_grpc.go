@@ -24,7 +24,15 @@ func (p *providerPluginGRPCServer) Configure(_ context.Context, req *ConfigureRe
 		return nil, err
 	}
 
-	return &Empty{}, p.impl.Configure(req.ClusterId, req.IsRoot, rawConfig, state)
+	cfg := ca.ProviderConfig{
+		ClusterID:  req.ClusterId,
+		Datacenter: req.Datacenter,
+		PrimaryDC:  req.PrimaryDc,
+		RawConfig:  rawConfig,
+		State:      state,
+	}
+
+	return &Empty{}, p.impl.Configure(cfg)
 }
 
 func (p *providerPluginGRPCServer) State(context.Context, *Empty) (*StateResponse, error) {
@@ -114,27 +122,23 @@ type providerPluginGRPCClient struct {
 	doneCtx    context.Context
 }
 
-func (p *providerPluginGRPCClient) Configure(
-	clusterId string,
-	isRoot bool,
-	rawConfig map[string]interface{},
-	state map[string]string) error {
-
-	config, err := json.Marshal(rawConfig)
+func (p *providerPluginGRPCClient) Configure(cfg ca.ProviderConfig) error {
+	configJSON, err := json.Marshal(cfg.RawConfig)
 	if err != nil {
 		return err
 	}
 
-	stateJSON, err := json.Marshal(state)
+	stateJSON, err := json.Marshal(cfg.State)
 	if err != nil {
 		return err
 	}
 
 	_, err = p.client.Configure(p.doneCtx, &ConfigureRequest{
-		ClusterId: clusterId,
-		IsRoot:    isRoot,
-		Config:    config,
-		State:     stateJSON,
+		ClusterId:  cfg.ClusterID,
+		Datacenter: cfg.Datacenter,
+		PrimaryDc:  cfg.PrimaryDC,
+		Config:     configJSON,
+		State:      stateJSON,
 	})
 	return p.err(err)
 }

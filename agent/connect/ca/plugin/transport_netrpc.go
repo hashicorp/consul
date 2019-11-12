@@ -15,8 +15,8 @@ type providerPluginRPCServer struct {
 	impl ca.Provider
 }
 
-func (p *providerPluginRPCServer) Configure(args *ConfigureRPCRequest, _ *struct{}) error {
-	return p.impl.Configure(args.ClusterId, args.IsRoot, args.RawConfig, args.State)
+func (p *providerPluginRPCServer) Configure(args *ca.ProviderConfig, _ *struct{}) error {
+	return p.impl.Configure(*args)
 }
 
 func (p *providerPluginRPCServer) State(_ struct{}, resp *StateResponse) error {
@@ -106,17 +106,8 @@ type providerPluginRPCClient struct {
 	client *rpc.Client
 }
 
-func (p *providerPluginRPCClient) Configure(
-	clusterId string,
-	isRoot bool,
-	rawConfig map[string]interface{},
-	state map[string]string) error {
-	return p.client.Call("Plugin.Configure", &ConfigureRPCRequest{
-		ClusterId: clusterId,
-		IsRoot:    isRoot,
-		RawConfig: rawConfig,
-		State:     state,
-	}, &struct{}{})
+func (p *providerPluginRPCClient) Configure(cfg ca.ProviderConfig) error {
+	return p.client.Call("Plugin.Configure", &cfg, &struct{}{})
 }
 
 func (p *providerPluginRPCClient) State() (map[string]string, error) {
@@ -207,13 +198,6 @@ var _ ca.Provider = &providerPluginRPCClient{}
 
 //-------------------------------------------------------------------
 // Structs for net/rpc request and response
-
-type ConfigureRPCRequest struct {
-	ClusterId string
-	IsRoot    bool
-	RawConfig map[string]interface{}
-	State     map[string]string
-}
 
 type SetIntermediateRPCRequest struct {
 	IntermediatePEM string

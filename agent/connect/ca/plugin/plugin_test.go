@@ -17,26 +17,29 @@ func TestProvider_Configure(t *testing.T) {
 	testPlugin(t, func(t *testing.T, m *ca.MockProvider, p ca.Provider) {
 		require := require.New(t)
 
+		cfg := ca.ProviderConfig{
+			ClusterID:  connect.TestClusterID,
+			Datacenter: "dc1",
+			PrimaryDC:  true,
+			RawConfig: map[string]interface{}{
+				"string": "bar",
+				"number": float64(42), // because json
+			},
+			State: map[string]string{
+				"foo": "bar",
+			},
+		}
+
 		// Basic configure
-		m.On("Configure", "foo", false, map[string]interface{}{
-			"string": "bar",
-			"number": float64(42), // because json
-		}, map[string]string{
-			"foo": "bar",
-		}).Once().Return(nil)
-		require.NoError(p.Configure("foo", false, map[string]interface{}{
-			"string": "bar",
-			"number": float64(42),
-		}, map[string]string{
-			"foo": "bar",
-		}))
+		m.On("Configure", cfg).Once().Return(nil)
+		require.NoError(p.Configure(cfg))
 		m.AssertExpectations(t)
 
 		// Try with an error
 		m.Mock = mock.Mock{}
-		m.On("Configure", "foo", false, map[string]interface{}{}, map[string]string{}).
+		m.On("Configure", cfg).
 			Once().Return(errors.New("hello world"))
-		err := p.Configure("foo", false, map[string]interface{}{}, map[string]string{})
+		err := p.Configure(cfg)
 		require.Error(err)
 		require.Contains(err.Error(), "hello")
 		m.AssertExpectations(t)
