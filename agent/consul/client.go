@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
@@ -123,7 +124,10 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	// Create a logger
 	if logger == nil {
-		logger = log.New(config.LogOutput, "", log.LstdFlags)
+		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
 	}
 
 	connPool := &pool.ConnPool{

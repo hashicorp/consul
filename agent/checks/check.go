@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/agent/exec"
@@ -577,7 +578,13 @@ func (c *CheckDocker) Start() {
 	}
 
 	if c.Logger == nil {
-		c.Logger = log.New(ioutil.Discard, "", 0)
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Level:  0,
+			Output: ioutil.Discard,
+		})
+		c.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
 	}
 
 	if c.Shell == "" {

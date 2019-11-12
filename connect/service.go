@@ -8,11 +8,11 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/net/http2"
 )
 
@@ -61,8 +61,14 @@ type Service struct {
 // Consul agent, and with an ACL token that has `service:write` privileges for
 // the service specified.
 func NewService(serviceName string, client *api.Client) (*Service, error) {
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level: log.LstdFlags,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 	return NewServiceWithLogger(serviceName, client,
-		log.New(os.Stderr, "", log.LstdFlags))
+		logger)
 }
 
 // NewServiceWithLogger starts the service with a specified log.Logger.

@@ -3,14 +3,13 @@ package ae
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -392,7 +391,12 @@ func (m *mock) SyncChanges() error {
 }
 
 func testSyncer() *StateSyncer {
-	logger := log.New(os.Stderr, "", 0)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level: 0,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 	l := NewStateSyncer(nil, time.Second, nil, logger)
 	l.stagger = func(d time.Duration) time.Duration { return d }
 	l.ClusterSize = func() int { return 1 }

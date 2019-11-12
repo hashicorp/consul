@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
@@ -72,12 +73,19 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		return nil, err
 	}
 
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: logOutput,
+	})
+
 	fsm := &FSM{
 		logOutput: logOutput,
-		logger:    log.New(logOutput, "", log.LstdFlags),
-		apply:     make(map[structs.MessageType]command),
-		state:     stateNew,
-		gc:        gc,
+		logger: consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		}),
+		apply: make(map[structs.MessageType]command),
+		state: stateNew,
+		gc:    gc,
 	}
 
 	// Build out the apply dispatch table based on the registered commands.

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/stretchr/testify/require"
@@ -76,7 +77,16 @@ func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Author
 	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = a.LogWriter
-	agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Name:   a.Name,
+		Level:  log.LstdFlags | log.Lmicroseconds,
+		Output: logOutput,
+	})
+	agent.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
+
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	a.Agent.delegate = a

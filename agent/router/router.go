@@ -83,6 +83,7 @@ type areaInfo struct {
 
 // NewRouter returns a new Router with the given configuration.
 func NewRouter(logger *log.Logger, localDatacenter string) *Router {
+
 	router := &Router{
 		logger:          logger,
 		localDatacenter: localDatacenter,

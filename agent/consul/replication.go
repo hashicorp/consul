@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"sync/atomic"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 )
 
@@ -59,7 +59,12 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		return nil, fmt.Errorf("Cannot create the Replicator without a Delegate set in the config")
 	}
 	if config.Logger == nil {
-		config.Logger = log.New(os.Stderr, "", log.LstdFlags)
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Level: log.LstdFlags,
+		})
+		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
 	}
 	limiter := rate.NewLimiter(rate.Limit(config.Rate), config.Burst)
 
