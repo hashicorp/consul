@@ -310,7 +310,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		config.LogOutput = os.Stderr
 	}
 	if logger == nil {
-		logger = log.New(config.LogOutput, "", log.LstdFlags)
+		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
 	}
 
 	// Check if TLS is enabled

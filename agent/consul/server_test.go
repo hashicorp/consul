@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
@@ -205,7 +206,14 @@ func newServer(c *Config) (*Server, error) {
 	if w == nil {
 		w = os.Stderr
 	}
-	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  log.LstdFlags | log.Lmicroseconds,
+		Output: w,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	if err != nil {
 		return nil, err

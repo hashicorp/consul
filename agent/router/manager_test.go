@@ -2,15 +2,14 @@ package router_test
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 type fauxAddr struct {
@@ -56,21 +55,21 @@ func (s *fauxSerf) NumNodes() int {
 }
 
 func testManager() (m *router.Manager) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.TestHcLog("")
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *router.Manager) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.TestHcLog("")
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
 }
 
 func testManagerFailAddr(failAddr net.Addr) (m *router.Manager) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.TestHcLog("")
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
 	return m
@@ -195,7 +194,7 @@ func TestServers_FindServer(t *testing.T) {
 
 // func New(logger *log.Logger, shutdownCh chan struct{}) (m *Manager) {
 func TestServers_New(t *testing.T) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.TestHcLog("")
 	shutdownCh := make(chan struct{})
 	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	if m == nil {

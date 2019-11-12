@@ -9,6 +9,7 @@ import (
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -44,7 +45,13 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	if output == nil {
 		output = os.Stderr
 	}
-	logger := log.New(output, "", log.LstdFlags)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: output,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	return p.RunWithClientAndLogger(client, logger)
 }

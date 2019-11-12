@@ -2,9 +2,7 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -95,7 +94,7 @@ func testCluster(self string) *mockCluster {
 }
 
 func testRouter(dc string) *Router {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.TestHcLog("")
 	return NewRouter(logger, dc)
 }
 

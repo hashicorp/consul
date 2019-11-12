@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"log"
-	"os"
 	"sort"
 	"sync"
 	"time"
@@ -11,6 +10,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 )
@@ -192,7 +192,11 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	}
 
 	if config.Logger == nil {
-		config.Logger = log.New(os.Stderr, "", log.LstdFlags)
+		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
+
 	}
 
 	cache, err := structs.NewACLCaches(config.CacheConfig)
@@ -1078,7 +1082,10 @@ type aclFilter struct {
 // newACLFilter constructs a new aclFilter.
 func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
-		logger = log.New(os.Stderr, "", log.LstdFlags)
+		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
 	}
 	return &aclFilter{
 		authorizer:      authorizer,

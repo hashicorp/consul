@@ -6,11 +6,11 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -20,11 +20,24 @@ var (
 
 func init() {
 	localLogBuffer = new(bytes.Buffer)
-	localLogger = log.New(localLogBuffer, "", 0)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: localLogBuffer,
+	})
+	localLogger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 }
 
 func GetBufferedLogger() *log.Logger {
-	return localLogger
+	localLogBuffer = new(bytes.Buffer)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: localLogBuffer,
+	})
+	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 }
 
 type fauxConnPool struct {
@@ -58,7 +71,6 @@ func testManager() (m *Manager) {
 
 func testManagerFailProb(failPct float64) (m *Manager) {
 	logger := GetBufferedLogger()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
@@ -296,7 +308,7 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 		{1000000, 19, 10 * time.Minute},
 	}
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {

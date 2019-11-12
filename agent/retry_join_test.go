@@ -45,6 +45,8 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
+
+			//TODO: s-christoff implement logger without failing test
 			logger := log.New(&buf, "logger: ", log.Lshortfile)
 			require.Equal(t, test.expected, retryJoinAddrs(d, "LAN", test.input, logger), buf.String())
 			if i == 4 {

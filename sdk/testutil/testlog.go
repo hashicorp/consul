@@ -7,12 +7,24 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 var sendTestLogsToStdout bool
 
 func init() {
 	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
+}
+
+func TestHcLog(name string) *log.Logger {
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  name,
+		Level: log.LstdFlags,
+	})
+	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 }
 
 func TestLogger(t testing.TB) *log.Logger {
