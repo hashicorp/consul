@@ -295,11 +295,11 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 		isnil     bool
 	}
 	variants := []variant{
-		{"", "", false, false},
-		{"bogus", "", false, false},
-		{"", "bogus", false, false},
-		{"../test/key/ourdomain.cer", "", false, false},
-		{"", "../test/key/ourdomain.key", false, false},
+		{"", "", false, true},
+		{"bogus", "", false, true},
+		{"", "bogus", false, true},
+		{"../test/key/ourdomain.cer", "", false, true},
+		{"", "../test/key/ourdomain.key", false, true},
 		{"bogus", "bogus", true, true},
 		{"../test/key/ourdomain.cer", "../test/key/ourdomain.key",
 			false, false},
