@@ -8,7 +8,9 @@ description: |-
 
 # Session HTTP Endpoint
 
-The `/session` endpoints create, destroy, and query sessions in Consul.
+The `/session` endpoints create, destroy, and query sessions in Consul. A
+conceptual overview of sessions is found at the
+[Session Internals](/docs/internals/sessions.html) page.
 
 ## Create Session
 
@@ -35,8 +37,7 @@ The table below shows this endpoint's support for
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
-- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay. This
-  must be greater than `0`.
+- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay.
 
 - `Node` `(string: "<agent>")` - Specifies the name of the node. This must refer
   to a node that is already registered.
