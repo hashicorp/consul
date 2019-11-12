@@ -16,7 +16,6 @@
 %healthcheck-output dl:last-of-type {
   width: 100%;
 }
-
 %healthcheck-output header {
   margin-bottom: 0.9em;
 }
@@ -26,6 +25,9 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+}
+%healthcheck-output dl {
+  min-width: 110px;
 }
 %healthcheck-output dl > * {
   display: block;

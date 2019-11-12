@@ -15,11 +15,11 @@
   }
 }
 %healthcheck-output dd em {
+  @extend %pill;
+  cursor: default;
   font-style: normal;
-}
-%healthcheck-output dd em::before {
-  @extend %with-alert-triangle-color-icon, %as-pseudo;
-  margin-right: 5px;
+  margin-top: -2px;
+  margin-left: 0.5em;
 }
 %healthcheck-output.passing::before {
   @extend %with-check-circle-fill-color-icon;
