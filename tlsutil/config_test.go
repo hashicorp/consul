@@ -560,6 +560,7 @@ func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, cert)
 
+	// Setting a certificate as the auto-encrypt cert will return it as the regular server certificate
 	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)
 	c.autoEncrypt.cert = c1
@@ -567,6 +568,7 @@ func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, c.autoEncrypt.cert, cert)
 
+	// Setting a different certificate as a manual cert will override the auto-encrypt cert and instead return the manual cert
 	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.manual.cert = c2
