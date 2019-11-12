@@ -28,6 +28,7 @@ BUG FIXES
 * connect: intermediate CA certs generated with the vault provider lack URI SANs [[GH-6491](https://github.com/hashicorp/consul/issues/6491)]
 * debug: Fix a bug in sync.WaitGroup usage. [[GH-6649](https://github.com/hashicorp/consul/pull/6649)]
 * xds: tcp services using the discovery chain should not assume RDS during LDS [[GH-6623](https://github.com/hashicorp/consul/issues/6623)]
+* ui: Fix a bug where switching datacenters using the datacenter menu would lead to an empty service listing [[GH-6555](https://github.com/hashicorp/consul/pull/6555)]
 
 ## 1.6.1 (September 12, 2019)
 
