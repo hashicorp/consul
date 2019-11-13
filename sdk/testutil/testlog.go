@@ -3,6 +3,7 @@ package testutil
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -21,6 +22,16 @@ func TestHcLog(name string) *log.Logger {
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		Name:  name,
 		Level: log.LstdFlags,
+	})
+	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
+}
+
+func NewDiscardLogger() *log.Logger {
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: ioutil.Discard,
 	})
 	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
