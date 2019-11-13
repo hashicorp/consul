@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.6.2 (November 13, 2019)
 
 SECURITY
 
