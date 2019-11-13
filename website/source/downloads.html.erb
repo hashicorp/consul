@@ -46,6 +46,21 @@ description: |-
               <li><a href="<%= url %>"><%= pretty_arch(arch) %></a></li>
             <% end %>
           </ul>
+          <% if os == "linux" %>
+            <div class="alert alert-warning" role="alert">
+                <strong>Note for ARM users:</strong>
+                <p>
+                  Use <b>Armelv5</b> for all 32-bit armel systems<br>
+                  Use <b>Armhfv6</b> for all armhf systems with v6+ architecture<br>
+                  Use <b>Arm64</b> for all v8 64-bit architectures
+                </p>
+                <p>
+                  The following commands can help determine the right version for your system:<br>
+                    <code>$ uname -m</code><br>
+                    <code>$ readelf -a /proc/self/exe | grep -q -c Tag_ABI_VFP_args && echo "armhf" || echo "armel"</code>
+                </p>
+            </div>
+          <% end %>
           <div class="clearfix"></div>
         </div>
       </div>
