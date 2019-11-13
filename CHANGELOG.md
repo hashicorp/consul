@@ -25,6 +25,10 @@ IMPROVEMENTS
 
 BUG FIXES
 
+* ARM release binaries: Starting with v1.6.2, Consul will ship three separate versions of ARM builds. The previous ARM binaries of Consul could potentially crash due to the way the Go runtime manages internal pointers to its Go routine management constructs and how it keeps track of them especially during signal handling. From v1.6.2 forward, it is recommended to use:
+  * consul_{version}_linux_armelv5.zip for all 32-bit armel systems
+  * consul_{version}_linux_armhfv6.zip for all armhf systems with v6+ architecture
+  * consul_{version}_linux_arm64.zip for all v8 64-bit architectures
 * agent: minimum quorum check added to Autopilot with minQuorum option [[GH-6654](https://github.com/hashicorp/consul/issues/6654)]
 * agent: cache notifications work after error if the underlying RPC returns index=1 [[GH-6547](https://github.com/hashicorp/consul/issues/6547)]
 * agent: tolerate more failure scenarios during service registration with central config enabled [[GH-6472](https://github.com/hashicorp/consul/issues/6472)]
