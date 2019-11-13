@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,7 +86,7 @@ func TestAE_staggerDependsOnClusterSize(t *testing.T) {
 	libRandomStagger = func(d time.Duration) time.Duration { return d }
 	defer func() { libRandomStagger = lib.RandomStagger }()
 
-	l := testSyncer()
+	l := testSyncer(t)
 	if got, want := l.staggerFn(10*time.Millisecond), 10*time.Millisecond; got != want {
 		t.Fatalf("got %v want %v", got, want)
 	}
@@ -105,7 +106,7 @@ func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
 	}
 
 	// indicate that we have partial changes before starting Run
-	l := testSyncer()
+	l := testSyncer(t)
 	l.State = state
 	l.ShutdownCh = shutdownCh
 	l.SyncChanges.Trigger()
@@ -131,7 +132,7 @@ func TestAE_Run_Quit(t *testing.T) {
 				t.Fatal("Run should panic")
 			}
 		}()
-		l := testSyncer()
+		l := testSyncer(t)
 		l.ClusterSize = nil
 		l.Run()
 	})
@@ -139,7 +140,7 @@ func TestAE_Run_Quit(t *testing.T) {
 		// start timer which explodes if runFSM does not quit
 		tm := time.AfterFunc(time.Second, func() { panic("timeout") })
 
-		l := testSyncer()
+		l := testSyncer(t)
 		l.runFSM(fullSyncState, func(fsmState) fsmState { return doneState })
 		// should just quit
 		tm.Stop()
@@ -149,7 +150,7 @@ func TestAE_Run_Quit(t *testing.T) {
 func TestAE_FSM(t *testing.T) {
 	t.Run("fullSyncState", func(t *testing.T) {
 		t.Run("Paused -> retryFullSyncState", func(t *testing.T) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.Pause()
 			fs := l.nextFSMState(fullSyncState)
 			if got, want := fs, retryFullSyncState; got != want {
@@ -157,7 +158,7 @@ func TestAE_FSM(t *testing.T) {
 			}
 		})
 		t.Run("SyncFull() error -> retryFullSyncState", func(t *testing.T) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.State = &mock{syncFull: func() error { return errors.New("boom") }}
 			fs := l.nextFSMState(fullSyncState)
 			if got, want := fs, retryFullSyncState; got != want {
@@ -165,7 +166,7 @@ func TestAE_FSM(t *testing.T) {
 			}
 		})
 		t.Run("SyncFull() OK -> partialSyncState", func(t *testing.T) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.State = &mock{}
 			fs := l.nextFSMState(fullSyncState)
 			if got, want := fs, partialSyncState; got != want {
@@ -177,7 +178,7 @@ func TestAE_FSM(t *testing.T) {
 	t.Run("retryFullSyncState", func(t *testing.T) {
 		// helper for testing state transitions from retrySyncFullState
 		test := func(ev event, to fsmState) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.retrySyncFullEvent = func() event { return ev }
 			fs := l.nextFSMState(retryFullSyncState)
 			if got, want := fs, to; got != want {
@@ -207,7 +208,7 @@ func TestAE_FSM(t *testing.T) {
 	t.Run("partialSyncState", func(t *testing.T) {
 		// helper for testing state transitions from partialSyncState
 		test := func(ev event, to fsmState) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.syncChangesEvent = func() event { return ev }
 			fs := l.nextFSMState(partialSyncState)
 			if got, want := fs, to; got != want {
@@ -224,7 +225,7 @@ func TestAE_FSM(t *testing.T) {
 			test(syncFullTimerEvent, fullSyncState)
 		})
 		t.Run("syncChangesEvent+Paused -> partialSyncState", func(t *testing.T) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.Pause()
 			l.syncChangesEvent = func() event { return syncChangesNotifEvent }
 			fs := l.nextFSMState(partialSyncState)
@@ -233,7 +234,7 @@ func TestAE_FSM(t *testing.T) {
 			}
 		})
 		t.Run("syncChangesEvent+SyncChanges() error -> partialSyncState", func(t *testing.T) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.State = &mock{syncChanges: func() error { return errors.New("boom") }}
 			l.syncChangesEvent = func() event { return syncChangesNotifEvent }
 			fs := l.nextFSMState(partialSyncState)
@@ -242,7 +243,7 @@ func TestAE_FSM(t *testing.T) {
 			}
 		})
 		t.Run("syncChangesEvent+SyncChanges() OK -> partialSyncState", func(t *testing.T) {
-			l := testSyncer()
+			l := testSyncer(t)
 			l.State = &mock{}
 			l.syncChangesEvent = func() event { return syncChangesNotifEvent }
 			fs := l.nextFSMState(partialSyncState)
@@ -267,14 +268,14 @@ func TestAE_FSM(t *testing.T) {
 				t.Fatal("invalid state should panic")
 			}
 		}()
-		l := testSyncer()
+		l := testSyncer(t)
 		l.nextFSMState(fsmState("invalid"))
 	})
 }
 
 func TestAE_RetrySyncFullEvent(t *testing.T) {
 	t.Run("trigger shutdownEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.ShutdownCh = make(chan struct{})
 		evch := make(chan event)
 		go func() { evch <- l.retrySyncFullEvent() }()
@@ -284,7 +285,7 @@ func TestAE_RetrySyncFullEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger shutdownEvent during FullNotif", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.ShutdownCh = make(chan struct{})
 		evch := make(chan event)
 		go func() { evch <- l.retrySyncFullEvent() }()
@@ -296,7 +297,7 @@ func TestAE_RetrySyncFullEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger syncFullNotifEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.serverUpInterval = 10 * time.Millisecond
 		evch := make(chan event)
 		go func() { evch <- l.retrySyncFullEvent() }()
@@ -306,7 +307,7 @@ func TestAE_RetrySyncFullEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger syncFullTimerEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.retryFailInterval = 10 * time.Millisecond
 		evch := make(chan event)
 		go func() { evch <- l.retrySyncFullEvent() }()
@@ -318,7 +319,7 @@ func TestAE_RetrySyncFullEvent(t *testing.T) {
 
 func TestAE_SyncChangesEvent(t *testing.T) {
 	t.Run("trigger shutdownEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.ShutdownCh = make(chan struct{})
 		evch := make(chan event)
 		go func() { evch <- l.syncChangesEvent() }()
@@ -328,7 +329,7 @@ func TestAE_SyncChangesEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger shutdownEvent during FullNotif", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.ShutdownCh = make(chan struct{})
 		evch := make(chan event)
 		go func() { evch <- l.syncChangesEvent() }()
@@ -340,7 +341,7 @@ func TestAE_SyncChangesEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger syncFullNotifEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.serverUpInterval = 10 * time.Millisecond
 		evch := make(chan event)
 		go func() { evch <- l.syncChangesEvent() }()
@@ -350,7 +351,7 @@ func TestAE_SyncChangesEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger syncFullTimerEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		l.Interval = 10 * time.Millisecond
 		evch := make(chan event)
 		go func() { evch <- l.syncChangesEvent() }()
@@ -359,7 +360,7 @@ func TestAE_SyncChangesEvent(t *testing.T) {
 		}
 	})
 	t.Run("trigger syncChangesNotifEvent", func(t *testing.T) {
-		l := testSyncer()
+		l := testSyncer(t)
 		evch := make(chan event)
 		go func() { evch <- l.syncChangesEvent() }()
 		l.SyncChanges.Trigger()
@@ -390,13 +391,15 @@ func (m *mock) SyncChanges() error {
 	return nil
 }
 
-func testSyncer() *StateSyncer {
+func testSyncer(t *testing.T) *StateSyncer {
 	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level: 0,
+		Level:  0,
+		Output: testutil.TestWriter(t),
 	})
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
+
 	l := NewStateSyncer(nil, time.Second, nil, logger)
 	l.stagger = func(d time.Duration) time.Duration { return d }
 	l.ClusterSize = func() int { return 1 }
