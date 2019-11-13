@@ -368,11 +368,12 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			// Need server just for logger dependency
 			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
 
-			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
+			endpoints, allowEmpty, err := s.endpointsFromSnapshot(snap, "my-token")
+			require.NoError(err)
+			require.False(allowEmpty)
 			sort.Slice(endpoints, func(i, j int) bool {
 				return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
 			})
-			require.NoError(err)
 			r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
 			require.NoError(err)
 

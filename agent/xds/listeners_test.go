@@ -287,12 +287,13 @@ func TestListenersFromSnapshot(t *testing.T) {
 			// Need server just for logger dependency
 			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
 
-			listeners, err := s.listenersFromSnapshot(snap, "my-token")
+			listeners, allowEmpty, err := s.listenersFromSnapshot(snap, "my-token")
+			require.NoError(err)
+			require.False(allowEmpty)
 			sort.Slice(listeners, func(i, j int) bool {
 				return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
 			})
 
-			require.NoError(err)
 			r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
 			require.NoError(err)
 

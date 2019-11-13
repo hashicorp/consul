@@ -83,7 +83,7 @@ func (s *ConfigSnapshot) Valid() bool {
 	case structs.ServiceKindConnectProxy:
 		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
-		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.WatchedServices) > 0)
+		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
 	default:
 		return false
 	}

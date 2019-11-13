@@ -22,9 +22,9 @@ import (
 )
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
-func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
+		return nil, false, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
@@ -33,20 +33,20 @@ func (s *Server) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token st
 	case structs.ServiceKindMeshGateway:
 		return s.clustersFromSnapshotMeshGateway(cfgSnap, token)
 	default:
-		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+		return nil, false, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
-func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	// TODO(rb): this sizing is a low bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Include the "app" cluster for the public listener
 	appCluster, err := s.makeAppCluster(cfgSnap, LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	clusters = append(clusters, appCluster)
@@ -57,7 +57,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 			upstreamCluster, err := s.makeUpstreamClusterForPreparedQuery(u, cfgSnap)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			clusters = append(clusters, upstreamCluster)
 
@@ -65,7 +65,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			chain := cfgSnap.ConnectProxy.DiscoveryChain[id]
 			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, cfgSnap)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 
 			for _, cluster := range upstreamClusters {
@@ -101,7 +101,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 		clusters = append(clusters, c)
 	}
-	return clusters, nil
+	return clusters, false, nil
 }
 
 func makeExposeClusterName(destinationPort int) string {
@@ -111,7 +111,7 @@ func makeExposeClusterName(destinationPort int) string {
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
-func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
 	clusters := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
 
@@ -121,7 +121,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		clusters = append(clusters, cluster)
 	}
@@ -132,7 +132,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		clusters = append(clusters, cluster)
 	}
@@ -144,13 +144,14 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			clusters = append(clusters, cluster)
 		}
 	}
 
-	return clusters, nil
+	// Mesh gateways are allowed to inform CDS of no clusters.
+	return clusters, true, nil
 }
 
 func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy.Cluster, error) {

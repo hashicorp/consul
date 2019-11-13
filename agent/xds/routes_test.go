@@ -347,8 +347,9 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				tt.setup(snap)
 			}
 
-			routes, err := routesFromSnapshot(snap, "my-token")
+			routes, allowEmpty, err := routesFromSnapshot(snap, "my-token")
 			require.NoError(err)
+			require.False(allowEmpty)
 			sort.Slice(routes, func(i, j int) bool {
 				return routes[i].(*envoy.RouteConfiguration).Name < routes[j].(*envoy.RouteConfiguration).Name
 			})

@@ -15,24 +15,24 @@ import (
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
+		return nil, false, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return routesFromSnapshotConnectProxy(cfgSnap, token)
 	default:
-		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+		return nil, false, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
+		return nil, false, errors.New("nil config given")
 	}
 
 	var resources []proto.Message
@@ -50,7 +50,7 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		} else {
 			upstreamRoute, err := makeUpstreamRouteForDiscoveryChain(&u, chain, cfgSnap)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			if upstreamRoute != nil {
 				resources = append(resources, upstreamRoute)
@@ -60,7 +60,7 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token stri
 
 	// TODO(rb): make sure we don't generate an empty result
 
-	return resources, nil
+	return resources, false, nil
 }
 
 func makeUpstreamRouteForDiscoveryChain(

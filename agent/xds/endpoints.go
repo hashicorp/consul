@@ -18,9 +18,9 @@ import (
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
-func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
+		return nil, false, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
@@ -29,13 +29,13 @@ func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 	case structs.ServiceKindMeshGateway:
 		return s.endpointsFromSnapshotMeshGateway(cfgSnap, token)
 	default:
-		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+		return nil, false, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
 // (upstream instances) in the snapshot.
-func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.UpstreamEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
@@ -146,10 +146,10 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		}
 	}
 
-	return resources, nil
+	return resources, false, nil
 }
 
-func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
+func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
 	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the endpoints for the gateways in the remote datacenters
@@ -189,12 +189,12 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			if subset.Filter != "" {
 				filter, err := bexpr.CreateFilter(subset.Filter, nil, endpoints)
 				if err != nil {
-					return nil, err
+					return nil, false, err
 				}
 
 				raw, err := filter.Execute(endpoints)
 				if err != nil {
-					return nil, err
+					return nil, false, err
 				}
 				endpoints = raw.(structs.CheckServiceNodes)
 			}
@@ -213,7 +213,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
-	return resources, nil
+	return resources, false, nil
 }
 
 func makeEndpoint(clusterName, host string, port int) envoyendpoint.LbEndpoint {

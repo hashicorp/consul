@@ -371,7 +371,7 @@ type xDSType struct {
 	// last version we sent with a Nack then req.VersionInfo will be the older
 	// version it's hanging on to.
 	lastVersion uint64
-	resources   func(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error)
+	resources   func(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error)
 }
 
 func (t *xDSType) Recv(req *envoy.DiscoveryRequest) {
@@ -388,7 +388,7 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		// Already sent this version
 		return nil
 	}
-	resources, err := t.resources(cfgSnap, tokenFromStream(t.stream))
+	resources, allowEmpty, err := t.resources(cfgSnap, tokenFromStream(t.stream))
 	if err != nil {
 		return err
 	}
@@ -398,7 +398,7 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	// for the EDS response. This is fixed though by ensuring we send an explicit
 	// empty LoadAssignment resource for the cluster rather than allowing junky
 	// empty resources.
-	if len(resources) == 0 {
+	if len(resources) == 0 && !allowEmpty {
 		// Nothing to send yet
 		return nil
 	}
