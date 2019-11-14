@@ -2,6 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import Error from '@ember/error';
+import { Promise } from 'rsvp';
 
 const modelName = 'dc';
 export default RepositoryService.extend({

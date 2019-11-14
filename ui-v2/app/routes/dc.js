@@ -9,10 +9,10 @@ export default Route.extend({
   model: function(params) {
     const repo = this.repo;
     const nspaceRepo = this.nspaceRepo;
-    const nspace = this.nspaceRepo.getActive();
     return hash({
       dcs: repo.findAll(),
       nspaces: nspaceRepo.findAll(),
+      nspace: this.nspaceRepo.getActive(),
     }).then(function(model) {
       return hash({
         ...model,
@@ -24,7 +24,7 @@ export default Route.extend({
           nspace:
             model.nspaces.length > 1
               ? model.nspaces.find(function(item) {
-                  return item.Name === nspace.Name;
+                  return item.Name === model.nspace.Name;
                 })
               : model.nspaces.firstObject,
         },

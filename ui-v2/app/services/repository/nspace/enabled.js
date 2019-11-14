@@ -1,5 +1,6 @@
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
+import { Promise } from 'rsvp';
 import config from 'consul-ui/config/environment';
 import RepositoryService from 'consul-ui/services/repository';
 
@@ -44,9 +45,19 @@ export default RepositoryService.extend({
         }
       }
     }
-    // If we can't figure out the nspace from the URL just use default
-    return {
-      Name: (routeParams.nspace || `~default`).substr(1),
-    };
+    return this.settings
+      .findBySlug('nspace')
+      .then(function(nspace) {
+        // If we can't figure out the nspace from the URL use
+        // the previously saved nspace and if thats not there
+        // then just use default
+        return routeParams.nspace || nspace || '~default';
+      })
+      .then(nspace => this.settings.persist({ nspace: nspace }))
+      .then(function(item) {
+        return {
+          Name: item.nspace.substr(1),
+        };
+      });
   },
 });
