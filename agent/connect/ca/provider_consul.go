@@ -426,18 +426,9 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		return "", err
 	}
 
-	if uriCount := len(csr.URIs); uriCount != 1 {
-		return "", fmt.Errorf("incoming CSR has unexpected number of URIs: %d", uriCount)
-	}
-	certURI, err := connect.ParseCertURI(csr.URIs[0])
+	err = validateSignIntermediate(csr, c.spiffeID)
 	if err != nil {
 		return "", err
-	}
-
-	// Verify that the trust domain is valid.
-	if !c.spiffeID.CanSign(certURI) {
-		return "", fmt.Errorf("incoming CSR domain %q is not valid for our domain %q",
-			certURI.URI().String(), c.spiffeID.URI().String())
 	}
 
 	// Get the signing private key.
