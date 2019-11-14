@@ -8,8 +8,12 @@ description: |-
 
 # Consul on Google Kubernetes Engine
 
-Consul can run directly on Google Kubernetes Engine (GKE). 
+Consul can run directly on Google Kubernetes Engine (GKE). To get hands-on experience, you can use the [Deploy Consul with Kubernetes on Google Cloud](https://learn.hashicorp.com/consul/kubernetes/google-cloud-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke) guide.
 
-To get hands-on experience, you can use the ["Deploy Consul with Kubernetes on Google Cloud"](https://learn.hashicorp.com/consul/kubernetes/google-cloud-k8s?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke) guide.
+The Learn guide includes: 
 
-In the Learn guide, you'll install a Consul on AKS with the official Helm chart. After installing, you'll learn how to access Consul. Consul on GKE can be accessed using the Consul UI, CLI, and API.
+- GKE configuration recommendations 
+- How to install Consul on GKE with the official Helm chart
+- Accessing Consul with the Consul UI, CLI, and API. 
+
+You will need a Google Cloud account to complete this guide. 
