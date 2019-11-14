@@ -310,7 +310,9 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		config.LogOutput = os.Stderr
 	}
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Level:  log.LstdFlags,
+			Output: config.LogOutput})
 		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
