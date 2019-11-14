@@ -75,7 +75,7 @@ func testProviderConfig(caCfg *structs.CAConfiguration) ProviderConfig {
 	return ProviderConfig{
 		ClusterID:  caCfg.ClusterID,
 		Datacenter: "dc1",
-		PrimaryDC:  true,
+		IsPrimary:  true,
 		RawConfig:  caCfg.Config,
 	}
 }
@@ -382,7 +382,7 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
 			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
 			cfg := testProviderConfig(conf2)
-			cfg.PrimaryDC = false
+			cfg.IsPrimary = false
 			cfg.Datacenter = "dc2"
 			require.NoError(provider2.Configure(cfg))
 

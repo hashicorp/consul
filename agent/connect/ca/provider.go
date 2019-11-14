@@ -17,18 +17,18 @@ type ProviderConfig struct {
 	// Datacenter is the current Consul datacenter.
 	Datacenter string
 
-	// PrimaryDC is true when the CA instance is in the primary DC typically it
+	// IsPrimary is true when the CA instance is in the primary DC typically it
 	// may choose to act as a root in this case while secondaries are typically
 	// intermediate CAs. In some case the primary DC in Consul is an intermediate
 	// signed by some external CA along with that CA's public cert so the old name
 	// of `IsRoot` was misleading.
-	PrimaryDC bool
+	IsPrimary bool
 
 	// RawConfig is the user configuration for the provider and is
-	// provider-specific to be interpretted as the provider wishes.
+	// provider-specific to be interpreted as the provider wishes.
 	RawConfig map[string]interface{}
 
-	// State contains a the State the same provider last persisted. It is provided
+	// State contains the State the same provider last persisted. It is provided
 	// after a restart or reconfiguration, or on a leader election on a new server
 	// to maintain operation. It MUST NOT be used for secret storage since it is
 	// visible in the API to operators. It's intended use is to store small bits

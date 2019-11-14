@@ -290,7 +290,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		provider2 := TestConsulProvider(t, delegate)
 		cfg := testProviderConfig(conf)
-		cfg.PrimaryDC = false
+		cfg.IsPrimary = false
 		cfg.Datacenter = "dc2"
 		require.NoError(t, provider2.Configure(cfg))
 
@@ -316,7 +316,7 @@ func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {
 	return testVaultProviderWithConfig(t, true, nil)
 }
 
-func testVaultProviderWithConfig(t *testing.T, primaryDC bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
+func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
 	testVault, err := runTestVault()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -341,12 +341,12 @@ func testVaultProviderWithConfig(t *testing.T, primaryDC bool, rawConf map[strin
 	cfg := ProviderConfig{
 		ClusterID:  connect.TestClusterID,
 		Datacenter: "dc1",
-		PrimaryDC:  true,
+		IsPrimary:  true,
 		RawConfig:  conf,
 	}
 
-	if !primaryDC {
-		cfg.PrimaryDC = false
+	if !isPrimary {
+		cfg.IsPrimary = false
 		cfg.Datacenter = "dc2"
 	}
 
@@ -354,7 +354,7 @@ func testVaultProviderWithConfig(t *testing.T, primaryDC bool, rawConf map[strin
 		testVault.Stop()
 		t.Fatalf("err: %v", err)
 	}
-	if primaryDC {
+	if isPrimary {
 		if err = provider.GenerateRoot(); err != nil {
 			testVault.Stop()
 			t.Fatalf("err: %v", err)

@@ -190,9 +190,10 @@ func (s *ConnectCA) ConfigurationSet(
 	pCfg := ca.ProviderConfig{
 		ClusterID:  args.Config.ClusterID,
 		Datacenter: s.srv.config.Datacenter,
-		PrimaryDC:  true,
-		RawConfig:  args.Config.Config,
-		State:      args.Config.State,
+		// This endpoint can be called in a secondary DC too so set this correctly.
+		IsPrimary: s.srv.config.Datacenter == s.srv.config.PrimaryDatacenter,
+		RawConfig: args.Config.Config,
+		State:     args.Config.State,
 	}
 	if err := newProvider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)

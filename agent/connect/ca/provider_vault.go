@@ -23,7 +23,7 @@ var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 type VaultProvider struct {
 	config    *structs.VaultCAProviderConfig
 	client    *vaultapi.Client
-	primaryDC bool
+	isPrimary bool
 	clusterID string
 	spiffeID  *connect.SpiffeIDSigning
 }
@@ -61,7 +61,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	client.SetToken(config.Token)
 	v.config = config
 	v.client = client
-	v.primaryDC = cfg.PrimaryDC
+	v.isPrimary = cfg.IsPrimary
 	v.clusterID = cfg.ClusterID
 	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
 
@@ -81,7 +81,7 @@ func (v *VaultProvider) ActiveRoot() (string, error) {
 
 // GenerateRoot mounts and initializes a new root PKI backend if needed.
 func (v *VaultProvider) GenerateRoot() error {
-	if !v.primaryDC {
+	if !v.isPrimary {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
 
@@ -108,7 +108,7 @@ func (v *VaultProvider) GenerateRoot() error {
 			return err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
-			"common_name": connect.CACN("vault", uid, v.clusterID, v.primaryDC),
+			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 			"uri_sans":    v.spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
 			"key_bits":    v.config.PrivateKeyBits,
@@ -129,7 +129,7 @@ func (v *VaultProvider) GenerateRoot() error {
 // for another datacenter's root to sign, overwriting the intermediate backend
 // in the process.
 func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
-	if v.primaryDC {
+	if v.isPrimary {
 		return "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
@@ -184,7 +184,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 		return "", err
 	}
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
-		"common_name": connect.CACN("vault", uid, v.clusterID, v.primaryDC),
+		"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 		"key_type":    v.config.PrivateKeyType,
 		"key_bits":    v.config.PrivateKeyBits,
 		"uri_sans":    v.spiffeID.URI().String(),
@@ -206,7 +206,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 // SetIntermediate writes the incoming intermediate and root certificates to the
 // intermediate backend (as a chain).
 func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
-	if v.primaryDC {
+	if v.isPrimary {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 

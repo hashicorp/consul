@@ -215,7 +215,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
 		Datacenter: s.config.Datacenter,
-		PrimaryDC:  true,
+		IsPrimary:  true,
 		RawConfig:  conf.Config,
 		State:      conf.State,
 	}
@@ -801,7 +801,7 @@ func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs
 	pCfg := ca.ProviderConfig{
 		ClusterID:  clusterID,
 		Datacenter: s.config.Datacenter,
-		PrimaryDC:  false,
+		IsPrimary:  false,
 		RawConfig:  conf.Config,
 		State:      conf.State,
 	}
