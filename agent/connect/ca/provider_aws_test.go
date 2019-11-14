@@ -21,7 +21,8 @@ func skipIfAWSNotConfigured(t *testing.T) bool {
 }
 
 func TestBootstrapAndSignPrimary(t *testing.T) {
-	t.Parallel()
+	// Note not parallel since we could easily hit AWS limits of too many CAs if
+	// all of these tests run at once.
 	if skipIfAWSNotConfigured(t) {
 		return
 	}
@@ -80,7 +81,8 @@ func testSignAndValidate(t *testing.T, p Provider, rootPEM string, intermediateP
 }
 
 func TestBootstrapAndSignSecondary(t *testing.T) {
-	t.Parallel()
+	// Note not parallel since we could easily hit AWS limits of too many CAs if
+	// all of these tests run at once.
 	if skipIfAWSNotConfigured(t) {
 		return
 	}
@@ -175,7 +177,8 @@ func TestBootstrapAndSignSecondary(t *testing.T) {
 }
 
 func TestBootstrapAndSignSecondaryConsul(t *testing.T) {
-	t.Parallel()
+	// Note not parallel since we could easily hit AWS limits of too many CAs if
+	// all of these tests run at once.
 	if skipIfAWSNotConfigured(t) {
 		return
 	}
