@@ -20,7 +20,7 @@ func skipIfAWSNotConfigured(t *testing.T) bool {
 	return false
 }
 
-func TestBootstrapAndSignPrimary(t *testing.T) {
+func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 	// Note not parallel since we could easily hit AWS limits of too many CAs if
 	// all of these tests run at once.
 	if skipIfAWSNotConfigured(t) {
@@ -80,7 +80,7 @@ func testSignAndValidate(t *testing.T, p Provider, rootPEM string, intermediateP
 	require.NoError(t, err)
 }
 
-func TestBootstrapAndSignSecondary(t *testing.T) {
+func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	// Note not parallel since we could easily hit AWS limits of too many CAs if
 	// all of these tests run at once.
 	if skipIfAWSNotConfigured(t) {
@@ -176,7 +176,7 @@ func TestBootstrapAndSignSecondary(t *testing.T) {
 	}
 }
 
-func TestBootstrapAndSignSecondaryConsul(t *testing.T) {
+func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 	// Note not parallel since we could easily hit AWS limits of too many CAs if
 	// all of these tests run at once.
 	if skipIfAWSNotConfigured(t) {
@@ -206,7 +206,7 @@ func TestBootstrapAndSignSecondaryConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		p2 := TestConsulProvider(t, delegate)
 		cfg := testProviderConfig(conf)
-		cfg.PrimaryDC = false
+		cfg.IsPrimary = false
 		cfg.Datacenter = "dc2"
 		require.NoError(t, p2.Configure(cfg))
 
@@ -239,14 +239,14 @@ func testProviderConfigPrimary(t *testing.T, cfg map[string]interface{}) Provide
 	return ProviderConfig{
 		ClusterID:  connect.TestClusterID,
 		Datacenter: "dc1",
-		PrimaryDC:  true,
+		IsPrimary:  true,
 		RawConfig:  rawCfg,
 	}
 }
 
 func testProviderConfigSecondary(t *testing.T, cfg map[string]interface{}) ProviderConfig {
 	c := testProviderConfigPrimary(t, cfg)
-	c.PrimaryDC = false
+	c.IsPrimary = false
 	c.Datacenter = "dc2"
 	return c
 }

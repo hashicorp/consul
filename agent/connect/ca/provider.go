@@ -71,7 +71,7 @@ type Provider interface {
 
 	// GenerateRoot causes the creation of a new root certificate for this provider.
 	// This can also be a no-op if a root certificate already exists for the given
-	// config. If PrimaryDC is false, calling this method is an error.
+	// config. If IsPrimary is false, calling this method is an error.
 	GenerateRoot() error
 
 	// ActiveRoot returns the currently active root CA for this
@@ -80,13 +80,13 @@ type Provider interface {
 	ActiveRoot() (string, error)
 
 	// GenerateIntermediateCSR generates a CSR for an intermediate CA
-	// certificate, to be signed by the root of another datacenter. If PrimaryDC was
+	// certificate, to be signed by the root of another datacenter. If IsPrimary was
 	// set to true with Configure(), calling this is an error.
 	GenerateIntermediateCSR() (string, error)
 
 	// SetIntermediate sets the provider to use the given intermediate certificate
 	// as well as the root it was signed by. This completes the initialization for
-	// a provider where PrimaryDC was set to false in Configure().
+	// a provider where IsPrimary was set to false in Configure().
 	SetIntermediate(intermediatePEM, rootPEM string) error
 
 	// ActiveIntermediate returns the current signing cert used by this provider

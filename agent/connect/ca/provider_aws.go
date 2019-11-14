@@ -6,7 +6,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"log"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -21,16 +20,27 @@ import (
 )
 
 const (
-	RootTemplateARN         = "arn:aws:acm-pca:::template/RootCACertificate/V1"
-	IntermediateTemplateARN = "arn:aws:acm-pca:::template/SubordinateCACertificate_PathLen0/V1"
-	LeafTemplateARN         = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
-)
+	// RootTemplateARN is the AWS-defined template we need to use when issuing a
+	// root cert.
+	RootTemplateARN = "arn:aws:acm-pca:::template/RootCACertificate/V1"
 
-const (
-	RootTTL         = 5 * 365 * 24 * time.Hour
+	// IntermediateTemplateARN is the AWS-defined template we need to use when
+	// issuing an intermediate cert.
+	IntermediateTemplateARN = "arn:aws:acm-pca:::template/SubordinateCACertificate_PathLen0/V1"
+
+	// LeafTemplateARN is the AWS-defined template we need to use when issuing a
+	// leaf cert.
+	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
+
+	// RootTTL is the validity duration for root certs we create.
+	RootTTL = 5 * 365 * 24 * time.Hour
+
+	// IntermediateTTL is the validity duration for the intermediate certs we
+	// create.
 	IntermediateTTL = 1 * 365 * 24 * time.Hour
 )
 
+// AWSProvider implements Provider for AWS ACM PCA
 type AWSProvider struct {
 	stopped uint32 // atomically accessed, at start to prevent alignment issues
 	stopCh  chan struct{}
@@ -38,7 +48,7 @@ type AWSProvider struct {
 	config          *structs.AWSCAProviderConfig
 	session         *session.Session
 	client          *acmpca.ACMPCA
-	primaryDC       bool
+	isPrimary       bool
 	datacenter      string
 	clusterID       string
 	arn             string
@@ -77,7 +87,7 @@ func (a *AWSProvider) Configure(cfg ProviderConfig) error {
 
 	a.config = config
 	a.session = awsSession
-	a.primaryDC = cfg.PrimaryDC
+	a.isPrimary = cfg.IsPrimary
 	a.clusterID = cfg.ClusterID
 	a.datacenter = cfg.Datacenter
 	a.client = acmpca.New(awsSession)
@@ -96,6 +106,7 @@ func (a *AWSProvider) Configure(cfg ProviderConfig) error {
 	return nil
 }
 
+// State implements Provider
 func (a *AWSProvider) State() (map[string]string, error) {
 	if a.arn == "" {
 		return nil, nil
@@ -107,8 +118,9 @@ func (a *AWSProvider) State() (map[string]string, error) {
 	return state, nil
 }
 
+// GenerateRoot implements Provider
 func (a *AWSProvider) GenerateRoot() error {
-	if !a.primaryDC {
+	if !a.isPrimary {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
 
@@ -169,7 +181,7 @@ func (a *AWSProvider) ensureCA() error {
 	// If we are in a secondary DC this is all we can do for now - the rest is
 	// handled by the Initialization routine of calling GenerateIntermediateCSR
 	// and then SetIntermediate.
-	if !a.primaryDC {
+	if !a.isPrimary {
 		return nil
 	}
 
@@ -227,7 +239,7 @@ func keyTypeToAlgos(keyType string, keyBits int) (string, string, error) {
 
 func (a *AWSProvider) createPCA() error {
 	pcaType := "ROOT" // For some reason there is no constant for this in the SDK
-	if !a.primaryDC {
+	if !a.isPrimary {
 		pcaType = acmpca.CertificateAuthorityTypeSubordinate
 	}
 
@@ -240,7 +252,7 @@ func (a *AWSProvider) createPCA() error {
 	if err != nil {
 		return err
 	}
-	commonName := connect.CACN("aws", uid, a.clusterID, a.primaryDC)
+	commonName := connect.CACN("aws", uid, a.clusterID, a.isPrimary)
 
 	createInput := acmpca.CreateCertificateAuthorityInput{
 		CertificateAuthorityType: aws.String(pcaType),
@@ -338,7 +350,7 @@ func (a *AWSProvider) loadCACerts() error {
 		return err
 	}
 
-	if a.primaryDC {
+	if a.isPrimary {
 		// Just use the cert as a root
 		a.rootPEM = *output.Certificate
 	} else {
@@ -419,6 +431,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 	}
 }
 
+// ActiveRoot implements Provider
 func (a *AWSProvider) ActiveRoot() (string, error) {
 	err := a.ensureCA()
 	if err != nil {
@@ -431,8 +444,9 @@ func (a *AWSProvider) ActiveRoot() (string, error) {
 	return a.rootPEM, nil
 }
 
+// GenerateIntermediateCSR implements Provider
 func (a *AWSProvider) GenerateIntermediateCSR() (string, error) {
-	if a.primaryDC {
+	if a.isPrimary {
 		return "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
@@ -446,6 +460,7 @@ func (a *AWSProvider) GenerateIntermediateCSR() (string, error) {
 	return a.getCACSR()
 }
 
+// SetIntermediate implements Provider
 func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) error {
 	err := a.ensureCA()
 	if err != nil {
@@ -471,6 +486,7 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 	return nil
 }
 
+// ActiveIntermediate implements Provider
 func (a *AWSProvider) ActiveIntermediate() (string, error) {
 	err := a.ensureCA()
 	if err != nil {
@@ -481,7 +497,7 @@ func (a *AWSProvider) ActiveIntermediate() (string, error) {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
 	}
 
-	if a.primaryDC {
+	if a.isPrimary {
 		// In the simple case the primary DC owns a Root CA and signs with it
 		// directly so just return that for "intermediate" too since that is what we
 		// will sign leafs with.
@@ -499,8 +515,9 @@ func (a *AWSProvider) ActiveIntermediate() (string, error) {
 	return a.intermediatePEM, nil
 }
 
+// GenerateIntermediate implements Provider
 func (a *AWSProvider) GenerateIntermediate() (string, error) {
-	// Like the consul provider, for now the PrimaryDC just gets a root and no
+	// Like the consul provider, for now the Primary DC just gets a root and no
 	// intermediate to sign with. so just return this. Secondaries use
 	// intermediates but this method is only called during primary DC (root)
 	// initialization in case a provider generates separate root and
@@ -511,6 +528,7 @@ func (a *AWSProvider) GenerateIntermediate() (string, error) {
 	return a.ActiveIntermediate()
 }
 
+// Sign implements Provider
 func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if a.rootPEM == "" {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
@@ -522,6 +540,7 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	return a.signCSRRaw(csr, LeafTemplateARN, a.config.LeafCertTTL)
 }
 
+// SignIntermediate implements Provider
 func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
 	err := validateSignIntermediate(csr, &connect.SpiffeIDSigning{ClusterID: a.clusterID, Domain: "consul"})
 	if err != nil {
@@ -532,6 +551,7 @@ func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, er
 	return a.signCSRRaw(csr, IntermediateTemplateARN, IntermediateTTL)
 }
 
+// CrossSignCA implements Provider
 func (a *AWSProvider) CrossSignCA(newCA *x509.Certificate) (string, error) {
 	return "", fmt.Errorf("not implemented in AWS PCA provider")
 }
@@ -564,6 +584,7 @@ func (a *AWSProvider) deletePCA() error {
 	return err
 }
 
+// Cleanup implements Provider
 func (a *AWSProvider) Cleanup() error {
 	old := atomic.SwapUint32(&a.stopped, 1)
 	if old == 0 {
@@ -589,10 +610,12 @@ func (a *AWSProvider) Cleanup() error {
 	return nil
 }
 
+// SupportsCrossSigning implements Provider
 func (a *AWSProvider) SupportsCrossSigning() (bool, error) {
 	return false, nil
 }
 
+// ParseAWSCAConfig parses and validates AWS CA Provider configuration.
 func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig, error) {
 	config := structs.AWSCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
@@ -630,16 +653,4 @@ func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig,
 	}
 
 	return &config, nil
-}
-
-func ValidateEnum(value string, choices ...string) (string, error) {
-	for _, choice := range choices {
-		if strings.ToLower(value) == strings.ToLower(choice) {
-			return choice, nil
-		}
-	}
-
-	return "", fmt.Errorf("must be one of %s or %s",
-		strings.Join(choices[:len(choices)-1], ","),
-		choices[len(choices)-1])
 }
