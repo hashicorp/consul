@@ -194,9 +194,6 @@ github.com/hashicorp/go-memdb
 github.com/hashicorp/go-msgpack/codec
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-plugin v1.0.1
-github.com/hashicorp/go-plugin
-github.com/hashicorp/go-plugin/internal/plugin
 # github.com/hashicorp/go-raftchunking v0.6.1
 github.com/hashicorp/go-raftchunking
 github.com/hashicorp/go-raftchunking/types
@@ -300,8 +297,6 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/nicolai86/scaleway-sdk v1.10.2-0.20180628010248-798f60e20bb2
 github.com/nicolai86/scaleway-sdk
-# github.com/oklog/run v1.0.0
-github.com/oklog/run
 # github.com/packethost/packngo v0.1.1-0.20180711074735-b9cb5096f54c
 github.com/packethost/packngo
 # github.com/pascaldekloe/goe v0.1.0
