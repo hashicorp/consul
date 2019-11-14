@@ -124,7 +124,10 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	// Create a logger
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Output: config.LogOutput,
+			Level:  log.LstdFlags,
+		})
 		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})

@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	testing "github.com/mitchellh/go-testing-interface"
 )
 
@@ -22,7 +22,12 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 	t.Helper()
 
 	// Don't need to talk to client since we are setting TLSConfig locally
-	logger := testutil.TestHcLog("")
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level: log.LstdFlags,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 	svc, err := NewDevServiceWithTLSConfig(service,
 		logger, TestTLSConfig(t, service, ca))
 	if err != nil {

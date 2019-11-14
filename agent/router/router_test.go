@@ -93,13 +93,13 @@ func testCluster(self string) *mockCluster {
 	return c
 }
 
-func testRouter(dc string) *Router {
-	logger := testutil.TestHcLog("")
+func testRouter(t testing.TB, dc string) *Router {
+	logger := testutil.TestHcLog(t)
 	return NewRouter(logger, dc)
 }
 
 func TestRouter_Shutdown(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
@@ -135,7 +135,7 @@ func TestRouter_Shutdown(t *testing.T) {
 }
 
 func TestRouter_Routing(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
@@ -269,7 +269,7 @@ func TestRouter_Routing(t *testing.T) {
 }
 
 func TestRouter_Routing_Offline(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
@@ -349,7 +349,7 @@ func TestRouter_Routing_Offline(t *testing.T) {
 }
 
 func TestRouter_GetDatacenters(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	self := "node0.dc0"
 	wan := testCluster(self)
@@ -380,7 +380,7 @@ func TestRouter_distanceSorter(t *testing.T) {
 }
 
 func TestRouter_GetDatacentersByDistance(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Start with just the WAN area described in the diagram above.
 	self := "node0.dc0"
@@ -418,7 +418,7 @@ func TestRouter_GetDatacentersByDistance(t *testing.T) {
 }
 
 func TestRouter_GetDatacenterMaps(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	self := "node0.dc0"
 	wan := testCluster(self)

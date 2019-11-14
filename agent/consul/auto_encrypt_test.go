@@ -16,7 +16,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 		rawHost string
 		logger  *log.Logger
 	}
-	logger := testutil.TestHcLog("")
+	logger := testutil.TestHcLog(t)
 
 	tests := []struct {
 		name    string

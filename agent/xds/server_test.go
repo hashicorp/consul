@@ -102,7 +102,7 @@ func (m *testManager) ConnectAuthorize(token string, req *structs.ConnectAuthori
 }
 
 func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
-	logger := testutil.TestHcLog("")
+	logger := testutil.TestHcLog(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -433,7 +433,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := testutil.TestHcLog("")
+			logger := testutil.TestHcLog(t)
 			mgr := newTestManager(t)
 			aclResolve := func(id string) (acl.Authorizer, error) {
 				if !tt.defaultDeny {
@@ -513,7 +513,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	logger := testutil.TestHcLog("")
+	logger := testutil.TestHcLog(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
@@ -604,7 +604,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	logger := testutil.TestHcLog("")
+	logger := testutil.TestHcLog(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
@@ -777,7 +777,7 @@ func TestServer_Check(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			token := "my-real-acl-token"
-			logger := testutil.TestHcLog("")
+			logger := testutil.TestHcLog(t)
 			mgr := newTestManager(t)
 
 			// Setup expected auth result against that token no lock as no other

@@ -622,7 +622,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			require.NotNil(t, state)
 
 			// setup the test logger to use the t.Log
-			state.logger = testutil.TestHcLog(t.Name())
+			state.logger = testutil.TestHcLog(t)
 
 			// setup a new testing cache notifier
 			cn := newTestCacheNotifier()
