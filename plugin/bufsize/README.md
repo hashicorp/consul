@@ -16,6 +16,7 @@ The default value is 512, and the value must be within 512 - 4096.
 Only one argument is acceptable, and it covers both IPv4 and IPv6.
 
 ## Examples
+Enable limiting the buffer size of outgoing query to the resolver (172.31.0.10):
 ```corefile
 . {
     bufsize 512
@@ -24,7 +25,15 @@ Only one argument is acceptable, and it covers both IPv4 and IPv6.
 }
 ```
 
-If you run a resolver on 172.31.0.10, the buffer size of incoming query on the resolver will be set to 512 bytes.
+Enable limiting the buffer size as an authoritative nameserver:
+```corefile
+. {
+    bufsize 512
+    file db.example.org
+    log
+}
+```
 
 ## Considerations
-For now, if a client does not use EDNS, this plugin adds OPT RR.
+- Setting 1232 bytes to bufsize may avoid fragmentation on the majority of networks in use today, but it depends on the MTU of the physical network links.
+- For now, if a client does not use EDNS, this plugin adds OPT RR.
