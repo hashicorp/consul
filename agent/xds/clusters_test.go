@@ -247,7 +247,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: testutil.TestHcLog("")}
+			s := Server{Logger: testutil.TestHcLog(t)}
 
 			clusters, err := s.clustersFromSnapshot(snap, "my-token")
 			require.NoError(err)

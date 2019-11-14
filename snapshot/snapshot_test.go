@@ -149,7 +149,7 @@ func TestSnapshot(t *testing.T) {
 	}
 
 	// Take a snapshot.
-	logger := testutil.TestHcLog("")
+	logger := testutil.TestHcLog(t)
 	snap, err := New(logger, before)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -252,7 +252,7 @@ func TestSnapshot_BadRestore(t *testing.T) {
 	}
 
 	// Take a snapshot.
-	logger := testutil.TestHcLog("")
+	logger := testutil.TestHcLog(t)
 	snap, err := New(logger, before)
 	if err != nil {
 		t.Fatalf("err: %v", err)

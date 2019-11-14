@@ -18,10 +18,10 @@ func init() {
 	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 }
 
-func TestHcLog(name string) *log.Logger {
+func TestHcLog(t testing.TB) *log.Logger {
 	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Name:  name,
-		Level: log.LstdFlags,
+		Name:   t.Name(),
+		Output: TestWriter(t),
 	})
 	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
