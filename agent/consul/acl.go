@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -192,7 +193,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	}
 
 	if config.Logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		consulLogger := hclog.New(&hclog.LoggerOptions{Output: os.Stderr})
 		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
@@ -1082,7 +1083,9 @@ type aclFilter struct {
 // newACLFilter constructs a new aclFilter.
 func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{})
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Level:  log.LstdFlags,
+			Output: os.Stderr})
 		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})

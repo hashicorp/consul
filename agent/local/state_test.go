@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -1917,7 +1918,8 @@ func TestState_Notify(t *testing.T) {
 	t.Parallel()
 
 	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level: log.LstdFlags,
+		Level:  log.LstdFlags,
+		Output: os.Stderr,
 	})
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
