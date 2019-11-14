@@ -359,7 +359,13 @@ to run the sync program.
 
   * <a name="v-connectinject-imageEnvoy" href="#v-connectinject-imageEnvoy">`imageEnvoy`</a> (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. This defaults to letting the injector choose the Envoy image, which is usually `envoy/envoy-alpine`.
 
-  * <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) - A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for restricting injection to only matching namespaces. By default all namespaces except the system namespace will have injection enabled.
+  * <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) - A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for restricting injection to only matching namespaces. By default all namespaces except `kube-system` and `kube-public` will have injection enabled.
+    
+        ```yaml
+        namespaceSelector: |
+          matchLabels:
+            namespace-label: label-value
+        ```
 
   * <a name="v-connectinject-certs" href="#v-connectinject-certs">`certs`</a> - The certs section configures how the webhook TLS certs are configured. These are the TLS certs for the Kube apiserver communicating to the webhook. By default, the injector will generate and manage its own certs, but this requires the ability for the injector to update its own `MutatingWebhookConfiguration`. In a production environment, custom certs should probably be used. Configure the values below to enable this.
 
@@ -532,7 +538,7 @@ ui:
     type: LoadBalancer
 ```
 
-The below `values.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection for annotated pods in the "my-app" namespace.
+The below `values.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection.
 
 Note, this would require a secret that contains the enterprise license key.
 
@@ -556,7 +562,6 @@ client:
 connectInject:
   enabled: true
   default: false
-  namespaceSelector: "my-app"
 ```
 
 ## Customizing the Helm Chart
