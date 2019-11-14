@@ -2248,8 +2248,6 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 
 	// Create an associated health check
 	for i, chkType := range chkTypes {
-		existingChecks[chkType.CheckID] = true
-
 		checkID := string(chkType.CheckID)
 		if checkID == "" {
 			checkID = fmt.Sprintf("service:%s", service.ID)
@@ -2257,6 +2255,9 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 				checkID += fmt.Sprintf(":%d", i+1)
 			}
 		}
+
+		existingChecks[types.CheckID(checkID)] = true
+
 		name := chkType.Name
 		if name == "" {
 			name = fmt.Sprintf("Service '%s' check", service.Service)
