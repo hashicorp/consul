@@ -99,38 +99,79 @@ func TestBootstrapAndSignSecondary(t *testing.T) {
 	intPEM, err := p2.ActiveIntermediate()
 	require.NoError(t, err)
 
-	// Now create new providers fromthe state of the first ones simulating
-	// leadership change in both
+	// Capture the state of the providers we've setup
 	p1State, err := p1.State()
 	require.NoError(t, err)
 	p2State, err := p2.State()
 	require.NoError(t, err)
 
-	// Create new provider instances
-	cfg1 := testProviderConfigPrimary(t, nil)
-	cfg1.State = p1State
-	p1 = testAWSProvider(t, cfg1)
-	newRootPEM, err := p1.ActiveRoot()
-	require.NoError(t, err)
+	// TEST LOAD FROM PREVIOUS STATE
+	{
+		// Now create new providers fromthe state of the first ones simulating
+		// leadership change in both DCs
+		t.Log("Restarting Providers with State")
 
-	cfg2 := testProviderConfigPrimary(t, nil)
-	cfg2.State = p2State
-	p2 = testAWSProvider(t, cfg2)
-	// Need call ActiveIntermediate like leader would to trigger loading from PCA
-	newIntPEM, err := p2.ActiveIntermediate()
-	require.NoError(t, err)
+		// Create new provider instances
+		cfg1 := testProviderConfigPrimary(t, nil)
+		cfg1.State = p1State
+		p1 = testAWSProvider(t, cfg1)
+		newRootPEM, err := p1.ActiveRoot()
+		require.NoError(t, err)
 
-	// Root cert should not have changed
-	require.Equal(t, rootPEM, newRootPEM)
+		cfg2 := testProviderConfigPrimary(t, nil)
+		cfg2.State = p2State
+		p2 = testAWSProvider(t, cfg2)
+		// Need call ActiveIntermediate like leader would to trigger loading from PCA
+		newIntPEM, err := p2.ActiveIntermediate()
+		require.NoError(t, err)
 
-	// Secondary intermediate cert should not have changed
-	require.NoError(t, err)
-	require.Equal(t, rootPEM, newRootPEM)
-	require.Equal(t, intPEM, newIntPEM)
+		// Root cert should not have changed
+		require.Equal(t, rootPEM, newRootPEM)
 
-	// Should both be able to sign leafs again
-	testSignAndValidate(t, p1, rootPEM, nil)
-	testSignAndValidate(t, p2, rootPEM, []string{intPEM})
+		// Secondary intermediate cert should not have changed
+		require.NoError(t, err)
+		require.Equal(t, rootPEM, newRootPEM)
+		require.Equal(t, intPEM, newIntPEM)
+
+		// Should both be able to sign leafs again
+		testSignAndValidate(t, p1, rootPEM, nil)
+		testSignAndValidate(t, p2, rootPEM, []string{intPEM})
+	}
+
+	// Since we have CAs created, test the use-case where User supplied CAs are
+	// used.
+	{
+		t.Log("Starting up Providers with ExistingARNs")
+
+		// Create new provider instances with config
+		cfg1 := testProviderConfigPrimary(t, map[string]interface{}{
+			"ExistingARN": p1State["CA_ARN"],
+		})
+		p1 = testAWSProvider(t, cfg1)
+		newRootPEM, err := p1.ActiveRoot()
+		require.NoError(t, err)
+
+		cfg2 := testProviderConfigPrimary(t, map[string]interface{}{
+			"ExistingARN": p2State["CA_ARN"],
+		})
+		cfg1.RawConfig["ExistingARN"] = p2State["CA_ARN"]
+		p2 = testAWSProvider(t, cfg2)
+		// Need call ActiveIntermediate like leader would to trigger loading from PCA
+		newIntPEM, err := p2.ActiveIntermediate()
+		require.NoError(t, err)
+
+		// Root cert should not have changed
+		require.Equal(t, rootPEM, newRootPEM)
+
+		// Secondary intermediate cert should not have changed
+		require.NoError(t, err)
+		require.Equal(t, rootPEM, newRootPEM)
+		require.Equal(t, intPEM, newIntPEM)
+
+		// Should both be able to sign leafs again
+		testSignAndValidate(t, p1, rootPEM, nil)
+		testSignAndValidate(t, p2, rootPEM, []string{intPEM})
+	}
 }
 
 func TestBootstrapAndSignSecondaryConsul(t *testing.T) {

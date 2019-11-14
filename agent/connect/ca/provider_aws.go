@@ -151,12 +151,12 @@ func (a *AWSProvider) ensureCA() error {
 			return fmt.Errorf("the %s PCA is not active: status is %s", verb,
 				*output.CertificateAuthority.Status)
 		}
-		a.arnChecked = true
 
 		// Load the certs
 		if err := a.loadCACerts(); err != nil {
 			return err
 		}
+		a.arnChecked = true
 		return nil
 	}
 
@@ -516,20 +516,6 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
 	}
 
-	if a.config.LeafCertTTL < 24*time.Hour {
-		// Complain loudly in logs and in error user will see about
-		// misconfiguration. Sadly we can't do this earlier during config validation
-		// since that happens as part of leader election and erroring there would
-		// hang the whole cluster. Making this a hard error means that operators
-		// will soon discover the misconfiguration rather than us silently extending
-		// the life of certificates beyond the one specified which could increase
-		// security risk.
-		format := "AWS PCA doesn't support certificates that are valid" +
-			" for less than 24 hours, LeafTTL of %s configured"
-		a.logger.Printf("[ERR] connect.ca.aws: "+format, a.config.LeafCertTTL)
-		return "", fmt.Errorf(format, a.config.LeafCertTTL)
-	}
-
 	a.logger.Printf("[DEBUG] connect.ca.aws: signing csr for %s",
 		csr.Subject.CommonName)
 
@@ -636,6 +622,11 @@ func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig,
 	_, _, err = keyTypeToAlgos(config.PrivateKeyType, config.PrivateKeyBits)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.LeafCertTTL < 24*time.Hour {
+		return nil, fmt.Errorf("AWS PCA doesn't support certificates that are valid"+
+			" for less than 24 hours, LeafTTL of %s configured", config.LeafCertTTL)
 	}
 
 	return &config, nil

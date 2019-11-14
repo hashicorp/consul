@@ -109,6 +109,8 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 		p = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
 		p = &ca.VaultProvider{}
+	case structs.AWSCAProvider:
+		p = &ca.AWSProvider{}
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
