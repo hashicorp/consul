@@ -1,5 +1,13 @@
 ## UNRELEASED
 
+IMPROVEMENTS
+
+* agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
+
+BUG FIXES
+
+* connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
+
 ## 1.6.2 (November 13, 2019)
 
 SECURITY
@@ -7,6 +15,7 @@ SECURITY
 * Updated to compile with Go 1.12.13 which includes a fix for CVE-2019-17596 in [[Go 1.12.11](https://groups.google.com/forum/#!msg/golang-announce/lVEm7llp0w0/VbafyRkgCgAJ)] [[GH-6319](https://github.com/hashicorp/consul/pull/6759)]
 
 FEATURES
+
 * agent: store check type in catalog [[GH-6561](https://github.com/hashicorp/consul/pull/6561)]
 * agent: update force-leave to allow for complete removal of members [[GH-6571](https://github.com/hashicorp/consul/issues/6571)]
 * agent: updates to the agent token trigger anti-entropy full syncs [[GH-6577](https://github.com/hashicorp/consul/issues/6577)]
