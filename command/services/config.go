@@ -65,12 +65,9 @@ func serviceToAgentService(svc *structs.ServiceDefinition) (*api.AgentServiceReg
 
 	// The structs version has non-pointer checks and the destination
 	// has pointers, so we need to set the destination to nil if there
-	// is no check ID set.
-	if result.Check != nil && result.Check.Name == "" {
+	// is a zero-value Check field.
+	if result.Check != nil && reflect.DeepEqual(*result.Check, api.AgentServiceCheck{}) {
 		result.Check = nil
-	}
-	if len(result.Checks) == 1 && result.Checks[0].Name == "" {
-		result.Checks = nil
 	}
 
 	return &result, nil
