@@ -2762,7 +2762,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					"enabled": true,
 					"ca_provider": "aws-pca",
 					"ca_config": {
-						"poll_interval": "1s",
 						"existing_arn": "foo",
 						"delete_on_exit": true
 					}
@@ -2773,7 +2772,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 					enabled = true
 					ca_provider = "aws-pca"
 					ca_config {
-						poll_interval = "1s"
 						existing_arn = "foo"
 						delete_on_exit = true
 					}
@@ -2784,7 +2782,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.ConnectEnabled = true
 				rt.ConnectCAProvider = "aws-pca"
 				rt.ConnectCAConfig = map[string]interface{}{
-					"PollInterval": "1s",
 					"ExistingARN":  "foo",
 					"DeleteOnExit": true,
 				}

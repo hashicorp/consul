@@ -290,36 +290,27 @@ func (a *AWSProvider) createPCA() error {
 	describeInput := acmpca.DescribeCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(newARN),
 	}
-
-	for {
+	_, err = a.pollLoop("Private CA", 2*time.Minute, func() (bool, string, error) {
 		describeOutput, err := a.client.DescribeCertificateAuthority(&describeInput)
 		if err != nil {
 			if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
 				a.logger.Printf("[ERR] connect.ca.aws: error describing PCA: %s", err.Error())
-				return fmt.Errorf("error waiting for PCA to be created: %s", err)
+				return true, "", fmt.Errorf("error waiting for PCA to be created: %s", err)
 			}
 		}
-
 		if *describeOutput.CertificateAuthority.Status == acmpca.CertificateAuthorityStatusPendingCertificate {
-			a.logger.Printf("[DEBUG] connect.ca.aws: new PCA %s is ready to accept a certificate", newARN)
+			a.logger.Printf("[DEBUG] connect.ca.aws: new PCA %s is ready"+
+				" to accept a certificate", newARN)
 			a.arn = newARN
-			// we don't need to reload this ARN since we just created it and know what state it's in
+			// We don't need to reload this ARN since we just created it and know what
+			// state it's in
 			a.arnChecked = true
-			return nil
+			return true, "", nil
 		}
-
-		a.logger.Printf("[DEBUG] connect.ca.aws: CA is not ready, waiting %s to check again",
-			a.config.PollInterval)
-
-		select {
-		case <-a.stopCh:
-			// Provider discarded
-			a.logger.Print("[WARN] connect.ca.aws: provider instance terminated while waiting for a new CA resource to be ready.")
-			return nil
-		case <-time.After(a.config.PollInterval):
-			// Continue looping...
-		}
-	}
+		// Retry
+		return false, "", nil
+	})
+	return err
 }
 
 func (a *AWSProvider) getCACSR() (string, error) {
@@ -375,6 +366,63 @@ func (a *AWSProvider) signCSRRaw(csr *x509.CertificateRequest, templateARN strin
 	return a.signCSR(pemBuf.String(), templateARN, ttl)
 }
 
+// pollWait returns how long to wait for the next poll of an async operation. We
+// optimize for times typically seen in the API. This is called _before_ the
+// first poll so we can provide a typical delay since operations are never
+// complete immediately so it's a waste to try.
+func pollWait(attemptsMade int) time.Duration {
+	// Hard code times for now
+	waits := []time.Duration{
+		// Never seen it complete first time with a lower value
+		100 * time.Millisecond,
+		200 * time.Millisecond,
+		500 * time.Millisecond,
+		1 * time.Second,
+		3 * time.Second,
+		5 * time.Second,
+	}
+	maxIdx := len(waits) - 1
+	if attemptsMade > maxIdx {
+		attemptsMade = maxIdx
+	}
+	return waits[attemptsMade]
+}
+
+func (a *AWSProvider) pollLoop(desc string, timeout time.Duration, f func() (bool, string, error)) (string, error) {
+	attemptsMade := 0
+	start := time.Now()
+	wait := pollWait(attemptsMade)
+	for {
+		elapsed := time.Since(start)
+		if elapsed >= timeout {
+			return "", fmt.Errorf("timeout after %s waiting for %s", elapsed, desc)
+		}
+
+		a.logger.Printf("[DEBUG] connect.ca.aws: %s pending"+
+			", waiting %s to check readiness", desc, wait)
+		select {
+		case <-a.stopCh:
+			// Provider discarded
+			a.logger.Print("[WARN] connect.ca.aws: provider instance terminated"+
+				" while waiting for %s.", desc)
+			return "", fmt.Errorf("provider terminated")
+		case <-time.After(wait):
+			// Continue looping...
+		}
+
+		done, out, err := f()
+		if err != nil {
+			return "", err
+		}
+		if done {
+			return out, err
+		}
+
+		attemptsMade++
+		wait = pollWait(attemptsMade)
+	}
+}
+
 func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Duration) (string, error) {
 	_, signAlg, err := keyTypeToAlgos(a.config.PrivateKeyType, a.config.PrivateKeyBits)
 	if err != nil {
@@ -393,6 +441,14 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 	}
 
 	issueOutput, err := a.client.IssueCertificate(&issueInput)
+	// ErrCodeLimitExceededException is used for both hard and soft limits in AWS
+	// SDK :(. In this specific context though (issuing a certificate) there is no
+	// hard limit on number of certs so a limit exceeded here is a rate limit.
+	if aerr, ok := err.(awserr.Error); ok && err != nil {
+		if aerr.Code() == acmpca.ErrCodeLimitExceededException {
+			return "", ErrRateLimited
+		}
+	}
 	if err != nil {
 		return "", fmt.Errorf("error issuing certificate from PCA: %s", err)
 	}
@@ -402,33 +458,22 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 		CertificateAuthorityArn: aws.String(a.arn),
 		CertificateArn:          issueOutput.CertificateArn,
 	}
-	for {
-		certOutput, err := a.client.GetCertificate(&certInput)
-		if err != nil {
-			if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
-				return "", fmt.Errorf("error retrieving certificate from PCA: %s", err)
+	return a.pollLoop(fmt.Sprintf("certificate %s", *issueOutput.CertificateArn),
+		45*time.Second,
+		func() (bool, string, error) {
+			certOutput, err := a.client.GetCertificate(&certInput)
+			if err != nil {
+				if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
+					return true, "", fmt.Errorf("error retrieving certificate from PCA: %s", err)
+				}
 			}
-		}
 
-		if certOutput.Certificate != nil {
-			return *certOutput.Certificate, nil
-		}
+			if certOutput.Certificate != nil {
+				return true, *certOutput.Certificate, nil
+			}
 
-		a.logger.Printf("[DEBUG] connect.ca.aws: certificate %s is not ready"+
-			", waiting %s to check again", *issueOutput.CertificateArn,
-			a.config.PollInterval)
-
-		select {
-		case <-a.stopCh:
-			// Provider discarded
-			a.logger.Print("[WARN] connect.ca.aws: provider instance terminated"+
-				" while waiting for a new certificate %s to be ready.",
-				issueOutput.CertificateArn)
-			return "", fmt.Errorf("provider terminated")
-		case <-time.After(a.config.PollInterval):
-			// Continue looping...
-		}
-	}
+			return false, "", nil
+		})
 }
 
 // ActiveRoot implements Provider
@@ -619,7 +664,6 @@ func (a *AWSProvider) SupportsCrossSigning() (bool, error) {
 func ParseAWSCAConfig(raw map[string]interface{}) (*structs.AWSCAProviderConfig, error) {
 	config := structs.AWSCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
-		PollInterval:           5 * time.Second,
 	}
 
 	decodeConf := &mapstructure.DecoderConfig{

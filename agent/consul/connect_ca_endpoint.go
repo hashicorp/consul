@@ -519,6 +519,9 @@ func (s *ConnectCA) Sign(
 
 	// All seems to be in order, actually sign it.
 	pem, err := provider.Sign(csr)
+	if err == ca.ErrRateLimited {
+		return ErrRateLimited
+	}
 	if err != nil {
 		return err
 	}

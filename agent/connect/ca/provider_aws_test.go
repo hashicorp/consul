@@ -214,6 +214,30 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 	})
 }
 
+func TestAWSNoCrossSigning(t *testing.T) {
+	if skipIfAWSNotConfigured(t) {
+		return
+	}
+
+	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
+	defer p1.Cleanup()
+	// Don't bother initializing a PCA as that is slow and unnecessary for this
+	// test
+
+	ok, err := p1.SupportsCrossSigning()
+	require.NoError(t, err)
+	require.False(t, ok)
+
+	// Attempt to cross sign a CA should fail with sensible error
+	ca := connect.TestCA(t, nil)
+
+	caCert, err := connect.ParseCert(ca.RootCert)
+	require.NoError(t, err)
+	_, err = p1.CrossSignCA(caCert)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not implemented")
+}
+
 func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
 	p := &AWSProvider{}
 	p.SetLogger(log.New(&testLogger{t}, "", log.LstdFlags))

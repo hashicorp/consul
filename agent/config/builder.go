@@ -591,7 +591,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"tls_skip_verify":       "TLSSkipVerify",
 
 			// AWS CA config
-			"poll_interval":  "PollInterval",
 			"existing_arn":   "ExistingARN",
 			"delete_on_exit": "DeleteOnExit",
 

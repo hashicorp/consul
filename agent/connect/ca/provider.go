@@ -2,10 +2,18 @@ package ca
 
 import (
 	"crypto/x509"
+	"errors"
 	"log"
 )
 
 //go:generate mockery -name Provider -inpkg
+
+// ErrRateLimited is a sentinel error value Providers may return from any method
+// to indicate that the operation can't complete due to a temporary rate limit.
+// In the case of signing new certificates, Consul clients will respect this and
+// intelligently backoff to optimize rotation rollout time while reducing load
+// on servers and CA provider.
+var ErrRateLimited = errors.New("operation rate limited by CA provider")
 
 // ProviderConfig encapsulates all the data Consul passes to `Configure` on a
 // new provider instance. The provider must treat this as read-only and make
@@ -105,13 +113,19 @@ type Provider interface {
 	// Sign signs a leaf certificate used by Connect proxies from a CSR. The PEM
 	// returned should include only the leaf certificate as all Intermediates
 	// needed to validate it will be added by Consul based on the active
-	// intemediate and any cross-signed intermediates managed by Consul.
+	// intemediate and any cross-signed intermediates managed by Consul. Note that
+	// providers should return ErrRateLimited if they are unable to complete the
+	// operation due to upstream rate limiting so that clients can intelligently
+	// backoff.
 	Sign(*x509.CertificateRequest) (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
-	// URI SAN matches the local one and that basic constraints for a CA certificate
-	// are met. It should return a signed CA certificate with a path length constraint
-	// of 0 to ensure that the certificate cannot be used to generate further CA certs.
+	// URI SAN matches the local one and that basic constraints for a CA
+	// certificate are met. It should return a signed CA certificate with a path
+	// length constraint of 0 to ensure that the certificate cannot be used to
+	// generate further CA certs. Note that providers should return ErrRateLimited
+	// if they are unable to complete the operation due to upstream rate limiting
+	// so that clients can intelligently backoff.
 	SignIntermediate(*x509.CertificateRequest) (string, error)
 
 	// CrossSignCA must accept a CA certificate from another CA provider and cross
@@ -124,7 +138,10 @@ type Provider interface {
 	// returned as a PEM formatted string.
 	//
 	// If the CA provider does not support this operation, it may return an error
-	// provided `SupportsCrossSigning` also returns false.
+	// provided `SupportsCrossSigning` also returns false. Note that
+	// providers should return ErrRateLimited if they are unable to complete the
+	// operation due to upstream rate limiting so that clients can intelligently
+	// backoff.
 	CrossSignCA(*x509.Certificate) (string, error)
 
 	// SupportsCrossSigning should indicate whether the CA provider supports

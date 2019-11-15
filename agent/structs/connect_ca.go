@@ -464,7 +464,6 @@ type VaultCAProviderConfig struct {
 type AWSCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PollInterval time.Duration
 	ExistingARN  string
 	DeleteOnExit bool
 }
