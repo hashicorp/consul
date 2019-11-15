@@ -1,4 +1,16 @@
-// Package fall handles the fallthrough logic used in plugins that support it.
+// Package fall handles the fallthrough logic used in plugins that support it. Be careful when including this
+// functionality in your plugin. Why? In the DNS only 1 source is authoritative for a set of names. Fallthrough
+// breaks this convention by allowing a plugin to query multiple sources, depending on the replies it got sofar.
+//
+// This may cause issues in downstream caches, where different answers for the same query can potentially confuse clients.
+// On the other hand this is a powerful feature that can aid in migration or other edge cases.
+//
+// The take away: be mindful of this and don't blindly assume it's a good feature to have in your plugin.
+//
+// See http://github.com/coredns/coredns/issues/2723 for some discussion on this, which includes this quote:
+//
+// TL;DR: `fallthrough` is indeed risky and hackish, but still a good feature of CoreDNS as it allows to quickly answer boring edge cases.
+//
 package fall
 
 import (
