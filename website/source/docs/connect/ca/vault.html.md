@@ -14,7 +14,7 @@ The Vault CA provider uses the
 [Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki/index.html)
 to generate and sign certificates.
 
--> This page documents the specifics of the built-in CA provider.
+-> This page documents the specifics of the Vault CA provider.
 Please read the [certificate management overview](/docs/connect/ca.html)
 page first to understand how Consul manages certificates with configurable
 CA providers.
