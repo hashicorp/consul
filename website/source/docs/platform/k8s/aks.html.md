@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Consul on Azure Cloud"
-sidebar_current: "docs-platform-k8s-aks"
+sidebar_current: "docs-platform-k8s-run-aks"
 description: |-
   Consul can run directly on Azure Kubernetes Service (AKS).
 ---
@@ -14,9 +14,9 @@ The Learn guide includes:
 
 - AKS configuration recommendations
 - How to install Consul with the official Helm chart
-- Deploying two services in the Consul Connect service mesh. 
+- Deploying two services in the Consul Connect service mesh.
 
-To complete this guide, you will need a Azure Cloud account. 
+To complete this guide, you will need a Azure Cloud account.
 
 
 

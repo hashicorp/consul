@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Running Consul on Minikube"
-sidebar_current: "docs-platform-k8s-mini"
+sidebar_current: "docs-platform-k8s-run-mini"
 description: |-
   Consul can run directly on Minikube for testing.
 ---
@@ -12,6 +12,6 @@ Consul can run directly on Minikube for testing. To get hands-on experience, you
 
 The Learn guide includes how to:
 
-- Install Consul on Minikube with the official Helm chart. After 
-- Access Consul with the Consul UI, CLI, and API 
+- Install Consul on Minikube with the official Helm chart. After
+- Access Consul with the Consul UI, CLI, and API
 - Deploy services in the Consul Connect service mesh.
