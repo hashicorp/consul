@@ -1308,24 +1308,25 @@ RPC:
 
 // serviceNodeRecords is used to add the node records for a service lookup
 func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
-	qName := req.Question[0].Name
 	handled := make(map[string]struct{})
 	var answerCNAME []dns.RR = nil
 
 	count := 0
 	for _, node := range nodes {
-		addr := d.serviceNodeAddr(node, dc, qName)
-
-		// Avoid duplicate entries, possible if a node has
-		// the same service on multiple ports, etc.
-		if _, ok := handled[addr]; ok {
-			continue
-		}
-		handled[addr] = struct{}{}
-
 		// Add the node record
 		had_answer := false
 		records, _ := d.nodeServiceRecords(dc, node, req, ttl, cfg, maxRecursionLevel)
+		if len(records) == 0 {
+			continue
+		}
+
+		// Avoid duplicate entries, possible if a node has
+		// the same service on multiple ports, etc.
+		if _, ok := handled[records[0].String()]; ok {
+			continue
+		}
+		handled[records[0].String()] = struct{}{}
+
 		if records != nil {
 			switch records[0].(type) {
 			case *dns.CNAME:
@@ -1399,25 +1400,6 @@ func findWeight(node structs.CheckServiceNode) int {
 	}
 }
 
-// serviceNodeAddr is used to identify target service address
-func (d *DNSServer) serviceNodeAddr(serviceNode structs.CheckServiceNode, dc string, dnsQuery string) string {
-	nodeAddress := d.agent.TranslateAddress(dc, serviceNode.Node.Address, serviceNode.Node.TaggedAddresses)
-	serviceAddress := d.agent.TranslateServiceAddress(dc, serviceNode.Service.Address, serviceNode.Service.TaggedAddresses)
-	addr := nodeAddress
-
-	if serviceAddress != "" {
-		addr = serviceAddress
-	}
-
-	// If the service address is a CNAME for the service we are looking
-	// for then use the node address.
-	if dnsQuery == strings.TrimSuffix(addr, ".")+"." {
-		addr = nodeAddress
-	}
-
-	return addr
-}
-
 func (d *DNSServer) encodeIPAsFqdn(dc string, ip net.IP) string {
 	ipv4 := ip.To4()
 	if ipv4 != nil {
@@ -1460,7 +1442,16 @@ func makeARecord(qType uint16, ip net.IP, ttl time.Duration) dns.RR {
 // In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
 // Otherwise it will return a IN A record
 func (d *DNSServer) makeRecordFromNode(dc string, node *structs.Node, qType uint16, qName string, ttl time.Duration, maxRecursionLevel int) []dns.RR {
-	addr := d.agent.TranslateAddress(node.Datacenter, node.Address, node.TaggedAddresses)
+	addrTranslate := TranslateAddressAcceptDomain
+	if qType == dns.TypeA {
+		addrTranslate |= TranslateAddressAcceptIPv4
+	} else if qType == dns.TypeAAAA {
+		addrTranslate |= TranslateAddressAcceptIPv6
+	} else {
+		addrTranslate |= TranslateAddressAcceptAny
+	}
+
+	addr := d.agent.TranslateAddress(node.Datacenter, node.Address, node.TaggedAddresses, addrTranslate)
 	ip := net.ParseIP(addr)
 
 	var res []dns.RR
@@ -1621,8 +1612,20 @@ MORE_REC:
 }
 
 func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
-	serviceAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses)
-	nodeAddr := d.agent.TranslateAddress(node.Node.Datacenter, node.Node.Address, node.Node.TaggedAddresses)
+	addrTranslate := TranslateAddressAcceptDomain
+	if req.Question[0].Qtype == dns.TypeA {
+		addrTranslate |= TranslateAddressAcceptIPv4
+	} else if req.Question[0].Qtype == dns.TypeAAAA {
+		addrTranslate |= TranslateAddressAcceptIPv6
+	} else {
+		addrTranslate |= TranslateAddressAcceptAny
+	}
+
+	serviceAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses, addrTranslate)
+	nodeAddr := d.agent.TranslateAddress(node.Node.Datacenter, node.Node.Address, node.Node.TaggedAddresses, addrTranslate)
+	if serviceAddr == "" && nodeAddr == "" {
+		return nil, nil
+	}
 
 	nodeIPAddr := net.ParseIP(nodeAddr)
 	serviceIPAddr := net.ParseIP(serviceAddr)
@@ -1685,7 +1688,7 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service the same port, etc.
-		serviceAddress := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses)
+		serviceAddress := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses, TranslateAddressAcceptAny)
 		servicePort := d.agent.TranslateServicePort(dc, node.Service.Port, node.Service.TaggedAddresses)
 		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
 		if _, ok := handled[tuple]; ok {

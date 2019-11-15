@@ -735,7 +735,7 @@ func TestAddServiceIPv4TaggedDefault(t *testing.T) {
 	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
 	require.Nil(t, err)
 
-	ns := a.State.Service("my_service_id")
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
 
 	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
@@ -764,7 +764,7 @@ func TestAddServiceIPv6TaggedDefault(t *testing.T) {
 	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
 	require.Nil(t, err)
 
-	ns := a.State.Service("my_service_id")
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
 
 	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
@@ -799,7 +799,7 @@ func TestAddServiceIPv4TaggedSet(t *testing.T) {
 	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
 	require.Nil(t, err)
 
-	ns := a.State.Service("my_service_id")
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
 
 	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
@@ -834,7 +834,7 @@ func TestAddServiceIPv6TaggedSet(t *testing.T) {
 	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
 	require.Nil(t, err)
 
-	ns := a.State.Service("my_service_id")
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
 	require.NotNil(t, ns)
 
 	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
