@@ -64,6 +64,11 @@ a *Metrics* section detailing the metrics.
 If the plugin supports signalling readiness it should have a *Ready* section detailing how it
 works, and implement the `ready.Readiness` interface.
 
+## Opening Sockets
+
+See the plugin/pkg/reuseport for `Listen` and `ListenPacket` functions. Using these functions makes
+you plugin handle reload events better.
+
 ## Documentation
 
 Each plugin should have a README.md explaining what the plugin does and how it is configured. The
