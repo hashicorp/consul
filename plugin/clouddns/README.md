@@ -59,7 +59,7 @@ Enable clouddns with fallthrough:
 
 ~~~ txt
 example.org {
-    clouddns example.org.:gcp-example-project:example-zone clouddns example.com.:gcp-example-project:example-zone-2 {
+    clouddns example.org.:gcp-example-project:example-zone example.com.:gcp-example-project:example-zone-2 {
         fallthrough example.gov.
     }
 }
