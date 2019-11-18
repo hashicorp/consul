@@ -289,7 +289,10 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider2 := TestConsulProvider(t, delegate)
-		require.NoError(t, provider2.Configure(conf.ClusterID, false, conf.Config, nil))
+		cfg := testProviderConfig(conf)
+		cfg.IsPrimary = false
+		cfg.Datacenter = "dc2"
+		require.NoError(t, provider2.Configure(cfg))
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
 	})
@@ -299,7 +302,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		conf := testConsulCAConfig()
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
-		require.NoError(t, provider1.Configure(conf.ClusterID, true, conf.Config, nil))
+		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
 		require.NoError(t, provider1.GenerateRoot())
 
 		provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
@@ -313,7 +316,7 @@ func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {
 	return testVaultProviderWithConfig(t, true, nil)
 }
 
-func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
+func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
 	testVault, err := runTestVault()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -335,11 +338,23 @@ func testVaultProviderWithConfig(t *testing.T, isRoot bool, rawConf map[string]i
 
 	provider := &VaultProvider{}
 
-	if err := provider.Configure(connect.TestClusterID, isRoot, conf, nil); err != nil {
+	cfg := ProviderConfig{
+		ClusterID:  connect.TestClusterID,
+		Datacenter: "dc1",
+		IsPrimary:  true,
+		RawConfig:  conf,
+	}
+
+	if !isPrimary {
+		cfg.IsPrimary = false
+		cfg.Datacenter = "dc2"
+	}
+
+	if err := provider.Configure(cfg); err != nil {
 		testVault.Stop()
 		t.Fatalf("err: %v", err)
 	}
-	if isRoot {
+	if isPrimary {
 		if err = provider.GenerateRoot(); err != nil {
 			testVault.Stop()
 			t.Fatalf("err: %v", err)

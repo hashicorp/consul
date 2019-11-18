@@ -71,6 +71,15 @@ func testConsulCAConfig() *structs.CAConfiguration {
 	}
 }
 
+func testProviderConfig(caCfg *structs.CAConfiguration) ProviderConfig {
+	return ProviderConfig{
+		ClusterID:  caCfg.ClusterID,
+		Datacenter: "dc1",
+		IsPrimary:  true,
+		RawConfig:  caCfg.Config,
+	}
+}
+
 func requireNotEncoded(t *testing.T, v []byte) {
 	t.Helper()
 	require.False(t, connect.IsHexString(v))
@@ -84,7 +93,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	provider := TestConsulProvider(t, delegate)
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config, nil))
+	require.NoError(provider.Configure(testProviderConfig(conf)))
 	require.NoError(provider.GenerateRoot())
 
 	root, err := provider.ActiveRoot()
@@ -117,7 +126,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	provider := TestConsulProvider(t, delegate)
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config, nil))
+	require.NoError(provider.Configure(testProviderConfig(conf)))
 	require.NoError(provider.GenerateRoot())
 
 	root, err := provider.ActiveRoot()
@@ -139,7 +148,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 			delegate := newMockDelegate(t, conf)
 
 			provider := TestConsulProvider(t, delegate)
-			require.NoError(provider.Configure(conf.ClusterID, true, conf.Config, nil))
+			require.NoError(provider.Configure(testProviderConfig(conf)))
 			require.NoError(provider.GenerateRoot())
 
 			spiffeService := &connect.SpiffeIDService{
@@ -245,7 +254,7 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 			provider1 := TestConsulProvider(t, delegate1)
 			conf1.Config["PrivateKeyType"] = tc.SigningKeyType
 			conf1.Config["PrivateKeyBits"] = tc.SigningKeyBits
-			require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config, nil))
+			require.NoError(provider1.Configure(testProviderConfig(conf1)))
 			require.NoError(provider1.GenerateRoot())
 
 			conf2 := testConsulCAConfig()
@@ -254,7 +263,7 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 			provider2 := TestConsulProvider(t, delegate2)
 			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
 			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
-			require.NoError(provider2.Configure(conf2.ClusterID, true, conf2.Config, nil))
+			require.NoError(provider2.Configure(testProviderConfig(conf2)))
 			require.NoError(provider2.GenerateRoot())
 
 			testCrossSignProviders(t, provider1, provider2)
@@ -363,7 +372,7 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 			provider1 := TestConsulProvider(t, delegate1)
 			conf1.Config["PrivateKeyType"] = tc.SigningKeyType
 			conf1.Config["PrivateKeyBits"] = tc.SigningKeyBits
-			require.NoError(provider1.Configure(conf1.ClusterID, true, conf1.Config, nil))
+			require.NoError(provider1.Configure(testProviderConfig(conf1)))
 			require.NoError(provider1.GenerateRoot())
 
 			conf2 := testConsulCAConfig()
@@ -372,7 +381,10 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 			provider2 := TestConsulProvider(t, delegate2)
 			conf2.Config["PrivateKeyType"] = tc.CSRKeyType
 			conf2.Config["PrivateKeyBits"] = tc.CSRKeyBits
-			require.NoError(provider2.Configure(conf2.ClusterID, false, conf2.Config, nil))
+			cfg := testProviderConfig(conf2)
+			cfg.IsPrimary = false
+			cfg.Datacenter = "dc2"
+			require.NoError(provider2.Configure(cfg))
 
 			testSignIntermediateCrossDC(t, provider1, provider2)
 		})
@@ -452,7 +464,7 @@ func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 	require.NotNil(providerState)
 
 	provider := TestConsulProvider(t, delegate)
-	require.NoError(provider.Configure(conf.ClusterID, true, conf.Config, nil))
+	require.NoError(provider.Configure(testProviderConfig(conf)))
 	require.NoError(provider.GenerateRoot())
 
 	// After running Configure, the old ID entry should be gone.

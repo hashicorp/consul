@@ -7,6 +7,36 @@ import (
 
 //go:generate mockery -name Provider -inpkg
 
+// ProviderConfig encapsulates all the data Consul passes to `Configure` on a
+// new provider instance. The provider must treat this as read-only and make
+// copies of any map or slice if it might modify them internally.
+type ProviderConfig struct {
+	// ClusterID is the current Consul cluster ID.
+	ClusterID string
+
+	// Datacenter is the current Consul datacenter.
+	Datacenter string
+
+	// IsPrimary is true when the CA instance is in the primary DC typically it
+	// may choose to act as a root in this case while secondaries are typically
+	// intermediate CAs. In some case the primary DC in Consul is an intermediate
+	// signed by some external CA along with that CA's public cert so the old name
+	// of `IsRoot` was misleading.
+	IsPrimary bool
+
+	// RawConfig is the user configuration for the provider and is
+	// provider-specific to be interpreted as the provider wishes.
+	RawConfig map[string]interface{}
+
+	// State contains the State the same provider last persisted. It is provided
+	// after a restart or reconfiguration, or on a leader election on a new server
+	// to maintain operation. It MUST NOT be used for secret storage since it is
+	// visible in the API to operators. It's intended use is to store small bits
+	// of state like UUIDs of external resources that the provider has created and
+	// needs to continue to manage.
+	State map[string]string
+}
+
 // Provider is the interface for Consul to interact with
 // an external CA that provides leaf certificate signing for
 // given SpiffeIDServices.
@@ -16,7 +46,7 @@ type Provider interface {
 	// Config. State contains a the State the same provider last persisted on a
 	// restart or reconfiguration. The provider must not modify `rawConfig` or
 	// `state` maps directly as it may be being read from other goroutines.
-	Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error
+	Configure(cfg ProviderConfig) error
 
 	// State returns the current provider state. If the provider doesn't need to
 	// store anything other than what the user configured this can return nil. It

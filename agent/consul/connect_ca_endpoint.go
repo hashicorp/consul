@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -186,8 +187,15 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
-	if err := newProvider.Configure(args.Config.ClusterID, true,
-		args.Config.Config, args.Config.State); err != nil {
+	pCfg := ca.ProviderConfig{
+		ClusterID:  args.Config.ClusterID,
+		Datacenter: s.srv.config.Datacenter,
+		// This endpoint can be called in a secondary DC too so set this correctly.
+		IsPrimary: s.srv.config.Datacenter == s.srv.config.PrimaryDatacenter,
+		RawConfig: args.Config.Config,
+		State:     args.Config.State,
+	}
+	if err := newProvider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := newProvider.GenerateRoot(); err != nil {

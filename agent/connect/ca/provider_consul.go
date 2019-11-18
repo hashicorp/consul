@@ -28,7 +28,7 @@ type ConsulProvider struct {
 	config    *structs.ConsulCAProviderConfig
 	id        string
 	clusterID string
-	isRoot    bool
+	isPrimary bool
 	spiffeID  *connect.SpiffeIDSigning
 	logger    *log.Logger
 
@@ -49,21 +49,21 @@ type ConsulProviderStateDelegate interface {
 }
 
 // Configure sets up the provider using the given configuration.
-func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error {
+func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 	// Parse the raw config and update our ID.
-	config, err := ParseConsulCAConfig(rawConfig)
+	config, err := ParseConsulCAConfig(cfg.RawConfig)
 	if err != nil {
 		return err
 	}
 	c.config = config
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
+	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)))
 	c.id = connect.HexString(hash[:])
-	c.clusterID = clusterID
-	c.isRoot = isRoot
-	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})
+	c.clusterID = cfg.ClusterID
+	c.isPrimary = cfg.IsPrimary
+	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
 
 	// Passthrough test state for state handling tests. See testState doc.
-	c.parseTestState(rawConfig)
+	c.parseTestState(cfg.RawConfig)
 
 	// Exit early if the state store has an entry for this provider's config.
 	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
@@ -119,8 +119,8 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 		return err
 	}
 
-	c.logger.Printf("[DEBUG] consul CA provider configured ID=%s isRoot=%v",
-		c.id, c.isRoot)
+	c.logger.Printf("[DEBUG] consul CA provider configured ID=%s IsPrimary=%v",
+		c.id, c.isPrimary)
 
 	return nil
 }
@@ -152,7 +152,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 		return err
 	}
 
-	if !c.isRoot {
+	if !c.isPrimary {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
 	if providerState.RootCert != "" {
@@ -202,7 +202,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	if c.isRoot {
+	if c.isPrimary {
 		return "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
@@ -217,7 +217,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	cn := connect.CACN("consul", uid, c.clusterID, c.isRoot)
+	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
 
 	csr, err := connect.CreateCACSR(c.spiffeID, cn, signer)
 	if err != nil {
@@ -246,7 +246,7 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 		return err
 	}
 
-	if c.isRoot {
+	if c.isPrimary {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
@@ -277,7 +277,7 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just return the root.
 func (c *ConsulProvider) ActiveIntermediate() (string, error) {
-	if c.isRoot {
+	if c.isPrimary {
 		return c.ActiveRoot()
 	}
 
@@ -633,7 +633,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	if err != nil {
 		return "", err
 	}
-	cn := connect.CACN("consul", uid, c.clusterID, c.isRoot)
+	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{

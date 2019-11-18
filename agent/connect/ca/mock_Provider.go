@@ -69,13 +69,13 @@ func (_m *MockProvider) Cleanup() error {
 	return r0
 }
 
-// Configure provides a mock function with given fields: clusterID, isRoot, rawConfig, state
-func (_m *MockProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}, state map[string]string) error {
-	ret := _m.Called(clusterID, isRoot, rawConfig, state)
+// Configure provides a mock function with given fields: cfg
+func (_m *MockProvider) Configure(cfg ProviderConfig) error {
+	ret := _m.Called(cfg)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, bool, map[string]interface{}, map[string]string) error); ok {
-		r0 = rf(clusterID, isRoot, rawConfig, state)
+	if rf, ok := ret.Get(0).(func(ProviderConfig) error); ok {
+		r0 = rf(cfg)
 	} else {
 		r0 = ret.Error(0)
 	}
