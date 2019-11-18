@@ -5,6 +5,8 @@ import config from 'consul-ui/config/environment';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
+  HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
+  HEADERS_NAMESPACE as HTTP_HEADERS_NAMESPACE,
 } from 'consul-ui/utils/http/consul';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
@@ -17,12 +19,21 @@ const map = function(obj, cb) {
   return obj.map(cb);
 };
 
-const attachHeaders = function(headers, body) {
+const attachHeaders = function(headers, body, query = {}) {
   // lowercase everything incase we get browser inconsistencies
   const lower = {};
   Object.keys(headers).forEach(function(key) {
     lower[key.toLowerCase()] = headers[key];
   });
+  // Add a 'pretend' Datacenter/Nspace header, they are not headers
+  // the come from the request but we add them here so we can use them later
+  // for store reconciliation
+  if (typeof query.dc !== 'undefined') {
+    lower[HTTP_HEADERS_DATACENTER.toLowerCase()] = query.dc;
+  }
+  lower[HTTP_HEADERS_NAMESPACE.toLowerCase()] =
+    typeof query.ns !== 'undefined' ? query.ns : config.CONSUL_NSPACES_UNDEFINED_NAME;
+  //
   body[HTTP_HEADERS_SYMBOL] = lower;
   return body;
 };
@@ -36,12 +47,16 @@ export default Serializer.extend({
   ),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)))
+      attachHeaders(
+        headers,
+        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)),
+        query
+      )
     );
   },
   respondForQueryRecord: function(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body))
+      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body), query)
     );
   },
   respondForCreateRecord: function(respond, serialized, data) {
@@ -127,6 +142,8 @@ export default Serializer.extend({
   normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
     const meta = {
       cursor: headers[HTTP_HEADERS_INDEX],
+      dc: headers[HTTP_HEADERS_DATACENTER.toLowerCase()],
+      nspace: headers[HTTP_HEADERS_NAMESPACE.toLowerCase()],
     };
     if (requestType === 'query') {
       meta.date = this.timestamp();

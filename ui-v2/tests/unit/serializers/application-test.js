@@ -1,6 +1,11 @@
 import { module } from 'qunit';
 import test from 'ember-sinon-qunit/test-support/test';
 import { setupTest } from 'ember-qunit';
+import {
+  HEADERS_SYMBOL as META,
+  HEADERS_DATACENTER as DC,
+  HEADERS_NAMESPACE as NSPACE,
+} from 'consul-ui/utils/http/consul';
 
 module('Unit | Serializer | application', function(hooks) {
   setupTest(hooks);
@@ -60,7 +65,10 @@ module('Unit | Serializer | application', function(hooks) {
     const expected = {
       Datacenter: 'dc-1',
       Name: 'name',
-      __consul_ui_http_headers__: {},
+      [META]: {
+        [DC.toLowerCase()]: 'dc-1',
+        [NSPACE.toLowerCase()]: 'default',
+      },
       'primary-key-name': 'name',
     };
     const respond = function(cb) {
