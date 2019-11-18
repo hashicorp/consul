@@ -9,7 +9,6 @@ export default Route.extend({
   dcRepo: service('repository/dc'),
   nspaceRepo: service('repository/nspace/disabled'),
   model: function(params) {
-    const nspace = this.nspaceRepo.getActive();
     return hash({
       item: this.repo.findAll(),
       dcs: this.dcRepo.findAll(),

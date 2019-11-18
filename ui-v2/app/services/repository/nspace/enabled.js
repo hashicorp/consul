@@ -1,6 +1,5 @@
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
-import { Promise } from 'rsvp';
 import config from 'consul-ui/config/environment';
 import RepositoryService from 'consul-ui/services/repository';
 
