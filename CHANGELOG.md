@@ -1,5 +1,15 @@
 ## UNRELEASED
 
+IMPROVEMENTS
+
+* agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
+
+BUG FIXES
+
+* connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
+
+## 1.6.2 (November 13, 2019)
+
 SECURITY
 
 * Updated to compile with Go 1.12.13 which includes a fix for CVE-2019-17596 in [[Go 1.12.11](https://groups.google.com/forum/#!msg/golang-announce/lVEm7llp0w0/VbafyRkgCgAJ)] [[GH-6319](https://github.com/hashicorp/consul/pull/6759)]
@@ -15,7 +25,6 @@ FEATURES
 IMPROVEMENTS
 
 * licensing (Consul Enterprise): Increase initial server temporary license duration to 6 hours to allow for longer upgrades/migrations.
-* agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
 * server: ensure the primary datacenter and ACL datacenter match [[GH-6634](https://github.com/hashicorp/consul/issues/6634)]
 * sdk: ignore panics due to stray goroutines logging after a test completes [[GH-6632](https://github.com/hashicorp/consul/issues/6632)]
 * agent: allow mesh gateways to initialize even if there are no connect services registered yet [[GH-6576](https://github.com/hashicorp/consul/issues/6576)]
@@ -29,6 +38,7 @@ BUG FIXES
   * consul_{version}_linux_armelv5.zip for all 32-bit armel systems
   * consul_{version}_linux_armhfv6.zip for all armhf systems with v6+ architecture
   * consul_{version}_linux_arm64.zip for all v8 64-bit architectures
+* agent: Parse the HTTP Authorization header as case-insensitive. [[GH-6568](https://github.com/hashicorp/consul/issues/6568)]
 * agent: minimum quorum check added to Autopilot with minQuorum option [[GH-6654](https://github.com/hashicorp/consul/issues/6654)]
 * agent: cache notifications work after error if the underlying RPC returns index=1 [[GH-6547](https://github.com/hashicorp/consul/issues/6547)]
 * agent: tolerate more failure scenarios during service registration with central config enabled [[GH-6472](https://github.com/hashicorp/consul/issues/6472)]
@@ -36,11 +46,9 @@ BUG FIXES
 * connect: connect CA Roots in secondary datacenters should use a SigningKeyID derived from their local intermediate [[GH-6513](https://github.com/hashicorp/consul/issues/6513)]
 * connect: don't colon-hex-encode the AuthorityKeyId and SubjectKeyId fields in connect certs [[GH-6492](https://github.com/hashicorp/consul/issues/6492)]
 * connect: intermediate CA certs generated with the vault provider lack URI SANs [[GH-6491](https://github.com/hashicorp/consul/issues/6491)]
-* connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
-* debug: Fixed potential issue with adding to a wait group inside of go routines instead of prior to running them [[GH-6649](https://github.com/hashicorp/consul/pull/6649)]
-* http: Perform canse-insensitive comparison of Authorization header scheme. [[GH-6568](https://github.com/hashicorp/consul/issues/6568)]
+* debug: Fix a bug in sync.WaitGroup usage. [[GH-6649](https://github.com/hashicorp/consul/pull/6649)]
 * xds: tcp services using the discovery chain should not assume RDS during LDS [[GH-6623](https://github.com/hashicorp/consul/issues/6623)]
-
+* ui: Fix a bug where switching datacenters using the datacenter menu would lead to an empty service listing [[GH-6555](https://github.com/hashicorp/consul/pull/6555)]
 
 ## 1.6.1 (September 12, 2019)
 
