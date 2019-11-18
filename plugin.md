@@ -67,7 +67,7 @@ works, and implement the `ready.Readiness` interface.
 ## Opening Sockets
 
 See the plugin/pkg/reuseport for `Listen` and `ListenPacket` functions. Using these functions makes
-you plugin handle reload events better.
+your plugin handle reload events better.
 
 ## Documentation
 
