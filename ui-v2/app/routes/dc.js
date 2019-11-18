@@ -2,7 +2,26 @@ import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
-// TODO: We should potentially move all this up a level to application.js
+// TODO: We should potentially move all these nspace related things
+// up a level to application.js
+
+const findActiveNspace = function(nspaces, nspace) {
+  let found = nspaces.find(function(item) {
+    return item.Name === nspace.Name;
+  });
+  if (typeof found === 'undefined') {
+    // if we can't find the nspace that was saved
+    // try default
+    found = nspaces.find(function(item) {
+      return item.Name === 'default';
+    });
+    // if there is no default just choose the first
+    if (typeof found === 'undefined') {
+      found = nspaces.firstObject;
+    }
+  }
+  return found;
+};
 export default Route.extend({
   repo: service('repository/dc'),
   nspaceRepo: service('repository/nspace/disabled'),
@@ -23,9 +42,7 @@ export default Route.extend({
           // to the active one
           nspace:
             model.nspaces.length > 1
-              ? model.nspaces.find(function(item) {
-                  return item.Name === model.nspace.Name;
-                })
+              ? findActiveNspace(model.nspaces, model.nspace)
               : model.nspaces.firstObject,
         },
       });
