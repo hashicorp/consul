@@ -79,7 +79,7 @@ is used if configuring in an agent configuration file.
 
 ACM Private CA has several
 [limits](https://docs.aws.amazon.com/acm-pca/latest/userguide/PcaLimits.html)
-that restrict how fast certificates can be issued. This may impact how quicly
+that restrict how fast certificates can be issued. This may impact how quickly
 large clusters can rotate all issued certificates.
 
 At the current time the ACM Private CA provider for Connect has some additional
