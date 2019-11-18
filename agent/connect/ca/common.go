@@ -66,7 +66,7 @@ func validateSetIntermediate(
 
 func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.SpiffeIDSigning) error {
 	// We explicitly _don't_ require that the CSR has a valid SPIFFE signing URI
-	// SAN because AWS PCA doesn't let us set one :(. Wwe need to relax it here
+	// SAN because AWS PCA doesn't let us set one :(. We need to relax it here
 	// otherwise it would be impossible to migrate from built-in provider to AWS
 	// in multiple DCs without downtime. Nothing in Connect actually checks that
 	// currently so this is OK for now but it's sad we have to break the SPIFFE

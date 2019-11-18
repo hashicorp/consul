@@ -270,7 +270,7 @@ func (a *AWSProvider) createPCA() error {
 				Enabled: aws.Bool(false),
 			},
 		},
-		// uid is unique each PCA we create so use it as an idempotency string. We
+		// uid is unique to each PCA we create so use it as an idempotency string. We
 		// don't actually retry on failure yet but might as well!
 		IdempotencyToken: aws.String(uid),
 		Tags: []*acmpca.Tag{

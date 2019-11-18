@@ -21,15 +21,15 @@ CA providers.
 ## Requirements
 
 The ACM Private CA Provider needs to be authorized via IAM credentials to
-perform operations. Every Consul Server needs to be running in an environment
+perform operations. Every Consul server needs to be running in an environment
 where a suitable IAM configuration is present.
 
 The [standard AWS SDK credential
 locations](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials)
-are used which means that suitable credentials and region configuration need to be present in one of:
+are used, which means that suitable credentials and region configuration need to be present in one of the following:
  1. Environment variables
- 2. Shared credentials file
- 3. Via an EC2 instance role
+ 1. Shared credentials file
+ 1. Via an EC2 instance role
 
 The IAM credential provided must have permission for the following actions:
 
@@ -58,15 +58,15 @@ connect {
  on disk and rely on the [standard AWS SDK configuration
  locations](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials).
 
-The set of configuration options is listed below. The
-first key is the value used in API calls while the second key (after the `/`)
-is used if configuring in an agent configuration file.
+The configuration options are listed below. Note, the
+first key is the value used in API calls and the second key (after the `/`)
+is used if you're adding configuring to the agent's configuration file.
 
   * `ExistingARN` / `existing_arn` (`string: <optional>`) - The Amazon Resource
     Name (ARN) of an existing private CA in your ACM account. If specified,
     Consul will attempt to use the existing CA to issue certificates. Currently
-    this **must be a root CA** in the primary datacenter although in the future
-    we intend to support subordinate CAs. In a secondary datacenter, it must be
+    this **must be a root CA** in the primary datacenter.
+   In a secondary datacenter, it must be
     a subordinate CA who's root is the same as the root used in the primary
     datacenter - if it's not Consul will create a new one from the Primary
     datacenter's root.
@@ -82,15 +82,15 @@ ACM Private CA has several
 that restrict how fast certificates can be issued. This may impact how quickly
 large clusters can rotate all issued certificates.
 
-At the current time the ACM Private CA provider for Connect has some additional
+Currently, the ACM Private CA provider for Connect has some additional
 limitations described below.
 
 ### Unable to Cross-sign Other CAs
 
-It's currently not possible to cross-sign other CA provider's root certificates
+It's not possible to cross-sign other CA provider's root certificates
 during a migration. This is due to a ACM Private CA not having a mechanism to
 blindly cross-sign another root certificate without a CSR being generated. Both
-Consul's built in CA and Vault can do this and the current workflow for managing
+Consul's built-in CA and Vault can do this and the current workflow for managing
 CAs relies on it.
 
 In the future it should be possible to remove this limitation by changing the
