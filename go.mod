@@ -43,7 +43,7 @@ require (
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/net v0.0.0-20191003171128-d98b1b443823 // indirect
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47
-	google.golang.org/api v0.13.0
+	google.golang.org/api v0.14.0
 	google.golang.org/grpc v1.25.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.19.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
