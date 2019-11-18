@@ -3,7 +3,6 @@ package pprof
 import (
 	"net"
 	"strconv"
-	"sync"
 
 	"github.com/coredns/coredns/plugin"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
@@ -62,12 +61,7 @@ func setup(c *caddy.Controller) error {
 
 	}
 
-	pprofOnce.Do(func() {
-		c.OnStartup(h.Startup)
-		c.OnShutdown(h.Shutdown)
-	})
-
+	c.OnStartup(h.Startup)
+	c.OnShutdown(h.Shutdown)
 	return nil
 }
-
-var pprofOnce sync.Once

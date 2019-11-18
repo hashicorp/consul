@@ -7,6 +7,8 @@ import (
 	"net/http"
 	pp "net/http/pprof"
 	"runtime"
+
+	"github.com/coredns/coredns/plugin/pkg/reuseport"
 )
 
 type handler struct {
@@ -17,7 +19,10 @@ type handler struct {
 }
 
 func (h *handler) Startup() error {
-	ln, err := net.Listen("tcp", h.addr)
+	// Reloading the plugin without changing the listening address results
+	// in an error unless we reuse the port because Startup is called for
+	// new handlers before Shutdown is called for the old ones.
+	ln, err := reuseport.Listen("tcp", h.addr)
 	if err != nil {
 		log.Errorf("Failed to start pprof handler: %s", err)
 		return err
