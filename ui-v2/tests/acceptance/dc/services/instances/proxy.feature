@@ -65,7 +65,6 @@ Feature: dc / services / instances / proxy: Show Proxy Service Instance
         Proxy:
           DestinationServiceName: service-0
           Expose:
-            Checks: false
             Paths:
               - Path: /grpc-metrics
                 Protocol: grpc
@@ -128,44 +127,7 @@ Feature: dc / services / instances / proxy: Show Proxy Service Instance
     And I don't see exposedPaths on the tabs
 
     When I click serviceChecks on the tabs
-    And I see exposed on the serviceChecks
+    And I don't see exposed on the serviceChecks
 
     When I click nodeChecks on the tabs
     And I don't see exposed on the nodeChecks
-
-  Scenario: A Proxy Service instance with only automatically exposed checks but no paths and no checks that satisfy auto exposing
-    Given 1 datacenter model with the value "dc1"
-    And 1 instance model from yaml
-    ---
-    - Service:
-        Kind: connect-proxy
-        Name: service-0-proxy
-        ID: service-0-proxy-with-id
-        Address: 10.0.0.1
-        Proxy:
-          DestinationServiceName: service-0
-          Expose:
-            Checks: true
-            Paths: []
-      Checks:
-        - Name: ttl-check
-          Type: ttl
-    ---
-    When I visit the instance page for yaml
-    ---
-      dc: dc1
-      service: service-0-proxy
-      node: node-0
-      id: service-0-proxy-with-id
-    ---
-    Then the url should be /dc1/services/service-0-proxy/node-0/service-0-proxy-with-id
-    And I see serviceChecksIsSelected on the tabs
-
-    And I don't see exposedPaths on the tabs
-
-    When I click serviceChecks on the tabs
-    And I see exposed on the serviceChecks like "false"
-
-    When I click nodeChecks on the tabs
-    And I don't see exposed on the nodeChecks
-
