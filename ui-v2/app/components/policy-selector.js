@@ -74,7 +74,7 @@ export default ChildSelectorComponent.extend({
         // potentially the item could change between load, so we don't check
         // anything to see if its already loaded here
         // TODO: Temporarily add dc here, will soon be serialized onto the policy itself
-        const slugKey = repo.getSlugKey();
+        const slugKey = this.repo.getSlugKey();
         const slug = get(value, slugKey);
         updateArrayObject(items, this.repo.findBySlug(slug, this.dc, this.nspace), slugKey, slug);
       }
