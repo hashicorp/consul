@@ -300,6 +300,10 @@ type Config struct {
 	// If provided it is read once at startup and never again.
 	TokenFile string
 
+	// Namespace is the name of the namespace to send along for the request
+	// when no other Namespace ispresent in the QueryOptions
+	Namespace string
+
 	TLSConfig TLSConfig
 }
 
@@ -800,6 +804,9 @@ func (c *Client) newRequest(method, path string) *request {
 	}
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
+	}
+	if c.config.Namespace != "" {
+		r.params.Set("ns", c.config.Namespace)
 	}
 	if c.config.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(r.config.WaitTime))
