@@ -1,13 +1,16 @@
 import { readOnly } from '@ember/object/computed';
 import Component from '@ember/component';
 import { isPresent } from '@ember/utils';
-import { set, defineProperty } from '@ember/object';
+import { get, set, defineProperty, computed } from '@ember/object';
 import layout from '../templates/components/block-slot';
 import Slots from '../mixins/slots';
 import YieldSlot from './yield-slot';
 const BlockSlot = Component.extend({
   layout,
   tagName: '',
+  _name: computed('__name', 'name', function() {
+    return this.name || this.__name;
+  }),
   didInsertElement: function() {
     const slottedComponent = this.nearestOfType(Slots);
     if (!slottedComponent._isRegistered(this._name)) {
@@ -21,7 +24,7 @@ const BlockSlot = Component.extend({
       // The slotted component will yield multiple times - once to register
       // the activate slots and once more per active slot - only display this
       // block when its associated slot is the one yielding
-      const isTargetSlotYielding = yieldSlot._name === this._name;
+      const isTargetSlotYielding = get(yieldSlot, '_name') === this._name;
       set(this, 'isTargetSlotYielding', isTargetSlotYielding);
 
       // If the associated slot has block params, create a computed property
@@ -30,9 +33,10 @@ const BlockSlot = Component.extend({
       // (see the yield in the block-slot template)
       //
       // Spread PR: https://github.com/wycats/handlebars.js/pull/1149
-      if (isTargetSlotYielding && isPresent(yieldSlot._blockParams)) {
+      const params = get(yieldSlot, '_blockParams');
+      if (isTargetSlotYielding && isPresent(params)) {
         // p0 p1 p2...
-        yieldSlot._blockParams.forEach((param, index) => {
+        params.forEach((param, index) => {
           defineProperty(this, `p${index}`, readOnly(`_yieldSlot._blockParams.${index}`));
         });
       }
@@ -49,7 +53,7 @@ const BlockSlot = Component.extend({
 });
 
 BlockSlot.reopenClass({
-  positionalParams: ['_name'],
+  positionalParams: ['__name'],
 });
 
 export default BlockSlot;
