@@ -170,7 +170,9 @@ jobs:
             echo "mode: set" > coverage.out
             grep -h -v "mode: set" cov_*.part >> coverage.out
             go tool cover -html=coverage.out -o /tmp/test-results/coverage.html
-
+      - run:
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash)
       - store_artifacts:
           path: /tmp/test-results
 
