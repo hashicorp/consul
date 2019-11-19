@@ -1,7 +1,11 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
-import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
+import {
+  HEADERS_SYMBOL as META,
+  HEADERS_DATACENTER as DC,
+  HEADERS_NAMESPACE as NSPACE,
+} from 'consul-ui/utils/http/consul';
 module('Integration | Serializer | service', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -47,7 +51,10 @@ module('Integration | Serializer | service', function(hooks) {
       return get(request.url).then(function(payload) {
         const expected = {
           Datacenter: dc,
-          [META]: {},
+          [META]: {
+            [DC.toLowerCase()]: dc,
+            [NSPACE.toLowerCase()]: payload[0].Service.Namespace || undefinedNspace,
+          },
           Namespace: payload[0].Service.Namespace || undefinedNspace,
           uid: `["${payload[0].Service.Namespace || undefinedNspace}","${dc}","${id}"]`,
           Name: id,
