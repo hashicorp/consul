@@ -92,6 +92,7 @@ const undefinedNspace = 'default';
             service.meta = {
               cursor: undefined,
               dc: dc,
+              nspace: payload.Namespace,
             };
 
             return service;

@@ -65,6 +65,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
             meta: {
               cursor: undefined,
               dc: dc,
+              nspace: nspace,
             },
           });
         })

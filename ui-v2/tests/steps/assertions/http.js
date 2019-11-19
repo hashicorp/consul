@@ -1,3 +1,7 @@
+// TODO: This entire file/steps need refactoring out so that they don't depend on order
+// unless you specifically ask it to assert for order of requests
+// this should also let us simplify the entire API for these steps
+// an reword them to make more sense
 export default function(scenario, assert, lastNthRequest) {
   // lastNthRequest should return a
   // {
@@ -122,5 +126,29 @@ export default function(scenario, assert, lastNthRequest) {
         })
       );
       assert.equal(diff.size, 0, `Expected requests "${[...diff].join(', ')}"`);
+    })
+    .then('a $method request was made to "$url" from yaml\n$yaml', function(method, url, yaml) {
+      const requests = lastNthRequest(null, method);
+      const request = requests.find(function(item) {
+        return method === item.method && url === item.url;
+      });
+      let data = yaml.body || {};
+      const body = JSON.parse(request.requestBody);
+      Object.keys(data).forEach(function(key, i, arr) {
+        assert.equal(
+          body[key],
+          data[key],
+          `Expected the payload to contain ${key} to equal ${body[key]}, ${key} was ${data[key]}`
+        );
+      });
+      data = yaml.headers || {};
+      const headers = request.requestHeaders;
+      Object.keys(data).forEach(function(key, i, arr) {
+        assert.equal(
+          headers[key],
+          data[key],
+          `Expected the payload to contain ${key} to equal ${headers[key]}, ${key} was ${data[key]}`
+        );
+      });
     });
 }
