@@ -7,6 +7,7 @@ IMPROVEMENTS
 BUG FIXES
 
 * connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
+* cli: services register command now correctly registers an unamed healthcheck [[GH-6800](https://github.com/hashicorp/consul/pull/6800)]
 
 ## 1.6.2 (November 13, 2019)
 
