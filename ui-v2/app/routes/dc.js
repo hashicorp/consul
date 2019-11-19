@@ -57,7 +57,9 @@ export default Route.extend({
     willTransition: function(transition) {
       // This will refresh both dcs and nspaces on any route transition
       // under here
-      this.refresh();
+      if (typeof transition !== 'undefined' && transition.from.name.endsWith('nspaces.create')) {
+        this.refresh();
+      }
     },
   },
 });
