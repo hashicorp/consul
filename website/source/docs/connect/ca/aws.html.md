@@ -48,7 +48,7 @@ connect {
     enabled = true
     ca_provider = "aws-pca"
     ca_config {
-      existing_arn = "..."
+      existing_arn = "arn:aws:acm-pca:region:account:certificate-authority/12345678-1234-1234-123456789012"
     }
 }
 ```
@@ -64,16 +64,17 @@ is used if you're adding configuring to the agent's configuration file.
 
   * `ExistingARN` / `existing_arn` (`string: <optional>`) - The Amazon Resource
     Name (ARN) of an existing private CA in your ACM account. If specified,
-    Consul will attempt to use the existing CA to issue certificates. Currently
-    this **must be a root CA** in the primary datacenter.
-   In a secondary datacenter, it must be
-    a subordinate CA who's root is the same as the root used in the primary
-    datacenter - if it's not Consul will create a new one from the Primary
-    datacenter's root.
+    Consul will attempt to use the existing CA to issue certificates.
+      - In the primary datacenter this ARN **must identify a root CA**. See
+        [limitations](#limitations). 
+      - In a secondary datacenter, it must identify a subordinate CA signed by
+        the same root used in the primary datacenter. If it is signed by another
+        root, Consul will automatically create a new subordinate signed by the
+        primary's root instead.
 
-      The default behavior if this is not specified is for Consul to create a
-      new Root CA in the primary datacenter and a subordinate CA in each
-      secondary DC that it will automatically get signed by the primary's root.
+      The default behavior with no `ExistingArn` specified is for Consul to
+      create a new root CA in the primary datacenter and a subordinate CA in
+      each secondary DC.
 
 ## Limitations
 
@@ -87,29 +88,25 @@ limitations described below.
 
 ### Unable to Cross-sign Other CAs
 
-It's not possible to cross-sign other CA provider's root certificates
-during a migration. This is due to a ACM Private CA not having a mechanism to
-blindly cross-sign another root certificate without a CSR being generated. Both
-Consul's built-in CA and Vault can do this and the current workflow for managing
-CAs relies on it.
-
-In the future it should be possible to remove this limitation by changing the
-way Consul manages CA certificates significantly.
+It's not possible to cross-sign other CA provider's root certificates during a
+migration. ACM Private CA is capable of doing that through a different work flow
+but is not able to blindly cross-sign another root certificate without a CSR
+being generated. Both Consul's built-in CA and Vault can do this and the current
+workflow for managing CAs relies on it.
 
 For now, the limitation means that once ACM Private CA is configured as the CA
 provider, it is not possible to reconfigure a different CA provider, or rotate
 the root CA key without potentially observing some transient connection
-failures. See the section on [Forced rotation without
+failures. See the section on [forced rotation without
 cross-signing](/docs/connect/ca.html#forced-rotation-without-cross-signing) for
 more details.
 
 ### Primary DC Must be a Root CA
 
 Currently, if an existing ACM Private CA is used, the primary DC must use a Root
-CA directly to issue certificates. We expect to remove this limitation in the
-future.
+CA directly to issue certificates.
 
-## Cost Example
+## Cost Planning
 
 To help estimate costs, an example is provided below of the resources that would
 be used.
@@ -119,8 +116,9 @@ purposes. Please refer to the [pricing for ACM Private
 CA](https://aws.amazon.com/certificate-manager/pricing/) for actual cost
 information.
 
-Assume the following Consul datacenters exist and all will use ACM Private CA as
-their Connect CA and use the default leaf certificate lifetime of 72 hours:
+Assume the following Consul datacenters exist and are configured to use ACM
+Private CA as their Connect CA with the default leaf certificate lifetime of
+72 hours:
 
 | Datacenter | Primary | CA Resource Created | Number of service instances |
 | --- | --- | --- | --- | --- |

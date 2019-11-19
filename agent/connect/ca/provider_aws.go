@@ -33,11 +33,24 @@ const (
 	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
 
 	// RootTTL is the validity duration for root certs we create.
-	RootTTL = 5 * 365 * 24 * time.Hour
+	AWSRootTTL = 5 * 365 * 24 * time.Hour
 
 	// IntermediateTTL is the validity duration for the intermediate certs we
 	// create.
-	IntermediateTTL = 1 * 365 * 24 * time.Hour
+	AWSIntermediateTTL = 1 * 365 * 24 * time.Hour
+
+	// SignTimout is the maximum time we will spend waiting (polling) for a leaf
+	// certificate to be signed.
+	AWSSignTimeout = 45 * time.Second
+
+	// CreateTimeout is the maximum time we will spend waiting (polling)
+	// for the CA to be created.
+	AWSCreateTimeout = 2 * time.Minute
+
+	// day is a more readable shorthand for a duration of 24 hours. Note time
+	// package doesn't provide time.Day due to ambiguity around DST and leap
+	// seconds where a day may not actually be 24 hours.
+	day = 24 * time.Hour
 )
 
 // AWSProvider implements Provider for AWS ACM PCA
@@ -193,7 +206,7 @@ func (a *AWSProvider) ensureCA() error {
 	}
 
 	// Self-sign it as a root
-	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, RootTTL)
+	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, AWSRootTTL)
 	if err != nil {
 		return err
 	}
@@ -290,11 +303,10 @@ func (a *AWSProvider) createPCA() error {
 	describeInput := acmpca.DescribeCertificateAuthorityInput{
 		CertificateAuthorityArn: aws.String(newARN),
 	}
-	_, err = a.pollLoop("Private CA", 2*time.Minute, func() (bool, string, error) {
+	_, err = a.pollLoop("Private CA", AWSCreateTimeout, func() (bool, string, error) {
 		describeOutput, err := a.client.DescribeCertificateAuthority(&describeInput)
 		if err != nil {
 			if err.(awserr.Error).Code() != acmpca.ErrCodeRequestInProgressException {
-				a.logger.Printf("[ERR] connect.ca.aws: error describing PCA: %s", err.Error())
 				return true, "", fmt.Errorf("error waiting for PCA to be created: %s", err)
 			}
 		}
@@ -320,7 +332,6 @@ func (a *AWSProvider) getCACSR() (string, error) {
 	a.logger.Printf("[DEBUG] connect.ca.aws: retrieving CSR for %s", a.arn)
 	output, err := a.client.GetCertificateAuthorityCsr(input)
 	if err != nil {
-		a.logger.Printf("[ERR] connect.ca.aws: error retrieving CSR: %s", err)
 		return "", err
 	}
 
@@ -435,7 +446,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 		SigningAlgorithm:        aws.String(signAlg),
 		TemplateArn:             aws.String(templateARN),
 		Validity: &acmpca.Validity{
-			Value: aws.Int64(int64(ttl.Seconds() / 86400.0)),
+			Value: aws.Int64(int64(ttl / day)),
 			Type:  aws.String(acmpca.ValidityPeriodTypeDays),
 		},
 	}
@@ -459,7 +470,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 		CertificateArn:          issueOutput.CertificateArn,
 	}
 	return a.pollLoop(fmt.Sprintf("certificate %s", *issueOutput.CertificateArn),
-		45*time.Second,
+		AWSSignTimeout,
 		func() (bool, string, error) {
 			certOutput, err := a.client.GetCertificate(&certInput)
 			if err != nil {
@@ -593,7 +604,7 @@ func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, er
 	}
 
 	// Sign it!
-	return a.signCSRRaw(csr, IntermediateTemplateARN, IntermediateTTL)
+	return a.signCSRRaw(csr, IntermediateTemplateARN, AWSIntermediateTTL)
 }
 
 // CrossSignCA implements Provider
