@@ -47,9 +47,9 @@ connect {
 }
 ```
 
-The set of configuration options is listed below. The
-first key is the value used in API calls while the second key (after the `/`)
-is used if configuring in an agent configuration file.
+The configuration options are listed below. Note, the
+first key is the value used in API calls and the second key (after the `/`)
+is used if you're adding configuring to the agent's configuration file.
 
   * `Address` / `address` (`string: <required>`) - The address of the Vault
     server.
