@@ -284,7 +284,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: testutil.TestHcLog(t)}
+			s := Server{Logger: testutil.LogShim(testutil.Logger(t))}
 
 			listeners, err := s.listenersFromSnapshot(snap, "my-token")
 			sort.Slice(listeners, func(i, j int) bool {

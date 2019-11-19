@@ -80,5 +80,5 @@ func TestProxy_public(t *testing.T) {
 }
 
 func testLogger(t *testing.T) *log.Logger {
-	return testutil.TestHcLog(t)
+	return testutil.LogShim(testutil.Logger(t))
 }

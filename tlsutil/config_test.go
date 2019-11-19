@@ -341,7 +341,7 @@ func TestConfig_SpecifyDC(t *testing.T) {
 }
 
 func TestConfigurator_NewConfigurator(t *testing.T) {
-	logger := testutil.TestHcLog(t)
+	logger := testutil.LogShim(testutil.Logger(t))
 	c, err := NewConfigurator(Config{}, logger)
 	require.NoError(t, err)
 	require.NotNil(t, c)

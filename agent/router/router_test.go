@@ -94,7 +94,7 @@ func testCluster(self string) *mockCluster {
 }
 
 func testRouter(t testing.TB, dc string) *Router {
-	logger := testutil.TestHcLog(t)
+	logger := testutil.LogShim(testutil.Logger(t))
 	return NewRouter(logger, dc)
 }
 
