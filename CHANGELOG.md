@@ -31,6 +31,7 @@ IMPROVEMENTS
 * agent: endpoint performance improvements, Txn endpoint in particular. [[GH-6680](https://github.com/hashicorp/consul/pull/6680)]
 * sdk: add NewTestServerT, deprecate NewTestServer in testutil to prevent nil point dereference [[GH-6761](https://github.com/hashicorp/consul/pull/6761)]
 * agent: auto_encrypt provided TLS certificates can now be used to enable HTTPS on clients [[GH-6489](https://github.com/hashicorp/consul/pull/6489)]
+* sentinel (Consul Enterprise): update to v0.13.0, see [Sentinel changelog](https://docs.hashicorp.com/sentinel/changelog/) for more details
 
 BUG FIXES
 
