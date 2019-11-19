@@ -46,7 +46,7 @@ export default function(assert, library, pages, utils) {
           if (isNaN(parseInt(prop))) {
             return (obj = obj[prop]);
           } else {
-            return (obj = obj.objectAt(prop));
+            return (obj = obj.objectAt(parseInt(prop)));
           }
         }) && obj
       );
