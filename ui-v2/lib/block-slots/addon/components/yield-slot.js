@@ -5,6 +5,12 @@ import Slots from '../mixins/slots';
 const YieldSlotComponent = Component.extend({
   layout,
   tagName: '',
+  _name: computed('__name', 'name', function() {
+    return this.name || this.__name;
+  }),
+  _blockParams: computed('__blockParams', 'params', function() {
+    return this.params || this.__blockParams;
+  }),
   _parentView: computed(function() {
     return this.nearestOfType(Slots);
   }),
@@ -14,7 +20,7 @@ const YieldSlotComponent = Component.extend({
 });
 
 YieldSlotComponent.reopenClass({
-  positionalParams: ['_name', '_blockParams'],
+  positionalParams: ['__name', '__blockParams'],
 });
 
 export default YieldSlotComponent;
