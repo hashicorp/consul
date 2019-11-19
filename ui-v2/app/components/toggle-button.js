@@ -6,7 +6,9 @@ export default Component.extend({
   dom: service('dom'),
   // TODO(octane): Remove when we can move to glimmer components
   // so we aren't using ember-test-selectors
-  supportsDataTestProperties: true,
+  // supportsDataTestProperties: true,
+  // the above doesn't seem to do anything so still need to find a way
+  // to pass through data-test-properties
   tagName: '',
   // TODO: reserved for the moment but we don't need it yet
   onblur: null,
