@@ -1,7 +1,11 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
-import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
+import {
+  HEADERS_SYMBOL as META,
+  HEADERS_DATACENTER as DC,
+  HEADERS_NAMESPACE as NSPACE,
+} from 'consul-ui/utils/http/consul';
 module('Integration | Serializer | acl', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -43,7 +47,10 @@ module('Integration | Serializer | acl', function(hooks) {
     return get(request.url).then(function(payload) {
       const expected = Object.assign({}, payload[0], {
         Datacenter: dc,
-        [META]: {},
+        [META]: {
+          [DC.toLowerCase()]: dc,
+          [NSPACE.toLowerCase()]: nspace,
+        },
         // TODO: default isn't required here, once we've
         // refactored out our Serializer this can go
         Namespace: nspace,

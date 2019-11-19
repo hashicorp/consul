@@ -1,5 +1,5 @@
 import { clickable } from 'ember-cli-page-object';
-export default {
+const page = {
   navigation: ['services', 'nodes', 'kvs', 'acls', 'intentions', 'docs', 'settings'].reduce(
     function(prev, item, i, arr) {
       const key = item;
@@ -23,3 +23,5 @@ export default {
     }
   ),
 };
+page.navigation.dc = clickable('[data-test-toggle-button="datacenters"]');
+export default page;
