@@ -69,86 +69,86 @@ func TestConnectCAConfig(t *testing.T) {
 		wantErr      bool
 		wantCfg      structs.CAConfiguration
 	}{
-		// {
-		// 	name: "basic",
-		// 	body: `
-		// 	{
-		// 		"Provider": "consul",
-		// 		"Config": {
-		// 			"LeafCertTTL": "72h",
-		// 			"RotationPeriod": "1h"
-		// 		}
-		// 	}`,
-		// 	wantErr: false,
-		// 	wantCfg: structs.CAConfiguration{
-		// 		Provider:  "consul",
-		// 		ClusterID: connect.TestClusterID,
-		// 		Config: map[string]interface{}{
-		// 			"LeafCertTTL":    "72h",
-		// 			"RotationPeriod": "1h",
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	name: "force without cross sign CamelCase",
-		// 	body: `
-		// 	{
-		// 		"Provider": "consul",
-		// 		"Config": {
-		// 			"LeafCertTTL": "72h",
-		// 			"RotationPeriod": "1h"
-		// 		},
-		// 		"ForceWithoutCrossSigning": true
-		// 	}`,
-		// 	wantErr: false,
-		// 	wantCfg: structs.CAConfiguration{
-		// 		Provider:  "consul",
-		// 		ClusterID: connect.TestClusterID,
-		// 		Config: map[string]interface{}{
-		// 			"LeafCertTTL":    "72h",
-		// 			"RotationPeriod": "1h",
-		// 		},
-		// 		ForceWithoutCrossSigning: true,
-		// 	},
-		// },
-		// {
-		// 	name: "force without cross sign snake_case",
-		// 	// Note that config is still CamelCase. We don't currently support snake
-		// 	// case config in the API only in config files for this. Arguably that's a
-		// 	// bug but it's unrelated to the force options being tested here so we'll
-		// 	// only test the new behaviour here rather than scope creep to refactoring
-		// 	// all the CA config handling.
-		// 	body: `
-		// 	{
-		// 		"provider": "consul",
-		// 		"config": {
-		// 			"LeafCertTTL": "72h",
-		// 			"RotationPeriod": "1h"
-		// 		},
-		// 		"force_without_cross_signing": true
-		// 	}`,
-		// 	wantErr: false,
-		// 	wantCfg: structs.CAConfiguration{
-		// 		Provider:  "consul",
-		// 		ClusterID: connect.TestClusterID,
-		// 		Config: map[string]interface{}{
-		// 			"LeafCertTTL":    "72h",
-		// 			"RotationPeriod": "1h",
-		// 		},
-		// 		ForceWithoutCrossSigning: true,
-		// 	},
-		// },
-		// {
-		// 	name: "setting state fails",
-		// 	body: `
-		// 	{
-		// 		"Provider": "consul",
-		// 		"State": {
-		// 			"foo": "bar"
-		// 		}
-		// 	}`,
-		// 	wantErr: true,
-		// },
+		{
+			name: "basic",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+			},
+		},
+		{
+			name: "force without cross sign CamelCase",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
+				},
+				"ForceWithoutCrossSigning": true
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+				ForceWithoutCrossSigning: true,
+			},
+		},
+		{
+			name: "force without cross sign snake_case",
+			// Note that config is still CamelCase. We don't currently support snake
+			// case config in the API only in config files for this. Arguably that's a
+			// bug but it's unrelated to the force options being tested here so we'll
+			// only test the new behaviour here rather than scope creep to refactoring
+			// all the CA config handling.
+			body: `
+			{
+				"provider": "consul",
+				"config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
+				},
+				"force_without_cross_signing": true
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+				ForceWithoutCrossSigning: true,
+			},
+		},
+		{
+			name: "setting state fails",
+			body: `
+			{
+				"Provider": "consul",
+				"State": {
+					"foo": "bar"
+				}
+			}`,
+			wantErr: true,
+		},
 		{
 			name:         "updating config with same state",
 			initialState: `foo = "bar"`,
