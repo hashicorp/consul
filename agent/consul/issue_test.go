@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"os"
 	"reflect"
 	"testing"
 
@@ -23,7 +22,7 @@ func makeLog(buf []byte) *raft.Log {
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
 	t.Parallel()
-	fsm, err := consulfsm.New(nil, os.Stderr)
+	fsm, err := consulfsm.New(nil, s.logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

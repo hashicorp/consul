@@ -365,7 +365,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: testutil.TestHcLog(t)}
+			s := Server{Logger: testutil.LogShim(testutil.Logger(t))}
 
 			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
 			sort.Slice(endpoints, func(i, j int) bool {
