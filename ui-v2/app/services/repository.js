@@ -13,6 +13,18 @@ export default Service.extend({
   },
   //
   store: service('store'),
+  reconcile: function(meta = {}) {
+    // unload anything older than our current sync date/time
+    // FIXME: This needs fixing once again to take nspaces into account
+    if (typeof meta.date !== 'undefined') {
+      this.store.peekAll(this.getModelName()).forEach(item => {
+        const date = item.SyncTime;
+        if (typeof date !== 'undefined' && date != meta.date) {
+          this.store.unloadRecord(item);
+        }
+      });
+    }
+  },
   findAllByDatacenter: function(dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
