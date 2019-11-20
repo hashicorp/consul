@@ -32,6 +32,7 @@ Subcommands:
     create    Create intentions for service connections.
     delete    Delete an intention.
     get       Show information about an intention.
+    list      Show all intentions
     match     Show intentions that match a source or destination.
 ```
 
@@ -47,6 +48,10 @@ Create an intention to allow "web" to talk to "db":
 Test whether a "web" is allowed to connect to "db":
 
     $ consul intention check web db
+
+List all intentions:
+
+    $ consul intention list
 
 Find all intentions for communicating to the "db" service:
 

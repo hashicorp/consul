@@ -40,6 +40,10 @@ Usage: consul intention <subcommand> [options] [args]
 
       $ consul intention check web db
 
+  List all intentions:
+
+      $ consul intention list
+
   Find all intentions for communicating to the "db" service:
 
       $ consul intention match db
