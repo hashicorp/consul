@@ -8,6 +8,21 @@ import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
 import createURL from 'consul-ui/utils/createURL';
 
+// reopen EventSources if a user changes tab
+export const restartWhenAvailable = function(client) {
+  return function(e) {
+    // setup the aborted connection restarting
+    // this should happen here to avoid cache deletion
+    const status = get(e, 'errors.firstObject.status');
+    if (status === '0') {
+      // Any '0' errors (abort) should possibly try again, depending upon the circumstances
+      // whenAvailable returns a Promise that resolves when the client is available
+      // again
+      return client.whenAvailable(e);
+    }
+    throw e;
+  };
+};
 class HTTPError extends Error {
   constructor(statusCode, message) {
     super(message);

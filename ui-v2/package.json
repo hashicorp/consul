@@ -111,6 +111,7 @@
     "lint-staged": "^9.2.5",
     "loader.js": "^4.7.0",
     "ngraph.graph": "^18.0.3",
+    "mnemonist": "^0.30.0",
     "node-sass": "^4.9.3",
     "pretender": "^3.2.0",
     "prettier": "^1.10.2",
