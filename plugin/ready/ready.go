@@ -12,6 +12,7 @@ import (
 
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/uniq"
+	"github.com/coredns/coredns/plugin/pkg/reuseport"
 )
 
 var (
@@ -30,7 +31,7 @@ type ready struct {
 }
 
 func (rd *ready) onStartup() error {
-	ln, err := net.Listen("tcp", rd.Addr)
+	ln, err := reuseport.Listen("tcp", rd.Addr)
 	if err != nil {
 		return err
 	}

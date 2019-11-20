@@ -8,6 +8,7 @@ import (
 	"time"
 
 	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/pkg/reuseport"
 )
 
 var log = clog.NewWithPlugin("health")
@@ -29,8 +30,7 @@ func (h *health) OnStartup() error {
 		h.Addr = ":8080"
 	}
 	h.stop = make(chan bool)
-
-	ln, err := net.Listen("tcp", h.Addr)
+	ln, err := reuseport.Listen("tcp", h.Addr)
 	if err != nil {
 		return err
 	}
