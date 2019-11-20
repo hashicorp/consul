@@ -14,6 +14,9 @@
         }
       },
       "connectTimeout": "66s",
+      "circuitBreakers": {
+
+      },
       "tlsContext": {
         "commonTlsContext": {
           "tlsParams": {
@@ -61,6 +64,9 @@
         }
       },
       "connectTimeout": "5s",
+      "circuitBreakers": {
+
+      },
       "tlsContext": {
         "commonTlsContext": {
           "tlsParams": {

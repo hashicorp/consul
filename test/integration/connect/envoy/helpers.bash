@@ -146,6 +146,18 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output '.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
 }
 
+function get_envoy_cluster_threshold {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+    .configs[1].dynamic_active_clusters[]
+    | select(.cluster.name|startswith(\"${CLUSTER_NAME}\"))
+    | .cluster.circuit_breakers.thresholds[0]
+  "
+}
+
 function get_envoy_stats_flush_interval {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump

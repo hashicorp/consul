@@ -15,7 +15,13 @@
       },
       "connectTimeout": "5s",
       "circuitBreakers": {
-
+        "thresholds": [
+          {
+            "maxConnections": 500,
+            "maxPendingRequests": 600,
+            "maxRequests": 700
+          }
+        ]
       },
       "tlsContext": {
         "commonTlsContext": {
@@ -62,7 +68,13 @@
       },
       "connectTimeout": "5s",
       "circuitBreakers": {
-
+        "thresholds": [
+          {
+            "maxConnections": 500,
+            "maxPendingRequests": 600,
+            "maxRequests": 700
+          }
+        ]
       },
       "tlsContext": {
         "commonTlsContext": {
@@ -93,16 +105,28 @@
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "mylocal",
-      "connectTimeout": "15s",
-      "hosts": [
-        {
-          "socketAddress": {
-            "address": "127.0.0.1",
-            "portValue": 8080
+      "name": "local_app",
+      "type": "STATIC",
+      "connectTimeout": "5s",
+      "loadAssignment": {
+        "clusterName": "local_app",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8080
+                    }
+                  }
+                }
+              }
+            ]
           }
-        }
-      ]
+        ]
+      }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
