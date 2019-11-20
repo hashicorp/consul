@@ -27,6 +27,7 @@ require (
 	github.com/coredns/coredns v1.1.2
 	github.com/denisenkom/go-mssqldb v0.0.0-20180620032804-94c9c97e8c9f // indirect
 	github.com/digitalocean/godo v1.10.0 // indirect
+	github.com/dimchansky/utfbom v1.1.0 // indirect
 	github.com/docker/go-connections v0.3.0
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/duosecurity/duo_api_golang v0.0.0-20190308151101-6c680f768e74 // indirect
@@ -49,7 +50,7 @@ require (
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
+	github.com/hashicorp/go-discover v0.0.0-20191119123507-a6f2d3680387
 	github.com/hashicorp/go-hclog v0.9.1
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
 	github.com/hashicorp/go-msgpack v0.5.5
