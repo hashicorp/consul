@@ -27,14 +27,14 @@ func TestIntentionListCommand(t *testing.T) {
 	// Create the intention
 	var id string
 	{
-                var err error
-                id, _, err = client.Connect().IntentionCreate(&api.Intention{
-                        SourceName:      "web",
-                        DestinationName: "db",
-                        Action:          api.IntentionActionAllow,
-                }, nil)
-                require.NoError(err)
-        }
+		var err error
+		id, _, err = client.Connect().IntentionCreate(&api.Intention{
+			SourceName:      "web",
+			DestinationName: "db",
+			Action:          api.IntentionActionAllow,
+		}, nil)
+		require.NoError(err)
+	}
 
 	// List all intentions
 	ui := cli.NewMockUi()
@@ -42,5 +42,5 @@ func TestIntentionListCommand(t *testing.T) {
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	require.Equal(0, cmd.Run(args), ui.ErrorWriter.String())
-        require.Contains(ui.OutputWriter.String(), id)
+	require.Contains(ui.OutputWriter.String(), id)
 }
