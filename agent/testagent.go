@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http/httptest"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/config"
@@ -196,9 +196,14 @@ func (a *TestAgent) Start() (err error) {
 		logOutput = os.Stderr
 	}
 
-	//TODO (hclog): double check this passes when hclog isn't wrapped
-	// TestHTTP_wrap_obfuscateLog is passed a buffer through here
-	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+	consullogger := hclog.New(&hclog.LoggerOptions{
+		Name:   a.Name + " - ",
+		Level:  hclog.Debug,
+		Output: logOutput,
+	})
+	agentLogger := consullogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	agent, err := New(a.Config, agentLogger)
 	if err != nil {

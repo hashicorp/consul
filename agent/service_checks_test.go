@@ -2,14 +2,15 @@ package agent
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 // Integration test for ServiceHTTPBasedChecks cache-type

@@ -2,9 +2,9 @@ package agent
 
 import (
 	"bytes"
-	"log"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,12 +45,19 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
+			consullogger := hclog.New(&hclog.LoggerOptions{
+				Level:  hclog.Debug,
+				Output: &buf,
+			})
+			logger := consullogger.StandardLogger(&hclog.StandardLoggerOptions{
+				InferLevels: true,
+			})
 
-			//TODO (hclog): double check this passes when hclog isn't wrapped
-			logger := log.New(&buf, "logger: ", log.Lshortfile)
-			require.Equal(t, test.expected, retryJoinAddrs(d, "LAN", test.input, logger), buf.String())
+			output := retryJoinAddrs(d, "LAN", test.input, logger)
+			bufout := buf.String()
+			require.Equal(t, test.expected, output, bufout)
 			if i == 4 {
-				require.Contains(t, buf.String(), `Using provider "aws"`)
+				require.Contains(t, bufout, `Using provider "aws"`)
 			}
 		})
 	}
