@@ -38,7 +38,7 @@
     </h2>
   </header>
   <div role="group">
-    {{#each splitters as |item|}}
+    {{#each (sort-by 'Name' splitters) as |item|}}
       {{splitter-card item=item onclick=(action 'click')}}
     {{/each}}
   </div>
@@ -53,7 +53,7 @@
     </h2>
   </header>
   <div role="group">
-    {{#each resolvers as |item|}}
+    {{#each (sort-by 'Name' resolvers) as |item|}}
       {{resolver-card item=item onclick=(action 'click')}}
     {{/each}}
   </div>
