@@ -72,7 +72,7 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
 	if err != nil && err.Error() == consul.ErrStateReadOnly.Error() {
 		return nil, BadRequestError{
-			Reason: "Provider State is read-only it must be omitted" +
+			Reason: "Provider State is read-only. It must be omitted" +
 				" or identical to the current value",
 		}
 	}

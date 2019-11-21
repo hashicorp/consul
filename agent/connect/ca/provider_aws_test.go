@@ -147,16 +147,16 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 		// Create new provider instances with config
 		cfg1 := testProviderConfigPrimary(t, map[string]interface{}{
-			"ExistingARN": p1State["CA_ARN"],
+			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
 		newRootPEM, err := p1.ActiveRoot()
 		require.NoError(t, err)
 
 		cfg2 := testProviderConfigPrimary(t, map[string]interface{}{
-			"ExistingARN": p2State["CA_ARN"],
+			"ExistingARN": p2State[AWSStateCAARNKey],
 		})
-		cfg1.RawConfig["ExistingARN"] = p2State["CA_ARN"]
+		cfg1.RawConfig["ExistingARN"] = p2State[AWSStateCAARNKey]
 		p2 = testAWSProvider(t, cfg2)
 		// Need call ActiveIntermediate like leader would to trigger loading from PCA
 		newIntPEM, err := p2.ActiveIntermediate()

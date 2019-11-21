@@ -47,6 +47,10 @@ const (
 	// for the CA to be created.
 	AWSCreateTimeout = 2 * time.Minute
 
+	// AWSStateCAARNKey is the key in the provider State we store the ARN of the
+	// CA we created if any.
+	AWSStateCAARNKey = "CA_ARN"
+
 	// day is a more readable shorthand for a duration of 24 hours. Note time
 	// package doesn't provide time.Day due to ambiguity around DST and leap
 	// seconds where a day may not actually be 24 hours.
@@ -109,7 +113,7 @@ func (a *AWSProvider) Configure(cfg ProviderConfig) error {
 	// Load the ARN from config or previous state.
 	if config.ExistingARN != "" {
 		a.arn = config.ExistingARN
-	} else if arn := cfg.State["CA_ARN"]; arn != "" {
+	} else if arn := cfg.State[AWSStateCAARNKey]; arn != "" {
 		a.arn = arn
 		// We only pass ARN through state if we created the resource. We don't
 		// "remember" previously existing resources the user configured.
@@ -127,7 +131,7 @@ func (a *AWSProvider) State() (map[string]string, error) {
 
 	// Preserve the CA ARN if there is one
 	state := make(map[string]string)
-	state["CA_ARN"] = a.arn
+	state[AWSStateCAARNKey] = a.arn
 	return state, nil
 }
 
