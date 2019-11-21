@@ -78,7 +78,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	query.Query.Service.Failover.NearestN = 0
 	query.Query.Session = "nope"
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), "invalid session") {
+	if err == nil || !strings.Contains(err.Error(), "failed session lookup") {
 		t.Fatalf("bad: %v", err)
 	}
 
