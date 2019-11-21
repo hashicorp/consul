@@ -46,7 +46,7 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
-			//TODO: s-christoff implement logger without failing test
+			//TODO (hclog): double check this passes when hclog isn't wrapped
 			logger := log.New(&buf, "logger: ", log.Lshortfile)
 			require.Equal(t, test.expected, retryJoinAddrs(d, "LAN", test.input, logger), buf.String())
 			if i == 4 {

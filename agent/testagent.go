@@ -196,6 +196,8 @@ func (a *TestAgent) Start() (err error) {
 		logOutput = os.Stderr
 	}
 
+	//TODO (hclog): double check this passes when hclog isn't wrapped
+	// TestHTTP_wrap_obfuscateLog is passed a buffer through here
 	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 
 	agent, err := New(a.Config, agentLogger)

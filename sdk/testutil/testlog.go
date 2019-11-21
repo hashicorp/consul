@@ -18,16 +18,6 @@ func init() {
 	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 }
 
-func TestHcLog(t testing.TB) *log.Logger {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Name:   t.Name(),
-		Output: TestWriter(t),
-	})
-	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
-		InferLevels: true,
-	})
-}
-
 func LogShim(logger hclog.Logger) *log.Logger {
 	return logger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
