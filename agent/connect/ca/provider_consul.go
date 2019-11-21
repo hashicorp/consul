@@ -63,7 +63,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
 
 	// Passthrough test state for state handling tests. See testState doc.
-	c.parseTestState(cfg.RawConfig)
+	c.parseTestState(cfg.RawConfig, cfg.State)
 
 	// Exit early if the state store has an entry for this provider's config.
 	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
@@ -426,18 +426,9 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		return "", err
 	}
 
-	if uriCount := len(csr.URIs); uriCount != 1 {
-		return "", fmt.Errorf("incoming CSR has unexpected number of URIs: %d", uriCount)
-	}
-	certURI, err := connect.ParseCertURI(csr.URIs[0])
+	err = validateSignIntermediate(csr, c.spiffeID)
 	if err != nil {
 		return "", err
-	}
-
-	// Verify that the trust domain is valid.
-	if !c.spiffeID.CanSign(certURI) {
-		return "", fmt.Errorf("incoming CSR domain %q is not valid for our domain %q",
-			certURI.URI().String(), c.spiffeID.URI().String())
 	}
 
 	// Get the signing private key.
@@ -671,7 +662,7 @@ func (c *ConsulProvider) SetLogger(logger *log.Logger) {
 	c.logger = logger
 }
 
-func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}) {
+func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {
 	c.testState = nil
 	if rawTestState, ok := rawConfig["test_state"]; ok {
 		if ts, ok := rawTestState.(map[string]string); ok {
@@ -680,11 +671,12 @@ func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}) {
 		}
 
 		// Secondary's config takes a trip through the state store before Configure
-		// is called unlike primaries. This means we end up with map[string]string
-		// encoded as map[string]interface{}. Just handle that case and ignore the
-		// rest as this is test-only code and we'd rather not leave a way to error
-		// CA setup and leave cluster unavailable in prod by accidentally setting a
-		// bad test_state config.
+		// is called and RPC calls that msgpack encode also have the same effect. It
+		// means we end up with map[string]string encoded as map[string]interface{}.
+		// We just handle that case. There is no struct error handling because this
+		// is test-only code (undocumented config key) and we'd rather not leave a
+		// way to error CA setup and leave cluster unavailable in prod by
+		// accidentally setting a bad test_state config.
 		if ts, ok := rawTestState.(map[string]interface{}); ok {
 			c.testState = make(map[string]string)
 			for k, v := range ts {
@@ -693,5 +685,12 @@ func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}) {
 				}
 			}
 		}
+	}
+	// If config didn't explicitly specify test_state to return, but there is some
+	// actual state from a previous provider. Just use that since that is expected
+	// behavior that providers with state would preserve the state they are passed
+	// in the common case.
+	if len(state) > 0 && c.testState == nil {
+		c.testState = state
 	}
 }

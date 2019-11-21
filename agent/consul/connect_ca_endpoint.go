@@ -34,6 +34,7 @@ var (
 	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
 	ErrRateLimited          = errors.New("Rate limit reached, try again later")
 	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
+	ErrStateReadOnly        = errors.New("CA Provider State is read-only")
 )
 
 const (
@@ -161,6 +162,13 @@ func (s *ConnectCA) ConfigurationSet(
 	confIdx, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
+	}
+
+	// Don't allow state changes. Either it needs to be empty or the same to allow
+	// read-modify-write loops that don't touch the State field.
+	if len(args.Config.State) > 0 &&
+		!reflect.DeepEqual(args.Config.State, config.State) {
+		return ErrStateReadOnly
 	}
 
 	// Don't allow users to change the ClusterID.
@@ -519,6 +527,9 @@ func (s *ConnectCA) Sign(
 
 	// All seems to be in order, actually sign it.
 	pem, err := provider.Sign(csr)
+	if err == ca.ErrRateLimited {
+		return ErrRateLimited
+	}
 	if err != nil {
 		return err
 	}

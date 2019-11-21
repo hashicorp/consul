@@ -35,9 +35,9 @@ connect {
 }
 ```
 
-A number of optional configuration options are supported. The
-first key is the value used in API calls while the second key (after the `/`)
-is used if configuring in an agent configuration file.
+The configuration options are listed below. Note, the
+first key is the value used in API calls and the second key (after the `/`)
+is used if you're adding configuring to the agent's configuration file.
 
   * `PrivateKey` / `private_key` (`string: ""`) - A PEM-encoded private key
     for signing operations. This must match the private key used for the root

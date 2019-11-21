@@ -2752,6 +2752,91 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+		{
+			desc: "Connect AWS CA provider configuration",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "aws-pca",
+					"ca_config": {
+						"existing_arn": "foo",
+						"delete_on_exit": true
+					}
+				}
+			}`},
+			hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "aws-pca"
+					ca_config {
+						existing_arn = "foo"
+						delete_on_exit = true
+					}
+				}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConnectEnabled = true
+				rt.ConnectCAProvider = "aws-pca"
+				rt.ConnectCAConfig = map[string]interface{}{
+					"ExistingARN":  "foo",
+					"DeleteOnExit": true,
+				}
+			},
+		},
+		{
+			desc: "Connect AWS CA provider TTL validation",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "aws-pca",
+					"ca_config": {
+						"leaf_cert_ttl": "1h"
+					}
+				}
+			}`},
+			hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "aws-pca"
+					ca_config {
+						leaf_cert_ttl = "1h"
+					}
+				}
+			`},
+			err: "AWS PCA doesn't support certificates that are valid for less than 24 hours",
+		},
+		{
+			desc: "Connect AWS CA provider EC key length validation",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "aws-pca",
+					"ca_config": {
+						"private_key_bits": 521
+					}
+				}
+			}`},
+			hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "aws-pca"
+					ca_config {
+						private_key_bits = 521
+					}
+				}
+			`},
+			err: "AWS PCA only supports P256 EC curve",
+		},
 
 		// ------------------------------------------------------------
 		// ConfigEntry Handling

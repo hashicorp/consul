@@ -216,6 +216,7 @@ func (q *CARequest) RequestDatacenter() string {
 const (
 	ConsulCAProvider = "consul"
 	VaultCAProvider  = "vault"
+	AWSCAProvider    = "aws-pca"
 )
 
 // CAConfiguration is the configuration for the current CA plugin.
@@ -458,6 +459,13 @@ type VaultCAProviderConfig struct {
 	KeyFile       string
 	TLSServerName string
 	TLSSkipVerify bool
+}
+
+type AWSCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
+	ExistingARN  string
+	DeleteOnExit bool
 }
 
 // CALeafOp is the operation for a request related to leaf certificates.

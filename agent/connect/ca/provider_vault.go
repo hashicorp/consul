@@ -333,8 +333,13 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // SignIntermediate returns a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	err := validateSignIntermediate(csr, v.spiffeID)
+	if err != nil {
+		return "", err
+	}
+
 	var pemBuf bytes.Buffer
-	err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
+	err = pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
 	if err != nil {
 		return "", err
 	}

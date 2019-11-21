@@ -590,6 +590,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"tls_server_name":       "TLSServerName",
 			"tls_skip_verify":       "TLSSkipVerify",
 
+			// AWS CA config
+			"existing_arn":   "ExistingARN",
+			"delete_on_exit": "DeleteOnExit",
+
 			// Common CA config
 			"leaf_cert_ttl":      "LeafCertTTL",
 			"csr_max_per_second": "CSRMaxPerSecond",
@@ -1095,6 +1099,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		"":                       true,
 		structs.ConsulCAProvider: true,
 		structs.VaultCAProvider:  true,
+		structs.AWSCAProvider:    true,
 	}
 	if _, ok := validCAProviders[rt.ConnectCAProvider]; !ok {
 		return fmt.Errorf("%s is not a valid CA provider", rt.ConnectCAProvider)
@@ -1106,6 +1111,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			}
 		case structs.VaultCAProvider:
 			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
+				return err
+			}
+		case structs.AWSCAProvider:
+			if _, err := ca.ParseAWSCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
 		}

@@ -63,3 +63,29 @@ func validateSetIntermediate(
 
 	return nil
 }
+
+func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.SpiffeIDSigning) error {
+	// We explicitly _don't_ require that the CSR has a valid SPIFFE signing URI
+	// SAN because AWS PCA doesn't let us set one :(. We need to relax it here
+	// otherwise it would be impossible to migrate from built-in provider to AWS
+	// in multiple DCs without downtime. Nothing in Connect actually checks that
+	// currently so this is OK for now but it's sad we have to break the SPIFFE
+	// spec for AWS sake. Hopefully they'll add that ability soon.
+	uriCount := len(csr.URIs)
+	if uriCount > 0 {
+		if uriCount != 1 {
+			return fmt.Errorf("incoming CSR has unexpected number of URIs: %d", uriCount)
+		}
+		certURI, err := connect.ParseCertURI(csr.URIs[0])
+		if err != nil {
+			return err
+		}
+
+		// Verify that the trust domain is valid.
+		if !spiffeID.CanSign(certURI) {
+			return fmt.Errorf("incoming CSR domain %q is not valid for our domain %q",
+				certURI.URI().String(), spiffeID.URI().String())
+		}
+	}
+	return nil
+}

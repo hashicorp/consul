@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -69,5 +70,11 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 
 	var reply interface{}
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
+	if err != nil && err.Error() == consul.ErrStateReadOnly.Error() {
+		return nil, BadRequestError{
+			Reason: "Provider State is read-only. It must be omitted" +
+				" or identical to the current value",
+		}
+	}
 	return nil, err
 }

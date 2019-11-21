@@ -63,10 +63,11 @@ func TestConnectCAConfig(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		body    string
-		wantErr bool
-		wantCfg structs.CAConfiguration
+		name         string
+		initialState string
+		body         string
+		wantErr      bool
+		wantCfg      structs.CAConfiguration
 	}{
 		{
 			name: "basic",
@@ -137,13 +138,64 @@ func TestConnectCAConfig(t *testing.T) {
 				ForceWithoutCrossSigning: true,
 			},
 		},
+		{
+			name: "setting state fails",
+			body: `
+			{
+				"Provider": "consul",
+				"State": {
+					"foo": "bar"
+				}
+			}`,
+			wantErr: true,
+		},
+		{
+			name:         "updating config with same state",
+			initialState: `foo = "bar"`,
+			body: `
+			{
+				"Provider": "consul",
+				"config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h"
+				},
+				"State": {
+					"foo": "bar"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":    "72h",
+					"RotationPeriod": "1h",
+				},
+				State: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
-			a := NewTestAgent(t, t.Name(), "")
+			hcl := ""
+			if tc.initialState != "" {
+				hcl = `
+				connect {
+					enabled = true
+					ca_provider = "consul"
+					ca_config {
+						test_state {
+							` + tc.initialState + `
+						}
+					}
+				}`
+			}
+			a := NewTestAgent(t, t.Name(), hcl)
 			defer a.Shutdown()
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
