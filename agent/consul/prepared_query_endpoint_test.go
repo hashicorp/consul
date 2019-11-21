@@ -3001,11 +3001,10 @@ func (m *mockQueryServer) GetLogger() *log.Logger {
 		m.LogBuffer = new(bytes.Buffer)
 
 		consulLogger := hclog.New(&hclog.LoggerOptions{
-			Level:  0,
 			Output: m.LogBuffer,
 		})
 		m.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
-			InferLevels: true,
+			InferLevels: false,
 		})
 	}
 	return m.Logger
@@ -3263,6 +3262,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			t.Fatalf("bad: %s", queries)
 		}
 		if !strings.Contains(mock.LogBuffer.String(), "Skipping unknown datacenter") {
+			fmt.Println(mock.LogBuffer.Bytes())
 			t.Fatalf("bad: %s", mock.LogBuffer.String())
 		}
 	}
