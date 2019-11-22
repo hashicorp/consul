@@ -65,7 +65,7 @@ module.exports = function(environment) {
       }
       return 'oss';
     })(),
-    CONSUL_ACLS_ENABLED: false,
+    CONSUL_ACLS_ENABLED: true,
     CONSUL_NSPACES_ENABLED: true,
     CONSUL_NSPACES_UNDEFINED_NAME: 'default',
     CONSUL_HOME_URL: 'https://www.consul.io',
