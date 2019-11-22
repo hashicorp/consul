@@ -111,7 +111,7 @@ jobs:
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
           echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
           echo $PACKAGE_NAMES
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags="$GOTAGS" -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
 
       # save coverage report parts
       - persist_to_workspace:
@@ -143,7 +143,7 @@ jobs:
           working_directory: api
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -cover -coverprofile=cov_api.part $PACKAGE_NAMES
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags="$GOTAGS" -cover -coverprofile=cov_api.part $PACKAGE_NAMES
 
       # save coverage report parts
       - persist_to_workspace:
