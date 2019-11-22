@@ -108,7 +108,13 @@ jobs:
           rm -rf /tmp/vault*
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
 
       - store_test_results:
           path: /tmp/test-results
@@ -134,10 +140,39 @@ jobs:
           working_directory: api
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS $PACKAGE_NAMES
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -cover -coverprofile=cov_api.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: ./api
+          paths:
+            - cov_*.part
 
       - store_test_results:
           path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+
+  # combine code coverage results from the parallel circleci executors
+  coverage-merge:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: merge coverage reports
+          command: |
+            echo "mode: set" > coverage.out
+            grep -h -v "mode: set" cov_*.part >> coverage.out
+            go tool cover -html=coverage.out -o /tmp/test-results/coverage.html
+      - run:
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash) -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
       - store_artifacts:
           path: /tmp/test-results
 
@@ -540,6 +575,10 @@ workflows:
           requires:
             - dev-build
       - go-test-api: *go-test
+      - coverage-merge:
+          requires:
+            - go-test
+            - go-test-api
   build-distros:
     jobs:
       - check-vendor:
