@@ -4168,7 +4168,7 @@ func TestAgent_Monitor(t *testing.T) {
 		<-done
 
 		got := resp.Body.Bytes()
-		want := []byte(`[WARN] agent: Node name "invalid!" will not be discoverable via DNS`)
+		want := []byte(`agent: Node name "invalid!" will not be discoverable via DNS`)
 		if !bytes.Contains(got, want) {
 			r.Fatalf("got %q and did not find %q", got, want)
 		}
