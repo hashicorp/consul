@@ -3,12 +3,12 @@ package proxy
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -89,8 +89,15 @@ const (
 // execute Run in a goroutine.
 func NewRegisterMonitor() *RegisterMonitor {
 	var lock sync.Mutex
+
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level: log.LstdFlags,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 	return &RegisterMonitor{
-		Logger:          log.New(os.Stderr, "", log.LstdFlags), // default logger
+		Logger:          logger, // default logger
 		ReconcilePeriod: RegisterReconcilePeriod,
 		TTLPeriod:       RegisterTTLPeriod,
 		lock:            &lock,

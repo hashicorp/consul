@@ -3,10 +3,13 @@ package testutil
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 var sendTestLogsToStdout bool
@@ -15,12 +18,36 @@ func init() {
 	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 }
 
-func TestLogger(t testing.TB) *log.Logger {
-	return log.New(&testWriter{t}, t.Name()+": ", log.LstdFlags)
+func LogShim(logger hclog.Logger) *log.Logger {
+	return logger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 }
 
-func TestLoggerWithName(t testing.TB, name string) *log.Logger {
-	return log.New(&testWriter{t}, "test["+name+"]: ", log.LstdFlags)
+func NewDiscardLogger() *log.Logger {
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: ioutil.Discard,
+	})
+	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
+}
+
+func Logger(t testing.TB) hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Name:   t.Name(),
+		Level:  log.LstdFlags,
+		Output: &testWriter{t},
+	})
+}
+
+func LoggerWithName(t testing.TB, name string) hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Name:   "test[" + name + "]",
+		Level:  log.LstdFlags,
+		Output: &testWriter{t},
+	})
 }
 
 func TestWriter(t testing.TB) io.Writer {

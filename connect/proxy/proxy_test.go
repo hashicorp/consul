@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
@@ -80,5 +80,5 @@ func TestProxy_public(t *testing.T) {
 }
 
 func testLogger(t *testing.T) *log.Logger {
-	return log.New(os.Stderr, "", log.LstdFlags)
+	return testutil.LogShim(testutil.Logger(t))
 }

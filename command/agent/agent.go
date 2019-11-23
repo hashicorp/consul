@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/service_os"
 	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -202,7 +203,13 @@ func (c *cmd) run(args []string) int {
 	}
 	c.logFilter = logFilter
 	c.logOutput = logOutput
-	c.logger = log.New(logOutput, "", log.LstdFlags)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: logOutput,
+	})
+	c.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	// Setup gRPC logger to use the same output/filtering
 	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger))

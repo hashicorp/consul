@@ -1,8 +1,6 @@
 package proxycfg
 
 import (
-	"log"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -17,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // assertLastReqArgs verifies that each request type had the correct source
@@ -310,7 +309,7 @@ func testManager_BasicLifecycle(
 
 	require := require.New(t)
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.LogShim(testutil.Logger(t))
 	state := local.NewState(local.Config{}, logger, &token.Store{})
 	source := &structs.QuerySource{
 		Node:       "node1",
@@ -447,7 +446,7 @@ func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *Confi
 
 func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.LogShim(testutil.Logger(t))
 	cfg := ManagerConfig{
 		Cache: cache.New(nil),
 		State: local.NewState(local.Config{}, logger, &token.Store{}),

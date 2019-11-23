@@ -11,7 +11,7 @@ import (
 )
 
 func TestReplicationRestart(t *testing.T) {
-	mgr := NewLeaderRoutineManager(testutil.TestLogger(t))
+	mgr := NewLeaderRoutineManager(testutil.LogShim(testutil.Logger(t)))
 
 	config := ReplicatorConfig{
 		Name: "mock",
@@ -86,7 +86,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(0)).Return(0, nil, uint64(0), fmt.Errorf("induced error"))
@@ -105,7 +105,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(1), nil)
@@ -125,7 +125,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(1), nil)
@@ -147,7 +147,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -167,7 +167,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -189,7 +189,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -210,7 +210,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -232,7 +232,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -253,7 +253,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.LogShim(testutil.Logger(t)),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(3, "bcd", uint64(4), nil)
