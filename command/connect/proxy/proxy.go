@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/logutils"
@@ -139,7 +140,14 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.logFilter = logFilter
 	c.logOutput = logOutput
-	c.logger = log.New(logOutput, "", log.LstdFlags)
+
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: logOutput,
+	})
+	c.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	// Enable Pprof if needed
 	if c.pprofAddr != "" {

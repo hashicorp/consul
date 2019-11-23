@@ -17,6 +17,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/config"
@@ -160,7 +161,15 @@ func (a *TestAgent) Start() (err error) {
 	if logOutput == nil {
 		logOutput = os.Stderr
 	}
-	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+	consullogger := hclog.New(&hclog.LoggerOptions{
+		Name:   a.Name + " - ",
+		Level:  hclog.Debug,
+		Output: logOutput,
+	})
+	agentLogger := consullogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
 	a.returnPortsFn = returnPortsFn

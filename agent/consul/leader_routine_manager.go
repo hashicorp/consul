@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"sync"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 type LeaderRoutine func(ctx context.Context) error
@@ -23,7 +25,13 @@ type LeaderRoutineManager struct {
 
 func NewLeaderRoutineManager(logger *log.Logger) *LeaderRoutineManager {
 	if logger == nil {
-		logger = log.New(os.Stderr, "", log.LstdFlags)
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Level:  log.LstdFlags,
+			Output: os.Stderr,
+		})
+		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
 	}
 
 	return &LeaderRoutineManager{

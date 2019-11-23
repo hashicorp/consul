@@ -19,7 +19,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
 )
@@ -2999,7 +3000,13 @@ func (m *mockQueryServer) JoinQueryLog() string {
 func (m *mockQueryServer) GetLogger() *log.Logger {
 	if m.Logger == nil {
 		m.LogBuffer = new(bytes.Buffer)
-		m.Logger = log.New(m.LogBuffer, "", 0)
+
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Output: m.LogBuffer,
+		})
+		m.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: false,
+		})
 	}
 	return m.Logger
 }
@@ -3256,6 +3263,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 			t.Fatalf("bad: %s", queries)
 		}
 		if !strings.Contains(mock.LogBuffer.String(), "Skipping unknown datacenter") {
+			fmt.Println(mock.LogBuffer.Bytes())
 			t.Fatalf("bad: %s", mock.LogBuffer.String())
 		}
 	}

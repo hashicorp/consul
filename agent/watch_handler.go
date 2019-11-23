@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/net/context"
 )
 
@@ -41,7 +42,13 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		panic(fmt.Errorf("unknown handler type %T", handler))
 	}
 
-	logger := log.New(logOutput, "", log.LstdFlags)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: logOutput,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 	fn := func(idx uint64, data interface{}) {
 		// Create the command
 		var cmd *osexec.Cmd
@@ -94,7 +101,13 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 }
 
 func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
-	logger := log.New(logOutput, "", log.LstdFlags)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: logOutput,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	fn := func(idx uint64, data interface{}) {
 		trans := cleanhttp.DefaultTransport()

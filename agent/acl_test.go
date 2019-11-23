@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/stretchr/testify/require"
@@ -60,7 +61,14 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	hclDataDir := `data_dir = "acl-agent"`
 
 	logOutput := testutil.TestWriter(t)
-	logger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+	consulLogger := hclog.New(&hclog.LoggerOptions{
+		Name:   a.Name,
+		Level:  log.LstdFlags | log.Lmicroseconds,
+		Output: logOutput,
+	})
+	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
 	a.Config = TestConfig(logger,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
