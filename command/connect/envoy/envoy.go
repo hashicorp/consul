@@ -494,13 +494,13 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
-	var ca []byte
+	var caPEM []byte
 	if httpCfg.TLSConfig.CAFile != "" {
 		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read CA file: %s", err)
 		}
-		ca = content
+		caPEM = content
 	}
 
 	return &BootstrapTplArgs{
@@ -510,7 +510,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AgentPort:             agentPort,
 		AgentSocket:           agentSock,
 		AgentTLS:              useTLS,
-		AgentCA:               ca,
+		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,

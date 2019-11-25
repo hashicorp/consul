@@ -288,7 +288,7 @@ func TestGenerateConfig(t *testing.T) {
 				AgentAddress: "127.0.0.1",
 				AgentPort:    "8502",
 				AgentTLS:     true,
-				AgentCA: []byte(`-----BEGIN CERTIFICATE-----
+				AgentCAPEM: []byte(`-----BEGIN CERTIFICATE-----
 MIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD
 VQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa
 BgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE
