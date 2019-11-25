@@ -151,6 +151,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				LockIndex:   1,
 				CreateIndex: ret.Results[0].KV.CreateIndex,
 				ModifyIndex: ret.Results[0].KV.ModifyIndex,
+				Namespace: ret.Results[0].KV.Namespace,
 			},
 		},
 		&TxnResult{
@@ -161,6 +162,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				LockIndex:   1,
 				CreateIndex: ret.Results[1].KV.CreateIndex,
 				ModifyIndex: ret.Results[1].KV.ModifyIndex,
+				Namespace: ret.Results[0].KV.Namespace,
 			},
 		},
 		&TxnResult{
@@ -253,6 +255,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 					LockIndex:   1,
 					CreateIndex: ret.Results[0].KV.CreateIndex,
 					ModifyIndex: ret.Results[0].KV.ModifyIndex,
+					Namespace: ret.Results[0].KV.Namespace,
 				},
 			},
 			&TxnResult{

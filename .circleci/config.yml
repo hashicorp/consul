@@ -108,7 +108,7 @@ jobs:
           rm -rf /tmp/vault*
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
 
       # save coverage report parts
       - persist_to_workspace:

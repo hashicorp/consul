@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -214,7 +213,7 @@ func TestTxn_Apply(t *testing.T) {
 
 	// Verify the state store directly.
 	state := s1.fsm.State()
-	_, d, err := state.KVSGet(nil, "test")
+	_, d, err := state.KVSGet(nil, "test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -262,6 +261,7 @@ func TestTxn_Apply(t *testing.T) {
 						CreateIndex: d.CreateIndex,
 						ModifyIndex: d.ModifyIndex,
 					},
+					EnterpriseMeta: d.EnterpriseMeta,
 				},
 			},
 			&structs.TxnResult{
@@ -273,6 +273,7 @@ func TestTxn_Apply(t *testing.T) {
 						CreateIndex: d.CreateIndex,
 						ModifyIndex: d.ModifyIndex,
 					},
+					EnterpriseMeta: d.EnterpriseMeta,
 				},
 			},
 			&structs.TxnResult{
@@ -295,7 +296,7 @@ func TestTxn_Apply(t *testing.T) {
 			},
 		},
 	}
-	verify.Values(t, "", out, expected)
+	require.Equal(t, expected, out)
 }
 
 func TestTxn_Apply_ACLDeny(t *testing.T) {
@@ -609,7 +610,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 
-	verify.Values(t, "", out, expected)
+	require.Equal(expected, out)
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
@@ -620,7 +621,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock.
 	state := s1.fsm.State()
@@ -643,7 +644,8 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	if ok, err := state.KVSLock(3, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
-	if err := state.SessionDestroy(4, id); err != nil {
+
+	if err := state.SessionDestroy(4, id, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -777,6 +779,8 @@ func TestTxn_Read(t *testing.T) {
 	// Verify the transaction's return value.
 	svc.Weights = &structs.Weights{Passing: 1, Warning: 1}
 	svc.RaftIndex = structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3}
+
+	entMeta := out.Results[0].KV.EnterpriseMeta
 	expected := structs.TxnReadResponse{
 		TxnResponse: structs.TxnResponse{
 			Results: structs.TxnResults{
@@ -788,6 +792,7 @@ func TestTxn_Read(t *testing.T) {
 							CreateIndex: 1,
 							ModifyIndex: 1,
 						},
+						EnterpriseMeta: entMeta,
 					},
 				},
 				&structs.TxnResult{
@@ -805,7 +810,7 @@ func TestTxn_Read(t *testing.T) {
 			KnownLeader: true,
 		},
 	}
-	verify.Values(t, "", out, expected)
+	require.Equal(expected, out)
 }
 
 func TestTxn_Read_ACLDeny(t *testing.T) {

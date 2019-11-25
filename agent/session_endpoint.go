@@ -31,6 +31,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
+	s.parseEntMeta(req, &args.Session.EnterpriseMeta)
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
@@ -79,6 +80,7 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
+	s.parseEntMeta(req, &args.Session.EnterpriseMeta)
 
 	// Pull out the session id
 	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
@@ -101,10 +103,11 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	s.parseEntMeta(req, &args.EnterpriseMeta)
 
 	// Pull out the session id
-	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
-	if args.Session == "" {
+	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
+	if args.SessionID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
@@ -115,7 +118,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	} else if out.Sessions == nil {
 		resp.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(resp, "Session id '%s' not found", args.Session)
+		fmt.Fprintf(resp, "Session id '%s' not found", args.SessionID)
 		return nil, nil
 	}
 
@@ -128,10 +131,11 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	s.parseEntMeta(req, &args.EnterpriseMeta)
 
 	// Pull out the session id
-	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
-	if args.Session == "" {
+	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
+	if args.SessionID == "" {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, "Missing session")
 		return nil, nil
@@ -152,10 +156,11 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 
 // SessionList is used to list all the sessions
 func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	args := structs.DCSpecificRequest{}
+	args := structs.SessionSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	s.parseEntMeta(req, &args.EnterpriseMeta)
 
 	var out structs.IndexedSessions
 	defer setMeta(resp, &out.QueryMeta)
@@ -176,6 +181,7 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	s.parseEntMeta(req, &args.EnterpriseMeta)
 
 	// Pull out the node name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")

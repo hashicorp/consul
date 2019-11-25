@@ -178,15 +178,22 @@ func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID
 	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
-func testSetKey(t *testing.T, s *Store, idx uint64, key, value string) {
-	entry := &structs.DirEntry{Key: key, Value: []byte(value)}
+func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *structs.EnterpriseMeta) {
+	entry := &structs.DirEntry{
+		Key:   key,
+		Value: []byte(value),
+	}
+	if entMeta != nil {
+		entry.EnterpriseMeta = *entMeta
+	}
+
 	if err := s.KVSSet(idx, entry); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := tx.First("kvs", "id", key)
+	e, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -223,7 +230,7 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 	restore.Abort()
 
-	idx, entries, err := s.KVSList(nil, "")
+	idx, entries, err := s.KVSList(nil, "", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

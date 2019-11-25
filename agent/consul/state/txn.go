@@ -19,17 +19,17 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 		err = s.kvsSetTxn(tx, idx, entry, false)
 
 	case api.KVDelete:
-		err = s.kvsDeleteTxn(tx, idx, op.DirEnt.Key)
+		err = s.kvsDeleteTxn(tx, idx, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
 
 	case api.KVDeleteCAS:
 		var ok bool
-		ok, err = s.kvsDeleteCASTxn(tx, idx, op.DirEnt.ModifyIndex, op.DirEnt.Key)
+		ok, err = s.kvsDeleteCASTxn(tx, idx, op.DirEnt.ModifyIndex, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete key %q, index is stale", op.DirEnt.Key)
 		}
 
 	case api.KVDeleteTree:
-		err = s.kvsDeleteTreeTxn(tx, idx, op.DirEnt.Key)
+		err = s.kvsDeleteTreeTxn(tx, idx, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
 
 	case api.KVCAS:
 		var ok bool
@@ -56,14 +56,14 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 		}
 
 	case api.KVGet:
-		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key)
+		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
 		}
 
 	case api.KVGetTree:
 		var entries structs.DirEntries
-		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key)
+		_, entries, err = s.kvsListTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
 		if err == nil {
 			results := make(structs.TxnResults, 0, len(entries))
 			for _, e := range entries {
@@ -74,13 +74,13 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 		}
 
 	case api.KVCheckSession:
-		entry, err = s.kvsCheckSessionTxn(tx, op.DirEnt.Key, op.DirEnt.Session)
+		entry, err = s.kvsCheckSessionTxn(tx, op.DirEnt.Key, op.DirEnt.Session, &op.DirEnt.EnterpriseMeta)
 
 	case api.KVCheckIndex:
-		entry, err = s.kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex)
+		entry, err = s.kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex, &op.DirEnt.EnterpriseMeta)
 
 	case api.KVCheckNotExists:
-		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key)
+		_, entry, err = s.kvsGetTxn(tx, nil, op.DirEnt.Key, &op.DirEnt.EnterpriseMeta)
 		if entry != nil && err == nil {
 			err = fmt.Errorf("key %q exists", op.DirEnt.Key)
 		}
@@ -108,6 +108,23 @@ func (s *Store) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.
 	}
 
 	return nil, nil
+}
+
+// txnSession handles all Session-related operations.
+func (s *Store) txnSession(tx *memdb.Txn, idx uint64, op *structs.TxnSessionOp) error {
+	var err error
+
+	switch op.Verb {
+	case api.SessionDelete:
+		err = s.sessionDeleteWithSession(tx, &op.Session, idx)
+	default:
+		err = fmt.Errorf("unknown Session verb %q", op.Verb)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to delete session: %v", err)
+	}
+
+	return nil
 }
 
 // txnIntention handles all Intention-related operations.
@@ -332,6 +349,8 @@ func (s *Store) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (stru
 			ret, err = s.txnService(tx, idx, op.Service)
 		case op.Check != nil:
 			ret, err = s.txnCheck(tx, idx, op.Check)
+		case op.Session != nil:
+			err = s.txnSession(tx, idx, op.Session)
 		default:
 			err = fmt.Errorf("no operation specified")
 		}

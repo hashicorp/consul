@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -13,13 +14,14 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/pascaldekloe/goe/verify"
 )
 
 func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session) {
+	t.Helper()
+
 	args := &structs.SessionSpecificRequest{
 		Datacenter: "dc1",
-		Session:    want.ID,
+		SessionID:  want.ID,
 	}
 	var out structs.IndexedSessions
 	if err := a.RPC("Session.Get", args, &out); err != nil {
@@ -34,7 +36,22 @@ func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session)
 	got := *(out.Sessions[0])
 	got.CreateIndex = 0
 	got.ModifyIndex = 0
-	verify.Values(t, "", got, want)
+
+	if got.ID != want.ID {
+		t.Fatalf("bad session ID: expected %s, got %s", want.ID, got.ID)
+	}
+	if got.Node != want.Node {
+		t.Fatalf("bad session Node: expected %s, got %s", want.Node, got.Node)
+	}
+	if got.Behavior != want.Behavior {
+		t.Fatalf("bad session Behavior: expected %s, got %s", want.Behavior, got.Behavior)
+	}
+	if got.LockDelay != want.LockDelay {
+		t.Fatalf("bad session LockDelay: expected %s, got %s", want.LockDelay, got.LockDelay)
+	}
+	if !reflect.DeepEqual(got.Checks, want.Checks) {
+		t.Fatalf("bad session Checks: expected %+v, got %+v", want.Checks, got.Checks)
+	}
 }
 
 func TestSessionCreate(t *testing.T) {
@@ -224,7 +241,8 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 }
 
 func makeTestSession(t *testing.T, srv *HTTPServer) string {
-	req, _ := http.NewRequest("PUT", "/v1/session/create", nil)
+	url := "/v1/session/create"
+	req, _ := http.NewRequest("PUT", url, nil)
 	resp := httptest.NewRecorder()
 	obj, err := srv.SessionCreate(resp, req)
 	if err != nil {
@@ -243,7 +261,8 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
 	}
 	enc.Encode(raw)
 
-	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	url := "/v1/session/create"
+	req, _ := http.NewRequest("PUT", url, body)
 	resp := httptest.NewRecorder()
 	obj, err := srv.SessionCreate(resp, req)
 	if err != nil {
@@ -262,7 +281,8 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
 	}
 	enc.Encode(raw)
 
-	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+	url := "/v1/session/create"
+	req, _ := http.NewRequest("PUT", url, body)
 	resp := httptest.NewRecorder()
 	obj, err := srv.SessionCreate(resp, req)
 	if err != nil {

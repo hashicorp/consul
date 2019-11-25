@@ -79,6 +79,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
+
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
@@ -142,8 +143,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Key:   "/remove",
 		Value: []byte("foo"),
 	})
-	fsm.state.KVSDelete(12, "/remove")
-	idx, _, err := fsm.state.KVSList(nil, "/remove")
+	fsm.state.KVSDelete(12, "/remove", nil)
+	idx, _, err := fsm.state.KVSList(nil, "/remove", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -350,7 +351,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm2.state.KVSGet(nil, "/test")
+	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -359,7 +360,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify session is restored
-	idx, s, err := fsm2.state.SessionGet(nil, session.ID)
+	idx, s, err := fsm2.state.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

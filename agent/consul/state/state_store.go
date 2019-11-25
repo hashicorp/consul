@@ -3,9 +3,8 @@ package state
 import (
 	"errors"
 	"fmt"
-
 	"github.com/hashicorp/consul/types"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 )
 
 var (

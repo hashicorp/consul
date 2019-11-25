@@ -390,7 +390,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 	}
 
 	// Verify key is not set
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -437,7 +437,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 	}
 
 	// Verify key is not set
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -472,7 +472,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -493,7 +493,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is gone
-	_, d, err = fsm.state.KVSGet(nil, "/test/path")
+	_, d, err = fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -528,7 +528,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -550,7 +550,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is updated
-	_, d, err = fsm.state.KVSGet(nil, "/test/path")
+	_, d, err = fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -566,9 +566,16 @@ func TestFSM_KVSLock(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	err = fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	fsm.state.SessionCreate(2, session)
+	err = fsm.state.SessionCreate(2, session)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -589,7 +596,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	}
 
 	// Verify key is locked
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -611,9 +618,16 @@ func TestFSM_KVSUnlock(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	err = fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	fsm.state.SessionCreate(2, session)
+	err = fsm.state.SessionCreate(2, session)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -652,7 +666,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 
 	// Verify key is unlocked
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -675,8 +689,14 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Register some nodes.
-	fsm.state.EnsureNode(1, &structs.Node{Node: "node1", Address: "127.0.0.1"})
-	fsm.state.EnsureNode(2, &structs.Node{Node: "node2", Address: "127.0.0.1"})
+	err = fsm.state.EnsureNode(1, &structs.Node{Node: "node1", Address: "127.0.0.1"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = fsm.state.EnsureNode(2, &structs.Node{Node: "node2", Address: "127.0.0.1"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Write a batch of two coordinates.
 	updates := structs.Coordinates{
@@ -715,12 +735,19 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
-	fsm.state.EnsureCheck(2, &structs.HealthCheck{
+	err = fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = fsm.state.EnsureCheck(2, &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "web",
 		Status:  api.HealthPassing,
 	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Create a new session
 	req := structs.SessionRequest{
@@ -743,7 +770,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 	// Get the session
 	id := resp.(string)
-	_, session, err := fsm.state.SessionGet(nil, id)
+	_, session, err := fsm.state.SessionGet(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -779,7 +806,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, session, err = fsm.state.SessionGet(nil, id)
+	_, session, err = fsm.state.SessionGet(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -914,8 +941,15 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 	}
 
 	// Register a service to query on.
-	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
-	fsm.state.EnsureService(2, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
+	err = fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = fsm.state.EnsureService(2, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Create a new query.
 	query := structs.PreparedQueryRequest{
@@ -1012,12 +1046,20 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	}
 
 	// Create some tombstones
-	fsm.state.KVSSet(11, &structs.DirEntry{
+	err = fsm.state.KVSSet(11, &structs.DirEntry{
 		Key:   "/remove",
 		Value: []byte("foo"),
 	})
-	fsm.state.KVSDelete(12, "/remove")
-	idx, _, err := fsm.state.KVSList(nil, "/remove")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = fsm.state.KVSDelete(12, "/remove", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, _, err := fsm.state.KVSList(nil, "/remove", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1085,7 +1127,7 @@ func TestFSM_Txn(t *testing.T) {
 	}
 
 	// Verify key is set directly in the state store.
-	_, d, err := fsm.state.KVSGet(nil, "/test/path")
+	_, d, err := fsm.state.KVSGet(nil, "/test/path", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1599,7 +1641,11 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 	// Now verify the other baseline, that when the term doesn't change we see
 	// non-nil. First make the chunker have a clean state, then set the terms
 	// to be the same.
-	fsm.chunker.RestoreState(nil)
+	err = fsm.chunker.RestoreState(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	logs[1].Term = uint64(0)
 
 	// We should see nil only for the first one
