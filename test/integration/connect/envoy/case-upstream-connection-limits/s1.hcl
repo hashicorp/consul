@@ -12,7 +12,7 @@ services {
               limits {
                 max_connections = 3
                 max_pending_requests = 4
-                max_requests = 5
+                max_concurrent_requests = 5
               }
             }
           }

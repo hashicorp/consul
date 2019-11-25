@@ -140,9 +140,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 					}
 
 					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
-						"max_connections":      500,
-						"max_pending_requests": 600,
-						"max_requests":         700,
+						"max_connections":         500,
+						"max_pending_requests":    600,
+						"max_concurrent_requests": 700,
 					}
 				}
 			},

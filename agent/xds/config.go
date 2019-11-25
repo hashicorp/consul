@@ -117,10 +117,10 @@ type UpstreamLimits struct {
 	// connection.
 	MaxPendingRequests int `mapstructure:"max_pending_requests"`
 
-	// MaxRequests is the maximum number of in-flight requests that will be allowed
+	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
-	MaxRequests int `mapstructure:"max_requests"`
+	MaxConcurrentRequests int `mapstructure:"max_concurrent_requests"`
 }
 
 // UpstreamConfig describes the keys we understand from

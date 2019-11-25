@@ -209,18 +209,18 @@ func TestParseUpstreamConfig(t *testing.T) {
 			name: "connect limits map",
 			input: map[string]interface{}{
 				"limits": map[string]interface{}{
-					"max_connections":      50,
-					"max_pending_requests": 60,
-					"max_requests":         70,
+					"max_connections":         50,
+					"max_pending_requests":    60,
+					"max_concurrent_requests": 70,
 				},
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
 				Limits: UpstreamLimits{
-					MaxConnections:     50,
-					MaxPendingRequests: 60,
-					MaxRequests:        70,
+					MaxConnections:        50,
+					MaxPendingRequests:    60,
+					MaxConcurrentRequests: 70,
 				},
 			},
 		},
