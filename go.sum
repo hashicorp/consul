@@ -6,6 +6,8 @@ cloud.google.com/go v0.41.0/go.mod h1:OauMR7DV8fzvZIl2qg6rkaIhD/vmgk4iwEw/h6ercm
 contrib.go.opencensus.io/exporter/ocagent v0.4.12/go.mod h1:450APlNTSR6FrvC3CTRqYosuDstRB9un7SOx2k/9ckA=
 github.com/Azure/azure-sdk-for-go v32.4.0+incompatible h1:1JP8SKfroEakYiQU2ZyPDosh8w2Tg9UopKt88VyQPt4=
 github.com/Azure/azure-sdk-for-go v32.4.0+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=
+github.com/Azure/azure-sdk-for-go v32.6.0+incompatible h1:PgaVceWF5idtJajyt1rzq1cep6eRPJ8+8hs4GnNzTo0=
+github.com/Azure/azure-sdk-for-go v32.6.0+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=
 github.com/Azure/go-autorest v13.0.0+incompatible h1:56c11ykhsFSPNNQuS73Ri8h/ezqVhr2h6t9LJIEKVO0=
 github.com/Azure/go-autorest v13.0.0+incompatible/go.mod h1:r+4oMnoxhatjLLJ6zxSWATqVooLgysK6ZNox3g/xq24=
 github.com/Azure/go-autorest/autorest v0.1.0/go.mod h1:AKyIcETwSUFxIcs/Wnq/C+kwCtlEYGUVd7FPNb2slmg=
