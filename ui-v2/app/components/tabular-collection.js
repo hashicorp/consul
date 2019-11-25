@@ -82,7 +82,7 @@ const change = function(e) {
         const dom = get(this, 'dom');
 
         const $tr = dom.closest('tr', e.currentTarget);
-        const $group = dom.sibling(e.currentTarget, 'ul');
+        const $group = dom.sibling(e.currentTarget, 'div');
         const groupRect = $group.getBoundingClientRect();
         const groupBottom = groupRect.top + $group.clientHeight;
 

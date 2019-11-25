@@ -58,8 +58,7 @@
 %with-hashicorp,
 %with-folder,
 %with-chevron,
-%with-clipboard,
-%with-right-arrow {
+%with-clipboard {
   position: relative;
 }
 %with-chevron {
@@ -169,31 +168,7 @@
   height: 20px !important;
   width: 16px !important;
 }
-%with-cross {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="8" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.064L1.064 8 0 6.936 2.936 4 0 1.064 1.064 0 4 2.936 6.936 0 8 1.064 5.064 4 8 6.936 6.936 8 4 5.064z" fill="%23FFF"/></svg>');
-}
 %with-minus {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="9" height="2" viewBox="0 0 9 2" xmlns="http://www.w3.org/2000/svg"><path fill="%23FFF" fill-rule="nonzero" d="M0 0h8v2H0z"/></svg>');
-}
-%with-right-arrow-green {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="16" height="14" xmlns="http://www.w3.org/2000/svg"><path d="M9.263.5L8.084 1.637l4.716 4.55H0v1.625h12.8l-4.716 4.55 1.18 1.138L16 7z" fill="%232EB039"/></svg>');
-  width: 16px;
-  height: 14px;
-  background-color: $color-transparent;
-}
-%with-right-arrow-grey {
-  @extend %pseudo-icon;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="13" height="11" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="%23919FA8" d="M7.526.219l-.958.924L10.4 4.84H0v1.32h10.4L6.568 9.857l.958.924L13 5.5z"/></svg>');
-}
-// swap this out for new icons
-%with-error {
-  position: relative;
-  padding-left: 18px;
-}
-%with-error::before {
-  @extend %with-cross;
-  margin-top: -0.5em;
 }
