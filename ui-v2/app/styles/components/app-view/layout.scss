@@ -1,67 +1,67 @@
 /* layout */
-%app-view header > div:last-of-type > div:first-child {
+%app-view-header > div:last-of-type > div:first-child {
   flex-grow: 1;
 }
 %app-view {
   position: relative;
 }
-%app-view header .actions {
+%app-view-header .actions {
   float: right;
   display: flex;
   align-items: flex-start;
   margin-top: 9px;
 }
-%app-view header dl {
+%app-view-header dl {
   float: left;
   margin-top: 25px;
   margin-right: 50px;
   margin-bottom: 20px;
 }
-%app-view header dt {
+%app-view-header dt {
   font-weight: bold;
 }
 /* units */
 %app-view {
   margin-top: 50px;
 }
-%app-view header + div > *:first-child {
+%app-view-header + div > *:first-child {
   margin-top: 1.8em;
 }
 %app-view h2 {
   padding-bottom: 0.2em;
   margin-bottom: 0.2em;
 }
-%app-view header .actions > *:not(:last-child) {
+%app-view-header .actions > *:not(:last-child) {
   margin-right: 12px;
 }
 
 // content
-%app-content div > dl > dt {
+%app-view-content div > dl > dt {
   position: absolute;
 }
-%app-content div > dl {
+%app-view-content div > dl {
   position: relative;
 }
-%app-content-empty {
+%app-view-content-empty {
   margin-top: 0;
   padding: 50px;
   text-align: center;
 }
-%app-content form:not(:last-child) {
+%app-view-content form:not(:last-child) {
   margin-bottom: 2.2em;
 }
-%app-content div > dl > dt {
+%app-view-content div > dl > dt {
   width: 140px;
 }
-%app-content div > dl > dd {
+%app-view-content div > dl > dd {
   padding-left: 140px;
 }
-%app-content div > dl > * {
+%app-view-content div > dl > * {
   min-height: 1em;
   margin-bottom: 0.4em;
 }
 // TODO: Think about an %app-form or similar
-%app-content fieldset:not(.freetext-filter) {
+%app-view-content fieldset:not(.freetext-filter) {
   padding-bottom: 0.3em;
   margin-bottom: 2em;
 }

@@ -42,7 +42,14 @@
 }
 /* TODO: Try and use the same vertical positioning all tooltips */
 /* this is only for pseudo tooltips be want to avoid */
-/* specifiying pseudo in this file */
+/* specifying pseudo in this file */
 %tooltip::after {
   bottom: calc(100% - 7px);
+}
+%tooltip-bottom::before {
+  bottom: auto;
+  top: calc(100% + 7px);
+}
+%tooltip-bottom::after {
+  bottom: -12px;
 }
