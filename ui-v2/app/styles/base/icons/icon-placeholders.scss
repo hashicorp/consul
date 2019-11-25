@@ -243,6 +243,11 @@
   background-image: $folder-fill-svg;
 }
 
+%with-folder-outline-color-icon {
+  @extend %with-icon;
+  background-image: $folder-outline-color-svg;
+}
+
 %with-folder-outline-icon {
   @extend %with-icon;
   background-image: $folder-outline-svg;
@@ -418,13 +423,14 @@
   background-image: $run-svg;
 }
 
-%with-search-icon {
-  @extend %with-icon;
-  background-image: $search-svg;
-}
 %with-search-color-icon {
   @extend %with-icon;
   background-image: $search-color-svg;
+}
+
+%with-search-icon {
+  @extend %with-icon;
+  background-image: $search-svg;
 }
 
 %with-service-identity-icon {

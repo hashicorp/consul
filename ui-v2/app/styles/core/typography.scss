@@ -26,7 +26,8 @@ h3,
   letter-spacing: -0.05em;
 }
 
-%button {
+%button,
+%internal-button {
   font-family: $typo-family-sans;
 }
 /* Weighting */
@@ -96,6 +97,7 @@ body,
 pre code,
 input,
 textarea,
+%internal-button,
 %action-group-action,
 %tbody-th {
   font-size: $typo-size-600;
