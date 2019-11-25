@@ -6,3 +6,18 @@
 %breadcrumbs strong {
   @extend %breadcrumb-selected;
 }
+%breadcrumbs-milestone {
+  @extend %breadcrumbs;
+}
+%breadcrumbs-milestone li:first-child > * {
+  @extend %breadcrumb-milestone;
+}
+%breadcrumbs-filesystem {
+  @extend %breadcrumbs;
+}
+%breadcrumbs-filesystem li:not(:first-child) > * {
+  @extend %breadcrumb-path;
+}
+%breadcrumbs-filesystem li:first-child > * {
+  @extend %breadcrumb-folder;
+}

@@ -38,3 +38,9 @@
   padding-top: calc(0.35em - 1px) !important;
   height: 2.3em !important;
 }
+%internal-button {
+  padding: 0.75rem 1rem;
+  text-align: center;
+  display: inline-block;
+  box-sizing: border-box;
+}

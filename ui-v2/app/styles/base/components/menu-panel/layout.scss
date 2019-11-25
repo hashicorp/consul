@@ -1,0 +1,28 @@
+%menu-panel {
+  position: absolute;
+  overflow: hidden;
+}
+%menu-panel:not(.left) {
+  right: 0px;
+}
+%menu-panel.left {
+  left: 0px;
+}
+%menu-panel:not(.above) {
+  top: 28px;
+}
+%menu-panel.above {
+  bottom: 28px;
+}
+%menu-panel > ul {
+  margin: 0;
+  padding: 4px 0;
+}
+%menu-panel > ul,
+%menu-panel > ul > li,
+%menu-panel > ul > li > * {
+  width: 100%;
+}
+%menu-panel > ul > li > * {
+  text-align: left !important;
+}
