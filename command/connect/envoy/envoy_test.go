@@ -321,7 +321,6 @@ wlW975rYa1ZqEdA=
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
-				Token:                 "98c9b31f-6763-739e-5353-94c641fa39ae",
 			},
 		},
 		{
