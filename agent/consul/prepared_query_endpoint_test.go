@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -852,7 +853,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1105,7 +1106,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1461,6 +1462,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
@@ -2957,6 +2959,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
