@@ -16,6 +16,7 @@
 }
 %healthcheck-output dd em {
   @extend %pill;
+  /*TODO: Should this be merged into %pill? */
   cursor: default;
   font-style: normal;
   margin-top: -2px;

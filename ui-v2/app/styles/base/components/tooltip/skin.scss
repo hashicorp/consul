@@ -3,6 +3,10 @@
   color: $white;
   background-color: $gray-500;
 }
+
+/* borders here are used to draw a triangle in CSS */
+/* the are not actual borders */
+
 %tooltip-tail {
   background-color: transparent !important;
   border-left: 9px solid transparent;
