@@ -90,7 +90,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		_, roots2, err := state2.CARoots(nil)
 		require.NoError(r, err)
 		require.Len(r, roots1, 1)
-		require.Len(r, roots1, 1)
+		require.Len(r, roots2, 1)
 		require.Equal(r, roots1[0].ID, roots2[0].ID)
 		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
 		require.Empty(r, roots1[0].IntermediateCerts)
