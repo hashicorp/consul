@@ -1,7 +1,18 @@
 @import '../toggle-button/index';
+@import '../menu-panel/index';
+@import '../confirmation-alert/index';
 @import './skin';
 @import './layout';
 
-%action-group label:first-of-type {
+%action-group > div {
+  @extend %menu-panel;
+}
+%action-group > label:first-of-type {
   @extend %toggle-button;
+}
+%action-group .confirmation-alert {
+  @extend %confirmation-alert;
+}
+%action-group .type-delete {
+  @extend %internal-button-dangerous;
 }

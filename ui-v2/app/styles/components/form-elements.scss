@@ -1,9 +1,10 @@
 /*TODO: This remains a mix of form-elements */
 /* form-elements should probably be a collection of these */
-@import './form-elements/index';
-@import './toggle/index';
-@import './radio-group/index';
-@import './checkbox-group/index';
+@import '../base/components/inline-alert/index';
+@import '../base/components/form-elements/index';
+@import '../base/components/sliding-toggle/index';
+@import '../base/components/radio-group/index';
+@import '../base/components/checkbox-group/index';
 label span {
   @extend %user-select-none;
 }
@@ -15,7 +16,7 @@ label span {
   @extend %form-element;
 }
 .type-toggle {
-  @extend %form-element, %toggle;
+  @extend %form-element, %sliding-toggle;
 }
 %form-element,
 %radio-group,
@@ -37,6 +38,6 @@ form table,
 fieldset > p {
   color: $gray-400;
 }
-%toggle + .checkbox-group {
+%sliding-toggle + .checkbox-group {
   margin-top: -1em;
 }

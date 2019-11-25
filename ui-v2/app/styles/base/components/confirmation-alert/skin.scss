@@ -1,0 +1,26 @@
+%confirmation-alert {
+  background-color: $white;
+}
+
+%confirmation-alert > div {
+  background-color: $yellow-050;
+  border-top-left-radius: $decor-radius-200;
+  border-top-right-radius: $decor-radius-200;
+}
+%confirmation-alert > ul {
+  list-style: none;
+}
+%confirmation-alert > ul > li > * {
+  cursor: pointer;
+}
+%confirmation-alert > ul > li > *:hover,
+%confirmation-alert > ul > li > *:focus {
+  background-color: $gray-100;
+}
+%confirmation-alert > ul > .dangerous > * {
+  @extend %frame-red-300;
+}
+%confirmation-alert > ul > .dangerous > *:hover,
+%confirmation-alert > ul > .dangerous > *:focus {
+  @extend %frame-red-700;
+}
