@@ -8,9 +8,7 @@ description: |-
 
 # Session HTTP Endpoint
 
-The `/session` endpoints create, destroy, and query sessions in Consul. A
-conceptual overview of sessions is found at the
-[Session Internals](/docs/internals/sessions.html) page.
+The `/session` endpoints create, destroy, and query sessions in Consul.
 
 ## Create Session
 
@@ -33,11 +31,17 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
+- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter.
+
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
-- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay.
+- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay. This
+  must be greater than `0`.
 
 - `Node` `(string: "<agent>")` - Specifies the name of the node. This must refer
   to a node that is already registered.
@@ -126,6 +130,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 
@@ -167,6 +176,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 
@@ -223,6 +237,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 
@@ -274,6 +293,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 
@@ -329,6 +353,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 

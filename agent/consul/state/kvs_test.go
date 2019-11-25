@@ -91,7 +91,7 @@ func TestStateStore_GC(t *testing.T) {
 	if ok, err := s.KVSLock(11, d); !ok || err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.SessionDestroy(12, session.ID); err != nil {
+	if err := s.SessionDestroy(12, session.ID, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	select {

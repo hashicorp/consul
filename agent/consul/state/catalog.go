@@ -669,6 +669,7 @@ func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName strin
 
 // deleteNodeTxn is the inner method used for removing a node from
 // the store within a given transaction.
+// TODO (namespaces) (catalog) access to catalog tables needs to become namespace aware for services/checks
 func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error {
 	// Look up the node.
 	node, err := tx.First("nodes", "id", nodeName)
@@ -748,15 +749,16 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 	if err != nil {
 		return fmt.Errorf("failed session lookup: %s", err)
 	}
-	var ids []string
+
+	var toDelete []*structs.Session
 	for sess := sessions.Next(); sess != nil; sess = sessions.Next() {
-		ids = append(ids, sess.(*structs.Session).ID)
+		session := sess.(*structs.Session)
+		toDelete = append(toDelete, session)
 	}
 
-	// Do the delete in a separate loop so we don't trash the iterator.
-	for _, id := range ids {
-		if err := s.deleteSessionTxn(tx, idx, id); err != nil {
-			return fmt.Errorf("failed session delete: %s", err)
+	for _, session := range toDelete {
+		if err := s.deleteSessionTxn(tx, idx, session.ID, &session.EnterpriseMeta); err != nil {
+			return fmt.Errorf("failed to delete session '%s': %v", session.ID, err)
 		}
 	}
 
@@ -1605,7 +1607,8 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		// Delete the session in a separate loop so we don't trash the
 		// iterator.
 		for _, id := range ids {
-			if err := s.deleteSessionTxn(tx, idx, id); err != nil {
+			// TODO (namespaces): Update when structs.HealthCheck supports Namespaces (&hc.EnterpriseMeta)
+			if err := s.deleteSessionTxn(tx, idx, id, nil); err != nil {
 				return fmt.Errorf("failed deleting session: %s", err)
 			}
 		}
@@ -1917,7 +1920,8 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 
 	// Do the delete in a separate loop so we don't trash the iterator.
 	for _, id := range ids {
-		if err := s.deleteSessionTxn(tx, idx, id); err != nil {
+		// TODO (namespaces): Update when structs.HealthCheck supports Namespaces (&hc.EnterpriseMeta)
+		if err := s.deleteSessionTxn(tx, idx, id, nil); err != nil {
 			return fmt.Errorf("failed deleting session: %s", err)
 		}
 	}

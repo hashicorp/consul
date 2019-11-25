@@ -529,7 +529,7 @@ func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (
 	}
 
 	// Verify that the session exists.
-	sess, err := tx.First("sessions", "id", entry.Session)
+	sess, err := firstWithTxn(tx, "sessions", "id", entry.Session, &entry.EnterpriseMeta)
 	if err != nil {
 		return false, fmt.Errorf("failed session lookup: %s", err)
 	}

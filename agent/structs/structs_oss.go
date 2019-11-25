@@ -19,6 +19,11 @@ func (m *EnterpriseMeta) addToHash(hasher hash.Hash) {
 	// do nothing
 }
 
+// WildcardEnterpriseMeta stub
+func WildcardEnterpriseMeta() *EnterpriseMeta {
+	return nil
+}
+
 // ReplicationEnterpriseMeta stub
 func ReplicationEnterpriseMeta() *EnterpriseMeta {
 	return nil

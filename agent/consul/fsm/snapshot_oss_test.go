@@ -79,6 +79,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
+
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
@@ -359,7 +360,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify session is restored
-	idx, s, err := fsm2.state.SessionGet(nil, session.ID)
+	idx, s, err := fsm2.state.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

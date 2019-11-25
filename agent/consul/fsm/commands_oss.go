@@ -141,7 +141,7 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 		}
 		return req.Session.ID
 	case structs.SessionDestroy:
-		return c.state.SessionDestroy(index, req.Session.ID)
+		return c.state.SessionDestroy(index, req.Session.ID, &req.Session.EnterpriseMeta)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid Session operation '%s'", req.Op)
 		return fmt.Errorf("Invalid Session operation '%s'", req.Op)

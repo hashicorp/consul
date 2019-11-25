@@ -515,6 +515,7 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
+	EnterpriseMeta
 	QueryOptions
 }
 
@@ -1620,6 +1621,7 @@ type DirEntry struct {
 	Value     []byte
 	Session   string `json:",omitempty"`
 
+	EnterpriseMeta
 	RaftIndex
 }
 
@@ -1664,6 +1666,7 @@ func (r *KVSRequest) RequestDatacenter() string {
 type KeyRequest struct {
 	Datacenter string
 	Key        string
+	EnterpriseMeta
 	QueryOptions
 }
 
@@ -1718,6 +1721,7 @@ type Session struct {
 	Behavior  SessionBehavior // What to do when session is invalidated
 	TTL       string
 
+	EnterpriseMeta
 	RaftIndex
 }
 
@@ -1773,7 +1777,8 @@ func (r *SessionRequest) RequestDatacenter() string {
 // SessionSpecificRequest is used to request a session by ID
 type SessionSpecificRequest struct {
 	Datacenter string
-	Session    string
+	SessionID  string
+	EnterpriseMeta
 	QueryOptions
 }
 

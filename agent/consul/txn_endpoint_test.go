@@ -620,7 +620,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock.
 	state := s1.fsm.State()
@@ -643,7 +643,8 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	if ok, err := state.KVSLock(3, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
-	if err := state.SessionDestroy(4, id); err != nil {
+
+	if err := state.SessionDestroy(4, id, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

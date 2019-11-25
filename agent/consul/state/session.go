@@ -19,9 +19,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
-				},
+				Indexer:      sessionIndexer(),
 			},
 			"node": &memdb.IndexSchema{
 				Name:         "node",
@@ -108,26 +106,8 @@ func (s *Snapshot) Sessions() (memdb.ResultIterator, error) {
 // Session is used when restoring from a snapshot. For general inserts, use
 // SessionCreate.
 func (s *Restore) Session(sess *structs.Session) error {
-	// Insert the session.
-	if err := s.tx.Insert("sessions", sess); err != nil {
+	if err := s.store.insertSessionTxn(s.tx, sess, sess.ModifyIndex, true); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
-	}
-
-	// Insert the check mappings.
-	for _, checkID := range sess.Checks {
-		mapping := &sessionCheck{
-			Node:    sess.Node,
-			CheckID: checkID,
-			Session: sess.ID,
-		}
-		if err := s.tx.Insert("session_checks", mapping); err != nil {
-			return fmt.Errorf("failed inserting session check mapping: %s", err)
-		}
-	}
-
-	// Update the index.
-	if err := indexUpdateMaxTxn(s.tx, sess.ModifyIndex, "sessions"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	return nil
@@ -206,44 +186,30 @@ func (s *Store) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Sessio
 	}
 
 	// Insert the session
-	if err := tx.Insert("sessions", sess); err != nil {
+	if err := s.insertSessionTxn(tx, sess, idx, false); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
-	}
-
-	// Insert the check mappings
-	for _, checkID := range sess.Checks {
-		mapping := &sessionCheck{
-			Node:    sess.Node,
-			CheckID: checkID,
-			Session: sess.ID,
-		}
-		if err := tx.Insert("session_checks", mapping); err != nil {
-			return fmt.Errorf("failed inserting session check mapping: %s", err)
-		}
-	}
-
-	// Update the index
-	if err := tx.Insert("index", &IndexEntry{"sessions", idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	return nil
 }
 
 // SessionGet is used to retrieve an active session from the state store.
-func (s *Store) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *structs.Session, error) {
+func (s *Store) SessionGet(ws memdb.WatchSet,
+	sessionID string, entMeta *structs.EnterpriseMeta) (uint64, *structs.Session, error) {
+
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "sessions")
+	idx := s.sessionMaxIndex(tx, entMeta)
 
 	// Look up the session by its ID
-	watchCh, session, err := tx.FirstWatch("sessions", "id", sessionID)
+	watchCh, session, err := firstWatchWithTxn(tx, "sessions", "id", sessionID, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
 	ws.Add(watchCh)
+
 	if session != nil {
 		return idx, session.(*structs.Session), nil
 	}
@@ -251,15 +217,15 @@ func (s *Store) SessionGet(ws memdb.WatchSet, sessionID string) (uint64, *struct
 }
 
 // SessionList returns a slice containing all of the active sessions.
-func (s *Store) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, error) {
+func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "sessions")
+	idx := s.sessionMaxIndex(tx, entMeta)
 
 	// Query all of the active sessions.
-	sessions, err := tx.Get("sessions", "id")
+	sessions, err := getWithTxn(tx, "sessions", "id_prefix", "", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
@@ -276,12 +242,12 @@ func (s *Store) SessionList(ws memdb.WatchSet) (uint64, structs.Sessions, error)
 // NodeSessions returns a set of active sessions associated
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
-func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, structs.Sessions, error) {
+func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, "sessions")
+	idx := s.sessionMaxIndex(tx, entMeta)
 
 	// Get all of the sessions which belong to the node
 	sessions, err := tx.Get("sessions", "node", nodeID)
@@ -290,23 +256,19 @@ func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string) (uint64, structs.
 	}
 	ws.Add(sessions.WatchCh())
 
-	// Go over all of the sessions and return them as a slice
-	var result structs.Sessions
-	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		result = append(result, session.(*structs.Session))
-	}
+	result := s.collectNodeSessions(sessions, entMeta)
 	return idx, result, nil
 }
 
 // SessionDestroy is used to remove an active session. This will
 // implicitly invalidate the session and invoke the specified
 // session destroy behavior.
-func (s *Store) SessionDestroy(idx uint64, sessionID string) error {
+func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	// Call the session deletion.
-	if err := s.deleteSessionTxn(tx, idx, sessionID); err != nil {
+	if err := s.deleteSessionTxn(tx, idx, sessionID, entMeta); err != nil {
 		return err
 	}
 
@@ -316,9 +278,9 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string) error {
 
 // deleteSessionTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, etc.
-func (s *Store) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string) error {
+func (s *Store) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
-	sess, err := tx.First("sessions", "id", sessionID)
+	sess, err := firstWithTxn(tx, "sessions", "id", sessionID, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed session lookup: %s", err)
 	}
@@ -327,15 +289,12 @@ func (s *Store) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string) er
 	}
 
 	// Delete the session and write the new index.
-	if err := tx.Delete("sessions", sess); err != nil {
-		return fmt.Errorf("failed deleting session: %s", err)
-	}
-	if err := tx.Insert("index", &IndexEntry{"sessions", idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
+	session := sess.(*structs.Session)
+	if err := s.sessionDeleteWithSession(tx, session, idx); err != nil {
+		return fmt.Errorf("failed deleting session: %v", err)
 	}
 
 	// Enforce the max lock delay.
-	session := sess.(*structs.Session)
 	delay := session.LockDelay
 	if delay > structs.MaxLockDelay {
 		delay = structs.MaxLockDelay

@@ -743,7 +743,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 	// Get the session
 	id := resp.(string)
-	_, session, err := fsm.state.SessionGet(nil, id)
+	_, session, err := fsm.state.SessionGet(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -779,7 +779,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, session, err = fsm.state.SessionGet(nil, id)
+	_, session, err = fsm.state.SessionGet(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
