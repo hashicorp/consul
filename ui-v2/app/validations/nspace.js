@@ -1,4 +1,4 @@
 import { validateFormat } from 'ember-changeset-validations/validators';
 export default {
-  Name: validateFormat({ regex: /^[A-Za-z0-9\-]{1,64}$/ }),
+  Name: validateFormat({ regex: /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$/ }),
 };
