@@ -1,28 +1,8 @@
+{{! TODO: this component and its parent should be moved to a single component }}
 {{yield}}
 <div>
   <header>
     {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
   </header>
   {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
-  <dl>
-    <dt>Output</dt>
-    <dd>
-        <pre><code>{{output}}</code></pre>
-{{#feedback-dialog type='inline'}}
-  {{#block-slot 'action' as |success error|}}
-      {{copy-button success=(action success) error=(action error) clipboardText=output title='copy output to clipboard'}}
-  {{/block-slot}}
-  {{#block-slot 'success' as |transition|}}
-    <p class={{transition}}>
-      Copied output!
-    </p>
-  {{/block-slot}}
-  {{#block-slot 'error' as |transition|}}
-    <p class={{transition}}>
-      Sorry, something went wrong!
-    </p>
-  {{/block-slot}}
-{{/feedback-dialog}}
-    </dd>
-  </dl>
 </div>
