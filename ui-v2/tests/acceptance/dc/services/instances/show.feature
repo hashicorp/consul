@@ -29,6 +29,7 @@ Feature: dc / services / instances / show: Show Service Instance
           Output: Output of check
           Status: warning
         - Name: Service check
+          Type: http
           ServiceID: service-0
           Output: Output of check
           Status: critical
@@ -45,13 +46,13 @@ Feature: dc / services / instances / show: Show Service Instance
           Output: Output of check
           Status: critical
     ---
-    And 1 proxy model from yaml
+  Scenario: A Service instance has no Proxy
+    Given 1 proxy model from yaml
     ---
     - ServiceProxy:
         DestinationServiceName: service-1
         DestinationServiceID: ~
     ---
-  Scenario: A Service instance has no Proxy
     When I visit the instance page for yaml
     ---
       dc: dc1
@@ -99,6 +100,63 @@ Feature: dc / services / instances / show: Show Service Instance
     Then the url should be /dc1/services/service-0/node-0/service-0-with-id
     And an external edit results in 0 instance models
     And pause until I see the text "deregistered" in "[data-notification]"
+
+  Scenario: A Service instance with a Proxy with only automatically exposed checks but no paths
+    Given 1 proxy model from yaml
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-0
+        DestinationServiceID: ~
+        Expose:
+          Checks: true
+          Paths: []
+    ---
+    When I visit the instance page for yaml
+    ---
+      dc: dc1
+      service: service-0
+      node: another-node
+      id: service-0-with-id
+    ---
+    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
+    And I see serviceChecksIsSelected on the tabs
+
+    And I don't see exposedPaths on the tabs
+
+    When I click serviceChecks on the tabs
+    And I see exposed on the serviceChecks
+
+    When I click nodeChecks on the tabs
+    And I don't see exposed on the nodeChecks
+
+  Scenario: A Service Instance with a Proxy with no automatically exposed checks
+    Given 1 proxy model from yaml
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-0
+        DestinationServiceID: ~
+        Expose:
+          Checks: false
+          Paths: []
+    ---
+    When I visit the instance page for yaml
+    ---
+      dc: dc1
+      service: service-0
+      node: another-node
+      id: service-0-with-id
+    ---
+    Then the url should be /dc1/services/service-0/another-node/service-0-with-id
+    And I see serviceChecksIsSelected on the tabs
+
+    And I don't see exposedPaths on the tabs
+
+    When I click serviceChecks on the tabs
+    And I don't see exposed on the serviceChecks
+
+    When I click nodeChecks on the tabs
+    And I don't see exposed on the nodeChecks
+
   @ignore
     Scenario: A Service Instance's proxy blocking query is closed when the instance is deregistered
     Then ok
