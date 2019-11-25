@@ -30,9 +30,9 @@ import (
 )
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
-func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
+func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
-		return nil, false, errors.New("nil config given")
+		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
@@ -41,12 +41,12 @@ func (s *Server) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 	case structs.ServiceKindMeshGateway:
 		return s.listenersFromSnapshotMeshGateway(cfgSnap, token)
 	default:
-		return nil, false, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
+		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
-func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
+func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	// One listener for each upstream plus the public one
 	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
@@ -54,7 +54,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 	var err error
 	resources[0], err = s.makePublicListener(cfgSnap, token)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	for i, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
@@ -71,7 +71,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 			upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(&u, chain, cfgSnap)
 		}
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		resources[i+1] = upstreamListener
 	}
@@ -100,12 +100,12 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 		l, err := s.makeExposedCheckListener(cfgSnap, clusterName, path)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		resources = append(resources, l)
 	}
 
-	return resources, false, nil
+	return resources, nil
 }
 
 func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
@@ -179,7 +179,7 @@ func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
 }
 
 // listenersFromSnapshotMeshGateway returns the "listener" for a mesh-gateway service
-func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, bool, error) {
+func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	cfg, err := ParseMeshGatewayConfig(cfgSnap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -199,7 +199,7 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 		l, err := s.makeGatewayListener("default", addr, cfgSnap.Port, cfgSnap)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		resources = append(resources, l)
 	}
@@ -208,7 +208,7 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 		for name, addrCfg := range cfgSnap.TaggedAddresses {
 			l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			resources = append(resources, l)
 		}
@@ -217,12 +217,12 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	for name, addrCfg := range cfg.BindAddresses {
 		l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		resources = append(resources, l)
 	}
 
-	return resources, false, err
+	return resources, err
 }
 
 // makeListener returns a listener with name and bind details set. Filters must

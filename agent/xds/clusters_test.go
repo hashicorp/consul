@@ -26,7 +26,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 		// test input.
 		setup              func(snap *proxycfg.ConfigSnapshot)
 		overrideGoldenName string
-		allowEmptyReply    bool
 	}{
 		{
 			name:   "defaults",
@@ -194,16 +193,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name:            "mesh-gateway",
-			create:          proxycfg.TestConfigSnapshotMeshGateway,
-			setup:           nil,
-			allowEmptyReply: true,
+			name:   "mesh-gateway",
+			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup:  nil,
 		},
 		{
-			name:            "mesh-gateway-no-services",
-			create:          proxycfg.TestConfigSnapshotMeshGatewayNoServices,
-			setup:           nil,
-			allowEmptyReply: true,
+			name:   "mesh-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
+			setup:  nil,
 		},
 		{
 			name:   "mesh-gateway-service-subsets",
@@ -225,7 +222,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 					},
 				}
 			},
-			allowEmptyReply: true,
 		},
 	}
 
@@ -254,9 +250,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			// Need server just for logger dependency
 			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
 
-			clusters, allowEmpty, err := s.clustersFromSnapshot(snap, "my-token")
+			clusters, err := s.clustersFromSnapshot(snap, "my-token")
 			require.NoError(err)
-			require.Equal(tt.allowEmptyReply, allowEmpty)
 			sort.Slice(clusters, func(i, j int) bool {
 				return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
 			})
