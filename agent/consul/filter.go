@@ -14,7 +14,10 @@ func (d *dirEntFilter) Len() int {
 	return len(d.ent)
 }
 func (d *dirEntFilter) Filter(i int) bool {
-	return d.authorizer.KeyRead(d.ent[i].Key, nil) != acl.Allow
+	var entCtx acl.EnterpriseAuthorizerContext
+	d.ent[i].FillAuthzContext(&entCtx)
+
+	return d.authorizer.KeyRead(d.ent[i].Key, &entCtx) != acl.Allow
 }
 func (d *dirEntFilter) Move(dst, src, span int) {
 	copy(d.ent[dst:dst+span], d.ent[src:src+span])
@@ -25,30 +28,6 @@ func (d *dirEntFilter) Move(dst, src, span int) {
 func FilterDirEnt(authorizer acl.Authorizer, ent structs.DirEntries) structs.DirEntries {
 	df := dirEntFilter{authorizer: authorizer, ent: ent}
 	return ent[:FilterEntries(&df)]
-}
-
-type keyFilter struct {
-	authorizer acl.Authorizer
-	keys       []string
-}
-
-func (k *keyFilter) Len() int {
-	return len(k.keys)
-}
-func (k *keyFilter) Filter(i int) bool {
-	// TODO (namespaces) use a real ent authz context here
-	return k.authorizer.KeyRead(k.keys[i], nil) != acl.Allow
-}
-
-func (k *keyFilter) Move(dst, src, span int) {
-	copy(k.keys[dst:dst+span], k.keys[src:src+span])
-}
-
-// FilterKeys is used to filter a list of keys by
-// applying an ACL policy
-func FilterKeys(authorizer acl.Authorizer, keys []string) []string {
-	kf := keyFilter{authorizer: authorizer, keys: keys}
-	return keys[:FilterEntries(&kf)]
 }
 
 type txnResultsFilter struct {

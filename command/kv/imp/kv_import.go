@@ -80,7 +80,8 @@ func (c *cmd) Run(args []string) int {
 			Value: value,
 		}
 
-		if _, err := client.KV().Put(pair, nil); err != nil {
+		w := api.WriteOptions{Namespace: entry.Namespace}
+		if _, err := client.KV().Put(pair, &w); err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Failed writing data for key %s: %s", pair.Key, err))
 			return 1
 		}

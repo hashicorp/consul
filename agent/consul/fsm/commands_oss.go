@@ -93,15 +93,15 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	case api.KVSet:
 		return c.state.KVSSet(index, &req.DirEnt)
 	case api.KVDelete:
-		return c.state.KVSDelete(index, req.DirEnt.Key)
+		return c.state.KVSDelete(index, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 	case api.KVDeleteCAS:
-		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key)
+		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
 		return act
 	case api.KVDeleteTree:
-		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
+		return c.state.KVSDeleteTree(index, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 	case api.KVCAS:
 		act, err := c.state.KVSSetCAS(index, &req.DirEnt)
 		if err != nil {

@@ -25,10 +25,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 				Name:         "node",
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
-				},
+				Indexer:      nodeSessionsIndexer(),
 			},
 		},
 	}
@@ -250,13 +247,10 @@ func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.
 	idx := s.sessionMaxIndex(tx, entMeta)
 
 	// Get all of the sessions which belong to the node
-	sessions, err := tx.Get("sessions", "node", nodeID)
+	result, err := s.nodeSessionsTxn(tx, ws, nodeID, entMeta)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
+		return 0, nil, err
 	}
-	ws.Add(sessions.WatchCh())
-
-	result := s.collectNodeSessions(sessions, entMeta)
 	return idx, result, nil
 }
 
@@ -329,19 +323,19 @@ func (s *Store) deleteSessionTxn(tx *memdb.Txn, idx uint64, sessionID string, en
 
 			// Apply the lock delay if present.
 			if delay > 0 {
-				s.lockDelay.SetExpiration(e.Key, now, delay)
+				s.lockDelay.SetExpiration(e.Key, now, delay, entMeta)
 			}
 		}
 	case structs.SessionKeysDelete:
 		for _, obj := range kvs {
 			e := obj.(*structs.DirEntry)
-			if err := s.kvsDeleteTxn(tx, idx, e.Key); err != nil {
+			if err := s.kvsDeleteTxn(tx, idx, e.Key, entMeta); err != nil {
 				return fmt.Errorf("failed kvs delete: %s", err)
 			}
 
 			// Apply the lock delay if present.
 			if delay > 0 {
-				s.lockDelay.SetExpiration(e.Key, now, delay)
+				s.lockDelay.SetExpiration(e.Key, now, delay, entMeta)
 			}
 		}
 	default:

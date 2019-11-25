@@ -18,6 +18,7 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	s.parseEntMeta(req, &args.EnterpriseMeta)
 
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
@@ -96,10 +97,11 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 
 	// Construct the args
 	listArgs := structs.KeyListRequest{
-		Datacenter:   args.Datacenter,
-		Prefix:       args.Key,
-		Seperator:    sep,
-		QueryOptions: args.QueryOptions,
+		Datacenter:     args.Datacenter,
+		Prefix:         args.Key,
+		Seperator:      sep,
+		EnterpriseMeta: args.EnterpriseMeta,
+		QueryOptions:   args.QueryOptions,
 	}
 
 	// Make the RPC
@@ -135,9 +137,10 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 		Datacenter: args.Datacenter,
 		Op:         api.KVSet,
 		DirEnt: structs.DirEntry{
-			Key:   args.Key,
-			Flags: 0,
-			Value: nil,
+			Key:            args.Key,
+			Flags:          0,
+			Value:          nil,
+			EnterpriseMeta: args.EnterpriseMeta,
 		},
 	}
 	applyReq.Token = args.Token
@@ -210,7 +213,8 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 		Datacenter: args.Datacenter,
 		Op:         api.KVDelete,
 		DirEnt: structs.DirEntry{
-			Key: args.Key,
+			Key:            args.Key,
+			EnterpriseMeta: args.EnterpriseMeta,
 		},
 	}
 	applyReq.Token = args.Token

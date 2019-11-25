@@ -6,18 +6,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/raft"
-	"github.com/pascaldekloe/goe/verify"
-
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
@@ -213,7 +211,10 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			if len(txnResp.Results) != 2 {
 				t.Fatalf("bad: %v", txnResp)
 			}
+
 			index = txnResp.Results[0].KV.ModifyIndex
+			entMeta := txnResp.Results[0].KV.EnterpriseMeta
+
 			expected := structs.TxnResponse{
 				Results: structs.TxnResults{
 					&structs.TxnResult{
@@ -227,6 +228,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 								CreateIndex: index,
 								ModifyIndex: index,
 							},
+							EnterpriseMeta: entMeta,
 						},
 					},
 					&structs.TxnResult{
@@ -240,13 +242,12 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 								CreateIndex: index,
 								ModifyIndex: index,
 							},
+							EnterpriseMeta: entMeta,
 						},
 					},
 				},
 			}
-			if !reflect.DeepEqual(txnResp, expected) {
-				t.Fatalf("bad: %v", txnResp)
-			}
+			assert.Equal(t, expected, txnResp)
 		}
 
 		// Do a read-only transaction that should get routed to the
@@ -291,6 +292,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			if !ok {
 				t.Fatalf("bad type: %T", obj)
 			}
+			entMeta := txnResp.Results[0].KV.EnterpriseMeta
 			expected := structs.TxnReadResponse{
 				TxnResponse: structs.TxnResponse{
 					Results: structs.TxnResults{
@@ -305,6 +307,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 									CreateIndex: index,
 									ModifyIndex: index,
 								},
+								EnterpriseMeta: entMeta,
 							},
 						},
 						&structs.TxnResult{
@@ -318,6 +321,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 									CreateIndex: index,
 									ModifyIndex: index,
 								},
+								EnterpriseMeta: entMeta,
 							},
 						},
 					},
@@ -326,9 +330,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 					KnownLeader: true,
 				},
 			}
-			if !reflect.DeepEqual(txnResp, expected) {
-				t.Fatalf("bad: %v", txnResp)
-			}
+			assert.Equal(t, expected, txnResp)
 		}
 
 		// Now that we have an index we can do a CAS to make sure the
@@ -369,7 +371,10 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			if len(txnResp.Results) != 2 {
 				t.Fatalf("bad: %v", txnResp)
 			}
+
 			modIndex := txnResp.Results[0].KV.ModifyIndex
+			entMeta := txnResp.Results[0].KV.EnterpriseMeta
+
 			expected := structs.TxnResponse{
 				Results: structs.TxnResults{
 					&structs.TxnResult{
@@ -381,6 +386,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 								CreateIndex: index,
 								ModifyIndex: modIndex,
 							},
+							EnterpriseMeta: entMeta,
 						},
 					},
 					&structs.TxnResult{
@@ -392,13 +398,12 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 								CreateIndex: index,
 								ModifyIndex: modIndex,
 							},
+							EnterpriseMeta: entMeta,
 						},
 					},
 				},
 			}
-			if !reflect.DeepEqual(txnResp, expected) {
-				t.Fatalf("bad: %v", txnResp)
-			}
+			assert.Equal(t, expected, txnResp)
 		}
 	})
 
@@ -601,7 +606,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 			},
 		},
 	}
-	verify.Values(t, "", txnResp, expected)
+	assert.Equal(t, expected, txnResp)
 }
 
 func TestConvertOps_ContentLength(t *testing.T) {

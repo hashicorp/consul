@@ -1637,6 +1637,7 @@ func (d *DirEntry) Clone() *DirEntry {
 			CreateIndex: d.CreateIndex,
 			ModifyIndex: d.ModifyIndex,
 		},
+		EnterpriseMeta: d.EnterpriseMeta,
 	}
 }
 
@@ -1680,6 +1681,7 @@ type KeyListRequest struct {
 	Prefix     string
 	Seperator  string
 	QueryOptions
+	EnterpriseMeta
 }
 
 func (r *KeyListRequest) RequestDatacenter() string {

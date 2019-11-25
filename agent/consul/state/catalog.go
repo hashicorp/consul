@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -745,15 +745,9 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 	}
 
 	// Invalidate any sessions for this node.
-	sessions, err := tx.Get("sessions", "node", nodeName)
+	toDelete, err := s.allNodeSessionsTxn(tx, nodeName)
 	if err != nil {
-		return fmt.Errorf("failed session lookup: %s", err)
-	}
-
-	var toDelete []*structs.Session
-	for sess := sessions.Next(); sess != nil; sess = sessions.Next() {
-		session := sess.(*structs.Session)
-		toDelete = append(toDelete, session)
+		return err
 	}
 
 	for _, session := range toDelete {

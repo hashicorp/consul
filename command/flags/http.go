@@ -18,6 +18,7 @@ type HTTPFlags struct {
 	certFile      StringValue
 	keyFile       StringValue
 	tlsServerName StringValue
+	namespace     StringValue
 
 	// server flags
 	datacenter StringValue
@@ -55,6 +56,10 @@ func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
 	fs.Var(&f.tlsServerName, "tls-server-name",
 		"The server name to use as the SNI host when connecting via TLS. This "+
 			"can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
+	// TODO (namespaces) Do we want to allow setting via an env var? CONSUL_NAMESPACE
+	fs.Var(&f.namespace, "ns",
+		"Specifies the namespace to query. If not provided, the namespace will be inferred +"+
+			"from the request's ACL token, or will default to the `default` namespace.")
 
 	return fs
 }
@@ -135,4 +140,5 @@ func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.keyFile.Merge(&c.TLSConfig.KeyFile)
 	f.tlsServerName.Merge(&c.TLSConfig.Address)
 	f.datacenter.Merge(&c.Datacenter)
+	f.namespace.Merge(&c.Namespace)
 }

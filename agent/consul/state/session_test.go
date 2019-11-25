@@ -778,7 +778,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Key should be unlocked.
-	idx, d2, err := s.KVSGet(nil, "/foo")
+	idx, d2, err := s.KVSGet(nil, "/foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -796,7 +796,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	}
 
 	// Key should have a lock delay.
-	expires := s.KVSLockDelay("/foo")
+	expires := s.KVSLockDelay("/foo", nil)
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
 	}
@@ -860,7 +860,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Key should be deleted.
-	idx, d2, err := s.KVSGet(nil, "/bar")
+	idx, d2, err := s.KVSGet(nil, "/bar", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -872,7 +872,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 
 	// Key should have a lock delay.
-	expires := s.KVSLockDelay("/bar")
+	expires := s.KVSLockDelay("/bar", nil)
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
 	}

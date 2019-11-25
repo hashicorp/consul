@@ -15,13 +15,11 @@ func sessionIndexer() *memdb.UUIDFieldIndex {
 	}
 }
 
-func (s *Store) collectNodeSessions(sessions memdb.ResultIterator, entMeta *structs.EnterpriseMeta) structs.Sessions {
-	// Go over all of the sessions and return them as a slice
-	var result structs.Sessions
-	for s := sessions.Next(); s != nil; s = sessions.Next() {
-		result = append(result, s.(*structs.Session))
+func nodeSessionsIndexer() *memdb.StringFieldIndex {
+	return &memdb.StringFieldIndex{
+		Field:     "Node",
+		Lowercase: true,
 	}
-	return result
 }
 
 func (s *Store) sessionDeleteWithSession(tx *memdb.Txn, session *structs.Session, idx uint64) error {
@@ -67,6 +65,26 @@ func (s *Store) insertSessionTxn(tx *memdb.Txn, session *structs.Session, idx ui
 	}
 
 	return nil
+}
+
+func (s *Store) allNodeSessionsTxn(tx *memdb.Txn, node string) (structs.Sessions, error) {
+	return s.nodeSessionsTxn(tx, nil, node, nil)
+}
+
+func (s *Store) nodeSessionsTxn(tx *memdb.Txn,
+	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
+
+	sessions, err := tx.Get("sessions", "node", node)
+	if err != nil {
+		return nil, fmt.Errorf("failed session lookup: %s", err)
+	}
+	ws.Add(sessions.WatchCh())
+
+	var result structs.Sessions
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
+		result = append(result, session.(*structs.Session))
+	}
+	return result, nil
 }
 
 func (s *Store) sessionMaxIndex(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) uint64 {
