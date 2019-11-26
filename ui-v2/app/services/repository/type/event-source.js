@@ -17,10 +17,16 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
     const meta = get(event.data || {}, 'meta') || {};
     if (typeof meta.date !== 'undefined') {
       // unload anything older than our current sync date/time
+      const checkNspace = meta.nspace !== '';
       store.peekAll(repo.getModelName()).forEach(function(item) {
         const dc = get(item, 'Datacenter');
-        const nspace = get(item, 'Namespace');
-        if (dc === meta.dc && nspace === meta.nspace) {
+        if (dc === meta.dc) {
+          if (checkNspace) {
+            const nspace = get(item, 'Namespace');
+            if (nspace !== meta.namespace) {
+              return;
+            }
+          }
           const date = get(item, 'SyncTime');
           if (typeof date !== 'undefined' && date != meta.date) {
             store.unloadRecord(item);
