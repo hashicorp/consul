@@ -1,39 +1,44 @@
+%main-nav-horizontal > ul > li,
+%main-nav-horizontal-drop-nav a {
+  position: relative;
+}
 %main-nav-horizontal [type='checkbox'] ~ div {
   display: none;
 }
 %main-nav-horizontal [type='checkbox']:checked ~ div {
   display: block;
 }
-
 %main-nav-horizontal-action {
   display: block;
   padding: 3px 12px;
   white-space: nowrap;
 }
 %main-nav-horizontal-drop-nav {
-  display: block;
-  position: absolute;
   z-index: 400;
+  /* TODO: We should probably make menu-panel default to left hand side*/
+  left: 0;
+  right: auto;
 }
 %main-nav-horizontal-drop-nav div {
   padding: 10px;
-  padding-left: 26px;
-  max-width: fit-content;
+  padding-left: 36px;
+}
+%main-nav-horizontal-drop-nav .manage-namespaces {
+  margin-top: 4px;
+  padding-top: 4px;
 }
 %main-nav-horizontal-drop-nav div::before {
   position: absolute;
-  left: 5px;
+  left: 15px;
   top: calc(10px + 0.1em);
+}
+%main-nav-horizontal-drop-nav div {
+  max-width: fit-content;
 }
 @supports not (max-width: fit-content) {
   %main-nav-horizontal-drop-nav div {
     max-width: 200px;
   }
-}
-%main-nav-horizontal-drop-nav a {
-  text-align: left;
-  position: relative;
-  padding: 12px 25px;
 }
 %main-nav-horizontal-drop-nav .is-active a::after {
   position: absolute;
@@ -78,21 +83,21 @@
   }
   %main-nav-horizontal-toggle-button {
     position: absolute;
-    right: 0px;
+    z-index: 200;
+    right: 0;
     width: 100px;
     height: 40px;
-    z-index: 200;
   }
   %main-nav-horizontal-panel {
-    width: 0%;
     overflow: auto;
-    height: 100%;
     position: absolute;
-    top: 0px;
     z-index: 300;
+    width: 0;
+    height: 100%;
+    top: 0;
+    right: -100%;
     padding: 0;
     padding-top: 15px;
-    right: -100%;
   }
   %main-nav-horizontal-toggle:checked ~ div {
     width: 250px;
@@ -108,10 +113,12 @@
   %main-nav-horizontal-drop-nav {
     width: 180px;
   }
-  %main-nav-horizontal > ul > li > a {
+  %main-nav-horizontal-drop-nav div {
+    text-align: left;
+  }
+  %main-nav-horizontal-action {
     padding-top: 15px;
     padding-bottom: 15px;
-    display: block;
   }
 }
 @media #{$--horizontal-nav} {

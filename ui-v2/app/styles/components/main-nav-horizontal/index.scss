@@ -1,8 +1,8 @@
 @import './skin';
 @import './layout';
-%main-nav-horizontal > ul > li a,
-%main-nav-horizontal > ul > li span,
-%main-nav-horizontal > ul > li label {
+%main-nav-horizontal > ul > li > a,
+%main-nav-horizontal > ul > li > span,
+%main-nav-horizontal > ul > li > label {
   @extend %main-nav-horizontal-action;
 }
 %main-nav-horizontal-action:not(span):hover,
@@ -14,4 +14,7 @@
 %main-nav-horizontal > ul > li.is-active > a,
 %main-nav-horizontal > ul > li.is-active > label {
   @extend %main-nav-horizontal-action-active;
+}
+%main-nav-horizontal-drop-nav {
+  @extend %menu-panel;
 }
