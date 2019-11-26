@@ -131,6 +131,23 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "custom-limits-set-to-zero",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+
+					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+						"max_connections":         0,
+						"max_pending_requests":    0,
+						"max_concurrent_requests": 0,
+					}
+				}
+			},
+		},
+		{
 			name:   "custom-limits",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

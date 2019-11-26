@@ -109,18 +109,18 @@ func ParseMeshGatewayConfig(m map[string]interface{}) (MeshGatewayConfig, error)
 type UpstreamLimits struct {
 	// MaxConnections is the maximum number of connections the local proxy can
 	// make to the upstream service.
-	MaxConnections int `mapstructure:"max_connections"`
+	MaxConnections *int `mapstructure:"max_connections"`
 
 	// MaxPendingRequests is the maximum number of requests that will be queued
 	// waiting for an available connection. This is mostly applicable to HTTP/1.1
 	// clusters since all HTTP/2 requests are streamed over a single
 	// connection.
-	MaxPendingRequests int `mapstructure:"max_pending_requests"`
+	MaxPendingRequests *int `mapstructure:"max_pending_requests"`
 
 	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
-	MaxConcurrentRequests int `mapstructure:"max_concurrent_requests"`
+	MaxConcurrentRequests *int `mapstructure:"max_concurrent_requests"`
 }
 
 // UpstreamConfig describes the keys we understand from

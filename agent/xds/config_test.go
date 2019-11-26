@@ -218,9 +218,28 @@ func TestParseUpstreamConfig(t *testing.T) {
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
 				Limits: UpstreamLimits{
-					MaxConnections:        50,
-					MaxPendingRequests:    60,
-					MaxConcurrentRequests: 70,
+					MaxConnections:        intPointer(50),
+					MaxPendingRequests:    intPointer(60),
+					MaxConcurrentRequests: intPointer(70),
+				},
+			},
+		},
+		{
+			name: "connect limits map zero",
+			input: map[string]interface{}{
+				"limits": map[string]interface{}{
+					"max_connections":         0,
+					"max_pending_requests":    0,
+					"max_concurrent_requests": 0,
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Protocol:         "tcp",
+				Limits: UpstreamLimits{
+					MaxConnections:        intPointer(0),
+					MaxPendingRequests:    intPointer(0),
+					MaxConcurrentRequests: intPointer(0),
 				},
 			},
 		},
@@ -232,4 +251,8 @@ func TestParseUpstreamConfig(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func intPointer(i int) *int {
+	return &i
 }

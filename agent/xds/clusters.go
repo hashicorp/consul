@@ -467,14 +467,14 @@ func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoycluster.CircuitBreake
 	threshold := &envoycluster.CircuitBreakers_Thresholds{}
 	// Likewise, make sure to not set any threshold values on the zero-value in
 	// order to rely on Envoy defaults
-	if limits.MaxConnections != 0 {
-		threshold.MaxConnections = makeUint32Value(limits.MaxConnections)
+	if limits.MaxConnections != nil {
+		threshold.MaxConnections = makeUint32Value(*limits.MaxConnections)
 	}
-	if limits.MaxPendingRequests != 0 {
-		threshold.MaxPendingRequests = makeUint32Value(limits.MaxPendingRequests)
+	if limits.MaxPendingRequests != nil {
+		threshold.MaxPendingRequests = makeUint32Value(*limits.MaxPendingRequests)
 	}
-	if limits.MaxConcurrentRequests != 0 {
-		threshold.MaxRequests = makeUint32Value(limits.MaxConcurrentRequests)
+	if limits.MaxConcurrentRequests != nil {
+		threshold.MaxRequests = makeUint32Value(*limits.MaxConcurrentRequests)
 	}
 
 	return []*envoycluster.CircuitBreakers_Thresholds{threshold}
