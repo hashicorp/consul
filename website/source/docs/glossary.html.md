@@ -10,16 +10,6 @@ description: |-
 
 This page collects brief definitions of some of the technical terms used in the documentation for Consul and Consul Enterprise, as well as some terms that come up frequently in conversations throughout the Consul community.
 
-* [Agent](#agent) 
-* [Client](#client) 
-* [Server](#server)
-* [Datacenter](#datacenter)
-* [Consensus](#consensus) 
-* [Gossip](#gossip)
-* [LAN Gossip](#lan-gossip)
-* [WAN Gossip](#wan-gossip)
-* [RPC](#rpc) 
-
 ## Agent 
 
 An agent is the long running daemon on every member of the Consul cluster.
