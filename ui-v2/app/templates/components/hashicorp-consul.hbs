@@ -29,6 +29,9 @@
                             </p>
                           </div>
       {{/if}}
+                          <header>
+                            Namespaces
+                          </header>
                           <ul>
                             {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
                               <li class={{if (eq nspace.Name item.Name) 'is-active'}}>
@@ -54,6 +57,9 @@
                           {{dc.Name}}
                         {{/toggle-button}}
                         <div>
+                          <header>
+                            Datacenters
+                          </header>
                           <ul>
                             {{#each dcs as |item|}}
                               <li data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>

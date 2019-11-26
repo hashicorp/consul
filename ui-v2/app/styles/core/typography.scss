@@ -65,6 +65,7 @@ td strong,
 %action-group-action,
 %tab-nav,
 %internal-button,
+%main-nav-horizontal-drop-nav header,
 %tooltip-bubble {
   font-weight: $typo-weight-medium;
 }
@@ -127,6 +128,7 @@ fieldset > p,
 %app-view > div.disabled > div,
 %button,
 %form-element > em,
+%main-nav-horizontal-drop-nav header,
 %form-element > strong,
 %feedback-dialog-inline p {
   font-size: $typo-size-800;
