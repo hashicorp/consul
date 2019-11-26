@@ -56,6 +56,31 @@ func TestForceLeaveCommand(t *testing.T) {
 	})
 }
 
+func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
+	t.Parallel()
+	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	a2 := agent.NewTestAgent(t, t.Name(), ``)
+	defer a1.Shutdown()
+	defer a2.Shutdown()
+
+	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{
+		"-http-addr=" + a1.HTTPAddr(),
+		"garbage-name",
+	}
+
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestForceLeaveCommand_prune(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, t.Name()+"-a1", ``)
