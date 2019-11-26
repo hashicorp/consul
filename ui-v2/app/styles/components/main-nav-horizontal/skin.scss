@@ -44,6 +44,10 @@
 %main-nav-horizontal-drop-nav div {
   background-color: $gray-050;
 }
+%main-nav-horizontal-drop-nav header {
+  text-transform: uppercase;
+  color: $gray-400;
+}
 %main-nav-horizontal-drop-nav div + ul,
 %main-nav-horizontal-drop-nav .manage-namespaces {
   border-top: $decor-border-100;
