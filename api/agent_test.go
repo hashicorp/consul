@@ -1073,7 +1073,7 @@ func TestAPI_AgentForceLeave(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeave("foo")
+	err := agent.ForceLeave(s.Config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1087,7 +1087,7 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeavePrune("foo")
+	err := agent.ForceLeavePrune(s.Config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

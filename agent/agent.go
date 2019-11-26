@@ -1819,12 +1819,6 @@ func (a *Agent) IsMember(nodeName string) bool {
 		}
 	}
 
-	for _, m := range a.WANMembers() {
-		if m.Name == nodeName {
-			return true
-		}
-	}
-
 	return false
 }
 

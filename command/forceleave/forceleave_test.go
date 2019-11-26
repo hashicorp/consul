@@ -59,14 +59,7 @@ func TestForceLeaveCommand(t *testing.T) {
 func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, t.Name(), ``)
-	a2 := agent.NewTestAgent(t, t.Name(), ``)
 	defer a1.Shutdown()
-	defer a2.Shutdown()
-
-	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 
 	ui := cli.NewMockUi()
 	c := New(ui)
