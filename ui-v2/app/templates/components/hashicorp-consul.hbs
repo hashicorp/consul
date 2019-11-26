@@ -32,11 +32,11 @@
                           <ul>
                             {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
                               <li class={{if (eq nspace.Name item.Name) 'is-active'}}>
-                                  <a href={{href-to 'nspace.dc.services' (concat '~' item.Name) dc.Name}}>{{item.Name}}</a>
+                                  <a href={{href-mut (hash nspace=(concat '~' item.Name))}}>{{item.Name}}</a>
                               </li>
                             {{/each}}
       {{#if nspaceManagement }}
-                            <li data-test-main-nav-nspaces>
+                            <li class="manage-namespaces" data-test-main-nav-nspaces>
                                 <a href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
                             </li>
       {{/if}}
