@@ -215,6 +215,10 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			typeURL:   ClusterType,
 			resources: s.clustersFromSnapshot,
 			stream:    stream,
+			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
+				// Mesh gateways are allowed to inform CDS of no clusters.
+				return cfgSnap.Kind == structs.ServiceKindMeshGateway
+			},
 		},
 		RouteType: &xDSType{
 			typeURL:   RouteType,
@@ -370,8 +374,9 @@ type xDSType struct {
 	// previous request we already responded to and 2) if the proxy rejected the
 	// last version we sent with a Nack then req.VersionInfo will be the older
 	// version it's hanging on to.
-	lastVersion uint64
-	resources   func(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error)
+	lastVersion  uint64
+	resources    func(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error)
+	allowEmptyFn func(cfgSnap *proxycfg.ConfigSnapshot) bool
 }
 
 func (t *xDSType) Recv(req *envoy.DiscoveryRequest) {
@@ -392,13 +397,16 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	if err != nil {
 		return err
 	}
+
+	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn(cfgSnap)
+
 	// Zero length resource responses should be ignored and are the result of no
 	// data yet. Notice that this caused a bug originally where we had zero
 	// healthy endpoints for an upstream that would cause Envoy to hang waiting
 	// for the EDS response. This is fixed though by ensuring we send an explicit
 	// empty LoadAssignment resource for the cluster rather than allowing junky
 	// empty resources.
-	if len(resources) == 0 {
+	if len(resources) == 0 && !allowEmpty {
 		// Nothing to send yet
 		return nil
 	}
