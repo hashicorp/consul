@@ -981,7 +981,7 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 	s.parseEntMeta(req, &args.Auth.EnterpriseMeta)
 
 	if err := decodeBody(req.Body, &args.Auth); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
 	}
 
 	var out structs.ACLToken
@@ -1026,4 +1026,48 @@ func fixupAuthMethodConfig(method *structs.ACLAuthMethod) {
 			method.Config[k] = strVal
 		}
 	}
+}
+
+func (s *HTTPServer) ACLAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	const maxRequests = 64
+
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	authz, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	} else if authz == nil {
+		return nil, fmt.Errorf("Failed to initialize authorizer")
+	}
+
+	var requests []structs.ACLAuthorizationRequest
+
+	if err := decodeBody(req.Body, &requests); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
+	}
+
+	if len(requests) > maxRequests {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Refusing to procoess more than %d authorizations at once", maxRequests)}
+	}
+
+	var ctx acl.EnterpriseAuthorizerContext
+
+	responses := make([]structs.ACLAuthorizationResponse, len(requests))
+	for idx, req := range requests {
+		req.FillAuthzContext(&ctx)
+		decision, err := acl.Enforce(authz, req.Resource, req.Segment, req.Access, &ctx)
+		if err != nil {
+			return nil, BadRequestError{Reason: err.Error()}
+		}
+
+		responses[idx].ACLAuthorizationRequest = req
+		responses[idx].Allow = decision == acl.Allow
+	}
+
+	return responses, nil
 }

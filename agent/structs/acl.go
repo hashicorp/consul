@@ -1562,3 +1562,15 @@ type ACLLogoutRequest struct {
 func (r *ACLLogoutRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
+
+type ACLAuthorizationRequest struct {
+	Resource acl.Resource
+	Segment  string `json:",omitempty"`
+	Access   string
+	EnterpriseMeta
+}
+
+type ACLAuthorizationResponse struct {
+	ACLAuthorizationRequest
+	Allow bool
+}
