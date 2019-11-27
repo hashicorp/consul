@@ -97,7 +97,7 @@
         "initial_metadata": [
           {
             "key": "x-consul-token",
-            "value": "98c9b31f-6763-739e-5353-94c641fa39ae"
+            "value": ""
           }
         ],
         "envoy_grpc": {
