@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -422,7 +423,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	if strings.HasPrefix(strings.ToLower(c.grpcAddr), "https://") {
 		useTLS = true
 	} else if useSSLEnv := os.Getenv(api.HTTPSSLEnvName); useSSLEnv != "" {
-		if enabled, err := strconv.ParseBool(useSSLEnv); err != nil {
+		if enabled, err := strconv.ParseBool(useSSLEnv); err == nil {
 			useTLS = enabled
 		}
 	} else if strings.HasPrefix(strings.ToLower(httpCfg.Address), "https://") {
@@ -493,6 +494,15 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
+	var caPEM []byte
+	if httpCfg.TLSConfig.CAFile != "" {
+		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read CA file: %s", err)
+		}
+		caPEM = content
+	}
+
 	return &BootstrapTplArgs{
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
@@ -500,7 +510,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AgentPort:             agentPort,
 		AgentSocket:           agentSock,
 		AgentTLS:              useTLS,
-		AgentCAFile:           httpCfg.TLSConfig.CAFile,
+		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,
