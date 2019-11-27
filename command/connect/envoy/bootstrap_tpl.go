@@ -19,13 +19,13 @@ type BootstrapTplArgs struct {
 	// AgentPort is the gRPC port exposed on the local agent.
 	AgentPort string
 
-	// AgentTLS is true of the local agent gRPC service should be accessed over
+	// AgentTLS is true if the local agent gRPC service should be accessed over
 	// TLS.
 	AgentTLS bool
 
-	// AgentCAFile is the CA file to use to verify the local agent gRPC service if
+	// AgentCAPEM is the CA to use to verify the local agent gRPC service if
 	// TLS is enabled.
-	AgentCAFile string
+	AgentCAPEM []byte
 
 	// AgentSocket is the path to a Unix Socket for communicating with the
 	// local agent's gRPC endpoint. Disabled if the empty (the default),
@@ -119,7 +119,7 @@ const bootstrapTemplate = `{
           "common_tls_context": {
             "validation_context": {
               "trusted_ca": {
-                "filename": "{{ .AgentCAFile }}"
+                "inline_bytes": "{{ .AgentCAPEM }}"
               }
             }
           }
