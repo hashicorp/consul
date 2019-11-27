@@ -12,7 +12,7 @@ label span {
   @extend %form-element-error;
 }
 %modal-dialog .type-text,
-%app-content .type-text {
+%app-view-content .type-text {
   @extend %form-element;
 }
 .type-toggle {
@@ -22,10 +22,10 @@ label span {
 %radio-group,
 %checkbox-group,
 form table,
-%app-content form dl {
+%app-view-content form dl {
   @extend %form-row;
 }
-%app-content form:not(.filter-bar) [role='radiogroup'],
+%app-view-content form:not(.filter-bar) [role='radiogroup'],
 %modal-window [role='radiogroup'] {
   @extend %radio-group;
 }
