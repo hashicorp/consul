@@ -2684,7 +2684,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "auto_encrypt.allow fails without verify_incoming or verify_incoming_rpc",
+			desc: "auto_encrypt.allow warns without verify_incoming or verify_incoming_rpc",
 			args: []string{
 				`-data-dir=` + dataDir,
 			},
@@ -2694,7 +2694,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl: []string{`
 			  auto_encrypt { allow_tls = true }
 			`},
-			err: "if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc must be enabled.",
+			warns: []string{"if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards."},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.AutoEncryptAllowTLS = true
+				rt.ConnectEnabled = true
+			},
 		},
 		{
 			desc: "test connect vault provider configuration",
