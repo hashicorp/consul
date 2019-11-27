@@ -243,6 +243,39 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name:     "grpc-addr-tls",
+			GRPCPort: 9999,
+			Files: map[string]string{
+				"ca.crt": readTestData(t, "ca.crt"),
+			},
+			Flags: []string{
+				"-proxy-id",
+				"test-proxy",
+				"-ca-file",
+				"@@TEMPDIR@@ca.crt",
+				"-envoy-tls-cert",
+				"tls.crt",
+				"-envoy-tls-key",
+				"tls.key",
+				"-grpc-addr",
+				"https://127.0.0.1:9999",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster:          "test-proxy",
+				ProxyID:               "test-proxy",
+				AgentAddress:          "127.0.0.1",
+				AgentPort:             "9999",
+				AgentCAFile:           "@@TEMPDIR@@ca.crt",
+				AgentTLS:              true,
+				AgentTLSCertFile:      "tls.crt",
+				AgentTLSKeyFile:       "tls.key",
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
 			Name:  "access-log-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
 			Env:   []string{},
@@ -497,11 +530,15 @@ func TestGenerateConfig(t *testing.T) {
 				return
 			}
 
+			// If any arguments also contain references to the @@TEMPDIR@@, replace
+			// those as well before evaluation.
+			wantArgs := copyAndReplaceBootstrapTplArgs(t, &tc.WantArgs, "@@TEMPDIR@@", testDirPrefix)
+
 			// Verify we handled the env and flags right first to get correct template
 			// args.
 			got, err := c.templateArgs()
 			require.NoError(err) // Error cases should have returned above
-			require.Equal(&tc.WantArgs, got)
+			require.Equal(&wantArgs, got)
 
 			// Actual template output goes to stdout direct to avoid prefix in UI, so
 			// generate it again here to assert on.
@@ -516,6 +553,9 @@ func TestGenerateConfig(t *testing.T) {
 
 			expected, err := ioutil.ReadFile(golden)
 			require.NoError(err)
+			// Convert the golden template to fill in any @@TEMPDIR@@ references
+			expected = []byte(strings.ReplaceAll(string(expected), "@@TEMPDIR@@", testDirPrefix))
+
 			require.Equal(string(expected), string(actual))
 		})
 	}
@@ -682,4 +722,32 @@ func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
 		}
 		w.Write(selfJSON)
 	})
+}
+
+func readTestData(t *testing.T, name string) string {
+	t.Helper()
+	path := filepath.Join("testdata", name)
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed reading fixture file %s: %s", name, err)
+	}
+	return string(bs)
+}
+
+func copyAndReplaceBootstrapTplArgs(t *testing.T, obj *BootstrapTplArgs, old, new string) BootstrapTplArgs {
+	t.Helper()
+	objJSON, marshalErr := json.Marshal(&obj)
+	if marshalErr != nil {
+		t.Fatalf("failed to convert object to JSON: %s", marshalErr)
+	}
+
+	newJSON := strings.ReplaceAll(string(objJSON), old, new)
+	var newObj BootstrapTplArgs
+	unmarshalErr := json.Unmarshal([]byte(newJSON), &newObj)
+
+	if unmarshalErr != nil {
+		t.Fatalf("failed to create object from JSON: %s", unmarshalErr)
+	}
+
+	return newObj
 }

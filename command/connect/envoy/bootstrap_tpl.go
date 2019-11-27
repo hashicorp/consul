@@ -27,6 +27,14 @@ type BootstrapTplArgs struct {
 	// TLS is enabled.
 	AgentCAFile string
 
+	// AgentTLSCertFile is an optional static certificate for mutual TLS with the local
+	// agent if the agent is using VerifyIncoming. Required if AgentTLSKeyFile is specified.
+	AgentTLSCertFile string
+
+	// AgentTLSKeyFile is an optional static private key for mutual TLS with the local agent
+	// if the agent is using VerifyIncoming. Required if AgentTLSCertFile is specified.
+	AgentTLSKeyFile string
+
 	// AgentSocket is the path to a Unix Socket for communicating with the
 	// local agent's gRPC endpoint. Disabled if the empty (the default),
 	// but overrides AgentAddress and AgentPort if set.
@@ -117,6 +125,18 @@ const bootstrapTemplate = `{
         {{- if .AgentTLS -}}
         "tls_context": {
           "common_tls_context": {
+            {{- if and .AgentTLSCertFile .AgentTLSKeyFile }}
+            "tls_certificates": [
+              {
+                "certificate_chain": {
+                  "filename": "{{ .AgentTLSCertFile }}"
+                },
+                "private_key": {
+                  "filename": "{{ .AgentTLSKeyFile }}"
+                }
+              }
+            ],
+            {{- end }}
             "validation_context": {
               "trusted_ca": {
                 "filename": "{{ .AgentCAFile }}"
