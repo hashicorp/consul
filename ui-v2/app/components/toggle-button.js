@@ -28,15 +28,20 @@ export default Component.extend({
     this._listeners.remove();
   },
   actions: {
+    click: function(e) {
+      e.preventDefault();
+      this.input.checked = !this.input.checked;
+      this.actions.change.apply(this, [e]);
+    },
     change: function(e) {
       if (this.input.checked) {
         // default onblur event
         this._listeners.remove();
         this._listeners.add(this.dom.document(), 'click', e => {
           if (this.dom.isOutside(this.label, e.target)) {
-            this.input.checked = !this.input.checked;
+            this.input.checked = false;
+            this._listeners.remove();
           }
-          this._listeners.remove();
         });
       }
     },

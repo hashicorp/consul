@@ -21,6 +21,9 @@
 %main-nav-horizontal-action-active {
   color: $white;
 }
+%main-nav-horizontal-action > a {
+  color: inherit;
+}
 %main-nav-horizontal-toggle,
 %main-nav-horizontal input {
   display: none;
@@ -28,14 +31,14 @@
 %primary-nav input + label {
   padding-right: 5px !important;
 }
-%primary-nav input + label::after {
+%primary-nav input + label > a::after {
   @extend %as-pseudo;
   @extend %with-chevron-down-mask;
   position: relative;
   top: 2px;
   background-color: $white;
 }
-%primary-nav input:checked + label::after {
+%primary-nav input:checked + label > a::after {
   @extend %with-chevron-up-mask;
 }
 %main-nav-horizontal-toggle-button span {
