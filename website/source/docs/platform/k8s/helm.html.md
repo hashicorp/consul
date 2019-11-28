@@ -1,107 +1,17 @@
 ---
 layout: "docs"
-page_title: "Helm - Kubernetes"
+page_title: "Helm Chart Reference - Kubernetes"
 sidebar_current: "docs-platform-k8s-helm"
 description: |-
-  The Consul Helm chart is the recommended way to install and configure Consul on Kubernetes. In addition to running Consul itself, the Helm chart is the primary method for installing and configuring Consul integrations with Kubernetes such as catalog syncing, Connect injection, and more.
+  Reference for the Consul Helm chart.
 ---
 
-# Helm Chart
-
-The [Consul Helm chart](https://github.com/hashicorp/consul-helm)
-is the recommended way to install and configure Consul on Kubernetes.
-In addition to running Consul itself, the Helm chart is the primary
-method for installing and configuring Consul integrations with
-Kubernetes such as catalog syncing, Connect injection, and more.
-
-A step-by-step beginner tutorial and accompanying video can be found at the [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs).
-
-This page assumes general knowledge of [Helm](https://helm.sh/) and
-how to use it. Using Helm to install Consul will require that Helm is
-properly installed and configured with your Kubernetes cluster.
-
--> **Important:** The Helm chart is new and
-may still change significantly over time. Please always run Helm with
-`--dry-run` before any install or upgrade to verify changes.
-
-~> **Security Warning:** By default, the chart will install an insecure
-configuration of Consul. This provides a less complicated out-of-box experience
-for new users, but is not appropriate for a production setup. Make sure that
-your Kubernetes cluster is properly secured to prevent unwanted access to
-Consul, or that you understand and enable the
-[recommended Consul security features](/docs/internals/security.html).
-Currently, some of these features are not supported in the Helm chart and
-require additional manual configuration.
-
-
-## Using the Helm Chart
-
-To install Consul using the Helm chart you must first install Helm onto
-your Kubernetes cluster. See the
-[Helm Install Guide](https://helm.sh/docs/using_helm/#installing-helm) for more information.
-
-Once Helm is installed, determine the latest version of the Consul Helm chart
-by visiting [https://github.com/hashicorp/consul-helm/releases](https://github.com/hashicorp/consul-helm/releases).
-
-Clone the chart at that version, for example if the latest version is
-`v0.8.1` you would run:
-
-```bash
-$ git clone --single-branch --branch v0.8.1 https://github.com/hashicorp/consul-helm.git
-Cloning into 'consul-helm'...
-...
-You are in 'detached HEAD' state...
-```
-
-Ensure you've checked out the correct version with `helm inspect`:
-
-```bash
-$ helm inspect chart ./consul-helm
-apiVersion: v1
-description: Install and configure Consul on Kubernetes.
-home: https://www.consul.io
-name: consul
-sources:
-- https://github.com/hashicorp/consul
-- https://github.com/hashicorp/consul-helm
-- https://github.com/hashicorp/consul-k8s
-version: 0.8.1
-```
-
-Now you're ready to install Consul! To install Consul with the default
-configuration run:
-
-```sh
-$ helm install --name consul ./consul-helm
-NAME:   consul
-...
-Your release is named consul. To learn more about the release, try:
-
-  $ helm status consul
-  $ helm get consul
-```
-
-If you want to customize the installation,
-create a `values.yaml` file to override the default settings.
-You can learn what settings are available by running `helm inspect values ./consul-helm`
-or by reading the below [Configuration](#configuration-values) section.
-
-Once you've created your `values.yaml` file, run `helm install` with the `-f` flag:
-
-```bash
-$ helm install --name consul -f ./values.yaml ./consul-helm
-```
-
-~> **Warning:** By default, the chart will install _everything_: a
-Consul server cluster, client agents on all nodes, feature components, etc.
-This provides a nice out-of-box experience for new users, but may not be
-appropriate for a production setup. Consider setting the `global.enabled`
-value to `false` and opt-in to the various components.
+# Helm Chart Reference
 
 ## Configuration (Values)
 
 The chart is highly customizable using
-[Helm configuration values](https://docs.helm.sh/using_helm/#customizing-the-chart-before-installing).
+[Helm configuration values](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing).
 Each value has a sane default tuned for an optimal getting started experience
 with Consul. Before going into production, please review the parameters below
 and consider if they're appropriate for your deployment.
@@ -432,9 +342,10 @@ kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
 
 -> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
 
-In your `values.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
+In your `config.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
 
 ```yaml
+# config.yaml
 global:
   image: "hashicorp/consul-enterprise:1.4.3-ent"
 ```
@@ -442,6 +353,9 @@ global:
 Add the name of the secret you just created to `server.enterpriseLicense`.
 
 ```yaml
+# config.yaml
+global:
+  image: "hashicorp/consul-enterprise:1.4.3-ent"
 server:
   enterpriseLicense:
     secretName: "consul-ent-license"
@@ -451,7 +365,7 @@ server:
 Now run `helm install`:
 
 ```bash
-$ helm install --wait --name consul -f ./values.yaml ./consul-helm
+$ helm install --wait hashicorp ./consul-helm -f config.yaml
 ```
 
 Once the cluster is up, you can verify the nodes are running Consul Enterprise by
@@ -461,7 +375,7 @@ First, forward your local port 8500 to the Consul servers so you can run `consul
 commands locally against the Consul servers in Kubernetes:
 
 ```bash
-$ kubectl port-forward service/consul-consul-server -n default 8500
+$ kubectl port-forward service/hashicorp-consul-server 8500:8500
 ```
 
 In a separate tab, run the `consul license get` command (if using ACLs see below):
@@ -483,9 +397,9 @@ Licensed Features:
         Advanced Network Federation
 $ consul members
 Node                                       Address           Status  Type    Build      Protocol  DC   Segment
-consul-consul-server-0                     10.60.0.187:8301  alive   server  1.4.3+ent  2         dc1  <all>
-consul-consul-server-1                     10.60.1.229:8301  alive   server  1.4.3+ent  2         dc1  <all>
-consul-consul-server-2                     10.60.2.197:8301  alive   server  1.4.3+ent  2         dc1  <all>
+hashicorp-consul-server-0                  10.60.0.187:8301  alive   server  1.4.3+ent  2         dc1  <all>
+hashicorp-consul-server-1                  10.60.1.229:8301  alive   server  1.4.3+ent  2         dc1  <all>
+hashicorp-consul-server-2                  10.60.2.197:8301  alive   server  1.4.3+ent  2         dc1  <all>
 ```
 
 If you get an error:
@@ -498,7 +412,7 @@ Then you have likely enabled ACLs. You need to specify your ACL token when
 running the `license get` command. First, get the ACL token:
 
 ```bash
-$ kubectl get secrets/consul-consul-bootstrap-acl-token --template={{.data.token}} | base64 -D
+$ kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template={{.data.token}} | base64 -D
 4dae8373-b4d7-8009-9880-a796850caef9%
 ```
 
@@ -523,12 +437,10 @@ Licensed Features:
 
 ## Helm Chart Examples
 
-The below `values.yaml` results in a single server Consul cluster with a `LoadBalancer` to allow external access to the UI and API.
+The below `config.yaml` results in a single server Consul cluster with a `LoadBalancer` to allow external access to the UI and API.
 
 ```yaml
-global:
-  enabled: true
-
+# config.yaml
 server:
   replicas: 1
   bootstrapExpect: 1
@@ -538,14 +450,14 @@ ui:
     type: LoadBalancer
 ```
 
-The below `values.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection.
+The below `config.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection.
 
 Note, this would require a secret that contains the enterprise license key.
 
 ```yaml
+# config.yaml
 global:
   image: "hashicorp/consul-enterprise:1.4.2-ent"
-  datacenter: dc1
 
 server:
   replicas: 3

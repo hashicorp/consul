@@ -47,6 +47,8 @@ Kubernetes can choose to leverage Consul.
 
 There are several ways to try Consul with Kubernetes in different environments.
 
+Guides
+
  - The [Consul and minikube guide](https://learn.hashicorp.com/consul/
    getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs) is a quick walk through of how to deploy Consul with the official Helm chart on a local instance of Minikube. 
 
@@ -63,17 +65,7 @@ There are several ways to try Consul with Kubernetes in different environments.
  - The [Consul and Kubernetes Deployment](
    https://learn.hashicorp.com/consul/day-1-operations/kubernetes-deployment-guide?utm_source=consul.io&utm_medium=docs) guide covers the necessary steps to install and configure a new Consul cluster on Kubernetes in production.
 
-## "consul-k8s" Project
-
-The dedicated [consul-k8s project](https://github.com/hashicorp/consul-k8s)
-contains the integration functionality between Consul and Kubernetes.
-You generally will not need to invoke this project directly since the
-[Helm chart](/docs/platform/k8s/helm.html) automates the installation and
-configuration of the project when necessary.
-
-We may integrate this functionality directly into Consul in the future,
-but the separate project allows us to iterate and version the Kubernetes
-functionality separately. Additionally, a lot of the functionality works
-across multiple Consul versions, so you're able to update and resolve any
-Kubernetes integration issues without also upgrading Consul itself which
-can be more difficult.
+Documentation
+  
+  - [Installing Consul](/docs/platform/k8s/run.html) covers how to install Consul using the Helm chart.
+  - [Helm Chart Reference](/docs/platform/k8s/run.html) describes the different options for configuring the Helm chart.
