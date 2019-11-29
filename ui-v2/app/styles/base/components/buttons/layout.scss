@@ -34,6 +34,14 @@
   padding-top: calc(0.4em - 1px) !important;
   padding-bottom: calc(0.4em - 1px) !important;
 }
+%copy-button:empty {
+  padding: 5px !important;
+  margin-right: 0;
+  margin-top: -5px;
+}
+%copy-button:not(:empty)::before {
+  margin-right: 10px;
+}
 %internal-button {
   padding: 0.9em 1em;
   text-align: center;
