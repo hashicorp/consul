@@ -50,23 +50,6 @@
   margin-top: -8px;
   right: 10px;
 }
-%main-nav-horizontal-toggle-button::before,
-%main-nav-horizontal-toggle-button::after,
-%main-nav-horizontal-toggle-button span::before {
-  right: 10px;
-  left: auto !important;
-  top: 23px !important;
-}
-%main-nav-horizontal-toggle-button::before {
-  margin-top: -6px;
-}
-%main-nav-horizontal-toggle-button::after {
-  margin-top: 6px;
-}
-%main-nav-horizontal-toggle-button {
-  top: 0;
-  position: absolute;
-}
 @media #{$--lt-horizontal-nav} {
   %main-nav-horizontal-panel label span {
     visibility: visible !important;
@@ -90,7 +73,13 @@
     z-index: 200;
     right: 0;
     width: 100px;
-    height: 40px;
+    height: 48px;
+  }
+  %main-nav-horizontal-toggle-button::before {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    margin-top: -0.6em;
   }
   %main-nav-horizontal-panel {
     overflow: auto;
@@ -107,6 +96,7 @@
     width: 250px;
     right: 0;
     padding: 15px 35px;
+    padding-top: 0;
   }
   %main-nav-horizontal-toggle:checked + label {
     width: 100vw;

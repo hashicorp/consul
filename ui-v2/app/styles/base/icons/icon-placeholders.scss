@@ -108,6 +108,10 @@
   background-image: $check-plain-svg;
 }
 
+%with-check-plain-mask {
+  @extend %with-mask;
+  mask-image: $check-plain-svg;
+}
 %with-chevron-down-2-icon {
   @extend %with-icon;
   background-image: $chevron-down-2-svg;
@@ -388,6 +392,10 @@
 %with-more-vertical-icon {
   @extend %with-icon;
   background-image: $more-vertical-svg;
+}
+%with-more-vertical-mask {
+  @extend %with-mask;
+  mask-image: $more-vertical-svg;
 }
 
 %with-nomad-logo-color-icon {
