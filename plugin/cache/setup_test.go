@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -110,6 +111,42 @@ func TestSetup(t *testing.T) {
 		}
 		if ca.prefetch != test.expectedPrefetch {
 			t.Errorf("Test %v: Expected prefetch %v but found: %v", i, test.expectedPrefetch, ca.prefetch)
+		}
+	}
+}
+
+func TestServeStale(t *testing.T) {
+	tests := []struct {
+		input     string
+		shouldErr bool
+		staleUpTo time.Duration
+	}{
+		{"serve_stale", false, 1 * time.Hour},
+		{"serve_stale 20m", false, 20 * time.Minute},
+		{"serve_stale 1h20m", false, 80 * time.Minute},
+		{"serve_stale 0m", false, 0},
+		{"serve_stale 0", false, 0},
+		// fails
+		{"serve_stale 20", true, 0},
+		{"serve_stale -20m", true, 0},
+		{"serve_stale aa", true, 0},
+		{"serve_stale 1m nono", true, 0},
+	}
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", fmt.Sprintf("cache {\n%s\n}", test.input))
+		ca, err := cacheParse(c)
+		if test.shouldErr && err == nil {
+			t.Errorf("Test %v: Expected error but found nil", i)
+			continue
+		} else if !test.shouldErr && err != nil {
+			t.Errorf("Test %v: Expected no error but found error: %v", i, err)
+			continue
+		}
+		if test.shouldErr && err != nil {
+			continue
+		}
+		if ca.staleUpTo != test.staleUpTo {
+			t.Errorf("Test %v: Expected stale %v but found: %v", i, test.staleUpTo, ca.staleUpTo)
 		}
 	}
 }

@@ -26,19 +26,32 @@ func (c *Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 
 	server := metrics.WithServer(ctx)
 
-	i, found := c.get(now, state, server)
-	if i != nil && found {
-		resp := i.toMsg(r, now)
-		w.WriteMsg(resp)
-
-		if c.shouldPrefetch(i, now) {
-			go c.doPrefetch(ctx, state, server, i, now)
-		}
-		return dns.RcodeSuccess, nil
+	ttl := 0
+	i := c.getIgnoreTTL(now, state, server)
+	if i != nil {
+		ttl = i.ttl(now)
 	}
+	if i == nil || -ttl >= int(c.staleUpTo.Seconds()) {
+		crr := &ResponseWriter{ResponseWriter: w, Cache: c, state: state, server: server}
+		return plugin.NextOrFailure(c.Name(), c.Next, ctx, crr, r)
+	}
+	if ttl < 0 {
+		servedStale.WithLabelValues(server).Inc()
+		// Adjust the time to get a 0 TTL in the reply built from a stale item.
+		now = now.Add(time.Duration(ttl) * time.Second)
+		go func() {
+			r := r.Copy()
+			crr := &ResponseWriter{Cache: c, state: state, server: server, prefetch: true, remoteAddr: w.LocalAddr()}
+			plugin.NextOrFailure(c.Name(), c.Next, ctx, crr, r)
+		}()
+	}
+	resp := i.toMsg(r, now)
+	w.WriteMsg(resp)
 
-	crr := &ResponseWriter{ResponseWriter: w, Cache: c, state: state, server: server}
-	return plugin.NextOrFailure(c.Name(), c.Next, ctx, crr, r)
+	if c.shouldPrefetch(i, now) {
+		go c.doPrefetch(ctx, state, server, i, now)
+	}
+	return dns.RcodeSuccess, nil
 }
 
 func (c *Cache) doPrefetch(ctx context.Context, state request.Request, server string, i *item, now time.Time) {
@@ -81,6 +94,27 @@ func (c *Cache) get(now time.Time, state request.Request, server string) (*item,
 	}
 	cacheMisses.WithLabelValues(server).Inc()
 	return nil, false
+}
+
+// getIgnoreTTL unconditionally returns an item if it exists in the cache.
+func (c *Cache) getIgnoreTTL(now time.Time, state request.Request, server string) *item {
+	k := hash(state.Name(), state.QType(), state.Do())
+
+	if i, ok := c.ncache.Get(k); ok {
+		ttl := i.(*item).ttl(now)
+		if ttl > 0 || (c.staleUpTo > 0 && -ttl < int(c.staleUpTo.Seconds())) {
+			cacheHits.WithLabelValues(server, Denial).Inc()
+		}
+		return i.(*item)
+	}
+	if i, ok := c.pcache.Get(k); ok {
+		ttl := i.(*item).ttl(now)
+		if ttl > 0 || (c.staleUpTo > 0 && -ttl < int(c.staleUpTo.Seconds())) {
+			cacheHits.WithLabelValues(server, Success).Inc()
+		}
+		return i.(*item)
+	}
+	return nil
 }
 
 func (c *Cache) exists(state request.Request) *item {
@@ -128,5 +162,12 @@ var (
 		Subsystem: "cache",
 		Name:      "drops_total",
 		Help:      "The number responses that are not cached, because the reply is malformed.",
+	}, []string{"server"})
+
+	servedStale = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: plugin.Namespace,
+		Subsystem: "cache",
+		Name:      "served_stale_total",
+		Help:      "The number of requests served from stale cache entries.",
 	}, []string{"server"})
 )

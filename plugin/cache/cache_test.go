@@ -2,10 +2,12 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/pkg/response"
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/coredns/coredns/request"
@@ -233,7 +235,7 @@ func TestCacheZeroTTL(t *testing.T) {
 	c := New()
 	c.minpttl = 0
 	c.minnttl = 0
-	c.Next = zeroTTLBackend()
+	c.Next = ttlBackend(0)
 
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
@@ -245,6 +247,52 @@ func TestCacheZeroTTL(t *testing.T) {
 	}
 	if c.ncache.Len() != 0 {
 		t.Errorf("Msg with 0 TTL should not have been cached")
+	}
+}
+
+func TestServeFromStaleCache(t *testing.T) {
+	c := New()
+	c.Next = ttlBackend(60)
+
+	req := new(dns.Msg)
+	req.SetQuestion("cached.org.", dns.TypeA)
+	ctx := context.TODO()
+
+	// Cache example.org.
+	rec := dnstest.NewRecorder(&test.ResponseWriter{})
+	c.staleUpTo = 1 * time.Hour
+	c.ServeDNS(ctx, rec, req)
+	if c.pcache.Len() != 1 {
+		t.Fatalf("Msg with > 0 TTL should have been cached")
+	}
+
+	// No more backend resolutions, just from cache if available.
+	c.Next = plugin.HandlerFunc(func(context.Context, dns.ResponseWriter, *dns.Msg) (int, error) {
+		return 255, nil // Below, a 255 means we tried querying upstream.
+	})
+
+	tests := []struct {
+		name           string
+		futureMinutes  int
+		expectedResult int
+	}{
+		{"cached.org.", 30, 0},
+		{"cached.org.", 60, 0},
+		{"cached.org.", 70, 255},
+
+		{"notcached.org.", 30, 255},
+		{"notcached.org.", 60, 255},
+		{"notcached.org.", 70, 255},
+	}
+
+	for i, tt := range tests {
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		c.now = func() time.Time { return time.Now().Add(time.Duration(tt.futureMinutes) * time.Minute) }
+		r := req.Copy()
+		r.SetQuestion(tt.name, dns.TypeA)
+		if ret, _ := c.ServeDNS(ctx, rec, r); ret != tt.expectedResult {
+			t.Errorf("Test %d: expecting %v; got %v", i, tt.expectedResult, ret)
+		}
 	}
 }
 
@@ -286,13 +334,13 @@ func BackendHandler() plugin.Handler {
 	})
 }
 
-func zeroTTLBackend() plugin.Handler {
+func ttlBackend(ttl int) plugin.Handler {
 	return plugin.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		m := new(dns.Msg)
 		m.SetReply(r)
 		m.Response, m.RecursionAvailable = true, true
 
-		m.Answer = []dns.RR{test.A("example.org. 0 IN A 127.0.0.53")}
+		m.Answer = []dns.RR{test.A(fmt.Sprintf("example.org. %d IN A 127.0.0.53", ttl))}
 		w.WriteMsg(m)
 		return dns.RcodeSuccess, nil
 	})

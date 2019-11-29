@@ -34,6 +34,7 @@ cache [TTL] [ZONES...] {
     success CAPACITY [TTL] [MINTTL]
     denial CAPACITY [TTL] [MINTTL]
     prefetch AMOUNT [[DURATION] [PERCENTAGE%]]
+    serve_stale [DURATION]
 }
 ~~~
 
@@ -50,6 +51,10 @@ cache [TTL] [ZONES...] {
   **DURATION** defaults to 1m. Prefetching will happen when the TTL drops below **PERCENTAGE**,
   which defaults to `10%`, or latest 1 second before TTL expiration. Values should be in the range `[10%, 90%]`.
   Note the percent sign is mandatory. **PERCENTAGE** is treated as an `int`.
+* `serve_stale`, when serve\_stale is set, cache always will serve an expired entry to a client if there is one
+  available.  When this happens, cache will attempt to refresh the cache entry after sending the expired cache
+  entry to the client. The responses have a TTL of 0. **DURATION** is how far back to consider
+  stale responses as fresh. The default duration is 1h.
 
 ## Capacity and Eviction
 
@@ -69,6 +74,7 @@ If monitoring is enabled (via the *prometheus* plugin) then the following metric
 * `coredns_cache_hits_total{server, type}` - Counter of cache hits by cache type.
 * `coredns_cache_misses_total{server}` - Counter of cache misses.
 * `coredns_cache_drops_total{server}` - Counter of dropped messages.
+* `coredns_cache_served_stale_total{server}` - Counter of requests served from stale cache entries.
 
 Cache types are either "denial" or "success". `Server` is the server handling the request, see the
 metrics plugin for documentation.
