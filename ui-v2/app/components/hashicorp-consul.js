@@ -1,15 +1,20 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { computed } from '@ember/object';
-import env from 'consul-ui/env';
 
 export default Component.extend({
   dom: service('dom'),
   didInsertElement: function() {
     this.dom.root().classList.remove('template-with-vertical-menu');
   },
-  canManageNamespaces: computed(function() {
-    return env('CONSUL_UI_ENABLE_NAMESPACE_MANAGEMENT');
+  // TODO: Right now this is the only place where we need permissions
+  // but we are likely to need it elsewhere, so probably need a nice helper
+  canManageNamespaces: computed('permissions', function() {
+    return (
+      typeof (this.permissions || []).find(function(item) {
+        return item.Resource === 'operator' && item.Access === 'write' && item.Allow;
+      }) !== 'undefined'
+    );
   }),
   actions: {
     change: function(e) {

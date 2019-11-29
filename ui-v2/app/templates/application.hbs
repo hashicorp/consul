@@ -1,11 +1,11 @@
 {{#if (not loading)}}
-    {{outlet}}
+  {{outlet}}
 {{else}}
-{{#hashicorp-consul id="wrapper" dc=dc nspaces=nspaces nspace=nspace}}
+  {{#hashicorp-consul id="wrapper" permissions=permissions dcs=dcs dc=dc nspaces=nspaces nspace=nspace}}
     {{#app-view class="loading show"}}
-        {{#block-slot 'content'}}
-            {{partial 'consul-loading'}}
-        {{/block-slot}}
+      {{#block-slot 'content'}}
+        {{partial 'consul-loading'}}
+      {{/block-slot}}
     {{/app-view}}
-{{/hashicorp-consul}}
+  {{/hashicorp-consul}}
 {{/if}}
