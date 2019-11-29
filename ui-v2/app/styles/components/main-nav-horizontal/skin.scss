@@ -1,10 +1,15 @@
 %main-nav-horizontal-drop-nav .is-active a::after {
-  @extend %with-inverted-tick;
+  @extend %with-check-plain-mask, %as-pseudo;
+  background-color: $magenta-600;
 }
-%main-nav-horizontal-toggle-button::before,
-%main-nav-horizontal-toggle-button::after,
-%main-nav-horizontal-toggle-button span::before {
-  @extend %with-dot;
+%main-nav-horizontal-toggle-button {
+  text-indent: -9000px;
+}
+%main-nav-horizontal-toggle-button::before {
+  @extend %with-more-vertical-mask, %as-pseudo;
+  background-color: $white;
+
+  font-size: 1.2em;
 }
 
 %main-nav-horizontal-action {
