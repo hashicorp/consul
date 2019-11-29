@@ -22,8 +22,8 @@ The term of the project lead is one year, with no term limit restriction.
 The project lead is elected by CoreDNS maintainers
 according to an individual's technical merit to CoreDNS project.
 
-The current project lead is identified in the top level [OWNERS](OWNERS) file with the string
-`project lead` and the term behind the name.
+The current project lead is identified in the [CODEOWNERS](CODEOWNERS) file with the string
+`project lead` and the term behind the name in a comment at the top of the file.
 
 
 ## Expectations from Maintainers
@@ -35,11 +35,9 @@ participate in Pull Request reviews. Maintainers are expected to respond to assi
 in a *reasonable* time frame, either providing insights, or assign the Pull Requests to other
 maintainers.
 
-Every Maintainer is listed in the top-level [OWNERS](https://github.com/coredns/coredns/blob/master/OWNERS)
-file, with their Github handle and a possibly obfuscated email address. Everyone in the
-`approvers` list is a Maintainer.
-
-A Maintainer is also listed in a plugin specific OWNERS file.
+Every Maintainer is listed in the
+[CODEOWNERS](https://github.com/coredns/coredns/blob/master/CODEOWNERS)
+file, with their Github handle.
 
 A Maintainer should be a member of `maintainers@coredns.io`, although this is not a hard requirement.
 
@@ -66,7 +64,7 @@ Changes in project lead or term is initiated by opening a github PR.
 Anyone from CoreDNS community can vote on the PR with either +1 or -1.
 
 Only the following votes are binding:
-1) Any maintainer that has been listed in the top-level [OWNERS](OWNERS) file before the PR is opened.
+1) Any maintainer that has been listed in the [CODEOWNERS](CODEOWNERS) file before the PR is opened.
 2) Any maintainer from an organization may cast the vote for that organization. However, no organization
 should have more binding votes than 1/5 of the total number of maintainers defined in 1).
 
