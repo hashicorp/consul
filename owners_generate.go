@@ -5,58 +5,29 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"path/filepath"
 	"sort"
-
-	"gopkg.in/yaml.v2"
+	"strings"
 )
 
 func main() {
-	o := map[string]struct{}{}
-
 	// top-level OWNERS file
-	o, err := owners("OWNERS", o)
+	o, err := owners("CODEOWNERS")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// each of the plugins, in case someone is not in the top-level one
-	err = filepath.Walk("plugin",
-		func(p string, i os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if i.IsDir() {
-				return nil
-			}
-			if path.Base(p) != "OWNERS" {
-				return nil
-			}
-			o, err = owners(p, o)
-			return err
-		})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// sort it and format it
-	list := []string{}
-	for k := range o {
-		list = append(list, k)
-	}
-	sort.Strings(list)
 	golist := `package chaos
 
 // Owners are all GitHub handlers of all maintainers.
 var Owners = []string{`
 	c := ", "
-	for i, a := range list {
-		if i == len(list)-1 {
+	for i, a := range o {
+		if i == len(o)-1 {
 			c = "}"
 		}
 		golist += fmt.Sprintf("%q%s", a, c)
@@ -70,27 +41,50 @@ var Owners = []string{`
 	return
 }
 
-// owners parses a owner file without knowing a whole lot about its structure.
-func owners(path string, owners map[string]struct{}) (map[string]struct{}, error) {
-	file, err := ioutil.ReadFile(path)
+func owners(path string) ([]string, error) {
+	// simple line, by line based format
+	//
+	// # In this example, @doctocat owns any files in the build/logs
+	// # directory at the root of the repository and any of its
+	// # subdirectories.
+	// /build/logs/ @doctocat
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	c := yaml.MapSlice{}
-	err = yaml.Unmarshal(file, &c)
-	if err != nil {
-		return nil, err
-	}
-	for _, mi := range c {
-		key, ok := mi.Key.(string)
-		if !ok {
+	scanner := bufio.NewScanner(f)
+	users := map[string]struct{}{}
+	for scanner.Scan() {
+		text := scanner.Text()
+		if len(text) == 0 {
 			continue
 		}
-		if key == "approvers" {
-			for _, k := range mi.Value.([]interface{}) {
-				owners[k.(string)] = struct{}{}
+		if text[0] == '#' {
+			continue
+		}
+		ele := strings.Fields(text)
+		if len(ele) == 0 {
+			continue
+		}
+
+		// ok ele[0] is the path, the rest are (in our case) github usernames prefixed with @
+		for _, s := range ele[1:] {
+			if len(s) <= 1 {
+				continue
 			}
+			users[s[1:]] = struct{}{}
 		}
 	}
-	return owners, nil
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	u := []string{}
+	for k := range users {
+		if strings.HasPrefix(k, "@") {
+			k = k[1:]
+		}
+		u = append(u, k)
+	}
+	sort.Strings(u)
+	return u, nil
 }

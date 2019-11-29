@@ -1,0 +1,11 @@
+features:
+  - aliases
+  - exec
+
+aliases:
+  - |
+    /plugin (.*) -> /label plugin/$1
+  - |
+    /wai -> /label works as intended
+  - |
+    /release (.*) -> /exec /opt/bin/release-coredns $1
