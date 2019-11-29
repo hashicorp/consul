@@ -34,22 +34,6 @@
   width: 18px;
   height: 18px;
 }
-%with-star-before::before,
-%with-star-after::after {
-  @extend %pseudo-icon-bg-img;
-  background-image: $star-svg;
-  width: 10px;
-  height: 9px;
-}
-%with-star-before::before {
-  padding-right: 12px;
-}
-%with-star-after::after {
-  padding-left: 22px;
-}
-%with-star {
-  @extend %with-star-before;
-}
 %with-tick {
   @extend %pseudo-icon;
   background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="10" height="8" xmlns="http://www.w3.org/2000/svg"><path d="M8.95 0L10 .985 3.734 8 0 4.737l.924-1.11 2.688 2.349z" fill="%23FFF"/></svg>');

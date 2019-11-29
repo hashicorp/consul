@@ -1,7 +1,6 @@
-td a.is-management {
-  @extend %with-star-after;
-}
 td a.is-management::after {
+  @extend %with-star-fill-mask, %as-pseudo;
+  background-color: $magenta-600;
   height: 16px;
   top: 2px;
   padding-left: 32px;

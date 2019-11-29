@@ -481,6 +481,11 @@
   background-image: $star-fill-svg;
 }
 
+%with-star-fill-mask {
+  @extend %with-mask;
+  mask-image: $star-fill-svg;
+}
+
 %with-star-outline-icon {
   @extend %with-icon;
   background-image: $star-outline-svg;
