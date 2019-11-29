@@ -47,6 +47,11 @@ HTTP request with the static text "hello world".
 
 ```yaml
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: static-server
@@ -65,11 +70,6 @@ spec:
           name: http
    # If ACLs are enabled, the serviceAccountName must match the Consul service name.
   serviceAccountName: static-server
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: static-server
 ```
 
 The only change for Connect is the addition of the
@@ -104,6 +104,11 @@ connection via Connect.
 
 ```yaml
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: static-client
@@ -120,11 +125,6 @@ spec:
       args: [ "while true; do sleep 30; done;" ]
    # If ACLs are enabled, the serviceAccountName must match the Consul service name.
   serviceAccountName: static-client
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: static-client
 ```
 
 Pods must specify upstream dependencies with the
