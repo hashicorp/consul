@@ -25,6 +25,7 @@ const findActiveNspace = function(nspaces, nspace) {
 export default Route.extend({
   repo: service('repository/dc'),
   nspaceRepo: service('repository/nspace/disabled'),
+  aclRepo: service('repository/acl'),
   model: function(params) {
     const repo = this.repo;
     const nspaceRepo = this.nspaceRepo;
@@ -32,6 +33,7 @@ export default Route.extend({
       dcs: repo.findAll(),
       nspaces: nspaceRepo.findAll(),
       nspace: this.nspaceRepo.getActive(),
+      permissions: this.aclRepo.authorize(),
     }).then(function(model) {
       return hash({
         ...model,
