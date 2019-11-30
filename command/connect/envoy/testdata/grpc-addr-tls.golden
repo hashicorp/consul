@@ -23,10 +23,10 @@
             "tls_certificates": [
               {
                 "certificate_chain": {
-                  "filename": "tls.crt"
+                  "filename": "@@TEMPDIR@@tls.crt"
                 },
                 "private_key": {
-                  "filename": "tls.key"
+                  "filename": "@@TEMPDIR@@tls.key"
                 }
               }
             ],

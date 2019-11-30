@@ -51,8 +51,6 @@ type cmd struct {
 	adminAccessLogPath   string
 	adminBind            string
 	envoyBin             string
-	envoyTLSCert         string
-	envoyTLSKey          string
 	bootstrap            bool
 	disableCentralConfig bool
 	grpcAddr             string
@@ -95,14 +93,6 @@ func (c *cmd) init() {
 		"The address:port to start envoy's admin server on. Envoy requires this "+
 			"but care must be taken to ensure it's not exposed to an untrusted network "+
 			"as it has full control over the secrets and config of the proxy.")
-
-	c.flags.StringVar(&c.envoyTLSCert, "envoy-tls-cert", "",
-		"The path of a static certificate file (PEM format) that Envoy can use for "+
-			"mTLS with the Consul agent.")
-
-	c.flags.StringVar(&c.envoyTLSKey, "envoy-tls-key", "",
-		"The path of a static private key file (PEM format) that Envoy can use for mTLS "+
-			"with the Consul agent.")
 
 	c.flags.BoolVar(&c.bootstrap, "bootstrap", false,
 		"Generate the bootstrap.json but don't exec envoy")
@@ -511,8 +501,8 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AgentSocket:           agentSock,
 		AgentTLS:              useTLS,
 		AgentCAFile:           httpCfg.TLSConfig.CAFile,
-		AgentTLSCertFile:      c.envoyTLSCert,
-		AgentTLSKeyFile:       c.envoyTLSKey,
+		AgentTLSCertFile:      httpCfg.TLSConfig.CertFile,
+		AgentTLSKeyFile:       httpCfg.TLSConfig.KeyFile,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,
