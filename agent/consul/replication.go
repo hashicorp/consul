@@ -40,6 +40,8 @@ type ReplicatorConfig struct {
 	MaxRetryWait time.Duration
 	// Where to send our logs
 	Logger *log.Logger
+	//hclog stand in
+	Logger2 hclog.Logger
 }
 
 type Replicator struct {

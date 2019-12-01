@@ -395,7 +395,7 @@ func (a *Agent) Start() error {
 	a.loadTokens(a.config)
 
 	// create the local state
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
+	a.State = local.NewState(LocalConfig(c), a.logger, a.logger2, a.tokens)
 
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).

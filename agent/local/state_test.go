@@ -1661,7 +1661,7 @@ func TestAgent_ServiceTokens(t *testing.T) {
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default", token.TokenSourceConfig)
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
+	l := local.NewState(agent.LocalConfig(cfg), nil, nil, tokens)
 	l.TriggerSyncChanges = func() {}
 
 	l.AddService(&structs.NodeService{ID: "redis"}, "")
@@ -1690,7 +1690,7 @@ func TestAgent_CheckTokens(t *testing.T) {
 	tokens := new(token.Store)
 	tokens.UpdateUserToken("default", token.TokenSourceConfig)
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
+	l := local.NewState(agent.LocalConfig(cfg), nil, nil, tokens)
 	l.TriggerSyncChanges = func() {}
 
 	// Returns default when no token is set
@@ -1715,7 +1715,7 @@ func TestAgent_CheckTokens(t *testing.T) {
 func TestAgent_CheckCriticalTime(t *testing.T) {
 	t.Parallel()
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l := local.NewState(agent.LocalConfig(cfg), nil, nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 
 	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000}
@@ -1779,7 +1779,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 func TestAgent_AddCheckFailure(t *testing.T) {
 	t.Parallel()
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l := local.NewState(agent.LocalConfig(cfg), nil, nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 
 	// Add a check for a service that does not exist and verify that it fails
@@ -1802,7 +1802,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 
 	require := require.New(t)
 	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
-	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l := local.NewState(agent.LocalConfig(cfg), nil, nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 
 	// Add checks
@@ -1926,7 +1926,7 @@ func TestState_Notify(t *testing.T) {
 	})
 
 	state := local.NewState(local.Config{},
-		logger, &token.Store{})
+		logger, consulLogger, &token.Store{})
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 )
 
 const fullSyncReadMaxStale = 2 * time.Second
@@ -144,6 +145,8 @@ type State struct {
 
 	logger *log.Logger
 
+	logger2 hclog.Logger
+
 	// Config is the agent config
 	config Config
 
@@ -177,10 +180,11 @@ type State struct {
 }
 
 // NewState creates a new local state for the agent.
-func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
+func NewState(c Config, logger *log.Logger, logger2 hclog.Logger, tokens *token.Store) *State {
 	l := &State{
 		config:         c,
-		logger:         lg,
+		logger:         logger,
+		logger2:        logger2,
 		services:       make(map[string]*ServiceState),
 		checks:         make(map[types.CheckID]*CheckState),
 		checkAliases:   make(map[string]map[types.CheckID]chan<- struct{}),

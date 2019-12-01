@@ -310,7 +310,8 @@ func testManager_BasicLifecycle(
 	require := require.New(t)
 
 	logger := testutil.LogShim(testutil.Logger(t))
-	state := local.NewState(local.Config{}, logger, &token.Store{})
+	logger2 := testutil.Logger(t)
+	state := local.NewState(local.Config{}, logger, logger2, &token.Store{})
 	source := &structs.QuerySource{
 		Node:       "node1",
 		Datacenter: "dc1",
@@ -447,9 +448,10 @@ func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *Confi
 func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
 	cfg := ManagerConfig{
 		Cache: cache.New(nil),
-		State: local.NewState(local.Config{}, logger, &token.Store{}),
+		State: local.NewState(local.Config{}, logger, logger2, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",
 			Datacenter: "dc1",
