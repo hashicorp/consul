@@ -32,6 +32,8 @@ type RegisterMonitor struct {
 	// Logger is the logger for the monitor.
 	Logger *log.Logger
 
+	Logger2 hclog.Logger
+
 	// Client is the API client to a specific Consul agent. This agent is
 	// where the service will be registered.
 	Client *api.Client
