@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 )
 
@@ -83,6 +84,7 @@ type DNSServer struct {
 	domain    string
 	altDomain string
 	logger    *log.Logger
+	logger2   hclog.Logger
 
 	// config stores the config as an atomic value (for hot-reloading). It is always of type *dnsConfig
 	config atomic.Value
@@ -102,6 +104,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		domain:    domain,
 		altDomain: altDomain,
 		logger:    a.logger,
+		logger2:   a.logger2,
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {

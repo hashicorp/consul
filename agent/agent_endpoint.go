@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
@@ -1033,9 +1034,10 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 
 	// Set up a log handler.
 	handler := &httpLogHandler{
-		filter: filter,
-		logCh:  make(chan string, 512),
-		logger: s.agent.logger,
+		filter:  filter,
+		logCh:   make(chan string, 512),
+		logger:  s.agent.logger,
+		logger2: s.agent.logger2,
 	}
 	s.agent.LogWriter.RegisterHandler(handler)
 	defer s.agent.LogWriter.DeregisterHandler(handler)
@@ -1069,6 +1071,7 @@ type httpLogHandler struct {
 	filter       *logutils.LevelFilter
 	logCh        chan string
 	logger       *log.Logger
+	logger2      hclog.Logger
 	droppedCount int
 }
 

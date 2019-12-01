@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
 	"google.golang.org/grpc"
@@ -164,6 +165,9 @@ type Agent struct {
 	// Used for writing our logs
 	logger *log.Logger
 
+	//(hclog) stand in
+	logger2 hclog.Logger
+
 	// Output sink for logs
 	LogOutput io.Writer
 
@@ -308,7 +312,7 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
-func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
+func New(c *config.RuntimeConfig, logger *log.Logger, logger2 hclog.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -336,6 +340,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
 		logger:           logger,
+		logger2:          logger2,
 	}
 	a.serviceManager = NewServiceManager(&a)
 
@@ -555,7 +560,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
 	if err != nil && len(addrs) == 0 {
 		return nil, err
 	}
-	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
+	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger, a.logger2)...)
 
 	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
 	if err != nil {

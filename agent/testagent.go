@@ -201,11 +201,12 @@ func (a *TestAgent) Start() (err error) {
 		Level:  hclog.Debug,
 		Output: logOutput,
 	})
+
 	agentLogger := consullogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 
-	agent, err := New(a.Config, agentLogger)
+	agent, err := New(a.Config, agentLogger, consullogger)
 	if err != nil {
 		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
