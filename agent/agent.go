@@ -399,7 +399,7 @@ func (a *Agent) Start() error {
 
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
-	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger, a.logger2)
 
 	// create the cache
 	a.cache = cache.New(nil)

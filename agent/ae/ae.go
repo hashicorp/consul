@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 // scaleThreshold is the number of nodes after which regular sync runs are
@@ -62,6 +63,9 @@ type StateSyncer struct {
 	// Logger is the logger.
 	Logger *log.Logger
 
+	//hclog stand in
+	Logger2 hclog.Logger
+
 	// ClusterSize returns the number of members in the cluster to
 	// allow staggering the sync runs based on cluster size.
 	// This needs to be set before Run() is called.
@@ -107,12 +111,13 @@ const (
 	retryFailIntv = 15 * time.Second
 )
 
-func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
+func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger, logger2 hclog.Logger) *StateSyncer {
 	s := &StateSyncer{
 		State:             state,
 		Interval:          intv,
 		ShutdownCh:        shutdownCh,
 		Logger:            logger,
+		Logger2:           logger2,
 		SyncFull:          NewTrigger(),
 		SyncChanges:       NewTrigger(),
 		serverUpInterval:  serverUpIntv,
