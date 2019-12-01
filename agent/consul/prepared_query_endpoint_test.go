@@ -2998,7 +2998,6 @@ func (m *mockQueryServer) JoinQueryLog() string {
 	return strings.Join(m.QueryLog, "|")
 }
 
-
 func (m *mockQueryServer) GetLogger2() hclog.Logger {
 	if m.Logger == nil {
 		m.LogBuffer = new(bytes.Buffer)
