@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/agent/exec"
@@ -67,6 +68,7 @@ type CheckMonitor struct {
 	Interval      time.Duration
 	Timeout       time.Duration
 	Logger        *log.Logger
+	Logger2       hclog.Logger
 	OutputMaxSize int
 	StatusHandler *StatusHandler
 
@@ -217,6 +219,7 @@ type CheckTTL struct {
 	ServiceID string
 	TTL       time.Duration
 	Logger    *log.Logger
+	Logger2   hclog.Logger
 
 	timer *time.Timer
 
@@ -318,6 +321,7 @@ type CheckHTTP struct {
 	Interval        time.Duration
 	Timeout         time.Duration
 	Logger          *log.Logger
+	Logger2         hclog.Logger
 	TLSClientConfig *tls.Config
 	OutputMaxSize   int
 	StatusHandler   *StatusHandler
@@ -483,6 +487,7 @@ type CheckTCP struct {
 	Interval      time.Duration
 	Timeout       time.Duration
 	Logger        *log.Logger
+	Logger2       hclog.Logger
 	StatusHandler *StatusHandler
 
 	dialer   *net.Dialer
@@ -565,6 +570,7 @@ type CheckDocker struct {
 	Shell             string
 	Interval          time.Duration
 	Logger            *log.Logger
+	Logger2           hclog.Logger
 	Client            *DockerClient
 	StatusHandler     *StatusHandler
 
@@ -680,6 +686,7 @@ type CheckGRPC struct {
 	Timeout         time.Duration
 	TLSClientConfig *tls.Config
 	Logger          *log.Logger
+	Logger2         hclog.Logger
 	StatusHandler   *StatusHandler
 
 	probe    *GrpcHealthProbe
@@ -759,6 +766,7 @@ func (c *CheckGRPC) Stop() {
 type StatusHandler struct {
 	inner                  CheckNotifier
 	logger                 *log.Logger
+	logger2                hclog.Logger
 	successBeforePassing   int
 	successCounter         int
 	failuresBeforeCritical int
@@ -766,7 +774,7 @@ type StatusHandler struct {
 }
 
 // NewStatusHandler set counters values to threshold in order to immediatly update status after first check.
-func NewStatusHandler(inner CheckNotifier, logger *log.Logger, successBeforePassing, failuresBeforeCritical int) *StatusHandler {
+func NewStatusHandler(inner CheckNotifier, logger *log.Logger, logger2 hclog.Logger, successBeforePassing, failuresBeforeCritical int) *StatusHandler {
 	return &StatusHandler{
 		logger:                 logger,
 		inner:                  inner,

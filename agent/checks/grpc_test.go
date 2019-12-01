@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
@@ -116,7 +117,7 @@ func TestGRPC_Proxied(t *testing.T) {
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	check := &CheckGRPC{
 		CheckID:       types.CheckID("foo"),
 		GRPC:          "",
@@ -151,7 +152,7 @@ func TestGRPC_NotProxied(t *testing.T) {
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	check := &CheckGRPC{
 		CheckID:       types.CheckID("foo"),
 		GRPC:          server,

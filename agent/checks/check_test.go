@@ -44,7 +44,7 @@ func TestCheckMonitor_Script(t *testing.T) {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
 			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 			check := &CheckMonitor{
 				Notify:        notif,
@@ -84,7 +84,7 @@ func TestCheckMonitor_Args(t *testing.T) {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
 			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 			check := &CheckMonitor{
 				Notify:        notif,
 				CheckID:       types.CheckID("foo"),
@@ -112,7 +112,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 	check := &CheckMonitor{
 		Notify:        notif,
@@ -143,7 +143,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
 
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	check := &CheckMonitor{
 		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
@@ -172,7 +172,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	check := &CheckMonitor{
 		Notify:        notif,
 		CheckID:       types.CheckID("foo"),
@@ -320,7 +320,7 @@ func TestCheckHTTP(t *testing.T) {
 
 			notif := mock.NewNotify()
 			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 			check := &CheckHTTP{
 				CheckID:       types.CheckID("foo"),
@@ -361,7 +361,7 @@ func TestCheckHTTP_Proxied(t *testing.T) {
 	notif := mock.NewNotify()
 
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 	check := &CheckHTTP{
 		CheckID:       types.CheckID("foo"),
@@ -396,7 +396,7 @@ func TestCheckHTTP_NotProxied(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 	check := &CheckHTTP{
 		CheckID:       types.CheckID("foo"),
@@ -518,7 +518,7 @@ func TestCheckMaxOutputSize(t *testing.T) {
 		Interval:      2 * time.Millisecond,
 		Logger:        logger,
 		OutputMaxSize: maxOutputSize,
-		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+		StatusHandler: NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0),
 	}
 
 	check.Start()
@@ -546,7 +546,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 	check := &CheckHTTP{
 		CheckID:       types.CheckID("bar"),
@@ -578,7 +578,7 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 		HTTP:          "http://foo.bar/baz",
 		Interval:      10 * time.Second,
 		Logger:        logger,
-		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+		StatusHandler: NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0),
 	}
 
 	check.Start()
@@ -613,7 +613,7 @@ func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 
 	check := &CheckHTTP{
 		CheckID:         types.CheckID("skipverify_true"),
@@ -650,7 +650,7 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	check := &CheckHTTP{
 		CheckID:         types.CheckID("skipverify_false"),
 		HTTP:            server.URL,
@@ -700,7 +700,7 @@ func mockTCPServer(network string) net.Listener {
 func expectTCPStatus(t *testing.T, tcp string, status string) {
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	check := &CheckTCP{
 		CheckID:       types.CheckID("foo"),
 		TCP:           tcp,
@@ -725,7 +725,7 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	checkID := types.CheckID("foo")
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 2, 3)
 
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
@@ -767,7 +767,7 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	checkID := types.CheckID("foo")
 	notif := mock.NewNotify()
 	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 2, 3)
 
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(checkID, api.HealthPassing, "bar")
@@ -1107,7 +1107,7 @@ func TestCheck_Docker(t *testing.T) {
 
 			notif, upd := mock.NewNotifyChan()
 			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 			id := types.CheckID("chk")
 			check := &CheckDocker{
 				CheckID:           id,

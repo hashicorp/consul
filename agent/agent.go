@@ -2650,7 +2650,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 		}
 
-		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
+		statusHandler := checks.NewStatusHandler(a.State, a.logger, a.logger2, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
 
 		switch {
 
