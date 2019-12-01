@@ -50,7 +50,8 @@ type Service struct {
 	rootsWatch *watch.Plan
 	leafWatch  *watch.Plan
 
-	logger *log.Logger
+	logger  *log.Logger
+	logger2 hclog.Logger
 }
 
 // NewService creates and starts a Service. The caller must close the returned
@@ -68,16 +69,17 @@ func NewService(serviceName string, client *api.Client) (*Service, error) {
 		InferLevels: true,
 	})
 	return NewServiceWithLogger(serviceName, client,
-		logger)
+		logger, consulLogger)
 }
 
 // NewServiceWithLogger starts the service with a specified log.Logger.
 func NewServiceWithLogger(serviceName string, client *api.Client,
-	logger *log.Logger) (*Service, error) {
+	logger *log.Logger, logger2 hclog.Logger) (*Service, error) {
 	s := &Service{
 		service:              serviceName,
 		client:               client,
 		logger:               logger,
+		logger2:              logger2,
 		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
 		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
@@ -102,8 +104,8 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	go s.rootsWatch.RunWithClientAndLogger(client, s.logger)
-	go s.leafWatch.RunWithClientAndLogger(client, s.logger)
+	go s.rootsWatch.RunWithClientAndLogger(client, s.logger, s.logger2)
+	go s.leafWatch.RunWithClientAndLogger(client, s.logger, s.logger2)
 
 	return s, nil
 }

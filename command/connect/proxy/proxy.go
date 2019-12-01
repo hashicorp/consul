@@ -47,6 +47,7 @@ type cmd struct {
 	logFilter *logutils.LevelFilter
 	logOutput io.Writer
 	logger    *log.Logger
+	logger2   hclog.Logger
 
 	// flags
 	logLevel    string
@@ -176,7 +177,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	p, err := proxyImpl.New(client, cfgWatcher, c.logger)
+	p, err := proxyImpl.New(client, cfgWatcher, c.logger, c.logger2)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed initializing proxy: %s", err))
 		return 1
@@ -283,7 +284,7 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 	if c.proxyID != "" {
 		c.UI.Info("Configuration mode: Agent API")
 		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
-		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
+		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger, c.logger2)
 	}
 
 	if c.sidecarFor != "" {
@@ -298,7 +299,7 @@ func (c *cmd) configWatcher(client *api.Client) (proxyImpl.ConfigWatcher, error)
 		c.UI.Info("Configuration mode: Agent API")
 		c.UI.Info(fmt.Sprintf("    Sidecar for ID: %s", c.sidecarFor))
 		c.UI.Info(fmt.Sprintf("          Proxy ID: %s", c.proxyID))
-		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger)
+		return proxyImpl.NewAgentConfigWatcher(client, c.proxyID, c.logger, c.logger2)
 	}
 
 	// Otherwise, we're representing a manually specified service.

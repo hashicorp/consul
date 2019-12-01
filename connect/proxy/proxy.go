@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 // Proxy implements the built-in connect proxy.
@@ -15,6 +16,7 @@ type Proxy struct {
 	cfgWatcher ConfigWatcher
 	stopChan   chan struct{}
 	logger     *log.Logger
+	logger2    hclog.Logger
 	service    *connect.Service
 }
 
@@ -22,12 +24,13 @@ type Proxy struct {
 //
 // The ConfigWatcher can be used to update the configuration of the proxy.
 // Whenever a new configuration is detected, the proxy will reconfigure itself.
-func New(client *api.Client, cw ConfigWatcher, logger *log.Logger) (*Proxy, error) {
+func New(client *api.Client, cw ConfigWatcher, logger *log.Logger, logger2 hclog.Logger) (*Proxy, error) {
 	return &Proxy{
 		client:     client,
 		cfgWatcher: cw,
 		stopChan:   make(chan struct{}),
 		logger:     logger,
+		logger2:    logger2,
 	}, nil
 }
 
@@ -60,7 +63,7 @@ func (p *Proxy) Serve() error {
 				}
 
 				// Setup Service instance now we know target ID etc
-				service, err := newCfg.Service(p.client, p.logger)
+				service, err := newCfg.Service(p.client, p.logger, p.logger2)
 				if err != nil {
 					return err
 				}

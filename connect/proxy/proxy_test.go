@@ -54,7 +54,7 @@ func TestProxy_public(t *testing.T) {
 			BindPort:            ports[0],
 			LocalServiceAddress: testApp.Addr().String(),
 		},
-	}), testLogger(t))
+	}), testutil.LogShim(testutil.Logger(t)), testutil.Logger(t))
 	require.NoError(err)
 	defer p.Close()
 	go p.Serve()

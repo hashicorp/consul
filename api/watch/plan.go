@@ -53,14 +53,14 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 		InferLevels: true,
 	})
 
-	return p.RunWithClientAndLogger(client, logger)
+	return p.RunWithClientAndLogger(client, logger, consulLogger)
 }
 
 // RunWithClientAndLogger runs a watch plan using an external client and
 // log.Logger instance. Using this, the plan's Datacenter, Token and LogOutput
 // fields are ignored and the passed client is expected to be configured as
 // needed.
-func (p *Plan) RunWithClientAndLogger(client *consulapi.Client, logger *log.Logger) error {
+func (p *Plan) RunWithClientAndLogger(client *consulapi.Client, logger *log.Logger, logger2 hclog.Logger) error {
 
 	p.client = client
 
