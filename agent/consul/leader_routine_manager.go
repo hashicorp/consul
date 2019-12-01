@@ -23,7 +23,7 @@ type LeaderRoutineManager struct {
 	routines map[string]*leaderRoutine
 }
 
-func NewLeaderRoutineManager(logger *log.Logger) *LeaderRoutineManager {
+func NewLeaderRoutineManager(logger *log.Logger, logger2 hclog.Logger) *LeaderRoutineManager {
 	if logger == nil {
 		consulLogger := hclog.New(&hclog.LoggerOptions{
 			Level:  log.LstdFlags,

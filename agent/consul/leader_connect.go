@@ -117,7 +117,7 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 
 	// If the provider implements NeedsLogger, we give it our logger.
 	if needsLogger, ok := p.(ca.NeedsLogger); ok {
-		needsLogger.SetLogger(s.logger)
+		needsLogger.SetLogger(s.logger, s.logger2)
 	}
 
 	return p, nil

@@ -116,8 +116,9 @@ func (e policyOrRoleTokenError) Error() string {
 
 // ACLResolverConfig holds all the configuration necessary to create an ACLResolver
 type ACLResolverConfig struct {
-	Config *Config
-	Logger *log.Logger
+	Config  *Config
+	Logger  *log.Logger
+	Logger2 hclog.Logger
 
 	// CacheConfig is a pass through configuration for ACL cache limits
 	CacheConfig *structs.ACLCachesConfig
@@ -160,8 +161,9 @@ type ACLResolverConfig struct {
 //   upon.
 //
 type ACLResolver struct {
-	config *Config
-	logger *log.Logger
+	config  *Config
+	logger  *log.Logger
+	logger2 hclog.Logger
 
 	delegate ACLResolverDelegate
 	entConf  *acl.EnterpriseACLConfig
@@ -1077,6 +1079,7 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 type aclFilter struct {
 	authorizer      acl.Authorizer
 	logger          *log.Logger
+	logger2         hclog.Logger
 	enforceVersion8 bool
 }
 

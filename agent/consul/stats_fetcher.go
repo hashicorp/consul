@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -20,6 +21,7 @@ import (
 // as we run the health check fairly frequently.
 type StatsFetcher struct {
 	logger       *log.Logger
+	logger2      hclog.Logger
 	pool         *pool.ConnPool
 	datacenter   string
 	inflight     map[string]struct{}
@@ -27,9 +29,10 @@ type StatsFetcher struct {
 }
 
 // NewStatsFetcher returns a stats fetcher.
-func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
+func NewStatsFetcher(logger *log.Logger, logger2 hclog.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
 	return &StatsFetcher{
 		logger:     logger,
+		logger2:    logger2,
 		pool:       pool,
 		datacenter: datacenter,
 		inflight:   make(map[string]struct{}),

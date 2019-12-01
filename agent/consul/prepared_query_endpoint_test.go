@@ -2990,11 +2990,24 @@ type mockQueryServer struct {
 	QueryLog         []string
 	QueryFn          func(dc string, args interface{}, reply interface{}) error
 	Logger           *log.Logger
+	Logger2          hclog.Logger
 	LogBuffer        *bytes.Buffer
 }
 
 func (m *mockQueryServer) JoinQueryLog() string {
 	return strings.Join(m.QueryLog, "|")
+}
+
+
+func (m *mockQueryServer) GetLogger2() hclog.Logger {
+	if m.Logger == nil {
+		m.LogBuffer = new(bytes.Buffer)
+
+		m.Logger2 = hclog.New(&hclog.LoggerOptions{
+			Output: m.LogBuffer,
+		})
+	}
+	return m.Logger2
 }
 
 func (m *mockQueryServer) GetLogger() *log.Logger {

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
@@ -634,6 +635,7 @@ func serviceMetaFilter(filters map[string]string, nodes structs.CheckServiceNode
 // queryServer is a wrapper that makes it easier to test the failover logic.
 type queryServer interface {
 	GetLogger() *log.Logger
+	GetLogger2() hclog.Logger
 	GetOtherDatacentersByDistance() ([]string, error)
 	ForwardDC(method, dc string, args interface{}, reply interface{}) error
 }
@@ -646,6 +648,11 @@ type queryServerWrapper struct {
 // GetLogger returns the server's logger.
 func (q *queryServerWrapper) GetLogger() *log.Logger {
 	return q.srv.logger
+}
+
+// GetLogger2 returns the server's logger.
+func (q *queryServerWrapper) GetLogger2() hclog.Logger {
+	return q.srv.logger2
 }
 
 // GetOtherDatacentersByDistance calls into the server's fn and filters out the

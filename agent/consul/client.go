@@ -75,6 +75,8 @@ type Client struct {
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
+	logger2 hclog.Logger
+
 	// serf is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
 	serf *serf.Serf
@@ -98,10 +100,10 @@ func NewClient(config *Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClientLogger(config, nil, c)
+	return NewClientLogger(config, nil, nil, c)
 }
 
-func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
+func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err

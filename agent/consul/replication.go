@@ -48,6 +48,7 @@ type Replicator struct {
 	waiter          *lib.RetryWaiter
 	delegate        ReplicatorDelegate
 	logger          *log.Logger
+	logger2         hclog.Logger
 	lastRemoteIndex uint64
 }
 
@@ -174,6 +175,7 @@ type IndexReplicatorDelegate interface {
 type IndexReplicator struct {
 	Delegate IndexReplicatorDelegate
 	Logger   *log.Logger
+	Logger2  hclog.Logger
 }
 
 func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
