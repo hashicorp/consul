@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 )
 
@@ -26,7 +27,7 @@ type Snapshot struct {
 // and returns an object that gives access to the file as an io.Reader. You must
 // arrange to call Close() on the returned object or else you will leak a
 // temporary file.
-func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
+func New(logger *log.Logger, logger2 hclog.Logger, r *raft.Raft) (*Snapshot, error) {
 	// Take the snapshot.
 	future := r.Snapshot()
 	if err := future.Error(); err != nil {
@@ -142,7 +143,7 @@ func Verify(in io.Reader) (*raft.SnapshotMeta, error) {
 
 // Restore takes the snapshot from the reader and attempts to apply it to the
 // given Raft instance.
-func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
+func Restore(logger *log.Logger, logger2 hclog.Logger, in io.Reader, r *raft.Raft) error {
 	// Wrap the reader in a gzip decompressor.
 	decomp, err := gzip.NewReader(in)
 	if err != nil {

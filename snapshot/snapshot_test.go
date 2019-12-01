@@ -150,7 +150,8 @@ func TestSnapshot(t *testing.T) {
 
 	// Take a snapshot.
 	logger := testutil.LogShim(testutil.Logger(t))
-	snap, err := New(logger, before)
+	logger2 := testutil.Logger(t)
+	snap, err := New(logger, logger2, before)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -191,7 +192,7 @@ func TestSnapshot(t *testing.T) {
 	}
 
 	// Restore the snapshot.
-	if err := Restore(logger, snap, after); err != nil {
+	if err := Restore(logger, logger2, snap, after); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -253,7 +254,8 @@ func TestSnapshot_BadRestore(t *testing.T) {
 
 	// Take a snapshot.
 	logger := testutil.LogShim(testutil.Logger(t))
-	snap, err := New(logger, before)
+	logger2 := testutil.Logger(t)
+	snap, err := New(logger, logger2, before)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -281,7 +283,7 @@ func TestSnapshot_BadRestore(t *testing.T) {
 
 	// Attempt to restore a truncated version of the snapshot. This is
 	// expected to fail.
-	err = Restore(logger, io.LimitReader(snap, 512), after)
+	err = Restore(logger, logger2, io.LimitReader(snap, 512), after)
 	if err == nil || !strings.Contains(err.Error(), "unexpected EOF") {
 		t.Fatalf("err: %v", err)
 	}
