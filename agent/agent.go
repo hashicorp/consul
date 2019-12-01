@@ -429,7 +429,7 @@ func (a *Agent) Start() error {
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientLogger(consulCfg, a.logger, a.tlsConfigurator)
+		client, err := consul.NewClientLogger(consulCfg, a.logger, a.logger2, a.tlsConfigurator)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
