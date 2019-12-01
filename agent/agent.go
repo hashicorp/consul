@@ -415,7 +415,7 @@ func (a *Agent) Start() error {
 	// waiting to discover a consul server
 	consulCfg.ServerUp = a.sync.SyncFull.Trigger
 
-	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
+	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger, a.logger2)
 	if err != nil {
 		return err
 	}

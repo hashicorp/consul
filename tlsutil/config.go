@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -161,12 +163,13 @@ type Configurator struct {
 
 	caPool  *x509.CertPool
 	logger  *log.Logger
+	logger2 hclog.Logger
 	version int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
-func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
+func NewConfigurator(config Config, logger *log.Logger, logger2 hclog.Logger) (*Configurator, error) {
 	c := &Configurator{logger: logger, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
 	err := c.Update(config)
 	if err != nil {

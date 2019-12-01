@@ -96,7 +96,7 @@ type Client struct {
 // NewClient only used to help setting up a client for testing. Normal code
 // exercises NewClientLogger.
 func NewClient(config *Config) (*Client, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil, nil)
 	if err != nil {
 		return nil, err
 	}

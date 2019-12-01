@@ -17,3 +17,10 @@ func DefaultLogger() *log.Logger {
 	})
 
 }
+
+func DefaultLogger2() hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Output: os.Stderr,
+	})
+
+}

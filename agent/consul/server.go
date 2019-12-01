@@ -282,7 +282,7 @@ type Server struct {
 // NewServer is only used to help setting up a server for testing. Normal code
 // exercises NewServerLogger.
 func NewServer(config *Config) (*Server, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
