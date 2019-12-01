@@ -87,7 +87,7 @@ func (p *Proxy) Serve() error {
 					// the configuration to disable our public listener.
 					if newCfg.PublicListener.BindPort != 0 {
 						newCfg.PublicListener.applyDefaults()
-						l := NewPublicListener(p.service, newCfg.PublicListener, p.logger)
+						l := NewPublicListener(p.service, newCfg.PublicListener, p.logger, p.logger2)
 						err = p.startListener("public listener", l)
 						if err != nil {
 							// This should probably be fatal.
@@ -111,7 +111,7 @@ func (p *Proxy) Serve() error {
 					continue
 				}
 
-				l := NewUpstreamListener(p.service, p.client, uc, p.logger)
+				l := NewUpstreamListener(p.service, p.client, uc, p.logger, p.logger2)
 				err := p.startListener(uc.String(), l)
 				if err != nil {
 					p.logger.Printf("[ERR] failed to start upstream %s: %s", uc.String(),

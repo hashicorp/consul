@@ -128,7 +128,7 @@ func TestPublicListener(t *testing.T) {
 	sink := testSetupMetrics(t)
 
 	svc := connect.TestService(t, "db", ca)
-	l := NewPublicListener(svc, cfg, testutil.LogShim(testutil.Logger(t)))
+	l := NewPublicListener(svc, cfg, testutil.LogShim(testutil.Logger(t)), testutil.Logger(t))
 
 	// Run proxy
 	go func() {
