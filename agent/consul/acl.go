@@ -1084,7 +1084,7 @@ type aclFilter struct {
 }
 
 // newACLFilter constructs a new aclFilter.
-func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, enforceVersion8 bool) *aclFilter {
+func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, logger2 hclog.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
 		consulLogger := hclog.New(&hclog.LoggerOptions{
 			Level:  log.LstdFlags,
@@ -1563,7 +1563,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 		return nil
 	}
 	// Create the filter
-	filt := newACLFilter(authorizer, r.logger, r.config.ACLEnforceVersion8)
+	filt := newACLFilter(authorizer, r.logger, r.logger2, r.config.ACLEnforceVersion8)
 
 	switch v := subj.(type) {
 	case *structs.CheckServiceNodes:

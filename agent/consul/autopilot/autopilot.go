@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -31,6 +32,7 @@ type Delegate interface {
 // For more information, see https://www.consul.io/docs/guides/autopilot.html
 type Autopilot struct {
 	logger   *log.Logger
+	logger2  hclog.Logger
 	delegate Delegate
 
 	interval       time.Duration
@@ -54,9 +56,10 @@ type ServerInfo struct {
 	Status serf.MemberStatus
 }
 
-func NewAutopilot(logger *log.Logger, delegate Delegate, interval, healthInterval time.Duration) *Autopilot {
+func NewAutopilot(logger *log.Logger, logger2 hclog.Logger, delegate Delegate, interval, healthInterval time.Duration) *Autopilot {
 	return &Autopilot{
 		logger:         logger,
+		logger2:        logger2,
 		delegate:       delegate,
 		interval:       interval,
 		healthInterval: healthInterval,

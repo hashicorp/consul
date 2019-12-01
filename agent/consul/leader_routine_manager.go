@@ -17,8 +17,9 @@ type leaderRoutine struct {
 }
 
 type LeaderRoutineManager struct {
-	lock   sync.RWMutex
-	logger *log.Logger
+	lock    sync.RWMutex
+	logger  *log.Logger
+	logger2 hclog.Logger
 
 	routines map[string]*leaderRoutine
 }
@@ -36,6 +37,7 @@ func NewLeaderRoutineManager(logger *log.Logger, logger2 hclog.Logger) *LeaderRo
 
 	return &LeaderRoutineManager{
 		logger:   logger,
+		logger2:  logger2,
 		routines: make(map[string]*leaderRoutine),
 	}
 }

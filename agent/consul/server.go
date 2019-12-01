@@ -286,12 +286,12 @@ func NewServer(config *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewServerLogger(config, nil, new(token.Store), c)
+	return NewServerLogger(config, nil, nil, new(token.Store), c)
 }
 
 // NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
