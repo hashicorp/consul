@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 var ErrNotInitialized = errors.New("provider not initialized")
@@ -31,6 +32,7 @@ type ConsulProvider struct {
 	isPrimary bool
 	spiffeID  *connect.SpiffeIDSigning
 	logger    *log.Logger
+	logger2   hclog.Logger
 
 	// testState is only used to test Consul leader's handling of providers that
 	// need to persist state. Consul provider actually manages it's state directly
@@ -658,8 +660,9 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 }
 
 // SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (c *ConsulProvider) SetLogger(logger *log.Logger) {
+func (c *ConsulProvider) SetLogger(logger *log.Logger, logger2 hclog.Logger) {
 	c.logger = logger
+	c.logger2 = logger2
 }
 
 func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {

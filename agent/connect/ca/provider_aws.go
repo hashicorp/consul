@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -74,10 +75,11 @@ type AWSProvider struct {
 	rootPEM         string
 	intermediatePEM string
 	logger          *log.Logger
+	logger2         hclog.Logger
 }
 
 // SetLogger implements NeedsLogger
-func (a *AWSProvider) SetLogger(l *log.Logger) {
+func (a *AWSProvider) SetLogger(l *log.Logger, logger2 hclog.Logger) {
 	a.logger = l
 }
 
