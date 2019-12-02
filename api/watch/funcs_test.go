@@ -300,6 +300,8 @@ func TestServicesWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	var (
 		wakeups  []map[string][]string
 		notifyCh = make(chan struct{})
