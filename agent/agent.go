@@ -1782,6 +1782,9 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 // ForceLeave is used to remove a failed node from the cluster
 func (a *Agent) ForceLeave(node string, prune bool) (err error) {
 	a.logger.Printf("[INFO] agent: Force leaving node: %v", node)
+	if ok := a.IsMember(node); !ok {
+		return fmt.Errorf("agent: No node found with name '%s'", node)
+	}
 	err = a.delegate.RemoveFailedNode(node, prune)
 	if err != nil {
 		a.logger.Printf("[WARN] agent: Failed to remove node: %v", err)
@@ -1805,6 +1808,18 @@ func (a *Agent) WANMembers() []serf.Member {
 		return srv.WANMembers()
 	}
 	return nil
+}
+
+// IsMember is used to check if a node with the given nodeName
+// is a member
+func (a *Agent) IsMember(nodeName string) bool {
+	for _, m := range a.LANMembers() {
+		if m.Name == nodeName {
+			return true
+		}
+	}
+
+	return false
 }
 
 // StartSync is called once Services and Checks are registered.
