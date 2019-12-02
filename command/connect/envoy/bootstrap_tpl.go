@@ -35,6 +35,8 @@ type BootstrapTplArgs struct {
 	// if the agent is using VerifyIncoming. Required if AgentTLSCertFile is specified.
 	AgentTLSKeyFile string
 
+	AgentTLSServerName string
+
 	// AgentSocket is the path to a Unix Socket for communicating with the
 	// local agent's gRPC endpoint. Disabled if the empty (the default),
 	// but overrides AgentAddress and AgentPort if set.
@@ -142,7 +144,12 @@ const bootstrapTemplate = `{
                 "filename": "{{ .AgentCAFile }}"
               }
             }
+        {{- if .AgentTLSServerName -}}
+          },
+          "sni": "{{ .AgentTLSServerName }}"
+        {{- else -}}
           }
+        {{- end -}}
         },
         {{- end }}
         "http2_protocol_options": {},

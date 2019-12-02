@@ -503,6 +503,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AgentCAFile:           httpCfg.TLSConfig.CAFile,
 		AgentTLSCertFile:      httpCfg.TLSConfig.CertFile,
 		AgentTLSKeyFile:       httpCfg.TLSConfig.KeyFile,
+		AgentTLSServerName:    httpCfg.TLSConfig.Address,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,

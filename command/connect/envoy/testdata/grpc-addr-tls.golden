@@ -35,7 +35,8 @@
                 "filename": "@@TEMPDIR@@ca.crt"
               }
             }
-          }
+          },
+          "sni": "foobar.service.consul"
         },
         "http2_protocol_options": {},
         "hosts": [
