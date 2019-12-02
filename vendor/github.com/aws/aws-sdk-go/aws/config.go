@@ -249,6 +249,9 @@ type Config struct {
 
 	// STSRegionalEndpoint will enable regional or legacy endpoint resolving
 	STSRegionalEndpoint endpoints.STSRegionalEndpoint
+
+	// S3UsEast1RegionalEndpoint will enable regional or legacy endpoint resolving
+	S3UsEast1RegionalEndpoint endpoints.S3UsEast1RegionalEndpoint
 }
 
 // NewConfig returns a new Config pointer that can be chained with builder
@@ -430,6 +433,13 @@ func (c *Config) WithSTSRegionalEndpoint(sre endpoints.STSRegionalEndpoint) *Con
 	return c
 }
 
+// WithS3UsEast1RegionalEndpoint will set whether or not to use regional endpoint flag
+// when resolving the endpoint for a service
+func (c *Config) WithS3UsEast1RegionalEndpoint(sre endpoints.S3UsEast1RegionalEndpoint) *Config {
+	c.S3UsEast1RegionalEndpoint = sre
+	return c
+}
+
 func mergeInConfig(dst *Config, other *Config) {
 	if other == nil {
 		return
@@ -533,6 +543,10 @@ func mergeInConfig(dst *Config, other *Config) {
 
 	if other.STSRegionalEndpoint != endpoints.UnsetSTSEndpoint {
 		dst.STSRegionalEndpoint = other.STSRegionalEndpoint
+	}
+
+	if other.S3UsEast1RegionalEndpoint != endpoints.UnsetS3UsEast1Endpoint {
+		dst.S3UsEast1RegionalEndpoint = other.S3UsEast1RegionalEndpoint
 	}
 }
 

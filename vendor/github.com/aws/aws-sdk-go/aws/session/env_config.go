@@ -128,11 +128,19 @@ type envConfig struct {
 	//  AWS_ROLE_SESSION_NAME=session_name
 	RoleSessionName string
 
-	// Specifies the Regional Endpoint flag for the sdk to resolve the endpoint for a service
+	// Specifies the STS Regional Endpoint flag for the SDK to resolve the endpoint
+	// for a service.
 	//
-	// AWS_STS_REGIONAL_ENDPOINTS =sts_regional_endpoint
+	// AWS_STS_REGIONAL_ENDPOINTS=regional
 	// This can take value as `regional` or `legacy`
 	STSRegionalEndpoint endpoints.STSRegionalEndpoint
+
+	// Specifies the S3 Regional Endpoint flag for the SDK to resolve the
+	// endpoint for a service.
+	//
+	// AWS_S3_US_EAST_1_REGIONAL_ENDPOINT=regional
+	// This can take value as `regional` or `legacy`
+	S3UsEast1RegionalEndpoint endpoints.S3UsEast1RegionalEndpoint
 }
 
 var (
@@ -189,6 +197,9 @@ var (
 	}
 	stsRegionalEndpointKey = []string{
 		"AWS_STS_REGIONAL_ENDPOINTS",
+	}
+	s3UsEast1RegionalEndpoint = []string{
+		"AWS_S3_US_EAST_1_REGIONAL_ENDPOINT",
 	}
 )
 
@@ -275,14 +286,24 @@ func envConfigLoad(enableSharedConfig bool) (envConfig, error) {
 
 	cfg.CustomCABundle = os.Getenv("AWS_CA_BUNDLE")
 
+	var err error
 	// STS Regional Endpoint variable
 	for _, k := range stsRegionalEndpointKey {
 		if v := os.Getenv(k); len(v) != 0 {
-			STSRegionalEndpoint, err := endpoints.GetSTSRegionalEndpoint(v)
+			cfg.STSRegionalEndpoint, err = endpoints.GetSTSRegionalEndpoint(v)
 			if err != nil {
 				return cfg, fmt.Errorf("failed to load, %v from env config, %v", k, err)
 			}
-			cfg.STSRegionalEndpoint = STSRegionalEndpoint
+		}
+	}
+
+	// S3 Regional Endpoint variable
+	for _, k := range s3UsEast1RegionalEndpoint {
+		if v := os.Getenv(k); len(v) != 0 {
+			cfg.S3UsEast1RegionalEndpoint, err = endpoints.GetS3UsEast1RegionalEndpoint(v)
+			if err != nil {
+				return cfg, fmt.Errorf("failed to load, %v from env config, %v", k, err)
+			}
 		}
 	}
 
