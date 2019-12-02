@@ -31,7 +31,7 @@ type ServerResolverBuilder struct {
 	scheme     string
 	datacenter string
 	servers    map[string]*metadata.Server
-	resolvers  map[string]*ServerResolver
+	resolvers  map[resolver.ClientConn]*ServerResolver
 	shutdownCh <-chan struct{}
 	lock       sync.Mutex
 }
@@ -41,7 +41,7 @@ func NewServerResolverBuilder(scheme, datacenter string, shutdownCh <-chan struc
 		scheme:     scheme,
 		datacenter: datacenter,
 		servers:    make(map[string]*metadata.Server),
-		resolvers:  make(map[string]*ServerResolver),
+		resolvers:  make(map[resolver.ClientConn]*ServerResolver),
 	}
 }
 
@@ -122,22 +122,23 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 
 	// If there's already a resolver for this datacenter, return it.
 	datacenter := strings.TrimPrefix(target.Endpoint, "server.")
-	if resolver, ok := s.resolvers[datacenter]; ok {
+	if resolver, ok := s.resolvers[cc]; ok {
 		return resolver, nil
 	}
 
 	// Make a new resolver for the dc and add it to the list of active ones.
 	resolver := &ServerResolver{
+		datacenter: datacenter,
 		clientConn: cc,
 	}
 	resolver.updateAddrs(s.getDCAddrs(datacenter))
 	resolver.closeCallback = func() {
 		s.lock.Lock()
 		defer s.lock.Unlock()
-		delete(s.resolvers, datacenter)
+		delete(s.resolvers, cc)
 	}
 
-	s.resolvers[datacenter] = resolver
+	s.resolvers[cc] = resolver
 
 	return resolver, nil
 }
@@ -150,9 +151,12 @@ func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 	defer s.lock.Unlock()
 
 	s.servers[server.ID] = server
-	if resolver, ok := s.resolvers[server.Datacenter]; ok {
-		addrs := s.getDCAddrs(server.Datacenter)
-		resolver.updateAddrs(addrs)
+
+	addrs := s.getDCAddrs(server.Datacenter)
+	for _, resolver := range s.resolvers {
+		if resolver.datacenter == server.Datacenter {
+			resolver.updateAddrs(addrs)
+		}
 	}
 }
 
@@ -162,9 +166,12 @@ func (s *ServerResolverBuilder) RemoveServer(server *metadata.Server) {
 	defer s.lock.Unlock()
 
 	delete(s.servers, server.ID)
-	if resolver, ok := s.resolvers[server.Datacenter]; ok {
-		addrs := s.getDCAddrs(server.Datacenter)
-		resolver.updateAddrs(addrs)
+
+	addrs := s.getDCAddrs(server.Datacenter)
+	for _, resolver := range s.resolvers {
+		if resolver.datacenter == server.Datacenter {
+			resolver.updateAddrs(addrs)
+		}
 	}
 }
 
@@ -189,6 +196,7 @@ func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
 // ServerResolver is a grpc Resolver that will keep a grpc.ClientConn up to date
 // on the list of server addresses to use.
 type ServerResolver struct {
+	datacenter    string
 	clientConn    resolver.ClientConn
 	closeCallback func()
 

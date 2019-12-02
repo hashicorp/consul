@@ -142,8 +142,12 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleInsecureConn(conn)
 
 	case pool.RPCGRPC:
-		s.handleGRPCConn(conn)
-
+		if !s.config.GRPCEnabled {
+			s.logger.Printf("[ERR] consul.rpc: GRPC conn opened but GRPC is not enabled, closing")
+			conn.Close()
+		} else {
+			s.handleGRPCConn(conn)
+		}
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))

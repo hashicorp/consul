@@ -70,6 +70,16 @@ type ServerTracker interface {
 	RemoveServer(*metadata.Server)
 }
 
+// NoOpServerTracker is a ServerTracker that does nothing. Used when gRPC is not
+// enabled.
+type NoOpServerTracker struct{}
+
+// AddServer implements ServerTracker
+func (t *NoOpServerTracker) AddServer(*metadata.Server) {}
+
+// RemoveServer implements ServerTracker
+func (t *NoOpServerTracker) RemoveServer(*metadata.Server) {}
+
 // serverList is a local copy of the struct used to maintain the list of
 // Consul servers used by Manager.
 //

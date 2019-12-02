@@ -182,16 +182,25 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		go c.monitorACLMode()
 	}
 
-	// Register the gRPC resolver used for connection balancing.
-	c.grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, c.shutdownCh)
-	go c.grpcResolverBuilder.periodicServerRebalance(c.serf)
+	var tracker router.ServerTracker
+
+	if c.config.GRPCEnabled {
+		// Register the gRPC resolver used for connection balancing.
+		c.grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, c.shutdownCh)
+		tracker = c.grpcResolverBuilder
+		go c.grpcResolverBuilder.periodicServerRebalance(c.serf)
+	} else {
+		tracker = &router.NoOpServerTracker{}
+	}
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, c.grpcResolverBuilder)
+	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool, tracker)
 	go c.routers.Start()
 
 	// Start the GRPC client.
-	c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator, config.GRPCResolverScheme)
+	if c.config.GRPCEnabled {
+		c.grpcClient = NewGRPCClient(logger, c.routers, tlsConfigurator, config.GRPCResolverScheme)
+	}
 
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
@@ -387,6 +396,9 @@ func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 // GRPCConn returns a gRPC connection to a server.
 func (c *Client) GRPCConn() (*grpc.ClientConn, error) {
+	if !c.config.GRPCEnabled {
+		return nil, fmt.Errorf("GRPC is not enabled on this client")
+	}
 	return c.grpcClient.GRPCConn(c.config.Datacenter)
 }
 
