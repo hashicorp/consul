@@ -1,8 +1,10 @@
 package state
 
 import (
+	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
@@ -870,4 +872,43 @@ func TestTxnEvents_ServiceHealthConnect(t *testing.T) {
 		require.Equal(expected, connectEvents)
 		tx.Abort()
 	}
+}
+
+// This test case ensures that even if the context is cancelled or something
+// else happens during sending a snapshot, we always close the stream otherwise
+// we could leak the Subscribe goroutine.
+func TestGetTopicSnapshot_ClosesEventChan(t *testing.T) {
+
+	t.Run("on empty snap and context cancel", func(t *testing.T) {
+		// Use an unbuffered chan so we can force the switch to hit the context.Done
+		// case before the event send.
+		snapCh := make(chan stream.Event)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		// immediately cancel()
+		cancel()
+
+		s := testStateStore(t)
+
+		err := s.GetTopicSnapshot(ctx, snapCh, &stream.SubscribeRequest{
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "test",
+		})
+		require.NoError(t, err)
+
+		// The sendCh must be closed
+		select {
+		case _, ok := <-snapCh:
+			require.False(t, ok)
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("event channel should be closed but it's still blocking after 100ms")
+		}
+	})
+
+	// There are lots of other ways GetTopicSnapshot can fail and return that
+	// would be nice to test explicitly e.g if the snapshotFunc errors or if the
+	// maxIndex method fails, but they'd require mocking out several different
+	// parts of the state store which is a larger change than I want to make for
+	// now. Instead I'll rely on the knowledge that I'm going to solve the case
+	// above in a generic way that should work for all others too - using defer.
 }
