@@ -6,6 +6,8 @@ replace github.com/hashicorp/consul/api => ./api
 
 replace github.com/hashicorp/consul/sdk => ./sdk
 
+replace launchpad.net/gocheck => github.com/go-check/check
+
 require (
 	github.com/Azure/go-autorest v10.15.3+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.3 // indirect
