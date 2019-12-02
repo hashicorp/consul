@@ -68,8 +68,12 @@ func NewService(serviceName string, client *api.Client) (*Service, error) {
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
+
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		Name: serviceName,
+	})
 	return NewServiceWithLogger(serviceName, client,
-		logger, consulLogger)
+		logger, logger2)
 }
 
 // NewServiceWithLogger starts the service with a specified log.Logger.

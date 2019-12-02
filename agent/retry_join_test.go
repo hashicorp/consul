@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
@@ -46,6 +47,8 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
+			//TODO (hclog): This needs to output to debug, be careful of the buffer
+			logger2 := testutil.Logger(t)
 			consullogger := hclog.New(&hclog.LoggerOptions{
 				Level:  hclog.Debug,
 				Output: &buf,
@@ -54,7 +57,7 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 				InferLevels: true,
 			})
 
-			output := retryJoinAddrs(d, "LAN", test.input, logger, consullogger)
+			output := retryJoinAddrs(d, "LAN", test.input, logger, logger2)
 			bufout := buf.String()
 			require.Equal(t, test.expected, output, bufout)
 			if i == 4 {

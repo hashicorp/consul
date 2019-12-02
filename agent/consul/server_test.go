@@ -209,6 +209,11 @@ func newServer(c *Config) (*Server, error) {
 	if w == nil {
 		w = os.Stderr
 	}
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  log.LstdFlags | log.Lmicroseconds,
+		Output: w,
+	})
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		Name:   c.NodeName,
 		Level:  log.LstdFlags | log.Lmicroseconds,
@@ -217,11 +222,11 @@ func newServer(c *Config) (*Server, error) {
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
-	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger, logger2)
 	if err != nil {
 		return nil, err
 	}
-	srv, err := NewServerLogger(c, logger, consulLogger, new(token.Store), tlsConf)
+	srv, err := NewServerLogger(c, logger, logger2, new(token.Store), tlsConf)
 	if err != nil {
 		return nil, err
 	}
@@ -1140,7 +1145,7 @@ func TestServer_CALogging(t *testing.T) {
 	logger := log.New(&buf, "", log.LstdFlags)
 	logger2 := testutil.Logger(t)
 
-	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil, logger2)
 	require.NoError(t, err)
 	s1, err := NewServerLogger(conf1, logger, logger2, new(token.Store), c)
 	if err != nil {

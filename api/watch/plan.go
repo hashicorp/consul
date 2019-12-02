@@ -45,6 +45,11 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	if output == nil {
 		output = os.Stderr
 	}
+
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		Level:  log.LstdFlags,
+		Output: output,
+	})
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		Level:  log.LstdFlags,
 		Output: output,
@@ -53,7 +58,7 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 		InferLevels: true,
 	})
 
-	return p.RunWithClientAndLogger(client, logger, consulLogger)
+	return p.RunWithClientAndLogger(client, logger, logger2)
 }
 
 // RunWithClientAndLogger runs a watch plan using an external client and

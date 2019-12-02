@@ -313,12 +313,14 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 	}
 
 	//TODO (hclog): Should we rename this? Also fix log level
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 = hclog.New(&hclog.LoggerOptions{
 		Name:   "server",
-		Level:  log.LstdFlags,
 		Output: config.LogOutput})
 
 	if logger == nil {
+		consulLogger := hclog.New(&hclog.LoggerOptions{
+			Level:  log.LstdFlags,
+			Output: config.LogOutput})
 		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
@@ -380,7 +382,7 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		tombstoneGC:             gc,
 		serverLookup:            NewServerLookup(),
 		shutdownCh:              shutdownCh,
-		leaderRoutineManager:    NewLeaderRoutineManager(logger, consulLogger),
+		leaderRoutineManager:    NewLeaderRoutineManager(logger, logger2),
 		aclAuthMethodValidators: authmethod.NewCache(),
 	}
 
@@ -406,7 +408,7 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 	}
 
 	// Initialize the stats fetcher that autopilot will use.
-	s.statsFetcher = NewStatsFetcher(logger, consulLogger, s.connPool, s.config.Datacenter)
+	s.statsFetcher = NewStatsFetcher(logger, logger2, s.connPool, s.config.Datacenter)
 
 	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
 	s.useNewACLs = 0
