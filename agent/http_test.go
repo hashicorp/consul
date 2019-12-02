@@ -154,6 +154,7 @@ func TestHTTPServer_H2(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	transport := api.DefaultConfig().Transport
+	transport.TLSHandshakeTimeout = 30 * time.Second
 	transport.TLSClientConfig = tlsccfg
 	if err := http2.ConfigureTransport(transport); err != nil {
 		t.Fatalf("err: %v", err)
