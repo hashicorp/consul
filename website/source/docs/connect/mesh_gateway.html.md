@@ -116,11 +116,13 @@ MeshGateway {
 
 ### Enabling Gateways for a Service Instance
 
-The following service definition will enable gateways for the service instance in the `remote` mode.
+The following [Proxy Service Registration](https://www.consul.io/docs/connect/registration/service-registration.html)
+definition will enable gateways for the service instance in the `remote` mode.
 
 ```hcl
 service {
    name = "web-sidecar-proxy"
+   kind = "connect-proxy"
    port = 8181
    proxy {
       destination_service_name = "web"
@@ -138,7 +140,7 @@ service {
 }
 ```
 
-Or alternatively as a sidecar service:
+Or alternatively inline with the service definition:
 
 ```hcl
 service {
@@ -171,6 +173,7 @@ for a second upstream and will disable gateways for a third upstream.
 ```hcl
 service {
    name = "web-sidecar-proxy"
+   kind = "connect-proxy"
    port = 8181
    proxy {
       destination_service_name = "web"
