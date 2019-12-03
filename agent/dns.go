@@ -615,7 +615,7 @@ PARSE:
 			goto INVALID
 		}
 		node := d.agent.config.NodeName
-		d.nodeLookup(network, datacenter, node, req, resp)
+		d.nodeLookup(cfg, network, datacenter, node, req, resp, maxRecursionLevel)
 
 	case "query":
 		if n == 1 {
