@@ -1,0 +1,35 @@
+# https://docs.codecov.io/docs/commit-status
+coverage:
+  status:
+    # only measure diff changes, not unexpected project changes from flakiness
+    project: no
+    patch: yes
+      # default:
+        # https://docs.codecov.io/docs/commit-status#section-threshold
+        # TODO: consider setting instead of using existing coverage as baseline
+        # target: 
+        # https://docs.codecov.io/docs/commit-status#section-excluding-tests-example-
+        # TODO: should any paths be excluded from coverage metrics?
+        # paths:
+    # https://docs.codecov.io/docs/commit-status#section-changes-status
+    # TODO: enable after eliminating current unexpected coverage changes
+    changes: no
+
+# https://docs.codecov.io/docs/codecov-yaml#section-default-yaml
+# TODO: experiment with changing these values?
+# parsers:
+#   gcov:
+#     branch_detection:
+#       conditional: yes
+#       loop: yes
+#       method: no
+#       macro: no
+
+# https://docs.codecov.io/docs/pull-request-comments#section-layout
+# TODO: any need to tweak the layout here?
+# comment:
+  # layout: "reach,diff,flags,tree"
+
+# https://docs.codecov.io/docs/flags
+# TODO: split out test coverage for API, SDK, UI, website?
+# flags:
