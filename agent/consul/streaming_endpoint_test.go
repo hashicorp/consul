@@ -973,7 +973,8 @@ service "foo" {
 		select {
 		case event := <-eventCh:
 			require.True(event.GetReloadStream())
-		case <-time.After(500 * time.Millisecond):
+			// 500 ms was not enough in CI apparently...
+		case <-time.After(2 * time.Second):
 			t.Fatalf("did not receive reload event")
 		}
 	}
