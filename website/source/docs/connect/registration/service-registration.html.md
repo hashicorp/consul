@@ -184,10 +184,10 @@ followed by documentation for each attribute.
   any valid JSON object. This might be used to configure proxy-specific features
   like timeouts or retries for the given upstream. See the [built-in proxy
   configuration
-  reference](/docs/connect/configuration.html#built-in-proxy-options) for
+  reference](/docs/connect/proxies/built-in.html#proxy-upstream-config-key-reference) for
   options available when using the built-in proxy. If using Envoy as a proxy,
   see [Envoy configuration
-  reference](/docs/connect/configuration.html#envoy-options)
+  reference](/docs/connect/proxies/envoy.html#proxy-upstream-config-options)
 * `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
    for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
 * `expose` `(object: {})` - Specifies the configuration to expose HTTP paths through this proxy. 
