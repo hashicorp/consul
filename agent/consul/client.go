@@ -135,6 +135,14 @@ func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		})
 	}
 
+	if logger2 == nil {
+		//TODO (hclog): Should we rename this? Also fix log level
+		logger2 = hclog.New(&hclog.LoggerOptions{
+			Name:   "client",
+			Output: config.LogOutput,
+		})
+	}
+
 	connPool := &pool.ConnPool{
 		SrcAddr:         config.RPCSrcAddr,
 		LogOutput:       config.LogOutput,
@@ -150,6 +158,7 @@ func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
 		logger:          logger,
+		logger2:         logger2,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
 	}
@@ -166,9 +175,10 @@ func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		Config:           config,
 		Delegate:         c,
 		Logger:           logger,
+		Logger2:          logger2,
 		AutoDisable:      true,
 		CacheConfig:      clientACLCacheConfig,
-		EnterpriseConfig: newEnterpriseACLConfig(logger),
+		EnterpriseConfig: newEnterpriseACLConfig(logger, logger2),
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -189,7 +199,7 @@ func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 	}
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	c.routers = router.New(c.logger, c.logger2, c.shutdownCh, c.serf, c.connPool)
 	go c.routers.Start()
 
 	// Start LAN event handlers after the router is complete since the event

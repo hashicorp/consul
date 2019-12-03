@@ -199,7 +199,6 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
-
 	}
 
 	cache, err := structs.NewACLCaches(config.CacheConfig)
@@ -222,6 +221,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	return &ACLResolver{
 		config:      config.Config,
 		logger:      config.Logger,
+		logger2:     config.Logger2,
 		delegate:    config.Delegate,
 		entConf:     config.EnterpriseConfig,
 		cache:       cache,

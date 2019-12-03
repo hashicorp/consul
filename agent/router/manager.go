@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -86,6 +87,8 @@ type Manager struct {
 	shutdownCh chan struct{}
 
 	logger *log.Logger
+
+	logger2 hclog.Logger
 
 	// clusterInfo is used to estimate the approximate number of nodes in
 	// a cluster and limit the rate at which it rebalances server
@@ -230,9 +233,10 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
+func New(logger *log.Logger, logger2 hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
 	m = new(Manager)
 	m.logger = logger
+	m.logger2 = logger2
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)

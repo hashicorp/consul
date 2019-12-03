@@ -61,6 +61,6 @@ func (s *Server) Flood(addrFn router.FloodAddrFn, portFn router.FloodPortFn, glo
 		}
 
 	FLOOD:
-		router.FloodJoins(s.logger, addrFn, portFn, s.config.Datacenter, s.serfLAN, global)
+		router.FloodJoins(s.logger, s.logger2, addrFn, portFn, s.config.Datacenter, s.serfLAN, global)
 	}
 }

@@ -29,7 +29,7 @@ func init() {
 	})
 }
 
-func GetBufferedLogger() *log.Logger {
+func GetBufferedLogger() (*log.Logger, hclog.Logger) {
 	localLogBuffer = new(bytes.Buffer)
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		Level:  0,
@@ -37,7 +37,7 @@ func GetBufferedLogger() *log.Logger {
 	})
 	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
-	})
+	}), consulLogger
 }
 
 type fauxConnPool struct {
@@ -63,16 +63,16 @@ func (s *fauxSerf) NumNodes() int {
 }
 
 func testManager() (m *Manager) {
-	logger := GetBufferedLogger()
+	logger, logger2 := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
+	m = New(logger, logger2, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *Manager) {
-	logger := GetBufferedLogger()
+	logger, logger2 := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = New(logger, logger2, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
 }
 
@@ -308,11 +308,11 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 		{1000000, 19, 10 * time.Minute},
 	}
 
-	logger := GetBufferedLogger()
+	logger, logger2 := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
+		m := New(logger, logger2, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
 			m.AddServer(&metadata.Server{Name: nodeName})

@@ -312,11 +312,6 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		config.LogOutput = os.Stderr
 	}
 
-	//TODO (hclog): Should we rename this? Also fix log level
-	logger2 = hclog.New(&hclog.LoggerOptions{
-		Name:   "server",
-		Output: config.LogOutput})
-
 	if logger == nil {
 		consulLogger := hclog.New(&hclog.LoggerOptions{
 			Level:  log.LstdFlags,
@@ -324,6 +319,13 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
+	}
+
+	if logger2 == nil {
+		//TODO (hclog): Should we rename this? Also fix log level
+		logger2 = hclog.New(&hclog.LoggerOptions{
+			Name:   "server",
+			Output: config.LogOutput})
 	}
 
 	// Check if TLS is enabled
@@ -370,9 +372,10 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  logger,
+		logger2:                 logger2,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(logger, config.Datacenter),
+		router:                  router.NewRouter(logger, logger2, config.Datacenter),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -400,6 +403,7 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		Rate:     s.config.ConfigReplicationRate,
 		Burst:    s.config.ConfigReplicationBurst,
 		Logger:   logger,
+		Logger2:  logger2,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {
@@ -410,7 +414,7 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, logger2, s.connPool, s.config.Datacenter)
 
-	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
+	s.enterpriseACLConfig = newEnterpriseACLConfig(logger, logger2)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
 		Config:           config,
@@ -418,6 +422,7 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 		CacheConfig:      serverACLCacheConfig,
 		AutoDisable:      false,
 		Logger:           logger,
+		Logger2:          logger2,
 		EnterpriseConfig: s.enterpriseACLConfig,
 	}
 	// Initialize the ACL resolver.
@@ -501,7 +506,7 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
-		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
+		go router.HandleSerfEvents(s.logger, s.logger2, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 		// Fire up the LAN <-> WAN join flooder.
 		portFn := func(s *metadata.Server) (int, bool) {
@@ -591,6 +596,7 @@ func (s *Server) setupRaft() error {
 		serverAddressProvider = s.serverLookup
 	}
 
+	// TODO (hclog): What to do about the raft Logger here?
 	// Create a transport layer.
 	transConfig := &raft.NetworkTransportConfig{
 		Stream:                s.raftLayer,

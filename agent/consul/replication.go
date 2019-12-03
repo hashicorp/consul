@@ -87,6 +87,7 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		waiter:   waiter,
 		delegate: config.Delegate,
 		logger:   config.Logger,
+		logger2:  config.Logger2,
 	}, nil
 }
 

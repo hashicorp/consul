@@ -15,11 +15,7 @@ type EnterpriseACLResolverDelegate interface{}
 
 func (s *Server) fillReplicationEnterpriseMeta(_ *structs.EnterpriseMeta) {}
 
-func newEnterpriseACLConfig(*log.Logger) *acl.EnterpriseACLConfig {
-	return nil
-}
-
-func newEnterpriseACLConfig2(hclog.Logger) *acl.EnterpriseACLConfig {
+func newEnterpriseACLConfig(*log.Logger, hclog.Logger) *acl.EnterpriseACLConfig {
 	return nil
 }
 
