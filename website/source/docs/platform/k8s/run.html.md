@@ -264,7 +264,7 @@ The only way to use a pre-created PVC is to name them in the format Kubernetes e
 data-<kubernetes namespace>-<release name>-consul-server-<ordinal>
 ```
 
-The Kubernetes namespace you are installing into, release name, and ordinal must match between your Consul servers and your pre-created PVCs. You only need as many PVCs as you have Consul servers. For example, given a kube namespace of "vault" and a release name of "consul" and 5 servers, you need to create PVCs with names:
+The Kubernetes namespace you are installing into, helm release name, and ordinal must match between your Consul servers and your pre-created PVCs. You only need as many PVCs as you have Consul servers. For example, given a kube namespace of "vault" and a release name of "consul" and 5 servers, you need to create PVCs with names:
 
 ```
 data-vault-consul-consul-server-0
