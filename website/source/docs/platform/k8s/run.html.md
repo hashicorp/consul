@@ -274,12 +274,6 @@ data-vault-consul-consul-server-3
 data-vault-consul-consul-server-4
 ```
 
-You can specifiy a release name for your deployment by using the `--name` flag with `helm install`. For example:
-
-```
-helm install --name <release-name>
-```
-
 If you using your own storage, you'll need to configure a storage class. See the documentation for configuring storage classes [here](https://kubernetes.io/docs/concepts/storage/storage-classes/).
 
 ## Architecture
