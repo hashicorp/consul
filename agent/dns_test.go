@@ -286,21 +286,12 @@ func TestDNS_NodeLookup(t *testing.T) {
 
 	c = new(dns.Client)
 	in, _, err = c.Exchange(m, a.DNSAddr())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Ns) != 1 {
-		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
-	}
+	require.NoError(t, err)
+	require.Len(t, in.Ns, 1)
 
 	soaRec, ok := in.Ns[0].(*dns.SOA)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Ns[0])
-	}
-	if soaRec.Hdr.Ttl != 0 {
-		t.Fatalf("Bad: %#v", in.Ns[0])
-	}
+	require.True(t, ok, "NS RR is not a SOA record")
+	require.Equal(t, uint32(0), soaRec.Hdr.Ttl)
 
 	// lookup a non-existing node, we should receive a SOA
 	m = new(dns.Msg)
@@ -310,7 +301,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	in, _, err = c.Exchange(m, a.DNSAddr())
 	require.NoError(t, err)
 	require.Len(t, in.Ns, 1)
-	soaRec, ok := in.Ns[0].(*dns.SOA)
+	soaRec, ok = in.Ns[0].(*dns.SOA)
 	require.True(t, ok, "NS RR is not a SOA record")
 	require.Equal(t, uint32(0), soaRec.Hdr.Ttl)
 }
