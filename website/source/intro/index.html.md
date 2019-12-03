@@ -24,6 +24,8 @@ supports both a proxy and native integration model. Consul ships with a
 simple built-in proxy so that everything works out of the box, but also
 supports 3rd party proxy integrations such as Envoy.
 
+<iframe src="https://www.youtube.com/embed/mxeMdl0KvBI" frameborder="0" allowfullscreen="true"  width="560" height="315" ></iframe>
+
 The key features of Consul are:
 
 * **Service Discovery**: Clients of Consul can register a service, such as
