@@ -256,6 +256,31 @@ the clients, set the `client.image` value to the desired Consul version.
 Then, run `helm upgrade`. This will upgrade the clients in batches, waiting
 until the clients come up healthy before continuing.
 
+### Using Existing Persistent Volume Claims (PVCs)
+
+The only way to use a pre-created PVC is to name them in the format Kubernetes expects:
+
+```
+data-<kubernetes namespace>-<helm release name>-consul-server-<ordinal>
+```
+
+The Kubernetes namespace you are installing into, helm release name, and ordinal
+must match between your Consul servers and your pre-created PVCs. You only
+need as many PVCs as you have Consul servers. For example, given a Kubernetes
+namespace of "vault" and a release name of "consul" and 5 servers, you would need
+to create PVCs with the following names:
+
+```
+data-vault-consul-consul-server-0
+data-vault-consul-consul-server-1
+data-vault-consul-consul-server-2
+data-vault-consul-consul-server-3
+data-vault-consul-consul-server-4
+```
+
+If you are using your own storage, you'll need to configure a storage class. See the
+documentation for configuring storage classes [here](https://kubernetes.io/docs/concepts/storage/storage-classes/).
+
 ## Architecture
 
 We recommend running Consul on Kubernetes with the same
