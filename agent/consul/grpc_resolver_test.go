@@ -16,19 +16,35 @@ func TestGRPCResolver_Rebalance(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir1, server1 := testServer(t)
+	dir1, server1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server1.Shutdown()
 
-	dir2, server2 := testServerDCBootstrap(t, "dc1", false)
+	dir2, server2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer server2.Shutdown()
 
-	dir3, server3 := testServerDCBootstrap(t, "dc1", false)
+	dir3, server3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir3)
 	defer server3.Shutdown()
 
-	dir4, client := testClient(t)
+	dir4, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir4)
 	defer client.Shutdown()
 

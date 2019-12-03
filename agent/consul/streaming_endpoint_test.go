@@ -25,13 +25,21 @@ func TestStreaming_Subscribe(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir1, server := testServer(t)
+	dir1, server := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server.Shutdown()
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
-	dir2, client := testClient(t)
+	dir2, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer client.Shutdown()
 
@@ -250,17 +258,29 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir1, server1 := testServer(t)
+	dir1, server1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server1.Shutdown()
 
-	dir2, server2 := testServerDC(t, "dc2")
+	dir2, server2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer server2.Shutdown()
 	codec := rpcClient(t, server2)
 	defer codec.Close()
 
-	dir3, client := testClient(t)
+	dir3, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir3)
 	defer client.Shutdown()
 
@@ -486,13 +506,21 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir1, server := testServer(t)
+	dir1, server := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server.Shutdown()
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
-	dir2, client := testClient(t)
+	dir2, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer client.Shutdown()
 
@@ -588,12 +616,23 @@ func TestStreaming_Subscribe_FilterACL(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir, _, server, codec := testACLFilterServerV8(t, true)
+	dir, _, server, codec := testACLFilterServerWithConfigFn(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 	defer codec.Close()
 
-	dir2, client := testClient(t)
+	dir2, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer client.Shutdown()
 
@@ -798,12 +837,23 @@ func TestStreaming_Subscribe_ACLUpdate(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir, _, server, codec := testACLFilterServerV8(t, true)
+	dir, _, server, codec := testACLFilterServerWithConfigFn(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+		c.ACLEnforceVersion8 = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 	defer codec.Close()
 
-	dir2, client := testClient(t)
+	dir2, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer client.Shutdown()
 
@@ -955,6 +1005,7 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 	dir1, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
+	conf1.GRPCEnabled = true
 	configureTLS(conf1)
 	server, err := newServer(conf1)
 	if err != nil {
@@ -965,6 +1016,7 @@ func TestStreaming_TLSEnabled(t *testing.T) {
 
 	dir2, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
+	conf2.GRPCEnabled = true
 	configureTLS(conf2)
 	client, err := NewClient(conf2)
 	if err != nil {
@@ -1067,6 +1119,7 @@ func TestStreaming_TLSReload(t *testing.T) {
 	conf1.CAFile = "../../test/ca/root.cer"
 	conf1.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
 	conf1.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+	conf1.GRPCEnabled = true
 
 	server, err := newServer(conf1)
 	if err != nil {
@@ -1078,6 +1131,7 @@ func TestStreaming_TLSReload(t *testing.T) {
 	// Set up a client with valid certs and verify_outgoing = true
 	dir2, conf2 := testClientConfig(t)
 	conf2.VerifyOutgoing = true
+	conf2.GRPCEnabled = true
 	configureTLS(conf2)
 	client, err := NewClient(conf2)
 	if err != nil {
@@ -1137,7 +1191,11 @@ func retryFailedConn(t *testing.T, conn *grpc.ClientConn) {
 func TestStreaming_Filter(t *testing.T) {
 	t.Parallel()
 
-	dir1, server := testServer(t)
+	dir1, server := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server.Shutdown()
 	codec := rpcClient(t, server)

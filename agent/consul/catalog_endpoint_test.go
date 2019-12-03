@@ -2446,13 +2446,17 @@ func testACLFilterServer(t *testing.T) (string, string, *Server, rpc.ClientCodec
 }
 
 func testACLFilterServerV8(t *testing.T, enforceVersion8 bool) (dir, token string, srv *Server, codec rpc.ClientCodec) {
-	dir, srv = testServerWithConfig(t, func(c *Config) {
+	return testACLFilterServerWithConfigFn(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.ACLEnforceVersion8 = enforceVersion8
 	})
+}
+
+func testACLFilterServerWithConfigFn(t *testing.T, fn func(*Config)) (dir, token string, srv *Server, codec rpc.ClientCodec) {
+	dir, srv = testServerWithConfig(t, fn)
 
 	codec = rpcClient(t, srv)
 	testrpc.WaitForLeader(t, srv.RPC, "dc1")
