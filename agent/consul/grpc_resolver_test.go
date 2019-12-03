@@ -74,19 +74,33 @@ func TestGRPCResolver_Failover_LocalDC(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	dir1, server1 := testServer(t)
+	dir1, server1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server1.Shutdown()
 
-	dir2, server2 := testServerDCBootstrap(t, "dc1", false)
+	dir2, server2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer server2.Shutdown()
 
-	dir3, server3 := testServerDCBootstrap(t, "dc1", false)
+	dir3, server3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir3)
 	defer server3.Shutdown()
 
-	dir4, client := testClient(t)
+	dir4, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir4)
 	defer client.Shutdown()
 
@@ -134,25 +148,48 @@ func TestGRPCResolver_Failover_MultiDC(t *testing.T) {
 
 	// Create a single server in dc1.
 	require := require.New(t)
-	dir1, server1 := testServer(t)
+	dir1, server1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir1)
 	defer server1.Shutdown()
 
 	// Create a client in dc1.
-	cDir, client := testClient(t)
+	cDir, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(cDir)
 	defer client.Shutdown()
 
 	// Create 3 servers in dc2.
-	dir2, server2 := testServerDCExpect(t, "dc2", 3)
+	dir2, server2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir2)
 	defer server2.Shutdown()
 
-	dir3, server3 := testServerDCExpect(t, "dc2", 3)
+	dir3, server3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir3)
 	defer server3.Shutdown()
 
-	dir4, server4 := testServerDCExpect(t, "dc2", 3)
+	dir4, server4 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.GRPCEnabled = true
+	})
 	defer os.RemoveAll(dir4)
 	defer server4.Shutdown()
 
