@@ -317,6 +317,56 @@ field set to the appropriate type (for example
 `type.googleapis.com/envoy.api.v2.Listener`), or it may be the direct encoding
 with no `@type` field.
 
+For example, given a tracing config:
+
+```json
+"tracing": {
+  "http": {
+     "name": "envoy.zipkin",
+     "config": {
+        "collector_cluster": "zipkin",
+        "collector_endpoint": "/api/v1/spans",
+        "shared_span_context": false
+     }
+  }
+}
+```
+
+JSON escape the value of `tracing` into a string, for example using [https://codebeautify.org/json-escape-unescape](https://codebeautify.org/json-escape-unescape),
+and then use that as the value for `envoy_tracing_json`:
+
+```json
+{
+  "kind": "proxy-defaults",
+  "name": "global",
+  "config": {
+    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.zipkin\",\"config\":{\"collector_cluster\":\"zipkin\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}"
+  }
+}
+```
+
+If using HCL, this escaping is done automatically:
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+  envoy_tracing_json = <<EOF
+{
+  "http": {
+    "name": "envoy.zipkin",
+    "config": {
+      "collector_cluster": "zipkin",
+      "collector_endpoint": "/api/v1/spans",
+      "shared_span_context": false
+    }
+  }
+}
+EOF
+}
+```
+
+
 ### Advanced Bootstrap Options
 
 Users may add the following configuration items to the [global `proxy-defaults`
