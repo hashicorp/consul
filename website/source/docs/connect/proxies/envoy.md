@@ -261,12 +261,14 @@ definition](/docs/connect/registration/service-registration.html) or
   limits are respected:
 
   - `max_connections` - The maximum number of connections a service instance
-    will be allowed to establish against the given upstream.
+    will be allowed to establish against the given upstream. Use this to limit
+    HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
   - `max_pending_requests` - The maximum number of requests that will be queued
     while waiting for a connection to be established. For this configuration to
     be respected, a L7 protocol must be defined in the `protocol` field.
   - `max_concurrent_requests` - The maximum number of concurrent requests that
-    will be allowed at a single point in time. For this configuration to be
+    will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+    since HTTP/2 has many requests per connection. For this configuration to be
     respected, a L7 protocol must be defined in the `protocol` field.
 
 ### Mesh Gateway Options
