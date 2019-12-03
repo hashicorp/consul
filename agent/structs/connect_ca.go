@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -310,7 +309,7 @@ func (c *CAConfiguration) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(c),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if aux.ForceWithoutCrossSigningSnake {

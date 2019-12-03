@@ -133,7 +133,7 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if t.DestinationServiceName == "" {
@@ -263,7 +263,7 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if t.DestinationType == "" {
@@ -430,7 +430,7 @@ func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if t.LocalPathPort == 0 {

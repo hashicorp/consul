@@ -1,8 +1,7 @@
 package structs
 
 import (
-	"encoding/json"
-
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -44,7 +43,7 @@ func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if aux.EnableTagOverrideSnake {

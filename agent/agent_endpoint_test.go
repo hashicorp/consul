@@ -3055,7 +3055,7 @@ func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 	policyID := testCreatePolicy(t, a, policyName, rules)
 
 	args := map[string]interface{}{
-		"Name": "User Token",
+		"Description": "User Token",
 		"Policies": []map[string]interface{}{
 			map[string]interface{}{
 				"ID": policyID,

@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -342,7 +343,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(e),
 	}
-	if err := json.Unmarshal(data, &aux); err != nil {
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	var err error
@@ -624,7 +625,7 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(e),
 	}
-	if err := json.Unmarshal(data, &aux); err != nil {
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	var err error

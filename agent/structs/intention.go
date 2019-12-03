@@ -2,7 +2,6 @@ package structs
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 
@@ -95,7 +95,7 @@ func (t *Intention) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 
