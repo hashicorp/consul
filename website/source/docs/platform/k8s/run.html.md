@@ -280,7 +280,7 @@ You can specifiy a release name for your deployment by using the `--name` flag w
 helm install --name <release-name>
 ```
 
-If you using your own storage, you'll need to configure a storage class. See the documentation for configuring storage classes [here](helm install --name release-name).
+If you using your own storage, you'll need to configure a storage class. See the documentation for configuring storage classes [here](https://kubernetes.io/docs/concepts/storage/storage-classes/).
 
 ## Architecture
 
