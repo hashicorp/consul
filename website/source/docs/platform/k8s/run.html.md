@@ -256,7 +256,7 @@ the clients, set the `client.image` value to the desired Consul version.
 Then, run `helm upgrade`. This will upgrade the clients in batches, waiting
 until the clients come up healthy before continuing.
 
-### Using Existing PVCs
+### Using Existing Persistent Volume Claims (PVCs)
 
 The only way to use a pre-created PVC is to name them in the format Kubernetes expects:
 
