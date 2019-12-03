@@ -267,7 +267,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 }
 ```
 
-#### Expose an HTTP listener in Envoy at port 2150 that routes to an HTTP server listening at port 8080
+#### Expose an HTTP listener in Envoy at port 21500 that routes to an HTTP server listening at port 8080
 
 ```json
 {
@@ -293,7 +293,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
         "path": "/grpc.health.v1.Health/Check",
         "protocol": "http2",
         "local_path_port": 9090,
-        "listener_port": 21500
+        "listener_port": 21501
       }
     ]
   } 
