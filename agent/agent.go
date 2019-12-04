@@ -480,9 +480,10 @@ func (a *Agent) Start() error {
 
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		Cache:  a.cache,
-		Logger: a.logger,
-		State:  a.State,
+		Cache:   a.cache,
+		Logger:  a.logger,
+		Logger2: a.logger2,
+		State:   a.State,
 		Source: &structs.QuerySource{
 			Node:       a.config.NodeName,
 			Datacenter: a.config.Datacenter,
