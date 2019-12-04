@@ -24,19 +24,15 @@
   text-align: center;
   justify-content: center;
   align-items: center;
-  padding: calc(0.375em - 1px) calc(2.2em - 1px);
-  height: 2.55em;
+  padding: calc(0.5em - 1px) calc(2.2em - 1px);
   min-width: 100px;
 }
 %button:not(:last-child) {
   margin-right: 8px;
 }
 %button-compact {
-  /* @extend %button;*/
-  padding-left: calc(1.6em - 1px) !important;
-  padding-right: calc(1.6em - 1px) !important;
-  padding-top: calc(0.35em - 1px) !important;
-  height: 2.3em !important;
+  padding-top: calc(0.4em - 1px) !important;
+  padding-bottom: calc(0.4em - 1px) !important;
 }
 %internal-button {
   padding: 0.75rem 1rem;

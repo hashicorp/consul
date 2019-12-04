@@ -40,7 +40,10 @@ html.template-edit main {
     padding: 0;
   }
 }
-/* TODO: keep margin below forms, move elsewhere */
+%main-content p:not(:last-child) {
+  margin-bottom: 1em;
+}
+/* TODO: keep margin below forms, move elsewhere? */
 %main-content form,
 %main-content form + div .with-confirmation {
   margin-bottom: 2em;
