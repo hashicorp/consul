@@ -34,6 +34,13 @@ func NewDiscardLogger() *log.Logger {
 	})
 }
 
+func NewDiscardLogger2() hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: ioutil.Discard,
+	})
+}
+
 func Logger(t testing.TB) hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
 		Name:   t.Name(),

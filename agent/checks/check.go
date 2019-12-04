@@ -586,6 +586,10 @@ func (c *CheckDocker) Start() {
 		c.Logger = testutil.NewDiscardLogger()
 	}
 
+	if c.Logger2 == nil {
+		c.Logger2 = testutil.NewDiscardLogger2()
+	}
+
 	if c.Shell == "" {
 		c.Shell = os.Getenv("SHELL")
 		if c.Shell == "" {
@@ -777,6 +781,7 @@ type StatusHandler struct {
 func NewStatusHandler(inner CheckNotifier, logger *log.Logger, logger2 hclog.Logger, successBeforePassing, failuresBeforeCritical int) *StatusHandler {
 	return &StatusHandler{
 		logger:                 logger,
+		logger2:                logger2,
 		inner:                  inner,
 		successBeforePassing:   successBeforePassing,
 		successCounter:         successBeforePassing,

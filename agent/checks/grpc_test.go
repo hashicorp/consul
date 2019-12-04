@@ -123,6 +123,7 @@ func TestGRPC_Proxied(t *testing.T) {
 		GRPC:          "",
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       consulLogger,
 		ProxyGRPC:     server,
 		StatusHandler: statusHandler,
 	}
@@ -158,6 +159,7 @@ func TestGRPC_NotProxied(t *testing.T) {
 		GRPC:          server,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       consulLogger,
 		ProxyGRPC:     "",
 		StatusHandler: statusHandler,
 	}
