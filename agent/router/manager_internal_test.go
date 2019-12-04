@@ -14,19 +14,11 @@ import (
 )
 
 var (
-	localLogger    *log.Logger
 	localLogBuffer *bytes.Buffer
 )
 
 func init() {
 	localLogBuffer = new(bytes.Buffer)
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  0,
-		Output: localLogBuffer,
-	})
-	localLogger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
-		InferLevels: true,
-	})
 }
 
 func GetBufferedLogger() (*log.Logger, hclog.Logger) {
@@ -154,6 +146,10 @@ func TestManagerInternal_New(t *testing.T) {
 
 	if m.logger == nil {
 		t.Fatalf("Manager.logger nil")
+	}
+
+	if m.logger2 == nil {
+		t.Fatalf("Manager.logger2 nil")
 	}
 
 	if m.shutdownCh == nil {
