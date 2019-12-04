@@ -3,7 +3,7 @@
 // TODO: This shouldn't be done here, decide the best way to do this
 // %main-decoration ? %main-skin ? %content-skin ?
 // it includes layouts of components, but not layout of itself?
-// %main-components? What about %app-content
+// %main-components? What about %app-view-content
 main,
 %modal-window {
   @extend %main-content;
