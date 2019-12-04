@@ -456,7 +456,7 @@ func TestManager_deliverLatest(t *testing.T) {
 			Node:       "node1",
 			Datacenter: "dc1",
 		},
-		Logger: logger,
+		Logger:  logger,
 		Logger2: logger2,
 	}
 	require := require.New(t)
