@@ -42,7 +42,7 @@ func patchValue(name string, v interface{}, skip []string, skipTree []string) in
 			return x
 		}
 		if len(x) > 1 {
-			panic(fmt.Sprintf("%s: []map[string]interface{} with more than one element not supported: %s", name, v))
+			panic(fmt.Sprintf("%s: []map[string]interface{} with more than one element not supported: %s. Make sure you are using snake_case instead of CamelCase.", name, v))
 		}
 		return patchValue(name, x[0], skip, skipTree)
 

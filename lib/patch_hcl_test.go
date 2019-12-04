@@ -121,3 +121,50 @@ func TestPatchSliceOfMaps(t *testing.T) {
 		})
 	}
 }
+
+func TestPatchSliceOfMapsFailure(t *testing.T) {
+	tests := []struct {
+		in, out  string
+		skip     []string
+		skipTree []string
+	}{
+		{
+			// To check failure of conversion in case of CamelCase
+			in: `{
+				"services": [
+					{
+						"Checks": [
+							{
+								"header": [
+									{"a":"b"}
+								]
+							}
+						]
+					}
+				]
+			}`,
+			out: `{
+				"services": [
+					{
+						"Checks": [
+							{
+								"header": {"a":"b"}
+							}
+						]
+					}
+				]
+			}`,
+			skip: []string{"services", "services.checks"},
+		},
+	}
+
+	for i, tt := range tests {
+		desc := fmt.Sprintf("%02d: %s -> %s skip: %v", i, tt.in, tt.out, tt.skip)
+		t.Run(desc, func(t *testing.T) {
+			out := PatchSliceOfMaps(parse(tt.in), tt.skip, tt.skipTree)
+			if got, want := out, parse(tt.out); reflect.DeepEqual(got, want) {
+				t.Fatalf("\ngot  %#v\nwant %#v", got, want)
+			}
+		})
+	}
+}
