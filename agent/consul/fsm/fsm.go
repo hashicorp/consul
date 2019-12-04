@@ -48,6 +48,7 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 type FSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
+	logger2   hclog.Logger
 	path      string
 
 	// apply is built off the commands global and is used to route apply
@@ -83,9 +84,10 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		logger: consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		}),
-		apply: make(map[structs.MessageType]command),
-		state: stateNew,
-		gc:    gc,
+		logger2: consulLogger,
+		apply:   make(map[structs.MessageType]command),
+		state:   stateNew,
+		gc:      gc,
 	}
 
 	// Build out the apply dispatch table based on the registered commands.
