@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/assert"
@@ -1917,13 +1916,11 @@ func checksInSync(state *local.State, wantChecks int) error {
 
 func TestState_Notify(t *testing.T) {
 	t.Parallel()
-	logger2 := testutil.Logger(t)
-
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  log.LstdFlags,
 		Output: os.Stderr,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 

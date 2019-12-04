@@ -13,11 +13,7 @@ func TestState(t testing.T) *State {
 	logger2 := hclog.New(&hclog.LoggerOptions{
 		Output: os.Stderr,
 	})
-
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Output: os.Stderr,
-	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	result := NewState(Config{}, logger, logger2, &token.Store{})
