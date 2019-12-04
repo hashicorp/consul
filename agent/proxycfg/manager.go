@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -65,13 +66,14 @@ type ManagerConfig struct {
 	// for now and cleaner than passing the entire RuntimeConfig.
 	Source *structs.QuerySource
 	// logger is the agent's logger to be used for logging logs.
-	Logger *log.Logger
+	Logger  *log.Logger
+	Logger2 hclog.Logger
 }
 
 // NewManager constructs a manager from the provided agent cache.
 func NewManager(cfg ManagerConfig) (*Manager, error) {
 	if cfg.Cache == nil || cfg.State == nil || cfg.Source == nil ||
-		cfg.Logger == nil {
+		cfg.Logger == nil || cfg.Logger2 == nil {
 		return nil, errors.New("all ManagerConfig fields must be provided")
 	}
 	m := &Manager{
@@ -179,6 +181,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 
 	// Set the necessary dependencies
 	state.logger = m.Logger
+	state.logger2 = m.Logger2
 	state.cache = m.Cache
 	state.source = m.Source
 

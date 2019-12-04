@@ -622,7 +622,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			require.NotNil(t, state)
 
 			// setup the test logger to use the t.Log
-			state.logger = testutil.LogShim(testutil.Logger(t))
+			state.logger2 = testutil.Logger(t)
+			state.logger = testutil.LogShim(state.logger2)
 
 			// setup a new testing cache notifier
 			cn := newTestCacheNotifier()
