@@ -3,7 +3,6 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -469,7 +468,7 @@ func (p *ExposePath) ToAPI() api.ExposePath {
 }
 
 // Finalize validates ExposeConfig and sets default values
-func (e *ExposeConfig) Finalize(l *log.Logger) {
+func (e *ExposeConfig) Finalize() {
 	for i := 0; i < len(e.Paths); i++ {
 		path := &e.Paths[i]
 
