@@ -283,8 +283,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 				tt.setup(snap)
 			}
 
+			//TODO (hclog): Do we really need this?
 			// Need server just for logger dependency
-			s := Server{Logger: testutil.LogShim(testutil.Logger(t))}
+			logger2 := testutil.Logger(t)
+			logger := testutil.LogShim(logger2)
+			s := Server{
+				Logger:  logger,
+				Logger2: logger2,
+			}
 
 			listeners, err := s.listenersFromSnapshot(snap, "my-token")
 			sort.Slice(listeners, func(i, j int) bool {

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 // ADSStream is a shorter way of referring to this thing...
@@ -125,6 +126,7 @@ type ConfigManager interface {
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
 	Logger       *log.Logger
+	Logger2      hclog.Logger
 	CfgMgr       ConfigManager
 	Authz        ConnectAuthz
 	ResolveToken ACLResolverFunc
