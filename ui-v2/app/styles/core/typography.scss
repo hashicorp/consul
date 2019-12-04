@@ -32,7 +32,7 @@ h3,
 }
 /* Weighting */
 h1,
-%app-content div > dt,
+%app-view-content div > dt,
 %header-drop-nav .is-active {
   font-weight: $typo-weight-bold;
 }
@@ -43,7 +43,7 @@ caption,
 %header-nav,
 %healthcheck-output dt,
 %copy-button,
-%app-content div > dl > dt,
+%app-view-content div > dl > dt,
 %tbody-th,
 %form-element > span,
 %toggle label span {
@@ -121,7 +121,7 @@ fieldset > p,
 .template-error > div,
 [role='tabpanel'] > p:only-child,
 .with-confirmation p,
-%app-content > p:only-child,
+%app-view-content > p:only-child,
 %app-view > div.disabled > div,
 %button,
 %form-element > em,

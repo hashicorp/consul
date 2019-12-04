@@ -37,7 +37,7 @@ main {
 %app-view-header .actions button {
   @extend %button-compact;
 }
-%app-content div > dl {
+%app-view-content div > dl {
   @extend %form-row;
 }
 [role='tabpanel'] > p:only-child,
