@@ -449,6 +449,8 @@ func TestServiceWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	var (
 		wakeups  [][]*api.ServiceEntry
 		notifyCh = make(chan struct{})
@@ -516,6 +518,8 @@ func TestServiceMultipleTagsWatch(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	var (
 		wakeups  [][]*api.ServiceEntry
@@ -608,6 +612,8 @@ func TestChecksWatch_State(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	var (
 		wakeups  [][]*api.HealthCheck
 		notifyCh = make(chan struct{})
@@ -681,6 +687,8 @@ func TestChecksWatch_Service(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	var (
 		wakeups  [][]*api.HealthCheck
@@ -886,6 +894,8 @@ func TestConnectLeafWatch(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	// Register a web service to get certs for
 	{
 		agent := c.Agent()
@@ -967,6 +977,8 @@ func TestAgentServiceWatch(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	var (
 		wakeups  []*api.AgentService
