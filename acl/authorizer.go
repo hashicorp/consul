@@ -188,6 +188,8 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.KeyList(segment, ctx), nil
 		case "write":
 			return authz.KeyWrite(segment, ctx), nil
+		case "write-prefix":
+			return authz.KeyWritePrefix(segment, ctx), nil
 		}
 	case ResourceKeyring:
 		switch lowerAccess {
@@ -232,7 +234,7 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.SessionWrite(segment, ctx), nil
 		}
 	default:
-		if processed, decision, err := EnforceEnterprise(authz, rsc, segment, access, ctx); processed {
+		if processed, decision, err := EnforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {
 			return decision, err
 		}
 		return Deny, fmt.Errorf("Invalid ACL resource requested: %q", rsc)

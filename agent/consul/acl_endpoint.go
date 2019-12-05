@@ -2372,3 +2372,28 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 
 	return nil
 }
+
+func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]structs.ACLAuthorizationResponse) error {
+	if err := a.aclPreCheck(); err != nil {
+		return err
+	}
+
+	if done, err := a.srv.forward("ACL.Authorize", args, args, reply); done {
+		return err
+	}
+
+	authz, err := a.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	} else if authz == nil {
+		return fmt.Errorf("Failed to initialize authorizer")
+	}
+
+	responses, err := structs.CreateACLAuthorizationResponses(authz, args.Requests)
+	if err != nil {
+		return err
+	}
+
+	*reply = responses
+	return nil
+}

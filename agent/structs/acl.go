@@ -1563,6 +1563,12 @@ func (r *ACLLogoutRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+type RemoteACLAuthorizationRequest struct {
+	Datacenter string
+	Requests   []ACLAuthorizationRequest
+	QueryOptions
+}
+
 type ACLAuthorizationRequest struct {
 	Resource acl.Resource
 	Segment  string `json:",omitempty"`
@@ -1573,4 +1579,26 @@ type ACLAuthorizationRequest struct {
 type ACLAuthorizationResponse struct {
 	ACLAuthorizationRequest
 	Allow bool
+}
+
+func (r *RemoteACLAuthorizationRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+func CreateACLAuthorizationResponses(authz acl.Authorizer, requests []ACLAuthorizationRequest) ([]ACLAuthorizationResponse, error) {
+	responses := make([]ACLAuthorizationResponse, len(requests))
+	var ctx acl.EnterpriseAuthorizerContext
+
+	for idx, req := range requests {
+		req.FillAuthzContext(&ctx)
+		decision, err := acl.Enforce(authz, req.Resource, req.Segment, req.Access, &ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		responses[idx].ACLAuthorizationRequest = req
+		responses[idx].Allow = decision == acl.Allow
+	}
+
+	return responses, nil
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 type rpcFn func(string, interface{}, interface{}) error
@@ -140,5 +141,22 @@ func WaitForActiveCARoot(t *testing.T, rpc rpcFn, dc string, expect *structs.CAR
 		if expect != nil && root.ID != expect.ID {
 			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
 		}
+	})
+}
+
+func WaitForACLReplication(t *testing.T, rpc rpcFn, dc string, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
+	retry.Run(t, func(r *retry.R) {
+		args := structs.DCSpecificRequest{
+			Datacenter: dc,
+		}
+		var reply structs.ACLReplicationStatus
+
+		require.NoError(r, rpc("ACL.ReplicationStatus", &args, &reply))
+
+		require.Equal(r, expectedReplicationType, reply.ReplicationType)
+		require.True(r, reply.Running, "Server not running new replicator yet")
+		require.True(r, reply.ReplicatedIndex >= minPolicyIndex, "Server hasn't replicated enough policies")
+		require.True(r, reply.ReplicatedTokenIndex >= minTokenIndex, "Server hasn't replicated enough tokens")
+		require.True(r, reply.ReplicatedRoleIndex >= minRoleIndex, "Server hasn't replicated enough roles")
 	})
 }
