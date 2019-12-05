@@ -4,7 +4,8 @@ FEATURES
 
  * connect: Added a new CA provider allowing Connect certificates to be managed by AWS [ACM Private CA](https://www.consul.io/docs/connect/ca/aws.html).
  * connect: Allow configuration of upstream connection limits in Envoy [[GH-6829](https://github.com/hashicorp/consul/pull/6829)]
-
+ ( agent: Add Cloud Auto-join support for Tencent Cloud [[GH-6818](https://github.com/hashicorp/consul/pull/6818)]
+ 
 IMPROVEMENTS
 
 * agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
