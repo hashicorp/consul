@@ -142,11 +142,12 @@ func (c *cmd) Run(args []string) int {
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  log.LstdFlags,
 		Output: logOutput,
 	})
-	c.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	c.logger2 = logger2
+	c.logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 

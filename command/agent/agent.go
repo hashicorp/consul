@@ -204,18 +204,15 @@ func (c *cmd) run(args []string) int {
 	}
 	c.logFilter = logFilter
 	c.logOutput = logOutput
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Output: logOutput,
-	})
-	c.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
-		InferLevels: true,
-	})
 
 	//TODO (hclog): Add log level and JSON format flag
-	logger2 := hclog.New(&hclog.LoggerOptions{
+	c.logger2 = hclog.New(&hclog.LoggerOptions{
 		Name:       "consul",
 		Output:     c.logOutput,
 		JSONFormat: false,
+	})
+	c.logger = c.logger2.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
 	})
 
 	//TODO (hclog): Can we switch to hclog?
@@ -230,7 +227,7 @@ func (c *cmd) run(args []string) int {
 
 	// Create the agent
 	c.UI.Output("Starting Consul agent...")
-	agent, err := agent.New(config, c.logger, logger2)
+	agent, err := agent.New(config, c.logger, c.logger2)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
 		return 1
