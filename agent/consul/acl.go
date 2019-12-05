@@ -1096,6 +1096,7 @@ func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, logger2 hclog.L
 	return &aclFilter{
 		authorizer:      authorizer,
 		logger:          logger,
+		logger2:         logger2,
 		enforceVersion8: enforceVersion8,
 	}
 }

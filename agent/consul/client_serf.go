@@ -32,6 +32,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
 
+	// TODO (hclog): Figure out serf and memberlist logging needs
 	if c.logger == nil {
 		conf.MemberlistConfig.LogOutput = c.config.LogOutput
 		conf.LogOutput = c.config.LogOutput

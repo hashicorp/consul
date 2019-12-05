@@ -622,7 +622,7 @@ func newTestACLResolver(t *testing.T, delegate ACLResolverDelegate, cb func(*ACL
 	config.ACLDownPolicy = "extend-cache"
 	rconf := &ACLResolverConfig{
 		Config: config,
-		Logger: testutil.LogShim(testutil.LoggerWithName(t, t.Name())),
+		Logger: testutil.LogShim(testutil.LoggerWithName(t, t.Name())), // TODO (hclog): Remove LoggerWithName()?
 		CacheConfig: &structs.ACLCachesConfig{
 			Identities:     4,
 			Policies:       4,
