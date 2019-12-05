@@ -62,9 +62,7 @@ type Service struct {
 // Consul agent, and with an ACL token that has `service:write` privileges for
 // the service specified.
 func NewService(serviceName string, client *api.Client) (*Service, error) {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level: log.LstdFlags,
-	})
+	consulLogger := hclog.New(&hclog.LoggerOptions{})
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
@@ -84,7 +82,7 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 		client:               client,
 		logger:               logger,
 		logger2:              logger2,
-		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
+		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger, logger2),
 		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
@@ -116,24 +114,25 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 
 // NewDevServiceFromCertFiles creates a Service using certificate and key files
 // passed instead of fetching them from the client.
-func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger,
+func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger, logger2 hclog.Logger,
 	caFile, certFile, keyFile string) (*Service, error) {
 
 	tlsCfg, err := devTLSConfigFromFiles(caFile, certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
-	return NewDevServiceWithTLSConfig(serviceID, logger, tlsCfg)
+	return NewDevServiceWithTLSConfig(serviceID, logger, logger2, tlsCfg)
 }
 
 // NewDevServiceWithTLSConfig creates a Service using static TLS config passed.
 // It's mostly useful for testing.
-func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
+func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger, logger2 hclog.Logger,
 	tlsCfg *tls.Config) (*Service, error) {
 	s := &Service{
 		service: serviceName,
 		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger),
+		logger2: logger2,
+		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger, logger2),
 	}
 	return s, nil
 }

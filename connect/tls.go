@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 // parseLeafX509Cert will parse an X509 certificate
@@ -326,7 +327,7 @@ type tlsCfgUpdate struct {
 // newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
 // base.Certificates[0] is used as the initial leaf and base.RootCAs is used as
 // the initial roots.
-func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig {
+func newDynamicTLSConfig(base *tls.Config, logger *log.Logger, logger2 hclog.Logger) *dynamicTLSConfig {
 	cfg := &dynamicTLSConfig{
 		base: base,
 	}

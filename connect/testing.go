@@ -29,7 +29,7 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 		InferLevels: true,
 	})
 	svc, err := NewDevServiceWithTLSConfig(service,
-		logger, TestTLSConfig(t, service, ca))
+		logger, logger2, TestTLSConfig(t, service, ca))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -93,12 +93,12 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 func NewUpstreamListener(svc *connect.Service, client *api.Client,
 	cfg UpstreamConfig, logger *log.Logger, logger2 hclog.Logger) *Listener {
 	return newUpstreamListenerWithResolver(svc, cfg,
-		UpstreamResolverFuncFromClient(client), logger)
+		UpstreamResolverFuncFromClient(client), logger, logger2)
 }
 
 func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 	resolverFunc func(UpstreamConfig) (connect.Resolver, error),
-	logger *log.Logger) *Listener {
+	logger *log.Logger, logger2 hclog.Logger) *Listener {
 	bindAddr := ipaddr.FormatAddressPort(cfg.LocalBindAddress, cfg.LocalBindPort)
 	return &Listener{
 		Service: svc,
@@ -119,6 +119,7 @@ func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
+		logger2:       logger2,
 		metricPrefix:  upstreamMetricPrefix,
 		metricLabels: []metrics.Label{
 			{Name: "src", Value: svc.Name()},
