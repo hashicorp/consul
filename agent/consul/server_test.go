@@ -211,12 +211,12 @@ func newServer(c *Config) (*Server, error) {
 	}
 	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   c.NodeName,
-		Level:  log.LstdFlags | log.Lmicroseconds,
+		Level:  hclog.Debug,
 		Output: w,
 	})
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		Name:   c.NodeName,
-		Level:  log.LstdFlags | log.Lmicroseconds,
+		Level:  hclog.Debug,
 		Output: w,
 	})
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
