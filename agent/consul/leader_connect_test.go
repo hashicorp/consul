@@ -237,6 +237,9 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		updatedRoot = activeRoot
 	}
 
+	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", updatedRoot)
+	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", updatedRoot)
+
 	// Wait for dc2's intermediate to be refreshed.
 	var intermediatePEM string
 	retry.Run(t, func(r *retry.R) {
@@ -247,9 +250,6 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		}
 	})
 	require.NoError(err)
-
-	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", updatedRoot)
-	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", updatedRoot)
 
 	// Verify the root lists have been rotated in each DC's state store.
 	state1 := s1.fsm.State()
