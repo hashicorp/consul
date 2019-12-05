@@ -3,13 +3,16 @@ package logger
 import (
 	"fmt"
 	"log"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // GRPCLogger wrapps a *log.Logger and implements the grpclog.LoggerV2 interface
 // allowing gRPC servers to log to the standard Consul logger.
 type GRPCLogger struct {
-	level string
-	l     *log.Logger
+	level   string
+	l       *log.Logger
+	logger2 hclog.Logger
 }
 
 // NewGRPCLogger creates a grpclog.LoggerV2 that will output to the supplied
@@ -18,10 +21,11 @@ type GRPCLogger struct {
 // Note that grpclog has Info, Warning, Error, Fatal severity levels AND integer
 // verbosity levels for additional info. Verbose logs in glog are always INFO
 // severity so we map Info,V0 to INFO, Info,V1 to DEBUG, and Info,V>1 to TRACE.
-func NewGRPCLogger(config *Config, logger *log.Logger) *GRPCLogger {
+func NewGRPCLogger(config *Config, logger *log.Logger, logger2 hclog.Logger) *GRPCLogger {
 	return &GRPCLogger{
-		level: config.LogLevel,
-		l:     logger,
+		level:   config.LogLevel,
+		l:       logger,
+		logger2: logger2,
 	}
 }
 
