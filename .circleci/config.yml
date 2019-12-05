@@ -89,9 +89,11 @@ jobs:
     docker:
       - image: *GOLANG_IMAGE
     parallelism: 8
+    resource_class: large
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
+      GOMAXPROCS: 4 # for large boxes they are 4CPU x 8RAM
     steps:
       - checkout
       - restore_cache: # restore cache from earlier job
@@ -108,7 +110,7 @@ jobs:
           rm -rf /tmp/vault*
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 4 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
 
       # save coverage report parts
       - persist_to_workspace:
