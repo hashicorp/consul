@@ -196,20 +196,13 @@ func (a *TestAgent) Start() (err error) {
 		logOutput = os.Stderr
 	}
 
-	consullogger := hclog.New(&hclog.LoggerOptions{
-		Name:   a.Name + " - ",
-		Level:  hclog.Debug,
-		Output: logOutput,
-	})
-	agentLogger := consullogger.StandardLogger(&hclog.StandardLoggerOptions{
-		InferLevels: true,
-	})
-
-	//TODO (hclog): Can we
 	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   a.Name + " - ",
 		Level:  hclog.Debug,
 		Output: logOutput,
+	})
+	agentLogger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
 	})
 
 	agent, err := New(a.Config, agentLogger, logger2)

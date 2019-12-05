@@ -78,14 +78,15 @@ func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Author
 	agent.LogOutput = logOutput
 	agent.LogWriter = a.LogWriter
 
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   a.Name,
-		Level:  log.LstdFlags | log.Lmicroseconds,
+		Level:  log.LstdFlags | log.Lmicroseconds, // TODO (hclog): What should these Level values be?
 		Output: logOutput,
 	})
-	agent.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	agent.logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
+	agent.logger2 = logger2
 
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 

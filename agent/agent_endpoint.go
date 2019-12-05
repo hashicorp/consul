@@ -112,7 +112,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 			return nil, nil
 		}
 		handlerOptions := promhttp.HandlerOpts{
-			ErrorLog:      s.agent.logger,
+			ErrorLog:      s.agent.logger, // # TODO (hclog): Make sure we handle this correctly with hclog.Logger
 			ErrorHandling: promhttp.ContinueOnError,
 		}
 

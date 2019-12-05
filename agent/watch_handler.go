@@ -43,7 +43,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 	}
 
 	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
+		Level:  log.LstdFlags, // TODO (hclog): Fix Level.
 		Output: logOutput,
 	})
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
@@ -102,7 +102,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 
 func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
 	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
+		Level:  log.LstdFlags, // TODO (hclog): Fix Level.
 		Output: logOutput,
 	})
 	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
