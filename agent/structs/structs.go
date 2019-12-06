@@ -322,6 +322,23 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+
+func (r *DeregisterRequest) UnmarshalJSON(data []byte) error {
+	type Alias DeregisterRequest
+	aux := &struct {
+		Address string // obsolete field - but we want to explicitly allow it
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	return nil
+}
+
+
 // QuerySource is used to pass along information about the source node
 // in queries so that we can adjust the response based on its network
 // coordinates.

@@ -68,7 +68,7 @@ type CatalogRegistration struct {
 
 type CatalogDeregistration struct {
 	Node       string
-	Address    string // Obsolete.
+	Address    string `json:",omitempty"` // Obsolete.
 	Datacenter string
 	ServiceID  string
 	CheckID    string
