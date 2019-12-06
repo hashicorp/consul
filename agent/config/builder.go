@@ -1122,7 +1122,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	if rt.AutoEncryptAllowTLS {
 		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc must be enabled.")
+			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 		}
 	}
 

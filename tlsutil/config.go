@@ -323,11 +323,20 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
 	if config.anyVerifyIncoming() {
+		autoEncryptMsg := " AutoEncrypt only secures the connection between client and server and doesn't affect incoming connections on the client."
 		if pool == nil {
-			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+			errMsg := "VerifyIncoming set, and no CA certificate provided!"
+			if config.AutoEncryptTLS {
+				errMsg += autoEncryptMsg
+			}
+			return fmt.Errorf(errMsg)
 		}
 		if cert == nil {
-			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+			errMsg := "VerifyIncoming set, and no Cert/Key pair provided!"
+			if config.AutoEncryptTLS {
+				errMsg += autoEncryptMsg
+			}
+			return fmt.Errorf(errMsg)
 		}
 	}
 	return nil
