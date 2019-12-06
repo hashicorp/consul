@@ -15,7 +15,10 @@ a server running inside or outside of Kubernetes.
 
 This page starts with a large how-to section for various specific tasks.
 To learn more about the general architecture of Consul on Kubernetes, scroll
-down to the [architecture](/docs/platform/k8s/run.html#architecture) section. If you would like to get hands-on experience testing Consul on Kubernetes, try the step-by-step beginner tutorial with an accompanying video in the [Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
+down to the [architecture](/docs/platform/k8s/run.html#architecture) section.
+If you would like to get hands-on experience testing Consul on Kubernetes,
+try the step-by-step beginner tutorial with an accompanying video in the
+[Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
 
 ## Helm Chart Installation
 
@@ -93,7 +96,7 @@ NAME: hashicorp
 
 -> If using Helm 2, run: `helm install --name hashicorp ./consul-helm`
 
-_That's it._ The Helm chart does everything to setup a recommended
+_That's it._ The Helm chart does everything to set up a recommended
 Consul-on-Kubernetes deployment.
 In a couple minutes, a Consul cluster will be formed and a leader
 elected and every node will have a running Consul agent.

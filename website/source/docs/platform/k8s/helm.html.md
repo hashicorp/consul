@@ -16,25 +16,51 @@ Each value has a sane default tuned for an optimal getting started experience
 with Consul. Before going into production, please review the parameters below
 and consider if they're appropriate for your deployment.
 
-* <a name="v-global" href="#v-global">`global`</a> - These global values affect multiple components of the chart.
+* <a name="v-global" href="#v-global">`global`</a>- Holds values that affect
+  multiple components of the chart.
 
-  * <a name="v-global-enabled" href="#v-global-enabled">`enabled`</a> (`boolean: true`) - The master enabled/disabled configuration. If this is true, most components will be installed by default. If this is false, no components will be installed by default and manually opt-in is required, such as by setting <a href="#v-">`server.enabled`</a> to true.
+  * <a name="v-global-enabled" href="#v-global-enabled">`enabled`</a> (`boolean: true`) - The master enabled/disabled setting. If true, servers, clients, Consul DNS and the Consul UI will be enabled. Each component can override this default via its component-specific "enabled" config. If false, no components will be installed by default and per-component opt-in is required, such as by setting <a href="#v-server-enabled">`server.enabled`</a> to true.
 
-  * <a name="v-global-domain" href="#v-global-domain">`domain`</a> (`string: "consul"`) - The domain Consul uses for DNS queries. This is used to configure agents both for DNS listening but also to know what domain to join the cluster. This should be consistent throughout the chart, but can be overridden per-component as well.
+  * <a name="v-global-domain" href="#v-global-domain">`domain`</a> (`string: "consul"`) - The domain Consul will answer DNS queries for (see [-domain](/docs/agent/options.html#_domain)) and the domain services synced from Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
-  * <a name="v-global-image" href="#v-global-image">`image`</a> (`string: "consul:latest"`) - The name of the Docker image (including any tag) for the containers running Consul agents. **This should be pinned to a specific version when running in production.** Otherwise, other changes to the chart may inadvertently upgrade your Consul version.
+  * <a name="v-global-image" href="#v-global-image">`image`</a> (`string: "consul:<latest version>"`) - The name (and tag) of the Consul Docker image for clients and servers. This can be overridden per component. This should be pinned to a specific version tag, otherwise you may inadvertently upgrade your Consul version.
 
-  * <a name="v-global-imagek8s" href="#v-global-imagek8s">`imageK8S`</a> (`string: "hashicorp/consul-k8s:latest"`) - The name of the Docker image (including any tag) for the [consul-k8s](https://github.com/hashicorp/consul-k8s) binary. This is used by components such as catalog sync. **This should be pinned to a specific version when running in production.** Otherwise, other changes to the chart may inadvertently upgrade the version.
+        Examples:
 
-  * <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) - The name of the datacenter that the agent cluster should register as. This may not be changed once the cluster is bootstrapped and running, since Consul doesn't yet support an automatic way to change this value.
+        ```yaml
+        # Consul 1.5.0
+        image: "consul:1.5.0"
+        # Consul Enterprise 1.5.0
+        image: "hashicorp/consul-enterprise:1.5.0-ent"
+        ```
 
- * <a name="v-global-pod-security-policies" href="#v-pod-security-policies">`enablePodSecurityPolicies`</a> (`boolean: false`) -
-  This flag controls whether [`PodSecurityPolicies`](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) are created
-  for the Consul components that this chart creates.
+  * <a name="v-global-imagek8s" href="#v-global-imagek8s">`imageK8S`</a> (`string: "hashicorp/consul-k8s:<latest version>"`) - The name (and tag) of the [consul-k8s](https://github.com/hashicorp/consul-k8s) Docker image that is used for functionality such the catalog sync. This can be overridden per component.
 
-  * <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - This flag controls
-  whether the Helm chart automatically enables ACLs within the Consul cluster. This requires both Consul servers and clients to be run within
-  Kubernetes. Requires Consul v1.5+ and consul-k8s v0.8.0+.
+        Note: support for the catalog sync's liveness and readiness probes was added to consul-k8s 0.6.0. If using an older consul-k8s version, you may need to remove these checks to make sync work. If using mesh gateways and bootstrapACLs then must be >= 0.9.0.
+
+  * <a name="v-global-datacenter" href="#v-global-datacenter">`datacenter`</a> (`string: "dc1"`) - The name of the datacenter that the agents should register as. This can't be changed once the Consul cluster is up and running since Consul doesn't support an automatic way to change this value currently: [https://github.com/hashicorp/consul/issues/1858](https://github.com/hashicorp/consul/issues/1858).
+
+  * <a name="v-global-pod-security-policies" href="#v-global-pod-security-policies">`enablePodSecurityPolicies`</a> (`boolean: false`) -
+        Controls whether pod security policies are created for the Consul components created by this chart. See [https://kubernetes.io/docs/concepts/policy/pod-security-policy/](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
+
+  * <a name="v-global-gossip-encryption" href="#v-global-gossip-encryption">`gossipEncryption`</a> -
+        Configures which Kubernetes secret to retrieve Consul's gossip encryption key from (see [-encrypt](/docs/agent/options.html#_encrypt)). If secretName or secretKey are not set, gossip encryption will not be enabled. The secret must be in the same namespace that Consul is installed into.
+
+        The secret can be created by running:
+
+        ```bash
+        $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
+        # To reference, use:
+        #   gossipEncryption:
+        #     secretName: consul-gossip-encryption-key
+        #     secretKey: key
+        ```
+
+        * <a name="v-global-gossip-encryption-secret-name" href="#v-global-gossip-encryption-secret-name">`secretName`</a> (`string: ""`) - The name of the Kubernetes secret that holds the gossip encryption key. The secret must be in the same namespace that Consul is installed into.
+
+        * <a name="v-global-gossip-encryption-secret-key" href="#v-global-gossip-encryption-secret-key">`secretKey`</a> (`string: ""`) - The key within the Kubernetes secret that holds the gossip encryption key.
+
+* <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
 
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure running a Consul server within Kubernetes.
 
@@ -148,7 +174,7 @@ and consider if they're appropriate for your deployment.
 
   * <a name="v-client-join" href="#v-client-join">`join`</a> (`array<string>: null`) - A list of valid [`-retry-join` values](/docs/agent/options.html#retry-join). If this is `null` (default), then the clients will attempt to automatically join the server cluster running within Kubernetes. This means that with `server.enabled` set to true, clients will automatically join that cluster. If `server.enabled` is not true, then a value must be specified so the clients can join a valid cluster.
 
-  * <a name="v-client-grpc" href="#v-client-grpc">`grpc`</a> (`boolean: false`) - If true, agents will enable their GRPC listener on port 8502 and expose it to the host. This will use slightly more resources, but is required for [Connect](/docs/platform/k8s/connect.html).
+  * <a name="v-client-grpc" href="#v-client-grpc">`grpc`</a> (`boolean: true`) - If true, agents will enable their GRPC listener on port 8502 and expose it to the host. This will use slightly more resources, but is required for [Connect](/docs/platform/k8s/connect.html).
 
   * <a name="v-client-resources" href="#v-client-resources">`resources`</a> (`string: null`) - The resource requests (CPU, memory, etc.) for each of the client agents. This should be a multi-line string mapping directly to a Kubernetes [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core) object. If this isn't specified, then the pods won't request any specific amount of resources.
 
