@@ -400,3 +400,6 @@ $ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=s
   set, it defaults to all namespaces.
 - `label_selector` (optional) - the label selector for matching pods.
 - `field_selector` (optional) - the field selector for matching pods.
+
+The Kubernetes token used by the provider needs to have permissions to list pods
+in the desired namespace.
