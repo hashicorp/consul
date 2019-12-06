@@ -1,3 +1,7 @@
+# FIXME: remove before merging
+codecov:
+  branch: codecov-yml
+
 # https://docs.codecov.io/docs/commit-status
 coverage:
   status:
@@ -26,9 +30,8 @@ coverage:
 #       macro: no
 
 # https://docs.codecov.io/docs/pull-request-comments#section-layout
-# TODO: any need to tweak the layout here?
-# comment:
-  # layout: "reach,diff,flags,tree"
+comment:
+  layout: "diff,flags,tree"
 
 # https://docs.codecov.io/docs/flags
 # TODO: split out test coverage for API, SDK, UI, website?
