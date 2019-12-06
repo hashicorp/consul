@@ -3,6 +3,8 @@ package dnstest
 import (
 	"net"
 
+	"github.com/coredns/coredns/plugin/pkg/reuseport"
+
 	"github.com/miekg/dns"
 )
 
@@ -27,7 +29,7 @@ func NewServer(f dns.HandlerFunc) *Server {
 	s2 := &dns.Server{} // tcp
 
 	for i := 0; i < 5; i++ { // 5 attempts
-		s2.Listener, _ = net.Listen("tcp", ":0")
+		s2.Listener, _ = reuseport.Listen("tcp", ":0")
 		if s2.Listener == nil {
 			continue
 		}

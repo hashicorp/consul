@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coredns/coredns/plugin/pkg/reuseport"
+	
 	tap "github.com/dnstap/golang-dnstap"
 	fs "github.com/farsightsec/golang-framestream"
 )
@@ -55,7 +57,7 @@ func TestTransport(t *testing.T) {
 
 	for _, param := range transport {
 		// Start TCP listener
-		l, err := net.Listen(param[0], param[1])
+		l, err := reuseport.Listen(param[0], param[1])
 		if err != nil {
 			t.Fatalf("Cannot start listener: %s", err)
 		}
@@ -82,7 +84,7 @@ func TestRace(t *testing.T) {
 	count := 10
 
 	// Start TCP listener
-	l, err := net.Listen("tcp", endpointTCP)
+	l, err := reuseport.Listen("tcp", endpointTCP)
 	if err != nil {
 		t.Fatalf("Cannot start listener: %s", err)
 	}
@@ -115,7 +117,7 @@ func TestReconnect(t *testing.T) {
 	count := 5
 
 	// Start TCP listener
-	l, err := net.Listen("tcp", endpointTCP)
+	l, err := reuseport.Listen("tcp", endpointTCP)
 	if err != nil {
 		t.Fatalf("Cannot start listener: %s", err)
 	}
@@ -141,7 +143,7 @@ func TestReconnect(t *testing.T) {
 	l.Close()
 
 	// And start TCP listener again on the same port
-	l, err = net.Listen("tcp", addr)
+	l, err = reuseport.Listen("tcp", addr)
 	if err != nil {
 		t.Fatalf("Cannot start listener: %s", err)
 	}
