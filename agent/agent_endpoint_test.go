@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -1245,7 +1246,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis service")
 	}
 
-	cfg2 := TestConfig(config.Source{
+	cfg2 := TestConfig(testutil.TestLogger(t), config.Source{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `

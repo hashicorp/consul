@@ -206,15 +206,13 @@ func authMethodsTableSchema() *memdb.TableSchema {
 /////                        ACL Policy Functions                         /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclPolicyInsert(tx *memdb.Txn, policy *structs.ACLPolicy, updateIndexes bool) error {
+func (s *Store) aclPolicyInsert(tx *memdb.Txn, policy *structs.ACLPolicy) error {
 	if err := tx.Insert("acl-policies", policy); err != nil {
 		return fmt.Errorf("failed inserting acl policy: %v", err)
 	}
 
-	if updateIndexes {
-		if err := tx.Insert("index", &IndexEntry{"acl-policies", policy.ModifyIndex}); err != nil {
-			return fmt.Errorf("failed updating acl policies index: %v", err)
-		}
+	if err := indexUpdateMaxTxn(tx, policy.ModifyIndex, "acl-policies"); err != nil {
+		return fmt.Errorf("failed updating acl policies index: %v", err)
 	}
 
 	return nil
@@ -239,7 +237,7 @@ func (s *Store) aclPolicyDeleteWithPolicy(tx *memdb.Txn, policy *structs.ACLPoli
 	}
 
 	// update the overall acl-policies index
-	if err := tx.Insert("index", &IndexEntry{"acl-policies", idx}); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, "acl-policies"); err != nil {
 		return fmt.Errorf("failed updating acl policies index: %v", err)
 	}
 	return nil
@@ -261,17 +259,15 @@ func (s *Store) ACLPolicyUpsertValidateEnterprise(*structs.ACLPolicy, *structs.A
 /////                        ACL Token Functions                          /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclTokenInsert(tx *memdb.Txn, token *structs.ACLToken, updateIndexes bool) error {
+func (s *Store) aclTokenInsert(tx *memdb.Txn, token *structs.ACLToken) error {
 	// insert the token into memdb
 	if err := tx.Insert("acl-tokens", token); err != nil {
 		return fmt.Errorf("failed inserting acl token: %v", err)
 	}
 
-	if updateIndexes {
-		// update the overall acl-tokens index
-		if err := tx.Insert("index", &IndexEntry{"acl-tokens", token.ModifyIndex}); err != nil {
-			return fmt.Errorf("failed updating acl tokens index: %v", err)
-		}
+	// update the overall acl-tokens index
+	if err := indexUpdateMaxTxn(tx, token.ModifyIndex, "acl-tokens"); err != nil {
+		return fmt.Errorf("failed updating acl tokens index: %v", err)
 	}
 
 	return nil
@@ -312,7 +308,7 @@ func (s *Store) aclTokenDeleteWithToken(tx *memdb.Txn, token *structs.ACLToken, 
 	}
 
 	// update the overall acl-tokens index
-	if err := tx.Insert("index", &IndexEntry{"acl-tokens", idx}); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
 		return fmt.Errorf("failed updating acl tokens index: %v", err)
 	}
 	return nil
@@ -334,17 +330,15 @@ func (s *Store) ACLTokenUpsertValidateEnterprise(token *structs.ACLToken, existi
 /////                         ACL Role Functions                          /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclRoleInsert(tx *memdb.Txn, role *structs.ACLRole, updateIndexes bool) error {
+func (s *Store) aclRoleInsert(tx *memdb.Txn, role *structs.ACLRole) error {
 	// insert the role into memdb
 	if err := tx.Insert("acl-roles", role); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
 	}
 
-	if updateIndexes {
-		// update the overall acl-roles index
-		if err := tx.Insert("index", &IndexEntry{"acl-roles", role.ModifyIndex}); err != nil {
-			return fmt.Errorf("failed updating acl roles index: %v", err)
-		}
+	// update the overall acl-roles index
+	if err := indexUpdateMaxTxn(tx, role.ModifyIndex, "acl-roles"); err != nil {
+		return fmt.Errorf("failed updating acl roles index: %v", err)
 	}
 	return nil
 }
@@ -372,7 +366,7 @@ func (s *Store) aclRoleDeleteWithRole(tx *memdb.Txn, role *structs.ACLRole, idx 
 	}
 
 	// update the overall acl-roles index
-	if err := tx.Insert("index", &IndexEntry{"acl-roles", idx}); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
 		return fmt.Errorf("failed updating acl policies index: %v", err)
 	}
 	return nil
@@ -394,17 +388,15 @@ func (s *Store) ACLRoleUpsertValidateEnterprise(role *structs.ACLRole, existing 
 /////                     ACL Binding Rule Functions                      /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclBindingRuleInsert(tx *memdb.Txn, rule *structs.ACLBindingRule, updateIndexes bool) error {
+func (s *Store) aclBindingRuleInsert(tx *memdb.Txn, rule *structs.ACLBindingRule) error {
 	// insert the role into memdb
 	if err := tx.Insert("acl-binding-rules", rule); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
 	}
 
-	if updateIndexes {
-		// update the overall acl-binding-rules index
-		if err := tx.Insert("index", &IndexEntry{"acl-binding-rules", rule.ModifyIndex}); err != nil {
-			return fmt.Errorf("failed updating acl binding-rules index: %v", err)
-		}
+	// update the overall acl-binding-rules index
+	if err := indexUpdateMaxTxn(tx, rule.ModifyIndex, "acl-binding-rules"); err != nil {
+		return fmt.Errorf("failed updating acl binding-rules index: %v", err)
 	}
 
 	return nil
@@ -429,7 +421,7 @@ func (s *Store) aclBindingRuleDeleteWithRule(tx *memdb.Txn, rule *structs.ACLBin
 	}
 
 	// update the overall acl-binding-rules index
-	if err := tx.Insert("index", &IndexEntry{"acl-binding-rules", idx}); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
 		return fmt.Errorf("failed updating acl binding rules index: %v", err)
 	}
 	return nil
@@ -451,17 +443,15 @@ func (s *Store) ACLBindingRuleUpsertValidateEnterprise(rule *structs.ACLBindingR
 /////                     ACL Auth Method Functions                       /////
 ///////////////////////////////////////////////////////////////////////////////
 
-func (s *Store) aclAuthMethodInsert(tx *memdb.Txn, method *structs.ACLAuthMethod, updateIndexes bool) error {
+func (s *Store) aclAuthMethodInsert(tx *memdb.Txn, method *structs.ACLAuthMethod) error {
 	// insert the role into memdb
 	if err := tx.Insert("acl-auth-methods", method); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
 	}
 
-	if updateIndexes {
-		// update the overall acl-auth-methods index
-		if err := tx.Insert("index", &IndexEntry{"acl-auth-methods", method.ModifyIndex}); err != nil {
-			return fmt.Errorf("failed updating acl auth methods index: %v", err)
-		}
+	// update the overall acl-auth-methods index
+	if err := indexUpdateMaxTxn(tx, method.ModifyIndex, "acl-auth-methods"); err != nil {
+		return fmt.Errorf("failed updating acl auth methods index: %v", err)
 	}
 
 	return nil
@@ -482,7 +472,7 @@ func (s *Store) aclAuthMethodDeleteWithMethod(tx *memdb.Txn, method *structs.ACL
 	}
 
 	// update the overall acl-auth-methods index
-	if err := tx.Insert("index", &IndexEntry{"acl-auth-methods", idx}); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, "acl-auth-methods"); err != nil {
 		return fmt.Errorf("failed updating acl auth methods index: %v", err)
 	}
 	return nil

@@ -156,9 +156,15 @@ func (a *TestAgent) Start() (err error) {
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
+	logOutput := a.LogOutput
+	if logOutput == nil {
+		logOutput = os.Stderr
+	}
+	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
 	a.returnPortsFn = returnPortsFn
-	a.Config = TestConfig(
+	a.Config = TestConfig(agentLogger,
 		portsConfig,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
@@ -190,12 +196,6 @@ func (a *TestAgent) Start() (err error) {
 			return err
 		}
 	}
-
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
-	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
 
 	agent, err := New(a.Config, agentLogger)
 	if err != nil {
@@ -411,7 +411,7 @@ func NodeID() string {
 
 // TestConfig returns a unique default configuration for testing an
 // agent.
-func TestConfig(sources ...config.Source) *config.RuntimeConfig {
+func TestConfig(logger *log.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
 	testsrc := config.Source{
 		Name:   "test",
@@ -450,7 +450,7 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	}
 
 	for _, w := range b.Warnings {
-		fmt.Println("WARNING:", w)
+		logger.Printf("[WARN] %s", w)
 	}
 
 	// Effectively disables the delay after root rotation before requesting CSRs

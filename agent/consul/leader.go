@@ -505,18 +505,18 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		}
 		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
 			newPolicy := structs.ACLPolicy{
-				ID:          structs.ACLPolicyGlobalManagementID,
-				Name:        "global-management",
-				Description: "Builtin Policy that grants unlimited access",
-				Rules:       structs.ACLPolicyGlobalManagement,
-				Syntax:      acl.SyntaxCurrent,
+				ID:             structs.ACLPolicyGlobalManagementID,
+				Name:           "global-management",
+				Description:    "Builtin Policy that grants unlimited access",
+				Rules:          structs.ACLPolicyGlobalManagement,
+				Syntax:         acl.SyntaxCurrent,
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
 			if policy != nil {
 				newPolicy.Name = policy.Name
 				newPolicy.Description = policy.Description
 			}
 
-			newPolicy.EnterpriseMeta.InitDefault()
 			newPolicy.SetHash(true)
 
 			req := structs.ACLPolicyBatchSetRequest{
@@ -560,10 +560,10 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					Local:      false,
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
-					Type: structs.ACLTokenTypeManagement,
+					Type:           structs.ACLTokenTypeManagement,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 
-				token.EnterpriseMeta.InitDefault()
 				token.SetHash(true)
 
 				done := false
@@ -616,13 +616,13 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			// the token upgrade routine will take care of upgrading the token if a legacy version exists
 			if legacyToken == nil {
 				token = &structs.ACLToken{
-					AccessorID:  structs.ACLTokenAnonymousID,
-					SecretID:    anonymousToken,
-					Description: "Anonymous Token",
-					CreateTime:  time.Now(),
+					AccessorID:     structs.ACLTokenAnonymousID,
+					SecretID:       anonymousToken,
+					Description:    "Anonymous Token",
+					CreateTime:     time.Now(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 				token.SetHash(true)
-				token.EnterpriseMeta.InitDefault()
 
 				req := structs.ACLTokenBatchSetRequest{
 					Tokens: structs.ACLTokens{token},
