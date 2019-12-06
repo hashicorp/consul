@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 // CompiledDiscoveryChain is the result from taking a set of related config
@@ -155,7 +157,7 @@ func (r *DiscoveryResolver) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(r),
 	}
-	if err := json.Unmarshal(data, &aux); err != nil {
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	var err error

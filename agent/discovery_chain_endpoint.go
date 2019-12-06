@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -107,7 +106,7 @@ func (t *discoveryChainReadRequest) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
@@ -573,11 +574,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 }
 
 func decodeBody(body io.Reader, out interface{}) error {
-	if body == nil {
-		return io.EOF
-	}
-
-	return json.NewDecoder(body).Decode(&out)
+	return lib.DecodeJSON(body, out)
 }
 
 // decodeBodyDeprecated is deprecated, please ues decodeBody above.

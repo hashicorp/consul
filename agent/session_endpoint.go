@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -31,11 +32,13 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	s.parseEntMeta(req, &args.Session.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.Session.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
-		if err := decodeBody(req.Body, &args.Session); err != nil {
+		if err := s.rewordUnknownEnterpriseFieldError(lib.DecodeJSON(req.Body, &args.Session)); err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil
@@ -80,7 +83,9 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	s.parseEntMeta(req, &args.Session.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.Session.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Pull out the session id
 	args.Session.ID = strings.TrimPrefix(req.URL.Path, "/v1/session/destroy/")
@@ -103,7 +108,9 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	s.parseEntMeta(req, &args.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Pull out the session id
 	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
@@ -131,7 +138,9 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	s.parseEntMeta(req, &args.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Pull out the session id
 	args.SessionID = strings.TrimPrefix(req.URL.Path, "/v1/session/info/")
@@ -160,7 +169,9 @@ func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	s.parseEntMeta(req, &args.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var out structs.IndexedSessions
 	defer setMeta(resp, &out.QueryMeta)
@@ -181,7 +192,9 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	s.parseEntMeta(req, &args.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Pull out the node name
 	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/session/node/")

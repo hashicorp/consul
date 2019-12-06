@@ -21,6 +21,7 @@ func parseCloneOutput(t *testing.T, output string) *api.ACLToken {
 	re := regexp.MustCompile("Token cloned successfully.\n" +
 		"AccessorID:       ([a-zA-Z0-9\\-]{36})\n" +
 		"SecretID:         ([a-zA-Z0-9\\-]{36})\n" +
+		"(?:Namespace:        default\n)?" +
 		"Description:      ([^\n]*)\n" +
 		"Local:            (true|false)\n" +
 		"Create Time:      ([^\n]+)\n" +

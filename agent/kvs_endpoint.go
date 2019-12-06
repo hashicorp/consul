@@ -18,7 +18,9 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	s.parseEntMeta(req, &args.EnterpriseMeta)
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")

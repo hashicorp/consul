@@ -1,11 +1,11 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -76,11 +76,16 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 
+		// These are going to be ignored but since we are disallowing unknown fields
+		// during parsing we have to be explicit about parsing but not using these.
+		ServiceID      string `json:"ServiceID"`
+		ServiceIDSnake string `json:"service_id"`
+
 		*Alias
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, aux); err != nil {
+	if err = lib.UnmarshalJSON(data, aux); err != nil {
 		return err
 	}
 	if aux.DeregisterCriticalServiceAfter == nil {

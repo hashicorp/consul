@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -895,7 +896,7 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if t.SidecarService == nil {
@@ -1232,7 +1233,7 @@ func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err := json.Unmarshal(data, &aux); err != nil {
+	if err := lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if aux.Interval != nil {
@@ -1735,7 +1736,8 @@ func (t *Session) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = json.Unmarshal(data, &aux); err != nil {
+
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
 	if aux.LockDelay != nil {
