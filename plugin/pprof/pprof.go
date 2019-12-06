@@ -31,6 +31,9 @@ func (h *handler) Startup() error {
 	h.ln = ln
 
 	h.mux = http.NewServeMux()
+	h.mux.HandleFunc(path, func(rw http.ResponseWriter, req *http.Request) {
+		http.Redirect(rw, req, path+"/", http.StatusFound)
+	})
 	h.mux.HandleFunc(path+"/", pp.Index)
 	h.mux.HandleFunc(path+"/cmdline", pp.Cmdline)
 	h.mux.HandleFunc(path+"/profile", pp.Profile)
