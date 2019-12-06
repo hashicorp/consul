@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -80,7 +79,7 @@ func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Author
 
 	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   a.Name,
-		Level:  log.LstdFlags | log.Lmicroseconds, // TODO (hclog): What should these Level values be?
+		Level:  hclog.Debug,
 		Output: logOutput,
 	})
 	agent.logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{

@@ -65,7 +65,6 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 		Writer: &cli.UiWriter{Ui: ui},
 	}
 
-	// TODO (hclog): Do the necessary to use hclog fully here. This looks to be were a lot of magic happens.
 	// Set up the level filter.
 	logFilter := LevelFilter()
 	logFilter.MinLevel = logutils.LogLevel(strings.ToUpper(config.LogLevel))

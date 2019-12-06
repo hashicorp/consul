@@ -364,7 +364,6 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 				tt.setup(snap)
 			}
 
-			//TODO (hclog): Do we really need this?
 			// Need server just for logger dependency
 			logger2 := testutil.Logger(t)
 			logger := testutil.LogShim(logger2)

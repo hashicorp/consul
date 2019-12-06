@@ -215,7 +215,6 @@ func (c *cmd) run(args []string) int {
 		InferLevels: true,
 	})
 
-	//TODO (hclog): Can we switch to hclog?
 	// Setup gRPC logger to use the same output/filtering
 	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger, c.logger2))
 

@@ -135,9 +135,9 @@ func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 	}
 
 	if logger2 == nil {
-		//TODO (hclog): Should we rename this? Also fix log level
 		logger2 = hclog.New(&hclog.LoggerOptions{
 			Name:   "client",
+			Level:  hclog.Debug,
 			Output: config.LogOutput,
 		})
 	}

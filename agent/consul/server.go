@@ -314,18 +314,20 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 
 	if logger == nil {
 		consulLogger := hclog.New(&hclog.LoggerOptions{
-			Level:  log.LstdFlags,
-			Output: config.LogOutput})
+			Level:  hclog.Debug,
+			Output: config.LogOutput,
+		})
 		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}
 
 	if logger2 == nil {
-		//TODO (hclog): Should we rename this? Also fix log level
 		logger2 = hclog.New(&hclog.LoggerOptions{
 			Name:   "server",
-			Output: config.LogOutput})
+			Level:  hclog.Debug,
+			Output: config.LogOutput,
+		})
 	}
 
 	// Check if TLS is enabled
@@ -596,7 +598,6 @@ func (s *Server) setupRaft() error {
 		serverAddressProvider = s.serverLookup
 	}
 
-	// TODO (hclog): What to do about the raft Logger here?
 	// Create a transport layer.
 	transConfig := &raft.NetworkTransportConfig{
 		Stream:                s.raftLayer,

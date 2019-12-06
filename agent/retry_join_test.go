@@ -47,7 +47,6 @@ func TestAgentRetryJoinAddrs(t *testing.T) {
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			//TODO (hclog): This needs to output to debug, be careful of the buffer
 			logger2 := testutil.LoggerWithOutput(t, &buf)
 			logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 				InferLevels: true,
