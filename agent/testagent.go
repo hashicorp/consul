@@ -480,13 +480,14 @@ const (
 )
 
 type TestACLConfigParams struct {
-	PrimaryDatacenter string
-	DefaultPolicy     string
-	MasterToken       string
-	AgentToken        string
-	DefaultToken      string
-	AgentMasterToken  string
-	ReplicationToken  string
+	PrimaryDatacenter      string
+	DefaultPolicy          string
+	MasterToken            string
+	AgentToken             string
+	DefaultToken           string
+	AgentMasterToken       string
+	ReplicationToken       string
+	EnableTokenReplication bool
 }
 
 func DefaulTestACLConfigParams() *TestACLConfigParams {
@@ -526,6 +527,7 @@ var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
 		{{if ne .DefaultPolicy ""}}
 		default_policy = "{{ .DefaultPolicy }}"
 		{{end}}
+		enable_token_replication = {{printf "%t" .EnableTokenReplication }}
 		{{if .HasConfiguredTokens }}
 		tokens {
 			{{if ne .MasterToken ""}}

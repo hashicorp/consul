@@ -1,5 +1,10 @@
 package acl
 
+import (
+	"fmt"
+	"strings"
+)
+
 type EnforcementDecision int
 
 const (
@@ -28,6 +33,22 @@ func (d EnforcementDecision) String() string {
 		return "Unknown"
 	}
 }
+
+type Resource string
+
+const (
+	ResourceACL       Resource = "acl"
+	ResourceAgent     Resource = "agent"
+	ResourceEvent     Resource = "event"
+	ResourceIntention Resource = "intention"
+	ResourceKey       Resource = "key"
+	ResourceKeyring   Resource = "keyring"
+	ResourceNode      Resource = "node"
+	ResourceOperator  Resource = "operator"
+	ResourceQuery     Resource = "query"
+	ResourceService   Resource = "service"
+	ResourceSession   Resource = "session"
+)
 
 // Authorizer is the interface for policy enforcement.
 type Authorizer interface {
@@ -125,4 +146,99 @@ type Authorizer interface {
 
 	// Embedded Interface for Consul Enterprise specific ACL enforcement
 	EnterpriseAuthorizer
+}
+
+func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx *EnterpriseAuthorizerContext) (EnforcementDecision, error) {
+	lowerAccess := strings.ToLower(access)
+
+	switch rsc {
+	case ResourceACL:
+		switch lowerAccess {
+		case "read":
+			return authz.ACLRead(ctx), nil
+		case "write":
+			return authz.ACLWrite(ctx), nil
+		}
+	case ResourceAgent:
+		switch lowerAccess {
+		case "read":
+			return authz.AgentRead(segment, ctx), nil
+		case "write":
+			return authz.AgentWrite(segment, ctx), nil
+		}
+	case ResourceEvent:
+		switch lowerAccess {
+		case "read":
+			return authz.EventRead(segment, ctx), nil
+		case "write":
+			return authz.EventWrite(segment, ctx), nil
+		}
+	case ResourceIntention:
+		switch lowerAccess {
+		case "read":
+			return authz.IntentionRead(segment, ctx), nil
+		case "write":
+			return authz.IntentionWrite(segment, ctx), nil
+		}
+	case ResourceKey:
+		switch lowerAccess {
+		case "read":
+			return authz.KeyRead(segment, ctx), nil
+		case "list":
+			return authz.KeyList(segment, ctx), nil
+		case "write":
+			return authz.KeyWrite(segment, ctx), nil
+		case "write-prefix":
+			return authz.KeyWritePrefix(segment, ctx), nil
+		}
+	case ResourceKeyring:
+		switch lowerAccess {
+		case "read":
+			return authz.KeyringRead(ctx), nil
+		case "write":
+			return authz.KeyringWrite(ctx), nil
+		}
+	case ResourceNode:
+		switch lowerAccess {
+		case "read":
+			return authz.NodeRead(segment, ctx), nil
+		case "write":
+			return authz.NodeWrite(segment, ctx), nil
+		}
+	case ResourceOperator:
+		switch lowerAccess {
+		case "read":
+			return authz.OperatorRead(ctx), nil
+		case "write":
+			return authz.OperatorWrite(ctx), nil
+		}
+	case ResourceQuery:
+		switch lowerAccess {
+		case "read":
+			return authz.PreparedQueryRead(segment, ctx), nil
+		case "write":
+			return authz.PreparedQueryWrite(segment, ctx), nil
+		}
+	case ResourceService:
+		switch lowerAccess {
+		case "read":
+			return authz.ServiceRead(segment, ctx), nil
+		case "write":
+			return authz.ServiceWrite(segment, ctx), nil
+		}
+	case ResourceSession:
+		switch lowerAccess {
+		case "read":
+			return authz.SessionRead(segment, ctx), nil
+		case "write":
+			return authz.SessionWrite(segment, ctx), nil
+		}
+	default:
+		if processed, decision, err := EnforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {
+			return decision, err
+		}
+		return Deny, fmt.Errorf("Invalid ACL resource requested: %q", rsc)
+	}
+
+	return Deny, fmt.Errorf("Invalid access level for %s resource: %s", rsc, access)
 }

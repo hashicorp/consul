@@ -981,7 +981,7 @@ func (s *HTTPServer) ACLLogin(resp http.ResponseWriter, req *http.Request) (inte
 	s.parseEntMeta(req, &args.Auth.EnterpriseMeta)
 
 	if err := decodeBody(req.Body, &args.Auth); err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body:: %v", err)}
+		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
 	}
 
 	var out structs.ACLToken
@@ -1026,4 +1026,84 @@ func fixupAuthMethodConfig(method *structs.ACLAuthMethod) {
 			method.Config[k] = strVal
 		}
 	}
+}
+
+func (s *HTTPServer) ACLAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// At first glance it may appear like this endpoint is going to leak security relevant information.
+	// There are a number of reason why this is okay.
+	//
+	// 1. The authorizations performed here are the same as what would be done if other HTTP APIs
+	//    were used. This is just a way to see if it would be allowed. In the future when we have
+	//    audit logging, these authorization checks will be logged along with those from the real
+	//    endpoints. In that respect, you can figure out if you have access just as easily by
+	//    attempting to perform the requested operation.
+	// 2. In order to use this API you must have a valid ACL token secret.
+	// 3. Along with #2 you can use the ACL.GetPolicy RPC endpoint which will return a rolled up
+	//    set of policy rules showing your tokens effective policy. This RPC endpoint exposes
+	//    more information than this one and has been around since before v1.0.0. With that other
+	//    endpoint you get to see all things possible rather than having to have a list of things
+	//    you may want to do and to request authorizations for each one.
+	// 4. In addition to the legacy ACL.GetPolicy RPC endpoint we have an ACL.PolicyResolve and
+	//    ACL.RoleResolve endpoints. These RPC endpoints allow reading roles and policies so long
+	//    as the token used for the request is linked with them. This is needed to allow client
+	//    agents to pull the policy and roles for a token that they are resolving. The only
+	//    alternative to this style of access would be to make every agent use a token
+	//    with acl:read privileges for all policy and role resolution requests. Once you have
+	//    all the associated policies and roles it would be easy enough to recreate the effective
+	//    policy.
+	const maxRequests = 64
+
+	if s.checkACLDisabled(resp, req) {
+		return nil, nil
+	}
+
+	request := structs.RemoteACLAuthorizationRequest{
+		Datacenter: s.agent.config.Datacenter,
+		QueryOptions: structs.QueryOptions{
+			AllowStale:        true,
+			RequireConsistent: false,
+		},
+	}
+	var responses []structs.ACLAuthorizationResponse
+
+	s.parseToken(req, &request.Token)
+	s.parseDC(req, &request.Datacenter)
+
+	if err := decodeBody(req.Body, &request.Requests); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to decode request body: %v", err)}
+	}
+
+	if len(request.Requests) > maxRequests {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Refusing to process more than %d authorizations at once", maxRequests)}
+	}
+
+	if len(request.Requests) == 0 {
+		return make([]structs.ACLAuthorizationResponse, 0), nil
+	}
+
+	if request.Datacenter != "" && request.Datacenter != s.agent.config.Datacenter {
+		// when we are targeting a datacenter other than our own then we must issue an RPC
+		// to perform the resolution as it may involve a local token
+		if err := s.agent.RPC("ACL.Authorize", &request, &responses); err != nil {
+			return nil, err
+		}
+	} else {
+		authz, err := s.agent.resolveToken(request.Token)
+		if err != nil {
+			return nil, err
+		} else if authz == nil {
+			return nil, fmt.Errorf("Failed to initialize authorizer")
+		}
+
+		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)
+		if err != nil {
+			return nil, BadRequestError{Reason: err.Error()}
+		}
+	}
+
+	if responses == nil {
+		responses = make([]structs.ACLAuthorizationResponse, 0)
+	}
+
+	return responses, nil
 }

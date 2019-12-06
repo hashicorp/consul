@@ -89,6 +89,7 @@ func init() {
 	registerEndpoint("/v1/internal/ui/nodes", []string{"GET"}, (*HTTPServer).UINodes)
 	registerEndpoint("/v1/internal/ui/node/", []string{"GET"}, (*HTTPServer).UINodeInfo)
 	registerEndpoint("/v1/internal/ui/services", []string{"GET"}, (*HTTPServer).UIServices)
+	registerEndpoint("/v1/internal/acl/authorize", []string{"POST"}, (*HTTPServer).ACLAuthorize)
 	registerEndpoint("/v1/kv/", []string{"GET", "PUT", "DELETE"}, (*HTTPServer).KVSEndpoint)
 	registerEndpoint("/v1/operator/raft/configuration", []string{"GET"}, (*HTTPServer).OperatorRaftConfiguration)
 	registerEndpoint("/v1/operator/raft/peer", []string{"DELETE"}, (*HTTPServer).OperatorRaftPeer)
