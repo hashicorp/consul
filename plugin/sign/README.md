@@ -9,8 +9,7 @@
 The *sign* plugin is used to sign (see RFC 6781) zones. In this process DNSSEC resource records are
 added. The signatures that sign the resource records sets have an expiration date, this means the
 signing process must be repeated before this expiration data is reached. Otherwise the zone's data
-will go BAD (RFC 4035, Section 5.5). The *sign* plugin takes care of this. *Sign* works, but has
-a couple of limitations, see the "Bugs" section.
+will go BAD (RFC 4035, Section 5.5). The *sign* plugin takes care of this.
 
 Only NSEC is supported, *sign* does not support NSEC3.
 
@@ -32,8 +31,11 @@ it do key or algorithm rollovers - it just signs.
 
     Both these dates are only checked on the SOA's signature(s).
 
- *  Create signatures that have an inception of -3 hours (minus a jitter between 0 and 18 hours)
+ *  Create RRSIGs that have an inception of -3 hours (minus a jitter between 0 and 18 hours)
     and a expiration of +32 days for every given DNSKEY.
+
+ *  Add NSEC records for all names in the zone. The TTL for these is the negative cache TTL from the
+    SOA record.
 
  *  Add or replace *all* apex CDS/CDNSKEY records with the ones derived from the given keys. For
     each key two CDS are created one with SHA1 and another with SHA256.
@@ -41,8 +43,9 @@ it do key or algorithm rollovers - it just signs.
  *  Update the SOA's serial number to the *Unix epoch* of when the signing happens. This will
     overwrite *any* previous serial number.
 
-Thus there are two ways that dictate when a zone is signed. Normally every 6 days (plus jitter) it
-will be resigned. If for some reason we fail this check, the 14 days before expiring kicks in.
+
+There are two ways that dictate when a zone is signed. Normally every 6 days (plus jitter) it will
+be resigned. If for some reason we fail this check, the 14 days before expiring kicks in.
 
 Keys are named (following BIND9): `K<name>+<alg>+<id>.key` and `K<name>+<alg>+<id>.private`.
 The keys **must not** be included in your zone; they will be added by *sign*. These keys can be
@@ -144,8 +147,8 @@ example.org example.net {
 This will lead to `db.example.org` be signed *twice*, as this entire section is parsed twice because
 you have specified the origins `example.org` and `example.net` in the server block.
 
-Forcibly resigning a zone can be accomplished by removing the signed zone file (CoreDNS will keep on
-serving it from memory), and sending SIGUSR1 to the process to make it reload and resign the zone
+Forcibly resigning a zone can be accomplished by removing the signed zone file (CoreDNS will keep
+on serving it from memory), and sending SIGUSR1 to the process to make it reload and resign the zone
 file.
 
 ## Also See
@@ -153,9 +156,13 @@ file.
 The DNSSEC RFCs: RFC 4033, RFC 4034 and RFC 4035. And the BCP on DNSSEC, RFC 6781. Further more the
 manual pages coredns-keygen(1) and dnssec-keygen(8). And the *file* plugin's documentation.
 
-Coredns-keygen can be found at <https://github.com/coredns/coredns-utils> in the coredns-keygen directory.
+Coredns-keygen can be found at
+[https://github.com/coredns/coredns-utils](https://github.com/coredns/coredns-utils) in the
+coredns-keygen directory.
+
+Other useful DNSSEC tools can be found in [ldns](https://nlnetlabs.nl/projects/ldns/about/), e.g.
+`ldns-key2ds` to create DS records from DNSKEYs.
 
 ## Bugs
 
-`keys directory` is not implemented. Glue records are currently signed, and no DS records are added
-for child zones.
+`keys directory` is not implemented.

@@ -1,0 +1,10 @@
+$TTL    30M
+$ORIGIN miek.nl.
+@       IN      SOA     linode.atoom.net. miek.miek.nl. ( 1282630060 4H 1H 7D 4H )
+                NS      linode.atoom.net.
+		DNSKEY  257 3 13 sfzRg5nDVxbeUc51su4MzjgwpOpUwnuu81SlRHqJuXe3SOYOeypR69tZ52XLmE56TAmPHsiB8Rgk+NTpf0o1Cw==
+
+www 	        AAAA    ::1
+child           NS      ns.child
+ns.child        AAAA    ::1
+child	        DS	34385 13 2 fc7397c77afbccb6742fcff19c7b1410d0044661e7085fc200ae1ab3d15a5842

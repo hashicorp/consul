@@ -26,10 +26,6 @@ type Signer struct {
 
 	signedfile string
 	stop       chan struct{}
-
-	expiration uint32
-	inception  uint32
-	ttl        uint32
 }
 
 // Sign signs a zone file according to the parameters in s.
@@ -44,46 +40,31 @@ func (s *Signer) Sign(now time.Time) (*file.Zone, error) {
 		return nil, err
 	}
 
-	s.inception, s.expiration = lifetime(now, s.jitter)
-
-	s.ttl = z.Apex.SOA.Header().Ttl
+	mttl := z.Apex.SOA.Minttl
+	ttl := z.Apex.SOA.Header().Ttl
+	inception, expiration := lifetime(now, s.jitter)
 	z.Apex.SOA.Serial = uint32(now.Unix())
 
 	for _, pair := range s.keys {
-		pair.Public.Header().Ttl = s.ttl // set TTL on key so it matches the RRSIG.
+		pair.Public.Header().Ttl = ttl // set TTL on key so it matches the RRSIG.
 		z.Insert(pair.Public)
-		z.Insert(pair.Public.ToDS(dns.SHA1))
-		z.Insert(pair.Public.ToDS(dns.SHA256))
 		z.Insert(pair.Public.ToDS(dns.SHA1).ToCDS())
 		z.Insert(pair.Public.ToDS(dns.SHA256).ToCDS())
 		z.Insert(pair.Public.ToCDNSKEY())
 	}
 
-	names, apex := names(s.origin, z)
+	names := names(s.origin, z)
 	ln := len(names)
 
-	var nsec *dns.NSEC
-	if apex {
-		nsec = NSEC(s.origin, names[(ln+1)%ln], s.ttl, []uint16{dns.TypeSOA, dns.TypeNS, dns.TypeRRSIG, dns.TypeNSEC})
-		z.Insert(nsec)
-	}
-
 	for _, pair := range s.keys {
-		rrsig, err := pair.signRRs([]dns.RR{z.Apex.SOA}, s.origin, s.ttl, s.inception, s.expiration)
+		rrsig, err := pair.signRRs([]dns.RR{z.Apex.SOA}, s.origin, ttl, inception, expiration)
 		if err != nil {
 			return nil, err
 		}
 		z.Insert(rrsig)
 		// NS apex may not be set if RR's have been discarded because the origin doesn't match.
 		if len(z.Apex.NS) > 0 {
-			rrsig, err = pair.signRRs(z.Apex.NS, s.origin, s.ttl, s.inception, s.expiration)
-			if err != nil {
-				return nil, err
-			}
-			z.Insert(rrsig)
-		}
-		if apex {
-			rrsig, err = pair.signRRs([]dns.RR{nsec}, s.origin, s.ttl, s.inception, s.expiration)
+			rrsig, err = pair.signRRs(z.Apex.NS, s.origin, ttl, inception, expiration)
 			if err != nil {
 				return nil, err
 			}
@@ -93,21 +74,27 @@ func (s *Signer) Sign(now time.Time) (*file.Zone, error) {
 
 	// We are walking the tree in the same direction, so names[] can be used here to indicated the next element.
 	i := 1
-	err = z.Walk(func(e *tree.Elem, zrrs map[uint16][]dns.RR) error {
-		if !apex && e.Name() == s.origin {
-			nsec := NSEC(e.Name(), names[(ln+i)%ln], s.ttl, append(e.Types(), dns.TypeNS, dns.TypeSOA, dns.TypeNSEC, dns.TypeRRSIG))
+	err = z.AuthWalk(func(e *tree.Elem, zrrs map[uint16][]dns.RR, auth bool) error {
+		if !auth {
+			return nil
+		}
+
+		if e.Name() == s.origin {
+			nsec := NSEC(e.Name(), names[(ln+i)%ln], mttl, append(e.Types(), dns.TypeNS, dns.TypeSOA, dns.TypeRRSIG, dns.TypeNSEC))
 			z.Insert(nsec)
 		} else {
-			nsec := NSEC(e.Name(), names[(ln+i)%ln], s.ttl, append(e.Types(), dns.TypeNSEC, dns.TypeRRSIG))
+			nsec := NSEC(e.Name(), names[(ln+i)%ln], mttl, append(e.Types(), dns.TypeRRSIG, dns.TypeNSEC))
 			z.Insert(nsec)
 		}
 
 		for t, rrs := range zrrs {
-			if t == dns.TypeRRSIG {
+			// RRSIGs are not signed and NS records are not signed because we are never authoratiative for them.
+			// The zone's apex nameservers records are not kept in this tree and are signed separately.
+			if t == dns.TypeRRSIG || t == dns.TypeNS {
 				continue
 			}
 			for _, pair := range s.keys {
-				rrsig, err := pair.signRRs(rrs, s.origin, s.ttl, s.inception, s.expiration)
+				rrsig, err := pair.signRRs(rrs, s.origin, rrs[0].Header().Ttl, inception, expiration)
 				if err != nil {
 					return err
 				}
