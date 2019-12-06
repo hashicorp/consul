@@ -2,6 +2,14 @@
 
 *                       @bradbeam @chrisohaver @dilyevsky @fastest963 @greenpau @grobie @isolus @johnbelamaric @miekg @pmoroney @rajansandeep @stp-ip @superq @yongtang
 
+/plugin/pkg/            @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+/coremain/              @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+/core/                  @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+/request/               @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+/plugin/*               @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+go.sum                  @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+go.mod                  @miekg @chrisohaver @johnbelamaric @yongtang @stp-ip
+
 /plugin/acl/            @miekg @ihac
 /plugin/any/            @miekg
 /plugin/auto/           @miekg @stp-ip
