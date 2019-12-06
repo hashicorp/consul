@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+var emptyEnterpriseMeta = EnterpriseMeta{}
+
 // EnterpriseMeta stub
 type EnterpriseMeta struct{}
 
@@ -15,30 +17,27 @@ func (m *EnterpriseMeta) estimateSize() int {
 	return 0
 }
 
-func (m *EnterpriseMeta) addToHash(hasher hash.Hash) {
+func (m *EnterpriseMeta) addToHash(_ hash.Hash, _ bool) {
 	// do nothing
-}
-
-// WildcardEnterpriseMeta stub
-func WildcardEnterpriseMeta() *EnterpriseMeta {
-	return nil
 }
 
 // ReplicationEnterpriseMeta stub
 func ReplicationEnterpriseMeta() *EnterpriseMeta {
-	return nil
+	return &emptyEnterpriseMeta
 }
 
 // DefaultEnterpriseMeta stub
 func DefaultEnterpriseMeta() *EnterpriseMeta {
-	return nil
+	return &emptyEnterpriseMeta
 }
 
-// InitDefault stub
-func (m *EnterpriseMeta) InitDefault() {}
+// WildcardEnterpriseMeta stub
+func WildcardEnterpriseMeta() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
 
 // FillAuthzContext stub
-func (m *EnterpriseMeta) FillAuthzContext(*acl.EnterpriseAuthorizerContext) {}
+func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.EnterpriseAuthorizerContext) {}
 
 // FillAuthzContext stub
 func (d *DirEntry) FillAuthzContext(*acl.EnterpriseAuthorizerContext) {}

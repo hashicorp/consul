@@ -20,6 +20,10 @@ func (s *HTTPServer) parseEntMeta(req *http.Request, entMeta *structs.Enterprise
 	return nil
 }
 
+func (s *HTTPServer) parseEntMetaNoWildcard(req *http.Request, _ *structs.EnterpriseMeta) error {
+	return s.parseEntMeta(req, nil)
+}
+
 func (s *HTTPServer) rewordUnknownEnterpriseFieldError(err error) error {
 	if err == nil {
 		return nil

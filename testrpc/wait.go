@@ -12,6 +12,8 @@ type rpcFn func(string, interface{}, interface{}) error
 
 // WaitForLeader ensures we have a leader and a node registration.
 func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
+	t.Helper()
+
 	var out structs.IndexedNodes
 	retry.Run(t, func(r *retry.R) {
 		args := &structs.DCSpecificRequest{Datacenter: dc}
@@ -29,6 +31,8 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
 
 // WaitUntilNoLeader ensures no leader is present, useful for testing lost leadership.
 func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string) {
+	t.Helper()
+
 	var out structs.IndexedNodes
 	retry.Run(t, func(r *retry.R) {
 		args := &structs.DCSpecificRequest{Datacenter: dc}
@@ -56,6 +60,8 @@ func WaitForAntiEntropySync() waitOption {
 
 // WaitForTestAgent ensures we have a node with serfHealth check registered
 func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
+	t.Helper()
+
 	var nodes structs.IndexedNodes
 	var checks structs.IndexedHealthChecks
 

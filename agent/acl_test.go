@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 
@@ -55,28 +55,27 @@ type TestACLAgent struct {
 // NewTestACLAGent does just enough so that all the code within agent/acl.go can work
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
-func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Authorizer, error)) *TestACLAgent {
+func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(string) (acl.Authorizer, error)) *TestACLAgent {
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveTokenFn: resolveFn}
 	hclDataDir := `data_dir = "acl-agent"`
 
-	a.Config = TestConfig(
+	logOutput := testutil.TestWriter(t)
+	logger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+	a.Config = TestConfig(logger,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
 
-	agent, err := New(a.Config, nil)
+	agent, err := New(a.Config, logger)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating agent: %v", err))
 	}
 	a.Agent = agent
 
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = a.LogWriter
-	agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+	agent.logger = logger
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	a.Agent.delegate = a
@@ -156,7 +155,7 @@ func TestACL_Version8(t *testing.T) {
 			return nil, fmt.Errorf("should not have called delegate.ResolveToken")
 		}
 
-		a := NewTestACLAgent(t.Name(), TestACLConfig()+`
+		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = false
  	`, resolveFn)
 
@@ -171,7 +170,7 @@ func TestACL_Version8(t *testing.T) {
 			called = true
 			return nil, acl.ErrNotFound
 		}
-		a := NewTestACLAgent(t.Name(), TestACLConfig()+`
+		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = true
  	`, resolveFn)
 
@@ -189,7 +188,7 @@ func TestACL_AgentMasterToken(t *testing.T) {
 		return nil, fmt.Errorf("should not have called delegate.ResolveToken")
 	}
 
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), resolveFn)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
 	a.loadTokens(a.config)
 	authz, err := a.resolveToken("towel")
 	require.NotNil(t, authz)
@@ -209,7 +208,7 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 		return nil, fmt.Errorf("should not have called delegate.ResolveToken")
 	}
 
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), resolveFn)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
 	authz, err := a.resolveToken("deny")
 	require.Nil(t, authz)
 	require.Error(t, err)
@@ -224,8 +223,8 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 	require.True(t, acl.IsErrRootDenied(err))
 }
 
-func authzFromPolicy(policy *acl.Policy) (acl.Authorizer, error) {
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+func authzFromPolicy(policy *acl.Policy, cfg *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 
 // catalogPolicy supplies some standard policies to help with testing the
@@ -240,7 +239,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 					&acl.NodeRule{Name: "Node", Policy: "read"},
 				},
 			},
-		})
+		}, nil)
 	case "node-rw":
 		return authzFromPolicy(&acl.Policy{
 			PolicyRules: acl.PolicyRules{
@@ -248,7 +247,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 					&acl.NodeRule{Name: "Node", Policy: "write"},
 				},
 			},
-		})
+		}, nil)
 	case "service-ro":
 		return authzFromPolicy(&acl.Policy{
 			PolicyRules: acl.PolicyRules{
@@ -256,7 +255,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 					&acl.ServiceRule{Name: "service", Policy: "read"},
 				},
 			},
-		})
+		}, nil)
 	case "service-rw":
 		return authzFromPolicy(&acl.Policy{
 			PolicyRules: acl.PolicyRules{
@@ -264,7 +263,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 					&acl.ServiceRule{Name: "service", Policy: "write"},
 				},
 			},
-		})
+		}, nil)
 	case "other-rw":
 		return authzFromPolicy(&acl.Policy{
 			PolicyRules: acl.PolicyRules{
@@ -272,7 +271,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 					&acl.ServiceRule{Name: "other", Policy: "write"},
 				},
 			},
-		})
+		}, nil)
 	default:
 		return nil, fmt.Errorf("unknown token %q", token)
 	}
@@ -280,7 +279,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 
 func TestACL_vetServiceRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Register a new service, with permission.
 	err := a.vetServiceRegister("service-rw", &structs.NodeService{
@@ -311,7 +310,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 func TestACL_vetServiceUpdate(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a service that doesn't exist.
 	err := a.vetServiceUpdate("service-rw", "my-service")
@@ -334,7 +333,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 
 func TestACL_vetCheckRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Register a new service check with write privs.
 	err := a.vetCheckRegister("service-rw", &structs.HealthCheck{
@@ -400,7 +399,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 
 func TestACL_vetCheckUpdate(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a check that doesn't exist.
 	err := a.vetCheckUpdate("node-rw", "my-check")
@@ -440,7 +439,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 
 func TestACL_filterMembers(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	var members []serf.Member
 	require.NoError(t, a.filterMembers("node-ro", &members))
@@ -459,7 +458,7 @@ func TestACL_filterMembers(t *testing.T) {
 
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	services := make(map[string]*structs.NodeService)
 	require.NoError(t, a.filterServices("node-ro", &services))
@@ -473,7 +472,7 @@ func TestACL_filterServices(t *testing.T) {
 
 func TestACL_filterChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	checks := make(map[types.CheckID]*structs.HealthCheck)
 	require.NoError(t, a.filterChecks("node-ro", &checks))

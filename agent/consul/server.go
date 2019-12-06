@@ -847,6 +847,8 @@ func (s *Server) Shutdown() error {
 	// Close the connection pool
 	s.connPool.Shutdown()
 
+	s.acls.Close()
+
 	if s.config.NotifyShutdown != nil {
 		s.config.NotifyShutdown()
 	}

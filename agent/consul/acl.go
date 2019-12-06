@@ -223,6 +223,10 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	}, nil
 }
 
+func (r *ACLResolver) Close() {
+	r.entConf.Close()
+}
+
 func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.AuthorizerCacheEntry) (acl.Authorizer, error) {
 	req := structs.ACLPolicyResolveLegacyRequest{
 		Datacenter: r.delegate.ACLDatacenter(true),
@@ -1205,8 +1209,11 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 	s := *sessions
 	for i := 0; i < len(s); i++ {
 		session := s[i]
-		// TODO (namespaces) update to call with an actual ent authz context once sessions supports ns
-		if f.allowSession(session.Node, nil) {
+
+		var entCtx acl.EnterpriseAuthorizerContext
+		session.FillAuthzContext(&entCtx)
+
+		if f.allowSession(session.Node, &entCtx) {
 			continue
 		}
 		f.logger.Printf("[DEBUG] consul: dropping session %q from result due to ACLs", session.ID)

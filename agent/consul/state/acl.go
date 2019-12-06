@@ -230,7 +230,7 @@ func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
 
 // ACLToken is used when restoring from a snapshot. For general inserts, use ACL.
 func (s *Restore) ACLToken(token *structs.ACLToken) error {
-	return s.store.aclTokenInsert(s.tx, token, false)
+	return s.store.aclTokenInsert(s.tx, token)
 }
 
 // ACLPolicies is used when saving a snapshot
@@ -243,7 +243,7 @@ func (s *Snapshot) ACLPolicies() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
-	return s.store.aclPolicyInsert(s.tx, policy, false)
+	return s.store.aclPolicyInsert(s.tx, policy)
 }
 
 // ACLRoles is used when saving a snapshot
@@ -256,7 +256,7 @@ func (s *Snapshot) ACLRoles() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLRole(role *structs.ACLRole) error {
-	return s.store.aclRoleInsert(s.tx, role, false)
+	return s.store.aclRoleInsert(s.tx, role)
 }
 
 // ACLBindingRules is used when saving a snapshot
@@ -269,7 +269,7 @@ func (s *Snapshot) ACLBindingRules() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLBindingRule(rule *structs.ACLBindingRule) error {
-	return s.store.aclBindingRuleInsert(s.tx, rule, false)
+	return s.store.aclBindingRuleInsert(s.tx, rule)
 }
 
 // ACLAuthMethods is used when saving a snapshot
@@ -282,7 +282,7 @@ func (s *Snapshot) ACLAuthMethods() (memdb.ResultIterator, error) {
 }
 
 func (s *Restore) ACLAuthMethod(method *structs.ACLAuthMethod) error {
-	return s.store.aclAuthMethodInsert(s.tx, method, false)
+	return s.store.aclAuthMethodInsert(s.tx, method)
 }
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on a
@@ -765,7 +765,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 		token.ModifyIndex = idx
 	}
 
-	return s.aclTokenInsert(tx, token, true)
+	return s.aclTokenInsert(tx, token)
 }
 
 // ACLTokenGetBySecret is used to look up an existing ACL token by its SecretID.
@@ -1163,7 +1163,7 @@ func (s *Store) aclPolicySetTxn(tx *memdb.Txn, idx uint64, policy *structs.ACLPo
 	}
 
 	// Insert the ACL
-	return s.aclPolicyInsert(tx, policy, true)
+	return s.aclPolicyInsert(tx, policy)
 }
 
 func (s *Store) ACLPolicyGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLPolicy, error) {
@@ -1379,7 +1379,7 @@ func (s *Store) aclRoleSetTxn(tx *memdb.Txn, idx uint64, role *structs.ACLRole, 
 		role.ModifyIndex = idx
 	}
 
-	return s.aclRoleInsert(tx, role, true)
+	return s.aclRoleInsert(tx, role)
 }
 
 type aclRoleGetFn func(*memdb.Txn, string, *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error)
@@ -1588,7 +1588,7 @@ func (s *Store) aclBindingRuleSetTxn(tx *memdb.Txn, idx uint64, rule *structs.AC
 		return fmt.Errorf("failed inserting acl binding rule: auth method not found")
 	}
 
-	return s.aclBindingRuleInsert(tx, rule, true)
+	return s.aclBindingRuleInsert(tx, rule)
 }
 
 func (s *Store) ACLBindingRuleGetByID(ws memdb.WatchSet, id string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLBindingRule, error) {
@@ -1771,7 +1771,7 @@ func (s *Store) aclAuthMethodSetTxn(tx *memdb.Txn, idx uint64, method *structs.A
 		method.ModifyIndex = idx
 	}
 
-	return s.aclAuthMethodInsert(tx, method, true)
+	return s.aclAuthMethodInsert(tx, method)
 }
 
 func (s *Store) ACLAuthMethodGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLAuthMethod, error) {

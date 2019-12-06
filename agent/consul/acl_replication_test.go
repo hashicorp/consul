@@ -758,7 +758,7 @@ func TestACLReplication_AllTypes(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
-		c.ACLReplicationBurst = 100
+		c.ACLReplicationBurst = 25
 		c.ACLReplicationApplyLimit = 1000000
 	})
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
