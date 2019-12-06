@@ -111,15 +111,11 @@ func (r *Request) RemoteAddr() string { return r.W.RemoteAddr().String() }
 func (r *Request) LocalAddr() string { return r.W.LocalAddr().String() }
 
 // Proto gets the protocol used as the transport. This will be udp or tcp.
-func (r *Request) Proto() string { return Proto(r.W) }
-
-// Proto gets the protocol used as the transport. This will be udp or tcp.
-func Proto(w dns.ResponseWriter) string {
-	// FIXME(miek): why not a method on Request
-	if _, ok := w.RemoteAddr().(*net.UDPAddr); ok {
+func (r *Request) Proto() string {
+	if _, ok := r.W.RemoteAddr().(*net.UDPAddr); ok {
 		return "udp"
 	}
-	if _, ok := w.RemoteAddr().(*net.TCPAddr); ok {
+	if _, ok := r.W.RemoteAddr().(*net.TCPAddr); ok {
 		return "tcp"
 	}
 	return "udp"
