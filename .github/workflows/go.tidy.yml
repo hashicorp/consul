@@ -1,0 +1,43 @@
+name: go tidy
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/go.tidy.yml'
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v1
+      -
+        # https://github.com/actions/checkout/issues/6
+        name: Fix detached HEAD
+        run: git checkout ${GITHUB_REF#refs/heads/}
+      -
+        name: Tidy
+        run: |
+          rm -f go.sum
+          go mod tidy
+      -
+        name: Set up Git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+      -
+        name: Commit and push changes
+        run: |
+          git add .
+          if output=$(git status --porcelain) && [ ! -z "$output" ]; then
+            git commit -m 'auto go tidy'
+            git push
+          fi
