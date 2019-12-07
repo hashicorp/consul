@@ -5,9 +5,9 @@ on:
     branches:
       - 'master'
     paths:
+      - '.github/workflows/go.tidy.yml'
       - 'go.mod'
       - 'go.sum'
-      - '.github/workflows/go.tidy.yml'
 
 jobs:
   fix:
@@ -30,14 +30,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config user.name "coredns-auto-go-mod-tidy[bot]"
+          git config user.email "coredns-auto-go-mod-tidy[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
       -
         name: Commit and push changes
         run: |
           git add .
           if output=$(git status --porcelain) && [ ! -z "$output" ]; then
-            git commit -m 'auto go tidy'
+            git commit -m 'auto go mod tidy'
             git push
           fi
