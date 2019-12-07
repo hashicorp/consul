@@ -21,7 +21,7 @@ The first step to use Connect is to enable Connect for your Consul
 cluster. By default, Connect is disabled. Enabling Connect requires changing
 the configuration of only your Consul _servers_ (not client agents). To enable
 Connect, add the following to a new or existing
-[server configuration file](/docs/agent/options.html). In HCL:
+[server configuration file](/docs/agent/options.html). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
 
 ```hcl
 connect {
