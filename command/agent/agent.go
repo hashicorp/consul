@@ -191,6 +191,7 @@ func (c *cmd) run(args []string) int {
 	// Setup the log outputs
 	logConfig := &logger.Config{
 		LogLevel:          config.LogLevel,
+		Name:              "agent",
 		EnableSyslog:      config.EnableSyslog,
 		SyslogFacility:    config.SyslogFacility,
 		LogFilePath:       config.LogFile,
@@ -198,19 +199,14 @@ func (c *cmd) run(args []string) int {
 		LogRotateBytes:    config.LogRotateBytes,
 		LogRotateMaxFiles: config.LogRotateMaxFiles,
 	}
-	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
+	logFilter, logGate, logWriter, logOutput, logger2, ok := logger.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 
-	//TODO (hclog): Add log level and JSON format flag
-	c.logger2 = hclog.New(&hclog.LoggerOptions{
-		Name:       "consul",
-		Output:     c.logOutput,
-		JSONFormat: false,
-	})
+	c.logger2 = logger2
 	c.logger = c.logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})

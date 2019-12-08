@@ -135,17 +135,13 @@ func (c *cmd) Run(args []string) int {
 	logConfig := &logger.Config{
 		LogLevel: c.logLevel,
 	}
-	logFilter, logGate, _, logOutput, ok := logger.Setup(logConfig, c.UI)
+	logFilter, logGate, _, logOutput, logger2, ok := logger.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
 	c.logFilter = logFilter
 	c.logOutput = logOutput
 
-	logger2 := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
-		Output: logOutput,
-	})
 	c.logger2 = logger2
 	c.logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,

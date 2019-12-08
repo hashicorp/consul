@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-syslog"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 )
@@ -16,6 +17,9 @@ import (
 type Config struct {
 	// LogLevel is the minimum level to be logged.
 	LogLevel string
+
+	// Name is the name the returned logger will use to prefix log lines.
+	Name string
 
 	// EnableSyslog controls forwarding to syslog.
 	EnableSyslog bool
@@ -59,7 +63,9 @@ var (
 // The provided ui object will get any log messages related to setting up
 // logging itself, and will also be hooked up to the gated logger. The final bool
 // parameter indicates if logging was set up successfully.
-func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *LogWriter, io.Writer, bool) {
+func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *LogWriter, io.Writer, hclog.Logger, bool) {
+	config.LogLevel = updateLogLevel(config.LogLevel)
+
 	// The gated writer buffers logs at startup and holds until it's flushed.
 	logGate := &GatedWriter{
 		Writer: &cli.UiWriter{Ui: ui},
@@ -73,7 +79,7 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 		ui.Error(fmt.Sprintf(
 			"Invalid log level: %s. Valid log levels are: %v",
 			logFilter.MinLevel, logFilter.Levels))
-		return nil, nil, nil, nil, false
+		return nil, nil, nil, nil, nil, false
 	}
 
 	// Set up syslog if it's enabled.
@@ -92,7 +98,7 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 			if i == retries {
 				timeout := time.Duration(retries) * delay
 				ui.Error(fmt.Sprintf("Syslog setup did not succeed within timeout (%s).", timeout.String()))
-				return nil, nil, nil, nil, false
+				return nil, nil, nil, nil, nil, false
 			}
 
 			ui.Error(fmt.Sprintf("Retrying syslog setup in %s...", delay.String()))
@@ -138,5 +144,21 @@ func Setup(config *Config, ui cli.Ui) (*logutils.LevelFilter, *GatedWriter, *Log
 	}
 
 	logOutput = io.MultiWriter(writers...)
-	return logFilter, logGate, logWriter, logOutput, true
+
+	//TODO (hclog): Add JSON format flag
+	logger := hclog.New(&hclog.LoggerOptions{
+		Level:  hclog.LevelFromString(config.LogLevel),
+		Name:   config.Name,
+		Output: logOutput,
+	})
+
+	return logFilter, logGate, logWriter, logOutput, logger, true
+}
+
+// Backwards compatibility with former ERR log level
+func updateLogLevel(level string) string {
+	if strings.ToUpper(level) == "ERR" {
+		level = "ERROR"
+	}
+	return level
 }
