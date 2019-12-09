@@ -1,7 +1,14 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+* http: The HTTP API no longer accepts JSON fields that are unknown to it. Instead errors will be returned with 400 status codes [[GH-6874](https://github.com/hashicorp/consul/pull/6874)]
+* dns: PTR record queries now return answers that contain the Consul datacenter as a label between `service` and the domain. [[GH-6909](https://github.com/hashicorp/consul/pull/6909)]
+
+
 FEATURES
 
+* **Namespaces (Consul Enterprise only)** This version adds namespacing to Consul. Namespaces help reduce operational challenges by removing restrictions around uniqueness of resource names across distinct teams, and enable operators to provide self-service through delegation of administrative privileges.
  * connect: Added a new CA provider allowing Connect certificates to be managed by AWS [ACM Private CA](https://www.consul.io/docs/connect/ca/aws.html).
  * connect: Allow configuration of upstream connection limits in Envoy [[GH-6829](https://github.com/hashicorp/consul/pull/6829)]
  * agent: Add Cloud Auto-join support for Tencent Cloud [[GH-6818](https://github.com/hashicorp/consul/pull/6818)]
