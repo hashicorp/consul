@@ -58,7 +58,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 				return fmt.Errorf("Session lookup failed: %v", err)
 			}
 			if existing == nil {
-				return fmt.Errorf("Unknown session %q", args.Session.ID)
+				return nil
 			}
 			if rule.SessionWrite(existing.Node, &entCtx) != acl.Allow {
 				return acl.ErrPermissionDenied
