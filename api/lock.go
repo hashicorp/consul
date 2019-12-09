@@ -79,7 +79,7 @@ type LockOptions struct {
 	MonitorRetryTime time.Duration // Optional, defaults to DefaultMonitorRetryTime
 	LockWaitTime     time.Duration // Optional, defaults to DefaultLockWaitTime
 	LockTryOnce      bool          // Optional, defaults to false which means try forever
-	Namespace        string        // Optional, defaults to API client config, namespace of ACL token, or "default" namespace
+	Namespace        string        `json:",omitempty"` // Optional, defaults to API client config, namespace of ACL token, or "default" namespace
 }
 
 // LockKey returns a handle to a lock struct which can be used
@@ -171,7 +171,7 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Setup the query options
 	kv := l.c.KV()
 	qOpts := QueryOptions{
-		WaitTime: l.opts.LockWaitTime,
+		WaitTime:  l.opts.LockWaitTime,
 		Namespace: l.opts.Namespace,
 	}
 
@@ -377,7 +377,7 @@ func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
 	kv := l.c.KV()
 	opts := QueryOptions{
 		RequireConsistent: true,
-		Namespace: l.opts.Namespace,
+		Namespace:         l.opts.Namespace,
 	}
 WAIT:
 	retries := l.opts.MonitorRetries

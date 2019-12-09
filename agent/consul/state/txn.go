@@ -215,14 +215,14 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 
 	switch op.Verb {
 	case api.ServiceGet:
-		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID)
+		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("service %q on node %q doesn't exist", op.Service.ID, op.Node)
 		}
 
 	case api.ServiceSet:
 		err = s.ensureServiceTxn(tx, idx, op.Node, &op.Service)
-		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID)
+		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 
 	case api.ServiceCAS:
 		var ok bool
@@ -231,14 +231,14 @@ func (s *Store) txnService(tx *memdb.Txn, idx uint64, op *structs.TxnServiceOp) 
 			err = fmt.Errorf("failed to set service %q on node %q, index is stale", op.Service.ID, op.Node)
 			break
 		}
-		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID)
+		entry, err = s.getNodeServiceTxn(tx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 
 	case api.ServiceDelete:
-		err = s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID)
+		err = s.deleteServiceTxn(tx, idx, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 
 	case api.ServiceDeleteCAS:
 		var ok bool
-		ok, err = s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID)
+		ok, err = s.deleteServiceCASTxn(tx, idx, op.Service.ModifyIndex, op.Node, op.Service.ID, &op.Service.EnterpriseMeta)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete service %q on node %q, index is stale", op.Service.ID, op.Node)
 		}
@@ -274,7 +274,7 @@ func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (str
 
 	switch op.Verb {
 	case api.CheckGet:
-		_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+		_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
 		if entry == nil && err == nil {
 			err = fmt.Errorf("check %q on node %q doesn't exist", op.Check.CheckID, op.Check.Node)
 		}
@@ -282,7 +282,7 @@ func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (str
 	case api.CheckSet:
 		err = s.ensureCheckTxn(tx, idx, &op.Check)
 		if err == nil {
-			_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+			_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
 		}
 
 	case api.CheckCAS:
@@ -293,14 +293,14 @@ func (s *Store) txnCheck(tx *memdb.Txn, idx uint64, op *structs.TxnCheckOp) (str
 			err = fmt.Errorf("failed to set check %q on node %q, index is stale", entry.CheckID, entry.Node)
 			break
 		}
-		_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID)
+		_, entry, err = s.getNodeCheckTxn(tx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
 
 	case api.CheckDelete:
-		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID)
+		err = s.deleteCheckTxn(tx, idx, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
 
 	case api.CheckDeleteCAS:
 		var ok bool
-		ok, err = s.deleteCheckCASTxn(tx, idx, op.Check.ModifyIndex, op.Check.Node, op.Check.CheckID)
+		ok, err = s.deleteCheckCASTxn(tx, idx, op.Check.ModifyIndex, op.Check.Node, op.Check.CheckID, &op.Check.EnterpriseMeta)
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete check %q on node %q, index is stale", op.Check.CheckID, op.Check.Node)
 		}

@@ -15,6 +15,33 @@ This page is used to document those details separately from the standard
 upgrade flow.
 
 
+## Consul 1.7.0
+
+Consul 1.7.0 contains two major changes that may impact upgrades: 
+[stricter JSON decoding](#stricter-json-decoding) and [modified DNS outputs](#dns-output-changes)
+
+### Stricter JSON Decoding
+
+The HTTP API will now return 400 status codes with a textual error when unknown fields
+are present in the payload of a request. Previously, Consul would simply ignore the
+unknown fields. You will need to ensure that your API usage only uses supported
+fields which are those documented in the example payloads in the API documentation.
+
+### DNS Output Changes
+
+For both of the output changes, care should be take to ensure your applications utilizing
+Consul DNS can cope with the changes before upgrading.
+
+#### PTR Record Queries
+
+Consul will now return the canonical service name in response to PTR queries. For OSS users the
+change is that the datacenter will be present where it was not before. For Consul Enterprise
+users, both the datacenter and the services namespace will be present.
+
+#### SRV Targets
+
+Consul Enterprise will now encode the service's namespace into the SRV target field.
+
 ## Consul 1.6.0
 
 #### Removal of Deprecated Features

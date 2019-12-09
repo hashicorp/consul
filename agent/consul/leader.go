@@ -991,7 +991,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny)
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -1007,7 +1007,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node)
+		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1144,7 +1144,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name)
+			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMeta())
 			if err != nil {
 				return err
 			}
@@ -1161,7 +1161,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1215,7 +1215,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}

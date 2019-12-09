@@ -1478,6 +1478,8 @@ type RuntimeConfig struct {
 	// ]
 	//
 	Watches []map[string]interface{}
+
+	EnterpriseRuntimeConfig
 }
 
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {

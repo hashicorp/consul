@@ -520,7 +520,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		f = state.CheckConnectServiceNodes
 	}
 
-	_, nodes, err := f(nil, query.Service.Service)
+	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta)
 	if err != nil {
 		return err
 	}

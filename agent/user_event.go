@@ -173,12 +173,12 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
-		services := a.State.Services()
+		services := a.State.Services(structs.DefaultEnterpriseMeta())
 		found := false
 	OUTER:
 		for name, info := range services {
 			// Check the service name
-			if !re.MatchString(name) {
+			if !re.MatchString(name.String()) {
 				continue
 			}
 			if tagRe == nil {

@@ -70,7 +70,7 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
   If not provided, the namespace will be inferred from the request's ACL token,
   or will default to the `default` namespace. This is specified as part of the
-  URL as a query parameter.
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -209,7 +209,7 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
   If not provided, the namespace will be inferred from the request's ACL token,
   or will default to the `default` namespace. This is specified as part of the
-  URL as a query parameter.
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Payload
 
@@ -270,7 +270,7 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to query.
   If not provided, the namespace will be inferred from the request's ACL token,
   or will default to the `default` namespace. This is specified as part of the
-  URL as a query parameter.
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 

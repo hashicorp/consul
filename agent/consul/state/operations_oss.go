@@ -19,8 +19,19 @@ func firstWatchWithTxn(tx *memdb.Txn,
 	return tx.FirstWatch(table, index, idxVal)
 }
 
+func firstWatchCompoundWithTxn(tx *memdb.Txn,
+	table, index string, _ *structs.EnterpriseMeta, idxVals ...interface{}) (<-chan struct{}, interface{}, error) {
+	return tx.FirstWatch(table, index, idxVals...)
+}
+
 func getWithTxn(tx *memdb.Txn,
 	table, index, idxVal string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 
 	return tx.Get(table, index, idxVal)
+}
+
+func getCompoundWithTxn(tx *memdb.Txn, table, index string,
+	_ *structs.EnterpriseMeta, idxVals ...interface{}) (memdb.ResultIterator, error) {
+
+	return tx.Get(table, index, idxVals...)
 }

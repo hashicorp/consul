@@ -29,6 +29,8 @@ type ServiceDefinition struct {
 	// also called just "Config"
 	Proxy *ConnectProxyConfig
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
 	Connect *ServiceConnect
 }
 
@@ -67,6 +69,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Port:              s.Port,
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
+		EnterpriseMeta:    s.EnterpriseMeta,
 	}
 	if s.Connect != nil {
 		ns.Connect = *s.Connect

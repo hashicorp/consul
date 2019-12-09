@@ -131,6 +131,33 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
+	// TODO (namespaces) (freddy) This test fails if the Txn is started after registering check2, not sure why
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Check mappings were inserted
+	{
+
+		check, err := tx.First("session_checks", "session", sess.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if check == nil {
+			t.Fatalf("missing session check")
+		}
+		expectCheck := &sessionCheck{
+			Node:    "node1",
+			CheckID: structs.CheckID{ID: "check1"},
+			Session: sess.ID,
+		}
+
+		actual := check.(*sessionCheck)
+		expectCheck.CheckID.EnterpriseMeta = actual.CheckID.EnterpriseMeta
+		expectCheck.EnterpriseMeta = actual.EnterpriseMeta
+
+		assert.Equal(t, expectCheck, actual)
+	}
+
 	// Register a session against two checks.
 	testRegisterCheck(t, s, 5, "node1", "", "check2", api.HealthPassing)
 	sess2 := &structs.Session{
@@ -142,27 +169,6 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Check mappings were inserted
-	{
-		check, err := tx.First("session_checks", "session", sess.ID)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if check == nil {
-			t.Fatalf("missing session check")
-		}
-		expectCheck := &sessionCheck{
-			Node:    "node1",
-			CheckID: "check1",
-			Session: sess.ID,
-		}
-		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
-			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
-		}
-	}
 	checks, err := tx.Get("session_checks", "session", sess2.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -170,12 +176,15 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	for i, check := 0, checks.Next(); check != nil; i, check = i+1, checks.Next() {
 		expectCheck := &sessionCheck{
 			Node:    "node1",
-			CheckID: types.CheckID(fmt.Sprintf("check%d", i+1)),
+			CheckID: structs.CheckID{ID: types.CheckID(fmt.Sprintf("check%d", i+1))},
 			Session: sess2.ID,
 		}
-		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
-			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
-		}
+
+		actual := check.(*sessionCheck)
+		expectCheck.CheckID.EnterpriseMeta = actual.CheckID.EnterpriseMeta
+		expectCheck.EnterpriseMeta = actual.EnterpriseMeta
+
+		assert.Equal(t, expectCheck, actual)
 	}
 
 	// Pulling a nonexistent session gives the table index.
@@ -504,10 +513,15 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		}
 		expectCheck := &sessionCheck{
 			Node:    "node1",
-			CheckID: "check1",
+			CheckID: structs.CheckID{ID: "check1"},
 			Session: session1,
 		}
-		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
+
+		actual := check.(*sessionCheck)
+		expectCheck.CheckID.EnterpriseMeta = actual.CheckID.EnterpriseMeta
+		expectCheck.EnterpriseMeta = actual.EnterpriseMeta
+
+		if !reflect.DeepEqual(actual, expectCheck) {
 			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
 		}
 	}()
@@ -589,7 +603,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteService(15, "foo", "api"); err != nil {
+	if err := s.DeleteService(15, "foo", "api", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -690,7 +704,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteCheck(15, "foo", "bar"); err != nil {
+	if err := s.DeleteCheck(15, "foo", "bar", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {

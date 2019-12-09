@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -51,7 +50,7 @@ type RPC interface {
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID types.CheckID, status, output string)
+	UpdateCheck(checkID structs.CheckID, status, output string)
 }
 
 // CheckMonitor is used to periodically invoke a script to
@@ -60,8 +59,8 @@ type CheckNotifier interface {
 // Supports failures_before_critical and success_before_passing.
 type CheckMonitor struct {
 	Notify        CheckNotifier
-	CheckID       types.CheckID
-	ServiceID     string
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
 	Script        string
 	ScriptArgs    []string
 	Interval      time.Duration
@@ -213,8 +212,8 @@ func (c *CheckMonitor) check() {
 // automatically set to critical.
 type CheckTTL struct {
 	Notify    CheckNotifier
-	CheckID   types.CheckID
-	ServiceID string
+	CheckID   structs.CheckID
+	ServiceID structs.ServiceID
 	TTL       time.Duration
 	Logger    *log.Logger
 
@@ -310,8 +309,8 @@ func (c *CheckTTL) SetStatus(status, output string) string {
 // or if the request returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckHTTP struct {
-	CheckID         types.CheckID
-	ServiceID       string
+	CheckID         structs.CheckID
+	ServiceID       structs.ServiceID
 	HTTP            string
 	Header          map[string][]string
 	Method          string
@@ -334,7 +333,7 @@ type CheckHTTP struct {
 
 func (c *CheckHTTP) CheckType() structs.CheckType {
 	return structs.CheckType{
-		CheckID:       c.CheckID,
+		CheckID:       c.CheckID.ID,
 		HTTP:          c.HTTP,
 		Method:        c.Method,
 		Header:        c.Header,
@@ -477,8 +476,8 @@ func (c *CheckHTTP) check() {
 // The check is critical if the connection returns an error
 // Supports failures_before_critical and success_before_passing.
 type CheckTCP struct {
-	CheckID       types.CheckID
-	ServiceID     string
+	CheckID       structs.CheckID
+	ServiceID     structs.ServiceID
 	TCP           string
 	Interval      time.Duration
 	Timeout       time.Duration
@@ -557,8 +556,8 @@ func (c *CheckTCP) check() {
 // with nagios plugins and expects the output in the same format.
 // Supports failures_before_critical and success_before_passing.
 type CheckDocker struct {
-	CheckID           types.CheckID
-	ServiceID         string
+	CheckID           structs.CheckID
+	ServiceID         structs.ServiceID
 	Script            string
 	ScriptArgs        []string
 	DockerContainerID string
@@ -673,8 +672,8 @@ func (c *CheckDocker) doCheck() (string, *circbuf.Buffer, error) {
 // not SERVING.
 // Supports failures_before_critical and success_before_passing.
 type CheckGRPC struct {
-	CheckID         types.CheckID
-	ServiceID       string
+	CheckID         structs.CheckID
+	ServiceID       structs.ServiceID
 	GRPC            string
 	Interval        time.Duration
 	Timeout         time.Duration
@@ -694,7 +693,7 @@ type CheckGRPC struct {
 
 func (c *CheckGRPC) CheckType() structs.CheckType {
 	return structs.CheckType{
-		CheckID:   c.CheckID,
+		CheckID:   c.CheckID.ID,
 		GRPC:      c.GRPC,
 		ProxyGRPC: c.ProxyGRPC,
 		Interval:  c.Interval,
@@ -777,7 +776,7 @@ func NewStatusHandler(inner CheckNotifier, logger *log.Logger, successBeforePass
 	}
 }
 
-func (s *StatusHandler) updateCheck(checkID types.CheckID, status, output string) {
+func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output string) {
 
 	if status == api.HealthPassing || status == api.HealthWarning {
 		s.successCounter++

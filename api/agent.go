@@ -54,6 +54,7 @@ type AgentCheck struct {
 	ServiceName string
 	Type        string
 	Definition  HealthCheckDefinition
+	Namesapce   string `json:",omitempty"`
 }
 
 // AgentWeights represent optional weights for a service
@@ -79,6 +80,10 @@ type AgentService struct {
 	ContentHash       string                          `json:",omitempty" bexpr:"-"`
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
+	// NOTE: If we ever set the ContentHash outside of singular service lookup then we may need
+	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
+	// For now though, ignoring it works well enough.
+	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -151,6 +156,7 @@ type AgentServiceRegistration struct {
 	Checks            AgentServiceChecks
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
+	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -160,6 +166,7 @@ type AgentCheckRegistration struct {
 	Notes     string `json:",omitempty"`
 	ServiceID string `json:",omitempty"`
 	AgentServiceCheck
+	Namespace string `json:",omitempty"`
 }
 
 // AgentServiceCheck is used to define a node or service level check

@@ -324,7 +324,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("bad: %v", nodes[1])
 	}
 
-	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo")
+	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -342,7 +342,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("got: %v, want: %v", connectSrv.Connect, connectConf)
 	}
 
-	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
+	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

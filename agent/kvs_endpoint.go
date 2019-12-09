@@ -18,9 +18,6 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
-		return nil, err
-	}
 
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
@@ -59,6 +56,17 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 		return nil, nil
 	}
 
+	// Do not allow wildcard NS on GET reqs
+	if method == "KVS.Get" {
+		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
+	}
+
 	// Make the RPC
 	var out structs.IndexedDirEntries
 	if err := s.agent.RPC(method, &args, &out); err != nil {
@@ -86,6 +94,10 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 
 // KVSGetKeys handles a GET request for keys
 func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	// Check for a separator, due to historic spelling error,
 	// we now are forced to check for both spellings
 	var sep string
@@ -129,6 +141,9 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 
 // KVSPut handles a PUT request
 func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 	if missingKey(resp, args) {
 		return nil, nil
 	}
@@ -208,6 +223,9 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 
 // KVSPut handles a DELETE request
 func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 	if conflictingFlags(resp, req, "recurse", "cas") {
 		return nil, nil
 	}

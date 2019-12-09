@@ -2,19 +2,20 @@ package cachetype
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
-	"time"
 )
 
 // Recommended name for registration.
 const ServiceHTTPChecksName = "service-http-checks"
 
 type Agent interface {
-	ServiceHTTPBasedChecks(id string) []structs.CheckType
+	ServiceHTTPBasedChecks(id structs.ServiceID) []structs.CheckType
 	LocalState() *local.State
 	LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Duration,
 		fn func(ws memdb.WatchSet) (string, interface{}, error)) (string, interface{}, error)
@@ -54,7 +55,8 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 
 	hash, resp, err := c.Agent.LocalBlockingQuery(true, lastHash, reqReal.MaxQueryTime,
 		func(ws memdb.WatchSet) (string, interface{}, error) {
-			svcState := c.Agent.LocalState().ServiceState(reqReal.ServiceID)
+			// TODO (namespaces) update with the real ent meta once thats plumbed through
+			svcState := c.Agent.LocalState().ServiceState(structs.NewServiceID(reqReal.ServiceID, nil))
 			if svcState == nil {
 				return "", result, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
 			}
@@ -62,7 +64,8 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 			// WatchCh will receive updates on service (de)registrations and check (de)registrations
 			ws.Add(svcState.WatchCh)
 
-			reply := c.Agent.ServiceHTTPBasedChecks(reqReal.ServiceID)
+			// TODO (namespaces) update with a real entMeta
+			reply := c.Agent.ServiceHTTPBasedChecks(structs.NewServiceID(reqReal.ServiceID, nil))
 
 			hash, err := hashChecks(reply)
 			if err != nil {

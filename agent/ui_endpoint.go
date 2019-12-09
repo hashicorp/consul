@@ -26,6 +26,8 @@ type ServiceSummary struct {
 	ChecksCritical    int
 	ExternalSources   []string
 	externalSourceSet map[string]struct{} // internal to track uniqueness
+
+	structs.EnterpriseMeta
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -36,6 +38,11 @@ func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (inter
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
@@ -73,6 +80,10 @@ func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (in
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	// Verify we have some DC, or use the default
@@ -121,6 +132,10 @@ func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (in
 		return nil, nil
 	}
 
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
@@ -142,21 +157,26 @@ RPC:
 
 func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	// Collect the summary information
-	var services []string
-	summary := make(map[string]*ServiceSummary)
-	getService := func(service string) *ServiceSummary {
+	var services []structs.ServiceID
+	summary := make(map[structs.ServiceID]*ServiceSummary)
+	getService := func(service structs.ServiceID) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
-			serv = &ServiceSummary{Name: service}
+			serv = &ServiceSummary{
+				Name:           service.ID,
+				EnterpriseMeta: service.EnterpriseMeta,
+			}
 			summary[service] = serv
 			services = append(services, service)
 		}
 		return serv
 	}
 
+	var sid structs.ServiceID
 	for _, csn := range dump {
 		svc := csn.Service
-		sum := getService(svc.Service)
+		sid.Init(svc.Service, &svc.EnterpriseMeta)
+		sum := getService(sid)
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
 		for _, tag := range svc.Tags {
@@ -201,7 +221,9 @@ func summarizeServices(dump structs.CheckServiceNodes) []*ServiceSummary {
 	}
 
 	// Return the services in sorted order
-	sort.Strings(services)
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].LessThan(&services[j])
+	})
 	output := make([]*ServiceSummary, len(summary))
 	for idx, service := range services {
 		// Sort the nodes

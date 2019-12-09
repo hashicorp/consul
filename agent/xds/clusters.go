@@ -79,7 +79,10 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 
 	// Add service health checks to the list of paths to create clusters for if needed
 	if cfgSnap.Proxy.Expose.Checks {
-		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(cfgSnap.Proxy.DestinationServiceID) {
+		// TODO (namespaces) update with real entmeta
+		var psid structs.ServiceID
+		psid.Init(cfgSnap.Proxy.DestinationServiceID, structs.DefaultEnterpriseMeta())
+		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Printf("[WARN] envoy: failed to create cluster for check '%s': %v", check.CheckID, err)

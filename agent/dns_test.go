@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1013,7 +1012,7 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "db.service.consul." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "consul", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1061,7 +1060,7 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "db.service.consul." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "consul", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1111,7 +1110,7 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "db.service.custom." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "custom", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1565,7 +1564,6 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 func TestDNS_ConnectServiceLookup(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1578,7 +1576,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		args.Service.Address = ""
 		args.Service.Port = 12345
 		var out struct{}
-		assert.Nil(a.RPC("Catalog.Register", args, &out))
+		require.Nil(t, a.RPC("Catalog.Register", args, &out))
 	}
 
 	// Look up the service
@@ -1591,20 +1589,20 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		assert.Nil(err)
-		assert.Len(in.Answer, 1)
+		require.Nil(t, err)
+		require.Len(t, in.Answer, 1)
 
 		srvRec, ok := in.Answer[0].(*dns.SRV)
-		assert.True(ok)
-		assert.Equal(uint16(12345), srvRec.Port)
-		assert.Equal("foo.node.dc1.consul.", srvRec.Target)
-		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
+		require.True(t, ok)
+		require.Equal(t, uint16(12345), srvRec.Port)
+		require.Equal(t, "foo.node.dc1.consul.", srvRec.Target)
+		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
 
 		cnameRec, ok := in.Extra[0].(*dns.A)
-		assert.True(ok)
-		assert.Equal("foo.node.dc1.consul.", cnameRec.Hdr.Name)
-		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
-		assert.Equal("127.0.0.55", cnameRec.A.String())
+		require.True(t, ok)
+		require.Equal(t, "foo.node.dc1.consul.", cnameRec.Hdr.Name)
+		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
+		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
 }
 
@@ -4306,6 +4304,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		}
 		c := &dns.Client{Net: protocol, UDPSize: 8192}
 		in, _, err := c.Exchange(m, a.DNSAddr())
+		t.Logf("DNS Response for %+v - %+v", m, in)
 		if err != nil {
 			return fmt.Errorf("err: %v", err)
 		}
@@ -5847,9 +5846,9 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		"node.consul.",
 		"service.consul.",
 		"query.consul.",
-		"foo.node.dc1.extra.consul.",
-		"foo.service.dc1.extra.consul.",
-		"foo.query.dc1.extra.consul.",
+		"foo.node.dc1.extra.more.consul.",
+		"foo.service.dc1.extra.more.consul.",
+		"foo.query.dc1.extra.more.consul.",
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)

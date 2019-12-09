@@ -910,6 +910,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Watches:                          c.Watches,
 	}
 
+	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
+		return RuntimeConfig{}, err
+	} else {
+		rt.EnterpriseRuntimeConfig = entCfg
+	}
+
 	if rt.BootstrapExpect == 1 {
 		rt.Bootstrap = true
 		rt.BootstrapExpect = 0
@@ -1225,6 +1231,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeCritical:         b.intVal(v.FailuresBeforeCritical),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
+		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
 	}
 }
 
@@ -1295,6 +1302,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
+		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
 	}
 }
 

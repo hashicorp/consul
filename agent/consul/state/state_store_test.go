@@ -107,7 +107,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	service, err := tx.First("services", "id", nodeID, serviceID)
+	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -140,7 +140,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First("checks", "id", nodeID, string(checkID))
+	_, c, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, nodeID, string(checkID))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

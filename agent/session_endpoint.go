@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 )
 
 // sessionCreateResponse is used to wrap the session ID
@@ -23,16 +22,17 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	args := structs.SessionRequest{
 		Op: structs.SessionCreate,
 		Session: structs.Session{
-			Node:      s.agent.config.NodeName,
-			Checks:    []types.CheckID{structs.SerfCheckID},
-			LockDelay: 15 * time.Second,
-			Behavior:  structs.SessionKeysRelease,
-			TTL:       "",
+			Node:       s.agent.config.NodeName,
+			NodeChecks: []string{"serfHealth"},
+			LockDelay:  15 * time.Second,
+			Behavior:   structs.SessionKeysRelease,
+			TTL:        "",
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := s.parseEntMeta(req, &args.Session.EnterpriseMeta); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &args.Session.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -55,27 +55,6 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	return sessionCreateResponse{out}, nil
 }
 
-// FixupChecks is used to handle parsing the JSON body to default-add the Serf
-// health check if they didn't specify any checks, but to allow an empty list
-// to take out the Serf health check. This behavior broke when mapstructure was
-// updated after 0.9.3, likely because we have a type wrapper around the string.
-func FixupChecks(raw interface{}, s *structs.Session) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	for k := range rawMap {
-		if strings.ToLower(k) == "checks" {
-			// If they supplied a checks key in the JSON, then
-			// remove the default entries and respect whatever they
-			// specified.
-			s.Checks = nil
-			return nil
-		}
-	}
-	return nil
-}
-
 // SessionDestroy is used to destroy an existing session
 func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.SessionRequest{
@@ -83,7 +62,8 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := s.parseEntMeta(req, &args.Session.EnterpriseMeta); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &args.Session.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +88,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -138,7 +118,7 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
