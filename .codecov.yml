@@ -1,17 +1,12 @@
-# FIXME: remove before merging
-codecov:
-  branch: codecov-yml
-
 # https://docs.codecov.io/docs/commit-status
 coverage:
   status:
     # only measure diff changes, not unexpected project changes from flakiness
     project: no
-    patch: yes
-      # default:
+    patch:
+      default:
         # https://docs.codecov.io/docs/commit-status#section-threshold
-        # TODO: consider setting instead of using existing coverage as baseline
-        # target: 
+        target: 70
         # https://docs.codecov.io/docs/commit-status#section-excluding-tests-example-
         # TODO: should any paths be excluded from coverage metrics?
         # paths:
