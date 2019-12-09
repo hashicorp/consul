@@ -30,10 +30,7 @@ func nodeChecksIndexer() *memdb.CompoundIndex {
 				Field:     "Node",
 				Lowercase: true,
 			},
-			&memdb.StringFieldIndex{
-				Field:     "ID",
-				Lowercase: true,
-			},
+			&CheckIDIndex{},
 		},
 	}
 }
