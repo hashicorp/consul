@@ -109,17 +109,15 @@ export const routes = {
   },
 };
 if (config.CONSUL_NSPACES_ENABLED) {
-  if (env('CONSUL_UI_ENABLE_NAMESPACE_MANAGEMENT') || !config.CONSUL_ACLS_ENABLED) {
-    routes.dc.nspaces = {
-      _options: { path: '/namespaces' },
-      edit: {
-        _options: { path: '/:name' },
-      },
-      create: {
-        _options: { path: '/create' },
-      },
-    };
-  }
+  routes.dc.nspaces = {
+    _options: { path: '/namespaces' },
+    edit: {
+      _options: { path: '/:name' },
+    },
+    create: {
+      _options: { path: '/create' },
+    },
+  };
   routes.nspace = {
     _options: { path: '/:nspace' },
     dc: routes.dc,
