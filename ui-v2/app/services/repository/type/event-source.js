@@ -18,9 +18,12 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
     if (typeof meta.date !== 'undefined') {
       // unload anything older than our current sync date/time
       store.peekAll(repo.getModelName()).forEach(function(item) {
-        const date = get(item, 'SyncTime');
-        if (typeof date !== 'undefined' && date != meta.date) {
-          store.unloadRecord(item);
+        const dc = get(item, 'Datacenter');
+        if (dc === meta.dc) {
+          const date = get(item, 'SyncTime');
+          if (typeof date !== 'undefined' && date != meta.date) {
+            store.unloadRecord(item);
+          }
         }
       });
     }

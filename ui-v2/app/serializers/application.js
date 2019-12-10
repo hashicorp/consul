@@ -4,6 +4,7 @@ import { set } from '@ember/object';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
+  HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
 } from 'consul-ui/utils/http/consul';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
@@ -15,12 +16,18 @@ const map = function(obj, cb) {
   return obj.map(cb);
 };
 
-const attachHeaders = function(headers, body) {
+const attachHeaders = function(headers, body, query = {}) {
   // lowercase everything incase we get browser inconsistencies
   const lower = {};
   Object.keys(headers).forEach(function(key) {
     lower[key.toLowerCase()] = headers[key];
   });
+  // Add a 'pretend' Datacenter header, they are not headers
+  // the come from the request but we add them here so we can use them later
+  // for store reconciliation
+  if (typeof query.dc !== 'undefined') {
+    lower[HTTP_HEADERS_DATACENTER.toLowerCase()] = query.dc;
+  }
   body[HTTP_HEADERS_SYMBOL] = lower;
   return body;
 };
@@ -29,12 +36,18 @@ export default Serializer.extend({
   fingerprint: createFingerprinter(DATACENTER_KEY),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)))
+      attachHeaders(
+        headers,
+        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc), query)
+      )
     );
   },
   respondForQueryRecord: function(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body))
+      attachHeaders(
+        headers,
+        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc), query)
+      )
     );
   },
   respondForCreateRecord: function(respond, serialized, data) {
@@ -116,6 +129,7 @@ export default Serializer.extend({
   normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
     const meta = {
       cursor: headers[HTTP_HEADERS_INDEX],
+      dc: headers[HTTP_HEADERS_DATACENTER.toLowerCase()],
     };
     if (requestType === 'query') {
       meta.date = this.timestamp();
