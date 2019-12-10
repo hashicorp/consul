@@ -18,4 +18,7 @@ export default RepositoryService.extend({
       Name: this.getUndefinedName(),
     };
   },
+  authorize: function(dc, nspace) {
+    return Promise.resolve([]);
+  },
 });

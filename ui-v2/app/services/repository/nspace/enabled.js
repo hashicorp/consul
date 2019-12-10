@@ -20,6 +20,9 @@ export default RepositoryService.extend({
   getUndefinedName: function() {
     return config.CONSUL_NSPACES_UNDEFINED_NAME;
   },
+  authorize: function(dc, nspace) {
+    return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace });
+  },
   getActive: function() {
     let routeParams = {};
     // this is only populated before the model hook as fired,
