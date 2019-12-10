@@ -86,7 +86,7 @@ The table below shows this endpoint's support for
   already registered. Note, if the parameter is enabled for a node that doesn't
   exist, it will still be created.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace in which the
+- `ns` `(string: "")` - **Enterprise Only**: Specifies the namespace in which the
   service and checks will be registered. This value may be provided by either the
   `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
   the namespace may be provided within the `Service` or `Check` fields but if
@@ -203,7 +203,7 @@ The behavior of the endpoint depends on what keys are provided.
 - `ServiceID` `(string: "")` - Specifies the ID of the service to remove. The
   service and all associated checks will be removed.
   
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace in which the
+- `Namespace` `(string: "")` - **Enterprise Only**: Specifies the namespace in which the
   service and checks will be deregistered.  If not provided in the JSON body, the value of
   the `ns` URL query parameter or the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -405,7 +405,7 @@ The table below shows this endpoint's support for
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to list services. 
+- `ns` `(string: "")` - **Enterprise Only**: Specifies the namespace to list services. 
   This value may be provided by either the `ns` URL query parameter or in the 
   `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
   from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
@@ -477,7 +477,7 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to use for the
+- `ns` `(string: "")` - **Enterprise Only**: Specifies the namespace to use for the
   query. This value may be provided by either the `ns` URL query parameter or in the 
   `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
   from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
@@ -683,7 +683,7 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to list services. 
+- `ns` `(string: "")` - **Enterprise Only**: Specifies the namespace to list services. 
   This value may be provided by either the `ns` URL query parameter or in the 
   `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
   from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
