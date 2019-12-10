@@ -26,6 +26,14 @@ export default Adapter.extend({
   requestForCreateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/acl/token?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+
+      ${{
+        Description: serialized.Description,
+        Policies: serialized.Policies,
+        Roles: serialized.Roles,
+        ServiceIdentities: serialized.ServiceIdentities,
+        Local: serialized.Local,
+      }}
     `;
   },
   requestForUpdateRecord: function(request, serialized, data) {
@@ -45,7 +53,13 @@ export default Adapter.extend({
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${serialized}
+      ${{
+        Description: serialized.Description,
+        Policies: serialized.Policies,
+        Roles: serialized.Roles,
+        ServiceIdentities: serialized.ServiceIdentities,
+        Local: serialized.Local,
+      }}
     `;
   },
   requestForDeleteRecord: function(request, serialized, data) {
