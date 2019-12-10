@@ -22,8 +22,10 @@ IMPROVEMENTS
 
 BUG FIXES
 
+* agent: fix watch event behavior [[GH-5265](https://github.com/hashicorp/consul/pull/5265)]
 * connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
 * cli: services register command now correctly registers an unamed healthcheck [[GH-6800](https://github.com/hashicorp/consul/pull/6800)]
+* tls: fix behavior related to auto_encrypt and verify_incoming (#6899) [[GH-6811](https://github.com/hashicorp/consul/pull/6811)]
 
 ## 1.6.2 (November 13, 2019)
 
