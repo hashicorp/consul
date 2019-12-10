@@ -53,16 +53,6 @@ export default Adapter.extend({
       PUT /v1/acl/clone/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
     `;
   },
-  requestForAuthorize: function(request, { dc, ns, index }) {
-    return request`
-      GET /v1/internal/acl/authorize?${{ dc }}
-
-      ${{
-        ...this.formatNspace(ns),
-        index,
-      }}
-    `;
-  },
   clone: function(store, type, id, snapshot) {
     return this.request(
       function(adapter, request, serialized, unserialized) {
@@ -70,21 +60,6 @@ export default Adapter.extend({
       },
       function(serializer, respond, serialized, unserialized) {
         return serializer.respondForCreateRecord(respond, serialized, unserialized);
-      },
-      snapshot,
-      type.modelName
-    );
-  },
-  authorize: function(store, type, id, snapshot) {
-    return this.request(
-      function(adapter, request, serialized, unserialized) {
-        return adapter.requestForAuthorize(request, serialized, unserialized);
-      },
-      function(serializer, respond, serialized, unserialized) {
-        // Completely skip the serializer here
-        return respond(function(headers, body) {
-          return body;
-        });
       },
       snapshot,
       type.modelName
