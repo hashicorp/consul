@@ -1,7 +1,7 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
-import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
+import { HEADERS_SYMBOL as META, HEADERS_DATACENTER as DC } from 'consul-ui/utils/http/consul';
 import { createPolicies } from 'consul-ui/tests/helpers/normalizers';
 
 module('Integration | Serializer | role', function(hooks) {
@@ -43,7 +43,9 @@ module('Integration | Serializer | role', function(hooks) {
       const expected = Object.assign({}, payload, {
         Datacenter: dc,
         Policies: createPolicies(payload),
-        [META]: {},
+        [META]: {
+          [DC]: dc,
+        },
         uid: `["${dc}","${id}"]`,
       });
       const actual = serializer.respondForQueryRecord(

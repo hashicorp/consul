@@ -38,7 +38,8 @@ export default Serializer.extend({
     return respond((headers, body) =>
       attachHeaders(
         headers,
-        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc), query)
+        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)),
+        query
       )
     );
   },
@@ -46,7 +47,8 @@ export default Serializer.extend({
     return respond((headers, body) =>
       attachHeaders(
         headers,
-        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc), query)
+        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)),
+        query
       )
     );
   },

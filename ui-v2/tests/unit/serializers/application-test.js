@@ -60,7 +60,9 @@ module('Unit | Serializer | application', function(hooks) {
     const expected = {
       Datacenter: 'dc-1',
       Name: 'name',
-      __consul_ui_http_headers__: {},
+      __consul_ui_http_headers__: {
+        'x-consul-datacenter': 'dc-1',
+      },
       'primary-key-name': 'name',
     };
     const respond = function(cb) {
