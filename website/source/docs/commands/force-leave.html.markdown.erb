@@ -18,7 +18,7 @@ Consul periodically tries to reconnect to "failed" nodes in case failure was due
 to a network partition. After some configured amount of time (by default 72 hours),
 Consul will reap "failed" nodes and stop trying to reconnect. The `force-leave`
 command can be used to transition the "failed" nodes to a "left" state more
-quickly, as reported by [`consul memebers`](https://www.consul.io/docs/commands/members.html).
+quickly, as reported by [`consul members`](https://www.consul.io/docs/commands/members.html).
 
 This can be particularly useful for a node that was running as a server,
 as it will eventually be removed from the Raft configuration by the leader.
