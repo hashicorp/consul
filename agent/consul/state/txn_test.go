@@ -283,6 +283,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -293,6 +294,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -304,13 +306,14 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 	}
 	verify.Values(t, "", results, expected)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeServices(nil, "node1")
+	idx, actual, err := s.NodeServices(nil, "node1", nil)
 	require.NoError(err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -335,7 +338,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			"svc5": &structs.NodeService{
 				ID: "svc5",
@@ -343,7 +347,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			"svc2": &structs.NodeService{
 				ID:   "svc2",
@@ -352,7 +357,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
-				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 	}
@@ -428,6 +434,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -439,6 +446,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		&structs.TxnResult{
@@ -450,13 +458,14 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 	}
 	verify.Values(t, "", results, expected)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.NodeChecks(nil, "node1")
+	idx, actual, err := s.NodeChecks(nil, "node1", nil)
 	require.NoError(err)
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
@@ -472,6 +481,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 2,
 				ModifyIndex: 2,
 			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 		&structs.HealthCheck{
 			Node:    "node1",
@@ -481,6 +491,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 3,
 				ModifyIndex: 6,
 			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 		&structs.HealthCheck{
 			Node:    "node1",
@@ -490,6 +501,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 6,
 				ModifyIndex: 6,
 			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
 	verify.Values(t, "", actual, expectedChecks)

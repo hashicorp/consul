@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -47,6 +46,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv1, "")
 	args.Service = srv1
@@ -64,6 +64,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv2, "")
 
@@ -85,6 +86,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv3, "")
 
@@ -98,6 +100,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	args.Service = srv4
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -115,6 +118,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv5, "")
 
@@ -136,6 +140,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.SetServiceState(&local.ServiceState{
 		Service: srv6,
@@ -175,25 +180,15 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql":
-			if !reflect.DeepEqual(serv, srv1) {
-				t.Fatalf("bad: %v %v", serv, srv1)
-			}
+			require.Equal(t, srv1, serv)
 		case "redis":
-			if !reflect.DeepEqual(serv, srv2) {
-				t.Fatalf("bad: %#v %#v", serv, srv2)
-			}
+			require.Equal(t, srv2, serv)
 		case "web":
-			if !reflect.DeepEqual(serv, srv3) {
-				t.Fatalf("bad: %v %v", serv, srv3)
-			}
+			require.Equal(t, srv3, serv)
 		case "api":
-			if !reflect.DeepEqual(serv, srv5) {
-				t.Fatalf("bad: %v %v", serv, srv5)
-			}
+			require.Equal(t, srv5, serv)
 		case "cache":
-			if !reflect.DeepEqual(serv, srv6) {
-				t.Fatalf("bad: %v %v", serv, srv6)
-			}
+			require.Equal(t, srv6, serv)
 		case structs.ConsulServiceID:
 			// ignore
 		default:
@@ -206,7 +201,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 
 	// Remove one of the services
-	a.State.RemoveService("api")
+	a.State.RemoveService(structs.NewServiceID("api", nil))
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -226,21 +221,13 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql":
-			if !reflect.DeepEqual(serv, srv1) {
-				t.Fatalf("bad: %v %v", serv, srv1)
-			}
+			require.Equal(t, srv1, serv)
 		case "redis":
-			if !reflect.DeepEqual(serv, srv2) {
-				t.Fatalf("bad: %#v %#v", serv, srv2)
-			}
+			require.Equal(t, srv2, serv)
 		case "web":
-			if !reflect.DeepEqual(serv, srv3) {
-				t.Fatalf("bad: %v %v", serv, srv3)
-			}
+			require.Equal(t, srv3, serv)
 		case "cache":
-			if !reflect.DeepEqual(serv, srv6) {
-				t.Fatalf("bad: %v %v", serv, srv6)
-			}
+			require.Equal(t, srv6, serv)
 		case structs.ConsulServiceID:
 			// ignore
 		default:
@@ -280,6 +267,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv1, "")
 	args.Service = srv1
@@ -296,6 +284,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv2, "")
 
@@ -316,6 +305,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv3, "")
 
@@ -330,6 +320,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	args.Service = srv4
 	assert.Nil(a.RPC("Catalog.Register", args, &out))
@@ -345,6 +336,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.SetServiceState(&local.ServiceState{
 		Service: srv5,
@@ -385,7 +377,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 	assert.Nil(servicesInSync(a.State, 4))
 
 	// Remove one of the services
-	a.State.RemoveService("cache-proxy")
+	a.State.RemoveService(structs.NewServiceID("cache-proxy", nil))
 	assert.Nil(a.State.SyncFull())
 	assert.Nil(a.RPC("Catalog.NodeServices", &req, &services))
 
@@ -442,7 +434,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 	}
 
 	// Should be able to get a ServiceState
-	ss := a.State.ServiceState(srv1.ID)
+	ss := a.State.ServiceState(srv1.CompoundServiceID())
 	verifyState(ss)
 
 	// Update service in another go routine
@@ -461,7 +453,7 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 	}
 
 	// Should also fire for state being set explicitly
-	ss = a.State.ServiceState(srv1.ID)
+	ss = a.State.ServiceState(srv1.CompoundServiceID())
 	verifyState(ss)
 
 	go func() {
@@ -480,11 +472,11 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 	}
 
 	// Should also fire for service being removed
-	ss = a.State.ServiceState(srv1.ID)
+	ss = a.State.ServiceState(srv1.CompoundServiceID())
 	verifyState(ss)
 
 	go func() {
-		require.NoError(a.State.RemoveService(srv1.ID))
+		require.NoError(a.State.RemoveService(srv1.CompoundServiceID()))
 	}()
 
 	// We should observe WatchCh close
@@ -608,6 +600,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 						Passing: 1,
 						Warning: 1,
 					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 				assert.Equal(r, want, got)
 			case "svc_id2":
@@ -840,9 +833,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			case "mysql":
 				t.Fatalf("should not be permitted")
 			case "api":
-				if !reflect.DeepEqual(serv, srv2) {
-					t.Fatalf("bad: %#v %#v", serv, srv2)
-				}
+				require.Equal(t, srv2, serv)
 			case structs.ConsulServiceID:
 				// ignore
 			default:
@@ -856,7 +847,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	}
 
 	// Now remove the service and re-sync
-	a.State.RemoveService("api")
+	a.State.RemoveService(structs.NewServiceID("api", nil))
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -901,7 +892,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	}
 
 	// Make sure the token got cleaned up.
-	if token := a.State.ServiceToken("api"); token != "" {
+	if token := a.State.ServiceToken(structs.NewServiceID("api", nil)); token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -922,10 +913,11 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	// Exists both, same (noop)
 	var out struct{}
 	chk1 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "mysql",
-		Name:    "mysql",
-		Status:  api.HealthPassing,
+		Node:           a.Config.NodeName,
+		CheckID:        "mysql",
+		Name:           "mysql",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddCheck(chk1, "")
 	args.Check = chk1
@@ -935,10 +927,11 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// Exists both, different (update)
 	chk2 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "redis",
-		Name:    "redis",
-		Status:  api.HealthPassing,
+		Node:           a.Config.NodeName,
+		CheckID:        "redis",
+		Name:           "redis",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddCheck(chk2, "")
 
@@ -952,19 +945,21 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// Exists local (create)
 	chk3 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "web",
-		Name:    "web",
-		Status:  api.HealthPassing,
+		Node:           a.Config.NodeName,
+		CheckID:        "web",
+		Name:           "web",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddCheck(chk3, "")
 
 	// Exists remote (delete)
 	chk4 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "lb",
-		Name:    "lb",
-		Status:  api.HealthPassing,
+		Node:           a.Config.NodeName,
+		CheckID:        "lb",
+		Name:           "lb",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	args.Check = chk4
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -973,10 +968,11 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// Exists local, in sync, remote missing (create)
 	chk5 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "cache",
-		Name:    "cache",
-		Status:  api.HealthPassing,
+		Node:           a.Config.NodeName,
+		CheckID:        "cache",
+		Name:           "cache",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.SetCheckState(&local.CheckState{
 		Check:  chk5,
@@ -1008,21 +1004,13 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		chk.CreateIndex, chk.ModifyIndex = 0, 0
 		switch chk.CheckID {
 		case "mysql":
-			if !reflect.DeepEqual(chk, chk1) {
-				t.Fatalf("bad: %v %v", chk, chk1)
-			}
+			require.Equal(t, chk, chk1)
 		case "redis":
-			if !reflect.DeepEqual(chk, chk2) {
-				t.Fatalf("bad: %v %v", chk, chk2)
-			}
+			require.Equal(t, chk, chk2)
 		case "web":
-			if !reflect.DeepEqual(chk, chk3) {
-				t.Fatalf("bad: %v %v", chk, chk3)
-			}
+			require.Equal(t, chk, chk3)
 		case "cache":
-			if !reflect.DeepEqual(chk, chk5) {
-				t.Fatalf("bad: %v %v", chk, chk5)
-			}
+			require.Equal(t, chk, chk5)
 		case "serfHealth":
 			// ignore
 		default:
@@ -1055,7 +1043,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	}
 
 	// Remove one of the checks
-	a.State.RemoveCheck("redis")
+	a.State.RemoveCheck(structs.NewCheckID("redis", nil))
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1076,17 +1064,11 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		chk.CreateIndex, chk.ModifyIndex = 0, 0
 		switch chk.CheckID {
 		case "mysql":
-			if !reflect.DeepEqual(chk, chk1) {
-				t.Fatalf("bad: %v %v", chk, chk1)
-			}
+			require.Equal(t, chk1, chk)
 		case "web":
-			if !reflect.DeepEqual(chk, chk3) {
-				t.Fatalf("bad: %v %v", chk, chk3)
-			}
+			require.Equal(t, chk3, chk)
 		case "cache":
-			if !reflect.DeepEqual(chk, chk5) {
-				t.Fatalf("bad: %v %v", chk, chk5)
-			}
+			require.Equal(t, chk5, chk)
 		case "serfHealth":
 			// ignore
 		default:
@@ -1142,6 +1124,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv1, "root")
 	srv2 := &structs.NodeService{
@@ -1153,6 +1136,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddService(srv2, "root")
 
@@ -1184,13 +1168,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			serv.CreateIndex, serv.ModifyIndex = 0, 0
 			switch id {
 			case "mysql":
-				if !reflect.DeepEqual(serv, srv1) {
-					t.Fatalf("bad: %#v %#v", serv, srv1)
-				}
+				require.Equal(t, srv1, serv)
 			case "api":
-				if !reflect.DeepEqual(serv, srv2) {
-					t.Fatalf("bad: %#v %#v", serv, srv2)
-				}
+				require.Equal(t, srv2, serv)
 			case structs.ConsulServiceID:
 				// ignore
 			default:
@@ -1205,25 +1185,27 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	// This check won't be allowed.
 	chk1 := &structs.HealthCheck{
-		Node:        a.Config.NodeName,
-		ServiceID:   "mysql",
-		ServiceName: "mysql",
-		ServiceTags: []string{"master"},
-		CheckID:     "mysql-check",
-		Name:        "mysql",
-		Status:      api.HealthPassing,
+		Node:           a.Config.NodeName,
+		ServiceID:      "mysql",
+		ServiceName:    "mysql",
+		ServiceTags:    []string{"master"},
+		CheckID:        "mysql-check",
+		Name:           "mysql",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddCheck(chk1, token)
 
 	// This one will be allowed.
 	chk2 := &structs.HealthCheck{
-		Node:        a.Config.NodeName,
-		ServiceID:   "api",
-		ServiceName: "api",
-		ServiceTags: []string{"foo"},
-		CheckID:     "api-check",
-		Name:        "api",
-		Status:      api.HealthPassing,
+		Node:           a.Config.NodeName,
+		ServiceID:      "api",
+		ServiceName:    "api",
+		ServiceTags:    []string{"foo"},
+		CheckID:        "api-check",
+		Name:           "api",
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	a.State.AddCheck(chk2, token)
 
@@ -1256,9 +1238,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		case "mysql-check":
 			t.Fatalf("should not be permitted")
 		case "api-check":
-			if !reflect.DeepEqual(chk, chk2) {
-				t.Fatalf("bad: %v %v", chk, chk2)
-			}
+			require.Equal(t, chk, chk2)
 		case "serfHealth":
 			// ignore
 		default:
@@ -1271,7 +1251,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}
 
 	// Now delete the check and wait for sync.
-	a.State.RemoveCheck("api-check")
+	a.State.RemoveCheck(structs.NewCheckID("api-check", nil))
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1316,7 +1296,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	}
 
 	// Make sure the token got cleaned up.
-	if token := a.State.CheckToken("api-check"); token != "" {
+	if token := a.State.CheckToken(structs.NewCheckID("api-check", nil)); token != "" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -1331,7 +1311,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	inSync := func(id string) bool {
-		s := a.State.CheckState(types.CheckID(id))
+		s := a.State.CheckState(structs.NewCheckID(types.CheckID(id), nil))
 		if s == nil {
 			return false
 		}
@@ -1358,7 +1338,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 
 	// update the check with the same status but different output
 	// and the check should still be in sync.
-	a.State.UpdateCheck(check.CheckID, api.HealthPassing, "second output")
+	a.State.UpdateCheck(check.CompoundCheckID(), api.HealthPassing, "second output")
 	if !inSync("web") {
 		t.Fatal("check should be in sync")
 	}
@@ -1366,7 +1346,7 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 	// disable discarding of check output and update the check again with different
 	// output. Then the check should be out of sync.
 	a.State.SetDiscardCheckOutput(false)
-	a.State.UpdateCheck(check.CheckID, api.HealthPassing, "third output")
+	a.State.UpdateCheck(check.CompoundCheckID(), api.HealthPassing, "third output")
 	if inSync("web") {
 		t.Fatal("check should be out of sync")
 	}
@@ -1413,7 +1393,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	})
 
 	// Update the check output! Should be deferred
-	a.State.UpdateCheck("web", api.HealthPassing, "output")
+	a.State.UpdateCheck(structs.NewCheckID("web", nil), api.HealthPassing, "output")
 
 	// We are going to wait up to 850ms for the deferred check update to run. The update
 	// can happen any time within: check_update_interval / 2 + random(min: 0, max: check_update_interval)
@@ -1422,7 +1402,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	timer := &retry.Timer{Timeout: 850 * time.Millisecond, Wait: 50 * time.Millisecond}
 	start := time.Now()
 	retry.RunWith(timer, t, func(r *retry.R) {
-		cs := a.State.CheckState("web")
+		cs := a.State.CheckState(structs.NewCheckID("web", nil))
 		if cs == nil {
 			r.Fatalf("check is not registered")
 		}
@@ -1538,7 +1518,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Now make an update that should be deferred.
-	a.State.UpdateCheck("web", api.HealthPassing, "deferred")
+	a.State.UpdateCheck(structs.NewCheckID("web", nil), api.HealthPassing, "deferred")
 
 	if err := a.State.SyncFull(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1621,11 +1601,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-	if id != a.Config.NodeID ||
-		!reflect.DeepEqual(addrs, a.Config.TaggedAddresses) ||
-		!reflect.DeepEqual(meta, a.Config.NodeMeta) {
-		t.Fatalf("bad: %v", services.NodeServices.Node)
-	}
+	require.Equal(t, a.Config.NodeID, id)
+	require.Equal(t, a.Config.TaggedAddresses, addrs)
+	require.Equal(t, a.Config.NodeMeta, meta)
 
 	// Blow away the catalog version of the node info
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -1646,11 +1624,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
 		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-		if id != nodeID ||
-			!reflect.DeepEqual(addrs, a.Config.TaggedAddresses) ||
-			!reflect.DeepEqual(meta, nodeMeta) {
-			t.Fatalf("bad: %v", services.NodeServices.Node)
-		}
+		require.Equal(t, nodeID, id)
+		require.Equal(t, a.Config.TaggedAddresses, addrs)
+		require.Equal(t, nodeMeta, meta)
 	}
 }
 
@@ -1666,19 +1642,19 @@ func TestAgent_ServiceTokens(t *testing.T) {
 	l.AddService(&structs.NodeService{ID: "redis"}, "")
 
 	// Returns default when no token is set
-	if token := l.ServiceToken("redis"); token != "default" {
+	if token := l.ServiceToken(structs.NewServiceID("redis", nil)); token != "default" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Returns configured token
 	l.AddService(&structs.NodeService{ID: "redis"}, "abc123")
-	if token := l.ServiceToken("redis"); token != "abc123" {
+	if token := l.ServiceToken(structs.NewServiceID("redis", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Keeps token around for the delete
-	l.RemoveService("redis")
-	if token := l.ServiceToken("redis"); token != "abc123" {
+	l.RemoveService(structs.NewServiceID("redis", nil))
+	if token := l.ServiceToken(structs.NewServiceID("redis", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -1694,19 +1670,19 @@ func TestAgent_CheckTokens(t *testing.T) {
 
 	// Returns default when no token is set
 	l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("mem")}, "")
-	if token := l.CheckToken("mem"); token != "default" {
+	if token := l.CheckToken(structs.NewCheckID("mem", nil)); token != "default" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Returns configured token
 	l.AddCheck(&structs.HealthCheck{CheckID: types.CheckID("mem")}, "abc123")
-	if token := l.CheckToken("mem"); token != "abc123" {
+	if token := l.CheckToken(structs.NewCheckID("mem", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 
 	// Keeps token around for the delete
-	l.RemoveCheck("mem")
-	if token := l.CheckToken("mem"); token != "abc123" {
+	l.RemoveCheck(structs.NewCheckID("mem", nil))
+	if token := l.CheckToken(structs.NewCheckID("mem", nil)); token != "abc123" {
 		t.Fatalf("bad: %s", token)
 	}
 }
@@ -1730,19 +1706,19 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 		Status:    api.HealthPassing,
 	}
 	l.AddCheck(chk, "")
-	if checks := l.CriticalCheckStates(); len(checks) > 0 {
+	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMeta()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Set it to warning and make sure that doesn't show up as critical.
-	l.UpdateCheck(checkID, api.HealthWarning, "")
-	if checks := l.CriticalCheckStates(); len(checks) > 0 {
+	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthWarning, "")
+	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMeta()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks reasonable.
-	l.UpdateCheck(checkID, api.HealthCritical, "")
-	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
+	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthCritical, "")
+	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMeta())[structs.NewCheckID(checkID, nil)]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
 		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
@@ -1752,23 +1728,23 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 	// of the initial failure, and doesn't reset here. Since we are sleeping for
 	// 50ms the check should not be any less than that.
 	time.Sleep(50 * time.Millisecond)
-	l.UpdateCheck(chk.CheckID, api.HealthCritical, "")
-	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
+	l.UpdateCheck(chk.CompoundCheckID(), api.HealthCritical, "")
+	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMeta())[structs.NewCheckID(checkID, nil)]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() < 50*time.Millisecond {
 		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
 	}
 
 	// Set it passing again.
-	l.UpdateCheck(checkID, api.HealthPassing, "")
-	if checks := l.CriticalCheckStates(); len(checks) > 0 {
+	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthPassing, "")
+	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMeta()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks like it started again
 	// from the latest failure, not the original one.
-	l.UpdateCheck(checkID, api.HealthCritical, "")
-	if c, ok := l.CriticalCheckStates()[checkID]; !ok {
+	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthCritical, "")
+	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMeta())[structs.NewCheckID(checkID, nil)]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
 		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
@@ -1791,9 +1767,9 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 		Status:    api.HealthPassing,
 	}
 	wantErr := errors.New(`Check "redis:1" refers to non-existent service "redis"`)
-	if got, want := l.AddCheck(chk, ""), wantErr; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got error %q want %q", got, want)
-	}
+
+	got := l.AddCheck(chk, "")
+	require.Equal(t, wantErr, got)
 }
 
 func TestAgent_AliasCheck(t *testing.T) {
@@ -1812,10 +1788,10 @@ func TestAgent_AliasCheck(t *testing.T) {
 
 	// Add an alias
 	notifyCh := make(chan struct{}, 1)
-	require.NoError(l.AddAliasCheck(types.CheckID("a1"), "s1", notifyCh))
+	require.NoError(l.AddAliasCheck(structs.NewCheckID(types.CheckID("a1"), nil), structs.NewServiceID("s1", nil), notifyCh))
 
 	// Update and verify we get notified
-	l.UpdateCheck(types.CheckID("c1"), api.HealthCritical, "")
+	l.UpdateCheck(structs.NewCheckID(types.CheckID("c1"), nil), api.HealthCritical, "")
 	select {
 	case <-notifyCh:
 	default:
@@ -1823,7 +1799,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	}
 
 	// Update again and verify we do not get notified
-	l.UpdateCheck(types.CheckID("c1"), api.HealthCritical, "")
+	l.UpdateCheck(structs.NewCheckID(types.CheckID("c1"), nil), api.HealthCritical, "")
 	select {
 	case <-notifyCh:
 		t.Fatal("notify received")
@@ -1831,7 +1807,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	}
 
 	// Update other check and verify we do not get notified
-	l.UpdateCheck(types.CheckID("c2"), api.HealthCritical, "")
+	l.UpdateCheck(structs.NewCheckID(types.CheckID("c2"), nil), api.HealthCritical, "")
 	select {
 	case <-notifyCh:
 		t.Fatal("notify received")
@@ -1839,7 +1815,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	}
 
 	// Update change and verify we get notified
-	l.UpdateCheck(types.CheckID("c1"), api.HealthPassing, "")
+	l.UpdateCheck(structs.NewCheckID(types.CheckID("c1"), nil), api.HealthPassing, "")
 	select {
 	case <-notifyCh:
 	default:
@@ -1888,26 +1864,26 @@ func TestAgent_sendCoordinate(t *testing.T) {
 }
 
 func servicesInSync(state *local.State, wantServices int) error {
-	services := state.ServiceStates()
+	services := state.ServiceStates(structs.DefaultEnterpriseMeta())
 	if got, want := len(services), wantServices; got != want {
 		return fmt.Errorf("got %d services want %d", got, want)
 	}
 	for id, s := range services {
 		if !s.InSync {
-			return fmt.Errorf("service %q should be in sync", id)
+			return fmt.Errorf("service %q should be in sync %+v", id.String(), s)
 		}
 	}
 	return nil
 }
 
 func checksInSync(state *local.State, wantChecks int) error {
-	checks := state.CheckStates()
+	checks := state.CheckStates(structs.DefaultEnterpriseMeta())
 	if got, want := len(checks), wantChecks; got != want {
 		return fmt.Errorf("got %d checks want %d", got, want)
 	}
 	for id, c := range checks {
 		if !c.InSync {
-			return fmt.Errorf("check %q should be in sync", id)
+			return fmt.Errorf("check %q should be in sync", id.String())
 		}
 	}
 	return nil
@@ -1954,7 +1930,7 @@ func TestState_Notify(t *testing.T) {
 	drainCh(notifyCh)
 
 	// Remove service
-	require.NoError(state.RemoveService("web"))
+	require.NoError(state.RemoveService(structs.NewServiceID("web", nil)))
 
 	// Should have a notification
 	assert.NotEmpty(notifyCh)
@@ -2040,21 +2016,27 @@ func TestAliasNotifications_local(t *testing.T) {
 	a.State.AddCheck(chk2, "")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, api.HealthCritical, a.State.Check(proxyID).Status)
+		check := a.State.Check(structs.NewCheckID(proxyID, nil))
+		require.NotNil(r, check)
+		require.Equal(r, api.HealthCritical, check.Status)
 	})
 
 	// Remove the failing check, alias should pass
-	a.State.RemoveCheck(maintID)
+	a.State.RemoveCheck(structs.NewCheckID(maintID, nil))
 
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, api.HealthPassing, a.State.Check(proxyID).Status)
+		check := a.State.Check(structs.NewCheckID(proxyID, nil))
+		require.NotNil(r, check)
+		require.Equal(r, api.HealthPassing, check.Status)
 	})
 
 	// Update TCP check to failing, alias should fail
-	a.State.UpdateCheck(tcpID, api.HealthCritical, "")
+	a.State.UpdateCheck(structs.NewCheckID(tcpID, nil), api.HealthCritical, "")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, api.HealthCritical, a.State.Check(proxyID).Status)
+		check := a.State.Check(structs.NewCheckID(proxyID, nil))
+		require.NotNil(r, check)
+		require.Equal(r, api.HealthCritical, check.Status)
 	})
 }
 

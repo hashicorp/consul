@@ -647,7 +647,8 @@ func TestAPI_AgentService(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		Meta: map[string]string{},
+		Meta:      map[string]string{},
+		Namespace: defaultNamespace,
 	}
 	require.Equal(expect, got)
 	require.Equal(expect.ContentHash, qm.LastContentHash)

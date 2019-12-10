@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -233,7 +233,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, s, err := state.NodeService("foo", "svc-foo")
+	_, s, err := state.NodeService("foo", "svc-foo", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"))
+	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"), nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -730,10 +730,19 @@ func TestTxn_Read(t *testing.T) {
 	}
 	require.NoError(state.EnsureNode(2, node))
 
-	svc := structs.NodeService{ID: "svc-foo", Service: "svc-foo", Address: "127.0.0.1"}
+	svc := structs.NodeService{
+		ID:             "svc-foo",
+		Service:        "svc-foo",
+		Address:        "127.0.0.1",
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
 	require.NoError(state.EnsureService(3, "foo", &svc))
 
-	check := structs.HealthCheck{Node: "foo", CheckID: types.CheckID("check-foo")}
+	check := structs.HealthCheck{
+		Node:           "foo",
+		CheckID:        types.CheckID("check-foo"),
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
 	state.EnsureCheck(4, &check)
 
 	// Do a super basic request. The state store test covers the details so

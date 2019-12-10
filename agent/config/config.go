@@ -395,6 +395,8 @@ type ServiceDefinition struct {
 	EnableTagOverride *bool                     `json:"enable_tag_override,omitempty" hcl:"enable_tag_override" mapstructure:"enable_tag_override"`
 	Proxy             *ServiceProxy             `json:"proxy,omitempty" hcl:"proxy" mapstructure:"proxy"`
 	Connect           *ServiceConnect           `json:"connect,omitempty" hcl:"connect" mapstructure:"connect"`
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 type CheckDefinition struct {
@@ -423,6 +425,8 @@ type CheckDefinition struct {
 	SuccessBeforePassing           *int                `json:"success_before_passing,omitempty" hcl:"success_before_passing" mapstructure:"success_before_passing"`
 	FailuresBeforeCritical         *int                `json:"failures_before_critical,omitempty" hcl:"failures_before_critical" mapstructure:"failures_before_critical"`
 	DeregisterCriticalServiceAfter *string             `json:"deregister_critical_service_after,omitempty" hcl:"deregister_critical_service_after" mapstructure:"deregister_critical_service_after"`
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 // ServiceConnect is the connect block within a service registration
@@ -581,20 +585,21 @@ type SOA struct {
 }
 
 type DNS struct {
-	AllowStale         *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
-	ARecordLimit       *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
-	DisableCompression *bool             `json:"disable_compression,omitempty" hcl:"disable_compression" mapstructure:"disable_compression"`
-	EnableTruncate     *bool             `json:"enable_truncate,omitempty" hcl:"enable_truncate" mapstructure:"enable_truncate"`
-	MaxStale           *string           `json:"max_stale,omitempty" hcl:"max_stale" mapstructure:"max_stale"`
-	NodeTTL            *string           `json:"node_ttl,omitempty" hcl:"node_ttl" mapstructure:"node_ttl"`
-	OnlyPassing        *bool             `json:"only_passing,omitempty" hcl:"only_passing" mapstructure:"only_passing"`
-	RecursorTimeout    *string           `json:"recursor_timeout,omitempty" hcl:"recursor_timeout" mapstructure:"recursor_timeout"`
-	ServiceTTL         map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
-	UDPAnswerLimit     *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
-	NodeMetaTXT        *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
-	SOA                *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
-	UseCache           *bool             `json:"use_cache,omitempty" hcl:"use_cache" mapstructure:"use_cache"`
-	CacheMaxAge        *string           `json:"cache_max_age,omitempty" hcl:"cache_max_age" mapstructure:"cache_max_age"`
+	AllowStale          *bool             `json:"allow_stale,omitempty" hcl:"allow_stale" mapstructure:"allow_stale"`
+	ARecordLimit        *int              `json:"a_record_limit,omitempty" hcl:"a_record_limit" mapstructure:"a_record_limit"`
+	DisableCompression  *bool             `json:"disable_compression,omitempty" hcl:"disable_compression" mapstructure:"disable_compression"`
+	EnableTruncate      *bool             `json:"enable_truncate,omitempty" hcl:"enable_truncate" mapstructure:"enable_truncate"`
+	MaxStale            *string           `json:"max_stale,omitempty" hcl:"max_stale" mapstructure:"max_stale"`
+	NodeTTL             *string           `json:"node_ttl,omitempty" hcl:"node_ttl" mapstructure:"node_ttl"`
+	OnlyPassing         *bool             `json:"only_passing,omitempty" hcl:"only_passing" mapstructure:"only_passing"`
+	RecursorTimeout     *string           `json:"recursor_timeout,omitempty" hcl:"recursor_timeout" mapstructure:"recursor_timeout"`
+	ServiceTTL          map[string]string `json:"service_ttl,omitempty" hcl:"service_ttl" mapstructure:"service_ttl"`
+	UDPAnswerLimit      *int              `json:"udp_answer_limit,omitempty" hcl:"udp_answer_limit" mapstructure:"udp_answer_limit"`
+	NodeMetaTXT         *bool             `json:"enable_additional_node_meta_txt,omitempty" hcl:"enable_additional_node_meta_txt" mapstructure:"enable_additional_node_meta_txt"`
+	SOA                 *SOA              `json:"soa,omitempty" hcl:"soa" mapstructure:"soa"`
+	UseCache            *bool             `json:"use_cache,omitempty" hcl:"use_cache" mapstructure:"use_cache"`
+	CacheMaxAge         *string           `json:"cache_max_age,omitempty" hcl:"cache_max_age" mapstructure:"cache_max_age"`
+	EnterpriseDNSConfig `hcl:",squash" mapstructure:",squash"`
 }
 
 type HTTPConfig struct {

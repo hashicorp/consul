@@ -2,10 +2,11 @@ package state
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -47,10 +48,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 							Field:     "Node",
 							Lowercase: true,
 						},
-						&memdb.StringFieldIndex{
-							Field:     "CheckID",
-							Lowercase: true,
-						},
+						&CheckIDIndex{},
 						&memdb.UUIDFieldIndex{
 							Field: "Session",
 						},
@@ -61,18 +59,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				Name:         "node_check",
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "CheckID",
-							Lowercase: true,
-						},
-					},
-				},
+				Indexer:      nodeChecksIndexer(),
 			},
 			"session": &memdb.IndexSchema{
 				Name:         "session",
@@ -84,6 +71,62 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+type CheckIDIndex struct {
+}
+
+func (index *CheckIDIndex) FromObject(obj interface{}) (bool, []byte, error) {
+	v := reflect.ValueOf(obj)
+	v = reflect.Indirect(v) // Dereference the pointer if any
+
+	fv := v.FieldByName("CheckID")
+	isPtr := fv.Kind() == reflect.Ptr
+	fv = reflect.Indirect(fv)
+	if !isPtr && !fv.IsValid() || !fv.CanInterface() {
+		return false, nil,
+			fmt.Errorf("field 'EnterpriseMeta' for %#v is invalid %v ", obj, isPtr)
+	}
+
+	checkID, ok := fv.Interface().(structs.CheckID)
+	if !ok {
+		return false, nil, fmt.Errorf("Field 'EnterpriseMeta' is not of type structs.EnterpriseMeta")
+	}
+
+	// Enforce lowercase and add null character as terminator
+	id := strings.ToLower(string(checkID.ID)) + "\x00"
+
+	return true, []byte(id), nil
+}
+
+func (index *CheckIDIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+	arg, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
+	}
+
+	arg = strings.ToLower(arg)
+
+	// Add the null character as a terminator
+	arg += "\x00"
+	return []byte(arg), nil
+}
+
+func (index *CheckIDIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
+	val, err := index.FromArgs(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Strip the null terminator, the rest is a prefix
+	n := len(val)
+	if n > 0 {
+		return val[:n-1], nil
+	}
+	return val, nil
 }
 
 func init() {
@@ -165,21 +208,9 @@ func (s *Store) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Sessio
 		return ErrMissingNode
 	}
 
-	// Go over the session checks and ensure they exist.
-	for _, checkID := range sess.Checks {
-		check, err := tx.First("checks", "id", sess.Node, string(checkID))
-		if err != nil {
-			return fmt.Errorf("failed check lookup: %s", err)
-		}
-		if check == nil {
-			return fmt.Errorf("Missing check '%s' registration", checkID)
-		}
-
-		// Check that the check is not in critical state
-		status := check.(*structs.HealthCheck).Status
-		if status == api.HealthCritical {
-			return fmt.Errorf("Check '%s' is in %s state", checkID, status)
-		}
+	// Verify that all session checks exist
+	if err := s.validateSessionChecksTxn(tx, sess); err != nil {
+		return err
 	}
 
 	// Insert the session

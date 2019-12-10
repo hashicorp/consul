@@ -41,6 +41,9 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	// ID. We rely on this for lifecycle management of the nested definition.
 	sidecar.ID = a.sidecarServiceID(ns.ID)
 
+	// for now at least these must be identical
+	sidecar.EnterpriseMeta = ns.EnterpriseMeta
+
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
 	if sidecar.Meta != nil {
@@ -113,11 +116,11 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		// it doesn't seem to be necessary - even with thousands of services this is
 		// not expensive to compute.
 		usedPorts := make(map[int]struct{})
-		for _, otherNS := range a.State.Services() {
+		for _, otherNS := range a.State.Services(structs.WildcardEnterpriseMeta()) {
 			// Check if other port is in auto-assign range
 			if otherNS.Port >= a.config.ConnectSidecarMinPort &&
 				otherNS.Port <= a.config.ConnectSidecarMaxPort {
-				if otherNS.ID == sidecar.ID {
+				if otherNS.CompoundServiceID() == sidecar.CompoundServiceID() {
 					// This sidecar is already registered with an auto-port and is just
 					// being updated so pick the same port as before rather than allocate
 					// a new one.

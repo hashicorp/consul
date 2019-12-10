@@ -20,6 +20,10 @@ type Health struct {
 // ChecksInState is used to get all the checks in a given state
 func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	reply *structs.IndexedHealthChecks) error {
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := h.srv.forward("Health.ChecksInState", args, args, reply); done {
 		return err
 	}
@@ -37,9 +41,9 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 			var checks structs.HealthChecks
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, checks, err = state.ChecksInStateByNodeMeta(ws, args.State, args.NodeMetaFilters)
+				index, checks, err = state.ChecksInStateByNodeMeta(ws, args.State, args.NodeMetaFilters, &args.EnterpriseMeta)
 			} else {
-				index, checks, err = state.ChecksInState(ws, args.State)
+				index, checks, err = state.ChecksInState(ws, args.State, &args.EnterpriseMeta)
 			}
 			if err != nil {
 				return err
@@ -62,6 +66,10 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 // NodeChecks is used to get all the checks for a node
 func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := h.srv.forward("Health.NodeChecks", args, args, reply); done {
 		return err
 	}
@@ -75,7 +83,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, checks, err := state.NodeChecks(ws, args.Node)
+			index, checks, err := state.NodeChecks(ws, args.Node, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -96,6 +104,11 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 // ServiceChecks is used to get all the checks for a service
 func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
+
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	// Reject if tag filtering is on
 	if args.TagFilter {
 		return fmt.Errorf("Tag filtering is not supported")
@@ -119,9 +132,9 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 			var checks structs.HealthChecks
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, checks, err = state.ServiceChecksByNodeMeta(ws, args.ServiceName, args.NodeMetaFilters)
+				index, checks, err = state.ServiceChecksByNodeMeta(ws, args.ServiceName, args.NodeMetaFilters, &args.EnterpriseMeta)
 			} else {
-				index, checks, err = state.ServiceChecks(ws, args.ServiceName)
+				index, checks, err = state.ServiceChecks(ws, args.ServiceName, &args.EnterpriseMeta)
 			}
 			if err != nil {
 				return err
@@ -143,6 +156,10 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 // ServiceNodes returns all the nodes registered as part of a service including health info
 func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	if done, err := h.srv.forward("Health.ServiceNodes", args, args, reply); done {
 		return err
 	}
@@ -249,7 +266,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 // can be used by the ServiceNodes endpoint.
 
 func (h *Health) serviceNodesConnect(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	return s.CheckConnectServiceNodes(ws, args.ServiceName)
+	return s.CheckConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
 }
 
 func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
@@ -258,11 +275,11 @@ func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *
 	// Agents < v1.3.0 populate the ServiceTag field. In this case,
 	// use ServiceTag instead of the ServiceTags field.
 	if args.ServiceTag != "" {
-		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag})
+		return s.CheckServiceTagNodes(ws, args.ServiceName, []string{args.ServiceTag}, &args.EnterpriseMeta)
 	}
-	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTags)
+	return s.CheckServiceTagNodes(ws, args.ServiceName, args.ServiceTags, &args.EnterpriseMeta)
 }
 
 func (h *Health) serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
-	return s.CheckServiceNodes(ws, args.ServiceName)
+	return s.CheckServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
 }

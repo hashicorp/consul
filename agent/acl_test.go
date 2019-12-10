@@ -313,7 +313,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a service that doesn't exist.
-	err := a.vetServiceUpdate("service-rw", "my-service")
+	err := a.vetServiceUpdate("service-rw", structs.NewServiceID("my-service", nil))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Unknown service")
 
@@ -322,11 +322,11 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 		ID:      "my-service",
 		Service: "service",
 	}, "")
-	err = a.vetServiceUpdate("service-rw", "my-service")
+	err = a.vetServiceUpdate("service-rw", structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
 	// Update without write privs.
-	err = a.vetServiceUpdate("service-ro", "my-service")
+	err = a.vetServiceUpdate("service-ro", structs.NewServiceID("my-service", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
@@ -402,7 +402,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a check that doesn't exist.
-	err := a.vetCheckUpdate("node-rw", "my-check")
+	err := a.vetCheckUpdate("node-rw", structs.NewCheckID("my-check", nil))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Unknown check")
 
@@ -416,23 +416,23 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 		ServiceID:   "my-service",
 		ServiceName: "service",
 	}, "")
-	err = a.vetCheckUpdate("service-rw", "my-service-check")
+	err = a.vetCheckUpdate("service-rw", structs.NewCheckID("my-service-check", nil))
 	require.NoError(t, err)
 
 	// Update service check without write privs.
-	err = a.vetCheckUpdate("service-ro", "my-service-check")
+	err = a.vetCheckUpdate("service-ro", structs.NewCheckID("my-service-check", nil))
 	require.Error(t, err)
-	require.True(t, acl.IsErrPermissionDenied(err))
+	require.True(t, acl.IsErrPermissionDenied(err), "not permission denied: %s", err.Error())
 
 	// Update node check with write privs.
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
 	}, "")
-	err = a.vetCheckUpdate("node-rw", "my-node-check")
+	err = a.vetCheckUpdate("node-rw", structs.NewCheckID("my-node-check", nil))
 	require.NoError(t, err)
 
 	// Update without write privs.
-	err = a.vetCheckUpdate("node-ro", "my-node-check")
+	err = a.vetCheckUpdate("node-ro", structs.NewCheckID("my-node-check", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
@@ -460,43 +460,42 @@ func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
-	services := make(map[string]*structs.NodeService)
+	services := make(map[structs.ServiceID]*structs.NodeService)
 	require.NoError(t, a.filterServices("node-ro", &services))
 
-	services["my-service"] = &structs.NodeService{ID: "my-service", Service: "service"}
-	services["my-other"] = &structs.NodeService{ID: "my-other", Service: "other"}
+	services[structs.NewServiceID("my-service", nil)] = &structs.NodeService{ID: "my-service", Service: "service"}
+	services[structs.NewServiceID("my-other", nil)] = &structs.NodeService{ID: "my-other", Service: "other"}
 	require.NoError(t, a.filterServices("service-ro", &services))
-	require.Contains(t, services, "my-service")
-	require.NotContains(t, services, "my-other")
+	require.Contains(t, services, structs.NewServiceID("my-service", nil))
+	require.NotContains(t, services, structs.NewServiceID("my-other", nil))
 }
 
 func TestACL_filterChecks(t *testing.T) {
 	t.Parallel()
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
-	checks := make(map[types.CheckID]*structs.HealthCheck)
+	checks := make(map[structs.CheckID]*structs.HealthCheck)
 	require.NoError(t, a.filterChecks("node-ro", &checks))
 
-	checks["my-node"] = &structs.HealthCheck{}
-	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
-	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
+	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
+	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
 	require.NoError(t, a.filterChecks("service-ro", &checks))
-	fmt.Printf("filtered: %#v", checks)
-	_, ok := checks["my-node"]
+	_, ok := checks[structs.NewCheckID("my-node", nil)]
 	require.False(t, ok)
-	_, ok = checks["my-service"]
+	_, ok = checks[structs.NewCheckID("my-service", nil)]
 	require.True(t, ok)
-	_, ok = checks["my-other"]
+	_, ok = checks[structs.NewCheckID("my-other", nil)]
 	require.False(t, ok)
 
-	checks["my-node"] = &structs.HealthCheck{}
-	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
-	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
+	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
+	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
 	require.NoError(t, a.filterChecks("node-ro", &checks))
-	_, ok = checks["my-node"]
+	_, ok = checks[structs.NewCheckID("my-node", nil)]
 	require.True(t, ok)
-	_, ok = checks["my-service"]
+	_, ok = checks[structs.NewCheckID("my-service", nil)]
 	require.False(t, ok)
-	_, ok = checks["my-other"]
+	_, ok = checks[structs.NewCheckID("my-other", nil)]
 	require.False(t, ok)
 }

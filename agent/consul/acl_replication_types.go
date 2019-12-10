@@ -34,10 +34,7 @@ func (r *aclTokenReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (i
 func (r *aclTokenReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	var entMeta structs.EnterpriseMeta
-	srv.fillReplicationEnterpriseMeta(&entMeta)
-
-	idx, local, err := srv.fsm.State().ACLTokenList(nil, false, true, "", "", "", &entMeta)
+	idx, local, err := srv.fsm.State().ACLTokenList(nil, false, true, "", "", "", srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}
@@ -158,10 +155,7 @@ func (r *aclPolicyReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (
 func (r *aclPolicyReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	var entMeta structs.EnterpriseMeta
-	srv.fillReplicationEnterpriseMeta(&entMeta)
-
-	idx, local, err := srv.fsm.State().ACLPolicyList(nil, &entMeta)
+	idx, local, err := srv.fsm.State().ACLPolicyList(nil, srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}
@@ -271,10 +265,7 @@ func (r *aclRoleReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (in
 func (r *aclRoleReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	var entMeta structs.EnterpriseMeta
-	srv.fillReplicationEnterpriseMeta(&entMeta)
-
-	idx, local, err := srv.fsm.State().ACLRoleList(nil, "", &entMeta)
+	idx, local, err := srv.fsm.State().ACLRoleList(nil, "", srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}

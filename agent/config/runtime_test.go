@@ -2145,8 +2145,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
-					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
+					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
+					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2164,7 +2164,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2182,7 +2182,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize},
+					&structs.CheckDefinition{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2202,14 +2202,25 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Services = []*structs.ServiceDefinition{
-					&structs.ServiceDefinition{Name: "a", Port: 80, Weights: &structs.Weights{
-						Passing: 1,
-						Warning: 1,
-					}},
-					&structs.ServiceDefinition{Name: "b", Port: 90, Meta: map[string]string{"my": "value"}, Weights: &structs.Weights{
-						Passing: 13,
-						Warning: 1,
-					}},
+					&structs.ServiceDefinition{
+						Name: "a",
+						Port: 80,
+						Weights: &structs.Weights{
+							Passing: 1,
+							Warning: 1,
+						},
+						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					},
+					&structs.ServiceDefinition{
+						Name: "b",
+						Port: 90,
+						Meta: map[string]string{"my": "value"},
+						Weights: &structs.Weights{
+							Passing: 13,
+							Warning: 1,
+						},
+						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2326,6 +2337,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Passing: 1,
 							Warning: 1,
 						},
+						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 				rt.DataDir = dataDir
@@ -2466,12 +2478,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									Passing: 1,
 									Warning: 1,
 								},
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 							},
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
 							Warning: 1,
 						},
+						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 			},
@@ -2595,12 +2609,14 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									Passing: 1,
 									Warning: 1,
 								},
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 							},
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
 							Warning: 1,
 						},
+						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 			},
@@ -3583,7 +3599,7 @@ func TestFullConfig(t *testing.T) {
 				"enabled" : true,
 				"down_policy" : "03eb2aee",
 				"default_policy" : "72c2e7a0",
-				"enable_key_list_policy": false,
+				"enable_key_list_policy": true,
 				"enable_token_persistence": true,
 				"policy_ttl": "1123s",
 				"role_ttl": "9876s",
@@ -4181,7 +4197,7 @@ func TestFullConfig(t *testing.T) {
 				enabled = true
 				down_policy = "03eb2aee"
 				default_policy = "72c2e7a0"
-				enable_key_list_policy = false
+				enable_key_list_policy = true
 				enable_token_persistence = true
 				policy_ttl = "1123s"
 				role_ttl = "9876s"
@@ -4896,7 +4912,7 @@ func TestFullConfig(t *testing.T) {
 		ACLDefaultPolicy:                 "72c2e7a0",
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnforceVersion8:               true,
-		ACLEnableKeyListPolicy:           false,
+		ACLEnableKeyListPolicy:           true,
 		ACLEnableTokenPersistence:        true,
 		ACLMasterToken:                   "8a19ac27",
 		ACLReplicationToken:              "5795983a",
@@ -4946,6 +4962,7 @@ func TestFullConfig(t *testing.T) {
 				Timeout:                        1813 * time.Second,
 				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
+				EnterpriseMeta:                 *structs.DefaultEnterpriseMeta(),
 			},
 			&structs.CheckDefinition{
 				ID:         "Cqq95BhP",
@@ -4970,6 +4987,7 @@ func TestFullConfig(t *testing.T) {
 				Timeout:                        18506 * time.Second,
 				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
+				EnterpriseMeta:                 *structs.DefaultEnterpriseMeta(),
 			},
 			&structs.CheckDefinition{
 				ID:         "fZaCAXww",
@@ -4994,6 +5012,7 @@ func TestFullConfig(t *testing.T) {
 				Timeout:                        5954 * time.Second,
 				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
+				EnterpriseMeta:                 *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		CheckUpdateInterval: 16507 * time.Second,
@@ -5170,8 +5189,10 @@ func TestFullConfig(t *testing.T) {
 							Passing: 1,
 							Warning: 1,
 						},
+						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:      "MRHVMZuD",
@@ -5231,7 +5252,8 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
-				Connect: &structs.ServiceConnect{},
+				Connect:        &structs.ServiceConnect{},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:   "Kh81CPF6",
@@ -5279,6 +5301,7 @@ func TestFullConfig(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:   "kvVqbwSE",
@@ -5294,6 +5317,7 @@ func TestFullConfig(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:   "dLOXpSCI",
@@ -5389,6 +5413,7 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
@@ -5815,6 +5840,7 @@ func TestSanitize(t *testing.T) {
 			"AliasService": "",
 			"DeregisterCriticalServiceAfter": "0s",
 			"DockerContainerID": "",
+			"EnterpriseMeta": ` + entMetaJSON + `,
 			"SuccessBeforePassing": 0,
 			"FailuresBeforeCritical": 0,
 			"GRPC": "",
@@ -5916,6 +5942,7 @@ func TestSanitize(t *testing.T) {
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
+		"EnterpriseRuntimeConfig": ` + entRuntimeConfigSanitize + `,
 		"ExposeMaxPort": 0,
 		"ExposeMinPort": 0,
 		"GRPCAddrs": [],
@@ -6013,6 +6040,7 @@ func TestSanitize(t *testing.T) {
 			"Checks": [],
 			"Connect": null,
 			"EnableTagOverride": false,
+			"EnterpriseMeta": ` + entMetaJSON + `,
 			"ID": "",
 			"Kind": "",
 			"Meta": {},

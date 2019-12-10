@@ -1147,6 +1147,12 @@ default will automatically work with some tooling.
     * <a name="dns_cache_max_age"></a><a href="#dns_cache_max_age">`cache_max_age`</a> - When [use_cache](#dns_use_cache) is enabled, the agent
       will attempt to re-fetch the result from the servers if the cached value is older than this duration. See: [agent caching](/api/features/caching.html).
 
+    * <a name="dns_prefer_namespace"></a><a href="#dns_prefer_namespace">`prefer_namespace`</a> - **(Enterprise Only)** When
+    set to true, in a DNS query for a service, the label between the domain and the `service` label will be treated as a
+    namespace name instead of a datacenter. When set to false, the default, the behavior will be the same as non-Enterprise
+    versions and will assume the label is the datacenter. See: [this section](/docs/agent/dns.html#namespaced-services-enterprise) for more details.
+    
+    
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 

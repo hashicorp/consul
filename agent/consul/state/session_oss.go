@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -19,6 +20,18 @@ func nodeSessionsIndexer() *memdb.StringFieldIndex {
 	return &memdb.StringFieldIndex{
 		Field:     "Node",
 		Lowercase: true,
+	}
+}
+
+func nodeChecksIndexer() *memdb.CompoundIndex {
+	return &memdb.CompoundIndex{
+		Indexes: []memdb.Indexer{
+			&memdb.StringFieldIndex{
+				Field:     "Node",
+				Lowercase: true,
+			},
+			&CheckIDIndex{},
+		},
 	}
 }
 
@@ -41,10 +54,10 @@ func (s *Store) insertSessionTxn(tx *memdb.Txn, session *structs.Session, idx ui
 	}
 
 	// Insert the check mappings
-	for _, checkID := range session.Checks {
+	for _, checkID := range session.CheckIDs() {
 		mapping := &sessionCheck{
 			Node:    session.Node,
-			CheckID: checkID,
+			CheckID: structs.CheckID{ID: checkID},
 			Session: session.ID,
 		}
 		if err := tx.Insert("session_checks", mapping); err != nil {
@@ -89,4 +102,24 @@ func (s *Store) nodeSessionsTxn(tx *memdb.Txn,
 
 func (s *Store) sessionMaxIndex(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "sessions")
+}
+
+func (s *Store) validateSessionChecksTxn(tx *memdb.Txn, session *structs.Session) error {
+	// Go over the session checks and ensure they exist.
+	for _, checkID := range session.CheckIDs() {
+		check, err := tx.First("checks", "id", session.Node, string(checkID))
+		if err != nil {
+			return fmt.Errorf("failed check lookup: %s", err)
+		}
+		if check == nil {
+			return fmt.Errorf("Missing check '%s' registration", checkID)
+		}
+
+		// Verify that the check is not in critical state
+		status := check.(*structs.HealthCheck).Status
+		if status == api.HealthCritical {
+			return fmt.Errorf("Check '%s' is in %s state", checkID, status)
+		}
+	}
+	return nil
 }

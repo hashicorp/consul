@@ -37,6 +37,7 @@ type HealthCheck struct {
 	ServiceName string
 	ServiceTags []string
 	Type        string
+	Namespace   string `json:",omitempty"`
 
 	Definition HealthCheckDefinition
 

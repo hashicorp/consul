@@ -389,7 +389,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 
 	// Remove the proxy
-	state.RemoveService(webProxy.ID)
+	state.RemoveService(webProxy.CompoundServiceID())
 
 	// Chan should NOT close
 	assertWatchChanBlocks(t, wCh)

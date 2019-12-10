@@ -85,6 +85,15 @@ The table below shows this endpoint's support for
   In both use cases, node information will not be overwritten, if the node is
   already registered. Note, if the parameter is enabled for a node that doesn't
   exist, it will still be created.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
+  service and checks will be registered. This value may be provided by either the
+  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
+  the namespace may be provided within the `Service` or `Check` fields but if
+  present in multiple places, they must all be the same. If not provided at all, 
+  the namespace will be inherited from the request's ACL token or will default 
+  to the `default` namespace. Added in Consul 1.7.0.
+
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
@@ -125,7 +134,8 @@ and vice versa. A catalog entry can have either, neither, or both.
     "Meta": {
         "redis_version": "4.0"
     },
-    "Port": 8000
+    "Port": 8000,
+    "Namespace": "default"
   },
   "Check": {
     "Node": "foobar",
@@ -139,9 +149,10 @@ and vice versa. A catalog entry can have either, neither, or both.
       "Interval": "5s",
       "Timeout": "1s",
       "DeregisterCriticalServiceAfter": "30s"
-    }
+    },
+    "Namespace": "default"
   },
-  "SkipNodeUpdate": false
+  "SkipNodeUpdate": false,
 }
 ```
 
@@ -151,6 +162,7 @@ and vice versa. A catalog entry can have either, neither, or both.
 $ curl \
     --request PUT \
     --data @payload.json \
+    -H "X-Consul-Namespace: team-1" \
     http://127.0.0.1:8500/v1/catalog/register
 ```
 
@@ -190,6 +202,12 @@ The behavior of the endpoint depends on what keys are provided.
 
 - `ServiceID` `(string: "")` - Specifies the ID of the service to remove. The
   service and all associated checks will be removed.
+  
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
+  service and checks will be deregistered.  If not provided in the JSON body, the value of
+  the `ns` URL query parameter or the `X-Consul-Namespace` header will be used. 
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payloads
 
@@ -204,7 +222,8 @@ The behavior of the endpoint depends on what keys are provided.
 {
   "Datacenter": "dc1",
   "Node": "foobar",
-  "CheckID": "service:redis1"
+  "CheckID": "service:redis1",
+  "Namespace": "team-1"
 }
 ```
 
@@ -212,7 +231,8 @@ The behavior of the endpoint depends on what keys are provided.
 {
   "Datacenter": "dc1",
   "Node": "foobar",
-  "ServiceID": "redis1"
+  "ServiceID": "redis1",
+  "Namespace": "team-1"
 }
 ```
 
@@ -384,12 +404,17 @@ The table below shows this endpoint's support for
   of the form `key:value`. This parameter can be specified multiple times, and
   will filter the results to nodes with the specified key/value pairs. This is
   specified as part of the URL as a query parameter.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list services. 
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/v1/catalog/services
+    http://127.0.0.1:8500/v1/catalog/services?ns=foo
 ```
 
 ### Sample Response
@@ -451,12 +476,17 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to use for the
+  query. This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
-    http://127.0.0.1:8500/v1/catalog/service/my-service
+    http://127.0.0.1:8500/v1/catalog/service/my-service?ns=default
 ```
 
 ### Sample Response
@@ -510,6 +540,7 @@ $ curl \
         "Native": false,
         "Proxy": null
     },
+    "Namespace": "default"
   }
 ]
 ```
@@ -560,6 +591,8 @@ $ curl \
 - `ServiceConnect` are the [Connect](/docs/connect/index.html) settings. The
   value of this struct is equivalent to the `Connect` field for service
   registration.
+  
+- `Namespace` is the Consul Enterprise namespace of this service instance
 
 ### Filtering
 
@@ -649,6 +682,11 @@ The table below shows this endpoint's support for
 
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list services. 
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -701,7 +739,8 @@ $ curl \
       "Meta": {
         "redis_version": "4.0"
       },
-      "Port": 8000
+      "Port": 8000,
+      "Namespace": "default"
     }
   }
 }
@@ -742,4 +781,3 @@ top level Node object. The following selectors and filter operations are support
 | `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
 | `Weights.Passing`                      | Equal, Not Equal                                   |
 | `Weights.Warning`                      | Equal, Not Equal                                   |
-

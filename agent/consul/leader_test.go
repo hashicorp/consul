@@ -53,7 +53,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	})
 
 	// Service should be registered
-	_, services, err := state.NodeServices(nil, s1.config.NodeName)
+	_, services, err := state.NodeServices(nil, s1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	})
 
 	// Should have a check
-	_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
+	_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		_, checks, err = state.NodeChecks(nil, c1.config.NodeName)
+		_, checks, err = state.NodeChecks(nil, c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -499,7 +499,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	// Fail the member and wait for the health to go critical.
 	c1.Shutdown()
 	retry.Run(t, func(r *retry.R) {
-		_, checks, err := state.NodeChecks(nil, c1.config.NodeName)
+		_, checks, err := state.NodeChecks(nil, c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}

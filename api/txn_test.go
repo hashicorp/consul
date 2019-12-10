@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	"github.com/hashicorp/go-uuid"
 
@@ -151,7 +152,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				LockIndex:   1,
 				CreateIndex: ret.Results[0].KV.CreateIndex,
 				ModifyIndex: ret.Results[0].KV.ModifyIndex,
-				Namespace: ret.Results[0].KV.Namespace,
+				Namespace:   ret.Results[0].KV.Namespace,
 			},
 		},
 		&TxnResult{
@@ -162,7 +163,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				LockIndex:   1,
 				CreateIndex: ret.Results[1].KV.CreateIndex,
 				ModifyIndex: ret.Results[1].KV.ModifyIndex,
-				Namespace: ret.Results[0].KV.Namespace,
+				Namespace:   ret.Results[0].KV.Namespace,
 			},
 		},
 		&TxnResult{
@@ -180,6 +181,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				ID:          "foo1",
 				CreateIndex: ret.Results[3].Service.CreateIndex,
 				ModifyIndex: ret.Results[3].Service.CreateIndex,
+				Namespace:   defaultNamespace,
 			},
 		},
 		&TxnResult{
@@ -197,6 +199,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 					DeregisterCriticalServiceAfterDuration: 20 * time.Second,
 				},
 				Type:        "tcp",
+				Namespace:   defaultNamespace,
 				CreateIndex: ret.Results[4].Check.CreateIndex,
 				ModifyIndex: ret.Results[4].Check.CreateIndex,
 			},
@@ -216,6 +219,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 					DeregisterCriticalServiceAfterDuration: 160 * time.Second,
 				},
 				Type:        "tcp",
+				Namespace:   defaultNamespace,
 				CreateIndex: ret.Results[4].Check.CreateIndex,
 				ModifyIndex: ret.Results[4].Check.CreateIndex,
 			},
@@ -255,7 +259,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 					LockIndex:   1,
 					CreateIndex: ret.Results[0].KV.CreateIndex,
 					ModifyIndex: ret.Results[0].KV.ModifyIndex,
-					Namespace: ret.Results[0].KV.Namespace,
+					Namespace:   ret.Results[0].KV.Namespace,
 				},
 			},
 			&TxnResult{

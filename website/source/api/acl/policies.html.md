@@ -50,7 +50,7 @@ The table below shows this endpoint's support for
    When no datacenters are provided the policy is valid in all datacenters including
    those which do not yet exist but may in the future.
    
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace to 
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace to 
   create the policy. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -116,7 +116,7 @@ The table below shows this endpoint's support for
 - `id` `(string: <required>)` - Specifies the UUID of the ACL policy to
   read. This is required and is specified as part of the URL path.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to lookup
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
   the policy. This value can be specified as the `ns` URL query 
   parameter orthe `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default
@@ -182,7 +182,7 @@ The table below shows this endpoint's support for
    When no datacenters are provided the policy is valid in all datacenters including
    those which do not yet exist but may in the future.
    
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace of
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
   the policy to update. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -247,7 +247,7 @@ The table below shows this endpoint's support for
 - `id` `(string: <required>)` - Specifies the UUID of the ACL policy to
   delete. This is required and is specified as part of the URL path.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace of the
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the
   policy to delete. This value can be specified as the `ns` URL query 
   parameter orthe `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default
@@ -285,7 +285,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to list
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list
   the Policies for. This value can be specified as the `ns` URL query 
   parameter orthe `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default

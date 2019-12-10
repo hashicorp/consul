@@ -43,7 +43,7 @@ type KVPair struct {
 
 	// Namespace is the namespace the KVPair is associated with
 	// Namespacing is a Consul Enterprise feature.
-	Namespace string
+	Namespace string `json: ",omitempty"`
 }
 
 // KVPairs is a list of KVPair objects

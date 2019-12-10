@@ -54,7 +54,7 @@ The table below shows this endpoint's support for
   For more information on configuring specific auth method types, see the [auth
   method documentation](/docs/acl/acl-auth-methods.html).
   
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace to 
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace to 
   create the auth method within. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -125,7 +125,7 @@ The table below shows this endpoint's support for
 - `name` `(string: <required>)` - Specifies the name of the ACL auth method to
   read. This is required and is specified as part of the URL path.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to lookup
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
   the auth method within. This value can be specified as the `ns` URL query 
   parameter or in the `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default
@@ -191,7 +191,7 @@ The table below shows this endpoint's support for
   For more information on configuring specific auth method types, see the [auth
   method documentation](/docs/acl/acl-auth-methods.html).
   
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace of
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
   the auth method to update. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -266,7 +266,7 @@ The table below shows this endpoint's support for
 - `name` `(string: <required>)` - Specifies the name of the ACL auth method to
   delete. This is required and is specified as part of the URL path.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace of the
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the
   Auth Method to delete. This value can be specified as the `ns` URL query 
   parameter or in the `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default
@@ -305,7 +305,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to list
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list
   the auth methods for. This value can be specified as the `ns` URL query 
   parameter or in the `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default

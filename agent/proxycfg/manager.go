@@ -129,8 +129,8 @@ func (m *Manager) syncState() {
 	defer m.mu.Unlock()
 
 	// Traverse the local state and ensure all proxy services are registered
-	services := m.State.Services()
-	for svcID, svc := range services {
+	services := m.State.Services(structs.WildcardEnterpriseMeta())
+	for _, svc := range services {
 		if svc.Kind != structs.ServiceKindConnectProxy && svc.Kind != structs.ServiceKindMeshGateway {
 			continue
 		}
@@ -141,7 +141,7 @@ func (m *Manager) syncState() {
 		// know that so we'd need to set it here if not during registration of the
 		// proxy service. Sidecar Service in the interim can do that, but we should
 		// validate more generally that that is always true.
-		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svcID))
+		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svc.CompoundServiceID()))
 		if err != nil {
 			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
 				err)
@@ -150,7 +150,11 @@ func (m *Manager) syncState() {
 
 	// Now see if any proxies were removed
 	for proxyID := range m.proxies {
-		if _, ok := services[proxyID]; !ok {
+		var key structs.ServiceID
+		// TODO (namespaces) pass through some real enterprise meta that probably needs to come from the proxy tracking
+		key.Init(proxyID, nil)
+
+		if _, ok := services[key]; !ok {
 			// Remove them
 			m.removeProxyServiceLocked(proxyID)
 		}

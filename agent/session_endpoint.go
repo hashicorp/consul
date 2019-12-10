@@ -23,16 +23,18 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	args := structs.SessionRequest{
 		Op: structs.SessionCreate,
 		Session: structs.Session{
-			Node:      s.agent.config.NodeName,
-			Checks:    []types.CheckID{structs.SerfCheckID},
-			LockDelay: 15 * time.Second,
-			Behavior:  structs.SessionKeysRelease,
-			TTL:       "",
+			Node:       s.agent.config.NodeName,
+			NodeChecks: []string{string(structs.SerfCheckID)},
+			Checks:     []types.CheckID{structs.SerfCheckID},
+			LockDelay:  15 * time.Second,
+			Behavior:   structs.SessionKeysRelease,
+			TTL:        "",
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := s.parseEntMeta(req, &args.Session.EnterpriseMeta); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &args.Session.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -45,6 +47,8 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		}
 	}
 
+	fixupEmptySessionChecks(&args.Session)
+
 	// Create the session, get the ID
 	var out string
 	if err := s.agent.RPC("Session.Apply", &args, &out); err != nil {
@@ -55,27 +59,6 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	return sessionCreateResponse{out}, nil
 }
 
-// FixupChecks is used to handle parsing the JSON body to default-add the Serf
-// health check if they didn't specify any checks, but to allow an empty list
-// to take out the Serf health check. This behavior broke when mapstructure was
-// updated after 0.9.3, likely because we have a type wrapper around the string.
-func FixupChecks(raw interface{}, s *structs.Session) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	for k := range rawMap {
-		if strings.ToLower(k) == "checks" {
-			// If they supplied a checks key in the JSON, then
-			// remove the default entries and respect whatever they
-			// specified.
-			s.Checks = nil
-			return nil
-		}
-	}
-	return nil
-}
-
 // SessionDestroy is used to destroy an existing session
 func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.SessionRequest{
@@ -83,7 +66,8 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := s.parseEntMeta(req, &args.Session.EnterpriseMeta); err != nil {
+
+	if err := s.parseEntMetaNoWildcard(req, &args.Session.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +92,7 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -138,7 +122,7 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -215,4 +199,27 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 		out.Sessions = make(structs.Sessions, 0)
 	}
 	return out.Sessions, nil
+}
+
+// This is for backwards compatibility. Prior to 1.7.0 users could create a session with no Checks
+// by passing an empty Checks field. Now the preferred field is session.NodeChecks.
+func fixupEmptySessionChecks(session *structs.Session) {
+	// If the Checks field contains an empty slice, empty out the default check that was provided to NodeChecks
+	if len(session.Checks) == 0 {
+		session.NodeChecks = make([]string, 0)
+		return
+	}
+
+	// If the checks field contains the default value, empty it out. Defer to what is in NodeChecks.
+	if len(session.Checks) == 1 && session.Checks[0] == structs.SerfCheckID {
+		session.Checks = nil
+		return
+	}
+
+	// If the NodeChecks field contains an empty slice, empty out the default check that was provided to Checks
+	if len(session.NodeChecks) == 0 {
+		session.Checks = nil
+		return
+	}
+	return
 }

@@ -73,7 +73,7 @@ type SemaphoreOptions struct {
 	MonitorRetryTime  time.Duration // Optional, defaults to DefaultMonitorRetryTime
 	SemaphoreWaitTime time.Duration // Optional, defaults to DefaultSemaphoreWaitTime
 	SemaphoreTryOnce  bool          // Optional, defaults to false which means try forever
-	Namespace         string        // Optional, defaults to API client config, namespace of ACL token, or "default" namespace
+	Namespace         string        `json:",omitempty"` // Optional, defaults to API client config, namespace of ACL token, or "default" namespace
 }
 
 // semaphoreLock is written under the DefaultSemaphoreKey and
@@ -186,7 +186,7 @@ func (s *Semaphore) Acquire(stopCh <-chan struct{}) (<-chan struct{}, error) {
 
 	// Setup the query options
 	qOpts := QueryOptions{
-		WaitTime: s.opts.SemaphoreWaitTime,
+		WaitTime:  s.opts.SemaphoreWaitTime,
 		Namespace: s.opts.Namespace,
 	}
 
@@ -498,7 +498,7 @@ func (s *Semaphore) monitorLock(session string, stopCh chan struct{}) {
 	kv := s.c.KV()
 	opts := QueryOptions{
 		RequireConsistent: true,
-		Namespace: s.opts.Namespace,
+		Namespace:         s.opts.Namespace,
 	}
 WAIT:
 	retries := s.opts.MonitorRetries

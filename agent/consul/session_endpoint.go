@@ -38,10 +38,11 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 
 	// TODO (namespaces) (acls) infer entmeta if not provided.
-	//  The entMeta to populate will be the one in the Session struct, not SessionRequest
+
+	//  The entMeta to populate is the one in the Session struct, not SessionRequest
 	//  This is because the Session is what is passed to downstream functions like raftApply
 	var entCtx acl.EnterpriseAuthorizerContext
-	args.Session.EnterpriseMeta.FillAuthzContext(&entCtx)
+	args.Session.FillAuthzContext(&entCtx)
 
 	// Fetch the ACL token, if any, and apply the policy.
 	rule, err := s.srv.ResolveToken(args.Token)

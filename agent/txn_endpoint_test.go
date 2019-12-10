@@ -560,6 +560,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 						CreateIndex: index,
 						ModifyIndex: index,
 					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
 			},
 			&structs.TxnResult{
@@ -581,6 +582,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 						CreateIndex: index,
 						ModifyIndex: index,
 					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
 			},
 			&structs.TxnResult{
@@ -602,6 +604,7 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 						CreateIndex: index,
 						ModifyIndex: index,
 					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				},
 			},
 		},

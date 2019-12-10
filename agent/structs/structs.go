@@ -2,6 +2,7 @@ package structs
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -108,6 +109,10 @@ const (
 	// ends up being very small. If we see a value below this threshold,
 	// we multiply by time.Second
 	lockDelayMinThreshold = 1000
+)
+
+var (
+	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
 )
 
 // metaKeyFormat checks if a metadata key string is valid
@@ -272,6 +277,9 @@ type RegisterRequest struct {
 	// node portion of this update will not apply.
 	SkipNodeUpdate bool
 
+	// EnterpriseMeta is the embedded enterprise metadata
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
 	WriteRequest
 }
 
@@ -311,10 +319,11 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 // to deregister a node as providing a service. If no service is
 // provided the entire node is deregistered.
 type DeregisterRequest struct {
-	Datacenter string
-	Node       string
-	ServiceID  string
-	CheckID    types.CheckID
+	Datacenter     string
+	Node           string
+	ServiceID      string
+	CheckID        types.CheckID
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 
@@ -368,6 +377,7 @@ type DCSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	Source          QuerySource
+	EnterpriseMeta  `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -391,6 +401,7 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -411,6 +422,7 @@ type ServiceDumpRequest struct {
 	ServiceKind    ServiceKind
 	UseServiceKind bool
 	Source         QuerySource
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -440,6 +452,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 		keyKind,
 		r.UseServiceKind,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -471,6 +484,7 @@ type ServiceSpecificRequest struct {
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -512,6 +526,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.TagFilter,
 		r.Connect,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -529,9 +544,9 @@ func (r *ServiceSpecificRequest) CacheMinIndex() uint64 {
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
-	Datacenter string
-	Node       string
-	EnterpriseMeta
+	Datacenter     string
+	Node           string
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -552,6 +567,7 @@ func (r *NodeSpecificRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		r.Node,
 		r.Filter,
+		r.EnterpriseMeta,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -569,6 +585,8 @@ type ChecksInStateRequest struct {
 	NodeMetaFilters map[string]string
 	State           string
 	Source          QuerySource
+
+	EnterpriseMeta `mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -701,6 +719,8 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
 	RaftIndex `bexpr:"-"`
 }
 
@@ -743,6 +763,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
 		},
+		EnterpriseMeta: s.EnterpriseMeta,
 	}
 }
 
@@ -761,10 +782,26 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		EnableTagOverride: s.ServiceEnableTagOverride,
 		Proxy:             s.ServiceProxy,
 		Connect:           s.ServiceConnect,
+		EnterpriseMeta:    s.EnterpriseMeta,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
 		},
+	}
+}
+
+func (s *ServiceNode) CompoundServiceID() ServiceID {
+	id := s.ServiceID
+	if id == "" {
+		id = s.ServiceName
+	}
+
+	entMeta := s.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
 	}
 }
 
@@ -868,6 +905,8 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
 	RaftIndex `bexpr:"-"`
 }
 
@@ -884,6 +923,23 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 		}
 	}
 	return addr, port
+}
+
+func (ns *NodeService) CompoundServiceID() ServiceID {
+	id := ns.ID
+
+	if id == "" {
+		id = ns.Service
+	}
+
+	// copy the ent meta and normalize it
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
+	}
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -911,7 +967,7 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
 	if t.SidecarService == nil {
@@ -1091,7 +1147,8 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
-		s.Connect != other.Connect {
+		s.Connect != other.Connect ||
+		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -1124,7 +1181,8 @@ func (s *ServiceNode) IsSameService(other *ServiceNode) bool {
 		!reflect.DeepEqual(s.ServiceWeights, other.ServiceWeights) ||
 		s.ServiceEnableTagOverride != other.ServiceEnableTagOverride ||
 		!reflect.DeepEqual(s.ServiceProxy, other.ServiceProxy) ||
-		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) {
+		!reflect.DeepEqual(s.ServiceConnect, other.ServiceConnect) ||
+		!s.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -1159,6 +1217,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
+		EnterpriseMeta:           s.EnterpriseMeta,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1169,6 +1228,11 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 type NodeServices struct {
 	Node     *Node
 	Services map[string]*NodeService
+}
+
+type NodeServiceList struct {
+	Node     *Node
+	Services []*NodeService
 }
 
 // HealthCheck represents a single check on a given node
@@ -1186,7 +1250,34 @@ type HealthCheck struct {
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
+
 	RaftIndex `bexpr:"-"`
+}
+
+func (hc *HealthCheck) CompoundServiceID() ServiceID {
+	id := hc.ServiceID
+	if id == "" {
+		id = hc.ServiceName
+	}
+
+	entMeta := hc.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceID{
+		ID:             id,
+		EnterpriseMeta: entMeta,
+	}
+}
+
+func (hc *HealthCheck) CompoundCheckID() CheckID {
+	entMeta := hc.EnterpriseMeta
+	entMeta.Normalize()
+
+	return CheckID{
+		ID:             hc.CheckID,
+		EnterpriseMeta: entMeta,
+	}
 }
 
 type HealthCheckDefinition struct {
@@ -1248,7 +1339,7 @@ func (t *HealthCheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
 	if aux.Interval != nil {
@@ -1308,7 +1399,8 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.ServiceID != other.ServiceID ||
 		c.ServiceName != other.ServiceName ||
 		!reflect.DeepEqual(c.ServiceTags, other.ServiceTags) ||
-		!reflect.DeepEqual(c.Definition, other.Definition) {
+		!reflect.DeepEqual(c.Definition, other.Definition) ||
+		!c.EnterpriseMeta.IsSame(&other.EnterpriseMeta) {
 		return false
 	}
 
@@ -1447,6 +1539,86 @@ type NodeInfo struct {
 // as it is rather expensive to generate.
 type NodeDump []*NodeInfo
 
+type CheckID struct {
+	ID types.CheckID
+	EnterpriseMeta
+}
+
+func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
+	var cid CheckID
+	cid.Init(id, entMeta)
+	return cid
+}
+
+func (cid *CheckID) Init(id types.CheckID, entMeta *EnterpriseMeta) {
+	cid.ID = id
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	cid.EnterpriseMeta = *entMeta
+	cid.EnterpriseMeta.Normalize()
+}
+
+// StringHash is used mainly to populate part of the filename of a check
+// definition persisted on the local agent
+func (cid *CheckID) StringHash() string {
+	hasher := md5.New()
+	hasher.Write([]byte(cid.ID))
+	cid.EnterpriseMeta.addToHash(hasher, true)
+	return fmt.Sprintf("%x", hasher.Sum(nil))
+}
+
+type ServiceID struct {
+	ID string
+	EnterpriseMeta
+}
+
+func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
+	var sid ServiceID
+	sid.Init(id, entMeta)
+	return sid
+}
+
+func (sid *ServiceID) Init(id string, entMeta *EnterpriseMeta) {
+	sid.ID = id
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	sid.EnterpriseMeta = *entMeta
+	sid.EnterpriseMeta.Normalize()
+}
+
+func (sid *ServiceID) Matches(other *ServiceID) bool {
+	if sid == nil && other == nil {
+		return true
+	}
+
+	if sid == nil || other == nil || sid.ID != other.ID || !sid.EnterpriseMeta.Matches(&other.EnterpriseMeta) {
+		return false
+	}
+
+	return true
+}
+
+// StringHash is used mainly to populate part of the filename of a service
+// definition persisted on the local agent
+func (sid *ServiceID) StringHash() string {
+	hasher := md5.New()
+	hasher.Write([]byte(sid.ID))
+	sid.EnterpriseMeta.addToHash(hasher, true)
+	return fmt.Sprintf("%x", hasher.Sum(nil))
+}
+
+func (sid *ServiceID) LessThan(other *ServiceID) bool {
+	if sid.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+
+	return sid.ID < other.ID
+}
+
 type IndexedNodes struct {
 	Nodes Nodes
 	QueryMeta
@@ -1454,6 +1626,9 @@ type IndexedNodes struct {
 
 type IndexedServices struct {
 	Services Services
+	// In various situations we need to know the meta that the services are for - in particular
+	// this is needed to be able to properly filter the list based on ACLs
+	EnterpriseMeta
 	QueryMeta
 }
 
@@ -1466,6 +1641,11 @@ type IndexedNodeServices struct {
 	// TODO: This should not be a pointer, see comments in
 	// agent/catalog_endpoint.go.
 	NodeServices *NodeServices
+	QueryMeta
+}
+
+type IndexedNodeServiceList struct {
+	NodeServices NodeServiceList
 	QueryMeta
 }
 
@@ -1637,7 +1817,7 @@ type DirEntry struct {
 	Value     []byte
 	Session   string `json:",omitempty"`
 
-	EnterpriseMeta
+	EnterpriseMeta `bexpr:"-"`
 	RaftIndex
 }
 
@@ -1731,28 +1911,52 @@ type Sessions []*Session
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
-	ID        string
-	Name      string
-	Node      string
-	Checks    []types.CheckID
-	LockDelay time.Duration
-	Behavior  SessionBehavior // What to do when session is invalidated
-	TTL       string
+	ID            string
+	Name          string
+	Node          string
+	LockDelay     time.Duration
+	Behavior      SessionBehavior // What to do when session is invalidated
+	TTL           string
+	NodeChecks    []string
+	ServiceChecks []ServiceCheck
+
+	// Deprecated v1.7.0.
+	Checks []types.CheckID `json:",omitempty"`
 
 	EnterpriseMeta
 	RaftIndex
 }
 
-func (t *Session) UnmarshalJSON(data []byte) (err error) {
+type ServiceCheck struct {
+	ID        string
+	Namespace string
+}
+
+// CheckIDs returns the IDs for all checks associated with a session, regardless of type
+func (s *Session) CheckIDs() []types.CheckID {
+	// Merge all check IDs into a single slice, since they will be handled the same way
+	checks := make([]types.CheckID, 0, len(s.Checks)+len(s.NodeChecks)+len(s.ServiceChecks))
+	checks = append(checks, s.Checks...)
+
+	for _, c := range s.NodeChecks {
+		checks = append(checks, types.CheckID(c))
+	}
+
+	for _, c := range s.ServiceChecks {
+		checks = append(checks, types.CheckID(c.ID))
+	}
+	return checks
+}
+
+func (s *Session) UnmarshalJSON(data []byte) (err error) {
 	type Alias Session
 	aux := &struct {
 		LockDelay interface{}
 		*Alias
 	}{
-		Alias: (*Alias)(t),
+		Alias: (*Alias)(s),
 	}
-
-	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
 	if aux.LockDelay != nil {
@@ -1769,7 +1973,7 @@ func (t *Session) UnmarshalJSON(data []byte) (err error) {
 		if dur < lockDelayMinThreshold {
 			dur = dur * time.Second
 		}
-		t.LockDelay = dur
+		s.LockDelay = dur
 	}
 	return nil
 }

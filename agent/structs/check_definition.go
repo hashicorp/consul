@@ -41,6 +41,8 @@ type CheckDefinition struct {
 	FailuresBeforeCritical         int
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
@@ -137,12 +139,13 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 
 func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
 	health := &HealthCheck{
-		Node:      node,
-		CheckID:   c.ID,
-		Name:      c.Name,
-		Status:    api.HealthCritical,
-		Notes:     c.Notes,
-		ServiceID: c.ServiceID,
+		Node:           node,
+		CheckID:        c.ID,
+		Name:           c.Name,
+		Status:         api.HealthCritical,
+		Notes:          c.Notes,
+		ServiceID:      c.ServiceID,
+		EnterpriseMeta: c.EnterpriseMeta,
 	}
 	if c.Status != "" {
 		health.Status = c.Status

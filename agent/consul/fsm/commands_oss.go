@@ -64,12 +64,12 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 	// here is also baked into vetDeregisterWithACL() in acl.go, so if you
 	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
-		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
+		if err := c.state.DeleteService(index, req.Node, req.ServiceID, &req.EnterpriseMeta); err != nil {
 			c.logger.Printf("[WARN] consul.fsm: DeleteNodeService failed: %v", err)
 			return err
 		}
 	} else if req.CheckID != "" {
-		if err := c.state.DeleteCheck(index, req.Node, req.CheckID); err != nil {
+		if err := c.state.DeleteCheck(index, req.Node, req.CheckID, &req.EnterpriseMeta); err != nil {
 			c.logger.Printf("[WARN] consul.fsm: DeleteNodeCheck failed: %v", err)
 			return err
 		}

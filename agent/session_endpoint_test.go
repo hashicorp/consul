@@ -52,6 +52,12 @@ func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session)
 	if !reflect.DeepEqual(got.Checks, want.Checks) {
 		t.Fatalf("bad session Checks: expected %+v, got %+v", want.Checks, got.Checks)
 	}
+	if !reflect.DeepEqual(got.NodeChecks, want.NodeChecks) {
+		t.Fatalf("bad session NodeChecks: expected %+v, got %+v", want.NodeChecks, got.NodeChecks)
+	}
+	if !reflect.DeepEqual(got.ServiceChecks, want.ServiceChecks) {
+		t.Fatalf("bad session ServiceChecks: expected %+v, got %+v", want.ServiceChecks, got.ServiceChecks)
+	}
 }
 
 func TestSessionCreate(t *testing.T) {
@@ -87,7 +93,7 @@ func TestSessionCreate(t *testing.T) {
 		raw := map[string]interface{}{
 			"Name":      "my-cool-session",
 			"Node":      a.Config.NodeName,
-			"Checks":    []types.CheckID{structs.SerfCheckID, "consul"},
+			"Checks":    []types.CheckID{"consul"},
 			"LockDelay": "20s",
 		}
 		enc.Encode(raw)
@@ -100,12 +106,74 @@ func TestSessionCreate(t *testing.T) {
 		}
 
 		want := structs.Session{
-			ID:        obj.(sessionCreateResponse).ID,
-			Name:      "my-cool-session",
+			ID:         obj.(sessionCreateResponse).ID,
+			Name:       "my-cool-session",
+			Node:       a.Config.NodeName,
+			Checks:     []types.CheckID{"consul"},
+			NodeChecks: []string{string(structs.SerfCheckID)},
+			LockDelay:  20 * time.Second,
+			Behavior:   structs.SessionKeysRelease,
+		}
+		verifySession(t, r, a, want)
+	})
+}
+
+func TestSessionCreate_NodeChecks(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create a health check
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		Check: &structs.HealthCheck{
+			CheckID:   "consul",
 			Node:      a.Config.NodeName,
-			Checks:    []types.CheckID{structs.SerfCheckID, "consul"},
-			LockDelay: 20 * time.Second,
-			Behavior:  structs.SessionKeysRelease,
+			Name:      "consul",
+			ServiceID: "consul",
+			Status:    api.HealthPassing,
+		},
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		// Associate session with node and 2 health checks
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name": "my-cool-session",
+			"Node": a.Config.NodeName,
+			"ServiceChecks": []structs.ServiceCheck{
+				{ID: "consul", Namespace: ""},
+			},
+			"NodeChecks": []types.CheckID{structs.SerfCheckID},
+			"LockDelay":  "20s",
+		}
+		enc.Encode(raw)
+
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.SessionCreate(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		want := structs.Session{
+			ID:            obj.(sessionCreateResponse).ID,
+			Name:          "my-cool-session",
+			Node:          a.Config.NodeName,
+			NodeChecks:    []string{string(structs.SerfCheckID)},
+			ServiceChecks: []structs.ServiceCheck{{ID: "consul", Namespace: ""}},
+			LockDelay:     20 * time.Second,
+			Behavior:      structs.SessionKeysRelease,
 		}
 		verifySession(t, r, a, want)
 	})
@@ -140,11 +208,12 @@ func TestSessionCreate_Delete(t *testing.T) {
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
-			"Name":      "my-cool-session",
-			"Node":      a.Config.NodeName,
-			"Checks":    []types.CheckID{structs.SerfCheckID, "consul"},
-			"LockDelay": "20s",
-			"Behavior":  structs.SessionKeysDelete,
+			"Name":       "my-cool-session",
+			"Node":       a.Config.NodeName,
+			"Checks":     []types.CheckID{"consul"},
+			"NodeChecks": []string{string(structs.SerfCheckID)},
+			"LockDelay":  "20s",
+			"Behavior":   structs.SessionKeysDelete,
 		}
 		enc.Encode(raw)
 
@@ -156,12 +225,13 @@ func TestSessionCreate_Delete(t *testing.T) {
 		}
 
 		want := structs.Session{
-			ID:        obj.(sessionCreateResponse).ID,
-			Name:      "my-cool-session",
-			Node:      a.Config.NodeName,
-			Checks:    []types.CheckID{structs.SerfCheckID, "consul"},
-			LockDelay: 20 * time.Second,
-			Behavior:  structs.SessionKeysDelete,
+			ID:         obj.(sessionCreateResponse).ID,
+			Name:       "my-cool-session",
+			Node:       a.Config.NodeName,
+			Checks:     []types.CheckID{"consul"},
+			NodeChecks: []string{string(structs.SerfCheckID)},
+			LockDelay:  20 * time.Second,
+			Behavior:   structs.SessionKeysDelete,
 		}
 		verifySession(t, r, a, want)
 	})
@@ -192,12 +262,12 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 		}
 
 		want := structs.Session{
-			ID:        obj.(sessionCreateResponse).ID,
-			Name:      "my-cool-session",
-			Node:      a.Config.NodeName,
-			Checks:    []types.CheckID{structs.SerfCheckID},
-			LockDelay: 20 * time.Second,
-			Behavior:  structs.SessionKeysRelease,
+			ID:         obj.(sessionCreateResponse).ID,
+			Name:       "my-cool-session",
+			Node:       a.Config.NodeName,
+			NodeChecks: []string{string(structs.SerfCheckID)},
+			LockDelay:  20 * time.Second,
+			Behavior:   structs.SessionKeysRelease,
 		}
 		verifySession(t, r, a, want)
 	})
@@ -207,36 +277,103 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Associate session with node and 2 health checks
-	body := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(body)
-	raw := map[string]interface{}{
-		"Name":      "my-cool-session",
-		"Node":      a.Config.NodeName,
-		"Checks":    []types.CheckID{},
-		"LockDelay": "20s",
-	}
-	enc.Encode(raw)
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-	resp := httptest.NewRecorder()
-	retry.Run(t, func(r *retry.R) {
-		obj, err := a.srv.SessionCreate(resp, req)
-		if err != nil {
-			r.Fatalf("err: %v", err)
+	t.Run("no check fields should yield default serfHealth", func(t *testing.T) {
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":      "my-cool-session",
+			"Node":      a.Config.NodeName,
+			"LockDelay": "20s",
 		}
+		enc.Encode(raw)
 
-		want := structs.Session{
-			ID:        obj.(sessionCreateResponse).ID,
-			Name:      "my-cool-session",
-			Node:      a.Config.NodeName,
-			Checks:    []types.CheckID{},
-			LockDelay: 20 * time.Second,
-			Behavior:  structs.SessionKeysRelease,
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		retry.Run(t, func(r *retry.R) {
+			obj, err := a.srv.SessionCreate(resp, req)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+			if obj == nil {
+				r.Fatalf("expected a session")
+			}
+
+			want := structs.Session{
+				ID:         obj.(sessionCreateResponse).ID,
+				Name:       "my-cool-session",
+				Node:       a.Config.NodeName,
+				NodeChecks: []string{string(structs.SerfCheckID)},
+				LockDelay:  20 * time.Second,
+				Behavior:   structs.SessionKeysRelease,
+			}
+			verifySession(t, r, a, want)
+		})
+	})
+
+	t.Run("overwrite nodechecks to associate with no checks", func(t *testing.T) {
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":       "my-cool-session",
+			"Node":       a.Config.NodeName,
+			"NodeChecks": []string{},
+			"LockDelay":  "20s",
 		}
-		verifySession(t, r, a, want)
+		enc.Encode(raw)
+
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		retry.Run(t, func(r *retry.R) {
+			obj, err := a.srv.SessionCreate(resp, req)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+
+			want := structs.Session{
+				ID:         obj.(sessionCreateResponse).ID,
+				Name:       "my-cool-session",
+				Node:       a.Config.NodeName,
+				NodeChecks: []string{},
+				LockDelay:  20 * time.Second,
+				Behavior:   structs.SessionKeysRelease,
+			}
+			verifySession(t, r, a, want)
+		})
+	})
+
+	t.Run("overwrite checks to associate with no checks", func(t *testing.T) {
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":      "my-cool-session",
+			"Node":      a.Config.NodeName,
+			"Checks":    []string{},
+			"LockDelay": "20s",
+		}
+		enc.Encode(raw)
+
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		retry.Run(t, func(r *retry.R) {
+			obj, err := a.srv.SessionCreate(resp, req)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+
+			want := structs.Session{
+				ID:         obj.(sessionCreateResponse).ID,
+				Name:       "my-cool-session",
+				Node:       a.Config.NodeName,
+				NodeChecks: []string{},
+				Checks:     []types.CheckID{},
+				LockDelay:  20 * time.Second,
+				Behavior:   structs.SessionKeysRelease,
+			}
+			verifySession(t, r, a, want)
+		})
 	})
 }
 

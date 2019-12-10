@@ -498,6 +498,7 @@ type ServiceConfigRequest struct {
 	Datacenter string
 	Upstreams  []string
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 

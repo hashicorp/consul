@@ -90,7 +90,7 @@ The table below shows this endpoint's support for
   respectively). This value must be no smaller than 1 minute and no longer than
   24 hours. Added in Consul 1.5.0.
   
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace to 
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace to 
   create the token. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -170,7 +170,7 @@ The table below shows this endpoint's support for
 - `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL token to
   read. This is required and is specified as part of the URL path.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to lookup
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
   the token. This value can be specified as the `ns` URL query 
   parameter orthe `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default
@@ -341,7 +341,7 @@ The table below shows this endpoint's support for
   match the existing value. If not present then the value will be filled in by
   Consul.
 
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace of
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
   the token to update. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -429,7 +429,7 @@ The table below shows this endpoint's support for
 
 - `Description` `(string: "")` - Free form human readable description for the cloned token.
 
-- `Namespace` `(string: "")` - **Enterprise Only** Specifies the namespace of
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
   the token to be cloned. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
   If not provided at all, the namespace will be inherited from the request's ACL 
@@ -506,7 +506,7 @@ The table below shows this endpoint's support for
 - `AccessorID` `(string: <required>)` - Specifies the accessor ID of the ACL policy to
   delete. This is required and is specified as part of the URL path.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace of the
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the
   token to delete. This value can be specified as the `ns` URL query 
   parameter orthe `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default
@@ -553,7 +553,7 @@ The table below shows this endpoint's support for
 - `authmethod` `(string: "")` - Filters the token list to those tokens that are
   linked with the specific named auth method.
   
-- `ns` `(string: "")` - **Enterprise Only** Specifies the namespace to list
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list
   the tokens for. This value can be specified as the `ns` URL query 
   parameter orthe `X-Consul-Namespace` header. If not provided by either,
   the namespace will be inherited from the request's ACL token or will default

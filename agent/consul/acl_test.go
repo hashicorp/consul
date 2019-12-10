@@ -2310,14 +2310,14 @@ func TestACL_filterServices(t *testing.T) {
 
 	// Try permissive filtering.
 	filt := newACLFilter(acl.AllowAll(), nil, false)
-	filt.filterServices(services)
+	filt.filterServices(services, nil)
 	if len(services) != 3 {
 		t.Fatalf("bad: %#v", services)
 	}
 
 	// Try restrictive filtering.
 	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterServices(services)
+	filt.filterServices(services, nil)
 	if len(services) != 1 {
 		t.Fatalf("bad: %#v", services)
 	}
@@ -2327,7 +2327,7 @@ func TestACL_filterServices(t *testing.T) {
 
 	// Try restrictive filtering with version 8 enforcement.
 	filt = newACLFilter(acl.DenyAll(), nil, true)
-	filt.filterServices(services)
+	filt.filterServices(services, nil)
 	if len(services) != 0 {
 		t.Fatalf("bad: %#v", services)
 	}

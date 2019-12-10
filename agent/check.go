@@ -23,4 +23,5 @@ type persistedCheckState struct {
 	Output  string
 	Status  string
 	Expires int64
+	structs.EnterpriseMeta
 }

@@ -34,7 +34,3 @@
   instead of one specified via the `-token` argument or `CONSUL_HTTP_TOKEN`
   environment variable. This can also be specified via the
   `CONSUL_HTTP_TOKEN_FILE` environment variable.
-  
-* `-ns=<value>` - Specifies the namespace to query.
-  If not provided, the namespace will be inferred from the request's ACL token,
-  or will default to the `default` namespace.

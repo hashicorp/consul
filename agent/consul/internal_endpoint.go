@@ -30,7 +30,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeInfo(ws, args.Node)
+			index, dump, err := state.NodeInfo(ws, args.Node, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -56,7 +56,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeDump(ws)
+			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -90,7 +90,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind)
+			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
