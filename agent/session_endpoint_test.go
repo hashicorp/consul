@@ -281,7 +281,6 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	t.Run("no check fields should yield default serfHealth", func(t *testing.T) {
-		// Passing empty NodeChecks should overwrite serfHealth default
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
@@ -315,7 +314,6 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 
 	t.Run("overwrite nodechecks to associate with no checks", func(t *testing.T) {
-		// Passing empty NodeChecks should overwrite serfHealth default
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
@@ -347,7 +345,6 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 
 	t.Run("overwrite checks to associate with no checks", func(t *testing.T) {
-		// Passing empty NodeChecks should overwrite serfHealth default
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
