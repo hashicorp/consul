@@ -1,10 +1,17 @@
 ## UNRELEASED
 
+NOTES:
+
+* cli: Our darwin releases for this version and up will be signed and notarized according to Apple's requirements.
+
+Prior to this release, MacOS 10.15+ users attempting to run our software may see the error: "'consul' cannot be opened because the developer cannot be verified." This error affected all MacOS 10.15+ users who downloaded our software directly via web browsers, and was caused by changes to [Apple's third-party software requirements](https://developer.apple.com/news/?id=09032019a).
+
+MacOS 10.15+ users should plan to upgrade to 1.7.0+.
+
 BREAKING CHANGES:
 
 * http: The HTTP API no longer accepts JSON fields that are unknown to it. Instead errors will be returned with 400 status codes [[GH-6874](https://github.com/hashicorp/consul/pull/6874)]
 * dns: PTR record queries now return answers that contain the Consul datacenter as a label between `service` and the domain. [[GH-6909](https://github.com/hashicorp/consul/pull/6909)]
-
 
 FEATURES
 
@@ -13,7 +20,7 @@ FEATURES
 * connect: Added a new CA provider allowing Connect certificates to be managed by AWS [ACM Private CA](https://www.consul.io/docs/connect/ca/aws.html).
 * connect: Allow configuration of upstream connection limits in Envoy [[GH-6829](https://github.com/hashicorp/consul/pull/6829)]
 * agent: Add Cloud Auto-join support for Tencent Cloud [[GH-6818](https://github.com/hashicorp/consul/pull/6818)]
- 
+
 IMPROVEMENTS
 
 * agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
@@ -22,6 +29,7 @@ IMPROVEMENTS
 
 BUG FIXES
 
+* cli: remove `-dev` from `consul version` in ARM builds in the 1.6.2 release [[GH-6875](https://github.com/hashicorp/consul/issues/6875)]
 * agent: fix watch event behavior [[GH-5265](https://github.com/hashicorp/consul/pull/5265)]
 * connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
 * cli: services register command now correctly registers an unamed healthcheck [[GH-6800](https://github.com/hashicorp/consul/pull/6800)]
