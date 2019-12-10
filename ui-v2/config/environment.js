@@ -75,7 +75,13 @@ module.exports = function(environment) {
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2019',
   });
+  ENV = Object.assign({}, ENV, {
+    CONSUL_NSPACES_ENABLED: ENV.CONSUL_BINARY_TYPE !== 'oss',
+  });
   if (environment === 'development') {
+    ENV = Object.assign({}, ENV, {
+      CONSUL_NSPACES_ENABLED: true,
+    });
     // ENV.APP.LOG_RESOLVER = true;
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;
@@ -84,6 +90,9 @@ module.exports = function(environment) {
   }
 
   if (environment === 'test') {
+    ENV = Object.assign({}, ENV, {
+      CONSUL_NSPACES_ENABLED: true,
+    });
     // Testem prefers this...
     ENV.locationType = 'none';
 

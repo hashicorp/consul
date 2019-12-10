@@ -57,7 +57,8 @@ export default Route.extend({
           return hash({
             ...model,
             ...{
-              permissions: nspacesRepo.authorize(params.dc, model.nspace.Name),
+              // When disabled nspaces is [], so nspace is undefined
+              permissions: nspacesRepo.authorize(params.dc, get(model, 'nspace.Name')),
             },
           });
         } else {
