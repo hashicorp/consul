@@ -208,14 +208,18 @@ func (s *Store) catalogInsertService(tx *memdb.Txn, svc *structs.ServiceNode) er
 		return fmt.Errorf("failed inserting service: %s", err)
 	}
 
-	// overall services index
-	if err := tx.Insert("index", &IndexEntry{"services", svc.ModifyIndex}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
+	if err := s.catalogUpdateServicesIndexes(tx, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
+		return err
 	}
 
 	if err := s.catalogUpdateServiceIndexes(tx, svc.ServiceName, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
 		return err
 	}
+
+	if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, svc.ModifyIndex, &svc.EnterpriseMeta); err != nil {
+		return err
+	}
+
 	return nil
 }
 
