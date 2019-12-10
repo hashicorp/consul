@@ -376,7 +376,6 @@ func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 	want := &SessionEntry{
 		ID:         id,
 		Node:       s.Config.NodeName,
-		Checks:     []string{},
 		NodeChecks: []string{},
 		LockDelay:  15 * time.Second,
 		Behavior:   SessionBehaviorRelease,
