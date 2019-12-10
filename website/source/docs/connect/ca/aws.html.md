@@ -20,6 +20,8 @@ CA providers.
 
 ## Requirements
 
+The ACM Private CA Provider was added in Consul 1.7.0.
+
 The ACM Private CA Provider needs to be authorized via IAM credentials to
 perform operations. Every Consul server needs to be running in an environment
 where a suitable IAM configuration is present.
@@ -27,6 +29,7 @@ where a suitable IAM configuration is present.
 The [standard AWS SDK credential
 locations](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials)
 are used, which means that suitable credentials and region configuration need to be present in one of the following:
+
  1. Environment variables
  1. Shared credentials file
  1. Via an EC2 instance role
