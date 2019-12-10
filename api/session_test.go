@@ -315,11 +315,11 @@ func TestAPI_SessionInfo(t *testing.T) {
 	info.CreateIndex = 0
 
 	want := &SessionEntry{
-		ID:        id,
-		Node:      s.Config.NodeName,
-		NodeChecks:    []string{"serfHealth"},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		ID:         id,
+		Node:       s.Config.NodeName,
+		NodeChecks: []string{"serfHealth"},
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
 	}
 	if info.ID != want.ID {
 		t.Fatalf("bad ID: %s", info.ID)
@@ -374,11 +374,12 @@ func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 	info.CreateIndex = 0
 
 	want := &SessionEntry{
-		ID:        id,
-		Node:      s.Config.NodeName,
-		Checks:    []string{},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		ID:         id,
+		Node:       s.Config.NodeName,
+		Checks:     []string{},
+		NodeChecks: []string{},
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
 	}
 	if info.ID != want.ID {
 		t.Fatalf("bad ID: %s", info.ID)
@@ -392,6 +393,8 @@ func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 	if info.Behavior != want.Behavior {
 		t.Fatalf("bad Behavior: %s", info.Behavior)
 	}
+	assert.Equal(t, want.Checks, info.Checks)
+	assert.Equal(t, want.NodeChecks, info.NodeChecks)
 }
 
 func TestAPI_SessionNode(t *testing.T) {
@@ -505,11 +508,11 @@ func TestAPI_SessionNodeChecks(t *testing.T) {
 	info.CreateIndex = 0
 
 	want := &SessionEntry{
-		ID:        id,
-		Node:      s.Config.NodeName,
+		ID:         id,
+		Node:       s.Config.NodeName,
 		NodeChecks: []string{"serfHealth"},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
 	}
 	want.Namespace = info.Namespace
 	assert.Equal(t, want, info)
@@ -561,11 +564,11 @@ func TestAPI_SessionNodeChecks(t *testing.T) {
 	info.CreateIndex = 0
 
 	want = &SessionEntry{
-		ID:        id,
-		Node:      "foo",
+		ID:         id,
+		Node:       "foo",
 		NodeChecks: []string{"foo:alive"},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
 	}
 	want.Namespace = info.Namespace
 	assert.Equal(t, want, info)
@@ -605,10 +608,10 @@ func TestAPI_SessionServiceChecks(t *testing.T) {
 		},
 		Checks: HealthChecks{
 			&HealthCheck{
-				Node:        s.Config.NodeName,
-				CheckID:     "redis:alive",
-				Status:      HealthPassing,
-				ServiceID:   "redisV2",
+				Node:      s.Config.NodeName,
+				CheckID:   "redis:alive",
+				Status:    HealthPassing,
+				ServiceID: "redisV2",
 			},
 		},
 	}
@@ -644,12 +647,12 @@ func TestAPI_SessionServiceChecks(t *testing.T) {
 	info.CreateIndex = 0
 
 	want := &SessionEntry{
-		ID:        id,
-		Node:      s.Config.NodeName,
+		ID:            id,
+		Node:          s.Config.NodeName,
 		ServiceChecks: []ServiceCheck{{"redis:alive", ""}},
-		NodeChecks: []string{"serfHealth"},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		NodeChecks:    []string{"serfHealth"},
+		LockDelay:     15 * time.Second,
+		Behavior:      SessionBehaviorRelease,
 	}
 	want.Namespace = info.Namespace
 	assert.Equal(t, want, info)

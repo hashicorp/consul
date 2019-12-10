@@ -1920,9 +1920,8 @@ type Session struct {
 	NodeChecks    []string
 	ServiceChecks []ServiceCheck
 
-	// Deprecated for Consul Enterprise in v1.7.0. This field is not compatible with namespaced service checks.
-	// Use NodeChecks and ServiceChecks instead.
-	Checks []types.CheckID
+	// Deprecated v1.7.0.
+	Checks []types.CheckID `json:",omitempty"`
 
 	EnterpriseMeta
 	RaftIndex

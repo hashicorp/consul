@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 )
 
 // sessionCreateResponse is used to wrap the session ID
@@ -23,7 +24,8 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		Op: structs.SessionCreate,
 		Session: structs.Session{
 			Node:       s.agent.config.NodeName,
-			NodeChecks: []string{"serfHealth"},
+			NodeChecks: []string{string(structs.SerfCheckID)},
+			Checks:     []types.CheckID{structs.SerfCheckID},
 			LockDelay:  15 * time.Second,
 			Behavior:   structs.SessionKeysRelease,
 			TTL:        "",
@@ -44,6 +46,8 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 			return nil, nil
 		}
 	}
+
+	fixupEmptySessionChecks(&args.Session)
 
 	// Create the session, get the ID
 	var out string
@@ -195,4 +199,27 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 		out.Sessions = make(structs.Sessions, 0)
 	}
 	return out.Sessions, nil
+}
+
+// This is for backwards compatibility. Prior to 1.7.0 users could create a session with no Checks
+// by passing an empty Checks field. Now the preferred field is session.NodeChecks.
+func fixupEmptySessionChecks(session *structs.Session) {
+	// If the Checks field contains an empty slice, empty out the default check that was provided to NodeChecks
+	if len(session.Checks) == 0 {
+		session.NodeChecks = make([]string, 0)
+		return
+	}
+
+	// If the checks field contains the default value, empty it out. Defer to what is in NodeChecks.
+	if len(session.Checks) == 1 && session.Checks[0] == structs.SerfCheckID {
+		session.Checks = nil
+		return
+	}
+
+	// If the NodeChecks field contains an empty slice, empty out the default check that was provided to Checks
+	if len(session.NodeChecks) == 0 {
+		session.Checks = nil
+		return
+	}
+	return
 }

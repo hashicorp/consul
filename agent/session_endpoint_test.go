@@ -277,36 +277,106 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Passing empty NodeChecks should overwrite serfHealth default
-	body := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(body)
-	raw := map[string]interface{}{
-		"Name":       "my-cool-session",
-		"Node":       a.Config.NodeName,
-		"NodeChecks": []string{},
-		"LockDelay":  "20s",
-	}
-	enc.Encode(raw)
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-	resp := httptest.NewRecorder()
-	retry.Run(t, func(r *retry.R) {
-		obj, err := a.srv.SessionCreate(resp, req)
-		if err != nil {
-			r.Fatalf("err: %v", err)
+	t.Run("no check fields should yield default serfHealth", func(t *testing.T) {
+		// Passing empty NodeChecks should overwrite serfHealth default
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":      "my-cool-session",
+			"Node":      a.Config.NodeName,
+			"LockDelay": "20s",
 		}
+		enc.Encode(raw)
 
-		want := structs.Session{
-			ID:         obj.(sessionCreateResponse).ID,
-			Name:       "my-cool-session",
-			Node:       a.Config.NodeName,
-			NodeChecks: []string{},
-			LockDelay:  20 * time.Second,
-			Behavior:   structs.SessionKeysRelease,
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		retry.Run(t, func(r *retry.R) {
+			obj, err := a.srv.SessionCreate(resp, req)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+			if obj == nil {
+				r.Fatalf("expected a session")
+			}
+
+			want := structs.Session{
+				ID:         obj.(sessionCreateResponse).ID,
+				Name:       "my-cool-session",
+				Node:       a.Config.NodeName,
+				NodeChecks: []string{string(structs.SerfCheckID)},
+				LockDelay:  20 * time.Second,
+				Behavior:   structs.SessionKeysRelease,
+			}
+			verifySession(t, r, a, want)
+		})
+	})
+
+	t.Run("overwrite nodechecks to associate with no checks", func(t *testing.T) {
+		// Passing empty NodeChecks should overwrite serfHealth default
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":       "my-cool-session",
+			"Node":       a.Config.NodeName,
+			"NodeChecks": []string{},
+			"LockDelay":  "20s",
 		}
-		verifySession(t, r, a, want)
+		enc.Encode(raw)
+
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		retry.Run(t, func(r *retry.R) {
+			obj, err := a.srv.SessionCreate(resp, req)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+
+			want := structs.Session{
+				ID:         obj.(sessionCreateResponse).ID,
+				Name:       "my-cool-session",
+				Node:       a.Config.NodeName,
+				NodeChecks: []string{},
+				LockDelay:  20 * time.Second,
+				Behavior:   structs.SessionKeysRelease,
+			}
+			verifySession(t, r, a, want)
+		})
+	})
+
+	t.Run("overwrite checks to associate with no checks", func(t *testing.T) {
+		// Passing empty NodeChecks should overwrite serfHealth default
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":      "my-cool-session",
+			"Node":      a.Config.NodeName,
+			"Checks":    []string{},
+			"LockDelay": "20s",
+		}
+		enc.Encode(raw)
+
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
+		retry.Run(t, func(r *retry.R) {
+			obj, err := a.srv.SessionCreate(resp, req)
+			if err != nil {
+				r.Fatalf("err: %v", err)
+			}
+
+			want := structs.Session{
+				ID:         obj.(sessionCreateResponse).ID,
+				Name:       "my-cool-session",
+				Node:       a.Config.NodeName,
+				NodeChecks: []string{},
+				Checks:     []types.CheckID{},
+				LockDelay:  20 * time.Second,
+				Behavior:   structs.SessionKeysRelease,
+			}
+			verifySession(t, r, a, want)
+		})
 	})
 }
 

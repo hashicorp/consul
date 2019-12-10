@@ -58,7 +58,7 @@ func (c *Client) Session() *Session {
 // a session with no associated health checks.
 func (s *Session) CreateNoChecks(se *SessionEntry, q *WriteOptions) (string, *WriteMeta, error) {
 	body := make(map[string]interface{})
-	body["Checks"] = []string{}
+	body["NodeChecks"] = []string{}
 	if se != nil {
 		if se.Name != "" {
 			body["Name"] = se.Name
