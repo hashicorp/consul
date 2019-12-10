@@ -235,6 +235,7 @@ func (a *Autopilot) pruneDeadServers() error {
 	peers := NumPeers(raftConfig)
 
 	if peers-removalCount < int(conf.MinQuorum) {
+		a.logger.Printf("[DEBUG] autopilot: Failed to remove dead servers: removing %d would be less then quorum of %d.", removalCount, conf.MinQuorum)
 		return nil
 	}
 
