@@ -88,8 +88,8 @@ func (idx WaitIndexVal) Next(previous BlockingParamVal) BlockingParamVal {
 		return idx
 	}
 	prevIdx, ok := previous.(WaitIndexVal)
-	if ok && prevIdx > idx {
-		// This value is smaller than the previous index, reset.
+	if ok && prevIdx == idx {
+		// This value is the same as the previous index, reset
 		return WaitIndexVal(0)
 	}
 	return idx
