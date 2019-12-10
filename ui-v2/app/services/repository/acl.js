@@ -12,7 +12,4 @@ export default RepositoryService.extend({
   clone: function(item) {
     return this.store.clone(this.getModelName(), get(item, this.getPrimaryKey()));
   },
-  authorize: function() {
-    return this.store.authorize(this.getModelName());
-  },
 });
