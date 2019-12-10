@@ -24,6 +24,7 @@ FEATURES
 IMPROVEMENTS
 
 * agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
+* agent: clients should only attempt to remove pruned nodes once per call [[GH-6591](https://github.com/hashicorp/consul/pull/6591)]
 * cli: give feedback to CLI user on forceleave command if node does not exist [[GH-6841](https://github.com/hashicorp/consul/pull/6841)]
 * router: do not surface left servers [[GH-6420](https://github.com/hashicorp/consul/pull/6420)]
 * sentinel: **(Consul Enterprise only)** The Sentinel framework was upgraded to v0.13.0. See the [Sentinel Release Notes](https://docs.hashicorp.com/sentinel/changelog/) for more information.
