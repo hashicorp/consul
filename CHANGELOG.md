@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.0-beta1 (December 10, 2019)
 
 NOTES:
 

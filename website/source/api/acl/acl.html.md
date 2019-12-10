@@ -308,8 +308,8 @@ replication enabled.
 - `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
   the Auth Method to use for Login. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
-  If not provided at all, the namespace will be inferred from the request's ACL 
-  token, or will default to the `default` namespace. Added in Consul 1.7.0.
+  If not provided at all, the namespace will default to the `default` namespace. 
+  Added in Consul 1.7.0.
 
 ### Sample Payload
 
