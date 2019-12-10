@@ -69,7 +69,9 @@ The table below shows this endpoint's support for
 
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
   If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  This is specified as part of the URL as a query parameter. 
+  For recursive lookups, the namespace may be specified as '*' and then results 
+  will be returned for all namespaces. Added in Consul 1.7.0.
 
 ### Sample Request
 

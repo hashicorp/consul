@@ -162,7 +162,7 @@ The table below shows this endpoint's support for
    
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
   the role. This value can be specified as the `ns` URL query 
-  parameter orthe `X-Consul-Namespace` header. If not provided by either,
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
   the namespace will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
@@ -227,7 +227,7 @@ The table below shows this endpoint's support for
    
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
   the role. This value can be specified as the `ns` URL query 
-  parameter orthe `X-Consul-Namespace` header. If not provided by either,
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
   the namespace will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
@@ -392,7 +392,7 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the
   role to delete. This value can be specified as the `ns` URL query 
-  parameter orthe `X-Consul-Namespace` header. If not provided by either,
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
   the namespace will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
@@ -434,7 +434,7 @@ The table below shows this endpoint's support for
 
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list
   the roles for. This value can be specified as the `ns` URL query 
-  parameter orthe `X-Consul-Namespace` header. If not provided by either,
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
   the namespace will default to the `default` namespace. The namespace may be specified as '*' and then
   results will be returned for all namespaces. Added in Consul 1.7.0.
 
