@@ -21,7 +21,9 @@ export default RepositoryService.extend({
     return config.CONSUL_NSPACES_UNDEFINED_NAME;
   },
   authorize: function(dc, nspace) {
-    return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace });
+    return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function(e) {
+      return [];
+    });
   },
   getActive: function() {
     let routeParams = {};
