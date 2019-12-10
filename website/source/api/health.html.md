@@ -47,8 +47,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list checks. 
   This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. To view
+  `X-Consul-Namespace` header. If not provided at all, the namespace will default 
+  to the `default` namespace. To view
   checks for multiple namespaces the `*` wildcard namespace may be used. Added in Consul 1.7.0.
 
 ### Sample Request
@@ -152,8 +152,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the service.
   This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+  `X-Consul-Namespace` header. If not provided at all, the namespace will default 
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -252,8 +252,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the service. 
   This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
-  from the request's ACL  token or will default to the `default` namespace. Added in Consul 1.7.0.
+  `X-Consul-Namespace` header. If not provided at all, the namespace will default to 
+  the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -447,8 +447,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query. 
   This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
-  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
+  `X-Consul-Namespace` header. If not provided at all, the namespace will default 
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
