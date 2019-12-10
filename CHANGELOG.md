@@ -24,12 +24,15 @@ FEATURES
 IMPROVEMENTS
 
 * agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
-* xds: mesh gateway CDS requests are now allowed to receive an empty CDS reply [[GH-6787](https://github.com/hashicorp/consul/issues/6787)]
+* cli: give feedback to CLI user on forceleave command if node does not exist [[GH-6841](https://github.com/hashicorp/consul/pull/6841)]
+* router: do not surface left servers [[GH-6420](https://github.com/hashicorp/consul/pull/6420)]
 * sentinel: **(Consul Enterprise only)** The Sentinel framework was upgraded to v0.13.0. See the [Sentinel Release Notes](https://docs.hashicorp.com/sentinel/changelog/) for more information.
+* xds: mesh gateway CDS requests are now allowed to receive an empty CDS reply [[GH-6787](https://github.com/hashicorp/consul/issues/6787)]
 
 BUG FIXES
 
 * cli: remove `-dev` from `consul version` in ARM builds in the 1.6.2 release [[GH-6875](https://github.com/hashicorp/consul/issues/6875)]
+* cli: ui_content_path config option fix [[GH-6601](https://github.com/hashicorp/consul/pull/6601)]
 * agent: fix watch event behavior [[GH-5265](https://github.com/hashicorp/consul/pull/5265)]
 * connect: CAs can now use RSA keys correctly to sign EC leafs [[GH-6638](https://github.com/hashicorp/consul/pull/6638)]
 * cli: services register command now correctly registers an unamed healthcheck [[GH-6800](https://github.com/hashicorp/consul/pull/6800)]
