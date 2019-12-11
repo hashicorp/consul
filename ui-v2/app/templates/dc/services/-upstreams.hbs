@@ -15,7 +15,7 @@
           {{item.DestinationName}}
           {{#if (not-eq item.DestinationType 'prepared_query')}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (nspace/or item.DestinationNamespace)}}>{{nspace/or item.DestinationNamespace}}</em>
+            <em class={{concat 'nspace-' (or item.DestinationNamespace 'default')}}>{{or item.DestinationNamespace 'default'}}</em>
           {{/if}}
         </a>
       </td>

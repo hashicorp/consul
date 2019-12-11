@@ -39,7 +39,7 @@
                           {{item.SourceName}}
                         {{/if}}
                         {{! TODO: slugify }}
-                        <em class={{concat 'nspace-' (nspace/or item.SourceNS)}}>{{nspace/or item.SourceNS}}</em>
+                        <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
                       </a>
                     </td>
                     <td class="intent-{{item.Action}}" data-test-intention-action="{{item.Action}}">
@@ -53,7 +53,7 @@
                           {{item.DestinationName}}
                         {{/if}}
                         {{! TODO: slugify }}
-                        <em class={{concat 'nspace-' (nspace/or item.DestinationNS)}}>{{nspace/or item.DestinationNS}}</em>
+                        <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
                       </span>
                     </td>
                     <td class="precedence">

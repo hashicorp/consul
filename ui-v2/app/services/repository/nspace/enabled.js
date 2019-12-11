@@ -1,6 +1,5 @@
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
-import config from 'consul-ui/config/environment';
 import RepositoryService from 'consul-ui/services/repository';
 
 const modelName = 'nspace';
@@ -16,9 +15,6 @@ export default RepositoryService.extend({
       query.index = configuration.cursor;
     }
     return this.store.query(this.getModelName(), query);
-  },
-  getUndefinedName: function() {
-    return config.CONSUL_NSPACES_UNDEFINED_NAME;
   },
   authorize: function(dc, nspace) {
     return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function(e) {

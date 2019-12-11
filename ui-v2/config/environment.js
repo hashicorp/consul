@@ -65,9 +65,8 @@ module.exports = function(environment) {
       }
       return 'oss';
     })(),
-    CONSUL_ACLS_ENABLED: true,
-    CONSUL_NSPACES_ENABLED: true,
-    CONSUL_NSPACES_UNDEFINED_NAME: 'default',
+    CONSUL_ACLS_ENABLED: false,
+    CONSUL_NSPACES_ENABLED: false,
     CONSUL_HOME_URL: 'https://www.consul.io',
     CONSUL_DOCS_URL: 'https://www.consul.io/docs',
     CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com/consul',
@@ -75,24 +74,24 @@ module.exports = function(environment) {
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
     CONSUL_COPYRIGHT_YEAR: '2019',
   });
-  ENV = Object.assign({}, ENV, {
-    CONSUL_NSPACES_ENABLED: ENV.CONSUL_BINARY_TYPE !== 'oss',
-  });
-  if (environment === 'development') {
-    ENV = Object.assign({}, ENV, {
-      CONSUL_NSPACES_ENABLED: true,
-    });
-    // ENV.APP.LOG_RESOLVER = true;
-    // ENV.APP.LOG_ACTIVE_GENERATION = true;
-    // ENV.APP.LOG_TRANSITIONS = true;
-    // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    // ENV.APP.LOG_VIEW_LOOKUPS = true;
+  switch (true) {
+    case isDevLike:
+      ENV = Object.assign({}, ENV, {
+        CONSUL_NSPACES_ENABLED: true,
+        CONSUL_ACLS_ENABLED: true,
+      });
+      // ENV.APP.LOG_RESOLVER = true;
+      // ENV.APP.LOG_ACTIVE_GENERATION = true;
+      // ENV.APP.LOG_TRANSITIONS = true;
+      // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
+      // ENV.APP.LOG_VIEW_LOOKUPS = true;
+      break;
+    case isProdLike:
+      break;
   }
-
+  // TODO: Move this to use switch once the production forking
+  // below has been uncommented (once ACLs and NSPACEs flags are passed through)
   if (environment === 'test') {
-    ENV = Object.assign({}, ENV, {
-      CONSUL_NSPACES_ENABLED: true,
-    });
     // Testem prefers this...
     ENV.locationType = 'none';
 
