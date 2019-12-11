@@ -24,6 +24,7 @@ const model = Model.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
+// TODO: Remove this in favour of just specifying it in the Adapter
 export const ATTRS = writable(model, [
   'Action',
   'SourceName',
