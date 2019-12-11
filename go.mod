@@ -25,7 +25,7 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/infobloxopen/go-trees v0.0.0-20190313150506-2af4e13f9062
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
-	github.com/miekg/dns v1.1.24
+	github.com/miekg/dns v1.1.25
 	github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5
@@ -38,8 +38,8 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20190917205325-a14579fbfb1a
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
-	golang.org/x/net v0.0.0-20191207000613-e7e4b65ae663 // indirect
-	golang.org/x/sys v0.0.0-20191206220618-eeba5f6aabab
+	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
+	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449
 	google.golang.org/api v0.14.0
 	google.golang.org/grpc v1.25.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.19.0
