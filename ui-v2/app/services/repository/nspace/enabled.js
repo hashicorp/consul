@@ -31,11 +31,6 @@ export default RepositoryService.extend({
       return [];
     });
   },
-  authorize: function(dc, nspace) {
-    return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function(e) {
-      return [];
-    });
-  },
   getActive: function() {
     let routeParams = {};
     // this is only populated before the model hook as fired,
