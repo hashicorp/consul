@@ -1,5 +1,5 @@
 import EmberRouter from '@ember/routing/router';
-import env, { config } from 'consul-ui/env';
+import { config } from 'consul-ui/env';
 import walk from 'consul-ui/utils/routing/walk';
 
 const Router = EmberRouter.extend({
