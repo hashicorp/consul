@@ -13,10 +13,12 @@
       <td>
         <a data-test-destination-name>
           {{item.DestinationName}}
-          {{#if (not-eq item.DestinationType 'prepared_query')}}
+  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+    {{#if (not-eq item.DestinationType 'prepared_query')}}
             {{! TODO: slugify }}
             <em class={{concat 'nspace-' (or item.DestinationNamespace 'default')}}>{{or item.DestinationNamespace 'default'}}</em>
-          {{/if}}
+    {{/if}}
+  {{/if}}
         </a>
       </td>
       <td data-test-destination-datacenter>

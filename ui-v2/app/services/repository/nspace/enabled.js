@@ -1,5 +1,6 @@
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
+import { config } from 'consul-ui/env';
 import RepositoryService from 'consul-ui/services/repository';
 
 const modelName = 'nspace';
@@ -17,6 +18,15 @@ export default RepositoryService.extend({
     return this.store.query(this.getModelName(), query);
   },
   authorize: function(dc, nspace) {
+    if (!config('CONSUL_ACLS_ENABLED')) {
+      return Promise.resolve([
+        {
+          Resource: 'operator',
+          Access: 'write',
+          Allow: true,
+        },
+      ]);
+    }
     return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function(e) {
       return [];
     });

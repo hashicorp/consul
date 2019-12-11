@@ -23,7 +23,7 @@
           {{/power-select-with-create}}
           <em>Search for an existing service, write in a future one, or write in any Service URI.</em>
         </label>
-{{#if (gt nspaces.length 0)}}
+  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-source-nspace class="type-text{{if item.error.SourceNS ' has-error'}}">
           <span>Source Namespace</span>
           {{#power-select-with-create
@@ -68,7 +68,7 @@
           {{/power-select-with-create}}
           <em>Search for an existing service or write in a future one.</em>
         </label>
-{{#if (gt nspaces.length 0)}}
+  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-destination-nspace class="type-text{{if item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
           {{#power-select-with-create

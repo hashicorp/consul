@@ -13,9 +13,8 @@
                 <ul>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
 {{!FIXME only show this if I'm allowed to see it right now we can only be sure you are allowed to see this if ACLs are disabled until we have further API support}}
-{{#let (or canManageNamespaces (not (env 'CONSUL_ACLS_ENABLED'))) as |nspaceManagement|}}
                     <li>
-    {{#if (and (eq nspaces.length 1) (not nspaceManagement)) }}
+    {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
                         {{#toggle-button name="nspaces"}}
@@ -38,7 +37,7 @@
                                   <a href={{href-mut (hash nspace=(concat '~' item.Name))}}>{{item.Name}}</a>
                               </li>
                             {{/each}}
-      {{#if nspaceManagement }}
+      {{#if canManageNspaces }}
                             <li class="manage-namespaces" data-test-main-nav-nspaces>
                                 <a href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
                             </li>
@@ -47,7 +46,6 @@
                         </div>
     {{/if}}
                     </li>
-{{/let}}
   {{/if}}
                     <li>
   {{#if (or (not dcs) (eq dcs.length 1)) }}

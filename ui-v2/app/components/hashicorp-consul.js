@@ -9,7 +9,7 @@ export default Component.extend({
   },
   // TODO: Right now this is the only place where we need permissions
   // but we are likely to need it elsewhere, so probably need a nice helper
-  canManageNamespaces: computed('permissions', function() {
+  canManageNspaces: computed('permissions', function() {
     return (
       typeof (this.permissions || []).find(function(item) {
         return item.Resource === 'operator' && item.Access === 'write' && item.Allow;
