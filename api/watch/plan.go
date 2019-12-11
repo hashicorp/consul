@@ -20,11 +20,36 @@ const (
 	maxBackoffTime = 180 * time.Second
 )
 
+func (p *Plan) createLogger() (*log.Logger) {
+	output := p.LogOutput
+	if output == nil {
+		output = os.Stderr
+	}
+	return log.New(output, "", log.LstdFlags)
+}
+
+// Run is used to run a watch plan
 func (p *Plan) Run(address string) error {
 	return p.RunWithConfig(address, nil)
 }
 
-// Run is used to run a watch plan
+func (p *Plan) RunWithClient(client *consulapi.Client) error {
+	// check client config
+	if client.Datacenter() != p.Datacenter {
+		return fmt.Errorf("Error: Configured Client Datacenter (%s) doesnt match Plan Datacenter (%s)",
+					client.Datacenter(), p.Datacenter)
+	}
+
+	if client.Token() != p.Token {
+		return fmt.Errorf("Error: Configured Client Token doesnt match Plan Token")
+	}
+
+	// Create the logger
+	logger := p.createLogger()
+
+	return p.RunWithClientAndLogger(client, logger)
+}
+
 func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	// Setup the client
 	p.address = address
@@ -40,11 +65,7 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	}
 
 	// Create the logger
-	output := p.LogOutput
-	if output == nil {
-		output = os.Stderr
-	}
-	logger := log.New(output, "", log.LstdFlags)
+	logger := p.createLogger()
 
 	return p.RunWithClientAndLogger(client, logger)
 }

@@ -249,7 +249,7 @@ func (c *cmd) Run(args []string) int {
 	}()
 
 	// Run the watch
-	if err := wp.Run(c.http.Addr()); err != nil {
+	if err := wp.RunWithClient(client); err != nil {
 		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}

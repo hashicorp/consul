@@ -789,6 +789,14 @@ func (r *request) toHTTP() (*http.Request, error) {
 	return req, nil
 }
 
+func (c *Client) Datacenter() string {
+	return c.config.Datacenter
+}
+
+func (c *Client) Token() string {
+	return c.config.Token
+}
+
 // newRequest is used to create a new request
 func (c *Client) newRequest(method, path string) *request {
 	r := &request{
