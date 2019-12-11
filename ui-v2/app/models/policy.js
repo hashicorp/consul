@@ -1,11 +1,10 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
-import writable from 'consul-ui/utils/model/writable';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
 
-const model = Model.extend({
+export default Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
   Name: attr('string', {
@@ -29,6 +28,3 @@ const model = Model.extend({
     defaultValue: '',
   }),
 });
-// TODO: Remove this in favour of just specifying it in the Adapter
-export const ATTRS = writable(model, ['Name', 'Description', 'Rules', 'Datacenters']);
-export default model;
