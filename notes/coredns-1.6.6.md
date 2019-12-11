@@ -20,7 +20,7 @@ vulnerability (https://github.com/miekg/dns/issues/1043).
 
 # Plugins
 
-A new plugin [*bufsize*](/plugins/bufsize) has been added that prevents IP fragmentation
+A new plugin [*bufsize*](/plugin/bufsize) has been added that prevents IP fragmentation
 for the DNS Flag Day 2020 and to deal with DNS vulnerabilities.
 
 * [*cache*](/plugin/cache) added a `serve_stale` option similar to `unbound`'s `serve_expired`.
