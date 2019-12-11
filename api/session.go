@@ -28,19 +28,19 @@ type SessionEntry struct {
 	LockDelay   time.Duration
 	Behavior    string
 	TTL         string
-  Namespace   string `json:",omitempty"`
+	Namespace   string `json:",omitempty"`
 
 	// Deprecated for Consul Enterprise in v1.7.0.
-	Checks      []string
+	Checks []string
 
 	// NodeChecks and ServiceChecks are new in Consul 1.7.0.
 	// When associating checks with sessions, namespaces can be specified for service checks.
-	NodeChecks []string
+	NodeChecks    []string
 	ServiceChecks []ServiceCheck
 }
 
 type ServiceCheck struct {
-	ID string
+	ID        string
 	Namespace string
 }
 

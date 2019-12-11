@@ -97,12 +97,12 @@ type KVTxnResponse struct {
 type SessionOp string
 
 const (
-	SessionDelete    SessionOp = "delete"
+	SessionDelete SessionOp = "delete"
 )
 
 // SessionTxnOp defines a single operation inside a transaction.
 type SessionTxnOp struct {
-	Verb  SessionOp
+	Verb    SessionOp
 	Session Session
 }
 
