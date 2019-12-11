@@ -43,6 +43,7 @@ const model = Model.extend({
   CreateIndex: attr('number'),
   ModifyIndex: attr('number'),
 });
+// TODO: Remove this in favour of just specifying it in the Adapter
 // Name and Rules is only for legacy tokens
 export const ATTRS = writable(model, [
   'Name',

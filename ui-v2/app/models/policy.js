@@ -29,5 +29,6 @@ const model = Model.extend({
     defaultValue: '',
   }),
 });
+// TODO: Remove this in favour of just specifying it in the Adapter
 export const ATTRS = writable(model, ['Name', 'Description', 'Rules', 'Datacenters']);
 export default model;
