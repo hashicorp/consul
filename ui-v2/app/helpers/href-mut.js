@@ -27,7 +27,7 @@ export default Helper.extend({
     // 'ideally' we could try and do this elsewhere
     // not super important though.
     // This will turn an URL that has no nspace (/ui/dc-1/nodes) into one
-    // that does have a namespace (/ui/~nspace/nodes) if you href-mut with
+    // that does have a namespace (/ui/~nspace/dc-1/nodes) if you href-mut with
     // a nspace parameter
     if (typeof params.nspace !== 'undefined' && !route.startsWith('nspace.')) {
       route = `nspace.${route}`;
