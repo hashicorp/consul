@@ -307,11 +307,15 @@ cover:
 
 format:
 	@echo "--> Running go fmt"
-	@go fmt $(GOFILES)
+	@go fmt ./...
+	@cd api && go fmt ./... | sed 's@^@api/@'
+	@cd sdk && go fmt ./... | sed 's@^@sdk/@'
 
 vet:
 	@echo "--> Running go vet"
-	@go vet -tags '$(GOTAGS)' $(GOFILES); if [ $$? -eq 1 ]; then \
+	@go vet -tags '$(GOTAGS)' ./... && \
+		(cd api && go vet -tags '$(GOTAGS)' ./...) && \
+		(cd sdk && go vet -tags '$(GOTAGS)' ./...); if [ $$? -ne 0 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \

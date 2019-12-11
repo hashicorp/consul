@@ -51,14 +51,17 @@ jobs:
       - run:
           name: check go fmt
           command: |
-            files=$(go fmt ./...)
+            files="$(go fmt ./... ; (cd api && go fmt ./... | sed 's@^@api/@') ; (cd sdk && go fmt ./... | sed 's@^@sdk/@'))"
             if [ -n "$files" ]; then
-              echo "The following file(s) do not conform to go fmt:"
-              echo "$files"
-              exit 1
+                echo "The following file(s) do not conform to go fmt:"
+                echo "$files"
+                exit 1
             fi
       - run:
-          command: go vet ./...
+          command: |
+            go vet ./... && \
+              (cd api && go vet ./...) && \
+              (cd sdk && go vet ./...)
     environment:
       <<: *ENVIRONMENT
 
