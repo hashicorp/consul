@@ -1,3 +1,8 @@
+/* CSS active states are partly added at the top of */
+/* components/templates/discovery-chain.hbs for reasons */
+/* the styling there almost 100% uses our CSS vars */
+/* defined in our CSS files, but be sure to */
+/* take a look in the discovery-chain.hbs */
 %discovery-chain .tooltip,
 %chain-group > header span {
   @extend %with-tooltip;
