@@ -293,17 +293,16 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 		cert, key string
 		shoulderr bool
 		isnil     bool
-		isempty   bool
 	}
 	variants := []variant{
-		{"", "", false, false, true},
-		{"bogus", "", false, false, true},
-		{"", "bogus", false, false, true},
-		{"../test/key/ourdomain.cer", "", false, false, true},
-		{"", "../test/key/ourdomain.key", false, false, true},
-		{"bogus", "bogus", true, true, false},
+		{"", "", false, true},
+		{"bogus", "", false, true},
+		{"", "bogus", false, true},
+		{"../test/key/ourdomain.cer", "", false, true},
+		{"", "../test/key/ourdomain.key", false, true},
+		{"bogus", "bogus", true, true},
 		{"../test/key/ourdomain.cer", "../test/key/ourdomain.key",
-			false, false, false},
+			false, false},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
@@ -316,10 +315,6 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 		} else {
 			require.NoError(t, err1, info)
 			require.NoError(t, err2, info)
-		}
-		if v.isempty {
-			require.Empty(t, cert1.Certificate, info)
-			require.Empty(t, cert2.Certificate, info)
 		}
 		if v.isnil {
 			require.Nil(t, cert1, info)
@@ -538,16 +533,46 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 
-	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
+	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
-	require.Nil(t, cert.Certificate)
+	require.Nil(t, cert)
 
-	c.manual.cert = &tls.Certificate{}
-	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
+	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
+	require.NoError(t, err)
+	c.manual.cert = c1
+	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
 
+	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
+	require.NoError(t, err)
+	c.autoEncrypt.cert = c2
 	cert, err = c.commonTLSConfig(false).GetClientCertificate(nil)
+	require.NoError(t, err)
+	require.Equal(t, c.autoEncrypt.cert, cert)
+}
+
+func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
+	c, err := NewConfigurator(Config{}, nil)
+	require.NoError(t, err)
+
+	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
+	require.NoError(t, err)
+	require.Nil(t, cert)
+
+	// Setting a certificate as the auto-encrypt cert will return it as the regular server certificate
+	c1, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
+	require.NoError(t, err)
+	c.autoEncrypt.cert = c1
+	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
+	require.NoError(t, err)
+	require.Equal(t, c.autoEncrypt.cert, cert)
+
+	// Setting a different certificate as a manual cert will override the auto-encrypt cert and instead return the manual cert
+	c2, err := loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
+	require.NoError(t, err)
+	c.manual.cert = c2
+	cert, err = c.commonTLSConfig(false).GetCertificate(nil)
 	require.NoError(t, err)
 	require.Equal(t, c.manual.cert, cert)
 }
@@ -715,7 +740,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	c, err := NewConfigurator(Config{}, nil)
 	require.NoError(t, err)
 	require.Nil(t, c.caPool)
-	require.Nil(t, c.manual.cert.Certificate)
+	require.Nil(t, c.manual.cert)
 	require.Equal(t, c.base, &Config{})
 	require.Equal(t, 1, c.version)
 

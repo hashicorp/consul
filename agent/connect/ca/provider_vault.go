@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-uuid"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 )
@@ -24,8 +23,8 @@ var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 type VaultProvider struct {
 	config    *structs.VaultCAProviderConfig
 	client    *vaultapi.Client
-	isRoot    bool
-	clusterId string
+	isPrimary bool
+	clusterID string
 	spiffeID  *connect.SpiffeIDSigning
 }
 
@@ -41,8 +40,8 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 }
 
 // Configure sets up the provider using the given configuration.
-func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[string]interface{}) error {
-	config, err := ParseVaultCAConfig(rawConfig)
+func (v *VaultProvider) Configure(cfg ProviderConfig) error {
+	config, err := ParseVaultCAConfig(cfg.RawConfig)
 	if err != nil {
 		return err
 	}
@@ -62,11 +61,17 @@ func (v *VaultProvider) Configure(clusterId string, isRoot bool, rawConfig map[s
 	client.SetToken(config.Token)
 	v.config = config
 	v.client = client
-	v.isRoot = isRoot
-	v.clusterId = clusterId
-	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterId})
+	v.isPrimary = cfg.IsPrimary
+	v.clusterID = cfg.ClusterID
+	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
 
 	return nil
+}
+
+// State implements Provider. Vault provider needs no state other than the
+// user-provided config currently.
+func (v *VaultProvider) State() (map[string]string, error) {
+	return nil, nil
 }
 
 // ActiveRoot returns the active root CA certificate.
@@ -76,7 +81,7 @@ func (v *VaultProvider) ActiveRoot() (string, error) {
 
 // GenerateRoot mounts and initializes a new root PKI backend if needed.
 func (v *VaultProvider) GenerateRoot() error {
-	if !v.isRoot {
+	if !v.isPrimary {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
 
@@ -98,12 +103,12 @@ func (v *VaultProvider) GenerateRoot() error {
 
 		fallthrough
 	case ErrBackendNotInitialized:
-		uuid, err := uuid.GenerateUUID()
+		uid, err := connect.CompactUID()
 		if err != nil {
 			return err
 		}
 		_, err = v.client.Logical().Write(v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
-			"common_name": fmt.Sprintf("Vault CA Root Authority %s", uuid),
+			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 			"uri_sans":    v.spiffeID.URI().String(),
 			"key_type":    v.config.PrivateKeyType,
 			"key_bits":    v.config.PrivateKeyBits,
@@ -124,7 +129,7 @@ func (v *VaultProvider) GenerateRoot() error {
 // for another datacenter's root to sign, overwriting the intermediate backend
 // in the process.
 func (v *VaultProvider) GenerateIntermediateCSR() (string, error) {
-	if v.isRoot {
+	if v.isPrimary {
 		return "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
@@ -174,8 +179,12 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 	}
 
 	// Generate a new intermediate CSR for the root to sign.
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
 	data, err := v.client.Logical().Write(v.config.IntermediatePKIPath+"intermediate/generate/internal", map[string]interface{}{
-		"common_name": "Vault CA Intermediate Authority",
+		"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
 		"key_type":    v.config.PrivateKeyType,
 		"key_bits":    v.config.PrivateKeyBits,
 		"uri_sans":    v.spiffeID.URI().String(),
@@ -197,7 +206,7 @@ func (v *VaultProvider) generateIntermediateCSR() (string, error) {
 // SetIntermediate writes the incoming intermediate and root certificates to the
 // intermediate backend (as a chain).
 func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM string) error {
-	if v.isRoot {
+	if v.isPrimary {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
@@ -324,8 +333,13 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // SignIntermediate returns a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	err := validateSignIntermediate(csr, v.spiffeID)
+	if err != nil {
+		return "", err
+	}
+
 	var pemBuf bytes.Buffer
-	err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
+	err = pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
 	if err != nil {
 		return "", err
 	}
@@ -378,6 +392,11 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	}
 
 	return xcCert, nil
+}
+
+// SupportsCrossSigning implements Provider
+func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
+	return true, nil
 }
 
 // Cleanup unmounts the configured intermediate PKI backend. It's fine to tear

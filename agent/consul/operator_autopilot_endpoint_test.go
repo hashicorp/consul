@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 )
 
@@ -116,6 +116,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 		Datacenter: "dc1",
 		Config: autopilot.Config{
 			CleanupDeadServers: true,
+			MinQuorum:          3,
 		},
 	}
 	var reply *bool
@@ -130,7 +131,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !config.CleanupDeadServers {
+	if !config.CleanupDeadServers && config.MinQuorum != 3 {
 		t.Fatalf("bad: %#v", config)
 	}
 }

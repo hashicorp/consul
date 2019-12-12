@@ -25,14 +25,26 @@ export default Adapter.extend({
     return request`
       PUT /v1/acl/role?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${serialized}
+      ${{
+        Name: serialized.Name,
+        Description: serialized.Description,
+        Namespace: serialized.Namespace,
+        Policies: serialized.Policies,
+        ServiceIdentities: serialized.ServiceIdentities,
+      }}
     `;
   },
   requestForUpdateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/acl/role/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${serialized}
+      ${{
+        Name: serialized.Name,
+        Description: serialized.Description,
+        Namespace: serialized.Namespace,
+        Policies: serialized.Policies,
+        ServiceIdentities: serialized.ServiceIdentities,
+      }}
     `;
   },
   requestForDeleteRecord: function(request, serialized, data) {

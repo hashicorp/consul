@@ -266,3 +266,29 @@ to reach a node from outside its datacenter, you can configure this behavior
 using the [`advertise-wan`](/docs/agent/options.html#_advertise-wan) and
 [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
 options.
+
+## Namespaced Services <span class="label-enterprise label-enterprise-lg">Enterprise</span>
+
+Consul Enterprise 1.7.0 added support for namespaces including resolving namespaced
+services via DNS. To maintain backwards compatibility existing queries can be used
+and these will resolve services within the `default` namespace. However, for resolving
+services from other namespaces the following form can be used:
+
+    [tag.]<service>.service.<namespace>.<datacenter>.<domain>
+  
+This is the canonical name of a Consul Enterprise service with all parts present. Like
+Consul OSS some parts may be omitted but which parts depend on the value of the
+[`prefer_namespace` configuration](https://deploy-preview-6909--consul-docs-preview.netlify.com/docs/agent/options.html#dns_prefer_namespace).
+
+With `prefer_namespace` set to `true` the datacenter may be omitted and will be defaulted
+to the local agents datacenter:
+
+    [tag.]<service>.service.<namespace>.<domain>
+  
+With `prefer_namespace` set to `false` the namespace may be omitted and will be defaulted
+to the `default` namespace:
+  
+    [tag.]<service>.service.<datacenter>
+  
+Finally, both the namespace and datacenter may be omitted and the service will be resolved 
+in the `default` namespace and in the datacenter of the local agent.

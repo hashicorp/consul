@@ -64,12 +64,12 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 	// here is also baked into vetDeregisterWithACL() in acl.go, so if you
 	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
-		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
+		if err := c.state.DeleteService(index, req.Node, req.ServiceID, &req.EnterpriseMeta); err != nil {
 			c.logger.Printf("[WARN] consul.fsm: DeleteNodeService failed: %v", err)
 			return err
 		}
 	} else if req.CheckID != "" {
-		if err := c.state.DeleteCheck(index, req.Node, req.CheckID); err != nil {
+		if err := c.state.DeleteCheck(index, req.Node, req.CheckID, &req.EnterpriseMeta); err != nil {
 			c.logger.Printf("[WARN] consul.fsm: DeleteNodeCheck failed: %v", err)
 			return err
 		}
@@ -93,15 +93,15 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	case api.KVSet:
 		return c.state.KVSSet(index, &req.DirEnt)
 	case api.KVDelete:
-		return c.state.KVSDelete(index, req.DirEnt.Key)
+		return c.state.KVSDelete(index, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 	case api.KVDeleteCAS:
-		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key)
+		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
 		return act
 	case api.KVDeleteTree:
-		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
+		return c.state.KVSDeleteTree(index, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 	case api.KVCAS:
 		act, err := c.state.KVSSetCAS(index, &req.DirEnt)
 		if err != nil {
@@ -141,7 +141,7 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 		}
 		return req.Session.ID
 	case structs.SessionDestroy:
-		return c.state.SessionDestroy(index, req.Session.ID)
+		return c.state.SessionDestroy(index, req.Session.ID, &req.Session.EnterpriseMeta)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid Session operation '%s'", req.Op)
 		return fmt.Errorf("Invalid Session operation '%s'", req.Op)
@@ -172,7 +172,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 
 		// No need to check expiration times as those did not exist in legacy tokens.
-		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID); err != nil {
+		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID, nil); err != nil {
 			return err
 		} else {
 			acl, err := token.Convert()
@@ -188,7 +188,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 		return req.ACL.ID
 	case structs.ACLDelete:
-		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID)
+		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID, nil)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
@@ -533,5 +533,5 @@ func (c *FSM) applyACLAuthMethodDeleteOperation(buf []byte, index uint64) interf
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "authmethod"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
-	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames)
+	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames, &req.EnterpriseMeta)
 }

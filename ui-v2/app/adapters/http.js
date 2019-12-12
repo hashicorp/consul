@@ -65,6 +65,7 @@ export default Adapter.extend({
       switch (err.statusCode) {
         case 0:
           error = new AbortError();
+          error.errors[0].status = '0';
           break;
         case 401:
           error = new UnauthorizedError(errors, detailedMessage);

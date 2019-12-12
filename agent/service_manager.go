@@ -25,7 +25,7 @@ type ServiceManager struct {
 	servicesLock sync.Mutex
 
 	// services tracks all active watches for registered services
-	services map[string]*serviceConfigWatch
+	services map[structs.ServiceID]*serviceConfigWatch
 
 	// registerCh is a channel for processing service registrations in the
 	// background when watches are notified of changes. All sends and receives
@@ -47,7 +47,7 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &ServiceManager{
 		agent:      agent,
-		services:   make(map[string]*serviceConfigWatch),
+		services:   make(map[structs.ServiceID]*serviceConfigWatch),
 		registerCh: make(chan *asyncRegisterRequest), // must be unbuffered
 		ctx:        ctx,
 		cancel:     cancel,
@@ -118,6 +118,8 @@ func (s *ServiceManager) registerOnce(args *addServiceRequest) error {
 func (s *ServiceManager) AddService(req *addServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
+	req.service.EnterpriseMeta.Normalize()
+
 	// For now only sidecar proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
 	if !req.service.IsSidecarProxy() && !req.service.IsMeshGateway() {
@@ -152,11 +154,13 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 
+	sid := service.CompoundServiceID()
+
 	// If a service watch already exists, shut it down and replace it.
-	oldWatch, updating := s.services[service.ID]
+	oldWatch, updating := s.services[sid]
 	if updating {
 		oldWatch.Stop()
-		delete(s.services, service.ID)
+		delete(s.services, sid)
 	}
 
 	// Get the existing global config and do the initial registration with the
@@ -179,7 +183,7 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 		return err
 	}
 
-	s.services[service.ID] = watch
+	s.services[sid] = watch
 
 	if updating {
 		s.agent.logger.Printf("[DEBUG] agent.manager: updated local registration for service %q", service.ID)
@@ -191,7 +195,7 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 }
 
 // NOTE: the caller must hold the Agent.stateLock!
-func (s *ServiceManager) RemoveService(serviceID string) {
+func (s *ServiceManager) RemoveService(serviceID structs.ServiceID) {
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 

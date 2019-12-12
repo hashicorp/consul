@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/serf"
 
@@ -55,28 +55,27 @@ type TestACLAgent struct {
 // NewTestACLAGent does just enough so that all the code within agent/acl.go can work
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
-func NewTestACLAgent(name string, hcl string, resolveFn func(string) (acl.Authorizer, error)) *TestACLAgent {
+func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(string) (acl.Authorizer, error)) *TestACLAgent {
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveTokenFn: resolveFn}
 	hclDataDir := `data_dir = "acl-agent"`
 
-	a.Config = TestConfig(
+	logOutput := testutil.TestWriter(t)
+	logger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+	a.Config = TestConfig(logger,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
 
-	agent, err := New(a.Config, nil)
+	agent, err := New(a.Config, logger)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating agent: %v", err))
 	}
 	a.Agent = agent
 
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
 	agent.LogOutput = logOutput
 	agent.LogWriter = a.LogWriter
-	agent.logger = log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+	agent.logger = logger
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	a.Agent.delegate = a
@@ -156,7 +155,7 @@ func TestACL_Version8(t *testing.T) {
 			return nil, fmt.Errorf("should not have called delegate.ResolveToken")
 		}
 
-		a := NewTestACLAgent(t.Name(), TestACLConfig()+`
+		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = false
  	`, resolveFn)
 
@@ -171,7 +170,7 @@ func TestACL_Version8(t *testing.T) {
 			called = true
 			return nil, acl.ErrNotFound
 		}
-		a := NewTestACLAgent(t.Name(), TestACLConfig()+`
+		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = true
  	`, resolveFn)
 
@@ -189,16 +188,16 @@ func TestACL_AgentMasterToken(t *testing.T) {
 		return nil, fmt.Errorf("should not have called delegate.ResolveToken")
 	}
 
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), resolveFn)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
 	a.loadTokens(a.config)
 	authz, err := a.resolveToken("towel")
 	require.NotNil(t, authz)
 	require.Nil(t, err)
 
-	require.True(t, authz.AgentRead(a.config.NodeName))
-	require.True(t, authz.AgentWrite(a.config.NodeName))
-	require.True(t, authz.NodeRead("foobarbaz"))
-	require.False(t, authz.NodeWrite("foobarbaz", nil))
+	require.Equal(t, acl.Allow, authz.AgentRead(a.config.NodeName, nil))
+	require.Equal(t, acl.Allow, authz.AgentWrite(a.config.NodeName, nil))
+	require.Equal(t, acl.Allow, authz.NodeRead("foobarbaz", nil))
+	require.Equal(t, acl.Deny, authz.NodeWrite("foobarbaz", nil))
 }
 
 func TestACL_RootAuthorizersDenied(t *testing.T) {
@@ -209,7 +208,7 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 		return nil, fmt.Errorf("should not have called delegate.ResolveToken")
 	}
 
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), resolveFn)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
 	authz, err := a.resolveToken("deny")
 	require.Nil(t, authz)
 	require.Error(t, err)
@@ -224,8 +223,8 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 	require.True(t, acl.IsErrRootDenied(err))
 }
 
-func authzFromPolicy(policy *acl.Policy) (acl.Authorizer, error) {
-	return acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+func authzFromPolicy(policy *acl.Policy, cfg *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 
 // catalogPolicy supplies some standard policies to help with testing the
@@ -235,34 +234,44 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 
 	case "node-ro":
 		return authzFromPolicy(&acl.Policy{
-			NodePrefixes: []*acl.NodePolicy{
-				&acl.NodePolicy{Name: "Node", Policy: "read"},
+			PolicyRules: acl.PolicyRules{
+				NodePrefixes: []*acl.NodeRule{
+					&acl.NodeRule{Name: "Node", Policy: "read"},
+				},
 			},
-		})
+		}, nil)
 	case "node-rw":
 		return authzFromPolicy(&acl.Policy{
-			NodePrefixes: []*acl.NodePolicy{
-				&acl.NodePolicy{Name: "Node", Policy: "write"},
+			PolicyRules: acl.PolicyRules{
+				NodePrefixes: []*acl.NodeRule{
+					&acl.NodeRule{Name: "Node", Policy: "write"},
+				},
 			},
-		})
+		}, nil)
 	case "service-ro":
 		return authzFromPolicy(&acl.Policy{
-			ServicePrefixes: []*acl.ServicePolicy{
-				&acl.ServicePolicy{Name: "service", Policy: "read"},
+			PolicyRules: acl.PolicyRules{
+				ServicePrefixes: []*acl.ServiceRule{
+					&acl.ServiceRule{Name: "service", Policy: "read"},
+				},
 			},
-		})
+		}, nil)
 	case "service-rw":
 		return authzFromPolicy(&acl.Policy{
-			ServicePrefixes: []*acl.ServicePolicy{
-				&acl.ServicePolicy{Name: "service", Policy: "write"},
+			PolicyRules: acl.PolicyRules{
+				ServicePrefixes: []*acl.ServiceRule{
+					&acl.ServiceRule{Name: "service", Policy: "write"},
+				},
 			},
-		})
+		}, nil)
 	case "other-rw":
 		return authzFromPolicy(&acl.Policy{
-			ServicePrefixes: []*acl.ServicePolicy{
-				&acl.ServicePolicy{Name: "other", Policy: "write"},
+			PolicyRules: acl.PolicyRules{
+				ServicePrefixes: []*acl.ServiceRule{
+					&acl.ServiceRule{Name: "other", Policy: "write"},
+				},
 			},
-		})
+		}, nil)
 	default:
 		return nil, fmt.Errorf("unknown token %q", token)
 	}
@@ -270,7 +279,7 @@ func catalogPolicy(token string) (acl.Authorizer, error) {
 
 func TestACL_vetServiceRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Register a new service, with permission.
 	err := a.vetServiceRegister("service-rw", &structs.NodeService{
@@ -301,10 +310,10 @@ func TestACL_vetServiceRegister(t *testing.T) {
 
 func TestACL_vetServiceUpdate(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a service that doesn't exist.
-	err := a.vetServiceUpdate("service-rw", "my-service")
+	err := a.vetServiceUpdate("service-rw", structs.NewServiceID("my-service", nil))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Unknown service")
 
@@ -313,18 +322,18 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 		ID:      "my-service",
 		Service: "service",
 	}, "")
-	err = a.vetServiceUpdate("service-rw", "my-service")
+	err = a.vetServiceUpdate("service-rw", structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
 	// Update without write privs.
-	err = a.vetServiceUpdate("service-ro", "my-service")
+	err = a.vetServiceUpdate("service-ro", structs.NewServiceID("my-service", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
 func TestACL_vetCheckRegister(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Register a new service check with write privs.
 	err := a.vetCheckRegister("service-rw", &structs.HealthCheck{
@@ -390,10 +399,10 @@ func TestACL_vetCheckRegister(t *testing.T) {
 
 func TestACL_vetCheckUpdate(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a check that doesn't exist.
-	err := a.vetCheckUpdate("node-rw", "my-check")
+	err := a.vetCheckUpdate("node-rw", structs.NewCheckID("my-check", nil))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Unknown check")
 
@@ -407,30 +416,30 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 		ServiceID:   "my-service",
 		ServiceName: "service",
 	}, "")
-	err = a.vetCheckUpdate("service-rw", "my-service-check")
+	err = a.vetCheckUpdate("service-rw", structs.NewCheckID("my-service-check", nil))
 	require.NoError(t, err)
 
 	// Update service check without write privs.
-	err = a.vetCheckUpdate("service-ro", "my-service-check")
+	err = a.vetCheckUpdate("service-ro", structs.NewCheckID("my-service-check", nil))
 	require.Error(t, err)
-	require.True(t, acl.IsErrPermissionDenied(err))
+	require.True(t, acl.IsErrPermissionDenied(err), "not permission denied: %s", err.Error())
 
 	// Update node check with write privs.
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
 	}, "")
-	err = a.vetCheckUpdate("node-rw", "my-node-check")
+	err = a.vetCheckUpdate("node-rw", structs.NewCheckID("my-node-check", nil))
 	require.NoError(t, err)
 
 	// Update without write privs.
-	err = a.vetCheckUpdate("node-ro", "my-node-check")
+	err = a.vetCheckUpdate("node-ro", structs.NewCheckID("my-node-check", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
 
 func TestACL_filterMembers(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	var members []serf.Member
 	require.NoError(t, a.filterMembers("node-ro", &members))
@@ -449,45 +458,44 @@ func TestACL_filterMembers(t *testing.T) {
 
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
-	services := make(map[string]*structs.NodeService)
+	services := make(map[structs.ServiceID]*structs.NodeService)
 	require.NoError(t, a.filterServices("node-ro", &services))
 
-	services["my-service"] = &structs.NodeService{ID: "my-service", Service: "service"}
-	services["my-other"] = &structs.NodeService{ID: "my-other", Service: "other"}
+	services[structs.NewServiceID("my-service", nil)] = &structs.NodeService{ID: "my-service", Service: "service"}
+	services[structs.NewServiceID("my-other", nil)] = &structs.NodeService{ID: "my-other", Service: "other"}
 	require.NoError(t, a.filterServices("service-ro", &services))
-	require.Contains(t, services, "my-service")
-	require.NotContains(t, services, "my-other")
+	require.Contains(t, services, structs.NewServiceID("my-service", nil))
+	require.NotContains(t, services, structs.NewServiceID("my-other", nil))
 }
 
 func TestACL_filterChecks(t *testing.T) {
 	t.Parallel()
-	a := NewTestACLAgent(t.Name(), TestACLConfig(), catalogPolicy)
+	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
-	checks := make(map[types.CheckID]*structs.HealthCheck)
+	checks := make(map[structs.CheckID]*structs.HealthCheck)
 	require.NoError(t, a.filterChecks("node-ro", &checks))
 
-	checks["my-node"] = &structs.HealthCheck{}
-	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
-	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
+	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
+	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
 	require.NoError(t, a.filterChecks("service-ro", &checks))
-	fmt.Printf("filtered: %#v", checks)
-	_, ok := checks["my-node"]
+	_, ok := checks[structs.NewCheckID("my-node", nil)]
 	require.False(t, ok)
-	_, ok = checks["my-service"]
+	_, ok = checks[structs.NewCheckID("my-service", nil)]
 	require.True(t, ok)
-	_, ok = checks["my-other"]
+	_, ok = checks[structs.NewCheckID("my-other", nil)]
 	require.False(t, ok)
 
-	checks["my-node"] = &structs.HealthCheck{}
-	checks["my-service"] = &structs.HealthCheck{ServiceName: "service"}
-	checks["my-other"] = &structs.HealthCheck{ServiceName: "other"}
+	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
+	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
+	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
 	require.NoError(t, a.filterChecks("node-ro", &checks))
-	_, ok = checks["my-node"]
+	_, ok = checks[structs.NewCheckID("my-node", nil)]
 	require.True(t, ok)
-	_, ok = checks["my-service"]
+	_, ok = checks[structs.NewCheckID("my-service", nil)]
 	require.False(t, ok)
-	_, ok = checks["my-other"]
+	_, ok = checks[structs.NewCheckID("my-other", nil)]
 	require.False(t, ok)
 }

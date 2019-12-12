@@ -81,7 +81,10 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 
 	// Add service health checks to the list of paths to create listeners for if needed
 	if cfgSnap.Proxy.Expose.Checks {
-		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(cfgSnap.Proxy.DestinationServiceID) {
+		// TODO (namespaces) update with real ent meta
+		var psid structs.ServiceID
+		psid.Init(cfgSnap.Proxy.DestinationServiceID, structs.DefaultEnterpriseMeta())
+		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Printf("[WARN] envoy: failed to create listener for check '%s': %v", check.CheckID, err)
@@ -577,8 +580,23 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		proto = "tcp"
 	}
 
+	useRDS := true
+	clusterName := ""
+	if proto == "tcp" {
+		startNode := chain.Nodes[chain.StartNode]
+		if startNode == nil {
+			panic("missing first node in compiled discovery chain for: " + chain.ServiceName)
+		} else if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
+			panic(fmt.Sprintf("unexpected first node in discovery chain using protocol=%q: %s", proto, startNode.Type))
+		}
+		targetID := startNode.Resolver.Target
+		target := chain.Targets[targetID]
+		clusterName = CustomizeClusterName(target.Name, chain)
+		useRDS = false
+	}
+
 	filter, err := makeListenerFilter(
-		true, proto, upstreamID, "", "upstream_", "", false)
+		useRDS, proto, upstreamID, clusterName, "upstream_", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -607,6 +625,11 @@ func makeListenerFilter(
 	case "tcp":
 		fallthrough
 	default:
+		if useRDS {
+			return envoylistener.Filter{}, fmt.Errorf("RDS is not compatible with the tcp proxy filter")
+		} else if cluster == "" {
+			return envoylistener.Filter{}, fmt.Errorf("cluster name is required for a tcp proxy filter")
+		}
 		return makeTCPProxyFilter(filterName, cluster, statPrefix)
 	}
 }

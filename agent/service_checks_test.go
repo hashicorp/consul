@@ -2,14 +2,15 @@ package agent
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 // Integration test for ServiceHTTPBasedChecks cache-type
@@ -89,7 +90,7 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	}
 
 	// Removing the GRPC check should leave only the HTTP check
-	if err := a.RemoveCheck(chkTypes[1].CheckID, false); err != nil {
+	if err := a.RemoveCheck(structs.NewCheckID(chkTypes[1].CheckID, nil), false); err != nil {
 		t.Fatalf("failed to remove check: %v", err)
 	}
 

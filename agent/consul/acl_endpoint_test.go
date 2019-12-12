@@ -144,7 +144,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLTokenGetBySecret(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.ACLTokenGetBySecret(nil, id)
+	_, s, err = state.ACLTokenGetBySecret(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -212,7 +212,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	if acl1 == nil {
 		t.Fatalf("should not be nil")
 	}
-	if !acl1.KeyRead("foo") {
+	if acl1.KeyRead("foo", nil) != acl.Allow {
 		t.Fatalf("should be allowed")
 	}
 
@@ -234,7 +234,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	if acl2 == acl1 {
 		t.Fatalf("should not be cached")
 	}
-	if acl2.KeyRead("foo") {
+	if acl2.KeyRead("foo", nil) == acl.Allow {
 		t.Fatalf("should not be allowed")
 	}
 
@@ -289,7 +289,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.ACLTokenGetBySecret(nil, out)
+	_, s, err := state.ACLTokenGetBySecret(nil, out, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -733,7 +733,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 		err := acl.TokenRead(&req, &resp)
 		require.Nil(t, resp.Token)
-		require.EqualError(t, err, "failed acl token lookup: failed acl token lookup: index error: UUID must be 36 characters")
+		require.EqualError(t, err, "failed acl token lookup: index error: UUID must be 36 characters")
 	})
 }
 
@@ -1861,6 +1861,12 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	// Try to join
 	joinWAN(t, s2, s1)
 
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+
+	// Ensure s2 is authoritative.
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
 
@@ -2005,8 +2011,6 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		var resp string
 
-		waitForNewACLs(t, s2)
-
 		err = acl2.TokenDelete(&req, &resp)
 		require.NoError(t, err)
 
@@ -2075,15 +2079,19 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	t2, err := upsertTestToken(codec, "root", "dc1", nil)
 	require.NoError(t, err)
 
-	t3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
-		token.ExpirationTTL = 20 * time.Millisecond
-	})
-	require.NoError(t, err)
-
 	masterTokenAccessorID, err := retrieveTestTokenAccessorForSecret(codec, "root", "dc1", "root")
 	require.NoError(t, err)
 
 	t.Run("normal", func(t *testing.T) {
+		// this will still be racey even with inserting the token + ttl inside the test function
+		// however previously inserting it outside of the subtest func resulted in this being
+		// extra flakey due to there being more code that needed to run to setup the subtest
+		// between when we inserted the token and when we performed the listing.
+		t3, err := upsertTestToken(codec, "root", "dc1", func(token *structs.ACLToken) {
+			token.ExpirationTTL = 50 * time.Millisecond
+		})
+		require.NoError(t, err)
+
 		req := structs.ACLTokenListRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: "root"},
@@ -2104,7 +2112,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
 	})
 
-	time.Sleep(20 * time.Millisecond) // now 't3' is expired
+	time.Sleep(50 * time.Millisecond) // now 't3' is expired
 
 	t.Run("filter expired", func(t *testing.T) {
 		req := structs.ACLTokenListRequest{
@@ -4118,6 +4126,9 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	waitForNewACLs(t, s1)
 	waitForNewACLs(t, s2)
 
+	// Ensure s2 is authoritative.
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
 	acl := ACL{srv: s1}
 	acl2 := ACL{srv: s2}
 
@@ -4427,6 +4438,9 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	})
 
 	t.Run("logout of remote token in remote dc", func(t *testing.T) {
+		// if the other test fails this one will to but will now not segfault
+		require.NotNil(t, remoteToken)
+
 		req := structs.ACLLogoutRequest{
 			Datacenter:   "dc2",
 			WriteRequest: structs.WriteRequest{Token: remoteToken.SecretID},
@@ -5286,10 +5300,10 @@ func upsertTestTokenWithPolicyRules(codec rpc.ClientCodec, masterToken string, d
 
 func retrieveTestTokenAccessorForSecret(codec rpc.ClientCodec, masterToken string, datacenter string, id string) (string, error) {
 	arg := structs.ACLTokenGetRequest{
-		TokenID:      "root",
+		TokenID:      id,
 		TokenIDType:  structs.ACLTokenSecret,
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: "root"},
+		Datacenter:   datacenter,
+		QueryOptions: structs.QueryOptions{Token: masterToken},
 	}
 
 	var out structs.ACLTokenResponse
@@ -5351,12 +5365,7 @@ func deleteTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter stri
 	return err
 }
 
-// upsertTestPolicy creates a policy for testing purposes
-func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLPolicy, error) {
-	return upsertTestPolicyWithRules(codec, masterToken, datacenter, "")
-}
-
-func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
+func upsertTestCustomizedPolicy(codec rpc.ClientCodec, masterToken string, datacenter string, policyModificationFn func(policy *structs.ACLPolicy)) (*structs.ACLPolicy, error) {
 	// Make sure test policies can't collide
 	policyUnq, err := uuid.GenerateUUID()
 	if err != nil {
@@ -5366,10 +5375,13 @@ func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datace
 	arg := structs.ACLPolicySetRequest{
 		Datacenter: datacenter,
 		Policy: structs.ACLPolicy{
-			Name:  fmt.Sprintf("test-policy-%s", policyUnq),
-			Rules: rules,
+			Name: fmt.Sprintf("test-policy-%s", policyUnq),
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if policyModificationFn != nil {
+		policyModificationFn(&arg.Policy)
 	}
 
 	var out structs.ACLPolicy
@@ -5385,6 +5397,17 @@ func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datace
 	}
 
 	return &out, nil
+}
+
+// upsertTestPolicy creates a policy for testing purposes
+func upsertTestPolicy(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLPolicy, error) {
+	return upsertTestPolicyWithRules(codec, masterToken, datacenter, "")
+}
+
+func upsertTestPolicyWithRules(codec rpc.ClientCodec, masterToken string, datacenter string, rules string) (*structs.ACLPolicy, error) {
+	return upsertTestCustomizedPolicy(codec, masterToken, datacenter, func(policy *structs.ACLPolicy) {
+		policy.Rules = rules
+	})
 }
 
 // retrieveTestPolicy returns a policy for testing purposes
@@ -5432,6 +5455,10 @@ func deleteTestRoleByName(codec rpc.ClientCodec, masterToken string, datacenter 
 
 // upsertTestRole creates a role for testing purposes
 func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string) (*structs.ACLRole, error) {
+	return upsertTestCustomizedRole(codec, masterToken, datacenter, nil)
+}
+
+func upsertTestCustomizedRole(codec rpc.ClientCodec, masterToken string, datacenter string, modify func(role *structs.ACLRole)) (*structs.ACLRole, error) {
 	// Make sure test roles can't collide
 	roleUnq, err := uuid.GenerateUUID()
 	if err != nil {
@@ -5444,6 +5471,10 @@ func upsertTestRole(codec rpc.ClientCodec, masterToken string, datacenter string
 			Name: fmt.Sprintf("test-role-%s", roleUnq),
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&arg.Role)
 	}
 
 	var out structs.ACLRole
@@ -5512,6 +5543,17 @@ func upsertTestAuthMethod(
 	codec rpc.ClientCodec, masterToken string, datacenter string,
 	sessionID string,
 ) (*structs.ACLAuthMethod, error) {
+	return upsertTestCustomizedAuthMethod(codec, masterToken, datacenter, func(method *structs.ACLAuthMethod) {
+		method.Config = map[string]interface{}{
+			"SessionID": sessionID,
+		}
+	})
+}
+
+func upsertTestCustomizedAuthMethod(
+	codec rpc.ClientCodec, masterToken string, datacenter string,
+	modify func(method *structs.ACLAuthMethod),
+) (*structs.ACLAuthMethod, error) {
 	name, err := uuid.GenerateUUID()
 	if err != nil {
 		return nil, err
@@ -5522,11 +5564,12 @@ func upsertTestAuthMethod(
 		AuthMethod: structs.ACLAuthMethod{
 			Name: "test-method-" + name,
 			Type: "testing",
-			Config: map[string]interface{}{
-				"SessionID": sessionID,
-			},
 		},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&req.AuthMethod)
 	}
 
 	var out structs.ACLAuthMethod
@@ -5618,15 +5661,23 @@ func upsertTestBindingRule(
 	bindType string,
 	bindName string,
 ) (*structs.ACLBindingRule, error) {
+	return upsertTestCustomizedBindingRule(codec, masterToken, datacenter, func(rule *structs.ACLBindingRule) {
+		rule.AuthMethod = methodName
+		rule.BindType = bindType
+		rule.BindName = bindName
+		rule.Selector = selector
+	})
+}
+
+func upsertTestCustomizedBindingRule(codec rpc.ClientCodec, masterToken string, datacenter string, modify func(rule *structs.ACLBindingRule)) (*structs.ACLBindingRule, error) {
 	req := structs.ACLBindingRuleSetRequest{
-		Datacenter: datacenter,
-		BindingRule: structs.ACLBindingRule{
-			AuthMethod: methodName,
-			BindType:   bindType,
-			BindName:   bindName,
-			Selector:   selector,
-		},
+		Datacenter:   datacenter,
+		BindingRule:  structs.ACLBindingRule{},
 		WriteRequest: structs.WriteRequest{Token: masterToken},
+	}
+
+	if modify != nil {
+		modify(&req.BindingRule)
 	}
 
 	var out structs.ACLBindingRule

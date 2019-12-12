@@ -62,10 +62,16 @@ The table below shows this endpoint's support for
   metadata). Specifying this implies `recurse`. This is specified as part of the
   URL as a query parameter.
 
-- `separator` `(string: '')` - Specifies the string to use as a separator
+- `separator` `(string: "")` - Specifies the string to use as a separator
   for recursive key lookups. This option is only used when paired with the `keys` 
   parameter to limit the prefix of keys returned,  only up to the given separator. 
   This is specified as part of the URL as a query parameter.
+
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. 
+  For recursive lookups, the namespace may be specified as '*' and then results 
+  will be returned for all namespaces. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -201,6 +207,10 @@ The table below shows this endpoint's support for
   will leave the `LockIndex` unmodified but will clear the associated `Session`
   of the key. The key must be held by this session to be unlocked.
 
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+
 ### Sample Payload
 
 The payload is arbitrary, and is loaded directly into Consul as supplied.
@@ -256,6 +266,10 @@ The table below shows this endpoint's support for
   `PUT`, the index must be greater than 0 for Consul to take any action: a 0
   index will not delete the key. If the index is non-zero, the key is only
   deleted if the index matches the `ModifyIndex` of that key.
+
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 

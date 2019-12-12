@@ -22,7 +22,8 @@ const (
 func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
-	_, sessions, err := state.SessionList(nil)
+
+	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,7 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	// Fault the session in if not given
 	if session == nil {
 		state := s.fsm.State()
-		_, s, err := state.SessionGet(nil, id)
+		_, s, err := state.SessionGet(nil, id, nil)
 		if err != nil {
 			return err
 		}
@@ -66,11 +67,11 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 		return nil
 	}
 
-	s.createSessionTimer(session.ID, ttl)
+	s.createSessionTimer(session.ID, ttl, &session.EnterpriseMeta)
 	return nil
 }
 
-func (s *Server) createSessionTimer(id string, ttl time.Duration) {
+func (s *Server) createSessionTimer(id string, ttl time.Duration, entMeta *structs.EnterpriseMeta) {
 	// Reset the session timer
 	// Adjust the given TTL by the TTL multiplier. This is done
 	// to give a client a grace period and to compensate for network
@@ -78,12 +79,12 @@ func (s *Server) createSessionTimer(id string, ttl time.Duration) {
 	// before the TTL, but there is no explicit promise about the upper
 	// bound so this is allowable.
 	ttl = ttl * structs.SessionTTLMultiplier
-	s.sessionTimers.ResetOrCreate(id, ttl, func() { s.invalidateSession(id) })
+	s.sessionTimers.ResetOrCreate(id, ttl, func() { s.invalidateSession(id, entMeta) })
 }
 
 // invalidateSession is invoked when a session TTL is reached and we
 // need to invalidate the session.
-func (s *Server) invalidateSession(id string) {
+func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
 	defer metrics.MeasureSince([]string{"session_ttl", "invalidate"}, time.Now())
 
 	// Clear the session timer
@@ -96,6 +97,9 @@ func (s *Server) invalidateSession(id string) {
 		Session: structs.Session{
 			ID: id,
 		},
+	}
+	if entMeta != nil {
+		args.Session.EnterpriseMeta = *entMeta
 	}
 
 	// Retry with exponential backoff to invalidate the session

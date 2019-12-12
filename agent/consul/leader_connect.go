@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -81,6 +82,10 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error parsing root cert: %v", err)
 	}
+	keyType, keyBits, err := connect.KeyInfoFromCert(rootCert)
+	if err != nil {
+		return nil, fmt.Errorf("error extracting root key info: %v", err)
+	}
 	return &structs.CARoot{
 		ID:                  id,
 		Name:                fmt.Sprintf("%s CA Root Cert", strings.Title(provider)),
@@ -90,20 +95,32 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 		NotBefore:           rootCert.NotBefore,
 		NotAfter:            rootCert.NotAfter,
 		RootCert:            pemValue,
+		PrivateKeyType:      keyType,
+		PrivateKeyBits:      keyBits,
 		Active:              true,
 	}, nil
 }
 
 // createProvider returns a connect CA provider from the given config.
 func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	var p ca.Provider
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return &ca.ConsulProvider{Delegate: &consulCADelegate{s}}, nil
+		p = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
-		return &ca.VaultProvider{}, nil
+		p = &ca.VaultProvider{}
+	case structs.AWSCAProvider:
+		p = &ca.AWSProvider{}
 	default:
 		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
 	}
+
+	// If the provider implements NeedsLogger, we give it our logger.
+	if needsLogger, ok := p.(ca.NeedsLogger); ok {
+		needsLogger.SetLogger(s.logger)
+	}
+
+	return p, nil
 }
 
 func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
@@ -197,7 +214,14 @@ func (s *Server) initializeCA() error {
 
 // initializeRootCA runs the initialization logic for a root CA.
 func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
-	if err := provider.Configure(conf.ClusterID, true, conf.Config); err != nil {
+	pCfg := ca.ProviderConfig{
+		ClusterID:  conf.ClusterID,
+		Datacenter: s.config.Datacenter,
+		IsPrimary:  true,
+		RawConfig:  conf.Config,
+		State:      conf.State,
+	}
+	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := provider.GenerateRoot(); err != nil {
@@ -224,12 +248,23 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		return fmt.Errorf("error getting intermediate cert: %v", err)
 	}
 
-	commonConfig, err := conf.GetCommonConfig()
+	// If the provider has state to persist and it's changed or new then update
+	// CAConfig.
+	pState, err := provider.State()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting provider state: %v", err)
 	}
-	rootCA.PrivateKeyType = commonConfig.PrivateKeyType
-	rootCA.PrivateKeyBits = commonConfig.PrivateKeyBits
+	if !reflect.DeepEqual(conf.State, pState) {
+		// Update the CAConfig in raft to persist the provider state
+		conf.State = pState
+		req := structs.CARequest{
+			Op:     structs.CAOpSetConfig,
+			Config: conf,
+		}
+		if _, err = s.raftApply(structs.ConnectCARequestType, req); err != nil {
+			return fmt.Errorf("error persisting provider state: %v", err)
+		}
+	}
 
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
@@ -388,6 +423,12 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, roots structs.Index
 		}
 		newConf := *config
 		newConf.ClusterID = newActiveRoot.ExternalTrustDomain
+
+		// Persist any state the provider needs us to
+		newConf.State, err = provider.State()
+		if err != nil {
+			return fmt.Errorf("error getting provider state: %v", err)
+		}
 
 		// Copy the root list and append the new active root, updating the old root
 		// with the time it was rotated out.
@@ -759,7 +800,14 @@ func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs
 		return err
 	}
 
-	if err := provider.Configure(clusterID, false, conf.Config); err != nil {
+	pCfg := ca.ProviderConfig{
+		ClusterID:  clusterID,
+		Datacenter: s.config.Datacenter,
+		IsPrimary:  false,
+		RawConfig:  conf.Config,
+		State:      conf.State,
+	}
+	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 

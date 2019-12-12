@@ -2,11 +2,10 @@ package api
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/pascaldekloe/goe/verify"
 )
 
 func TestAPI_SessionCreateDestroy(t *testing.T) {
@@ -316,19 +315,38 @@ func TestAPI_SessionInfo(t *testing.T) {
 	info.CreateIndex = 0
 
 	want := &SessionEntry{
-		ID:        id,
-		Node:      s.Config.NodeName,
-		Checks:    []string{"serfHealth"},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		ID:         id,
+		Node:       s.Config.NodeName,
+		NodeChecks: []string{"serfHealth"},
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
 	}
-	verify.Values(t, "", info, want)
+	if info.ID != want.ID {
+		t.Fatalf("bad ID: %s", info.ID)
+	}
+	if info.Node != want.Node {
+		t.Fatalf("bad Node: %s", info.Node)
+	}
+	if info.LockDelay != want.LockDelay {
+		t.Fatalf("bad LockDelay: %d", info.LockDelay)
+	}
+	if info.Behavior != want.Behavior {
+		t.Fatalf("bad Behavior: %s", info.Behavior)
+	}
+	if len(info.NodeChecks) != len(want.NodeChecks) {
+		t.Fatalf("expected %d nodechecks, got %d", len(want.NodeChecks), len(info.NodeChecks))
+	}
+	if info.NodeChecks[0] != want.NodeChecks[0] {
+		t.Fatalf("expected nodecheck %s, got %s", want.NodeChecks, info.NodeChecks)
+	}
 }
 
 func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	session := c.Session()
 
@@ -356,13 +374,26 @@ func TestAPI_SessionInfo_NoChecks(t *testing.T) {
 	info.CreateIndex = 0
 
 	want := &SessionEntry{
-		ID:        id,
-		Node:      s.Config.NodeName,
-		Checks:    []string{},
-		LockDelay: 15 * time.Second,
-		Behavior:  SessionBehaviorRelease,
+		ID:         id,
+		Node:       s.Config.NodeName,
+		NodeChecks: []string{},
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
 	}
-	verify.Values(t, "", info, want)
+	if info.ID != want.ID {
+		t.Fatalf("bad ID: %s", info.ID)
+	}
+	if info.Node != want.Node {
+		t.Fatalf("bad Node: %s", info.Node)
+	}
+	if info.LockDelay != want.LockDelay {
+		t.Fatalf("bad LockDelay: %d", info.LockDelay)
+	}
+	if info.Behavior != want.Behavior {
+		t.Fatalf("bad Behavior: %s", info.Behavior)
+	}
+	assert.Equal(t, want.Checks, info.Checks)
+	assert.Equal(t, want.NodeChecks, info.NodeChecks)
 }
 
 func TestAPI_SessionNode(t *testing.T) {
@@ -432,4 +463,196 @@ func TestAPI_SessionList(t *testing.T) {
 	if !qm.KnownLeader {
 		t.Fatalf("bad: %v", qm)
 	}
+}
+
+func TestAPI_SessionNodeChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	// Node check that doesn't exist should yield error on creation
+	se := SessionEntry{
+		NodeChecks: []string{"dne"},
+	}
+	session := c.Session()
+
+	id, _, err := session.Create(&se, nil)
+	if err == nil {
+		t.Fatalf("should have failed")
+	}
+
+	// Empty node check should lead to serf check
+	se.NodeChecks = []string{}
+	id, _, err = session.Create(&se, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer session.Destroy(id, nil)
+
+	info, qm, err := session.Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if qm.LastIndex == 0 {
+		t.Fatalf("bad: %v", qm)
+	}
+	if !qm.KnownLeader {
+		t.Fatalf("bad: %v", qm)
+	}
+	if info.CreateIndex == 0 {
+		t.Fatalf("bad: %v", info)
+	}
+	info.CreateIndex = 0
+
+	want := &SessionEntry{
+		ID:         id,
+		Node:       s.Config.NodeName,
+		NodeChecks: []string{"serfHealth"},
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
+	}
+	want.Namespace = info.Namespace
+	assert.Equal(t, want, info)
+
+	// Register a new node with a non-serf check
+	cr := CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "foo",
+		ID:         "e0155642-135d-4739-9853-a1ee6c9f945b",
+		Address:    "127.0.0.2",
+		Checks: HealthChecks{
+			&HealthCheck{
+				Node:    "foo",
+				CheckID: "foo:alive",
+				Name:    "foo-liveness",
+				Status:  HealthPassing,
+				Notes:   "foo is alive and well",
+			},
+		},
+	}
+	catalog := c.Catalog()
+	if _, err := catalog.Register(&cr, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// If a custom node check is provided, it should overwrite serfHealth default
+	se.Node = "foo"
+	se.NodeChecks = []string{"foo:alive"}
+
+	id, _, err = session.Create(&se, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer session.Destroy(id, nil)
+
+	info, qm, err = session.Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if qm.LastIndex == 0 {
+		t.Fatalf("bad: %v", qm)
+	}
+	if !qm.KnownLeader {
+		t.Fatalf("bad: %v", qm)
+	}
+	if info.CreateIndex == 0 {
+		t.Fatalf("bad: %v", info)
+	}
+	info.CreateIndex = 0
+
+	want = &SessionEntry{
+		ID:         id,
+		Node:       "foo",
+		NodeChecks: []string{"foo:alive"},
+		LockDelay:  15 * time.Second,
+		Behavior:   SessionBehaviorRelease,
+	}
+	want.Namespace = info.Namespace
+	assert.Equal(t, want, info)
+}
+
+func TestAPI_SessionServiceChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	// Node check that doesn't exist should yield error on creation
+	se := SessionEntry{
+		ServiceChecks: []ServiceCheck{
+			{"dne", ""},
+		},
+	}
+	session := c.Session()
+
+	id, _, err := session.Create(&se, nil)
+	if err == nil {
+		t.Fatalf("should have failed")
+	}
+
+	// Register a new service with a check
+	cr := CatalogRegistration{
+		Datacenter:     "dc1",
+		Node:           s.Config.NodeName,
+		SkipNodeUpdate: true,
+		Service: &AgentService{
+			Kind:    ServiceKindTypical,
+			ID:      "redisV2",
+			Service: "redis",
+			Port:    1235,
+			Address: "198.18.1.2",
+		},
+		Checks: HealthChecks{
+			&HealthCheck{
+				Node:      s.Config.NodeName,
+				CheckID:   "redis:alive",
+				Status:    HealthPassing,
+				ServiceID: "redisV2",
+			},
+		},
+	}
+	catalog := c.Catalog()
+	if _, err := catalog.Register(&cr, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// If a custom check is provided, it should be present in session info
+	se.ServiceChecks = []ServiceCheck{
+		{"redis:alive", ""},
+	}
+
+	id, _, err = session.Create(&se, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer session.Destroy(id, nil)
+
+	info, qm, err := session.Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if qm.LastIndex == 0 {
+		t.Fatalf("bad: %v", qm)
+	}
+	if !qm.KnownLeader {
+		t.Fatalf("bad: %v", qm)
+	}
+	if info.CreateIndex == 0 {
+		t.Fatalf("bad: %v", info)
+	}
+	info.CreateIndex = 0
+
+	want := &SessionEntry{
+		ID:            id,
+		Node:          s.Config.NodeName,
+		ServiceChecks: []ServiceCheck{{"redis:alive", ""}},
+		NodeChecks:    []string{"serfHealth"},
+		LockDelay:     15 * time.Second,
+		Behavior:      SessionBehaviorRelease,
+	}
+	want.Namespace = info.Namespace
+	assert.Equal(t, want, info)
 }

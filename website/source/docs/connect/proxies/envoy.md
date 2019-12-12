@@ -256,6 +256,21 @@ definition](/docs/connect/registration/service-registration.html) or
     proxy upstream config will override any values defined in config entries.
     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
+- `limits` - A set of limits to apply when connecting to the upstream service.
+  These limits are applied on a per-service-instance basis.  The following
+  limits are respected:
+
+  - `max_connections` - The maximum number of connections a service instance
+    will be allowed to establish against the given upstream. Use this to limit
+    HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
+  - `max_pending_requests` - The maximum number of requests that will be queued
+    while waiting for a connection to be established. For this configuration to
+    be respected, a L7 protocol must be defined in the `protocol` field.
+  - `max_concurrent_requests` - The maximum number of concurrent requests that
+    will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+    since HTTP/2 has many requests per connection. For this configuration to be
+    respected, a L7 protocol must be defined in the `protocol` field.
+
 ### Mesh Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
@@ -316,6 +331,56 @@ The JSON supplied may describe a protobuf `types.Any` message with an `@type`
 field set to the appropriate type (for example
 `type.googleapis.com/envoy.api.v2.Listener`), or it may be the direct encoding
 with no `@type` field.
+
+For example, given a tracing config:
+
+```json
+"tracing": {
+  "http": {
+     "name": "envoy.zipkin",
+     "config": {
+        "collector_cluster": "zipkin",
+        "collector_endpoint": "/api/v1/spans",
+        "shared_span_context": false
+     }
+  }
+}
+```
+
+JSON escape the value of `tracing` into a string, for example using [https://codebeautify.org/json-escape-unescape](https://codebeautify.org/json-escape-unescape),
+and then use that as the value for `envoy_tracing_json`:
+
+```json
+{
+  "kind": "proxy-defaults",
+  "name": "global",
+  "config": {
+    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.zipkin\",\"config\":{\"collector_cluster\":\"zipkin\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}"
+  }
+}
+```
+
+If using HCL, this escaping is done automatically:
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+  envoy_tracing_json = <<EOF
+{
+  "http": {
+    "name": "envoy.zipkin",
+    "config": {
+      "collector_cluster": "zipkin",
+      "collector_endpoint": "/api/v1/spans",
+      "shared_span_context": false
+    }
+  }
+}
+EOF
+}
+```
+
 
 ### Advanced Bootstrap Options
 

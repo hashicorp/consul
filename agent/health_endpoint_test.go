@@ -336,6 +336,7 @@ func TestHealthServiceChecks(t *testing.T) {
 			Node:      a.Config.NodeName,
 			Name:      "consul check",
 			ServiceID: "consul",
+			Type:      "grpc",
 		},
 	}
 
@@ -356,6 +357,9 @@ func TestHealthServiceChecks(t *testing.T) {
 	nodes = obj.(structs.HealthChecks)
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
+	}
+	if nodes[0].Type != "grpc" {
+		t.Fatalf("expected grpc check type, got %s", nodes[0].Type)
 	}
 }
 
@@ -736,7 +740,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&filter="+url.QueryEscape("Node.Node == `test-health-node`"), nil)
 	resp := httptest.NewRecorder()
@@ -788,7 +792,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 
 	assertIndex(t, resp)
 
-	// Should be a non-nil empty list for checks
+	// Should be a list of checks with 1 element
 	nodes = obj.(structs.CheckServiceNodes)
 	require.Len(t, nodes, 1)
 	require.Len(t, nodes[0].Checks, 1)
@@ -968,6 +972,59 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 			t.Errorf("bad %s", body)
 		}
 	})
+}
+
+func TestHealthServiceNodes_CheckType(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+	assertIndex(t, resp)
+
+	// Should be 1 health check for consul
+	nodes := obj.(structs.CheckServiceNodes)
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(nodes))
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+		NodeMeta:   map[string]string{"somekey": "somevalue"},
+		Check: &structs.HealthCheck{
+			Node:      a.Config.NodeName,
+			Name:      "consul check",
+			ServiceID: "consul",
+			Type:      "grpc",
+		},
+	}
+
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ = http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list for checks
+	nodes = obj.(structs.CheckServiceNodes)
+	require.Len(t, nodes, 1)
+	require.Len(t, nodes[0].Checks, 2)
+
+	for _, check := range nodes[0].Checks {
+		if check.Name == "consul check" && check.Type != "grpc" {
+			t.Fatalf("exptected grpc check type, got %s", check.Type)
+		}
+	}
 }
 
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {

@@ -153,6 +153,43 @@ func TestCommand_Flags_TaggedAddresses(t *testing.T) {
 	require.Equal(svc.TaggedAddresses["v6"].Port, 1234)
 }
 
+func TestCommand_FileWithUnnamedCheck(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t, t.Name(), ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	contents := `{ "Service": { "Name": "web", "Check": { "TTL": "10s" } } }`
+	f := testFile(t, "json")
+	defer os.Remove(f.Name())
+	if _, err := f.WriteString(contents); err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		f.Name(),
+	}
+
+	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+	svcs, err := client.Agent().Services()
+	require.NoError(err)
+	require.Len(svcs, 1)
+
+	svc := svcs["web"]
+	require.NotNil(svc)
+
+	checks, err := client.Agent().Checks()
+	require.NoError(err)
+	require.Len(checks, 1)
+}
+
 func testFile(t *testing.T, suffix string) *os.File {
 	f := testutil.TempFile(t, "register-test-file")
 	if err := f.Close(); err != nil {

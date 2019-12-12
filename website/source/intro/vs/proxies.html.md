@@ -47,7 +47,7 @@ For performance-critical applications or those
 that utilize layer 7 functionality, Envoy can be used. For non-performance critical layer 4 applications, you can use Consul's [built-in proxy](https://www.consul.io/docs/connect/proxies/built-in.html) for convenience.
 
 For some applications that may require hardware, a hardware load balancer
-such an F5 appliance may be deployed. Consul encourages this use of the right
+such as an F5 appliance may be deployed. Consul encourages this use of the right
 proxy for the scenario and treats hardware load balancers as swappable components that can be run
 alongside other proxies, assuming they integrate with the [necessary APIs](https://www.consul.io/docs/connect/proxies/integrate.html)
 for Connect.

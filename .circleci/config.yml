@@ -3,8 +3,8 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.12.8
-    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
+    go: &GOLANG_IMAGE circleci/golang:1.12.13
+    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
     ember: &EMBER_IMAGE circleci/node:8-browsers
 
   paths:
@@ -51,14 +51,17 @@ jobs:
       - run:
           name: check go fmt
           command: |
-            files=$(go fmt ./...)
+            files="$(go fmt ./... ; (cd api && go fmt ./... | sed 's@^@api/@') ; (cd sdk && go fmt ./... | sed 's@^@sdk/@'))"
             if [ -n "$files" ]; then
-              echo "The following file(s) do not conform to go fmt:"
-              echo "$files"
-              exit 1
+                echo "The following file(s) do not conform to go fmt:"
+                echo "$files"
+                exit 1
             fi
       - run:
-          command: go vet ./...
+          command: |
+            go vet ./... && \
+              (cd api && go vet ./...) && \
+              (cd sdk && go vet ./...)
     environment:
       <<: *ENVIRONMENT
 
@@ -92,6 +95,8 @@ jobs:
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 2 # medium (default) boxes are 2 vCPUs, 4GB RAM https://circleci.com/docs/2.0/configuration-reference/#docker-executor
     steps:
       - checkout
       - restore_cache: # restore cache from earlier job
@@ -108,7 +113,13 @@ jobs:
           rm -rf /tmp/vault*
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
 
       - store_test_results:
           path: /tmp/test-results
@@ -134,10 +145,39 @@ jobs:
           working_directory: api
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS $PACKAGE_NAMES
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -cover -coverprofile=cov_api.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: ./api
+          paths:
+            - cov_*.part
 
       - store_test_results:
           path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+
+  # combine code coverage results from the parallel circleci executors
+  coverage-merge:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: merge coverage reports
+          command: |
+            echo "mode: set" > coverage.out
+            grep -h -v "mode: set" cov_*.part >> coverage.out
+            go tool cover -html=coverage.out -o /tmp/test-results/coverage.html
+      - run:
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash) -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
       - store_artifacts:
           path: /tmp/test-results
 
@@ -293,7 +333,7 @@ jobs:
 
       # make dev build of nomad
       - run:
-          command: make dev
+          command: make pkg/linux_amd64/nomad
           working_directory: *NOMAD_WORKING_DIR
 
       # update gotestsum
@@ -524,7 +564,11 @@ workflows:
   version: 2
   go-tests:
     jobs:
-      - check-vendor
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - lint-consul-retry
       - go-fmt-and-vet:
           requires:
@@ -536,9 +580,17 @@ workflows:
           requires:
             - dev-build
       - go-test-api: *go-test
+      - coverage-merge:
+          requires:
+            - go-test
+            - go-test-api
   build-distros:
     jobs:
-      - check-vendor
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - build-386: &require-check-vendor
           requires:
             - check-vendor
@@ -546,7 +598,11 @@ workflows:
       - build-arm: *require-check-vendor
   test-integrations:
     jobs:
-      - dev-build
+      - dev-build:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
@@ -594,7 +650,11 @@ workflows:
               only: stable-website
   frontend:
     jobs:
-      - frontend-cache
+      - frontend-cache:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - ember-build:
           requires:
             - frontend-cache

@@ -22,6 +22,9 @@ type HTTPFlags struct {
 	// server flags
 	datacenter StringValue
 	stale      BoolValue
+
+	// namespace flags
+	namespace StringValue
 }
 
 func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
@@ -55,7 +58,6 @@ func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
 	fs.Var(&f.tlsServerName, "tls-server-name",
 		"The server name to use as the SNI host when connecting via TLS. This "+
 			"can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
-
 	return fs
 }
 
@@ -69,6 +71,15 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 			"allows for lower latency and higher throughput, but can result in "+
 			"stale data. This option has no effect on non-read operations. The "+
 			"default value is false.")
+	return fs
+}
+
+func (f *HTTPFlags) NamespaceFlags() *flag.FlagSet {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	// TODO (namespaces) Do we want to allow setting via an env var? CONSUL_NAMESPACE
+	fs.Var(&f.namespace, "ns",
+		"Specifies the namespace to query. If not provided, the namespace will"+
+			"default to the `default` namespace. Namespaces is a Consul Enterprise feature.")
 	return fs
 }
 
@@ -135,4 +146,5 @@ func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.keyFile.Merge(&c.TLSConfig.KeyFile)
 	f.tlsServerName.Merge(&c.TLSConfig.Address)
 	f.datacenter.Merge(&c.Datacenter)
+	f.namespace.Merge(&c.Namespace)
 }

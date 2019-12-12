@@ -72,6 +72,8 @@ type dnsConfig struct {
 	// TTLStict sets TTLs to service by full name match. It Has higher priority than TTLRadix
 	TTLStrict          map[string]time.Duration
 	DisableCompression bool
+
+	enterpriseDNSConfig
 }
 
 // DNSServer is used to wrap an Agent and expose various
@@ -136,6 +138,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 			Refresh: conf.DNSSOA.Refresh,
 			Retry:   conf.DNSSOA.Retry,
 		},
+		enterpriseDNSConfig: getEnterpriseDNSConfig(conf),
 	}
 	if conf.DNSServiceTTL != nil {
 		cfg.TTLRadix = radix.New()
@@ -288,6 +291,10 @@ START:
 	return addr.String(), nil
 }
 
+func serviceNodeCanonicalDNSName(sn *structs.ServiceNode, domain string) string {
+	return serviceCanonicalDNSName(sn.ServiceName, sn.Datacenter, domain, &sn.EnterpriseMeta)
+}
+
 // handlePtr is used to handle "reverse" DNS queries
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
@@ -354,6 +361,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 				AllowStale: cfg.AllowStale,
 			},
 			ServiceAddress: serviceAddress,
+			EnterpriseMeta: *structs.WildcardEnterpriseMeta(),
 		}
 
 		var sout structs.IndexedServiceNodes
@@ -362,7 +370,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 				if n.ServiceAddress == serviceAddress {
 					ptr := &dns.PTR{
 						Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
-						Ptr: fmt.Sprintf("%s.service.%s", n.ServiceName, d.domain),
+						Ptr: serviceNodeCanonicalDNSName(n, d.domain),
 					}
 					m.Answer = append(m.Answer, ptr)
 					break
@@ -416,14 +424,14 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
-		ns, glue := d.nameservers(cfg, req.IsEdns0() != nil, maxRecursionLevelDefault)
+		ns, glue := d.nameservers(cfg, req.IsEdns0() != nil, maxRecursionLevelDefault, req)
 		m.Answer = append(m.Answer, d.soa(cfg))
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	case dns.TypeNS:
-		ns, glue := d.nameservers(cfg, req.IsEdns0() != nil, maxRecursionLevelDefault)
+		ns, glue := d.nameservers(cfg, req.IsEdns0() != nil, maxRecursionLevelDefault, req)
 		m.Answer = ns
 		m.Extra = glue
 		m.SetRcode(req, dns.RcodeSuccess)
@@ -469,8 +477,9 @@ func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
 
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
-func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
-	out, err := d.lookupServiceNodes(cfg, d.agent.config.Datacenter, structs.ConsulServiceName, "", false, maxRecursionLevel)
+
+func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int, req *dns.Msg) (ns []dns.RR, extra []dns.RR) {
+	out, err := d.lookupServiceNodes(cfg, d.agent.config.Datacenter, structs.ConsulServiceName, "", structs.DefaultEnterpriseMeta(), false, maxRecursionLevel)
 	if err != nil {
 		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
 		return nil, nil
@@ -485,7 +494,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int
 	out.Nodes.Shuffle()
 
 	for _, o := range out.Nodes {
-		name, addr, dc := o.Node.Node, o.Node.Address, o.Node.Datacenter
+		name, dc := o.Node.Node, o.Node.Datacenter
 
 		if InvalidDnsRe.MatchString(name) {
 			d.logger.Printf("[WARN] dns: Skipping invalid node %q for NS records", name)
@@ -507,11 +516,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int
 		}
 		ns = append(ns, nsrr)
 
-		glue, meta := d.formatNodeRecord(cfg, nil, addr, fqdn, dns.TypeANY, cfg.NodeTTL, edns, maxRecursionLevel, cfg.NodeMetaTXT)
-		extra = append(extra, glue...)
-		if meta != nil && cfg.NodeMetaTXT {
-			extra = append(extra, meta...)
-		}
+		extra = append(extra, d.makeRecordFromNode(dc, o.Node, dns.TypeANY, fqdn, cfg.NodeTTL, maxRecursionLevel)...)
 
 		// don't provide more than 3 servers
 		if len(ns) >= 3 {
@@ -527,12 +532,33 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 	return d.doDispatch(network, remoteAddr, req, resp, maxRecursionLevelDefault)
 }
 
+func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
+	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
+	d.addSOA(cfg, resp)
+	resp.SetRcode(req, dns.RcodeNameError)
+}
+
+func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
+	switch len(labels) {
+	case 1:
+		*datacenter = labels[0]
+		return true
+	case 0:
+		return true
+	default:
+		return false
+	}
+}
+
 // doDispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
 func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) (ecsGlobal bool) {
 	ecsGlobal = true
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
+
+	// have to deref to clone it so we don't modify
+	var entMeta structs.EnterpriseMeta
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
@@ -541,36 +567,52 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
 
-	// Provide a flag for remembering whether the datacenter name was parsed already.
-	var dcParsed bool
-
 	cfg := d.config.Load().(*dnsConfig)
 
-	// The last label is either "node", "service", "query", "_<protocol>", or a datacenter name
-PARSE:
-	n := len(labels)
-	if n == 0 {
+	var queryKind string
+	var queryParts []string
+	var querySuffixes []string
+
+	done := false
+	for i := len(labels) - 1; i >= 0 && !done; i-- {
+		switch labels[i] {
+		case "service", "connect", "node", "query", "addr":
+			queryParts = labels[:i]
+			querySuffixes = labels[i+1:]
+			queryKind = labels[i]
+			done = true
+		default:
+			// If this is a SRV query the "service" label is optional, we add it back to use the
+			// existing code-path.
+			if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[i], "_") {
+				queryKind = "service"
+				queryParts = labels[:i+1]
+				querySuffixes = labels[i+1:]
+				done = true
+			}
+		}
+	}
+
+	if queryKind == "" {
 		goto INVALID
 	}
 
-	// If this is a SRV query the "service" label is optional, we add it back to use the
-	// existing code-path.
-	if req.Question[0].Qtype == dns.TypeSRV && strings.HasPrefix(labels[n-1], "_") {
-		labels = append(labels, "service")
-		n = n + 1
-	}
-
-	switch kind := labels[n-1]; kind {
+	switch queryKind {
 	case "service":
-		if n == 1 {
+		n := len(queryParts)
+		if n < 1 {
+			goto INVALID
+		}
+
+		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
 			goto INVALID
 		}
 
 		// Support RFC 2782 style syntax
-		if n == 3 && strings.HasPrefix(labels[n-2], "_") && strings.HasPrefix(labels[n-3], "_") {
+		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
 
 			// Grab the tag since we make nuke it if it's tcp
-			tag := labels[n-2][1:]
+			tag := queryParts[1][1:]
 
 			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
 			if tag == "tcp" {
@@ -578,57 +620,68 @@ PARSE:
 			}
 
 			// _name._tag.service.consul
-			d.serviceLookup(cfg, network, datacenter, labels[n-3][1:], tag, false, req, resp, maxRecursionLevel)
+			d.serviceLookup(cfg, network, datacenter, queryParts[0][1:], tag, &entMeta, false, req, resp, maxRecursionLevel)
 
 			// Consul 0.3 and prior format for SRV queries
 		} else {
 
 			// Support "." in the label, re-join all the parts
 			tag := ""
-			if n >= 3 {
-				tag = strings.Join(labels[:n-2], ".")
+			if n >= 2 {
+				tag = strings.Join(queryParts[:n-1], ".")
 			}
 
 			// tag[.tag].name.service.consul
-			d.serviceLookup(cfg, network, datacenter, labels[n-2], tag, false, req, resp, maxRecursionLevel)
+			d.serviceLookup(cfg, network, datacenter, queryParts[n-1], tag, &entMeta, false, req, resp, maxRecursionLevel)
+		}
+	case "connect":
+		if len(queryParts) < 1 {
+			goto INVALID
 		}
 
-	case "connect":
-		if n == 1 {
+		if !d.parseDatacenterAndEnterpriseMeta(querySuffixes, cfg, &datacenter, &entMeta) {
 			goto INVALID
 		}
 
 		// name.connect.consul
-		d.serviceLookup(cfg, network, datacenter, labels[n-2], "", true, req, resp, maxRecursionLevel)
-
+		d.serviceLookup(cfg, network, datacenter, queryParts[len(queryParts)-1], "", &entMeta, true, req, resp, maxRecursionLevel)
 	case "node":
-		if n == 1 {
+		if len(queryParts) < 1 {
+			goto INVALID
+		}
+
+		if !d.parseDatacenter(querySuffixes, &datacenter) {
 			goto INVALID
 		}
 
 		// Allow a "." in the node name, just join all the parts
-		node := strings.Join(labels[:n-1], ".")
+		node := strings.Join(queryParts, ".")
 		d.nodeLookup(cfg, network, datacenter, node, req, resp, maxRecursionLevel)
-
 	case "query":
-		if n == 1 {
+		// ensure we have a query name
+		if len(queryParts) < 1 {
+			goto INVALID
+		}
+
+		if !d.parseDatacenter(querySuffixes, &datacenter) {
 			goto INVALID
 		}
 
 		// Allow a "." in the query name, just join all the parts.
-		query := strings.Join(labels[:n-1], ".")
+		query := strings.Join(queryParts, ".")
 		ecsGlobal = false
 		d.preparedQueryLookup(cfg, network, datacenter, query, remoteAddr, req, resp, maxRecursionLevel)
 
 	case "addr":
-		if n != 2 {
+		// <address>.addr.<suffixes>.<domain> - addr must be the second label, datacenter is optional
+		if len(queryParts) != 1 {
 			goto INVALID
 		}
 
-		switch len(labels[0]) / 2 {
+		switch len(queryParts[0]) / 2 {
 		// IPv4
 		case 4:
-			ip, err := hex.DecodeString(labels[0])
+			ip, err := hex.DecodeString(queryParts[0])
 			if err != nil {
 				goto INVALID
 			}
@@ -644,7 +697,7 @@ PARSE:
 			})
 		// IPv6
 		case 16:
-			ip, err := hex.DecodeString(labels[0])
+			ip, err := hex.DecodeString(queryParts[0])
 			if err != nil {
 				goto INVALID
 			}
@@ -659,30 +712,10 @@ PARSE:
 				AAAA: ip,
 			})
 		}
-
-	default:
-		// https://github.com/hashicorp/consul/issues/3200
-		//
-		// Since datacenter names cannot contain dots we can only allow one
-		// label between the query type and the domain to be the datacenter name.
-		// Since the datacenter name is optional and the parser strips off labels at the end until it finds a suitable
-		// query type label we return NXDOMAIN when we encounter another label
-		// which could be the datacenter name.
-		//
-		// If '.consul' is the domain then
-		//  * foo.service.dc.consul is OK
-		//  * foo.service.dc.stuff.consul is not OK
-		if dcParsed {
-			goto INVALID
-		}
-		dcParsed = true
-
-		// Store the DC, and re-parse
-		datacenter = labels[n-1]
-		labels = labels[:n-1]
-		goto PARSE
 	}
+	// early return without error
 	return
+
 INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
 	d.addSOA(cfg, resp)
@@ -728,34 +761,31 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 		return
 	}
 
-	// If we have no address, return not found!
+	// If we have no out.NodeServices.Nodeaddress, return not found!
 	if out.NodeServices == nil {
 		d.addSOA(cfg, resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
 
-	generateMeta := false
-	metaInAnswer := false
-	if qType == dns.TypeANY || qType == dns.TypeTXT {
-		generateMeta = true
-		metaInAnswer = true
-	} else if cfg.NodeMetaTXT {
-		generateMeta = true
-	}
-
 	// Add the node record
 	n := out.NodeServices.Node
-	edns := req.IsEdns0() != nil
-	addr := d.agent.TranslateAddress(datacenter, n.Address, n.TaggedAddresses)
-	records, meta := d.formatNodeRecord(cfg, out.NodeServices.Node, addr, req.Question[0].Name, qType, cfg.NodeTTL, edns, maxRecursionLevel, generateMeta)
-	if records != nil {
+
+	metaTarget := &resp.Extra
+	if qType == dns.TypeTXT || qType == dns.TypeANY {
+		metaTarget = &resp.Answer
+	}
+
+	q := req.Question[0]
+	// Only compute A and CNAME record if query is not TXT type
+	if qType != dns.TypeTXT {
+		records := d.makeRecordFromNode(n.Datacenter, n, q.Qtype, q.Name, cfg.NodeTTL, maxRecursionLevel)
 		resp.Answer = append(resp.Answer, records...)
 	}
-	if meta != nil && metaInAnswer && generateMeta {
-		resp.Answer = append(resp.Answer, meta...)
-	} else if meta != nil && cfg.NodeMetaTXT {
-		resp.Extra = append(resp.Extra, meta...)
+
+	if cfg.NodeMetaTXT || qType == dns.TypeTXT || qType == dns.TypeANY {
+		metas := d.generateMeta(n.Datacenter, q.Name, n, cfg.NodeTTL)
+		*metaTarget = append(*metaTarget, metas...)
 	}
 }
 
@@ -815,94 +845,6 @@ func encodeKVasRFC1464(key, value string) (txt string) {
 	value = strings.Replace(value, "`", "``", -1)
 
 	return key + "=" + value
-}
-
-// formatNodeRecord takes a Node and returns the RRs associated with that node
-//
-// The return value is two slices. The first slice is the main answer slice (containing the A, AAAA, CNAME) RRs for the node
-// and the second slice contains any TXT RRs created from the node metadata. It is up to the caller to determine where the
-// generated RRs should go and if they should be used at all.
-func (d *DNSServer) formatNodeRecord(cfg *dnsConfig, node *structs.Node, addr, qName string, qType uint16, ttl time.Duration, edns bool, maxRecursionLevel int, generateMeta bool) (records, meta []dns.RR) {
-	// Parse the IP
-	ip := net.ParseIP(addr)
-	var ipv4 net.IP
-	if ip != nil {
-		ipv4 = ip.To4()
-	}
-
-	switch {
-	case ipv4 != nil && (qType == dns.TypeANY || qType == dns.TypeA):
-		records = append(records, &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   qName,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(ttl / time.Second),
-			},
-			A: ip,
-		})
-
-	case ip != nil && ipv4 == nil && (qType == dns.TypeANY || qType == dns.TypeAAAA):
-		records = append(records, &dns.AAAA{
-			Hdr: dns.RR_Header{
-				Name:   qName,
-				Rrtype: dns.TypeAAAA,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(ttl / time.Second),
-			},
-			AAAA: ip,
-		})
-
-	case ip == nil && (qType == dns.TypeANY || qType == dns.TypeCNAME ||
-		qType == dns.TypeA || qType == dns.TypeAAAA || qType == dns.TypeTXT):
-		// Get the CNAME
-		cnRec := &dns.CNAME{
-			Hdr: dns.RR_Header{
-				Name:   qName,
-				Rrtype: dns.TypeCNAME,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(ttl / time.Second),
-			},
-			Target: dns.Fqdn(addr),
-		}
-		records = append(records, cnRec)
-
-		// Recurse
-		more := d.resolveCNAME(cfg, cnRec.Target, maxRecursionLevel)
-		extra := 0
-	MORE_REC:
-		for _, rr := range more {
-			switch rr.Header().Rrtype {
-			case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA, dns.TypeTXT:
-				records = append(records, rr)
-				extra++
-				if extra == maxRecurseRecords && !edns {
-					break MORE_REC
-				}
-			}
-		}
-	}
-
-	if node != nil && generateMeta {
-		for key, value := range node.Meta {
-			txt := value
-			if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
-				txt = encodeKVasRFC1464(key, value)
-			}
-
-			meta = append(meta, &dns.TXT{
-				Hdr: dns.RR_Header{
-					Name:   qName,
-					Rrtype: dns.TypeTXT,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(ttl / time.Second),
-				},
-				Txt: []string{txt},
-			})
-		}
-	}
-
-	return records, meta
 }
 
 // indexRRs populates a map which indexes a given list of RRs by name. NOTE that
@@ -1111,7 +1053,7 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 }
 
 // lookupServiceNodes returns nodes with a given service.
-func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag string, connect bool, maxRecursionLevel int) (structs.IndexedCheckServiceNodes, error) {
+func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag string, entMeta *structs.EnterpriseMeta, connect bool, maxRecursionLevel int) (structs.IndexedCheckServiceNodes, error) {
 	args := structs.ServiceSpecificRequest{
 		Connect:     connect,
 		Datacenter:  datacenter,
@@ -1123,6 +1065,10 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag 
 			AllowStale: cfg.AllowStale,
 			MaxAge:     cfg.CacheMaxAge,
 		},
+	}
+
+	if entMeta != nil {
+		args.EnterpriseMeta = *entMeta
 	}
 
 	var out structs.IndexedCheckServiceNodes
@@ -1169,8 +1115,8 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag 
 }
 
 // serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(cfg *dnsConfig, network, datacenter, service, tag string, connect bool, req, resp *dns.Msg, maxRecursionLevel int) {
-	out, err := d.lookupServiceNodes(cfg, datacenter, service, tag, connect, maxRecursionLevel)
+func (d *DNSServer) serviceLookup(cfg *dnsConfig, network, datacenter, service, tag string, entMeta *structs.EnterpriseMeta, connect bool, req, resp *dns.Msg, maxRecursionLevel int) {
+	out, err := d.lookupServiceNodes(cfg, datacenter, service, tag, entMeta, connect, maxRecursionLevel)
 	if err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
@@ -1364,25 +1310,12 @@ RPC:
 // serviceNodeRecords is used to add the node records for a service lookup
 func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
 	qName := req.Question[0].Name
-	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
-	edns := req.IsEdns0() != nil
 	var answerCNAME []dns.RR = nil
 
 	count := 0
 	for _, node := range nodes {
-		// Start with the translated address but use the service address,
-		// if specified.
-		addr := d.agent.TranslateAddress(dc, node.Node.Address, node.Node.TaggedAddresses)
-		if svcAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses); svcAddr != "" {
-			addr = svcAddr
-		}
-
-		// If the service address is a CNAME for the service we are looking
-		// for then use the node address.
-		if qName == strings.TrimSuffix(addr, ".")+"." {
-			addr = node.Node.Address
-		}
+		addr := d.serviceNodeAddr(node, dc, qName)
 
 		// Avoid duplicate entries, possible if a node has
 		// the same service on multiple ports, etc.
@@ -1391,18 +1324,9 @@ func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.
 		}
 		handled[addr] = struct{}{}
 
-		generateMeta := false
-		metaInAnswer := false
-		if qType == dns.TypeANY || qType == dns.TypeTXT {
-			generateMeta = true
-			metaInAnswer = true
-		} else if cfg.NodeMetaTXT {
-			generateMeta = true
-		}
-
 		// Add the node record
 		had_answer := false
-		records, meta := d.formatNodeRecord(cfg, node.Node, addr, qName, qType, ttl, edns, maxRecursionLevel, generateMeta)
+		records, _ := d.nodeServiceRecords(dc, node, req, ttl, cfg, maxRecursionLevel)
 		if records != nil {
 			switch records[0].(type) {
 			case *dns.CNAME:
@@ -1415,13 +1339,6 @@ func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.
 				resp.Answer = append(resp.Answer, records...)
 				had_answer = true
 			}
-		}
-
-		if meta != nil && generateMeta && metaInAnswer {
-			resp.Answer = append(resp.Answer, meta...)
-			had_answer = true
-		} else if meta != nil && generateMeta {
-			resp.Extra = append(resp.Extra, meta...)
 		}
 
 		if had_answer {
@@ -1483,78 +1400,307 @@ func findWeight(node structs.CheckServiceNode) int {
 	}
 }
 
+// serviceNodeAddr is used to identify target service address
+func (d *DNSServer) serviceNodeAddr(serviceNode structs.CheckServiceNode, dc string, dnsQuery string) string {
+	nodeAddress := d.agent.TranslateAddress(dc, serviceNode.Node.Address, serviceNode.Node.TaggedAddresses)
+	serviceAddress := d.agent.TranslateServiceAddress(dc, serviceNode.Service.Address, serviceNode.Service.TaggedAddresses)
+	addr := nodeAddress
+
+	if serviceAddress != "" {
+		addr = serviceAddress
+	}
+
+	// If the service address is a CNAME for the service we are looking
+	// for then use the node address.
+	if dnsQuery == strings.TrimSuffix(addr, ".")+"." {
+		addr = nodeAddress
+	}
+
+	return addr
+}
+
+func (d *DNSServer) encodeIPAsFqdn(dc string, ip net.IP) string {
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		ipStr := hex.EncodeToString(ip)
+		return fmt.Sprintf("%s.addr.%s.%s", ipStr[len(ipStr)-(net.IPv4len*2):], dc, d.domain)
+	} else {
+		return fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(ip), dc, d.domain)
+	}
+}
+
+func makeARecord(qType uint16, ip net.IP, ttl time.Duration) dns.RR {
+
+	var ipRecord dns.RR
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		if qType == dns.TypeSRV || qType == dns.TypeA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT {
+			ipRecord = &dns.A{
+				Hdr: dns.RR_Header{
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(ttl / time.Second),
+				},
+				A: ipv4,
+			}
+		}
+	} else if qType == dns.TypeSRV || qType == dns.TypeAAAA || qType == dns.TypeANY || qType == dns.TypeNS || qType == dns.TypeTXT {
+		ipRecord = &dns.AAAA{
+			Hdr: dns.RR_Header{
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(ttl / time.Second),
+			},
+			AAAA: ip,
+		}
+	}
+	return ipRecord
+}
+
+// Craft dns records for a node
+// In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
+// Otherwise it will return a IN A record
+func (d *DNSServer) makeRecordFromNode(dc string, node *structs.Node, qType uint16, qName string, ttl time.Duration, maxRecursionLevel int) []dns.RR {
+	addr := d.agent.TranslateAddress(node.Datacenter, node.Address, node.TaggedAddresses)
+	ip := net.ParseIP(addr)
+
+	var res []dns.RR
+
+	if ip == nil {
+		res = append(res, &dns.CNAME{
+			Hdr: dns.RR_Header{
+				Name:   qName,
+				Rrtype: dns.TypeCNAME,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(ttl / time.Second),
+			},
+			Target: dns.Fqdn(node.Address),
+		})
+
+		res = append(res,
+			d.resolveCNAME(d.config.Load().(*dnsConfig), dns.Fqdn(node.Address), maxRecursionLevel)...,
+		)
+
+		return res
+	}
+
+	ipRecord := makeARecord(qType, ip, ttl)
+	if ipRecord == nil {
+		return nil
+	}
+
+	ipRecord.Header().Name = qName
+	return []dns.RR{ipRecord}
+}
+
+// Craft dns records for a service
+// In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the node IP
+// Otherwise it will return a IN A record
+func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
+	q := req.Question[0]
+	ipRecord := makeARecord(q.Qtype, addr, ttl)
+	if ipRecord == nil {
+		return nil, nil
+	}
+
+	if q.Qtype == dns.TypeSRV {
+		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.domain)
+		answers := []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   q.Name,
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(ttl / time.Second),
+				},
+				Priority: 1,
+				Weight:   uint16(findWeight(serviceNode)),
+				Port:     uint16(d.agent.TranslateServicePort(dc, serviceNode.Service.Port, serviceNode.Service.TaggedAddresses)),
+				Target:   nodeFQDN,
+			},
+		}
+
+		ipRecord.Header().Name = nodeFQDN
+		return answers, []dns.RR{ipRecord}
+	}
+
+	ipRecord.Header().Name = q.Name
+	return []dns.RR{ipRecord}, nil
+}
+
+// Craft dns records for an IP
+// In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the IP
+// Otherwise it will return a IN A record
+func (d *DNSServer) makeRecordFromIP(dc string, addr net.IP, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
+	q := req.Question[0]
+	ipRecord := makeARecord(q.Qtype, addr, ttl)
+	if ipRecord == nil {
+		return nil, nil
+	}
+
+	if q.Qtype == dns.TypeSRV {
+		ipFQDN := d.encodeIPAsFqdn(dc, addr)
+		answers := []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   q.Name,
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(ttl / time.Second),
+				},
+				Priority: 1,
+				Weight:   uint16(findWeight(serviceNode)),
+				Port:     uint16(d.agent.TranslateServicePort(dc, serviceNode.Service.Port, serviceNode.Service.TaggedAddresses)),
+				Target:   ipFQDN,
+			},
+		}
+
+		ipRecord.Header().Name = ipFQDN
+		return answers, []dns.RR{ipRecord}
+	}
+
+	ipRecord.Header().Name = q.Name
+	return []dns.RR{ipRecord}, nil
+}
+
+// Craft dns records for an FQDN
+// In case of an SRV query the answer will be a IN SRV and additional data will store an IN A to the IP
+// Otherwise it will return a CNAME and a IN A record
+func (d *DNSServer) makeRecordFromFQDN(dc string, fqdn string, serviceNode structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
+	edns := req.IsEdns0() != nil
+	q := req.Question[0]
+
+	more := d.resolveCNAME(cfg, dns.Fqdn(fqdn), maxRecursionLevel)
+	var additional []dns.RR
+	extra := 0
+MORE_REC:
+	for _, rr := range more {
+		switch rr.Header().Rrtype {
+		case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
+			// set the TTL manually
+			rr.Header().Ttl = uint32(ttl / time.Second)
+			additional = append(additional, rr)
+
+			extra++
+			if extra == maxRecurseRecords && !edns {
+				break MORE_REC
+			}
+		}
+	}
+
+	if q.Qtype == dns.TypeSRV {
+		answers := []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   q.Name,
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(ttl / time.Second),
+				},
+				Priority: 1,
+				Weight:   uint16(findWeight(serviceNode)),
+				Port:     uint16(d.agent.TranslateServicePort(dc, serviceNode.Service.Port, serviceNode.Service.TaggedAddresses)),
+				Target:   dns.Fqdn(fqdn),
+			},
+		}
+		return answers, additional
+	}
+
+	answers := []dns.RR{
+		&dns.CNAME{
+			Hdr: dns.RR_Header{
+				Name:   q.Name,
+				Rrtype: dns.TypeCNAME,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(ttl / time.Second),
+			},
+			Target: dns.Fqdn(fqdn),
+		}}
+	answers = append(answers, additional...)
+
+	return answers, nil
+}
+
+func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode, req *dns.Msg, ttl time.Duration, cfg *dnsConfig, maxRecursionLevel int) ([]dns.RR, []dns.RR) {
+	serviceAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses)
+	nodeAddr := d.agent.TranslateAddress(node.Node.Datacenter, node.Node.Address, node.Node.TaggedAddresses)
+
+	nodeIPAddr := net.ParseIP(nodeAddr)
+	serviceIPAddr := net.ParseIP(serviceAddr)
+
+	// There is no service address and the node address is an IP
+	if serviceAddr == "" && nodeIPAddr != nil {
+		if node.Node.Address != nodeAddr {
+			// Do not CNAME node address in case of WAN address
+			return d.makeRecordFromIP(dc, nodeIPAddr, node, req, ttl)
+		}
+
+		return d.makeRecordFromServiceNode(dc, node, nodeIPAddr, req, ttl)
+	}
+
+	// There is no service address and the node address is a FQDN (external service)
+	if serviceAddr == "" {
+		return d.makeRecordFromFQDN(dc, nodeAddr, node, req, ttl, cfg, maxRecursionLevel)
+	}
+
+	// The service address is an IP
+	if serviceIPAddr != nil {
+		return d.makeRecordFromIP(dc, serviceIPAddr, node, req, ttl)
+	}
+
+	// If the service address is a CNAME for the service we are looking
+	// for then use the node address.
+	if dns.Fqdn(serviceAddr) == req.Question[0].Name && nodeIPAddr != nil {
+		return d.makeRecordFromServiceNode(dc, node, nodeIPAddr, req, ttl)
+	}
+
+	// The service address is a FQDN (external service)
+	return d.makeRecordFromFQDN(dc, serviceAddr, node, req, ttl, cfg, maxRecursionLevel)
+}
+
+func (d *DNSServer) generateMeta(dc string, qName string, node *structs.Node, ttl time.Duration) []dns.RR {
+	var extra []dns.RR
+	for key, value := range node.Meta {
+		txt := value
+		if !strings.HasPrefix(strings.ToLower(key), "rfc1035-") {
+			txt = encodeKVasRFC1464(key, value)
+		}
+
+		extra = append(extra, &dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   qName,
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(ttl / time.Second),
+			},
+			Txt: []string{txt},
+		})
+	}
+	return extra
+}
+
 // serviceARecords is used to add the SRV records for a service lookup
 func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, maxRecursionLevel int) {
 	handled := make(map[string]struct{})
-	edns := req.IsEdns0() != nil
 
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service the same port, etc.
-		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, node.Service.Address, node.Service.Port)
+		serviceAddress := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses)
+		servicePort := d.agent.TranslateServicePort(dc, node.Service.Port, node.Service.TaggedAddresses)
+		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, serviceAddress, servicePort)
 		if _, ok := handled[tuple]; ok {
 			continue
 		}
 		handled[tuple] = struct{}{}
 
-		weight := findWeight(node)
-		// Add the SRV record
-		srvRec := &dns.SRV{
-			Hdr: dns.RR_Header{
-				Name:   req.Question[0].Name,
-				Rrtype: dns.TypeSRV,
-				Class:  dns.ClassINET,
-				Ttl:    uint32(ttl / time.Second),
-			},
-			Priority: 1,
-			Weight:   uint16(weight),
-			Port:     uint16(d.agent.TranslateServicePort(dc, node.Service.Port, node.Service.TaggedAddresses)),
-			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain),
-		}
-		resp.Answer = append(resp.Answer, srvRec)
+		answers, extra := d.nodeServiceRecords(dc, node, req, ttl, cfg, maxRecursionLevel)
 
-		// Start with the translated address but use the service address,
-		// if specified.
-		addr := d.agent.TranslateAddress(dc, node.Node.Address, node.Node.TaggedAddresses)
-		if svcAddr := d.agent.TranslateServiceAddress(dc, node.Service.Address, node.Service.TaggedAddresses); svcAddr != "" {
-			addr = svcAddr
-		}
+		resp.Answer = append(resp.Answer, answers...)
+		resp.Extra = append(resp.Extra, extra...)
 
-		// Add the extra record
-		records, meta := d.formatNodeRecord(cfg, node.Node, addr, srvRec.Target, dns.TypeANY, ttl, edns, maxRecursionLevel, cfg.NodeMetaTXT)
-		if len(records) > 0 {
-			// Use the node address if it doesn't differ from the service address
-			if addr == node.Node.Address {
-				resp.Extra = append(resp.Extra, records...)
-			} else {
-				// If it differs from the service address, give a special response in the
-				// 'addr.consul' domain with the service IP encoded in it. We have to do
-				// this because we can't put an IP in the target field of an SRV record.
-				switch record := records[0].(type) {
-				// IPv4
-				case *dns.A:
-					addr := hex.EncodeToString(record.A)
-
-					// Take the last 8 chars (4 bytes) of the encoded address to avoid junk bytes
-					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", addr[len(addr)-(net.IPv4len*2):], dc, d.domain)
-					record.Hdr.Name = srvRec.Target
-					resp.Extra = append(resp.Extra, record)
-
-				// IPv6
-				case *dns.AAAA:
-					srvRec.Target = fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(record.AAAA), dc, d.domain)
-					record.Hdr.Name = srvRec.Target
-					resp.Extra = append(resp.Extra, record)
-
-				// Something else (probably a CNAME; just add the records).
-				default:
-					resp.Extra = append(resp.Extra, records...)
-				}
-			}
-
-			if meta != nil && cfg.NodeMetaTXT {
-				resp.Extra = append(resp.Extra, meta...)
-			}
+		if cfg.NodeMetaTXT {
+			resp.Extra = append(resp.Extra, d.generateMeta(dc, fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
 		}
 	}
 }

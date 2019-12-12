@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -28,7 +29,33 @@ type ServiceDefinition struct {
 	// also called just "Config"
 	Proxy *ConnectProxyConfig
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
 	Connect *ServiceConnect
+}
+
+func (t *ServiceDefinition) UnmarshalJSON(data []byte) (err error) {
+	type Alias ServiceDefinition
+
+	aux := &struct {
+		EnableTagOverrideSnake bool                      `json:"enable_tag_override"`
+		TaggedAddressesSnake   map[string]ServiceAddress `json:"tagged_addresses"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if aux.EnableTagOverrideSnake {
+		t.EnableTagOverride = aux.EnableTagOverrideSnake
+	}
+	if len(t.TaggedAddresses) == 0 {
+		t.TaggedAddresses = aux.TaggedAddressesSnake
+	}
+
+	return nil
 }
 
 func (s *ServiceDefinition) NodeService() *NodeService {
@@ -42,6 +69,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Port:              s.Port,
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
+		EnterpriseMeta:    s.EnterpriseMeta,
 	}
 	if s.Connect != nil {
 		ns.Connect = *s.Connect

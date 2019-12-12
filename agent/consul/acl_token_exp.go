@@ -106,7 +106,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 
 	// Purge the identities from the cache
 	for _, secretID := range secretIDs {
-		s.acls.cache.RemoveIdentity(secretID)
+		s.acls.cache.RemoveIdentity(tokenSecretCacheID(secretID))
 	}
 
 	if respErr, ok := resp.(error); ok {

@@ -27,7 +27,7 @@ configuration](/docs/agent/options.html#enable_central_service_config).
 If you
 are using Kubernetes, the Helm chart can simplify much of the necessary
 configuration, which you can learn about in the [observability
-guide](https://learn.hashicorp.com/consul/getting-started-k8s/l7-observability-k8s).
+guide](https://learn.hashicorp.com/consul/kubernetes/l7-observability-k8s).
 
 ### Metrics Destination
 

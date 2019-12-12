@@ -101,6 +101,8 @@ func TestAPI_SemaphoreForceInvalidate(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
 	defer session.Destroy(sema.opts.Session, nil)
 
@@ -134,6 +136,8 @@ func TestAPI_SemaphoreDeleteKey(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
 	defer session.Destroy(sema.opts.Session, nil)
 
@@ -165,6 +169,8 @@ func TestAPI_SemaphoreContend(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	wg := &sync.WaitGroup{}
 	acquired := make([]bool, 4)
@@ -217,6 +223,8 @@ func TestAPI_SemaphoreBadLimit(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	sema, err := c.SemaphorePrefix("test/semaphore", 0)
 	if err == nil {
 		t.Fatalf("should error, limit must be positive")
@@ -243,6 +251,8 @@ func TestAPI_SemaphoreDestroy(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	sema, session := createTestSemaphore(t, c, "test/semaphore", 2)
 	defer session.Destroy(sema.opts.Session, nil)

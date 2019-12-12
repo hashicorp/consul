@@ -16,7 +16,7 @@
             {
               "name": "envoy.tcp_proxy",
               "config": {
-                  "cluster": "",
+                  "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "upstream_db_tcp"
                 }
             }

@@ -107,30 +107,37 @@ CA provider documentation in the sidebar to the left.
 ## Root Certificate Rotation
 
 Whenever the CA's configuration is updated in a way that causes the root key to
-change, a special rotation process will be triggered in order to smoothly transition to
-the new certificate. This rotation is automatically orchestrated by Consul.
+change, a special rotation process will be triggered in order to smoothly
+transition to the new certificate. This rotation is automatically orchestrated
+by Consul.
+
+~> If the current CA Provider doesn't support cross-signing, this process can't
+be followed. See [Forced Rotation Without
+Cross-Signing](#forced-rotation-without-cross-signing).
 
 This also automatically occurs when a completely different CA provider is
 configured (since this changes the root key). Therefore, this automatic rotation
 process can also be used to cleanly transition between CA providers. For example,
 updating Connect to use Vault instead of the built-in CA.
 
-During rotation, an intermediate CA certificate is requested from the new root, which is then
-cross-signed by the old root. This cross-signed certificate is then distributed
-alongside any newly-generated leaf certificates used by the proxies once the new root
-becomes active, and provides a chain of trust back to the old root certificate in the
-event that a certificate signed by the new root is presented to a proxy that has not yet
-updated its bundle of trusted root CA certificates to include the new root.
+During rotation, an intermediate CA certificate is requested from the new root,
+which is then cross-signed by the old root. This cross-signed certificate is
+then distributed alongside any newly-generated leaf certificates used by the
+proxies once the new root becomes active, and provides a chain of trust back to
+the old root certificate in the event that a certificate signed by the new root
+is presented to a proxy that has not yet updated its bundle of trusted root CA
+certificates to include the new root.
 
 After the cross-signed certificate has been successfully generated and the new root
 certificate or CA provider has been set up, the new root becomes the active one
 and is immediately used for signing any new incoming certificate requests.
 
-If we check the [list CA roots endpoint](/api/connect/ca.html#list-ca-root-certificates)
-after updating the configuration with a new root certificate, we can see both the old and new root
-certificates are present, and the currently active root has an intermediate certificate
-which has been generated and cross-signed automatically by the old root during the
-rotation process:
+If we check the [list CA roots
+endpoint](/api/connect/ca.html#list-ca-root-certificates) after updating the
+configuration with a new root certificate, we can see both the old and new root
+certificates are present, and the currently active root has an intermediate
+certificate which has been generated and cross-signed automatically by the old
+root during the rotation process:
 
 ```bash
 $ curl localhost:8500/v1/connect/ca/roots
@@ -178,3 +185,30 @@ $ curl localhost:8500/v1/connect/ca/roots
 
 The old root certificate will be automatically removed once enough time has elapsed
 for any leaf certificates signed by it to expire.
+
+### Forced Rotation Without Cross-Signing
+
+If the CA provider that is currently in use does not support cross-signing, then
+attempts to change the root key or CA provider will fail. This is to ensure
+operators don't make the change without understanding that there is additional
+risk involved.
+
+It is possible to force the change to happen anyway by setting the
+`ForceWithoutCrossSigning` field in the CA configuration to `true`.
+
+The downside is that all new certificates will immediately start being signed
+with the new root key, but it will take some time for agents throughout the
+cluster to observe the root CA change and reconfigure applications and proxies
+to accept certificates signed by this new root. This will mean connections made
+with a new certificate may fail for a short period after the CA change.
+
+Typically all connected agents will have observed the new roots within seconds
+even in a large deployment so the impact should be contained. But it is possible
+for a disconnected, overloaded or misconfigured agent to not see the new root
+for an unbounded amount of time during which new connections to services on that
+host will fail. The issue will resolve as soon as the agent can reconnect to
+servers.
+
+Currently both Consul and Vault CA providers _do_ support cross signing. As more
+providers are added this documentation will list any that this section applies
+to.

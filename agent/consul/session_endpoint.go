@@ -25,6 +25,10 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 	defer metrics.MeasureSince([]string{"session", "apply"}, time.Now())
 
+	if err := s.srv.validateEnterpriseRequest(&args.Session.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	// Verify the args
 	if args.Session.ID == "" && args.Op == structs.SessionDestroy {
 		return fmt.Errorf("Must provide ID")
@@ -33,28 +37,36 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		return fmt.Errorf("Must provide Node")
 	}
 
+	// TODO (namespaces) (acls) infer entmeta if not provided.
+
+	//  The entMeta to populate is the one in the Session struct, not SessionRequest
+	//  This is because the Session is what is passed to downstream functions like raftApply
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.Session.FillAuthzContext(&entCtx)
+
 	// Fetch the ACL token, if any, and apply the policy.
 	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
+
 	if rule != nil && s.srv.config.ACLEnforceVersion8 {
 		switch args.Op {
 		case structs.SessionDestroy:
 			state := s.srv.fsm.State()
-			_, existing, err := state.SessionGet(nil, args.Session.ID)
+			_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
 			if err != nil {
 				return fmt.Errorf("Session lookup failed: %v", err)
 			}
 			if existing == nil {
 				return fmt.Errorf("Unknown session %q", args.Session.ID)
 			}
-			if !rule.SessionWrite(existing.Node) {
+			if rule.SessionWrite(existing.Node, &entCtx) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
 		case structs.SessionCreate:
-			if !rule.SessionWrite(args.Session.Node) {
+			if rule.SessionWrite(args.Session.Node, &entCtx) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -100,7 +112,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 				s.srv.logger.Printf("[ERR] consul.session: UUID generation failed: %v", err)
 				return err
 			}
-			_, sess, err := state.SessionGet(nil, args.Session.ID)
+			_, sess, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
 			if err != nil {
 				s.srv.logger.Printf("[ERR] consul.session: Session lookup failed: %v", err)
 				return err
@@ -145,11 +157,24 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 		return err
 	}
 
+	if err := s.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// TODO (namespaces) TODO (acls) infer args.entmeta if not provided
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := s.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, session, err := state.SessionGet(ws, args.Session)
+			index, session, err := state.SessionGet(ws, args.SessionID, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -160,7 +185,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 			} else {
 				reply.Sessions = nil
 			}
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
+			if err := s.srv.filterACLWithAuthorizer(rule, reply); err != nil {
 				return err
 			}
 			return nil
@@ -168,9 +193,22 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 }
 
 // List is used to list all the active sessions
-func (s *Session) List(args *structs.DCSpecificRequest,
+func (s *Session) List(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
 	if done, err := s.srv.forward("Session.List", args, args, reply); done {
+		return err
+	}
+
+	if err := s.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// TODO (namespaces) TODO (acls) infer args.entmeta if not provided
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := s.srv.ResolveToken(args.Token)
+	if err != nil {
 		return err
 	}
 
@@ -178,13 +216,13 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, sessions, err := state.SessionList(ws)
+			index, sessions, err := state.SessionList(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Sessions = index, sessions
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
+			if err := s.srv.filterACLWithAuthorizer(rule, reply); err != nil {
 				return err
 			}
 			return nil
@@ -198,17 +236,30 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 		return err
 	}
 
+	if err := s.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	// TODO (namespaces) TODO (acls) infer args.entmeta if not provided
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
+	rule, err := s.srv.ResolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, sessions, err := state.NodeSessions(ws, args.Node)
+			index, sessions, err := state.NodeSessions(ws, args.Node, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Sessions = index, sessions
-			if err := s.srv.filterACL(args.Token, reply); err != nil {
+			if err := s.srv.filterACLWithAuthorizer(rule, reply); err != nil {
 				return err
 			}
 			return nil
@@ -223,9 +274,13 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	}
 	defer metrics.MeasureSince([]string{"session", "renew"}, time.Now())
 
+	if err := s.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	// Get the session, from local state.
 	state := s.srv.fsm.State()
-	index, session, err := state.SessionGet(nil, args.Session)
+	index, session, err := state.SessionGet(nil, args.SessionID, &args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -235,20 +290,24 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
+	// TODO (namespaces) (freddy):infer args.entmeta if not provided
 	// Fetch the ACL token, if any, and apply the policy.
+	var entCtx acl.EnterpriseAuthorizerContext
+	args.FillAuthzContext(&entCtx)
+
 	rule, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 	if rule != nil && s.srv.config.ACLEnforceVersion8 {
-		if !rule.SessionWrite(session.Node) {
+		if rule.SessionWrite(session.Node, &entCtx) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
 	// Reset the session TTL timer.
 	reply.Sessions = structs.Sessions{session}
-	if err := s.srv.resetSessionTimer(args.Session, session); err != nil {
+	if err := s.srv.resetSessionTimer(args.SessionID, session); err != nil {
 		s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
 		return err
 	}

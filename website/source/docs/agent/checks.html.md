@@ -367,3 +367,21 @@ key in your configuration file.
   ]
 }
 ```
+
+## Success/Failures before passing/critical
+
+A check may be set to become passing/critical only if a specified number of consecutive
+checks return passing/critical. Status will stay identical as before until
+the threshold is reached.
+This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
+By default, both passing and critical thresholds will be set to 0 so the check status will always reflect the last check result.
+
+```javascript
+{
+  "checks": {
+    ...
+    "success_before_passing" : 3
+    "failures_before_critical" : 3
+  },
+}
+```

@@ -87,7 +87,7 @@ func (s *Intention) Apply(
 
 	// Perform the ACL check
 	if prefix, ok := args.Intention.GetACLPrefix(); ok {
-		if rule != nil && !rule.IntentionWrite(prefix) {
+		if rule != nil && rule.IntentionWrite(prefix, nil) != acl.Allow {
 			s.srv.logger.Printf("[WARN] consul.intention: Operation on intention '%s' denied due to ACLs", args.Intention.ID)
 			return acl.ErrPermissionDenied
 		}
@@ -107,7 +107,7 @@ func (s *Intention) Apply(
 		// Perform the ACL check that we have write to the old prefix too,
 		// which must be true to perform any rename.
 		if prefix, ok := ixn.GetACLPrefix(); ok {
-			if rule != nil && !rule.IntentionWrite(prefix) {
+			if rule != nil && rule.IntentionWrite(prefix, nil) != acl.Allow {
 				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention '%s' denied due to ACLs", args.Intention.ID)
 				return acl.ErrPermissionDenied
 			}
@@ -243,7 +243,7 @@ func (s *Intention) Match(
 		// We go through each entry and test the destination to check if it
 		// matches.
 		for _, entry := range args.Match.Entries {
-			if prefix := entry.Name; prefix != "" && !rule.IntentionRead(prefix) {
+			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, nil) != acl.Allow {
 				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention prefix '%s' denied due to ACLs", prefix)
 				return acl.ErrPermissionDenied
 			}
@@ -309,7 +309,7 @@ func (s *Intention) Check(
 	// NOT IntentionRead because the Check API only returns pass/fail and
 	// returns no other information about the intentions used.
 	if prefix, ok := query.GetACLPrefix(); ok {
-		if rule != nil && !rule.ServiceRead(prefix) {
+		if rule != nil && rule.ServiceRead(prefix, nil) != acl.Allow {
 			s.srv.logger.Printf("[WARN] consul.intention: test on intention '%s' denied due to ACLs", prefix)
 			return acl.ErrPermissionDenied
 		}
@@ -360,7 +360,7 @@ func (s *Intention) Check(
 
 	reply.Allowed = true
 	if rule != nil {
-		reply.Allowed = rule.IntentionDefaultAllow()
+		reply.Allowed = rule.IntentionDefaultAllow(nil) == acl.Allow
 	}
 
 	return nil

@@ -647,7 +647,8 @@ func TestAPI_AgentService(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		Meta: map[string]string{},
+		Meta:      map[string]string{},
+		Namespace: defaultNamespace,
 	}
 	require.Equal(expect, got)
 	require.Equal(expect.ContentHash, qm.LastContentHash)
@@ -776,6 +777,9 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 	if chk.Status != HealthCritical {
 		t.Fatalf("check not critical: %v", chk)
+	}
+	if chk.Type != "ttl" {
+		t.Fatalf("expected type ttl, got %s", chk.Type)
 	}
 
 	if err := agent.CheckDeregister("foo"); err != nil {
@@ -951,6 +955,9 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	if check.ServiceID != "redis" {
 		t.Fatalf("missing service association for check: %v", check)
 	}
+	if check.Type != "ttl" {
+		t.Fatalf("expected type ttl, got %s", check.Type)
+	}
 }
 
 func TestAPI_AgentChecks_Docker(t *testing.T) {
@@ -996,6 +1003,9 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 	}
 	if check.ServiceID != "redis" {
 		t.Fatalf("missing service association for check: %v", check)
+	}
+	if check.Type != "docker" {
+		t.Fatalf("expected type docker, got %s", check.Type)
 	}
 }
 
@@ -1064,7 +1074,7 @@ func TestAPI_AgentForceLeave(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeave("foo")
+	err := agent.ForceLeave(s.Config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1078,7 +1088,7 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeavePrune("foo")
+	err := agent.ForceLeavePrune(s.Config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1159,6 +1169,9 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
 		}
+		if check.Type != "maintenance" {
+			t.Fatalf("expected type 'maintenance', got %s", check.Type)
+		}
 	}
 }
 
@@ -1206,6 +1219,9 @@ func TestAPI_NodeMaintenance(t *testing.T) {
 	for _, check := range checks {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
+		}
+		if check.Type != "maintenance" {
+			t.Fatalf("expected type 'maintenance', got %s", check.Type)
 		}
 	}
 }

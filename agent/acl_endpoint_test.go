@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -53,6 +54,7 @@ func TestACL_Disabled_Response(t *testing.T) {
 		{"ACLAuthMethodCRUD", a.srv.ACLAuthMethodCRUD},
 		{"ACLLogin", a.srv.ACLLogin},
 		{"ACLLogout", a.srv.ACLLogout},
+		{"ACLAuthorize", a.srv.ACLAuthorize},
 	}
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	for _, tt := range tests {
@@ -1574,5 +1576,447 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			require.Error(t, err)
 			require.True(t, acl.IsErrNotFound(err), err.Error())
 		})
+	})
+}
+
+func TestACL_Authorize(t *testing.T) {
+	t.Parallel()
+	a1 := NewTestAgent(t, t.Name(), TestACLConfigWithParams(nil))
+	defer a1.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a1.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	policyReq := structs.ACLPolicySetRequest{
+		Policy: structs.ACLPolicy{
+			Name:  "test",
+			Rules: `acl = "read" operator = "write" service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
+		},
+		Datacenter:   "dc1",
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+	var policy structs.ACLPolicy
+	require.NoError(t, a1.RPC("ACL.PolicySet", &policyReq, &policy))
+
+	tokenReq := structs.ACLTokenSetRequest{
+		ACLToken: structs.ACLToken{
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: policy.ID,
+				},
+			},
+		},
+		Datacenter:   "dc1",
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+
+	var token structs.ACLToken
+	require.NoError(t, a1.RPC("ACL.TokenSet", &tokenReq, &token))
+
+	// secondary also needs to setup a replication token to pull tokens and policies
+	secondaryParams := DefaulTestACLConfigParams()
+	secondaryParams.ReplicationToken = secondaryParams.MasterToken
+	secondaryParams.EnableTokenReplication = true
+
+	a2 := NewTestAgent(t, t.Name(), `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams))
+	defer a2.Shutdown()
+
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
+	_, err := a2.JoinWAN([]string{addr})
+	require.NoError(t, err)
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc2", testrpc.WithToken(TestDefaultMasterToken))
+	// this actually ensures a few things. First the dcs got connect okay, secondly that the policy we
+	// are about ready to use in our local token creation exists in the secondary DC
+	testrpc.WaitForACLReplication(t, a2.RPC, "dc2", structs.ACLReplicateTokens, policy.CreateIndex, 1, 0)
+
+	localTokenReq := structs.ACLTokenSetRequest{
+		ACLToken: structs.ACLToken{
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: policy.ID,
+				},
+			},
+			Local: true,
+		},
+		Datacenter:   "dc2",
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+
+	var localToken structs.ACLToken
+	require.NoError(t, a2.RPC("ACL.TokenSet", &localTokenReq, &localToken))
+
+	t.Run("master-token", func(t *testing.T) {
+		request := []structs.ACLAuthorizationRequest{
+			structs.ACLAuthorizationRequest{
+				Resource: "acl",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "acl",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "agent",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "agent",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "event",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "event",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "intention",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "intention",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "key",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "key",
+				Segment:  "foo",
+				Access:   "list",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "key",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "keyring",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "keyring",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "node",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "node",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "operator",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "operator",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "query",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "query",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "service",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "service",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "session",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			structs.ACLAuthorizationRequest{
+				Resource: "session",
+				Segment:  "foo",
+				Access:   "write",
+			},
+		}
+
+		for _, dc := range []string{"dc1", "dc2"} {
+			t.Run(dc, func(t *testing.T) {
+				req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize?dc="+dc, jsonBody(request))
+				req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+				recorder := httptest.NewRecorder()
+				raw, err := a1.srv.ACLAuthorize(recorder, req)
+				require.NoError(t, err)
+				responses, ok := raw.([]structs.ACLAuthorizationResponse)
+				require.True(t, ok)
+				require.Len(t, responses, len(request))
+
+				for idx, req := range request {
+					resp := responses[idx]
+
+					require.Equal(t, req, resp.ACLAuthorizationRequest)
+					require.True(t, resp.Allow, "should have allowed all access for master token")
+				}
+			})
+		}
+
+	})
+
+	customAuthorizationRequests := []structs.ACLAuthorizationRequest{
+		structs.ACLAuthorizationRequest{
+			Resource: "acl",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "acl",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "agent",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "agent",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "event",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "event",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "intention",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "intention",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "key",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "key",
+			Segment:  "foo",
+			Access:   "list",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "key",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "keyring",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "keyring",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "node",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "node",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "operator",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "operator",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "query",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "query",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "service",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "service",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "session",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		structs.ACLAuthorizationRequest{
+			Resource: "session",
+			Segment:  "foo",
+			Access:   "write",
+		},
+	}
+
+	expectedCustomAuthorizationResponses := []bool{
+		true,  // acl:read
+		false, // acl:write
+		false, // agent:read
+		false, // agent:write
+		false, // event:read
+		false, // event:write
+		true,  // intention:read
+		false, // intention:write
+		false, // key:read
+		false, // key:list
+		false, // key:write
+		false, // keyring:read
+		false, // keyring:write
+		true,  // node:read
+		true,  // node:write
+		true,  // operator:read
+		true,  // operator:write
+		false, // query:read
+		false, // query:write
+		true,  // service:read
+		false, // service:write
+		false, // session:read
+		false, // session:write
+	}
+
+	t.Run("custom-token", func(t *testing.T) {
+		for _, dc := range []string{"dc1", "dc2"} {
+			t.Run(dc, func(t *testing.T) {
+				req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize", jsonBody(customAuthorizationRequests))
+				req.Header.Add("X-Consul-Token", token.SecretID)
+				recorder := httptest.NewRecorder()
+				raw, err := a1.srv.ACLAuthorize(recorder, req)
+				require.NoError(t, err)
+				responses, ok := raw.([]structs.ACLAuthorizationResponse)
+				require.True(t, ok)
+				require.Len(t, responses, len(customAuthorizationRequests))
+				require.Len(t, responses, len(expectedCustomAuthorizationResponses))
+
+				for idx, req := range customAuthorizationRequests {
+					resp := responses[idx]
+
+					require.Equal(t, req, resp.ACLAuthorizationRequest)
+					require.Equal(t, expectedCustomAuthorizationResponses[idx], resp.Allow, "request %d - %+v returned unexpected response", idx, resp.ACLAuthorizationRequest)
+				}
+			})
+		}
+	})
+
+	t.Run("too-many-requests", func(t *testing.T) {
+		var request []structs.ACLAuthorizationRequest
+
+		for i := 0; i < 100; i++ {
+			request = append(request, structs.ACLAuthorizationRequest{Resource: "acl", Access: "read"})
+		}
+
+		req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize", jsonBody(request))
+		req.Header.Add("X-Consul-Token", token.SecretID)
+		recorder := httptest.NewRecorder()
+		raw, err := a1.srv.ACLAuthorize(recorder, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "Refusing to process more than 64 authorizations at once")
+		require.Nil(t, raw)
+	})
+
+	t.Run("decode-failure", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize", jsonBody(structs.ACLAuthorizationRequest{Resource: "acl", Access: "read"}))
+		req.Header.Add("X-Consul-Token", token.SecretID)
+		recorder := httptest.NewRecorder()
+		raw, err := a1.srv.ACLAuthorize(recorder, req)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "Failed to decode request body")
+		require.Nil(t, raw)
+	})
+
+	t.Run("acl-not-found", func(t *testing.T) {
+		request := []structs.ACLAuthorizationRequest{
+			structs.ACLAuthorizationRequest{
+				Resource: "acl",
+				Access:   "read",
+			},
+		}
+
+		req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize", jsonBody(request))
+		req.Header.Add("X-Consul-Token", "d908c0be-22e1-433e-84db-8718e1a019de")
+		recorder := httptest.NewRecorder()
+		raw, err := a1.srv.ACLAuthorize(recorder, req)
+		require.Error(t, err)
+		require.Equal(t, acl.ErrNotFound, err)
+		require.Nil(t, raw)
+	})
+
+	t.Run("local-token-in-secondary-dc", func(t *testing.T) {
+		req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize?dc=dc2", jsonBody(customAuthorizationRequests))
+		req.Header.Add("X-Consul-Token", localToken.SecretID)
+		recorder := httptest.NewRecorder()
+		raw, err := a1.srv.ACLAuthorize(recorder, req)
+		require.NoError(t, err)
+		responses, ok := raw.([]structs.ACLAuthorizationResponse)
+		require.True(t, ok)
+		require.Len(t, responses, len(customAuthorizationRequests))
+		require.Len(t, responses, len(expectedCustomAuthorizationResponses))
+
+		for idx, req := range customAuthorizationRequests {
+			resp := responses[idx]
+
+			require.Equal(t, req, resp.ACLAuthorizationRequest)
+			require.Equal(t, expectedCustomAuthorizationResponses[idx], resp.Allow, "request %d - %+v returned unexpected response", idx, resp.ACLAuthorizationRequest)
+		}
+	})
+
+	t.Run("local-token-wrong-dc", func(t *testing.T) {
+		request := []structs.ACLAuthorizationRequest{
+			structs.ACLAuthorizationRequest{
+				Resource: "acl",
+				Access:   "read",
+			},
+		}
+
+		req, _ := http.NewRequest("POST", "/v1/internal/acl/authorize", jsonBody(request))
+		req.Header.Add("X-Consul-Token", localToken.SecretID)
+		recorder := httptest.NewRecorder()
+		raw, err := a1.srv.ACLAuthorize(recorder, req)
+		require.Error(t, err)
+		require.Equal(t, acl.ErrNotFound, err)
+		require.Nil(t, raw)
 	})
 }

@@ -3,9 +3,8 @@ package state
 import (
 	"errors"
 	"fmt"
-
-	"github.com/hashicorp/consul/types"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -137,8 +136,10 @@ type IndexEntry struct {
 // store and thus it is not exported.
 type sessionCheck struct {
 	Node    string
-	CheckID types.CheckID
 	Session string
+
+	CheckID structs.CheckID
+	structs.EnterpriseMeta
 }
 
 // NewStateStore creates a new in-memory state storage layer.

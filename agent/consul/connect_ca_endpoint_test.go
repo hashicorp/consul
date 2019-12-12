@@ -101,6 +101,8 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		assert.Equal(actual, expected)
 	}
 
+	testState := map[string]string{"foo": "bar"}
+
 	// Update a config value
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
@@ -108,6 +110,9 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 			"PrivateKey":     "",
 			"RootCert":       "",
 			"RotationPeriod": 180 * 24 * time.Hour,
+			// This verifies the state persistence for providers although Consul
+			// provider doesn't actually use that mechanism outside of tests.
+			"test_state": testState,
 		},
 	}
 	{
@@ -135,6 +140,113 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(reply.Provider, newConfig.Provider)
 		assert.Equal(actual, expected)
+		assert.Equal(testState, reply.State)
+	}
+}
+
+// This test case tests that the logic around forcing a rotation without cross
+// signing works when requested (and is denied when not requested). This occurs
+// if the current CA is not able to cross sign external CA certificates.
+func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	// Setup a server with a built-in CA that as artificially disabled cross
+	// signing. This is simpler than running tests with external CA dependencies.
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.CAConfig.Config["DisableCrossSigning"] = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Store the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+	oldRoot := rootList.Roots[0]
+
+	// Get the starting config
+	{
+		args := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var reply structs.CAConfiguration
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
+
+		actual, err := ca.ParseConsulCAConfig(reply.Config)
+		require.NoError(err)
+		expected, err := ca.ParseConsulCAConfig(s1.config.CAConfig.Config)
+		require.NoError(err)
+		require.Equal(reply.Provider, s1.config.CAConfig.Provider)
+		require.Equal(actual, expected)
+	}
+
+	// Update to a new CA with different key. This should fail since the existing
+	// CA doesn't support cross signing so can't rotate safely.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey": newKey,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+		require.EqualError(err, "The current CA Provider does not support cross-signing. "+
+			"You can try again with ForceWithoutCrossSigningSet but this may cause disruption"+
+			" - see documentation for more.")
+	}
+
+	// Now try again with the force flag set and it should work
+	{
+		newConfig.ForceWithoutCrossSigning = true
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+		require.NoError(err)
+	}
+
+	// Make sure the new root has been added but with no cross-signed intermediate
+	{
+		args := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var reply structs.IndexedCARoots
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+		require.Len(reply.Roots, 2)
+
+		for _, r := range reply.Roots {
+			if r.ID == oldRoot.ID {
+				// The old root should no longer be marked as the active root,
+				// and none of its other fields should have changed.
+				require.False(r.Active)
+				require.Equal(r.Name, oldRoot.Name)
+				require.Equal(r.RootCert, oldRoot.RootCert)
+				require.Equal(r.SigningCert, oldRoot.SigningCert)
+				require.Equal(r.IntermediateCerts, oldRoot.IntermediateCerts)
+			} else {
+				// The new root should NOT have a valid cross-signed cert from the old
+				// root as an intermediate.
+				require.True(r.Active)
+				require.Empty(r.IntermediateCerts)
+			}
+		}
 	}
 }
 
@@ -297,56 +409,73 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 func TestConnectCASign(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	require := require.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Generate a CSR and request signing
-	spiffeId := connect.TestSpiffeIDService(t, "web")
-	csr, _ := connect.TestCSR(t, spiffeId)
-	args := &structs.CASignRequest{
-		Datacenter: "dc1",
-		CSR:        csr,
-	}
-	var reply structs.IssuedCert
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
-
-	// Generate a second CSR and request signing
-	spiffeId2 := connect.TestSpiffeIDService(t, "web2")
-	csr, _ = connect.TestCSR(t, spiffeId2)
-	args = &structs.CASignRequest{
-		Datacenter: "dc1",
-		CSR:        csr,
+	tests := []struct {
+		caKeyType string
+		caKeyBits int
+	}{
+		{
+			caKeyType: connect.DefaultPrivateKeyType,
+			caKeyBits: connect.DefaultPrivateKeyBits,
+		},
+		{
+			// Ensure that an RSA Keyed CA can sign EC leaves and they validate.
+			caKeyType: "rsa",
+			caKeyBits: 2048,
+		},
 	}
 
-	var reply2 structs.IssuedCert
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply2))
-	require.True(reply2.ModifyIndex > reply.ModifyIndex)
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s-%d", tt.caKeyType, tt.caKeyBits), func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+			dir1, s1 := testServerWithConfig(t, func(cfg *Config) {
+				cfg.CAConfig.Config["PrivateKeyType"] = tt.caKeyType
+				cfg.CAConfig.Config["PrivateKeyBits"] = tt.caKeyBits
+			})
+			defer os.RemoveAll(dir1)
+			defer s1.Shutdown()
+			codec := rpcClient(t, s1)
+			defer codec.Close()
 
-	// Get the current CA
-	state := s1.fsm.State()
-	_, ca, err := state.CARootActive(nil)
-	require.NoError(err)
+			testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Verify that the cert is signed by the CA
-	roots := x509.NewCertPool()
-	assert.True(roots.AppendCertsFromPEM([]byte(ca.RootCert)))
-	leaf, err := connect.ParseCert(reply.CertPEM)
-	require.NoError(err)
-	_, err = leaf.Verify(x509.VerifyOptions{
-		Roots: roots,
-	})
-	require.NoError(err)
+			// Generate a CSR and request signing
+			spiffeId := connect.TestSpiffeIDService(t, "web")
 
-	// Verify other fields
-	assert.Equal("web", reply.Service)
-	assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
+			// TestCSR will always generate a CSR with an EC key currently.
+			csr, _ := connect.TestCSR(t, spiffeId)
+			args := &structs.CASignRequest{
+				Datacenter: "dc1",
+				CSR:        csr,
+			}
+			var reply structs.IssuedCert
+			require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+
+			// Generate a second CSR and request signing
+			spiffeId2 := connect.TestSpiffeIDService(t, "web2")
+			csr, _ = connect.TestCSR(t, spiffeId2)
+			args = &structs.CASignRequest{
+				Datacenter: "dc1",
+				CSR:        csr,
+			}
+
+			var reply2 structs.IssuedCert
+			require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply2))
+			require.True(reply2.ModifyIndex > reply.ModifyIndex)
+
+			// Get the current CA
+			state := s1.fsm.State()
+			_, ca, err := state.CARootActive(nil)
+			require.NoError(err)
+
+			// Verify that the cert is signed by the CA
+			require.NoError(connect.ValidateLeaf(ca.RootCert, reply.CertPEM, nil))
+
+			// Verify other fields
+			assert.Equal("web", reply.Service)
+			assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
+		})
+	}
 }
 
 // Bench how long Signing RPC takes. This was used to ballpark reasonable

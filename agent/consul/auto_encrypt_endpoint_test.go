@@ -75,7 +75,9 @@ func TestAutoEncryptSign(t *testing.T) {
 			require.NoError(t, err, info)
 
 			// Create a CSR.
-			csr, err := connect.CreateCSR(id, pk)
+			cn, err := connect.CNForCertURI(id)
+			require.NoError(t, err)
+			csr, err := connect.CreateCSR(id, cn, pk)
 			require.NoError(t, err, info)
 			require.NotEmpty(t, csr, info)
 			args := &structs.CASignRequest{

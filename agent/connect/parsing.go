@@ -206,3 +206,16 @@ func IsHexString(input []byte) bool {
 	_, err := hex.DecodeString(s)
 	return err == nil
 }
+
+// KeyInfoFromCert returns the key type and key bit length for the key used by
+// the certificate.
+func KeyInfoFromCert(cert *x509.Certificate) (keyType string, keyBits int, err error) {
+	switch k := cert.PublicKey.(type) {
+	case *ecdsa.PublicKey:
+		return "ec", k.Curve.Params().BitSize, nil
+	case *rsa.PublicKey:
+		return "rsa", k.N.BitLen(), nil
+	default:
+		return "", 0, fmt.Errorf("unsupported key type")
+	}
+}

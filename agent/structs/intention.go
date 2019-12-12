@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 
@@ -82,6 +83,26 @@ type Intention struct {
 	Hash []byte
 
 	RaftIndex
+}
+
+func (t *Intention) UnmarshalJSON(data []byte) (err error) {
+	type Alias Intention
+	aux := &struct {
+		Hash                 string
+		CreatedAt, UpdatedAt string // effectively `json:"-"` on Intention type
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
 }
 
 func (x *Intention) SetHash(force bool) []byte {

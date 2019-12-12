@@ -13,6 +13,9 @@ import (
 func PrintToken(token *api.ACLToken, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("AccessorID:       %s", token.AccessorID))
 	ui.Info(fmt.Sprintf("SecretID:         %s", token.SecretID))
+	if token.Namespace != "" {
+		ui.Info(fmt.Sprintf("Namespace:        %s", token.Namespace))
+	}
 	ui.Info(fmt.Sprintf("Description:      %s", token.Description))
 	ui.Info(fmt.Sprintf("Local:            %t", token.Local))
 	ui.Info(fmt.Sprintf("Create Time:      %v", token.CreateTime))
@@ -54,6 +57,9 @@ func PrintToken(token *api.ACLToken, ui cli.Ui, showMeta bool) {
 
 func PrintTokenListEntry(token *api.ACLTokenListEntry, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("AccessorID:       %s", token.AccessorID))
+	if token.Namespace != "" {
+		ui.Info(fmt.Sprintf("Namespace:        %s", token.Namespace))
+	}
 	ui.Info(fmt.Sprintf("Description:      %s", token.Description))
 	ui.Info(fmt.Sprintf("Local:            %t", token.Local))
 	ui.Info(fmt.Sprintf("Create Time:      %v", token.CreateTime))
@@ -93,6 +99,9 @@ func PrintTokenListEntry(token *api.ACLTokenListEntry, ui cli.Ui, showMeta bool)
 func PrintPolicy(policy *api.ACLPolicy, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("ID:           %s", policy.ID))
 	ui.Info(fmt.Sprintf("Name:         %s", policy.Name))
+	if policy.Namespace != "" {
+		ui.Info(fmt.Sprintf("Namespace:    %s", policy.Namespace))
+	}
 	ui.Info(fmt.Sprintf("Description:  %s", policy.Description))
 	ui.Info(fmt.Sprintf("Datacenters:  %s", strings.Join(policy.Datacenters, ", ")))
 	if showMeta {
@@ -107,6 +116,9 @@ func PrintPolicy(policy *api.ACLPolicy, ui cli.Ui, showMeta bool) {
 func PrintPolicyListEntry(policy *api.ACLPolicyListEntry, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("%s:", policy.Name))
 	ui.Info(fmt.Sprintf("   ID:           %s", policy.ID))
+	if policy.Namespace != "" {
+		ui.Info(fmt.Sprintf("   Namespace:    %s", policy.Namespace))
+	}
 	ui.Info(fmt.Sprintf("   Description:  %s", policy.Description))
 	ui.Info(fmt.Sprintf("   Datacenters:  %s", strings.Join(policy.Datacenters, ", ")))
 	if showMeta {
@@ -119,6 +131,9 @@ func PrintPolicyListEntry(policy *api.ACLPolicyListEntry, ui cli.Ui, showMeta bo
 func PrintRole(role *api.ACLRole, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("ID:           %s", role.ID))
 	ui.Info(fmt.Sprintf("Name:         %s", role.Name))
+	if role.Namespace != "" {
+		ui.Info(fmt.Sprintf("Namespace:    %s", role.Namespace))
+	}
 	ui.Info(fmt.Sprintf("Description:  %s", role.Description))
 	if showMeta {
 		ui.Info(fmt.Sprintf("Hash:         %x", role.Hash))
@@ -146,6 +161,9 @@ func PrintRole(role *api.ACLRole, ui cli.Ui, showMeta bool) {
 func PrintRoleListEntry(role *api.ACLRole, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("%s:", role.Name))
 	ui.Info(fmt.Sprintf("   ID:           %s", role.ID))
+	if role.Namespace != "" {
+		ui.Info(fmt.Sprintf("   Namespace:    %s", role.Namespace))
+	}
 	ui.Info(fmt.Sprintf("   Description:  %s", role.Description))
 	if showMeta {
 		ui.Info(fmt.Sprintf("   Hash:         %x", role.Hash))
@@ -173,6 +191,9 @@ func PrintRoleListEntry(role *api.ACLRole, ui cli.Ui, showMeta bool) {
 func PrintAuthMethod(method *api.ACLAuthMethod, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("Name:         %s", method.Name))
 	ui.Info(fmt.Sprintf("Type:         %s", method.Type))
+	if method.Namespace != "" {
+		ui.Info(fmt.Sprintf("Namespace:    %s", method.Namespace))
+	}
 	ui.Info(fmt.Sprintf("Description:  %s", method.Description))
 	if showMeta {
 		ui.Info(fmt.Sprintf("Create Index: %d", method.CreateIndex))
@@ -189,6 +210,9 @@ func PrintAuthMethod(method *api.ACLAuthMethod, ui cli.Ui, showMeta bool) {
 func PrintAuthMethodListEntry(method *api.ACLAuthMethodListEntry, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("%s:", method.Name))
 	ui.Info(fmt.Sprintf("   Type:         %s", method.Type))
+	if method.Namespace != "" {
+		ui.Info(fmt.Sprintf("   Namespace:    %s", method.Namespace))
+	}
 	ui.Info(fmt.Sprintf("   Description:  %s", method.Description))
 	if showMeta {
 		ui.Info(fmt.Sprintf("   Create Index: %d", method.CreateIndex))
@@ -198,6 +222,9 @@ func PrintAuthMethodListEntry(method *api.ACLAuthMethodListEntry, ui cli.Ui, sho
 
 func PrintBindingRule(rule *api.ACLBindingRule, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("ID:           %s", rule.ID))
+	if rule.Namespace != "" {
+		ui.Info(fmt.Sprintf("Namespace:    %s", rule.Namespace))
+	}
 	ui.Info(fmt.Sprintf("AuthMethod:   %s", rule.AuthMethod))
 	ui.Info(fmt.Sprintf("Description:  %s", rule.Description))
 	ui.Info(fmt.Sprintf("BindType:     %s", rule.BindType))
@@ -211,6 +238,9 @@ func PrintBindingRule(rule *api.ACLBindingRule, ui cli.Ui, showMeta bool) {
 
 func PrintBindingRuleListEntry(rule *api.ACLBindingRule, ui cli.Ui, showMeta bool) {
 	ui.Info(fmt.Sprintf("%s:", rule.ID))
+	if rule.Namespace != "" {
+		ui.Info(fmt.Sprintf("   Namespace:    %s", rule.Namespace))
+	}
 	ui.Info(fmt.Sprintf("   AuthMethod:   %s", rule.AuthMethod))
 	ui.Info(fmt.Sprintf("   Description:  %s", rule.Description))
 	ui.Info(fmt.Sprintf("   BindType:     %s", rule.BindType))

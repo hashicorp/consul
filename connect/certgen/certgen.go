@@ -7,7 +7,7 @@
 //
 // You can verify a given leaf with a given root using:
 //
-//   $ openssl verify -verbose -CAfile ca2-ca.cert.pem ca1-svc-db.cert.pem
+//   $ openssl verify -verbose -CAfile ca1-ca.cert.pem ca1-svc-db.cert.pem
 //
 // Note that to verify via the cross-signed intermediate, openssl requires it to
 // be bundled with the _root_ CA bundle and will ignore the cert if it's passed

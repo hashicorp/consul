@@ -79,6 +79,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
+
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
@@ -142,8 +143,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Key:   "/remove",
 		Value: []byte("foo"),
 	})
-	fsm.state.KVSDelete(12, "/remove")
-	idx, _, err := fsm.state.KVSList(nil, "/remove")
+	fsm.state.KVSDelete(12, "/remove", nil)
+	idx, _, err := fsm.state.KVSList(nil, "/remove", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -323,7 +324,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("bad: %v", nodes[1])
 	}
 
-	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo")
+	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -341,7 +342,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("got: %v, want: %v", connectSrv.Connect, connectConf)
 	}
 
-	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
+	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -350,7 +351,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm2.state.KVSGet(nil, "/test")
+	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -359,7 +360,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify session is restored
-	idx, s, err := fsm2.state.SessionGet(nil, session.ID)
+	idx, s, err := fsm2.state.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -371,17 +372,17 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify ACL Binding Rule is restored
-	_, bindingRule2, err := fsm2.state.ACLBindingRuleGetByID(nil, bindingRule.ID)
+	_, bindingRule2, err := fsm2.state.ACLBindingRuleGetByID(nil, bindingRule.ID, nil)
 	require.NoError(err)
 	require.Equal(bindingRule, bindingRule2)
 
 	// Verify ACL Auth Method is restored
-	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name)
+	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name, nil)
 	require.NoError(err)
 	require.Equal(method, method2)
 
 	// Verify ACL Token is restored
-	_, token2, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, token2, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(err)
 	{
 		// time.Time is tricky to compare generically when it takes a ser/deserialization round trip.
@@ -396,12 +397,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.True(index > 0)
 
 	// Verify ACL Role is restored
-	_, role2, err := fsm2.state.ACLRoleGetByID(nil, role.ID)
+	_, role2, err := fsm2.state.ACLRoleGetByID(nil, role.ID, nil)
 	require.NoError(err)
 	require.Equal(role, role2)
 
 	// Verify ACL Policy is restored
-	_, policy2, err := fsm2.state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+	_, policy2, err := fsm2.state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 	require.NoError(err)
 	require.Equal(policy, policy2)
 

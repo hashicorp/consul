@@ -47,7 +47,7 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 		Foo string
 	}
 	req := UnknownRequest{Foo: "bar"}
-	msgType := structs.IgnoreUnknownTypeFlag | 64
+	msgType := structs.IgnoreUnknownTypeFlag | 75
 	buf, err := structs.Encode(msgType, req)
 	assert.Nil(t, err)
 

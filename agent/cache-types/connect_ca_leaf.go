@@ -507,6 +507,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 
 	// Build the cert uri
 	var id connect.CertURI
+	var commonName string
 	if req.Service != "" {
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
@@ -514,24 +515,37 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Namespace:  "default",
 			Service:    req.Service,
 		}
+		commonName = connect.ServiceCN(req.Service, roots.TrustDomain)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
+		commonName = connect.ServiceCN(req.Agent, roots.TrustDomain)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}
 
 	// Create a new private key
+
+	// TODO: for now we always generate EC keys on clients regardless of the key
+	// type being used by the active CA. This is fine and allowed in TLS1.2 and
+	// signing EC CSRs with an RSA key is supported by all current CA providers so
+	// it's OK. IFF we ever need to support a CA provider that refuses to sign a
+	// CSR with a different signature algorithm, or if we have compatibility
+	// issues with external PKI systems that require EC certs be signed with ECDSA
+	// from the CA (this was required in TLS1.1 but not in 1.2) then we can
+	// instead intelligently pick the key type we generate here based on the key
+	// type of the active signing CA. We already have that loaded since we need
+	// the trust domain.
 	pk, pkPEM, err := connect.GeneratePrivateKey()
 	if err != nil {
 		return result, err
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	csr, err := connect.CreateCSR(id, commonName, pk)
 	if err != nil {
 		return result, err
 	}

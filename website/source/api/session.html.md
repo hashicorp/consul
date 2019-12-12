@@ -31,6 +31,10 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
@@ -125,6 +129,10 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -166,6 +174,10 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -222,6 +234,12 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. 
+  The namespace may be specified as '*' and then results will be returned for all namespaces.
+  Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -273,6 +291,12 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. 
+  The namespace may be specified as '*' and then results will be returned for all namespaces.
+  Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -328,6 +352,10 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will default to the `default` namespace. 
+  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
