@@ -38,7 +38,7 @@ export default Adapter.extend({
       ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
-      PUT /v1/acl/token?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/token?${params}
 
       ${{
         Description: serialized.Description,
