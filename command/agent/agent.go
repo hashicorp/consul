@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 	"google.golang.org/grpc/grpclog"
 )
@@ -61,7 +60,6 @@ type cmd struct {
 	versionHuman      string
 	shutdownCh        <-chan struct{}
 	flagArgs          config.Flags
-	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
 	logger            *log.Logger
 	logger2           hclog.Logger
@@ -199,11 +197,10 @@ func (c *cmd) run(args []string) int {
 		LogRotateBytes:    config.LogRotateBytes,
 		LogRotateMaxFiles: config.LogRotateMaxFiles,
 	}
-	logFilter, logGate, logWriter, logOutput, logger2, ok := logger.Setup(logConfig, c.UI)
+	logger2, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
-	c.logFilter = logFilter
 	c.logOutput = logOutput
 
 	c.logger2 = logger2
@@ -408,13 +405,12 @@ func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*conf
 	}
 
 	// Change the log level
-	minLevel := logutils.LogLevel(strings.ToUpper(newCfg.LogLevel))
-	if logger.ValidateLevelFilter(minLevel, c.logFilter) {
-		c.logFilter.SetMinLevel(minLevel)
+	if logger.ValidateLogLevel(newCfg.LogLevel) {
+		c.logger2.SetLevel(logger.LevelFromString(newCfg.LogLevel))
 	} else {
 		errs = multierror.Append(fmt.Errorf(
 			"Invalid log level: %s. Valid log levels are: %v",
-			minLevel, c.logFilter.Levels))
+			newCfg.LogLevel, logger.AllowedLogLevels()))
 
 		// Keep the current log level
 		newCfg.LogLevel = cfg.LogLevel

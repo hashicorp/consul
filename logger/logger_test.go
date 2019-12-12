@@ -15,9 +15,8 @@ func TestLogger_SetupBasic(t *testing.T) {
 	}
 	ui := cli.NewMockUi()
 
-	logFilter, gatedWriter, logWriter, writer, logger, ok := Setup(cfg, ui)
+	logger, gatedWriter, logWriter, writer, ok := Setup(cfg, ui)
 	require.True(ok)
-	require.NotNil(logFilter)
 	require.NotNil(gatedWriter)
 	require.NotNil(logWriter)
 	require.NotNil(writer)
@@ -30,7 +29,7 @@ func TestLogger_SetupInvalidLogLevel(t *testing.T) {
 	cfg := &Config{}
 	ui := cli.NewMockUi()
 
-	_, _, _, _, _, ok := Setup(cfg, ui)
+	_, _, _, _, ok := Setup(cfg, ui)
 	require.False(ok)
 	require.Contains(ui.ErrorWriter.String(), "Invalid log level")
 }
@@ -64,7 +63,7 @@ func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
 			require := require.New(t)
 			ui := cli.NewMockUi()
 
-			_, gatedWriter, _, _, logger, ok := Setup(&cfg, ui)
+			logger, gatedWriter, _, _, ok := Setup(&cfg, ui)
 			require.True(ok)
 			require.NotNil(logger)
 			require.NotNil(gatedWriter)
@@ -88,7 +87,7 @@ func TestLogger_SetupLoggerDebugLevel(t *testing.T) {
 	}
 	ui := cli.NewMockUi()
 
-	_, gatedWriter, _, _, logger, ok := Setup(cfg, ui)
+	logger, gatedWriter, _, _, ok := Setup(cfg, ui)
 	require.True(ok)
 	require.NotNil(logger)
 	require.NotNil(gatedWriter)
@@ -111,7 +110,7 @@ func TestLogger_SetupLoggerWithName(t *testing.T) {
 	}
 	ui := cli.NewMockUi()
 
-	_, gatedWriter, _, _, logger, ok := Setup(cfg, ui)
+	logger, gatedWriter, _, _, ok := Setup(cfg, ui)
 	require.True(ok)
 	require.NotNil(logger)
 	require.NotNil(gatedWriter)

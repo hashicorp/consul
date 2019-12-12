@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 )
 
@@ -44,7 +43,6 @@ type cmd struct {
 
 	shutdownCh <-chan struct{}
 
-	logFilter *logutils.LevelFilter
 	logOutput io.Writer
 	logger    *log.Logger
 	logger2   hclog.Logger
@@ -135,11 +133,10 @@ func (c *cmd) Run(args []string) int {
 	logConfig := &logger.Config{
 		LogLevel: c.logLevel,
 	}
-	logFilter, logGate, _, logOutput, logger2, ok := logger.Setup(logConfig, c.UI)
+	logger2, logGate, _, logOutput, ok := logger.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
-	c.logFilter = logFilter
 	c.logOutput = logOutput
 
 	c.logger2 = logger2

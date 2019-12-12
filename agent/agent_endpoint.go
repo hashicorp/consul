@@ -1069,7 +1069,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	// Create a level filter and flusher.
 	filter := logger.LevelFilter()
 	filter.MinLevel = logutils.LogLevel(logLevel)
-	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
+	if !logger.ValidateLogLevel(logLevel) {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Unknown log level: %s", filter.MinLevel)
 		return nil, nil
