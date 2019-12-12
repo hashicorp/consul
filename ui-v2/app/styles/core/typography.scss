@@ -15,6 +15,7 @@ h3 {
   font-size: $typo-header-300;
 }
 fieldset > header,
+%main-nav-horizontal-action,
 %app-view-content div > dl > dt,
 %table caption,
 %tbody-th,
@@ -23,7 +24,6 @@ fieldset > header,
 }
 %internal-button,
 %breadcrumbs li > *,
-%main-nav-horizontal-action,
 %tab-nav {
   @extend %h5;
 }
@@ -57,13 +57,9 @@ pre code,
 %main-content p,
 %app-view > div.disabled > div,
 %form-element-note,
+%main-nav-horizontal-drop-nav header,
 %form-element-error > strong {
   @extend %p3;
-}
-
-%main-nav-horizontal-action,
-%button {
-  font-weight: $typo-weight-semibold;
 }
 
 %radio-group label {
@@ -72,9 +68,18 @@ pre code,
 %tab-nav {
   letter-spacing: 0.03em;
 }
-%header-drop-nav .is-active {
-  font-weight: $typo-weight-bold;
+
+/*TODO: See if we can collapse these into a */
+/* strong %p3 */
+%button {
+  font-weight: $typo-weight-semibold;
 }
+%main-nav-horizontal-drop-nav header {
+  font-weight: $typo-weight-medium;
+}
+/**/
+
+/* resets */
 %main-content label a[rel*='help'],
 %pill,
 %form-element > strong,
@@ -82,20 +87,16 @@ pre code,
 %app-view h1 em {
   font-weight: $typo-weight-normal;
 }
-%main-nav-horizontal-drop-nav header {
-  font-weight: $typo-weight-medium;
-}
 
 %form-element > em,
 %tbody-th em,
 %app-view h1 em {
   font-style: normal;
 }
+/**/
 
-%header-drop-nav .is-active,
+/* TODO: We have nothing else with a 500 */
+/* either make this the biggest %p or don't use it */
 %app-view h1 em {
   font-size: $typo-size-500;
-}
-%main-nav-horizontal-drop-nav header {
-  font-size: $typo-size-800;
 }
