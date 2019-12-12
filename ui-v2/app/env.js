@@ -29,11 +29,12 @@ export const env = function(str) {
   return user !== null ? user : _config[str];
 };
 export const config = function(key) {
+  let $;
   switch (_config.environment) {
     case 'development':
     case 'staging':
     case 'testing':
-      const $ = getDevEnvVars().reduce(function(prev, [key, value]) {
+      $ = getDevEnvVars().reduce(function(prev, [key, value]) {
         const val = !!JSON.parse(String(value).toLowerCase());
         switch (key) {
           case 'CONSUL_ACLS_ENABLE':
