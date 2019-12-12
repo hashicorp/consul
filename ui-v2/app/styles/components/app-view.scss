@@ -19,6 +19,9 @@ main {
   }
 }
 // TODO: This should be its own component
+%app-view h1 {
+  padding-bottom: 0.2em;
+}
 %app-view h1 span[data-tooltip] {
   @extend %with-external-source-icon;
   margin-top: 13px;
