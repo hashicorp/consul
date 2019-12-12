@@ -174,6 +174,24 @@ func (a *Autopilot) RemoveDeadServers() {
 	}
 }
 
+func canRemoveServers(peers, minQuorum, deadServers int) (bool, string) {
+	if deadServers == 0 {
+		return false, "nothing to do"
+	}
+
+	if peers-deadServers < int(minQuorum) {
+		return false, fmt.Sprintf("denied, because removing %d/%d servers would leave less then minimal allowed quorum of %d servers", deadServers, peers, minQuorum)
+	}
+
+	// Only do removals if a minority of servers will be affected.
+	// For failure tolerance of F we need n = 2F+1 servers.
+	// This means we can safely remove up to (n-1)/2 servers.
+	if deadServers > (peers-1)/2 {
+		return false, fmt.Sprintf("denied, because removing the majority of servers %d/%d is not safe", deadServers, peers)
+	}
+	return true, fmt.Sprintf("allowed, because removing %d/%d servers leaves a majority of servers above the minimal allowed quorum %d", deadServers, peers, minQuorum)
+}
+
 // pruneDeadServers removes up to numPeers/2 failed servers
 func (a *Autopilot) pruneDeadServers() error {
 	conf := a.delegate.AutopilotConfig()
@@ -226,50 +244,35 @@ func (a *Autopilot) pruneDeadServers() error {
 		}
 	}
 
-	// We can bail early if there's nothing to do.
-	removalCount := len(failed) + len(staleRaftServers)
-	if removalCount == 0 {
+	if ok, msg := canRemoveServers(NumPeers(raftConfig), int(conf.MinQuorum), len(failed)+len(staleRaftServers)); !ok {
+		a.logger.Printf("[DEBUG] autopilot: Failed to remove dead servers: %s.", msg)
 		return nil
 	}
 
-	peers := NumPeers(raftConfig)
-
-	if peers-removalCount < int(conf.MinQuorum) {
-		a.logger.Printf("[DEBUG] autopilot: Failed to remove dead servers: removing %d would be less then quorum of %d.", removalCount, conf.MinQuorum)
-		return nil
-	}
-
-	// Only do removals if a minority of servers will be affected.
-	// For failure tolerance of F we need n = 2F+1 servers.
-	// This means we can safely remove up to (n-1)/2 servers.
-	if removalCount <= (peers-1)/2 {
-		for _, node := range failed {
-			a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node.Name)
-			go serfLAN.RemoveFailedNode(node.Name)
-			if serfWAN != nil {
-				go serfWAN.RemoveFailedNode(fmt.Sprintf("%s.%s", node.Name, node.Tags["dc"]))
-			}
-
+	for _, node := range failed {
+		a.logger.Printf("[INFO] autopilot: Attempting removal of failed server node %q", node.Name)
+		go serfLAN.RemoveFailedNode(node.Name)
+		if serfWAN != nil {
+			go serfWAN.RemoveFailedNode(fmt.Sprintf("%s.%s", node.Name, node.Tags["dc"]))
 		}
 
-		minRaftProtocol, err := a.MinRaftProtocol()
-		if err != nil {
+	}
+
+	minRaftProtocol, err := a.MinRaftProtocol()
+	if err != nil {
+		return err
+	}
+	for _, raftServer := range staleRaftServers {
+		a.logger.Printf("[INFO] autopilot: Attempting removal of stale %s", fmtServer(raftServer))
+		var future raft.Future
+		if minRaftProtocol >= 2 {
+			future = raftNode.RemoveServer(raftServer.ID, 0, 0)
+		} else {
+			future = raftNode.RemovePeer(raftServer.Address)
+		}
+		if err := future.Error(); err != nil {
 			return err
 		}
-		for _, raftServer := range staleRaftServers {
-			a.logger.Printf("[INFO] autopilot: Attempting removal of stale %s", fmtServer(raftServer))
-			var future raft.Future
-			if minRaftProtocol >= 2 {
-				future = raftNode.RemoveServer(raftServer.ID, 0, 0)
-			} else {
-				future = raftNode.RemovePeer(raftServer.Address)
-			}
-			if err := future.Error(); err != nil {
-				return err
-			}
-		}
-	} else {
-		a.logger.Printf("[DEBUG] autopilot: Failed to remove dead servers: too many dead servers: %d/%d", removalCount, peers)
 	}
 
 	return nil
