@@ -16,6 +16,18 @@
         </dd>
       </dl>
 {{/if}}
+        {{#if item.Redirect}}
+            <dl>
+              <dt data-tooltip="Redirect">Redirect</dt>
+              <dd>
+                <ol>
+                  <li>
+                    <span>{{item.ID}}</span>
+                  </li>
+                </ol>
+              </dd>
+            </dl>
+        {{/if}}
     </a>
   </header>
 {{#if (gt item.Subsets.length 0)}}

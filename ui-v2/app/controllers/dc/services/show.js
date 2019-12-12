@@ -20,11 +20,7 @@ export default Controller.extend(WithEventSource, WithSearching, {
     // as this is a variable used purely for view level things, if the view was different we might not
     // need this variable
 
-    // set(this, 'selectedTab', 'instances');
-    // FIXME: Just to make it easier to build for the moment
-    // We'll also need to use a similar or the same approach as our
-    // didAppear thing see components/code-editor.js plus others
-    set(this, 'selectedTab', 'routing');
+    set(this, 'selectedTab', 'instances');
   },
   item: listen('item').catch(function(e) {
     if (e.target.readyState === 1) {

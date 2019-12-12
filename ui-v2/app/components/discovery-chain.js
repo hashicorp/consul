@@ -3,62 +3,6 @@ import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { next } from '@ember/runloop';
 
-const getNodeResolvers = function(nodes = {}) {
-  const failovers = getFailovers(nodes);
-  const resolvers = {};
-  Object.keys(nodes).forEach(function(key) {
-    const node = nodes[key];
-    if (node.Type === 'resolver' && !failovers.includes(key.split(':').pop())) {
-      resolvers[node.Name] = node;
-    }
-  });
-  return resolvers;
-};
-
-const getTargetResolvers = function(targets = [], nodes = {}) {
-  const resolvers = {};
-  Object.values(targets).forEach(item => {
-    let node = nodes[item.ID];
-    if (node) {
-      if (typeof resolvers[item.Service] === 'undefined') {
-        resolvers[item.Service] = {
-          ID: item.ID,
-          Name: item.Service,
-          Subsets: [],
-          Failover: null,
-        };
-      }
-      const resolver = resolvers[item.Service];
-      let failoverable = resolver;
-      if (item.ServiceSubset) {
-        failoverable = item;
-        // FIXME: Sometimes we have set the resolvers ID to the ID of the
-        // subset this just shifts the subset of the front of the URL for the moment
-        const temp = item.ID.split('.');
-        temp.shift();
-        resolver.ID = temp.join('.');
-        resolver.Subsets.push(item);
-      }
-      if (typeof node.Resolver.Failover !== 'undefined') {
-        // FIXME: Figure out if we can get rid of this
-        /* eslint ember/no-side-effects: "warn" */
-        set(failoverable, 'Failover', targetsToFailover(node.Resolver.Failover.Targets, item.ID));
-      }
-    }
-  });
-  return Object.values(resolvers);
-};
-const getFailovers = function(nodes = {}) {
-  const failovers = [];
-  Object.values(nodes)
-    .filter(item => item.Type === 'resolver')
-    .forEach(function(item) {
-      (get(item, 'Resolver.Failover.Targets') || []).forEach(failover => {
-        failovers.push(failover);
-      });
-    });
-  return failovers;
-};
 const getType = function(nodes = {}, type) {
   return Object.values(nodes).filter(item => item.Type === type);
 };
@@ -83,17 +27,111 @@ const targetsToFailover = function(targets, a) {
     Targets: Targets,
   };
 };
+const getNodeResolvers = function(nodes = {}) {
+  const failovers = getFailovers(nodes);
+  const resolvers = {};
+  Object.keys(nodes).forEach(function(key) {
+    const node = nodes[key];
+    if (node.Type === 'resolver' && !failovers.includes(key.split(':').pop())) {
+      resolvers[node.Name] = node;
+    }
+  });
+  return resolvers;
+};
+
+const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
+  const resolvers = {};
+  Object.values(targets).forEach(item => {
+    let node = nodes[item.ID];
+    if (node) {
+      if (typeof resolvers[item.Service] === 'undefined') {
+        resolvers[item.Service] = {
+          ID: item.ID,
+          Name: item.Service,
+          Subsets: [],
+          Failover: null,
+          Redirect: null,
+        };
+      }
+      const resolver = resolvers[item.Service];
+      let failoverable = resolver;
+      if (item.ServiceSubset) {
+        failoverable = item;
+        // FIXME: Sometimes we have set the resolvers ID to the ID of the
+        // subset this just shifts the subset of the front of the URL for the moment
+        const temp = item.ID.split('.');
+        temp.shift();
+        resolver.ID = temp.join('.');
+        resolver.Subsets.push(item);
+      }
+      if (typeof node.Resolver.Failover !== 'undefined') {
+        // FIXME: Figure out if we can get rid of this
+        /* eslint ember/no-side-effects: "warn" */
+        set(failoverable, 'Failover', targetsToFailover(node.Resolver.Failover.Targets, item.ID));
+      } else {
+        const res = targetsToFailover([node.Resolver.Target], `service.${nspace}.${dc}`);
+        if (res.Type === 'Datacenter' || res.Type === 'Namespace') {
+          set(failoverable, 'Redirect', true);
+        }
+      }
+    }
+  });
+  return Object.values(resolvers);
+};
+const getFailovers = function(nodes = {}) {
+  const failovers = [];
+  Object.values(nodes)
+    .filter(item => item.Type === 'resolver')
+    .forEach(function(item) {
+      (get(item, 'Resolver.Failover.Targets') || []).forEach(failover => {
+        failovers.push(failover);
+      });
+    });
+  return failovers;
+};
 
 export default Component.extend({
   dom: service('dom'),
+  ticker: service('ticker'),
   dataStructs: service('data-structs'),
   classNames: ['discovery-chain'],
   classNameBindings: ['active'],
+  isDisplayed: false,
   selectedId: '',
   x: 0,
   y: 0,
   tooltip: '',
   activeTooltip: false,
+  init: function() {
+    this._super(...arguments);
+    this._listeners = this.dom.listeners();
+    this._viewportlistener = this.dom.listeners();
+  },
+  didInsertElement: function() {
+    this._super(...arguments);
+    this._viewportlistener.add(
+      this.dom.isInViewport(this.element, bool => {
+        set(this, 'isDisplayed', bool);
+        if (this.isDisplayed) {
+          this.addPathListeners();
+        } else {
+          this.ticker.destroy(this);
+        }
+      })
+    );
+  },
+  didReceiveAttrs: function() {
+    this._super(...arguments);
+    if (this.element) {
+      this.addPathListeners();
+    }
+  },
+  willDestroyElement: function() {
+    this._super(...arguments);
+    this._listeners.remove();
+    this._viewportlistener.remove();
+    this.ticker.destroy(this);
+  },
   splitters: computed('chain.Nodes', function() {
     return getType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
       set(item, 'ID', `splitter:${item.Name}`);
@@ -104,23 +142,48 @@ export default Component.extend({
     // Right now there should only ever be one 'Router'.
     return getType(get(this, 'chain.Nodes'), 'router');
   }),
-  routes: computed('routers', function() {
-    return get(this, 'routers').reduce(function(prev, item) {
+  routes: computed('chain', 'routers', function() {
+    const routes = get(this, 'routers').reduce(function(prev, item) {
       return prev.concat(
         item.Routes.map(function(route, i) {
           return {
             ...route,
-            ID: `route:${item.Name}-${i}`,
+            ID: `route:${item.Name}-${JSON.stringify(route.Definition.Match.HTTP)}`,
           };
         })
       );
     }, []);
+    if (routes.length === 0) {
+      let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
+      const splitterID = `splitter:${this.chain.ServiceName}`;
+      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
+        nextNode = splitterID;
+      }
+      routes.push({
+        ID: `route:${this.chain.ServiceName}`,
+        Name: this.chain.ServiceName,
+        Definition: {
+          Match: {
+            HTTP: {
+              PathPrefix: '/',
+            },
+          },
+        },
+        NextNode: nextNode,
+      });
+    }
+    return routes;
   }),
   nodeResolvers: computed('chain.Nodes', function() {
     return getNodeResolvers(get(this, 'chain.Nodes'));
   }),
   resolvers: computed('nodeResolvers.[]', 'chain.Targets', function() {
-    return getTargetResolvers(get(this, 'chain.Targets'), this.nodeResolvers);
+    return getTargetResolvers(
+      this.chain.Datacenter,
+      this.chain.Namespace,
+      get(this, 'chain.Targets'),
+      this.nodeResolvers
+    );
   }),
   graph: computed('chain.Nodes', function() {
     const graph = this.dataStructs.graph();
@@ -133,7 +196,10 @@ export default Component.extend({
           break;
         case 'router':
           item.Routes.forEach(function(route, i) {
-            graph.addLink(`route:${item.Name}-${i}`, route.NextNode);
+            graph.addLink(
+              `route:${item.Name}-${JSON.stringify(route.Definition.Match.HTTP)}`,
+              route.NextNode
+            );
           });
           break;
       }
@@ -168,27 +234,16 @@ export default Component.extend({
       edges: edges.map(item => `#${CSS.escape(item)}`),
     };
   }),
-  width: computed('chain.{Nodes,Targets}', function() {
+  width: computed('isDisplayed', 'chain.{Nodes,Targets}', function() {
     return this.element.offsetWidth;
   }),
-  height: computed('chain.{Nodes,Targets}', function() {
+  height: computed('isDisplayed', 'chain.{Nodes,Targets}', function() {
     return this.element.offsetHeight;
   }),
-  didInsertElement: function() {
-    this.addPathListeners();
-  },
-  didReceiveAttrs: function() {
-    if (this.element) {
-      this.addPathListeners();
-    }
-  },
   // TODO(octane): ember has trouble adding mouse events to svg elements whilst giving
   // the developer access to the mouse event therefore we just use JS to add our events
   // revisit this post Octane
   addPathListeners: function() {
-    if (typeof this._listeners === 'undefined') {
-      this._listeners = this.dom.listeners();
-    }
     // FIXME: Figure out if we can remove this next
     next(() => {
       this._listeners.remove();
@@ -205,9 +260,6 @@ export default Component.extend({
     // remove the tooltip on component update as its so tiny, ideal
     // the tooltip would stay if there was no change to the <path>
     // set(this, 'activeTooltip', false);
-  },
-  willDestroyElement: function() {
-    this._listeners.remove();
   },
   actions: {
     showSplit: function(e) {

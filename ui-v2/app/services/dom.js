@@ -19,12 +19,14 @@ import clickFirstAnchorFactory from 'consul-ui/utils/dom/click-first-anchor';
 // use $_ for components
 const $$ = qsaFactory();
 let $_;
+let inViewportCallbacks;
 const clickFirstAnchor = clickFirstAnchorFactory(closest);
 export default Service.extend({
   doc: document,
   win: window,
   init: function() {
     this._super(...arguments);
+    inViewportCallbacks = new WeakMap();
     $_ = getComponentFactory(getOwner(this));
   },
   document: function() {
@@ -82,5 +84,25 @@ export default Service.extend({
       .filter(function(item) {
         return item != null;
       });
+  },
+  isInViewport: function($el, cb, threshold = 0) {
+    inViewportCallbacks.set($el, cb);
+    const observer = new IntersectionObserver(
+      (entries, observer) => {
+        entries.map(item => {
+          const cb = inViewportCallbacks.get(item.target);
+          if (typeof cb === 'function') {
+            cb(item.isIntersecting);
+          }
+        });
+      },
+      {
+        rootMargin: '0px',
+        threshold: threshold,
+      }
+    );
+    observer.observe($el); // eslint-disable-line ember/no-observers
+    // observer.unobserve($el);
+    return () => observer.disconnect(); // eslint-disable-line ember/no-observers
   },
 });
