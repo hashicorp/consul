@@ -48,7 +48,7 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 
 	logger2 := hclog.New(&hclog.LoggerOptions{
 		// TODO (hclog): We set Trace level for now b/c logOutput will filter
-		// internally right now. When we tranisition to solely hclog, we should not
+		// internally right now. When we transition to solely hclog, we should not
 		// need to initialize here.
 		Level:  hclog.Trace,
 		Output: output,

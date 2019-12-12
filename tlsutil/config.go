@@ -170,7 +170,7 @@ type Configurator struct {
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
 func NewConfigurator(config Config, logger *log.Logger, logger2 hclog.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
+	c := &Configurator{logger: logger, logger2: logger2, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err

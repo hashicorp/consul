@@ -43,7 +43,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		// TODO (hclog): We set Trace level for now b/c logOutput will filter
-		// internally right now. When we tranisition to solely hclog, we should not
+		// internally right now. When we transition to solely hclog, we should not
 		// need to initialize here.
 		Level:  hclog.Trace,
 		Output: logOutput,
@@ -105,7 +105,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
 	consulLogger := hclog.New(&hclog.LoggerOptions{
 		// TODO (hclog): We set Trace level for now b/c logOutput will filter
-		// internally right now. When we tranisition to solely hclog, we should not
+		// internally right now. When we transition to solely hclog, we should not
 		// need to initialize here.
 		Level:  hclog.Trace,
 		Output: logOutput,
