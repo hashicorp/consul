@@ -81,6 +81,7 @@ type AWSProvider struct {
 // SetLogger implements NeedsLogger
 func (a *AWSProvider) SetLogger(l *log.Logger, logger2 hclog.Logger) {
 	a.logger = l
+	a.logger2 = logger2
 }
 
 // Configure implements Provider
