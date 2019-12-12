@@ -15,9 +15,6 @@
   white-space: nowrap;
   content: attr(data-tooltip);
   text-indent: 0;
-  /* TODO: should this be hardcoded here ? */
-  font-size: 14px;
-  /* structure */
   min-width: 192px;
 }
 %tooltip-bubble {

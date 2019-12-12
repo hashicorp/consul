@@ -1,131 +1,95 @@
-%button {
-  font-family: $typo-family-sans;
+body,
+%form-element-textarea {
+  @extend %typo-body;
 }
-main p:not(:last-child),
-%modal-window p:not(:last-child) {
-  margin-bottom: 1em;
+h1 {
+  @extend %h1;
+  font-size: $typo-header-100;
 }
+h2 {
+  @extend %h2;
+  font-size: $typo-header-200;
+}
+h3 {
+  @extend %h3;
+  font-size: $typo-header-300;
+}
+fieldset > header,
+%header-nav,
+%app-view-content div > dl > dt,
+%table caption,
+%tbody-th,
+%form-element > span {
+  @extend %h4;
+}
+%internal-button,
+%breadcrumbs li > *,
+%tab-nav {
+  @extend %h5;
+}
+%healthcheck-output dt,
+%table th,
+%table td strong,
+%tooltip-bubble,
+%sliding-toggle label span {
+  @extend %h6;
+}
+
+pre code,
+%notice,
+%notice p,
+%filter-bar input,
+%phrase-editor input {
+  @extend %p1;
+}
+.type-dialog,
+%table td p,
+%table td,
+%healthcheck-output dl > dd,
+%form-element-label,
+%stats-card header a span,
+%footer,
+%app-view h1 span.kind-proxy {
+  @extend %p2;
+}
+.template-error > div,
 %button,
-%form-element textarea,
-%form-element [type='text'],
-%form-element [type='password'] {
-  line-height: 1.5;
+%main-content p,
+%app-view > div.disabled > div,
+%form-element-note,
+%form-element-error > strong {
+  @extend %p3;
 }
-h3,
+
+%button {
+  font-weight: $typo-weight-semibold;
+}
+
 %radio-group label {
-  line-height: 1.25;
-}
-%filter-bar [role='radiogroup'] label {
-  line-height: 1.7;
+  line-height: $typo-lead-200;
 }
 %header-nav,
 %tab-nav {
   letter-spacing: 0.03em;
 }
-%footer {
-  letter-spacing: -0.05em;
-}
-
-%button,
-%internal-button {
-  font-family: $typo-family-sans;
-}
-/* Weighting */
-h1,
-%app-view-content div > dt,
 %header-drop-nav .is-active {
   font-weight: $typo-weight-bold;
 }
-h2,
-h3,
-fieldset > header,
-caption,
-%header-nav,
-%healthcheck-output dt,
-%copy-button,
-%app-view-content div > dl > dt,
-%tbody-th,
-%form-element > span,
-%toggle label span {
-  font-weight: $typo-weight-semibold;
-}
-%button {
-  font-weight: $typo-weight-semibold !important;
-}
-main label a[rel*='help'],
+%main-content label a[rel*='help'],
 %pill,
-%tbody-th em,
 %form-element > strong,
+%tbody-th em,
 %app-view h1 em {
   font-weight: $typo-weight-normal;
 }
-th,
-td strong,
-%breadcrumbs li > *,
-%action-group-action,
-%tab-nav,
-%tooltip-bubble {
-  font-weight: $typo-weight-medium;
-}
 
-/* Styling */
 %form-element > em,
 %tbody-th em,
 %app-view h1 em {
   font-style: normal;
 }
 
-/* Sizing */
-%footer > * {
-  font-size: inherit;
-}
-
-h1 {
-  font-size: $typo-header-100;
-}
-h2 {
-  font-size: $typo-header-200;
-}
-h3 {
-  font-size: $typo-header-300;
-}
 %header-drop-nav .is-active,
 %app-view h1 em {
   font-size: $typo-size-500;
-}
-body,
-pre code,
-input,
-textarea,
-%internal-button,
-%action-group-action,
-%tbody-th {
-  font-size: $typo-size-600;
-}
-th,
-td,
-caption,
-.type-dialog,
-%healthcheck-output dl > *,
-%form-element > span,
-%tooltip-bubble,
-%stats-card header a span,
-%footer,
-%app-view h1 span.kind-proxy {
-  font-size: $typo-size-700;
-}
-%toggle label span {
-  font-size: $typo-size-700 !important;
-}
-fieldset > p,
-.template-error > div,
-[role='tabpanel'] > p:only-child,
-.with-confirmation p,
-%app-view-content > p:only-child,
-%app-view > div.disabled > div,
-%button,
-%form-element > em,
-%form-element > strong,
-%feedback-dialog-inline p {
-  font-size: $typo-size-800;
 }
