@@ -44,6 +44,10 @@ export default Component.extend({
           }
         });
       }
+      if (this.onchange) {
+        // TODO: This should be an event
+        this.onchange(this.input.checked);
+      }
     },
   },
 });

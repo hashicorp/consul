@@ -16,8 +16,9 @@
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
-                        {{#toggle-button name="nspaces"}}
-                          {{nspace.Name}}
+                      {{#aria-menu as |change expanded|}}
+                        {{#toggle-button name="nspaces" onchange=change as |click|}}
+                          <button type="button" aria-haspopup="true" onclick={{click}} id="main-nav-nspace-trigger" aria-controls="main-nav-nspace-menu">{{nspace.Name}}</button>
                         {{/toggle-button}}
                         <div>
       {{#if (is-href 'dc.nspaces')}}
@@ -30,19 +31,20 @@
                           <header>
                             Namespaces
                           </header>
-                          <ul>
+                          <ul role="menu" id="main-nav-nspace-menu" aria-labelledby="main-nav-nspace-trigger" aria-expanded={{if expanded 'true' 'false'}}>
                             {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
-                              <li class={{if (eq nspace.Name item.Name) 'is-active'}}>
-                                  <a href={{href-mut (hash nspace=(concat '~' item.Name))}}>{{item.Name}}</a>
+                              <li role="none" class={{if (eq nspace.Name item.Name) 'is-active'}}>
+                                <a tabindex="-1" role="menuitem" href={{href-mut (hash nspace=(concat '~' item.Name))}}>{{item.Name}}</a>
                               </li>
                             {{/each}}
       {{#if canManageNspaces }}
-                            <li class="manage-namespaces" data-test-main-nav-nspaces>
-                                <a href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
+                            <li role="none" class="manage-namespaces" data-test-main-nav-nspaces>
+                              <a tabindex="-1" role="menuitem" href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
                             </li>
       {{/if}}
                           </ul>
                         </div>
+                    {{/aria-menu}}
     {{/if}}
                     </li>
   {{/if}}
@@ -50,21 +52,23 @@
   {{#if (or (not dcs) (eq dcs.length 1)) }}
                         <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
   {{ else }}
-                        {{#toggle-button name="datacenters"}}
-                          {{dc.Name}}
+                      {{#aria-menu as |change expanded|}}
+                        {{#toggle-button name="datacenters" onchange=change as |click|}}
+                          <button type="button" aria-haspopup="true" onclick={{click}} id="main-nav-dc-trigger" aria-controls="main-nav-dc-menu">{{dc.Name}}</button>
                         {{/toggle-button}}
                         <div>
                           <header>
                             Datacenters
                           </header>
-                          <ul>
+                          <ul role="menu" id="main-nav-dc-menu" aria-labelledby="main-nav-dc-trigger" aria-expanded={{if expanded 'true' 'false'}}>
                             {{#each dcs as |item|}}
-                              <li data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>
-                                <a href={{href-mut (hash dc=item.Name)}}>{{item.Name}}</a>
+                              <li role="none" data-test-datacenter-picker class={{if (eq dc.Name item.Name) 'is-active'}}>
+                                <a tabindex="-1" role="menuitem" href={{href-mut (hash dc=item.Name)}}>{{item.Name}}</a>
                               </li>
                             {{/each}}
                           </ul>
                         </div>
+                      {{/aria-menu}}
   {{/if}}
                     </li>
                     <li data-test-main-nav-services class={{if (is-href 'dc.services' dc.Name) 'is-active'}}>

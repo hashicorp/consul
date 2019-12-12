@@ -12,6 +12,12 @@
   font-size: 1.2em;
 }
 
+%main-nav-horizontal button {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background-color: transparent;
+}
 %main-nav-horizontal-action {
   border-radius: $decor-radius-200;
 }
@@ -33,17 +39,14 @@
 %main-nav-horizontal input {
   display: none;
 }
-%primary-nav input + label {
-  padding-right: 5px !important;
-}
-%primary-nav input + label > a::after {
+%main-nav-horizontal input + label > *::after {
   @extend %as-pseudo;
   @extend %with-chevron-down-mask;
   position: relative;
   top: 2px;
   background-color: $white;
 }
-%primary-nav input:checked + label > a::after {
+%main-nav-horizontal input:checked + label > *::after {
   @extend %with-chevron-up-mask;
 }
 %main-nav-horizontal-toggle-button span {

@@ -58,6 +58,9 @@
     padding-right: 47px;
     padding-top: 13px;
   }
+  %main-nav-horizontal button {
+    width: 100%;
+  }
   %main-nav-horizontal-panel {
     transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
     transition-duration: 0.2s;
@@ -67,6 +70,8 @@
     box-sizing: border-box;
     padding: 15px 35px;
     z-index: 499;
+  }
+  %main-nav-horizontal-action {
     text-align: right;
   }
   %main-nav-horizontal-toggle-button {
@@ -111,9 +116,16 @@
   %main-nav-horizontal-drop-nav div {
     text-align: left;
   }
+  %main-nav-horizontal input + label > * {
+    right: -15px;
+    position: relative;
+  }
   %main-nav-horizontal-action {
     padding-top: 15px;
     padding-bottom: 15px;
+  }
+  %main-nav-horizontal-drop-nav {
+    top: 38px !important;
   }
 }
 @media #{$--horizontal-nav} {
@@ -132,5 +144,8 @@
   }
   %main-nav-horizontal-drop-nav {
     min-width: 266px;
+  }
+  %main-nav-horizontal input + label {
+    padding-right: 5px !important;
   }
 }
