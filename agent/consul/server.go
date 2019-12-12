@@ -838,7 +838,10 @@ func (s *Server) setupGRPC() error {
 
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
-	srv := grpc.NewServer(grpc.StatsHandler(grpcStatsHandler))
+	srv := grpc.NewServer(
+		grpc.StatsHandler(grpcStatsHandler),
+		grpc.StreamInterceptor(GRPCCountingStreamInterceptor),
+	)
 	stream.RegisterConsulServer(srv, &ConsulGRPCAdapter{Health{s}})
 
 	go srv.Serve(lis)

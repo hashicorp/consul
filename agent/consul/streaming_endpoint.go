@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"strings"
 
-	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-uuid"
@@ -19,8 +17,6 @@ type ConsulGRPCAdapter struct {
 // Subscribe opens a long-lived gRPC stream which sends an initial snapshot
 // of state for the requested topic, then only sends updates.
 func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
-	metrics.IncrCounter([]string{"rpc", "subscribe", strings.ToLower(req.Topic.String())}, 1)
-
 	// streamID is just used for message correlation in trace logs. Ideally we'd
 	// only execute this code while trace logs are enabled but it's not that
 	// expensive and theres not a very clean way to do that right now and
