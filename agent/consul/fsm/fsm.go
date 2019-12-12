@@ -74,17 +74,17 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		return nil, err
 	}
 
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  log.LstdFlags,
 		Output: logOutput,
 	})
 
 	fsm := &FSM{
 		logOutput: logOutput,
-		logger: consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger: logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		}),
-		logger2: consulLogger,
+		logger2: logger2,
 		apply:   make(map[structs.MessageType]command),
 		state:   stateNew,
 		gc:      gc,

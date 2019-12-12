@@ -62,14 +62,11 @@ type Service struct {
 // Consul agent, and with an ACL token that has `service:write` privileges for
 // the service specified.
 func NewService(serviceName string, client *api.Client) (*Service, error) {
-	consulLogger := hclog.New(&hclog.LoggerOptions{})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{})
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 
-	logger2 := hclog.New(&hclog.LoggerOptions{
-		Name: serviceName,
-	})
 	return NewServiceWithLogger(serviceName, client,
 		logger, logger2)
 }

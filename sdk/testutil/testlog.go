@@ -25,11 +25,11 @@ func LogShim(logger hclog.Logger) *log.Logger {
 }
 
 func NewDiscardLogger() *log.Logger {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  0,
 		Output: ioutil.Discard,
 	})
-	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	return logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 }

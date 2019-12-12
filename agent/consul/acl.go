@@ -195,8 +195,8 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	}
 
 	if config.Logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{Output: os.Stderr})
-		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{Output: os.Stderr})
+		config.Logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}
@@ -1086,10 +1086,10 @@ type aclFilter struct {
 // newACLFilter constructs a new aclFilter.
 func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, logger2 hclog.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Level:  log.LstdFlags,
 			Output: os.Stderr})
-		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}

@@ -53,11 +53,7 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 		Level:  hclog.Trace,
 		Output: output,
 	})
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  hclog.Trace,
-		Output: output,
-	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 

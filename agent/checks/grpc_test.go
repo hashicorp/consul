@@ -109,12 +109,12 @@ func TestGRPC_Proxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
 		Level:  log.LstdFlags,
 		Output: ioutil.Discard,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
@@ -123,7 +123,7 @@ func TestGRPC_Proxied(t *testing.T) {
 		GRPC:          "",
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
-		Logger2:       consulLogger,
+		Logger2:       logger2,
 		ProxyGRPC:     server,
 		StatusHandler: statusHandler,
 	}
@@ -145,12 +145,12 @@ func TestGRPC_NotProxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
 		Level:  log.LstdFlags,
 		Output: ioutil.Discard,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
@@ -159,7 +159,7 @@ func TestGRPC_NotProxied(t *testing.T) {
 		GRPC:          server,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
-		Logger2:       consulLogger,
+		Logger2:       logger2,
 		ProxyGRPC:     "",
 		StatusHandler: statusHandler,
 	}

@@ -313,11 +313,11 @@ func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, t
 	}
 
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Level:  hclog.Debug,
 			Output: config.LogOutput,
 		})
-		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}

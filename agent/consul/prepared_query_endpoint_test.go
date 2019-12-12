@@ -3013,10 +3013,10 @@ func (m *mockQueryServer) GetLogger() *log.Logger {
 	if m.Logger == nil {
 		m.LogBuffer = new(bytes.Buffer)
 
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Output: m.LogBuffer,
 		})
-		m.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		m.Logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: false,
 		})
 	}

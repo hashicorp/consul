@@ -62,10 +62,10 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		return nil, fmt.Errorf("Cannot create the Replicator without a Delegate set in the config")
 	}
 	if config.Logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Level: log.LstdFlags,
 		})
-		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		config.Logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}

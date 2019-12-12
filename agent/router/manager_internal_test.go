@@ -23,13 +23,13 @@ func init() {
 
 func GetBufferedLogger() (*log.Logger, hclog.Logger) {
 	localLogBuffer = new(bytes.Buffer)
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  0,
 		Output: localLogBuffer,
 	})
-	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	return logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
-	}), consulLogger
+	}), logger2
 }
 
 type fauxConnPool struct {
