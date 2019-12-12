@@ -12,7 +12,6 @@
 {{#if dc}}
                 <ul>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-{{!FIXME only show this if I'm allowed to see it right now we can only be sure you are allowed to see this if ACLs are disabled until we have further API support}}
                     <li>
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
