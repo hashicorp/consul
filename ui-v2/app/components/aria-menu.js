@@ -77,7 +77,6 @@ export default Component.extend({
     open: function(e) {
       set(this, 'expanded', true);
       this.$trigger.setAttribute('tabindex', '-1');
-      const direction = this;
       this._listeners.add(this.dom.document(), {
         keydown: e => {
           if (e.keyCode === ESC) {
