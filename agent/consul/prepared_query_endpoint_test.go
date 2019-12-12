@@ -2999,7 +2999,7 @@ func (m *mockQueryServer) JoinQueryLog() string {
 }
 
 func (m *mockQueryServer) GetLogger2() hclog.Logger {
-	if m.Logger == nil {
+	if m.Logger2 == nil {
 		m.LogBuffer = new(bytes.Buffer)
 
 		m.Logger2 = hclog.New(&hclog.LoggerOptions{
