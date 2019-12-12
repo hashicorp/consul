@@ -25,12 +25,12 @@ type LeaderRoutineManager struct {
 }
 
 func NewLeaderRoutineManager(logger *log.Logger, logger2 hclog.Logger) *LeaderRoutineManager {
-	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+	if logger == nil || logger2 == nil {
+		logger2 = hclog.New(&hclog.LoggerOptions{
 			Level:  log.LstdFlags,
 			Output: os.Stderr,
 		})
-		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}

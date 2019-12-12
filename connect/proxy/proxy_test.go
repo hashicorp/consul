@@ -2,12 +2,10 @@ package proxy
 
 import (
 	"context"
-	"log"
 	"net"
 	"testing"
 
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent"
 	agConnect "github.com/hashicorp/consul/agent/connect"
@@ -78,12 +76,4 @@ func TestProxy_public(t *testing.T) {
 
 	// Connection works, test it is the right one
 	TestEchoConn(t, conn, "")
-}
-
-func testLogger(t *testing.T) *log.Logger {
-	return testutil.LogShim(testutil.Logger(t))
-}
-
-func testLogger2(t *testing.T) hclog.Logger {
-	return testutil.Logger(t)
 }

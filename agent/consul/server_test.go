@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -214,12 +213,7 @@ func newServer(c *Config) (*Server, error) {
 		Level:  hclog.Debug,
 		Output: w,
 	})
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Name:   c.NodeName,
-		Level:  hclog.Debug,
-		Output: w,
-	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger, logger2)
@@ -1142,10 +1136,12 @@ func TestServer_CALogging(t *testing.T) {
 
 	// Setup dummy logger to catch output
 	var buf bytes.Buffer
-	logger := log.New(&buf, "", log.LstdFlags)
-	logger2 := testutil.Logger(t)
+	logger2 := testutil.LoggerWithOutput(t, &buf)
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
 
-	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil, logger2)
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger, logger2)
 	require.NoError(t, err)
 	s1, err := NewServerLogger(conf1, logger, logger2, new(token.Store), c)
 	if err != nil {
