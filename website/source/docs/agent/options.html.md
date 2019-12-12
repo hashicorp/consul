@@ -43,7 +43,7 @@ You can test the following configuration options by following the [Getting Start
 ## Environment Variables
 Environment variables **cannot** be used to configure the Consul client. They
 *can* be used when running other `consul` CLI commands that connect with a
-running client, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
+running agent, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
 
 See [Consul Commands](/docs/commands/index.html#environment-variables) for more
 information.
