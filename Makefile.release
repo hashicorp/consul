@@ -31,10 +31,10 @@
 # Then:
 #
 # 1. Open an issue for this release
-# 2. In an issue give the command: /release: master VERSION
+# 2. In an issue give the command: /release master VERSION
 #    Where VERSION is the version of the release - the release script double checks this with the
 #    actual CoreDNS version in coremain/version.go
-# 3. (to test as release /release: -t master VERSION can be used.
+# 3. (to test as release /release -t master VERSION can be used.
 #
 # See https://github.com/coredns/release for documentation README on what needs to be setup for this to be
 # automated (can still be done by hand if needed). Especially what environment variables need to be
