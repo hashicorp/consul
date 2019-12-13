@@ -14,7 +14,15 @@ const ephemeralPortRangeSysctlKey = "net.ipv4.ip_local_port_range"
 var ephemeralPortRangePatt = regexp.MustCompile(`^\s*(\d+)\s+(\d+)\s*$`)
 
 func getEphemeralPortRange() (int, int, error) {
-	cmd := exec.Command("/sbin/sysctl", "-n", ephemeralPortRangeSysctlKey)
+	sysctlPath, err := exec.LookPath("sysctl")
+	if err != nil {
+		sysctlPath, err = exec.LookPath("/sbin/sysctl")
+		if err != nil {
+			return 0, 0, err
+		}
+	}
+
+	cmd := exec.Command(sysctlPath, "-n", ephemeralPortRangeSysctlKey)
 	out, err := cmd.Output()
 	if err != nil {
 		return 0, 0, err
