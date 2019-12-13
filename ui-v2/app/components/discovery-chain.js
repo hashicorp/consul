@@ -48,7 +48,7 @@ const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes 
         resolvers[item.Service] = {
           ID: item.ID,
           Name: item.Service,
-          Subsets: [],
+          Children: [],
           Failover: null,
           Redirect: null,
         };
@@ -62,7 +62,7 @@ const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes 
         const temp = item.ID.split('.');
         temp.shift();
         resolver.ID = temp.join('.');
-        resolver.Subsets.push(item);
+        resolver.Children.push(item);
       }
       if (typeof node.Resolver.Failover !== 'undefined') {
         // FIXME: Figure out if we can get rid of this
@@ -71,6 +71,7 @@ const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes 
       } else {
         const res = targetsToFailover([node.Resolver.Target], `service.${nspace}.${dc}`);
         if (res.Type === 'Datacenter' || res.Type === 'Namespace') {
+          resolver.Children.push(item);
           set(failoverable, 'Redirect', true);
         }
       }

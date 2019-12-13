@@ -30,20 +30,29 @@
         {{/if}}
     </a>
   </header>
-{{#if (gt item.Subsets.length 0)}}
+{{#if (gt item.Children.length 0)}}
     <ul>
-  {{#each item.Subsets as |item|}}
-      <li onclick={{onclick}} id={{concat 'resolver:' item.ID}}>
+  {{#each item.Children as |child|}}
+      <li onclick={{onclick}} id={{concat 'resolver:' child.ID}}>
         <a name="">
-          {{item.ServiceSubset}}
-        {{#if item.Failover}}
+        {{#if item.Redirect}}
             <dl>
-              <dt data-tooltip={{concat item.Failover.Type ' failover'}}>{{concat item.Failover.Type ' failover'}}</dt>
+              <dt data-tooltip="Redirect">Redirect</dt>
+              <dd>
+                {{child.ID}}
+              </dd>
+            </dl>
+        {{else}}
+          {{child.ServiceSubset}}
+        {{/if}}
+        {{#if child.Failover}}
+            <dl>
+              <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
               <dd>
                 <ol>
-          {{#each item.Failover.Targets as |item|}}
+          {{#each child.Failover.Targets as |target|}}
                   <li>
-                    <span>{{item}}</span>
+                    <span>{{target}}</span>
                   </li>
           {{/each}}
                 </ol>
