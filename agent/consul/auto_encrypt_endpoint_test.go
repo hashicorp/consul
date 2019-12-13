@@ -3,6 +3,7 @@ package consul
 import (
 	"crypto/x509"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -77,7 +78,9 @@ func TestAutoEncryptSign(t *testing.T) {
 			// Create a CSR.
 			cn, err := connect.CNForCertURI(id)
 			require.NoError(t, err)
-			csr, err := connect.CreateCSR(id, cn, pk)
+			dnsNames := []string{"localhost"}
+			ipAddresses := []net.IP{net.ParseIP("127.0.0.1")}
+			csr, err := connect.CreateCSRWithSAN(id, cn, pk, dnsNames, ipAddresses)
 			require.NoError(t, err, info)
 			require.NotEmpty(t, csr, info)
 			args := &structs.CASignRequest{
@@ -118,6 +121,11 @@ func TestAutoEncryptSign(t *testing.T) {
 				Roots: roots,
 			})
 			require.NoError(t, err, info)
+
+			// Verify SANs
+			require.Equal(t, dnsNames, leaf.DNSNames)
+			require.Len(t, leaf.IPAddresses, 1)
+			require.True(t, ipAddresses[0].Equal(leaf.IPAddresses[0]))
 
 			// Verify other fields
 			require.Equal(t, "uuid", reply.IssuedCert.Agent, info)
