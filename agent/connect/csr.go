@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"net"
 	"net/url"
 )
 
@@ -41,15 +42,17 @@ func SigAlgoForKeyType(keyType string) x509.SignatureAlgorithm {
 	}
 }
 
-// CreateCSR returns a CSR to sign the given service along with the PEM-encoded
-// private key for this certificate.
-func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer,
-	extensions ...pkix.Extension) (string, error) {
+// CreateCSRWithSAN returns a CSR to sign the given service with SAN entries
+// along with the PEM-encoded private key for this certificate.
+func CreateCSRWithSAN(uri CertURI, commonName string, privateKey crypto.Signer,
+	dnsNames []string, ipAddresses []net.IP, extensions ...pkix.Extension) (string, error) {
 	template := &x509.CertificateRequest{
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: SigAlgoForKey(privateKey),
 		ExtraExtensions:    extensions,
 		Subject:            pkix.Name{CommonName: commonName},
+		DNSNames:           dnsNames,
+		IPAddresses:        ipAddresses,
 	}
 
 	// Create the CSR itself
@@ -65,6 +68,13 @@ func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer,
 	}
 
 	return csrBuf.String(), nil
+}
+
+// CreateCSR returns a CSR to sign the given service along with the PEM-encoded
+// private key for this certificate.
+func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer,
+	extensions ...pkix.Extension) (string, error) {
+	return CreateCSRWithSAN(uri, commonName, privateKey, nil, nil, extensions...)
 }
 
 // CreateCSR returns a CA CSR to sign the given service along with the PEM-encoded
