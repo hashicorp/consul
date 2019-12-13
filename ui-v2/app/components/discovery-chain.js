@@ -161,6 +161,7 @@ export default Component.extend({
         nextNode = splitterID;
       }
       routes.push({
+        Default: true,
         ID: `route:${this.chain.ServiceName}`,
         Name: this.chain.ServiceName,
         Definition: {
