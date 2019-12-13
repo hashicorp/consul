@@ -133,14 +133,14 @@ export default Component.extend({
     this.ticker.destroy(this);
   },
   splitters: computed('chain.Nodes', function() {
-    return getNodesType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
+    return getNodesByType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
       set(item, 'ID', `splitter:${item.Name}`);
       return item;
     });
   }),
   routers: computed('chain.Nodes', function() {
     // Right now there should only ever be one 'Router'.
-    return getNodesType(get(this, 'chain.Nodes'), 'router');
+    return getNodesByType(get(this, 'chain.Nodes'), 'router');
   }),
   routes: computed('chain', 'routers', function() {
     const routes = get(this, 'routers').reduce(function(prev, item) {
