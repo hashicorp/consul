@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -508,6 +509,8 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	// Build the cert uri
 	var id connect.CertURI
 	var commonName string
+	var dnsNames []string
+	var ipAddresses []net.IP
 	if req.Service != "" {
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
@@ -523,6 +526,8 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Agent:      req.Agent,
 		}
 		commonName = connect.ServiceCN(req.Agent, roots.TrustDomain)
+		dnsNames = []string{"localhost"}
+		ipAddresses = []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}
@@ -545,7 +550,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, commonName, pk)
+	csr, err := connect.CreateCSRWithSAN(id, commonName, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return result, err
 	}
