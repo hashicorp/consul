@@ -12,6 +12,7 @@ export default Component.extend({
   tagName: '',
   // TODO: reserved for the moment but we don't need it yet
   onblur: null,
+  onchange: function() {},
   init: function() {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
@@ -40,14 +41,14 @@ export default Component.extend({
         this._listeners.add(this.dom.document(), 'click', e => {
           if (this.dom.isOutside(this.label, e.target)) {
             this.input.checked = false;
+            // TODO: This should be an event
+            this.onchange(this.input.checked);
             this._listeners.remove();
           }
         });
       }
-      if (this.onchange) {
-        // TODO: This should be an event
-        this.onchange(this.input.checked);
-      }
+      // TODO: This should be an event
+      this.onchange(this.input.checked);
     },
   },
 });
