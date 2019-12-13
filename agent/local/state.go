@@ -1294,8 +1294,8 @@ func (l *State) syncService(key structs.ServiceID) error {
 				l.checks[checkKey].InSync = true
 			}
 			l.logger.Printf("[INFO] agent: Synced service %q", key.String())
-			return nil
 		}
+		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service and the checks to be in sync to prevent excessive retrying before next full sync
