@@ -67,9 +67,14 @@ export default Component.extend({
         return;
       }
       e.stopPropagation();
+      // Also we may do this but not need it if we return early below
+      // although once we add support for [A-Za-z] it unlikely we won't use
+      // the keypress
+      // ^menuitem supports menuitemradio and menuitemcheckbox
+      // TODO: We need to use > somehow here so we don't select submenus
+      const $items = [...this.dom.elements('[role^="menuitem"]', this.$menu)];
       if (!this.expanded) {
         this.$trigger.dispatchEvent(new MouseEvent('click'));
-        const $items = [...this.dom.elements('[role="menuitem"]', this.$menu)];
         if (e.keyCode === ENTER || e.keyCode === SPACE) {
           $items[0].focus();
           return;
@@ -80,8 +85,6 @@ export default Component.extend({
       if (typeof keys[this.direction][e.keyCode] === 'undefined') {
         return;
       }
-      // TODO: We need to use > somehow here so we don't select submenus
-      const $items = [...this.dom.elements('[role="menuitem"]', this.$menu)];
       const $focused = this.dom.element('[role="menuitem"]:focus', this.$menu);
       let i;
       if ($focused) {
