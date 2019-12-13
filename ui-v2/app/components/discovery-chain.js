@@ -3,7 +3,7 @@ import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { next } from '@ember/runloop';
 
-const getType = function(nodes = {}, type) {
+const getNodesByType = function(nodes = {}, type) {
   return Object.values(nodes).filter(item => item.Type === type);
 };
 
@@ -133,14 +133,14 @@ export default Component.extend({
     this.ticker.destroy(this);
   },
   splitters: computed('chain.Nodes', function() {
-    return getType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
+    return getNodesType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
       set(item, 'ID', `splitter:${item.Name}`);
       return item;
     });
   }),
   routers: computed('chain.Nodes', function() {
     // Right now there should only ever be one 'Router'.
-    return getType(get(this, 'chain.Nodes'), 'router');
+    return getNodesType(get(this, 'chain.Nodes'), 'router');
   }),
   routes: computed('chain', 'routers', function() {
     const routes = get(this, 'routers').reduce(function(prev, item) {
