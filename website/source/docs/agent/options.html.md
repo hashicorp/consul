@@ -16,8 +16,7 @@ descriptions.
 Configuration precedence is evaluated in the following order:
 
 1. Command line arguments
-2. Environment Variables
-3. Configuration files
+2. Configuration files
 
 When loading configuration, Consul loads the configuration from files and
 directories in lexical order. For example, configuration file
@@ -40,6 +39,14 @@ documented below in the
 configuration reload.
 
 You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent. 
+
+## Environment Variables
+Environment variables **cannot** be used to configure the Consul client. They
+*can* be used when running other `consul` CLI commands that connect with a
+running agent, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
+
+See [Consul Commands](/docs/commands/index.html#environment-variables) for more
+information.
 
 ## <a name="commandline_options"></a>Command-line Options
 
