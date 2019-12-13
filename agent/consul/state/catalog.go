@@ -552,6 +552,9 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 		if err := s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
 			return err
 		}
+		if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+			return err
+		}
 	}
 
 	// Do the delete in a separate loop so we don't trash the iterator.
@@ -1334,6 +1337,9 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 		if err := s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
 			return err
 		}
+		if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -1421,6 +1427,9 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 			modified = false
 		} else {
 			if err = s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
+				return err
+			}
+			if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 				return err
 			}
 		}
