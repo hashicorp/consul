@@ -2,6 +2,8 @@ package token
 
 import (
 	"sync"
+
+	"crypto/subtle"
 )
 
 type TokenSource bool
@@ -166,5 +168,5 @@ func (t *Store) IsAgentMasterToken(token string) bool {
 	t.l.RLock()
 	defer t.l.RUnlock()
 
-	return (token != "") && (token == t.agentMasterToken)
+	return (token != "") && (subtle.ConstantTimeCompare([]byte(token), []byte(t.agentMasterToken)) == 1)
 }
