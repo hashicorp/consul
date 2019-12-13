@@ -151,7 +151,8 @@ response)
 
 ## Create/Update Key
 
-This endpoint
+This endpoint updates the value of the specified key. If no key exists at the given
+path, the key will be created.
 
 | Method | Path                         | Produces                   |
 | ------ | ---------------------------- | -------------------------- |
@@ -172,7 +173,7 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `key` `(string: "")` - Specifies the path of the key to read.
+- `key` `(string: "")` - Specifies the path of the key.
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
