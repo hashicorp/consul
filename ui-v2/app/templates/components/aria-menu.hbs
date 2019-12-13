@@ -1,2 +1,2 @@
-{{yield (action 'change') (action 'keypress') (concat 'component-aria-menu-trigger-' guid) (concat 'component-aria-menu-menu-' guid) expanded}}
+{{yield (action 'change') (action 'keypress') (concat 'component-aria-menu-trigger-' guid) (concat 'component-aria-menu-menu-' guid) (if expanded 'true' undefined)}}
 <meta id={{concat 'component-aria-menu-' guid}} />
