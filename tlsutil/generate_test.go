@@ -91,9 +91,8 @@ func TestGenerateCA(t *testing.T) {
 	require.Equal(t, true, cert.IsCA)
 	require.Equal(t, true, cert.BasicConstraintsValid)
 
-	// format so that we don't take anything smaller than second into account.
-	require.Equal(t, cert.NotBefore.Format(time.ANSIC), time.Now().UTC().Format(time.ANSIC))
-	require.Equal(t, cert.NotAfter.Format(time.ANSIC), time.Now().AddDate(0, 0, 365).UTC().Format(time.ANSIC))
+	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
+	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
 
 	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
 }
@@ -133,9 +132,8 @@ func TestGenerateCert(t *testing.T) {
 	require.Contains(t, cert.Issuer.CommonName, "Consul Agent CA")
 	require.Equal(t, false, cert.IsCA)
 
-	// format so that we don't take anything smaller than second into account.
-	require.Equal(t, cert.NotBefore.Format(time.ANSIC), time.Now().UTC().Format(time.ANSIC))
-	require.Equal(t, cert.NotAfter.Format(time.ANSIC), time.Now().AddDate(0, 0, 365).UTC().Format(time.ANSIC))
+	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
+	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
 
 	require.Equal(t, x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment, cert.KeyUsage)
 	require.Equal(t, extKeyUsage, cert.ExtKeyUsage)
