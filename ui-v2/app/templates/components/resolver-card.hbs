@@ -3,7 +3,7 @@
     <a name="">
       <h3>{{item.Name}}</h3>
 {{#if item.Failover}}
-      <dl>
+      <dl class="failover">
         <dt data-tooltip={{concat item.Failover.Type ' failover'}}>{{concat item.Failover.Type ' failover'}}</dt>
         <dd>
           <ol>
@@ -15,19 +15,18 @@
           </ol>
         </dd>
       </dl>
+{{else if item.Redirect}}
+      <dl class="redirect">
+        <dt data-tooltip="Redirect">Redirect</dt>
+        <dd>
+          <ol>
+            <li>
+              <span>{{item.ID}}</span>
+            </li>
+          </ol>
+        </dd>
+      </dl>
 {{/if}}
-        {{#if item.Redirect}}
-            <dl>
-              <dt data-tooltip="Redirect">Redirect</dt>
-              <dd>
-                <ol>
-                  <li>
-                    <span>{{item.ID}}</span>
-                  </li>
-                </ol>
-              </dd>
-            </dl>
-        {{/if}}
     </a>
   </header>
 {{#if (gt item.Children.length 0)}}
@@ -35,30 +34,29 @@
   {{#each item.Children as |child|}}
       <li onclick={{onclick}} id={{concat 'resolver:' child.ID}}>
         <a name="">
-        {{#if item.Redirect}}
-            <dl>
-              <dt data-tooltip="Redirect">Redirect</dt>
-              <dd>
-                {{child.ID}}
-              </dd>
-            </dl>
-        {{else}}
+    {{#if child.Failover}}
+          <dl class="failover">
+            <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
+            <dd>
+              <ol>
+      {{#each child.Failover.Targets as |target|}}
+                <li>
+                  <span>{{target}}</span>
+                </li>
+      {{/each}}
+              </ol>
+            </dd>
+          </dl>
+    {{else if item.Redirect}}
+          <dl class="redirect">
+            <dt data-tooltip="Redirect">Redirect</dt>
+            <dd>
+              {{child.ID}}
+            </dd>
+          </dl>
+    {{else}}
           {{child.ServiceSubset}}
-        {{/if}}
-        {{#if child.Failover}}
-            <dl>
-              <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
-              <dd>
-                <ol>
-          {{#each child.Failover.Targets as |target|}}
-                  <li>
-                    <span>{{target}}</span>
-                  </li>
-          {{/each}}
-                </ol>
-              </dd>
-            </dl>
-        {{/if}}
+    {{/if}}
         </a>
       </li>
   {{/each}}

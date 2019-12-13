@@ -86,6 +86,7 @@
 %route-card section header > * {
   visibility: hidden;
 }
+%resolver-card dt,
 %route-card section header > *::before {
   background-color: $gray-100;
   visibility: visible;
@@ -97,10 +98,14 @@
   content: 'Q';
 }
 %resolver-card dt {
-  @extend %with-cloud-cross-icon;
-  background-color: $gray-100;
   font-size: 0;
   background-size: 80% 80%;
+}
+%resolver-card dl.failover dt {
+  @extend %with-cloud-cross-icon;
+}
+%resolver-card dl.redirect dt {
+  @extend %with-redirect-icon;
 }
 /**/
 %with-chain-outlet::before {
