@@ -10,7 +10,7 @@ description: |-
 
 Consul has many integrations with Kubernetes. You can deploy Consul
 to Kubernetes using the Helm chart, sync services between Consul and
-Kubernetes, automatically secure Pod communication with Connect, and more.
+Kubernetes, run Consul Connect Service Mesh, and more.
 This section documents the official integrations between Consul and Kubernetes.
 
 ## Use Cases
@@ -26,18 +26,18 @@ such as envconsul, consul-template, and more to work on Kubernetes since a
 local agent is available. This will also register each Kubernetes node with
 the Consul catalog for full visibility into your infrastructure.
 
-**Service sync to enable Kubernetes and non-Kubernetes services to communicate:**
-Consul can sync Kubernetes services with its own service registry. This allows
-Kubernetes services to use native Kubernetes service discovery to discover
-and connect to external services, and for external services to use Consul
-service discovery to discover and connect to Kubernetes services.
-
-**Automatic encryption and authorization for pod network connections:**
-Consul can automatically inject the [Connect](/docs/connect/index.html)
+**Consul Connect Service Mesh:**
+Consul can automatically inject the [Consul Connect](/docs/connect/index.html)
 sidecar into pods so that they can accept and establish encrypted
 and authorized network connections via mutual TLS. And because Connect
 can run anywhere, pods can also communicate with external services (and
 vice versa) over a fully encrypted connection.
+
+**Service sync to enable Kubernetes and non-Kubernetes services to communicate:**
+Consul can sync Kubernetes services with its own service registry. This allows
+Kubernetes services to use native Kubernetes service discovery to discover
+and connect to external services registered in Consul, and for external services
+to use Consul service discovery to discover and connect to Kubernetes services.
 
 **And more!** Consul can run directly on Kubernetes, so in addition to the
 native integrations provided by Consul itself, any other tool built for
@@ -68,4 +68,4 @@ Guides
 Documentation
   
   - [Installing Consul](/docs/platform/k8s/run.html) covers how to install Consul using the Helm chart.
-  - [Helm Chart Reference](/docs/platform/k8s/run.html) describes the different options for configuring the Helm chart.
+  - [Helm Chart Reference](/docs/platform/k8s/helm.html) describes the different options for configuring the Helm chart.
