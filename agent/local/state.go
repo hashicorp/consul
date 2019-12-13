@@ -1280,20 +1280,22 @@ func (l *State) syncService(key structs.ServiceID) error {
 	defer l.Unlock()
 	switch {
 	case err == nil:
-		l.services[key].InSync = true
-		if l.services[key].version > currentVersion {
-			l.services[key].InSync = false
+		if _, ok := l.services[key]; ok && l.services[key] != nil {
+			l.services[key].InSync = true
+			if l.services[key].version > currentVersion {
+				l.services[key].InSync = false
+			}
+			// Given how the register API works, this info is also updated
+			// every time we sync a service.
+			l.nodeInfoInSync = true
+			var checkKey structs.CheckID
+			for _, check := range checks {
+				checkKey.Init(check.CheckID, &check.EnterpriseMeta)
+				l.checks[checkKey].InSync = true
+			}
+			l.logger.Printf("[INFO] agent: Synced service %q", key.String())
+			return nil
 		}
-		// Given how the register API works, this info is also updated
-		// every time we sync a service.
-		l.nodeInfoInSync = true
-		var checkKey structs.CheckID
-		for _, check := range checks {
-			checkKey.Init(check.CheckID, &check.EnterpriseMeta)
-			l.checks[checkKey].InSync = true
-		}
-		l.logger.Printf("[INFO] agent: Synced service %q", key.String())
-		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service and the checks to be in sync to prevent excessive retrying before next full sync
