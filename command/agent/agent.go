@@ -64,6 +64,7 @@ type cmd struct {
 	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
 	logger            *log.Logger
+	logger2           hclog.Logger
 }
 
 func (c *cmd) init() {
@@ -203,16 +204,19 @@ func (c *cmd) run(args []string) int {
 	}
 	c.logFilter = logFilter
 	c.logOutput = logOutput
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
-		Output: logOutput,
+
+	//TODO (hclog): Add log level and JSON format flag
+	c.logger2 = hclog.New(&hclog.LoggerOptions{
+		Name:       "consul",
+		Output:     c.logOutput,
+		JSONFormat: false,
 	})
-	c.logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	c.logger = c.logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 
 	// Setup gRPC logger to use the same output/filtering
-	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger))
+	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger, c.logger2))
 
 	memSink, err := lib.InitTelemetry(config.Telemetry)
 	if err != nil {
@@ -222,7 +226,7 @@ func (c *cmd) run(args []string) int {
 
 	// Create the agent
 	c.UI.Output("Starting Consul agent...")
-	agent, err := agent.New(config, c.logger)
+	agent, err := agent.New(config, c.logger, c.logger2)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
 		return 1

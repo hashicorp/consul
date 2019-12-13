@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -19,7 +20,8 @@ import (
 // healthy routes to servers by datacenter.
 type Router struct {
 	// logger is used for diagnostic output.
-	logger *log.Logger
+	logger  *log.Logger
+	logger2 hclog.Logger
 
 	// localDatacenter has the name of the router's home datacenter. This is
 	// used to short-circuit RTT calculations for local servers.
@@ -82,10 +84,11 @@ type areaInfo struct {
 }
 
 // NewRouter returns a new Router with the given configuration.
-func NewRouter(logger *log.Logger, localDatacenter string) *Router {
+func NewRouter(logger *log.Logger, logger2 hclog.Logger, localDatacenter string) *Router {
 
 	router := &Router{
 		logger:          logger,
+		logger2:         logger2,
 		localDatacenter: localDatacenter,
 		areas:           make(map[types.AreaID]*areaInfo),
 		managers:        make(map[string][]*Manager),
@@ -213,7 +216,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	info, ok := area.managers[s.Datacenter]
 	if !ok {
 		shutdownCh := make(chan struct{})
-		manager := New(r.logger, shutdownCh, area.cluster, area.pinger)
+		manager := New(r.logger, r.logger2, shutdownCh, area.cluster, area.pinger)
 		info = &managerInfo{
 			manager:    manager,
 			shutdownCh: shutdownCh,

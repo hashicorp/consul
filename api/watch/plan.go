@@ -45,23 +45,26 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 	if output == nil {
 		output = os.Stderr
 	}
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
+
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		// TODO (hclog): We set Trace level for now b/c logOutput will filter
+		// internally right now. When we transition to solely hclog, we should not
+		// need to initialize here.
+		Level:  hclog.Trace,
 		Output: output,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 
-	return p.RunWithClientAndLogger(client, logger)
+	return p.RunWithClientAndLogger(client, logger, logger2)
 }
 
 // RunWithClientAndLogger runs a watch plan using an external client and
 // log.Logger instance. Using this, the plan's Datacenter, Token and LogOutput
 // fields are ignored and the passed client is expected to be configured as
 // needed.
-func (p *Plan) RunWithClientAndLogger(client *consulapi.Client,
-	logger *log.Logger) error {
+func (p *Plan) RunWithClientAndLogger(client *consulapi.Client, logger *log.Logger, logger2 hclog.Logger) error {
 
 	p.client = client
 

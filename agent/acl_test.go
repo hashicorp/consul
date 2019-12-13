@@ -3,7 +3,7 @@ package agent
 import (
 	"fmt"
 	"io"
-	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -61,12 +61,12 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	hclDataDir := `data_dir = "acl-agent"`
 
 	logOutput := testutil.TestWriter(t)
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   a.Name,
-		Level:  log.LstdFlags | log.Lmicroseconds,
+		Level:  hclog.Debug,
 		Output: logOutput,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 
@@ -75,7 +75,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
 
-	agent, err := New(a.Config, logger)
+	agent, err := New(a.Config, logger, logger2)
 	if err != nil {
 		panic(fmt.Sprintf("Error creating agent: %v", err))
 	}
@@ -84,10 +84,11 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	agent.LogOutput = logOutput
 	agent.LogWriter = a.LogWriter
 	agent.logger = logger
+	agent.logger2 = logger2
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	a.Agent.delegate = a
-	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.tokens)
+	a.Agent.State = local.NewState(LocalConfig(a.Config), a.Agent.logger, a.Agent.logger2, a.Agent.tokens)
 	a.Agent.State.TriggerSyncChanges = func() {}
 	return a
 }

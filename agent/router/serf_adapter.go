@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -13,7 +14,7 @@ type routerFn func(types.AreaID, *metadata.Server) error
 
 // handleMemberEvents attempts to apply the given Serf member event to the given
 // router function.
-func handleMemberEvent(logger *log.Logger, fn routerFn, areaID types.AreaID, e serf.Event) {
+func handleMemberEvent(logger *log.Logger, logger2 hclog.Logger, fn routerFn, areaID types.AreaID, e serf.Event) {
 	me, ok := e.(serf.MemberEvent)
 	if !ok {
 		logger.Printf("[ERR] consul: Bad event type %#v", e)
@@ -42,7 +43,7 @@ func handleMemberEvent(logger *log.Logger, fn routerFn, areaID types.AreaID, e s
 // HandleSerfEvents is a long-running goroutine that pushes incoming events from
 // a Serf manager's channel into the given router. This will return when the
 // shutdown channel is closed.
-func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, shutdownCh <-chan struct{}, eventCh <-chan serf.Event) {
+func HandleSerfEvents(logger *log.Logger, logger2 hclog.Logger, router *Router, areaID types.AreaID, shutdownCh <-chan struct{}, eventCh <-chan serf.Event) {
 	for {
 		select {
 		case <-shutdownCh:
@@ -51,13 +52,13 @@ func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, s
 		case e := <-eventCh:
 			switch e.EventType() {
 			case serf.EventMemberJoin:
-				handleMemberEvent(logger, router.AddServer, areaID, e)
+				handleMemberEvent(logger, logger2, router.AddServer, areaID, e)
 
 			case serf.EventMemberLeave, serf.EventMemberReap:
-				handleMemberEvent(logger, router.RemoveServer, areaID, e)
+				handleMemberEvent(logger, logger2, router.RemoveServer, areaID, e)
 
 			case serf.EventMemberFailed:
-				handleMemberEvent(logger, router.FailServer, areaID, e)
+				handleMemberEvent(logger, logger2, router.FailServer, areaID, e)
 
 			// All of these event types are ignored.
 			case serf.EventMemberUpdate:

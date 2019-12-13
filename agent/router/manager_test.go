@@ -55,23 +55,26 @@ func (s *fauxSerf) NumNodes() int {
 }
 
 func testManager(t testing.TB) (m *router.Manager) {
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m = router.New(logger, logger2, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	return m
 }
 
 func testManagerFailProb(t testing.TB, failPct float64) (m *router.Manager) {
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = router.New(logger, logger2, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
 }
 
 func testManagerFailAddr(t testing.TB, failAddr net.Addr) (m *router.Manager) {
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
+	m = router.New(logger, logger2, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
 	return m
 }
 
@@ -194,9 +197,10 @@ func TestServers_FindServer(t *testing.T) {
 
 // func New(logger *log.Logger, shutdownCh chan struct{}) (m *Manager) {
 func TestServers_New(t *testing.T) {
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	shutdownCh := make(chan struct{})
-	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m := router.New(logger, logger2, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	if m == nil {
 		t.Fatalf("Manager nil")
 	}

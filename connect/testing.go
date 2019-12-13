@@ -22,14 +22,14 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 	t.Helper()
 
 	// Don't need to talk to client since we are setting TLSConfig locally
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level: log.LstdFlags,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	svc, err := NewDevServiceWithTLSConfig(service,
-		logger, TestTLSConfig(t, service, ca))
+		logger, logger2, TestTLSConfig(t, service, ca))
 	if err != nil {
 		t.Fatal(err)
 	}

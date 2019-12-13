@@ -25,27 +25,38 @@ func LogShim(logger hclog.Logger) *log.Logger {
 }
 
 func NewDiscardLogger() *log.Logger {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  0,
 		Output: ioutil.Discard,
 	})
-	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	return logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 }
 
+func NewDiscardLogger2() hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: ioutil.Discard,
+	})
+}
+
 func Logger(t testing.TB) hclog.Logger {
+	return LoggerWithOutput(t, &testWriter{t})
+}
+
+func LoggerWithOutput(t testing.TB, output io.Writer) hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
 		Name:   t.Name(),
-		Level:  log.LstdFlags,
-		Output: &testWriter{t},
+		Level:  hclog.Debug,
+		Output: output,
 	})
 }
 
 func LoggerWithName(t testing.TB, name string) hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
 		Name:   "test[" + name + "]",
-		Level:  log.LstdFlags,
+		Level:  hclog.Debug,
 		Output: &testWriter{t},
 	})
 }

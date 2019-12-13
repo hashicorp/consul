@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 // Config is the publicly configurable state for an entire proxy instance. It's
@@ -45,8 +46,8 @@ type Config struct {
 }
 
 // Service returns the *connect.Service structure represented by this config.
-func (c *Config) Service(client *api.Client, logger *log.Logger) (*connect.Service, error) {
-	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
+func (c *Config) Service(client *api.Client, logger *log.Logger, logger2 hclog.Logger) (*connect.Service, error) {
+	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger, logger2)
 }
 
 // PublicListenerConfig contains the parameters needed for the incoming mTLS
@@ -179,17 +180,19 @@ type AgentConfigWatcher struct {
 	client  *api.Client
 	proxyID string
 	logger  *log.Logger
+	logger2 hclog.Logger
 	ch      chan *Config
 	plan    *watch.Plan
 }
 
 // NewAgentConfigWatcher creates an AgentConfigWatcher.
 func NewAgentConfigWatcher(client *api.Client, proxyID string,
-	logger *log.Logger) (*AgentConfigWatcher, error) {
+	logger *log.Logger, logger2 hclog.Logger) (*AgentConfigWatcher, error) {
 	w := &AgentConfigWatcher{
 		client:  client,
 		proxyID: proxyID,
 		logger:  logger,
+		logger2: logger2,
 		ch:      make(chan *Config),
 	}
 
@@ -203,7 +206,7 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 	}
 	w.plan = plan
 	w.plan.HybridHandler = w.handler
-	go w.plan.RunWithClientAndLogger(w.client, w.logger)
+	go w.plan.RunWithClientAndLogger(w.client, w.logger, w.logger2)
 	return w, nil
 }
 

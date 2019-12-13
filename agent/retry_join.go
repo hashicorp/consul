@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	discover "github.com/hashicorp/go-discover"
 	discoverk8s "github.com/hashicorp/go-discover/provider/k8s"
+	"github.com/hashicorp/go-hclog"
 )
 
 func (a *Agent) retryJoinLAN() {
@@ -52,7 +53,7 @@ func newDiscover() (*discover.Discover, error) {
 	)
 }
 
-func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string, logger *log.Logger) []string {
+func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string, logger *log.Logger, logger2 hclog.Logger) []string {
 	addrs := []string{}
 	if disco == nil {
 		return addrs
@@ -103,6 +104,9 @@ type retryJoiner struct {
 	// logger is the agent logger. Log messages should contain the
 	// "agent: " prefix.
 	logger *log.Logger
+
+	//hclog stand in
+	logger2 hclog.Logger
 }
 
 func (r *retryJoiner) retryJoin() error {
@@ -119,7 +123,7 @@ func (r *retryJoiner) retryJoin() error {
 	r.logger.Printf("[INFO] agent: Joining %s cluster...", r.cluster)
 	attempt := 0
 	for {
-		addrs := retryJoinAddrs(disco, r.cluster, r.addrs, r.logger)
+		addrs := retryJoinAddrs(disco, r.cluster, r.addrs, r.logger, r.logger2)
 		if len(addrs) > 0 {
 			n, err := r.join(addrs)
 			if err == nil {

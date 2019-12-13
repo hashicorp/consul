@@ -3,9 +3,9 @@ package logger
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,9 +14,16 @@ import (
 
 func TestGRPCLogger(t *testing.T) {
 	var out bytes.Buffer
-	// No flags so we don't have to include date/time in expected output
-	logger := log.New(&out, "", 0)
-	grpclog.SetLoggerV2(NewGRPCLogger(&Config{LogLevel: "TRACE"}, logger))
+	// Use a placeholder value for TimeFormat so we don't care about dates/times
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		Level:      hclog.Trace,
+		Output:     &out,
+		TimeFormat: "timeformat",
+	})
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+	})
+	grpclog.SetLoggerV2(NewGRPCLogger(&Config{LogLevel: "TRACE"}, logger, logger2))
 
 	// All of these should output something
 	grpclog.Info("Info,")
@@ -32,15 +39,15 @@ func TestGRPCLogger(t *testing.T) {
 	grpclog.Errorf("Errorf: %d\n", 1)
 
 	// Fatal tests are hard... assume they are good!
-	expect := `[INFO] Info,
-[INFO] Infoln
-[INFO] Infof: 1
-[WARN] Warning,
-[WARN] Warningln
-[WARN] Warningf: 1
-[ERR] Error,
-[ERR] Errorln
-[ERR] Errorf: 1
+	expect := `timeformat [INFO]  Info,
+timeformat [INFO]  Infoln
+timeformat [INFO]  Infof: 1
+timeformat [WARN]  Warning,
+timeformat [WARN]  Warningln
+timeformat [WARN]  Warningf: 1
+timeformat [ERROR] Error,
+timeformat [ERROR] Errorln
+timeformat [ERROR] Errorf: 1
 `
 
 	require.Equal(t, expect, out.String())
@@ -83,12 +90,17 @@ func TestGRPCLogger_V(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s,%d", tt.level, tt.v), func(t *testing.T) {
 			var out bytes.Buffer
-			// No flags so we don't have to include date/time in expected output
-			logger := log.New(&out, "", 0)
-			grpclog.SetLoggerV2(NewGRPCLogger(&Config{LogLevel: tt.level}, logger))
+			logger2 := hclog.New(&hclog.LoggerOptions{
+				Name:   t.Name(),
+				Level:  hclog.Trace,
+				Output: &out,
+			})
+			logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
+				InferLevels: true,
+			})
+			grpclog.SetLoggerV2(NewGRPCLogger(&Config{LogLevel: tt.level}, logger, logger2))
 
 			assert.Equal(t, tt.want, grpclog.V(tt.v))
 		})
 	}
-
 }

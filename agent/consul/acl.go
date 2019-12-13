@@ -116,8 +116,9 @@ func (e policyOrRoleTokenError) Error() string {
 
 // ACLResolverConfig holds all the configuration necessary to create an ACLResolver
 type ACLResolverConfig struct {
-	Config *Config
-	Logger *log.Logger
+	Config  *Config
+	Logger  *log.Logger
+	Logger2 hclog.Logger
 
 	// CacheConfig is a pass through configuration for ACL cache limits
 	CacheConfig *structs.ACLCachesConfig
@@ -160,8 +161,9 @@ type ACLResolverConfig struct {
 //   upon.
 //
 type ACLResolver struct {
-	config *Config
-	logger *log.Logger
+	config  *Config
+	logger  *log.Logger
+	logger2 hclog.Logger
 
 	delegate ACLResolverDelegate
 	entConf  *acl.EnterpriseACLConfig
@@ -193,11 +195,10 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	}
 
 	if config.Logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{Output: os.Stderr})
-		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{Output: os.Stderr})
+		config.Logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
-
 	}
 
 	cache, err := structs.NewACLCaches(config.CacheConfig)
@@ -220,6 +221,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	return &ACLResolver{
 		config:      config.Config,
 		logger:      config.Logger,
+		logger2:     config.Logger2,
 		delegate:    config.Delegate,
 		entConf:     config.EnterpriseConfig,
 		cache:       cache,
@@ -1081,22 +1083,24 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 type aclFilter struct {
 	authorizer      acl.Authorizer
 	logger          *log.Logger
+	logger2         hclog.Logger
 	enforceVersion8 bool
 }
 
 // newACLFilter constructs a new aclFilter.
-func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, enforceVersion8 bool) *aclFilter {
+func newACLFilter(authorizer acl.Authorizer, logger *log.Logger, logger2 hclog.Logger, enforceVersion8 bool) *aclFilter {
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Level:  log.LstdFlags,
 			Output: os.Stderr})
-		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}
 	return &aclFilter{
 		authorizer:      authorizer,
 		logger:          logger,
+		logger2:         logger2,
 		enforceVersion8: enforceVersion8,
 	}
 }
@@ -1625,7 +1629,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 		return nil
 	}
 	// Create the filter
-	filt := newACLFilter(authorizer, r.logger, r.config.ACLEnforceVersion8)
+	filt := newACLFilter(authorizer, r.logger, r.logger2, r.config.ACLEnforceVersion8)
 
 	switch v := subj.(type) {
 	case *structs.CheckServiceNodes:

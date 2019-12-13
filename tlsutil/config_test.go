@@ -19,7 +19,7 @@ import (
 func startTLSServer(config *Config) (net.Conn, chan error) {
 	errc := make(chan error, 1)
 
-	c, err := NewConfigurator(*config, nil)
+	c, err := NewConfigurator(*config, nil, nil)
 	if err != nil {
 		errc <- err
 		return nil, errc
@@ -68,7 +68,7 @@ func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	c, err := NewConfigurator(config, nil)
+	c, err := NewConfigurator(config, nil, nil)
 	require.NoError(t, err)
 	wrap := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrap)
@@ -97,7 +97,7 @@ func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	c, err := NewConfigurator(config, nil)
+	c, err := NewConfigurator(config, nil, nil)
 	require.NoError(t, err)
 	wrap := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrap)
@@ -128,7 +128,7 @@ func TestConfigurator_outgoingWrapper_BadDC(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	c, err := NewConfigurator(config, nil)
+	c, err := NewConfigurator(config, nil, nil)
 	require.NoError(t, err)
 	wrap := c.OutgoingRPCWrapper()
 
@@ -158,7 +158,7 @@ func TestConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	c, err := NewConfigurator(config, nil)
+	c, err := NewConfigurator(config, nil, nil)
 	require.NoError(t, err)
 	wrap := c.OutgoingRPCWrapper()
 
@@ -187,7 +187,7 @@ func TestConfigurator_wrapTLS_OK(t *testing.T) {
 		t.Fatalf("startTLSServer err: %v", <-errc)
 	}
 
-	c, err := NewConfigurator(config, nil)
+	c, err := NewConfigurator(config, nil, nil)
 	require.NoError(t, err)
 
 	tlsClient, err := c.wrapTLSClient("dc1", client)
@@ -214,7 +214,7 @@ func TestConfigurator_wrapTLS_BadCert(t *testing.T) {
 		VerifyOutgoing: true,
 	}
 
-	c, err := NewConfigurator(clientConfig, nil)
+	c, err := NewConfigurator(clientConfig, nil, nil)
 	require.NoError(t, err)
 	tlsClient, err := c.wrapTLSClient("dc1", client)
 	require.Error(t, err)
@@ -337,12 +337,13 @@ func TestConfig_SpecifyDC(t *testing.T) {
 
 func TestConfigurator_NewConfigurator(t *testing.T) {
 	logger := testutil.LogShim(testutil.Logger(t))
-	c, err := NewConfigurator(Config{}, logger)
+	logger2 := testutil.Logger(t)
+	c, err := NewConfigurator(Config{}, logger, logger2)
 	require.NoError(t, err)
 	require.NotNil(t, c)
 	require.Equal(t, logger, c.logger)
 
-	c, err = NewConfigurator(Config{VerifyOutgoing: true}, nil)
+	c, err = NewConfigurator(Config{VerifyOutgoing: true}, nil, nil)
 	require.Error(t, err)
 	require.Nil(t, c)
 }
@@ -395,7 +396,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 	c := Configurator{autoEncrypt: &autoEncrypt{}, manual: &manual{}}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
-		_, err1 := NewConfigurator(v.config, nil)
+		_, err1 := NewConfigurator(v.config, nil, nil)
 		err2 := c.Update(v.config)
 
 		var err3 error
@@ -438,7 +439,7 @@ func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
 			result: "node"},
 	}
 	for _, v := range variants {
-		c, err := NewConfigurator(v.config, nil)
+		c, err := NewConfigurator(v.config, nil, nil)
 		require.NoError(t, err)
 		tlsConf := c.commonTLSConfig(false)
 		require.Empty(t, tlsConf.ServerName)
@@ -485,7 +486,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigInsecureSkipVerify(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 	tlsConf := c.commonTLSConfig(false)
 	require.True(t, tlsConf.InsecureSkipVerify)
@@ -500,7 +501,7 @@ func TestConfigurator_CommonTLSConfigInsecureSkipVerify(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigPreferServerCipherSuites(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 	tlsConf := c.commonTLSConfig(false)
 	require.False(t, tlsConf.PreferServerCipherSuites)
@@ -515,7 +516,7 @@ func TestConfigurator_CommonTLSConfigPreferServerCipherSuites(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigCipherSuites(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 	tlsConf := c.commonTLSConfig(false)
 	require.Empty(t, tlsConf.CipherSuites)
@@ -528,7 +529,7 @@ func TestConfigurator_CommonTLSConfigCipherSuites(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 
 	cert, err := c.commonTLSConfig(false).GetClientCertificate(nil)
@@ -551,7 +552,7 @@ func TestConfigurator_CommonTLSConfigGetClientCertificate(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 
 	cert, err := c.commonTLSConfig(false).GetCertificate(nil)
@@ -576,7 +577,7 @@ func TestConfigurator_CommonTLSConfigGetCertificate(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 	require.Nil(t, c.commonTLSConfig(false).ClientCAs)
 	require.Nil(t, c.commonTLSConfig(false).RootCAs)
@@ -587,7 +588,7 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
-	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
+	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, c.commonTLSConfig(false).MinVersion, TLSLookup["tls10"])
 
@@ -674,7 +675,7 @@ func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 		CAFile:            "../test/ca/root.cer",
 		CertFile:          "../test/key/ourdomain.cer",
 		KeyFile:           "../test/key/ourdomain.key",
-	}, nil)
+	}, nil, nil)
 	require.NoError(t, err)
 	tlsConf := c.IncomingRPCConfig()
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
@@ -723,7 +724,7 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 }
 
 func TestConfigurator_UpdateChecks(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 	require.NoError(t, c.Update(Config{}))
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
@@ -735,7 +736,7 @@ func TestConfigurator_UpdateChecks(t *testing.T) {
 }
 
 func TestConfigurator_UpdateSetsStuff(t *testing.T) {
-	c, err := NewConfigurator(Config{}, nil)
+	c, err := NewConfigurator(Config{}, nil, nil)
 	require.NoError(t, err)
 	require.Nil(t, c.caPool)
 	require.Nil(t, c.manual.cert)

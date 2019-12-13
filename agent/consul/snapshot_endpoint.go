@@ -79,7 +79,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		s.setQueryMeta(&reply.QueryMeta)
 
 		// Take the snapshot and capture the index.
-		snap, err := snapshot.New(s.logger, s.raft)
+		snap, err := snapshot.New(s.logger, s.logger2, s.raft)
 		reply.Index = snap.Index()
 		return snap, err
 
@@ -89,7 +89,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 		}
 
 		// Restore the snapshot.
-		if err := snapshot.Restore(s.logger, in, s.raft); err != nil {
+		if err := snapshot.Restore(s.logger, s.logger2, in, s.raft); err != nil {
 			return nil, err
 		}
 

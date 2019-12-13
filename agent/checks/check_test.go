@@ -43,8 +43,9 @@ func TestCheckMonitor_Script(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
-			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			logger2 := testutil.Logger(t)
+			logger := testutil.LogShim(logger2)
+			statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 
 			cid := structs.NewCheckID("foo", nil)
 			check := &CheckMonitor{
@@ -54,6 +55,7 @@ func TestCheckMonitor_Script(t *testing.T) {
 				Interval:      25 * time.Millisecond,
 				OutputMaxSize: DefaultBufSize,
 				Logger:        logger,
+				Logger2:       logger2,
 				StatusHandler: statusHandler,
 			}
 			check.Start()
@@ -84,9 +86,11 @@ func TestCheckMonitor_Args(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
 			notif := mock.NewNotify()
-			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			logger2 := testutil.Logger(t)
+			logger := testutil.LogShim(logger2)
+			statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 			cid := structs.NewCheckID("foo", nil)
+
 			check := &CheckMonitor{
 				Notify:        notif,
 				CheckID:       cid,
@@ -94,6 +98,7 @@ func TestCheckMonitor_Args(t *testing.T) {
 				Interval:      25 * time.Millisecond,
 				OutputMaxSize: DefaultBufSize,
 				Logger:        logger,
+				Logger2:       logger2,
 				StatusHandler: statusHandler,
 			}
 			check.Start()
@@ -113,8 +118,9 @@ func TestCheckMonitor_Args(t *testing.T) {
 func TestCheckMonitor_Timeout(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 
 	cid := structs.NewCheckID("foo", nil)
 	check := &CheckMonitor{
@@ -125,6 +131,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		Timeout:       25 * time.Millisecond,
 		OutputMaxSize: DefaultBufSize,
 		Logger:        logger,
+		Logger2:       logger2,
 		StatusHandler: statusHandler,
 	}
 	check.Start()
@@ -144,9 +151,9 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 func TestCheckMonitor_RandomStagger(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 
 	cid := structs.NewCheckID("foo", nil)
 
@@ -157,6 +164,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		Interval:      25 * time.Millisecond,
 		OutputMaxSize: DefaultBufSize,
 		Logger:        logger,
+		Logger2:       logger2,
 		StatusHandler: statusHandler,
 	}
 	check.Start()
@@ -177,8 +185,9 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 func TestCheckMonitor_LimitOutput(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckMonitor{
@@ -188,6 +197,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		Interval:      25 * time.Millisecond,
 		OutputMaxSize: DefaultBufSize,
 		Logger:        logger,
+		Logger2:       logger2,
 		StatusHandler: statusHandler,
 	}
 	check.Start()
@@ -204,7 +214,8 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 func TestCheckTTL(t *testing.T) {
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckTTL{
@@ -212,6 +223,7 @@ func TestCheckTTL(t *testing.T) {
 		CheckID: cid,
 		TTL:     200 * time.Millisecond,
 		Logger:  logger,
+		Logger2: logger2,
 	}
 	check.Start()
 	defer check.Stop()
@@ -328,8 +340,9 @@ func TestCheckHTTP(t *testing.T) {
 			defer server.Close()
 
 			notif := mock.NewNotify()
-			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			logger2 := testutil.Logger(t)
+			logger := testutil.LogShim(logger2)
+			statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 
 			cid := structs.NewCheckID("foo", nil)
 
@@ -340,6 +353,7 @@ func TestCheckHTTP(t *testing.T) {
 				Header:        tt.header,
 				Interval:      10 * time.Millisecond,
 				Logger:        logger,
+				Logger2:       logger2,
 				StatusHandler: statusHandler,
 			}
 			check.Start()
@@ -371,8 +385,9 @@ func TestCheckHTTP_Proxied(t *testing.T) {
 
 	notif := mock.NewNotify()
 
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckHTTP{
@@ -382,6 +397,7 @@ func TestCheckHTTP_Proxied(t *testing.T) {
 		OutputMaxSize: DefaultBufSize,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		ProxyHTTP:     proxy.URL,
 		StatusHandler: statusHandler,
 	}
@@ -407,8 +423,9 @@ func TestCheckHTTP_NotProxied(t *testing.T) {
 	defer server.Close()
 
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckHTTP{
@@ -418,6 +435,7 @@ func TestCheckHTTP_NotProxied(t *testing.T) {
 		OutputMaxSize: DefaultBufSize,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		ProxyHTTP:     "",
 		StatusHandler: statusHandler,
 	}
@@ -522,7 +540,8 @@ func TestCheckMaxOutputSize(t *testing.T) {
 	defer server.Close()
 
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	maxOutputSize := 32
 	cid := structs.NewCheckID("bar", nil)
 
@@ -532,8 +551,9 @@ func TestCheckMaxOutputSize(t *testing.T) {
 		Timeout:       timeout,
 		Interval:      2 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		OutputMaxSize: maxOutputSize,
-		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+		StatusHandler: NewStatusHandler(notif, logger, logger2, 0, 0),
 	}
 
 	check.Start()
@@ -560,8 +580,9 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	defer server.Close()
 
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 
 	cid := structs.NewCheckID("bar", nil)
 
@@ -571,6 +592,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		Timeout:       timeout,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		StatusHandler: statusHandler,
 	}
 
@@ -589,7 +611,8 @@ func TestCheckHTTPTimeout(t *testing.T) {
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckHTTP{
@@ -597,7 +620,8 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 		HTTP:          "http://foo.bar/baz",
 		Interval:      10 * time.Second,
 		Logger:        logger,
-		StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+		Logger2:       logger2,
+		StatusHandler: NewStatusHandler(notif, logger, logger2, 0, 0),
 	}
 
 	check.Start()
@@ -631,8 +655,9 @@ func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 	}
 
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 
 	cid := structs.NewCheckID("skipverify_true", nil)
 	check := &CheckHTTP{
@@ -640,6 +665,7 @@ func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 		HTTP:            server.URL,
 		Interval:        25 * time.Millisecond,
 		Logger:          logger,
+		Logger2:         logger2,
 		TLSClientConfig: tlsClientConfig,
 		StatusHandler:   statusHandler,
 	}
@@ -669,14 +695,17 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 	}
 
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 	cid := structs.NewCheckID("skipverify_false", nil)
+
 	check := &CheckHTTP{
 		CheckID:         cid,
 		HTTP:            server.URL,
 		Interval:        100 * time.Millisecond,
 		Logger:          logger,
+		Logger2:         logger2,
 		TLSClientConfig: tlsClientConfig,
 		StatusHandler:   statusHandler,
 	}
@@ -720,14 +749,17 @@ func mockTCPServer(network string) net.Listener {
 
 func expectTCPStatus(t *testing.T, tcp string, status string) {
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckTCP{
 		CheckID:       cid,
 		TCP:           tcp,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		StatusHandler: statusHandler,
 	}
 	check.Start()
@@ -746,8 +778,9 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	t.Parallel()
 	cid := structs.NewCheckID("foo", nil)
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 2, 3)
 
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
@@ -788,8 +821,9 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	t.Parallel()
 	cid := structs.NewCheckID("foo", nil)
 	notif := mock.NewNotify()
-	logger := testutil.LogShim(testutil.Logger(t))
-	statusHandler := NewStatusHandler(notif, logger, 2, 3)
+	logger2 := testutil.Logger(t)
+	logger := testutil.LogShim(logger2)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 2, 3)
 
 	// Set the initial status to passing after a single success
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
@@ -1128,8 +1162,9 @@ func TestCheck_Docker(t *testing.T) {
 			}
 
 			notif, upd := mock.NewNotifyChan()
-			logger := testutil.LogShim(testutil.Logger(t))
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			logger2 := testutil.Logger(t)
+			logger := testutil.LogShim(logger2)
+			statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 			id := structs.NewCheckID("chk", nil)
 
 			check := &CheckDocker{

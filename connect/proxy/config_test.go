@@ -111,7 +111,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	require.NoError(t, err)
 
 	w, err := NewAgentConfigWatcher(client, "web-sidecar-proxy",
-		testutil.LogShim(testutil.Logger(t)))
+		testutil.LogShim(testutil.Logger(t)), testutil.Logger(t))
 	require.NoError(t, err)
 
 	cfg := testGetConfigValTimeout(t, w, 500*time.Millisecond)

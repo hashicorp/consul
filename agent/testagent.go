@@ -162,12 +162,12 @@ func (a *TestAgent) Start() (err error) {
 		logOutput = os.Stderr
 	}
 
-	consullogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   a.Name + " - ",
 		Level:  hclog.Debug,
 		Output: logOutput,
 	})
-	agentLogger := consullogger.StandardLogger(&hclog.StandardLoggerOptions{
+	agentLogger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 
@@ -206,7 +206,7 @@ func (a *TestAgent) Start() (err error) {
 		}
 	}
 
-	agent, err := New(a.Config, agentLogger)
+	agent, err := New(a.Config, agentLogger, logger2)
 	if err != nil {
 		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)

@@ -32,6 +32,8 @@ type RegisterMonitor struct {
 	// Logger is the logger for the monitor.
 	Logger *log.Logger
 
+	Logger2 hclog.Logger
+
 	// Client is the API client to a specific Consul agent. This agent is
 	// where the service will be registered.
 	Client *api.Client
@@ -90,14 +92,15 @@ const (
 func NewRegisterMonitor() *RegisterMonitor {
 	var lock sync.Mutex
 
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level: log.LstdFlags,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	return &RegisterMonitor{
 		Logger:          logger, // default logger
+		Logger2:         logger2,
 		ReconcilePeriod: RegisterReconcilePeriod,
 		TTLPeriod:       RegisterTTLPeriod,
 		lock:            &lock,

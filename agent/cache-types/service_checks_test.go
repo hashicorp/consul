@@ -173,7 +173,7 @@ type mockAgent struct {
 
 func newMockAgent() *mockAgent {
 	m := mockAgent{
-		state:  local.NewState(local.Config{NodeID: "host"}, nil, new(token.Store)),
+		state:  local.NewState(local.Config{NodeID: "host"}, nil, nil, new(token.Store)),
 		checks: make([]structs.CheckType, 0),
 	}
 	m.state.TriggerSyncChanges = func() {}

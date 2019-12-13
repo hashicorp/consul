@@ -11,7 +11,7 @@ import (
 )
 
 func TestReplicationRestart(t *testing.T) {
-	mgr := NewLeaderRoutineManager(testutil.LogShim(testutil.Logger(t)))
+	mgr := NewLeaderRoutineManager(testutil.LogShim(testutil.Logger(t)), testutil.Logger(t))
 
 	config := ReplicatorConfig{
 		Name: "mock",

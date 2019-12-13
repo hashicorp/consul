@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -240,7 +241,9 @@ func TestAWSNoCrossSigning(t *testing.T) {
 
 func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
 	p := &AWSProvider{}
-	p.SetLogger(log.New(&testLogger{t}, "", log.LstdFlags))
+	logger := log.New(&testLogger{t}, "", log.LstdFlags)
+	logger2 := testutil.Logger(t)
+	p.SetLogger(logger, logger2)
 	require.NoError(t, p.Configure(cfg))
 	return p
 }

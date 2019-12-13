@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	osexec "os/exec"
@@ -42,11 +41,14 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		panic(fmt.Errorf("unknown handler type %T", handler))
 	}
 
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		// TODO (hclog): We set Trace level for now b/c logOutput will filter
+		// internally right now. When we transition to solely hclog, we should not
+		// need to initialize here.
+		Level:  hclog.Trace,
 		Output: logOutput,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 	fn := func(idx uint64, data interface{}) {
@@ -101,11 +103,14 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 }
 
 func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
+	logger2 := hclog.New(&hclog.LoggerOptions{
+		// TODO (hclog): We set Trace level for now b/c logOutput will filter
+		// internally right now. When we transition to solely hclog, we should not
+		// need to initialize here.
+		Level:  hclog.Trace,
 		Output: logOutput,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
 

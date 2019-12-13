@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,8 +16,10 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 	type args struct {
 		rawHost string
 		logger  *log.Logger
+		logger2 hclog.Logger
 	}
 	logger := testutil.LogShim(testutil.Logger(t))
+	logger2 := testutil.Logger(t)
 
 	tests := []struct {
 		name    string
@@ -29,6 +32,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			args: args{
 				"127.0.0.1",
 				logger,
+				logger2,
 			},
 			ips:     []net.IP{net.IPv4(127, 0, 0, 1)},
 			wantErr: false,
@@ -38,6 +42,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			args: args{
 				"127.0.0.1:1234",
 				logger,
+				logger2,
 			},
 			ips:     []net.IP{net.IPv4(127, 0, 0, 1)},
 			wantErr: false,
@@ -47,6 +52,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			args: args{
 				"127.0.0.1:xyz",
 				logger,
+				logger2,
 			},
 			ips:     []net.IP{net.IPv4(127, 0, 0, 1)},
 			wantErr: false,
@@ -56,6 +62,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			args: args{
 				"abc",
 				logger,
+				logger2,
 			},
 			ips:     nil,
 			wantErr: true,
@@ -63,7 +70,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ips, err := resolveAddr(tt.args.rawHost, tt.args.logger)
+			ips, err := resolveAddr(tt.args.rawHost, tt.args.logger, tt.args.logger2)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("resolveAddr error: %v, wantErr: %v", err, tt.wantErr)
 				return

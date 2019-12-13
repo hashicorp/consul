@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
 	"google.golang.org/grpc"
@@ -164,6 +165,9 @@ type Agent struct {
 	// Used for writing our logs
 	logger *log.Logger
 
+	//(hclog) stand in
+	logger2 hclog.Logger
+
 	// Output sink for logs
 	LogOutput io.Writer
 
@@ -308,7 +312,7 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
-func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
+func New(c *config.RuntimeConfig, logger *log.Logger, logger2 hclog.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -336,6 +340,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 		endpoints:        make(map[string]string),
 		tokens:           new(token.Store),
 		logger:           logger,
+		logger2:          logger2,
 	}
 	a.serviceManager = NewServiceManager(&a)
 
@@ -390,11 +395,11 @@ func (a *Agent) Start() error {
 	a.loadTokens(a.config)
 
 	// create the local state
-	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
+	a.State = local.NewState(LocalConfig(c), a.logger, a.logger2, a.tokens)
 
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
-	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger, a.logger2)
 
 	// create the cache
 	a.cache = cache.New(nil)
@@ -412,7 +417,7 @@ func (a *Agent) Start() error {
 
 	a.initEnterprise(consulCfg)
 
-	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger)
+	tlsConfigurator, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), a.logger, a.logger2)
 	if err != nil {
 		return err
 	}
@@ -420,13 +425,13 @@ func (a *Agent) Start() error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens, a.tlsConfigurator)
+		server, err := consul.NewServerLogger(consulCfg, a.logger, a.logger2, a.tokens, a.tlsConfigurator)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientLogger(consulCfg, a.logger, a.tlsConfigurator)
+		client, err := consul.NewClientLogger(consulCfg, a.logger, a.logger2, a.tlsConfigurator)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -477,9 +482,10 @@ func (a *Agent) Start() error {
 
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		Cache:  a.cache,
-		Logger: a.logger,
-		State:  a.State,
+		Cache:   a.cache,
+		Logger:  a.logger,
+		Logger2: a.logger2,
+		State:   a.State,
 		Source: &structs.QuerySource{
 			Node:       a.config.NodeName,
 			Datacenter: a.config.Datacenter,
@@ -557,7 +563,7 @@ func (a *Agent) setupClientAutoEncrypt() (*structs.SignedResponse, error) {
 	if err != nil && len(addrs) == 0 {
 		return nil, err
 	}
-	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger)...)
+	addrs = append(addrs, retryJoinAddrs(disco, "LAN", a.config.RetryJoinLAN, a.logger, a.logger2)...)
 
 	reply, priv, err := client.RequestAutoEncryptCerts(addrs, a.config.ServerPort, a.tokens.AgentToken(), a.InterruptStartCh)
 	if err != nil {
@@ -708,6 +714,7 @@ func (a *Agent) listenAndServeGRPC() error {
 
 	a.xdsServer = &xds.Server{
 		Logger:       a.logger,
+		Logger2:      a.logger2,
 		CfgMgr:       a.proxyConfig,
 		Authz:        a,
 		ResolveToken: a.resolveToken,
@@ -2669,7 +2676,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 		}
 
-		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
+		statusHandler := checks.NewStatusHandler(a.State, a.logger, a.logger2, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
 		sid := check.CompoundServiceID()
 
 		cid := check.CompoundCheckID()
@@ -2688,6 +2695,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				ServiceID:     sid,
 				TTL:           chkType.TTL,
 				Logger:        a.logger,
+				Logger2:       a.logger2,
 				OutputMaxSize: maxOutputSize,
 			}
 
@@ -2724,6 +2732,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:        chkType.Interval,
 				Timeout:         chkType.Timeout,
 				Logger:          a.logger,
+				Logger2:         a.logger2,
 				OutputMaxSize:   maxOutputSize,
 				TLSClientConfig: tlsClientConfig,
 				StatusHandler:   statusHandler,
@@ -2759,6 +2768,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:      chkType.Interval,
 				Timeout:       chkType.Timeout,
 				Logger:        a.logger,
+				Logger2:       a.logger2,
 				StatusHandler: statusHandler,
 			}
 			tcp.Start()
@@ -2787,6 +2797,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:        chkType.Interval,
 				Timeout:         chkType.Timeout,
 				Logger:          a.logger,
+				Logger2:         a.logger2,
 				TLSClientConfig: tlsClientConfig,
 				StatusHandler:   statusHandler,
 			}
@@ -2832,6 +2843,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				ScriptArgs:        chkType.ScriptArgs,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
+				Logger2:           a.logger2,
 				Client:            a.dockerClient,
 				StatusHandler:     statusHandler,
 			}
@@ -2859,6 +2871,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Interval:      chkType.Interval,
 				Timeout:       chkType.Timeout,
 				Logger:        a.logger,
+				Logger2:       a.logger2,
 				OutputMaxSize: maxOutputSize,
 				StatusHandler: statusHandler,
 			}

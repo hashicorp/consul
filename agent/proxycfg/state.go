@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -40,9 +41,10 @@ const (
 // is discarded and a new one created.
 type state struct {
 	// logger, source and cache are required to be set before calling Watch.
-	logger *log.Logger
-	source *structs.QuerySource
-	cache  CacheNotifier
+	logger  *log.Logger
+	logger2 hclog.Logger
+	source  *structs.QuerySource
+	cache   CacheNotifier
 
 	// ctx and cancel store the context created during initWatches call
 	ctx    context.Context

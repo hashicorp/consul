@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-hclog"
 
@@ -108,21 +109,23 @@ func TestGRPC_Proxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
 		Level:  log.LstdFlags,
 		Output: ioutil.Discard,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, testutil.Logger(t), 0, 0)
 	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckGRPC{
 		CheckID:       cid,
 		GRPC:          "",
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		ProxyGRPC:     server,
 		StatusHandler: statusHandler,
 	}
@@ -144,21 +147,23 @@ func TestGRPC_NotProxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
 		Level:  log.LstdFlags,
 		Output: ioutil.Discard,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, logger2, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckGRPC{
 		CheckID:       cid,
 		GRPC:          server,
 		Interval:      10 * time.Millisecond,
 		Logger:        logger,
+		Logger2:       logger2,
 		ProxyGRPC:     "",
 		StatusHandler: statusHandler,
 	}

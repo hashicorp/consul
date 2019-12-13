@@ -14,30 +14,22 @@ import (
 )
 
 var (
-	localLogger    *log.Logger
 	localLogBuffer *bytes.Buffer
 )
 
 func init() {
 	localLogBuffer = new(bytes.Buffer)
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  0,
-		Output: localLogBuffer,
-	})
-	localLogger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
-		InferLevels: true,
-	})
 }
 
-func GetBufferedLogger() *log.Logger {
+func GetBufferedLogger() (*log.Logger, hclog.Logger) {
 	localLogBuffer = new(bytes.Buffer)
-	consulLogger := hclog.New(&hclog.LoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Level:  0,
 		Output: localLogBuffer,
 	})
-	return consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	return logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
-	})
+	}), logger2
 }
 
 type fauxConnPool struct {
@@ -63,16 +55,16 @@ func (s *fauxSerf) NumNodes() int {
 }
 
 func testManager() (m *Manager) {
-	logger := GetBufferedLogger()
+	logger, logger2 := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
+	m = New(logger, logger2, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
 	return m
 }
 
 func testManagerFailProb(failPct float64) (m *Manager) {
-	logger := GetBufferedLogger()
+	logger, logger2 := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = New(logger, logger2, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
 }
 
@@ -154,6 +146,10 @@ func TestManagerInternal_New(t *testing.T) {
 
 	if m.logger == nil {
 		t.Fatalf("Manager.logger nil")
+	}
+
+	if m.logger2 == nil {
+		t.Fatalf("Manager.logger2 nil")
 	}
 
 	if m.shutdownCh == nil {
@@ -308,11 +304,11 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 		{1000000, 19, 10 * time.Minute},
 	}
 
-	logger := GetBufferedLogger()
+	logger, logger2 := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
+		m := New(logger, logger2, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
 			m.AddServer(&metadata.Server{Name: nodeName})

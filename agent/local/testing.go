@@ -1,7 +1,6 @@
 package local
 
 import (
-	"log"
 	"os"
 
 	"github.com/hashicorp/consul/agent/token"
@@ -11,14 +10,13 @@ import (
 
 // TestState returns a configured *State for testing.
 func TestState(t testing.T) *State {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level:  log.LstdFlags,
+	logger2 := hclog.New(&hclog.LoggerOptions{
 		Output: os.Stderr,
 	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
-	result := NewState(Config{}, logger, &token.Store{})
+	result := NewState(Config{}, logger, logger2, &token.Store{})
 	result.TriggerSyncChanges = func() {}
 	return result
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -45,7 +46,8 @@ type Listener struct {
 	// this is cheap and correct.
 	listeningChan chan struct{}
 
-	logger *log.Logger
+	logger  *log.Logger
+	logger2 hclog.Logger
 
 	// Gauge to track current open connections
 	activeConns  int32
@@ -57,7 +59,7 @@ type Listener struct {
 // NewPublicListener returns a Listener setup to listen for public mTLS
 // connections and proxy them to the configured local application over TCP.
 func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
-	logger *log.Logger) *Listener {
+	logger *log.Logger, logger2 hclog.Logger) *Listener {
 	bindAddr := ipaddr.FormatAddressPort(cfg.BindAddress, cfg.BindPort)
 	return &Listener{
 		Service: svc,
@@ -72,6 +74,7 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
+		logger2:       logger2,
 		metricPrefix:  publicListenerMetricPrefix,
 		// For now we only label ourselves as source - we could fetch the src
 		// service from cert on each connection and label metrics differently but it
@@ -88,14 +91,14 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 // NewUpstreamListener returns a Listener setup to listen locally for TCP
 // connections that are proxied to a discovered Connect service instance.
 func NewUpstreamListener(svc *connect.Service, client *api.Client,
-	cfg UpstreamConfig, logger *log.Logger) *Listener {
+	cfg UpstreamConfig, logger *log.Logger, logger2 hclog.Logger) *Listener {
 	return newUpstreamListenerWithResolver(svc, cfg,
-		UpstreamResolverFuncFromClient(client), logger)
+		UpstreamResolverFuncFromClient(client), logger, logger2)
 }
 
 func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 	resolverFunc func(UpstreamConfig) (connect.Resolver, error),
-	logger *log.Logger) *Listener {
+	logger *log.Logger, logger2 hclog.Logger) *Listener {
 	bindAddr := ipaddr.FormatAddressPort(cfg.LocalBindAddress, cfg.LocalBindPort)
 	return &Listener{
 		Service: svc,
@@ -116,6 +119,7 @@ func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
 		logger:        logger,
+		logger2:       logger2,
 		metricPrefix:  upstreamMetricPrefix,
 		metricLabels: []metrics.Label{
 			{Name: "src", Value: svc.Name()},

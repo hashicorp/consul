@@ -167,6 +167,8 @@ type Server struct {
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
+	logger2 hclog.Logger
+
 	// The raft instance is used among Consul nodes within the DC to protect
 	// operations that require strong consistency.
 	// the state directly.
@@ -280,16 +282,16 @@ type Server struct {
 // NewServer is only used to help setting up a server for testing. Normal code
 // exercises NewServerLogger.
 func NewServer(config *Config) (*Server, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return NewServerLogger(config, nil, new(token.Store), c)
+	return NewServerLogger(config, nil, nil, new(token.Store), c)
 }
 
 // NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
+func NewServerLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -309,12 +311,22 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
 	}
+
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
-			Level:  log.LstdFlags,
-			Output: config.LogOutput})
-		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
+			Level:  hclog.Debug,
+			Output: config.LogOutput,
+		})
+		logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
+		})
+	}
+
+	if logger2 == nil {
+		logger2 = hclog.New(&hclog.LoggerOptions{
+			Name:   "server",
+			Level:  hclog.Debug,
+			Output: config.LogOutput,
 		})
 	}
 
@@ -362,9 +374,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  logger,
+		logger2:                 logger2,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(logger, config.Datacenter),
+		router:                  router.NewRouter(logger, logger2, config.Datacenter),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -374,7 +387,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		tombstoneGC:             gc,
 		serverLookup:            NewServerLookup(),
 		shutdownCh:              shutdownCh,
-		leaderRoutineManager:    NewLeaderRoutineManager(logger),
+		leaderRoutineManager:    NewLeaderRoutineManager(logger, logger2),
 		aclAuthMethodValidators: authmethod.NewCache(),
 	}
 
@@ -392,6 +405,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		Rate:     s.config.ConfigReplicationRate,
 		Burst:    s.config.ConfigReplicationBurst,
 		Logger:   logger,
+		Logger2:  logger2,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {
@@ -400,9 +414,9 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	// Initialize the stats fetcher that autopilot will use.
-	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
+	s.statsFetcher = NewStatsFetcher(logger, logger2, s.connPool, s.config.Datacenter)
 
-	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
+	s.enterpriseACLConfig = newEnterpriseACLConfig(logger, logger2)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
 		Config:           config,
@@ -410,6 +424,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		CacheConfig:      serverACLCacheConfig,
 		AutoDisable:      false,
 		Logger:           logger,
+		Logger2:          logger2,
 		EnterpriseConfig: s.enterpriseACLConfig,
 	}
 	// Initialize the ACL resolver.
@@ -493,7 +508,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
-		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
+		go router.HandleSerfEvents(s.logger, s.logger2, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 		// Fire up the LAN <-> WAN join flooder.
 		portFn := func(s *metadata.Server) (int, bool) {

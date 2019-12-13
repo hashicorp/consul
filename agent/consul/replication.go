@@ -40,6 +40,8 @@ type ReplicatorConfig struct {
 	MaxRetryWait time.Duration
 	// Where to send our logs
 	Logger *log.Logger
+	//hclog stand in
+	Logger2 hclog.Logger
 }
 
 type Replicator struct {
@@ -48,6 +50,7 @@ type Replicator struct {
 	waiter          *lib.RetryWaiter
 	delegate        ReplicatorDelegate
 	logger          *log.Logger
+	logger2         hclog.Logger
 	lastRemoteIndex uint64
 }
 
@@ -59,10 +62,10 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		return nil, fmt.Errorf("Cannot create the Replicator without a Delegate set in the config")
 	}
 	if config.Logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Level: log.LstdFlags,
 		})
-		config.Logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		config.Logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 	}
@@ -84,6 +87,7 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		waiter:   waiter,
 		delegate: config.Delegate,
 		logger:   config.Logger,
+		logger2:  config.Logger2,
 	}, nil
 }
 
@@ -174,6 +178,7 @@ type IndexReplicatorDelegate interface {
 type IndexReplicator struct {
 	Delegate IndexReplicatorDelegate
 	Logger   *log.Logger
+	Logger2  hclog.Logger
 }
 
 func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {

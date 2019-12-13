@@ -75,6 +75,8 @@ type Client struct {
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
+	logger2 hclog.Logger
+
 	// serf is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
 	serf *serf.Serf
@@ -94,14 +96,14 @@ type Client struct {
 // NewClient only used to help setting up a client for testing. Normal code
 // exercises NewClientLogger.
 func NewClient(config *Config) (*Client, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return NewClientLogger(config, nil, c)
+	return NewClientLogger(config, nil, nil, c)
 }
 
-func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
+func NewClientLogger(config *Config, logger *log.Logger, logger2 hclog.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -124,12 +126,19 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	// Create a logger
 	if logger == nil {
-		consulLogger := hclog.New(&hclog.LoggerOptions{
-			Level:  log.LstdFlags,
+		logger2 := hclog.New(&hclog.LoggerOptions{
 			Output: config.LogOutput,
 		})
-		logger = consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+		logger = logger2.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
+		})
+	}
+
+	if logger2 == nil {
+		logger2 = hclog.New(&hclog.LoggerOptions{
+			Name:   "client",
+			Level:  hclog.Debug,
+			Output: config.LogOutput,
 		})
 	}
 
@@ -148,6 +157,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		connPool:        connPool,
 		eventCh:         make(chan serf.Event, serfEventBacklog),
 		logger:          logger,
+		logger2:         logger2,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
 	}
@@ -164,9 +174,10 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 		Config:           config,
 		Delegate:         c,
 		Logger:           logger,
+		Logger2:          logger2,
 		AutoDisable:      true,
 		CacheConfig:      clientACLCacheConfig,
-		EnterpriseConfig: newEnterpriseACLConfig(logger),
+		EnterpriseConfig: newEnterpriseACLConfig(logger, logger2),
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -187,7 +198,7 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	}
 
 	// Start maintenance task for servers
-	c.routers = router.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	c.routers = router.New(c.logger, c.logger2, c.shutdownCh, c.serf, c.connPool)
 	go c.routers.Start()
 
 	// Start LAN event handlers after the router is complete since the event

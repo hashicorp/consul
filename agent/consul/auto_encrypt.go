@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 )
 
@@ -97,7 +98,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		// Translate host to net.TCPAddr to make life easier for
 		// RPCInsecure.
 		for _, s := range servers {
-			ips, err := resolveAddr(s, c.logger)
+			ips, err := resolveAddr(s, c.logger, c.logger2)
 			if err != nil {
 				c.logger.Printf("[WARN] agent: AutoEncrypt resolveAddr failed: %v", err)
 				continue
@@ -134,7 +135,7 @@ func missingPortError(host string, err error) bool {
 }
 
 // resolveAddr is used to resolve the host into IPs and error.
-func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
+func resolveAddr(rawHost string, logger *log.Logger, logger2 hclog.Logger) ([]net.IP, error) {
 	host, _, err := net.SplitHostPort(rawHost)
 	if err != nil {
 		// In case we encounter this error, we proceed with the
@@ -154,7 +155,7 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	// First try TCP so we have the best chance for the largest list of
 	// hosts to join. If this fails it's not fatal since this isn't a standard
 	// way to query DNS, and we have a fallback below.
-	if ips, err := tcpLookupIP(host, logger); err != nil {
+	if ips, err := tcpLookupIP(host, logger, logger2); err != nil {
 		logger.Printf("[DEBUG] agent: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
 	} else if len(ips) > 0 {
 		return ips, nil
@@ -176,7 +177,7 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 // Consul's. By doing the TCP lookup directly, we get the best chance for the
 // largest list of hosts to join. Since joins are relatively rare events, it's ok
 // to do this rather expensive operation.
-func tcpLookupIP(host string, logger *log.Logger) ([]net.IP, error) {
+func tcpLookupIP(host string, logger *log.Logger, logger2 hclog.Logger) ([]net.IP, error) {
 	// Don't attempt any TCP lookups against non-fully qualified domain
 	// names, since those will likely come from the resolv.conf file.
 	if !strings.Contains(host, ".") {

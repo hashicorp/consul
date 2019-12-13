@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"log"
 	"net"
 	"testing"
 
@@ -54,7 +53,7 @@ func TestProxy_public(t *testing.T) {
 			BindPort:            ports[0],
 			LocalServiceAddress: testApp.Addr().String(),
 		},
-	}), testLogger(t))
+	}), testutil.LogShim(testutil.Logger(t)), testutil.Logger(t))
 	require.NoError(err)
 	defer p.Close()
 	go p.Serve()
@@ -77,8 +76,4 @@ func TestProxy_public(t *testing.T) {
 
 	// Connection works, test it is the right one
 	TestEchoConn(t, conn, "")
-}
-
-func testLogger(t *testing.T) *log.Logger {
-	return testutil.LogShim(testutil.Logger(t))
 }

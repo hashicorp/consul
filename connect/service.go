@@ -50,7 +50,8 @@ type Service struct {
 	rootsWatch *watch.Plan
 	leafWatch  *watch.Plan
 
-	logger *log.Logger
+	logger  *log.Logger
+	logger2 hclog.Logger
 }
 
 // NewService creates and starts a Service. The caller must close the returned
@@ -61,24 +62,24 @@ type Service struct {
 // Consul agent, and with an ACL token that has `service:write` privileges for
 // the service specified.
 func NewService(serviceName string, client *api.Client) (*Service, error) {
-	consulLogger := hclog.New(&hclog.LoggerOptions{
-		Level: log.LstdFlags,
-	})
-	logger := consulLogger.StandardLogger(&hclog.StandardLoggerOptions{
+	logger2 := hclog.New(&hclog.LoggerOptions{})
+	logger := logger2.StandardLogger(&hclog.StandardLoggerOptions{
 		InferLevels: true,
 	})
+
 	return NewServiceWithLogger(serviceName, client,
-		logger)
+		logger, logger2)
 }
 
 // NewServiceWithLogger starts the service with a specified log.Logger.
 func NewServiceWithLogger(serviceName string, client *api.Client,
-	logger *log.Logger) (*Service, error) {
+	logger *log.Logger, logger2 hclog.Logger) (*Service, error) {
 	s := &Service{
 		service:              serviceName,
 		client:               client,
 		logger:               logger,
-		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
+		logger2:              logger2,
+		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger, logger2),
 		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
@@ -102,32 +103,33 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	go s.rootsWatch.RunWithClientAndLogger(client, s.logger)
-	go s.leafWatch.RunWithClientAndLogger(client, s.logger)
+	go s.rootsWatch.RunWithClientAndLogger(client, s.logger, s.logger2)
+	go s.leafWatch.RunWithClientAndLogger(client, s.logger, s.logger2)
 
 	return s, nil
 }
 
 // NewDevServiceFromCertFiles creates a Service using certificate and key files
 // passed instead of fetching them from the client.
-func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger,
+func NewDevServiceFromCertFiles(serviceID string, logger *log.Logger, logger2 hclog.Logger,
 	caFile, certFile, keyFile string) (*Service, error) {
 
 	tlsCfg, err := devTLSConfigFromFiles(caFile, certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
-	return NewDevServiceWithTLSConfig(serviceID, logger, tlsCfg)
+	return NewDevServiceWithTLSConfig(serviceID, logger, logger2, tlsCfg)
 }
 
 // NewDevServiceWithTLSConfig creates a Service using static TLS config passed.
 // It's mostly useful for testing.
-func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
+func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger, logger2 hclog.Logger,
 	tlsCfg *tls.Config) (*Service, error) {
 	s := &Service{
 		service: serviceName,
 		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger),
+		logger2: logger2,
+		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger, logger2),
 	}
 	return s, nil
 }

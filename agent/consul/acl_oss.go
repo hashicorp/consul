@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 // EnterpriseACLResolverDelegate stub
@@ -16,7 +17,7 @@ func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
-func newEnterpriseACLConfig(*log.Logger) *acl.EnterpriseACLConfig {
+func newEnterpriseACLConfig(*log.Logger, hclog.Logger) *acl.EnterpriseACLConfig {
 	return nil
 }
 

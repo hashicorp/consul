@@ -29,7 +29,7 @@ func rpcClient(t *testing.T, s *Server) rpc.ClientCodec {
 
 func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	addr := s.config.RPCAdvertise
-	configurator, err := tlsutil.NewConfigurator(c, nil)
+	configurator, err := tlsutil.NewConfigurator(c, nil, nil)
 	if err != nil {
 		return nil, err
 	}
