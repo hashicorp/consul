@@ -136,7 +136,7 @@ func TestLogFile_deleteArchives(t *testing.T) {
 
 func TestLogFile_deleteArchivesDisabled(t *testing.T) {
 	t.Parallel()
-	tempDir := testutil.TempDir(t, "LogWriteDeleteArchivesDisabled")
+	tempDir := testutil.TempDir(t, t.Name())
 	defer os.Remove(tempDir)
 	filt := LevelFilter()
 	filt.MinLevel = logutils.LogLevel("INFO")
@@ -152,6 +152,31 @@ func TestLogFile_deleteArchivesDisabled(t *testing.T) {
 	logFile.Write([]byte("[INFO] Second File"))
 	logFile.Write([]byte("[INFO] Third File"))
 	want := 3
+	tempFiles, _ := ioutil.ReadDir(tempDir)
+	if got := tempFiles; len(got) != want {
+		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
+		return
+	}
+}
+
+func TestLogFile_rotationDisabled(t *testing.T) {
+	t.Parallel()
+	tempDir := testutil.TempDir(t, t.Name())
+	defer os.Remove(tempDir)
+	filt := LevelFilter()
+	filt.MinLevel = logutils.LogLevel("INFO")
+	logFile := LogFile{
+		logFilter: filt,
+		fileName:  testFileName,
+		logPath:   tempDir,
+		MaxBytes:  testBytes,
+		duration:  24 * time.Hour,
+		MaxFiles:  -1,
+	}
+	logFile.Write([]byte("[INFO] Hello World"))
+	logFile.Write([]byte("[INFO] Second File"))
+	logFile.Write([]byte("[INFO] Third File"))
+	want := 1
 	tempFiles, _ := ioutil.ReadDir(tempDir)
 	if got := tempFiles; len(got) != want {
 		t.Errorf("Expected %d files, got %v file(s)", want, len(got))
