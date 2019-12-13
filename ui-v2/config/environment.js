@@ -105,8 +105,15 @@ module.exports = function(environment) {
   }
 
   if (environment === 'production') {
-    // here you can enable a production-specific feature
+    ENV = Object.assign(
+      {},
+      ENV,
+      {
+        CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
+        CONSUL_NSPACES_ENABLED: '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}'
+      }
+    );
+    // here you can enable a production-specific feature  
   }
-
   return ENV;
 };

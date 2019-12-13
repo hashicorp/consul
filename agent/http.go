@@ -162,8 +162,8 @@ func (fs *redirectFS) Open(name string) (http.File, error) {
 }
 
 type templatedIndexFS struct {
-	fs          http.FileSystem
-	ContentPath string
+	fs           http.FileSystem
+	templateVars func() map[string]interface{}
 }
 
 func (fs *templatedIndexFS) Open(name string) (http.File, error) {
@@ -171,9 +171,13 @@ func (fs *templatedIndexFS) Open(name string) (http.File, error) {
 	if err == nil && name == "/index.html" {
 		content, _ := ioutil.ReadAll(file)
 		file.Seek(0, 0)
-		t, _ := template.New("fmtedindex").Parse(string(content))
+		t, err := template.New("fmtedindex").Parse(string(content))
+		if err != nil {
+			return nil, err
+		}
 		var out bytes.Buffer
-		err = t.Execute(&out, fs)
+		err = t.Execute(&out, fs.templateVars())
+
 		file = newTemplatedFile(&out, file)
 	}
 
@@ -317,7 +321,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			fs := assetFS()
 			uifs = fs
 		}
-		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, ContentPath: s.agent.config.UIContentPath}}
+		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, templateVars: s.GenerateHTMLTemplateVars}}
 		mux.Handle("/robots.txt", http.FileServer(uifs))
 		mux.Handle(s.agent.config.UIContentPath, http.StripPrefix(s.agent.config.UIContentPath, http.FileServer(uifs)))
 	}
@@ -333,6 +337,17 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 		mux:     mux,
 		handler: h,
 	}
+}
+
+func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {
+	vars := map[string]interface{}{
+		"ContentPath": s.agent.config.UIContentPath,
+		"ACLsEnabled": s.agent.delegate.ACLsEnabled(),
+	}
+
+	s.addEnterpriseHTMLTemplateVars(vars)
+
+	return vars
 }
 
 // nodeName returns the node name of the agent

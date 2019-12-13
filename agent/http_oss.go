@@ -42,3 +42,5 @@ func (s *HTTPServer) rewordUnknownEnterpriseFieldError(err error) error {
 
 	return err
 }
+
+func (s *HTTPServer) addEnterpriseHTMLTemplateVars(vars map[string]interface{}) {}
