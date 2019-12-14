@@ -46,6 +46,7 @@ If CoreDNS can’t find a Corefile to load it loads the following builtin one:
 ~~~ corefile
 . {
     whoami
+    log
 }
 ~~~
 
