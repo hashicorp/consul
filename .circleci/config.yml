@@ -557,6 +557,20 @@ jobs:
       ENVOY_VERSIONS: "1.11.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
+  # run tests on vault ca provider integration tests
+  vault-ca-provider:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      # FIXME Ensure all deps are installed properly on CI
+      # Install vault
+      - run: |
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
+          sudo unzip -d /usr/local/bin /tmp/vault.zip
+          rm -rf /tmp/vault*
+      # Run go tests
+      - run: make test-vault-ca-provider
+
 workflows:
   version: 2
   go-tests:
@@ -628,6 +642,9 @@ workflows:
       - envoy-integration-test-1.11.1:
           requires:
             - dev-build
+      - vault-ca-provider:
+          requires:
+          - dev-build
   website:
     jobs:
       - build-website

@@ -369,6 +369,10 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
+test-vault-ca-provider:
+	@echo "Running /agent/connect/ca TestVaultCAProvider tests in verbose mode"
+	@go test $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider -v
+
 proto-delete:
 	@echo "Removing $(PROTOGOFILES)"
 	-@rm $(PROTOGOFILES)
