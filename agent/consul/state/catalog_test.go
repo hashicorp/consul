@@ -3864,6 +3864,40 @@ func TestStateStore_ServiceDump(t *testing.T) {
 				require.Equal(t, api.HealthPassing, dump[1].Checks[1].Status)
 			},
 		},
+		{
+			name: "delete a node",
+			modFn: func(t *testing.T) {
+				s.DeleteNode(12, "node2")
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 2)
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node1", dump[1].Node.Node)
+
+				require.Equal(t, "service1", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+
+				require.Len(t, dump[0].Checks, 2)
+				require.Len(t, dump[1].Checks, 1)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[0].Checks[1].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[0].Status)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 1)
+
+				require.Equal(t, "node1", dump[0].Node.Node)
+
+				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
+
+				require.Len(t, dump[0].Checks, 1)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+			},
+		},
 	}
 	for _, op := range operations {
 		op := op
@@ -3892,16 +3926,6 @@ func TestStateStore_ServiceDump(t *testing.T) {
 			op.checkKind(t, dump)
 		}))
 	}
-
-	// // Register service-level checks
-	// testRegisterCheck(t, s, 6, "node1", "service1", "check1", api.HealthPassing)
-	// testRegisterCheck(t, s, 7, "node1", "service1-sidecar-proxy", "check1", api.HealthPassing)
-	// testRegisterCheck(t, s, 8, "node2", "service1", "check1", api.HealthPassing)
-	// testRegisterCheck(t, s, 9, "node2", "service1-sidecar-proxy", "check1", api.HealthPassing)
-
-	// // Register node-level checks
-	// testRegisterCheck(t, s, 10, "node1", "", "check2", api.HealthPassing)
-	// testRegisterCheck(t, s, 11, "node2", "", "check2", api.HealthPassing)
 }
 
 func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
