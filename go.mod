@@ -22,6 +22,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
+	github.com/hashicorp/consul/api v1.3.0
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/infobloxopen/go-trees v0.0.0-20190313150506-2af4e13f9062
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
