@@ -3267,7 +3267,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != dns.ErrTruncated {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if in.Truncated != true {
@@ -3952,10 +3952,17 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 								c.Net = protocol
 								m.Compress = compress
 								in, _, err := c.Exchange(m, a.DNSAddr())
-								if err != nil && err != dns.ErrTruncated {
+								if err != nil {
 									t.Fatalf("err: %v", err)
 								}
-
+								// actually check if we need to have the truncate bit
+								resbuf, err := in.Pack()
+								if err != nil {
+									t.Fatalf("Error while packing answer: %s", err)
+								}
+								if !in.Truncated && len(resbuf) > int(maxSz) {
+									t.Fatalf("should have truncate bit %#v %#v", in, len(in.Answer))
+								}
 								// Check for the truncate bit
 								buf, err := m.Pack()
 								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
@@ -4033,7 +4040,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4105,8 +4112,12 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
+		}
+
+		if !in.Truncated {
+			t.Fatalf("should have truncate bit")
 		}
 
 		// Make sure the response size is RFC 1035-compliant for UDP messages

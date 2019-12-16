@@ -1019,7 +1019,7 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	// uncompresses them.
 	// Even when size is too big for one single record, try to send it anyway
 	// (useful for 512 bytes messages)
-	for len(resp.Answer) > 1 && resp.Len() > maxSize {
+	for len(resp.Answer) > 1 && resp.Len() > maxSize-7 {
 		// More than 100 bytes, find with a binary search
 		if resp.Len()-maxSize > 100 {
 			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
@@ -1034,7 +1034,6 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 	// For 512 non-eDNS responses, while we compute size non-compressed,
 	// we send result compressed
 	resp.Compress = compress
-
 	return len(resp.Answer) < numAnswers
 }
 
@@ -1735,7 +1734,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			// If we still have recursors to forward the query to,
 			// we move forward onto the next one else the loop ends
 			continue
-		} else if err == nil || err == dns.ErrTruncated {
+		} else if err == nil || (r != nil && r.Truncated) {
 			// Compress the response; we don't know if the incoming
 			// response was compressed or not, so by not compressing
 			// we might generate an invalid packet on the way out.
