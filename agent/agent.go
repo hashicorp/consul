@@ -511,7 +511,7 @@ func (a *Agent) Start() error {
 	// consul version metric with labels
 	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
 		{Name: "version", Value: a.config.Version},
-		{Name: "pre-release", Value: a.config.VersionPrerelease},
+		{Name: "pre_release", Value: a.config.VersionPrerelease},
 	})
 
 	return nil
