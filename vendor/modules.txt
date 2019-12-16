@@ -280,7 +280,7 @@ github.com/mattn/go-colorable
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/miekg/dns v1.0.14
+# github.com/miekg/dns v1.1.22
 github.com/miekg/dns
 # github.com/mitchellh/cli v1.0.0
 github.com/mitchellh/cli
@@ -428,7 +428,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/singleflight
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
+# golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd
 golang.org/x/sys/unix
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu
