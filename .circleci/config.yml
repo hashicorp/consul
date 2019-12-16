@@ -561,6 +561,8 @@ jobs:
   vault-ca-provider:
     docker:
       - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
     steps:
       # FIXME Ensure all deps are installed properly on CI
       # Install vault
