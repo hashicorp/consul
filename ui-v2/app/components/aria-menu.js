@@ -48,10 +48,7 @@ export default Component.extend({
   didInsertElement: function() {
     // TODO: How do you detect whether the children have changed?
     // For now we know that these elements exist and never change
-    const $ref = this.dom.element(`#${COMPONENT_ID}${this.guid}`);
-    this.$element = $ref.parentNode;
-    $ref.remove();
-    this.$menu = this.dom.element('[role="menu"]', this.$element);
+    this.$menu = this.dom.element(`#${COMPONENT_ID}menu-${this.guid}`);
     const labelledBy = this.$menu.getAttribute('aria-labelledby');
     this.$trigger = this.dom.element(`#${labelledBy}`);
   },

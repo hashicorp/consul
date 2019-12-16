@@ -20,32 +20,39 @@
   right: auto;
 }
 /*TODO: Find em or px equivalant for these */
-%main-nav-horizontal-drop-nav header {
-  padding: 0.2rem 1rem;
-  padding-top: 0.7rem;
+%main-nav-horizontal-drop-nav-separator:not(:empty) {
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 0.1em;
+  padding-top: 0.57rem;
 }
-%main-nav-horizontal-drop-nav div {
+%main-nav-horizontal-drop-nav-separator:empty {
+  padding-top: 0.25rem;
+}
+%main-nav-horizontal-drop-nav-separator:first-child:not(:empty) {
+  padding-top: 0.35rem;
+}
+%main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  margin-top: 0.35em;
+}
+%main-nav-horizontal-drop-nav-header {
   padding: 10px;
   padding-left: 36px;
 }
-%main-nav-horizontal-drop-nav .manage-namespaces {
-  margin-top: 4px;
-  padding-top: 4px;
-}
-%main-nav-horizontal-drop-nav div::before {
+%main-nav-horizontal-drop-nav-header::before {
   position: absolute;
   left: 15px;
   top: calc(10px + 0.1em);
 }
-%main-nav-horizontal-drop-nav div {
+%main-nav-horizontal-drop-nav-header {
   max-width: fit-content;
 }
 @supports not (max-width: fit-content) {
-  %main-nav-horizontal-drop-nav div {
+  %main-nav-horizontal-drop-nav-header {
     max-width: 200px;
   }
 }
-%main-nav-horizontal-drop-nav .is-active a::after {
+%main-nav-horizontal-drop-nav .is-active > *::after {
   position: absolute;
   top: 50%;
   margin-top: -8px;
@@ -113,7 +120,7 @@
   %main-nav-horizontal-drop-nav {
     width: 180px;
   }
-  %main-nav-horizontal-drop-nav div {
+  %main-nav-horizontal-drop-nav-header {
     text-align: left;
   }
   %main-nav-horizontal input + label > * {

@@ -18,6 +18,13 @@
 %main-nav-horizontal > ul > li.is-active > label > * {
   @extend %main-nav-horizontal-action-active;
 }
+/*TODO: %popover-menu*/
 %main-nav-horizontal-drop-nav {
   @extend %menu-panel;
+}
+%main-nav-horizontal-drop-nav [role='separator'] {
+  @extend %main-nav-horizontal-drop-nav-separator;
+}
+%main-nav-horizontal-drop-nav > div {
+  @extend %main-nav-horizontal-drop-nav-header;
 }

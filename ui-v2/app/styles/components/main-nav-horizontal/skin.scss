@@ -1,7 +1,3 @@
-%main-nav-horizontal-drop-nav .is-active a::after {
-  @extend %with-check-plain-mask, %as-pseudo;
-  background-color: $magenta-600;
-}
 %main-nav-horizontal-toggle-button {
   text-indent: -9000px;
 }
@@ -52,25 +48,6 @@
 %main-nav-horizontal-toggle-button span {
   visibility: hidden;
 }
-%main-nav-horizontal-drop-nav div {
-  background-color: $gray-050;
-}
-%main-nav-horizontal-drop-nav header {
-  text-transform: uppercase;
-  color: $gray-400;
-}
-%main-nav-horizontal-drop-nav div + ul,
-%main-nav-horizontal-drop-nav .manage-namespaces {
-  border-top: $decor-border-100;
-  border-color: $gray-300;
-}
-%main-nav-horizontal-drop-nav div::before {
-  @extend %with-info-circle-fill-color-icon, %as-pseudo;
-}
-%main-nav-horizontal-drop-nav a {
-  color: $gray-900;
-}
-
 @media #{$--lt-horizontal-nav} {
   %main-nav-horizontal-toggle-button {
     cursor: pointer;
@@ -78,4 +55,25 @@
   %main-nav-horizontal-toggle:checked + label {
     background-color: rgba($black, 0.4);
   }
+}
+/**/
+%main-nav-horizontal-drop-nav-header {
+  background-color: $gray-050;
+}
+%main-nav-horizontal-drop-nav-separator {
+  text-transform: uppercase;
+  color: $gray-400;
+}
+%main-nav-horizontal-drop-nav .is-active > *::after {
+  @extend %with-check-plain-mask, %as-pseudo;
+  background-color: $magenta-600;
+}
+%main-nav-horizontal-drop-nav-header + ul,
+%main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  border-top: $decor-border-100;
+  border-color: $gray-300;
+}
+%main-nav-horizontal-drop-nav-header::before {
+  @extend %with-info-circle-fill-color-icon, %as-pseudo;
+  font-size: 1.1em;
 }

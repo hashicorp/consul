@@ -49,6 +49,7 @@ pre code,
 %form-element-label,
 %stats-card header a span,
 %footer,
+%main-nav-horizontal-drop-nav > div,
 %app-view h1 span.kind-proxy {
   @extend %p2;
 }
@@ -57,7 +58,7 @@ pre code,
 %main-content p,
 %app-view > div.disabled > div,
 %form-element-note,
-%main-nav-horizontal-drop-nav header,
+%main-nav-horizontal-drop-nav-separator,
 %form-element-error > strong {
   @extend %p3;
 }
@@ -74,7 +75,7 @@ pre code,
 %button {
   font-weight: $typo-weight-semibold;
 }
-%main-nav-horizontal-drop-nav header {
+%main-nav-horizontal-drop-nav-separator {
   font-weight: $typo-weight-medium;
 }
 /**/
