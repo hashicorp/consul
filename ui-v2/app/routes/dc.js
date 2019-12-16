@@ -69,15 +69,4 @@ export default Route.extend({
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
-  actions: {
-    // TODO: This will eventually be deprecated please see
-    // https://deprecations.emberjs.com/v3.x/#toc_deprecate-router-events
-    willTransition: function(transition) {
-      // This will refresh both dcs and nspaces on any route transition
-      // under here
-      if (typeof transition !== 'undefined' && transition.from.name.endsWith('nspaces.create')) {
-        this.refresh();
-      }
-    },
-  },
 });
