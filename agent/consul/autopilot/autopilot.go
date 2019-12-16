@@ -175,10 +175,6 @@ func (a *Autopilot) RemoveDeadServers() {
 }
 
 func canRemoveServers(peers, minQuorum, deadServers int) (bool, string) {
-	if deadServers == 0 {
-		return false, "nothing to do"
-	}
-
 	if peers-deadServers < int(minQuorum) {
 		return false, fmt.Sprintf("denied, because removing %d/%d servers would leave less then minimal allowed quorum of %d servers", deadServers, peers, minQuorum)
 	}
@@ -244,7 +240,14 @@ func (a *Autopilot) pruneDeadServers() error {
 		}
 	}
 
-	if ok, msg := canRemoveServers(NumPeers(raftConfig), int(conf.MinQuorum), len(failed)+len(staleRaftServers)); !ok {
+	deadServers := len(failed) + len(staleRaftServers)
+
+	// nothing to do
+	if deadServers == 0 {
+		return nil
+	}
+
+	if ok, msg := canRemoveServers(NumPeers(raftConfig), int(conf.MinQuorum), deadServers); !ok {
 		a.logger.Printf("[DEBUG] autopilot: Failed to remove dead servers: %s.", msg)
 		return nil
 	}
