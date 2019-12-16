@@ -177,7 +177,7 @@ jobs:
             go tool cover -html=coverage.out -o /tmp/test-results/coverage.html
       - run:
           name: codecov upload
-          command: bash <(curl -s https://codecov.io/bash) -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
+          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
       - store_artifacts:
           path: /tmp/test-results
 
