@@ -99,7 +99,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range s1.LANMembers() {
+		for _, m := range servers[leaderIndex].LANMembers() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
