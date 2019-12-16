@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAutopilot_IdempotentShutdown(t *testing.T) {
@@ -37,7 +38,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	conf := func(c *Config) {
 		c.Datacenter = dc
 		c.Bootstrap = false
-		c.BootstrapExpect = 3
+		c.BootstrapExpect = 5
 		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(raftVersion)
 	}
 	dir1, s1 := testServerWithConfig(t, conf)
@@ -52,43 +53,68 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 
-	servers := []*Server{s1, s2, s3}
-
-	// Try to join
-	joinLAN(t, s2, s1)
-	joinLAN(t, s3, s1)
-
-	for _, s := range servers {
-		testrpc.WaitForLeader(t, s.RPC, dc)
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
-	}
-
-	// Bring up a new server
 	dir4, s4 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
 
-	// Kill a non-leader server
-	s3.Shutdown()
+	dir5, s5 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir5)
+	defer s5.Shutdown()
+
+	servers := []*Server{s1, s2, s3, s4, s5}
+
+	// Try to join
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+	joinLAN(t, s4, s1)
+	joinLAN(t, s5, s1)
+
+	for _, s := range servers {
+		testrpc.WaitForLeader(t, s.RPC, dc)
+		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 5)) })
+	}
+
+	require := require.New(t)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	leaderIndex := -1
+	for i, s := range servers {
+		if s.IsLeader() {
+			leaderIndex = i
+			break
+		}
+	}
+	require.NotEqual(leaderIndex, -1)
+
+	// Shutdown two non-leader servers
+	killed := make(map[string]struct{})
+	for i, s := range servers {
+		if i != leaderIndex {
+			s.Shutdown()
+			killed[string(s.config.NodeID)] = struct{}{}
+		}
+		if len(killed) == 2 {
+			break
+		}
+	}
+
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range s1.LANMembers() {
+		for _, m := range servers[leaderIndex].LANMembers() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
 		}
-		if alive != 2 {
-			r.Fatal(nil)
+		if alive != 3 {
+			r.Fatalf("Expected three alive servers instead of %d", alive)
 		}
 	})
 
-	// Join the new server
-	joinLAN(t, s4, s1)
-	servers[2] = s4
-
-	// Make sure the dead server is removed and we're back to 3 total peers
+	// Make sure the dead servers are removed and we're back to 3 total peers
 	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
+		_, killed := killed[string(s.config.NodeID)]
+		if !killed {
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 3)) })
+		}
 	}
 }
 
