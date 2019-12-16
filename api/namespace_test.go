@@ -46,10 +46,14 @@ func TestAPI_Namespaces(t *testing.T) {
 	t.Run("Create", func(t *testing.T) {
 		ns, _, err := namespaces.Create(&Namespace{
 			Name: "foo",
+			Meta: map[string]string{
+				"foo": "bar",
+			},
 		}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ns)
 		require.Equal(t, "foo", ns.Name)
+		require.Len(t, ns.Meta, 1)
 		require.Nil(t, ns.ACLs)
 
 		ns, _, err = namespaces.Create(&Namespace{
@@ -113,14 +117,11 @@ func TestAPI_Namespaces(t *testing.T) {
 		require.NoError(t, err)
 
 		// due to deferred deletion the namespace might still exist
-		// this checks that either it is in fact gone and we get a 404 or
-		// that the namespace is still there but marked for deletion
+		// this checks that we get a nil return or that the obj has
+		// the deletion mark
 		ns, _, err := namespaces.Read("foo", nil)
-		if err != nil {
-			require.Contains(t, err.Error(), "Unexpected response code: 404")
-			require.Nil(t, ns)
-		} else {
-			require.NotNil(t, ns)
+		require.NoError(t, err)
+		if ns != nil {
 			require.NotNil(t, ns.DeletedAt)
 			require.False(t, ns.DeletedAt.IsZero())
 		}

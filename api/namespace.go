@@ -21,6 +21,9 @@ type Namespace struct {
 	// This is nullable so that we can omit if empty when encoding in JSON
 	ACLs *NamespaceACLConfig `json:"ACLs,omitempty"`
 
+	// Meta is a map that can be used to add kv metadata to the namespace definition
+	Meta map[string]string `json:"Meta,omitempty"`
+
 	// DeletedAt is the time when the Namespace was marked for deletion
 	// This is nullable so that we can omit if empty when encoding in JSON
 	DeletedAt *time.Time `json:"DeletedAt,omitempty"`
