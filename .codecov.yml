@@ -5,6 +5,7 @@ coverage:
     project: off
     patch:
       default:
+        # https://docs.codecov.io/docs/commit-status#section-informational
         informational: true
         # https://docs.codecov.io/docs/commit-status#section-excluding-tests-example-
         # TODO: should any paths be excluded from coverage metrics?
