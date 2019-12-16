@@ -105,7 +105,7 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 			}
 		}
 		if alive != 3 {
-			r.Fatal("Expected three alive servers")
+			r.Fatalf("Expected three alive servers instead of %d", alive)
 		}
 	})
 
