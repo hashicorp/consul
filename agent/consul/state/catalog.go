@@ -2042,7 +2042,7 @@ func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind
 
 func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// Get the table index
-	idx := s.catalogMaxIndex(tx, entMeta, true)
+	idx := s.catalogMaxIndexWatch(tx, ws, entMeta, true)
 
 	services, err := s.catalogServiceList(tx, entMeta, true)
 	if err != nil {

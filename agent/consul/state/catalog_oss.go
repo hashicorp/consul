@@ -262,6 +262,13 @@ func (s *Store) catalogMaxIndex(tx *memdb.Txn, _ *structs.EnterpriseMeta, checks
 	return maxIndexTxn(tx, "nodes", "services")
 }
 
+func (s *Store) catalogMaxIndexWatch(tx *memdb.Txn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
+	if checks {
+		return maxIndexWatchTxn(tx, ws, "nodes", "services", "checks")
+	}
+	return maxIndexWatchTxn(tx, ws, "nodes", "services")
+}
+
 func (s *Store) catalogUpdateCheckIndexes(tx *memdb.Txn, idx uint64, _ *structs.EnterpriseMeta) error {
 	// update the universal index entry
 	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
