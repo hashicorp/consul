@@ -303,8 +303,9 @@ The options below are all specified on the command-line.
 
 * `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
   first attempt fails. This is useful for cases where you know the address will
-  eventually be available. The list can contain IPv4, IPv6, or DNS addresses. In
-  Consul 1.1.0 and later this can be set to a
+  eventually be available. This option can be specified multiple times to
+  specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
+  addresses. In Consul 1.1.0 and later this can be set to a
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template. If Consul is running on the non-default Serf LAN port, this must be
   specified as well. IPv6 must use the "bracketed" syntax. If multiple values
@@ -324,6 +325,11 @@ The options below are all specified on the command-line.
     ```sh
     # Using IPv6
     $ consul agent -retry-join "[::1]:8301"
+    ```
+
+    ```sh
+    # Using multiple addresses
+    $ consul agent -retry-join "consul.domain.internal" -retry-join "10.0.4.67"
     ```
 
     ### Cloud Auto-Joining
