@@ -36,6 +36,10 @@ type CompileRequest struct {
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
 
+	// InternalRetainDetails is used internally to retain more intermediate
+	// state from the compilation to aid in visualizations.
+	InternalRetainDetails bool
+
 	Entries *structs.DiscoveryChainConfigEntries
 }
 
@@ -92,9 +96,12 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
 
+		internalRetainDetails: req.InternalRetainDetails,
+
 		resolvers:     make(map[string]*structs.ServiceResolverConfigEntry),
 		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
 		resolveNodes:  make(map[string]*structs.DiscoveryGraphNode),
+		redirectNodes: make(map[string]*structs.DiscoveryGraphNode),
 
 		nodes:           make(map[string]*structs.DiscoveryGraphNode),
 		loadedTargets:   make(map[string]*structs.DiscoveryTarget),
@@ -127,6 +134,8 @@ type compiler struct {
 	overrideProtocol       string
 	overrideConnectTimeout time.Duration
 
+	internalRetainDetails bool
+
 	// config entries that are being compiled (will be mutated during compilation)
 	//
 	// This is an INPUT field.
@@ -139,6 +148,7 @@ type compiler struct {
 	// cached nodes
 	splitterNodes map[string]*structs.DiscoveryGraphNode
 	resolveNodes  map[string]*structs.DiscoveryGraphNode
+	redirectNodes map[string]*structs.DiscoveryGraphNode
 
 	// usesAdvancedRoutingFeatures is set to true if config entries for routing
 	// or splitting appear in the compiled chain
@@ -194,6 +204,8 @@ func (c *compiler) recordNode(node *structs.DiscoveryGraphNode) {
 		c.splitterNodes[node.Name] = node
 	case structs.DiscoveryGraphNodeTypeResolver:
 		c.resolveNodes[node.Resolver.Target] = node
+	case structs.DiscoveryGraphNodeTypeRedirect:
+		c.redirectNodes[node.Name] = node
 	default:
 		panic("unknown node type '" + node.Type + "'")
 	}
@@ -250,6 +262,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	// We don't need these intermediates anymore.
 	c.splitterNodes = nil
 	c.resolveNodes = nil
+	c.redirectNodes = nil
 
 	if c.startNode == "" {
 		panic("impossible to return no results")
@@ -259,7 +272,9 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	c.flattenAdjacentSplitterNodes()
+	if !c.internalRetainDetails {
+		c.flattenAdjacentSplitterNodes()
+	}
 
 	if err := c.removeUnusedNodes(); err != nil {
 		return nil, err
@@ -370,6 +385,9 @@ func (c *compiler) detectCircularReferences() error {
 		case structs.DiscoveryGraphNodeTypeResolver:
 			// Circular redirects are detected elsewhere and failover isn't
 			// recursive so there's nothing more to do here.
+		case structs.DiscoveryGraphNodeTypeRedirect:
+			// Circular redirects are detected elsewhere and failover isn't
+			// recursive so there's nothing more to do here.
 		default:
 			return fmt.Errorf("unexpected graph node type: %s", node.Type)
 		}
@@ -469,6 +487,8 @@ func (c *compiler) removeUnusedNodes() error {
 			}
 		case structs.DiscoveryGraphNodeTypeResolver:
 			// nothing special
+		case structs.DiscoveryGraphNodeTypeRedirect:
+			todo[node.Redirect.NextNode] = struct{}{}
 		default:
 			return fmt.Errorf("unknown node type %q", node.Type)
 		}
@@ -480,6 +500,12 @@ func (c *compiler) removeUnusedNodes() error {
 
 	for name, _ := range c.nodes {
 		if _, ok := visited[name]; !ok {
+			delete(c.nodes, name)
+		}
+	}
+
+	for name, node := range c.nodes {
+		if node.Discard {
 			delete(c.nodes, name)
 		}
 	}
@@ -731,10 +757,20 @@ func (c *compiler) getResolverNode(target *structs.DiscoveryTarget, recursedForF
 		redirectHistory = make(map[string]struct{})
 		redirectOrder   []string
 	)
+	return c.getResolverNodeInner(target, recursedForFailover, redirectHistory, redirectOrder)
+}
 
-RESOLVE_AGAIN:
+func (c *compiler) getResolverNodeInner(
+	target *structs.DiscoveryTarget,
+	recursedForFailover bool,
+	redirectHistory map[string]struct{},
+	redirectOrder []string,
+) (*structs.DiscoveryGraphNode, error) {
 	// Do we already have the node?
 	if prev, ok := c.resolveNodes[target.ID]; ok {
+		if !recursedForFailover {
+			prev.Discard = false
+		}
 		return prev, nil
 	}
 
@@ -777,21 +813,53 @@ RESOLVE_AGAIN:
 			redirect.Datacenter,
 		)
 		if redirectedTarget.ID != target.ID {
-			target = redirectedTarget
-			goto RESOLVE_AGAIN
+			if c.internalRetainDetails {
+				return c.getInternalRedirectNode(
+					target.ID,
+					redirectedTarget,
+					"explicit",
+					recursedForFailover,
+					redirectHistory,
+					redirectOrder,
+				)
+			}
+
+			return c.getResolverNodeInner(
+				redirectedTarget,
+				recursedForFailover,
+				redirectHistory,
+				redirectOrder,
+			)
 		}
 	}
 
 	// Handle default subset.
 	if target.ServiceSubset == "" && resolver.DefaultSubset != "" {
-		target = c.rewriteTarget(
+		rewrittenTarget := c.rewriteTarget(
 			target,
 			"",
 			resolver.DefaultSubset,
 			"",
 			"",
 		)
-		goto RESOLVE_AGAIN
+
+		if c.internalRetainDetails {
+			return c.getInternalRedirectNode(
+				target.ID,
+				rewrittenTarget,
+				"default-subset",
+				recursedForFailover,
+				redirectHistory,
+				redirectOrder,
+			)
+		}
+
+		return c.getResolverNodeInner(
+			rewrittenTarget,
+			recursedForFailover,
+			redirectHistory,
+			redirectOrder,
+		)
 	}
 
 	if target.ServiceSubset != "" && !resolver.SubsetExists(target.ServiceSubset) {
@@ -825,6 +893,7 @@ RESOLVE_AGAIN:
 			Target:         target.ID,
 			ConnectTimeout: connectTimeout,
 		},
+		Discard: recursedForFailover,
 	}
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
@@ -892,19 +961,9 @@ RESOLVE_AGAIN:
 	// Retain this target in the final results.
 	c.retainedTargets[target.ID] = struct{}{}
 
-	if recursedForFailover {
-		// If we recursed here from ourselves in a failover context, just emit
-		// this node without caching it or even processing failover again.
-		// This is a little weird but it keeps the redirect/default-subset
-		// logic in one place.
-		return node, nil
-	}
-
-	// If we record this exists before recursing down it will short-circuit
-	// sanely if there is some sort of graph loop below.
 	c.recordNode(node)
 
-	if len(resolver.Failover) > 0 {
+	if !recursedForFailover && len(resolver.Failover) > 0 {
 		f := resolver.Failover
 
 		// Determine which failover section applies.
@@ -957,14 +1016,103 @@ RESOLVE_AGAIN:
 					if err != nil {
 						return nil, err
 					}
-					failoverTarget := failoverResolveNode.Resolver.Target
-					df.Targets = append(df.Targets, failoverTarget)
+					if c.internalRetainDetails {
+						failoverTargetDetails := c.buildInternalTargetStringFor(failoverResolveNode)
+						failoverTarget := c.getFinalTarget(failoverResolveNode)
+						df.Targets = append(df.Targets, failoverTarget)
+						df.InternalTargets = append(df.InternalTargets, failoverTargetDetails)
+					} else {
+						failoverTarget := failoverResolveNode.Resolver.Target
+						df.Targets = append(df.Targets, failoverTarget)
+					}
 				}
 			}
 		}
 	}
 
 	return node, nil
+}
+
+func (c *compiler) getInternalRedirectNode(
+	targetID string,
+	redirectedTarget *structs.DiscoveryTarget,
+	mechanism string,
+	recursedForFailover bool,
+	redirectHistory map[string]struct{},
+	redirectOrder []string,
+) (*structs.DiscoveryGraphNode, error) {
+	if prev, ok := c.redirectNodes[targetID]; ok {
+		if !recursedForFailover {
+			prev.Discard = false
+		}
+		return prev, nil
+	}
+
+	nextNode, err := c.getResolverNodeInner(
+		redirectedTarget,
+		recursedForFailover,
+		redirectHistory,
+		redirectOrder,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	redirectNode := &structs.DiscoveryGraphNode{
+		Type: structs.DiscoveryGraphNodeTypeRedirect,
+		Name: targetID,
+		Redirect: &structs.DiscoveryRedirect{
+			Mechanism: mechanism,
+			NextNode:  nextNode.MapKey(),
+		},
+		Discard: recursedForFailover,
+	}
+
+	c.recordNode(redirectNode)
+	return redirectNode, nil
+}
+
+func (c *compiler) getFinalTarget(node *structs.DiscoveryGraphNode) string {
+	for node.Type != structs.DiscoveryGraphNodeTypeResolver {
+		if node.Type != structs.DiscoveryGraphNodeTypeRedirect {
+			panic("unexpected node type from getResolverNode: " + node.Type)
+		}
+
+		node = c.nodes[node.Redirect.NextNode]
+	}
+	return node.Resolver.Target
+}
+
+func (c *compiler) buildInternalTargetStringFor(node *structs.DiscoveryGraphNode) []structs.DiscoveryFailoverTargetDetail {
+	if node.Type == structs.DiscoveryGraphNodeTypeResolver {
+		return []structs.DiscoveryFailoverTargetDetail{{
+			Name: node.Resolver.Target,
+		}}
+	}
+
+	var out []structs.DiscoveryFailoverTargetDetail
+
+	for {
+		switch node.Type {
+		case structs.DiscoveryGraphNodeTypeRedirect:
+			next := node.Redirect.NextNode
+
+			out = append(out, structs.DiscoveryFailoverTargetDetail{
+				RedirectMechanism: node.Redirect.Mechanism,
+				Name:              node.Name,
+			})
+
+			node = c.nodes[next]
+
+		case structs.DiscoveryGraphNodeTypeResolver:
+			out = append(out, structs.DiscoveryFailoverTargetDetail{Name: node.Resolver.Target})
+
+			return out
+
+		default:
+			panic("unexpected node type from getResolverNode: " + node.Type)
+		}
+	}
 }
 
 func newDefaultServiceResolver(serviceName string) *structs.ServiceResolverConfigEntry {
