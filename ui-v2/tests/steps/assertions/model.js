@@ -1,23 +1,20 @@
 export default function(scenario, assert, find, currentPage, pauseUntil, pluralize) {
   scenario
-    .then('pause until I see $number $model model[s]?', function(num, model) {
-      return pauseUntil(function(resolve) {
-        const len = currentPage()[pluralize(model)].filter(function(item) {
-          return item.isVisible;
-        }).length;
-        if (len === num) {
-          assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
-          resolve();
-        }
-      });
-    })
-    .then(['I see $num $model model[s]?'], function(num, model) {
-      const len = currentPage()[pluralize(model)].filter(function(item) {
-        return item.isVisible;
-      }).length;
-
-      assert.equal(len, num, `Expected ${num} ${pluralize(model)}, saw ${len}`);
-    })
+    .then(
+      ['I see $number $model model[s]?', 'pause until I see $number $model model[s]?'],
+      function(num, model) {
+        return pauseUntil(function(resolve) {
+          const len = currentPage()[pluralize(model)].filter(function(item) {
+            return item.isVisible;
+          }).length;
+          if (len === num) {
+            assert.equal(len, num, `Expected ${num} ${model}s, saw ${len}`);
+            resolve();
+          }
+          return Promise.resolve();
+        });
+      }
+    )
     .then(['I see $num $model model[s]? on the $component component'], function(
       num,
       model,

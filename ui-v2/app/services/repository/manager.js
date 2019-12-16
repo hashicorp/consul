@@ -3,7 +3,9 @@ import Service, { inject as service } from '@ember/service';
 export default Service.extend({
   // TODO: Temporary repo list here
   service: service('repository/service'),
+  services: service('repository/service'),
   node: service('repository/node'),
+  nodes: service('repository/node'),
   session: service('repository/session'),
   proxy: service('repository/proxy'),
 
@@ -13,7 +15,6 @@ export default Service.extend({
     const dc = temp.shift();
     const model = temp.shift();
     const repo = this[model];
-    let slug = temp.join('/');
 
     // TODO: if something is filtered we shouldn't reconcile things
     // custom createEvent, here used to reconcile the ember-data store for each tick
@@ -29,51 +30,40 @@ export default Service.extend({
         return event;
       },
     };
+    let slug = temp.join('/');
     let id, node;
-    switch (slug) {
-      case '*':
-        switch (model) {
-          default:
-            obj.find = function(configuration) {
-              return repo.findAllByDatacenter(dc, configuration);
-            };
-        }
+    switch (model) {
+      // plurals / listings
+      case 'services':
+      case 'nodes':
+        obj.find = function(configuration) {
+          return repo.findAllByDatacenter(dc, configuration);
+        };
         break;
+      // weirder ones
+      case 'service-instance':
+        temp = slug.split('/');
+        id = temp[0];
+        node = temp[1];
+        slug = temp[2];
+        obj.find = function(configuration) {
+          return repo.findInstanceBySlug(id, node, slug, dc, configuration);
+        };
+        break;
+      case 'proxy':
+        temp = slug.split('/');
+        id = temp[0];
+        node = temp[1];
+        slug = temp[2];
+        obj.find = function(configuration) {
+          return repo.findInstanceBySlug(id, node, slug, dc, configuration);
+        };
+        break;
+      // commoner slugs
       default:
-        switch (model) {
-          case 'session':
-            obj.find = function(configuration) {
-              return repo.findByNode(slug, dc, configuration);
-            };
-            break;
-          case 'service-instance':
-            temp = slug.split('/');
-            id = temp[0];
-            node = temp[1];
-            slug = temp[2];
-            obj.find = function(configuration) {
-              return repo.findInstanceBySlug(id, node, slug, dc, configuration);
-            };
-            break;
-          case 'service':
-            obj.find = function(configuration) {
-              return repo.findBySlug(slug, dc, configuration);
-            };
-            break;
-          case 'proxy':
-            temp = slug.split('/');
-            id = temp[0];
-            node = temp[1];
-            slug = temp[2];
-            obj.find = function(configuration) {
-              return repo.findInstanceBySlug(id, node, slug, dc, configuration);
-            };
-            break;
-          default:
-            obj.find = function(configuration) {
-              return repo.findBySlug(slug, dc, configuration);
-            };
-        }
+        obj.find = function(configuration) {
+          return repo.findBySlug(slug, dc, configuration);
+        };
     }
     return obj;
   },

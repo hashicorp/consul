@@ -3,9 +3,16 @@ import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
 
 import WithListeners from 'consul-ui/mixins/with-listeners';
-
-// Utility function to set, but actually replace if we should replace
-// then call a function on the thing to be replaced (usually a clean up function)
+import Ember from 'ember';
+/**
+ * Utility function to set, but actually replace if we should replace
+ * then call a function on the thing to be replaced (usually a clean up function)
+ *
+ * @param obj - target object with the property to replace
+ * @param prop {string} - property to replace on the target object
+ * @param value - value to use for replacement
+ * @param destroy {(prev: any, value: any) => any} - teardown function
+ */
 const replace = function(
   obj,
   prop,
@@ -29,17 +36,17 @@ const replace = function(
  * Management of the caching/usage/counting etc of sources should be done in the data service,
  * not the component.
  *
- * @example ```js
+ * @example ```javascript
  *   {{data-source
  *      src="/dc-1/services/*"
  *      onchange={{action (mut items) value='data'}}
  *      onerror={{action (mut error) value='error'}}
  *   /}}```
  *
- * @param src {String} - An identitier used to determine the source of the data. This is passed
+ * @param src {string} - An identifier used to determine the source of the data. This is passed
  *                       to the data service for it to determine how to fetch the data.
- * @param onchange=null {Func} - An action called when the data changes.
- * @param onerror=null {Func} - An action called on error
+ * @param onchange {function=} - An action called when the data changes.
+ * @param onerror {function=} - An action called on error
  *
  */
 export default Component.extend(WithListeners, {
@@ -52,6 +59,8 @@ export default Component.extend(WithListeners, {
   onchange: function() {},
   onerror: function() {},
 
+  isIntersecting: false,
+
   didInsertElement: function() {
     this._super(...arguments);
     const options = {
@@ -61,8 +70,8 @@ export default Component.extend(WithListeners, {
 
     const observer = new IntersectionObserver((entries, observer) => {
       entries.map(item => {
-        set(this, 'isIntersecting', item.isIntersecting);
-        if (!item.isIntersecting) {
+        set(this, 'isIntersecting', item.isIntersecting || Ember.testing);
+        if (!this.isIntersecting) {
           this.actions.close.bind(this)();
         } else {
           this.actions.open.bind(this)();
@@ -114,7 +123,7 @@ export default Component.extend(WithListeners, {
     // keep this argumentless
     close: function() {
       this.data.close(this.source, this);
-      replace(this, '_remove', null);
+      replace(this, '_remove', undefined);
       set(this, 'source', undefined);
     },
   },

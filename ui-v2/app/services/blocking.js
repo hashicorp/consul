@@ -11,13 +11,24 @@ import maybeCall from 'consul-ui/utils/maybe-call';
 // TODO: Expose sizes of things via env vars
 
 // caches cursors and previous events when the EventSources are destroyed
-const cache = new Map();
+let cache;
 // keeps a record of currently in use EventSources
-const sources = new Map();
+let sources;
 // keeps a count of currently in use EventSources
-const usage = new MultiMap(Set);
+let usage;
 
 export default Service.extend({
+  dom: service('dom'),
+  init: function() {
+    this._super(...arguments);
+    cache = new Map();
+    sources = new Map();
+    usage = new MultiMap(Set);
+    this._listeners = this.dom.listeners();
+  },
+  willDestroy: function() {
+    this._listeners.remove();
+  },
   client: service('client/http'),
   settings: service('settings'),
 
@@ -58,15 +69,17 @@ export default Service.extend({
       }, configuration);
       // Lastly, when the EventSource is no longer needed, cache its information
       // for when we next need it again (see above re: data cache)
-      source.addEventListener('close', function close(e) {
-        const source = e.target;
-        source.removeEventListener('close', close);
-        cache.set(uri, {
-          currentEvent: e.target.getCurrentEvent(),
-          cursor: e.target.configuration.cursor,
-        });
-        // the data is cached delete the EventSource
-        sources.delete(uri);
+      this._listeners.add(source, {
+        close: e => {
+          const source = e.target;
+          source.removeEventListener('close', close);
+          cache.set(uri, {
+            currentEvent: source.getCurrentEvent(),
+            cursor: source.configuration.cursor,
+          });
+          // the data is cached delete the EventSource
+          sources.delete(uri);
+        },
       });
       sources.set(uri, source);
     } else {

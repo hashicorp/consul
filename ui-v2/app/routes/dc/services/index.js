@@ -1,9 +1,6 @@
 import Route from '@ember/routing/route';
-import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
 
 export default Route.extend({
-  repo: service('repository/service'),
   queryParams: {
     s: {
       as: 'filter',
@@ -29,7 +26,7 @@ export default Route.extend({
           .trim();
       }
     }
-    return hash({
+    return {
       terms: terms !== '' ? terms.split('\n') : [],
       items: this.repo.findAllByDatacenter(
         this.modelFor('dc').dc.Name,

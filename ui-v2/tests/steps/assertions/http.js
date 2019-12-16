@@ -1,4 +1,4 @@
-export default function(scenario, assert, lastNthRequest) {
+export default function(scenario, assert, pauseUntil, lastNthRequest) {
   // lastNthRequest should return a
   // {
   //   method: '',
@@ -22,11 +22,17 @@ export default function(scenario, assert, lastNthRequest) {
       assert.equal(diff.size, 0, `Expected requests "${[...diff].join(', ')}"`);
     })
     .then('a $method request was made to "$endpoint"', function(method, url) {
-      const requests = lastNthRequest(null, method);
-      const request = requests.find(function(item) {
-        return method === item.method && url === item.url;
+      return pauseUntil(function(resolve, reject) {
+        const requests = lastNthRequest(null, method);
+        const request = requests.find(function(item) {
+          return method === item.method && url === item.url;
+        });
+        if (request) {
+          assert.ok(request, `Expected a ${method} request url to ${url}`);
+          resolve();
+        }
+        return Promise.resolve();
       });
-      assert.ok(request, `Expected a ${method} request url to ${url}`);
     })
     .then('a $method request was made to "$endpoint" with no body', function(method, url) {
       const requests = lastNthRequest(null, method);

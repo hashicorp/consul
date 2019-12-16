@@ -1,7 +1,6 @@
 import Controller from '@ember/controller';
 import { get, computed } from '@ember/object';
 import { htmlSafe } from '@ember/string';
-import WithEventSource from 'consul-ui/mixins/with-event-source';
 import WithSearching from 'consul-ui/mixins/with-searching';
 const max = function(arr, prop) {
   return arr.reduce(function(prev, item) {
@@ -25,7 +24,7 @@ const width = function(num) {
 const widthDeclaration = function(num) {
   return htmlSafe(`width: ${num}px`);
 };
-export default Controller.extend(WithEventSource, WithSearching, {
+export default Controller.extend(WithSearching, {
   queryParams: {
     s: {
       as: 'filter',
