@@ -104,11 +104,6 @@ jobs:
       - run: mkdir -p $TEST_RESULTS_DIR
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
-        # TODO Can we remove the vault dependency in go-test now that we have the vault-ca-provider job?
-      - run: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
-          sudo unzip -d /usr/local/bin /tmp/vault.zip
-          rm -rf /tmp/vault*
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
