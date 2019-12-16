@@ -104,6 +104,7 @@ jobs:
       - run: mkdir -p $TEST_RESULTS_DIR
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
+        # TODO Can we remove the vault dependency in go-test now that we have the vault-ca-provider job?
       - run: |
           wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
@@ -564,12 +565,13 @@ jobs:
     environment:
       <<: *ENVIRONMENT
     steps:
-      # FIXME Ensure all deps are installed properly on CI
       # Install vault
       - run: |
           wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
+      # Gather deps to run go tests
+      - checkout
       # Run go tests
       - run: make test-vault-ca-provider
 
