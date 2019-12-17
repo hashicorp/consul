@@ -25,14 +25,24 @@ export default Adapter.extend({
     return request`
       PUT /v1/acl/policy?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${serialized}
+      ${{
+        Name: serialized.Name,
+        Description: serialized.Description,
+        Rules: serialized.Rules,
+        Datacenters: serialized.Datacenters,
+      }}
     `;
   },
   requestForUpdateRecord: function(request, serialized, data) {
     return request`
       PUT /v1/acl/policy/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
-      ${serialized}
+      ${{
+        Name: serialized.Name,
+        Description: serialized.Description,
+        Rules: serialized.Rules,
+        Datacenters: serialized.Datacenters,
+      }}
     `;
   },
   requestForDeleteRecord: function(request, serialized, data) {
