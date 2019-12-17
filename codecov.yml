@@ -2,7 +2,11 @@
 coverage:
   status:
     # only measure diff changes, not unexpected project changes from flakiness
-    project: off
+    project:
+      default: off
+      ui:
+        flags: ui
+        informational: true
     patch:
       default:
         # https://docs.codecov.io/docs/commit-status#section-informational
