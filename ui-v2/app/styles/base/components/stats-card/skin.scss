@@ -9,6 +9,9 @@
 %stats-card li {
   border-color: $gray-200;
 }
+%stats-card a {
+  color: $gray-900;
+}
 %stats-card,
 %stats-card header::before {
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05);

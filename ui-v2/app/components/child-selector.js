@@ -56,7 +56,7 @@ export default Component.extend(SlotsMixin, WithListeners, {
     },
     open: function() {
       if (!get(this, 'allOptions.closed')) {
-        set(this, 'allOptions', this.repo.findAllByDatacenter(this.dc));
+        set(this, 'allOptions', this.repo.findAllByDatacenter(this.dc, this.nspace));
       }
     },
     save: function(item, items, success = function() {}) {

@@ -31,4 +31,10 @@ export default Store.extend({
     const adapter = this.adapterFor(modelName);
     return adapter.queryLeader(this, { modelName: modelName }, null, query);
   },
+  // TODO: This one is only for ACL, should fail nicely if you call it
+  // for anything other than ACLs for good DX
+  authorize: function(modelName, query = {}) {
+    // TODO: no normalization, type it properly for the moment
+    return this.adapterFor(modelName).authorize(this, { modelName: modelName }, null, query);
+  },
 });

@@ -16,6 +16,7 @@ Feature: dc / services / instances / proxy: Show Proxy Service Instance
           Upstreams:
             - DestinationType: service
               DestinationName: service-1
+              DestinationNamespace: default
               LocalBindAddress: 127.0.0.1
               LocalBindPort: 1111
             - DestinationType: prepared_query
@@ -43,7 +44,7 @@ Feature: dc / services / instances / proxy: Show Proxy Service Instance
     And I see 2 of the upstreams object
     And I see name on the upstreams like yaml
     ---
-    - service-1
+    - service-1 default
     - service-group
     ---
     And I see type on the upstreams like yaml

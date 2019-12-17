@@ -95,6 +95,7 @@
     "ember-truth-helpers": "^2.0.0",
     "eslint-plugin-ember": "^7.0.0",
     "eslint-plugin-node": "^10.0.0",
+    "flat": "^4.1.0",
     "husky": "^3.0.5",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^3.13.1",
@@ -111,9 +112,9 @@
   },
   "ember-addon": {
     "paths": [
-      "lib/startup",
       "lib/block-slots",
-      "lib/commands"
+      "lib/commands",
+      "lib/startup"
     ]
   }
 }

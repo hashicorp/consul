@@ -1,0 +1,30 @@
+@import './skin';
+@import './layout';
+%main-nav-horizontal > ul > li > a,
+%main-nav-horizontal > ul > li > span,
+%main-nav-horizontal > ul > li > label > * {
+  @extend %main-nav-horizontal-action;
+}
+%main-nav-horizontal > ul > li > label {
+  display: block;
+}
+%main-nav-horizontal-action:not(span):hover,
+%main-nav-horizontal-action:not(span):focus {
+  @extend %main-nav-horizontal-action-intent;
+}
+%main-nav-horizontal [type='checkbox']:checked + label > *,
+%main-nav-horizontal > ul > li > a:active,
+%main-nav-horizontal > ul > li.is-active > a,
+%main-nav-horizontal > ul > li.is-active > label > * {
+  @extend %main-nav-horizontal-action-active;
+}
+%main-nav-horizontal-drop-nav {
+  @extend %menu-panel;
+}
+/*TODO: %menu-panel? */
+%main-nav-horizontal-drop-nav [role='separator'] {
+  @extend %main-nav-horizontal-drop-nav-separator;
+}
+%main-nav-horizontal-drop-nav > div {
+  @extend %main-nav-horizontal-drop-nav-header;
+}

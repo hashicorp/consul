@@ -1,29 +1,41 @@
-import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
+import Adapter from './application';
 
 import { SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
+import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
+// TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
-  requestForQuery: function(request, { dc, index, id }) {
+  requestForQuery: function(request, { dc, ns, index, id }) {
     return request`
       GET /v1/acl/roles?${{ dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
-  requestForQueryRecord: function(request, { dc, index, id }) {
+  requestForQueryRecord: function(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
       GET /v1/acl/role/${id}?${{ dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
   requestForCreateRecord: function(request, serialized, data) {
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
-      PUT /v1/acl/role?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/role?${params}
 
       ${{
         Name: serialized.Name,
@@ -35,8 +47,12 @@ export default Adapter.extend({
     `;
   },
   requestForUpdateRecord: function(request, serialized, data) {
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
-      PUT /v1/acl/role/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/acl/role/${data[SLUG_KEY]}?${params}
 
       ${{
         Name: serialized.Name,
@@ -48,8 +64,12 @@ export default Adapter.extend({
     `;
   },
   requestForDeleteRecord: function(request, serialized, data) {
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
+    };
     return request`
-      DELETE /v1/acl/role/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      DELETE /v1/acl/role/${data[SLUG_KEY]}?${params}
     `;
   },
 });

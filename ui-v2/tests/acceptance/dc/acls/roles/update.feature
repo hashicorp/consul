@@ -21,7 +21,7 @@ Feature: dc / acls / roles / update: ACL Role Update
       Description: [Description]
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/role/role-id?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/role/role-id?dc=datacenter&ns=default" with the body from yaml
     ---
       Name: [Name]
       Description: [Description]

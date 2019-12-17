@@ -11,7 +11,15 @@
     {{/block-slot}}
     {{#block-slot 'row'}}
       <td>
-        <span data-test-destination-name>{{item.DestinationName}}</span>
+        <a data-test-destination-name>
+          {{item.DestinationName}}
+  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+    {{#if (not-eq item.DestinationType 'prepared_query')}}
+            {{! TODO: slugify }}
+            <em class={{concat 'nspace-' (or item.DestinationNamespace 'default')}}>{{or item.DestinationNamespace 'default'}}</em>
+    {{/if}}
+  {{/if}}
+        </a>
       </td>
       <td data-test-destination-datacenter>
         {{item.Datacenter}}

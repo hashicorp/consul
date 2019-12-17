@@ -19,7 +19,7 @@ Feature: dc / acls / tokens / update: ACL Token Update
       Description: [Description]
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Description: [Description]
     ---

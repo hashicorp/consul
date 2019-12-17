@@ -1,0 +1,79 @@
+%main-nav-horizontal-toggle-button {
+  text-indent: -9000px;
+}
+%main-nav-horizontal-toggle-button::before {
+  @extend %with-more-vertical-mask, %as-pseudo;
+  background-color: $white;
+
+  font-size: 1.2em;
+}
+
+%main-nav-horizontal button {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background-color: transparent;
+}
+%main-nav-horizontal-action {
+  border-radius: $decor-radius-200;
+}
+%main-nav-horizontal-action {
+  cursor: default;
+}
+%main-nav-horizontal-action:not(span) {
+  cursor: pointer;
+}
+%main-nav-horizontal-action,
+%main-nav-horizontal-action-intent,
+%main-nav-horizontal-action-active {
+  color: $white;
+}
+%main-nav-horizontal-action > a {
+  color: inherit;
+}
+%main-nav-horizontal-toggle,
+%main-nav-horizontal input {
+  display: none;
+}
+%main-nav-horizontal input + label > *::after {
+  @extend %as-pseudo;
+  @extend %with-chevron-down-mask;
+  position: relative;
+  top: 2px;
+  background-color: $white;
+}
+%main-nav-horizontal input:checked + label > *::after {
+  @extend %with-chevron-up-mask;
+}
+%main-nav-horizontal-toggle-button span {
+  visibility: hidden;
+}
+@media #{$--lt-horizontal-nav} {
+  %main-nav-horizontal-toggle-button {
+    cursor: pointer;
+  }
+  %main-nav-horizontal-toggle:checked + label {
+    background-color: rgba($black, 0.4);
+  }
+}
+/**/
+%main-nav-horizontal-drop-nav-header {
+  background-color: $gray-050;
+}
+%main-nav-horizontal-drop-nav-separator {
+  text-transform: uppercase;
+  color: $gray-400;
+}
+%main-nav-horizontal-drop-nav .is-active > *::after {
+  @extend %with-check-plain-mask, %as-pseudo;
+  background-color: $magenta-600;
+}
+%main-nav-horizontal-drop-nav-header + ul,
+%main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  border-top: $decor-border-100;
+  border-color: $gray-300;
+}
+%main-nav-horizontal-drop-nav-header::before {
+  @extend %with-info-circle-fill-color-icon, %as-pseudo;
+  font-size: 1.1em;
+}
