@@ -32,6 +32,10 @@
 %discovery-chain-edge-inactive {
   opacity: 0.5;
 }
+%chain-node,
+%chain-node a {
+  color: $gray-900 !important;
+}
 %discovery-chain-edge-active {
   stroke: $gray-900;
 }
