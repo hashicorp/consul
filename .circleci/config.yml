@@ -497,6 +497,7 @@ jobs:
     docker:
       - image: *EMBER_IMAGE
     environment:
+      COVERAGE: true
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
       EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
     parallelism: 4
@@ -509,6 +510,10 @@ jobs:
       - run:
           working_directory: ui-v2
           command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
+      - run:
+          working_directory: ui-v2
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1 -F ui
       - store_test_results:
           path: ui-v2/test-results
 
