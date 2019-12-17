@@ -108,10 +108,6 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y rsyslog
       - run: sudo service rsyslog start
       - run: |
-          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
-          sudo unzip -d /usr/local/bin /tmp/vault.zip
-          rm -rf /tmp/vault*
-      - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
 
@@ -560,6 +556,30 @@ jobs:
       ENVOY_VERSIONS: "1.11.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
+  # run tests on vault ca provider integration tests
+  vault-ca-provider:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      # Install vault
+      - run: |
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
+          sudo unzip -d /usr/local/bin /tmp/vault.zip
+          rm -rf /tmp/vault*
+      # Create directory to store test results
+      - run: mkdir -p $TEST_RESULTS_DIR
+      # Gather deps to run go tests
+      - checkout
+      - restore_cache:
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      # Run go tests
+      - run: make test-vault-ca-provider
+      - store_test_results:
+          path: /tmp/test-results
+
 workflows:
   version: 2
   go-tests:
@@ -629,6 +649,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1.11.1:
+          requires:
+            - dev-build
+      - vault-ca-provider:
           requires:
             - dev-build
   website:
