@@ -17,7 +17,7 @@ module('Integration | Serializer | discovery-chain', function(hooks) {
       const expected = {
         Datacenter: dc,
         [META]: {},
-        uid: `["${dc}","${id}"]`,
+        uid: `["default","${dc}","${id}"]`,
       };
       const actual = serializer.respondForQueryRecord(
         function(cb) {
