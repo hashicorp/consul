@@ -127,6 +127,13 @@ export default function(scenario, assert, lastNthRequest) {
       );
       assert.equal(diff.size, 0, `Expected requests "${[...diff].join(', ')}"`);
     })
+    .then('a $method request was made to "$url"', function(method, url) {
+      const requests = lastNthRequest(null, method);
+      const request = requests.find(function(item) {
+        return method === item.method && url === item.url;
+      });
+      assert.ok(request, `Expected a ${method} request url to ${url}`);
+    })
     .then('a $method request was made to "$url" from yaml\n$yaml', function(method, url, yaml) {
       const requests = lastNthRequest(null, method);
       const request = requests.find(function(item) {

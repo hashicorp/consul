@@ -1,11 +1,10 @@
 import EmberRouter from '@ember/routing/router';
-import config from './config/environment';
-import env from 'consul-ui/env';
+import { config } from 'consul-ui/env';
 import walk from 'consul-ui/utils/routing/walk';
 
 const Router = EmberRouter.extend({
-  location: config.locationType,
-  rootURL: config.rootURL,
+  location: config('locationType'),
+  rootURL: config('rootURL'),
 });
 export const routes = {
   // Our parent datacenter resource sets the namespace
@@ -108,18 +107,16 @@ export const routes = {
     _options: { path: '/*path' },
   },
 };
-if (config.CONSUL_NSPACES_ENABLED) {
-  if (env('CONSUL_UI_ENABLE_NAMESPACE_MANAGEMENT') || !config.CONSUL_ACLS_ENABLED) {
-    routes.dc.nspaces = {
-      _options: { path: '/namespaces' },
-      edit: {
-        _options: { path: '/:name' },
-      },
-      create: {
-        _options: { path: '/create' },
-      },
-    };
-  }
+if (config('CONSUL_NSPACES_ENABLED')) {
+  routes.dc.nspaces = {
+    _options: { path: '/namespaces' },
+    edit: {
+      _options: { path: '/:name' },
+    },
+    create: {
+      _options: { path: '/create' },
+    },
+  };
   routes.nspace = {
     _options: { path: '/:nspace' },
     dc: routes.dc,

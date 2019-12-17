@@ -14,7 +14,7 @@ export default Route.extend(WithBlockingActions, {
   init: function() {
     this._super(...arguments);
   },
-  nspaceRepo: service('repository/nspace/disabled'),
+  nspacesRepo: service('repository/nspace/disabled'),
   repo: service('repository/dc'),
   settings: service('settings'),
   actions: {
@@ -28,7 +28,7 @@ export default Route.extend(WithBlockingActions, {
       hash({
         loading: !$root.classList.contains('ember-loading'),
         dc: dc,
-        nspace: this.nspaceRepo.getActive(),
+        nspace: this.nspacesRepo.getActive(),
       }).then(model => {
         next(() => {
           const controller = this.controllerFor('application');

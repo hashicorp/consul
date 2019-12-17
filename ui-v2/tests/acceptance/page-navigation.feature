@@ -36,8 +36,7 @@ Feature: Page Navigation
     ---
     When I click [Item] on the [Model]
     Then the url should be [URL]
-    # Then a GET request is made to "[Endpoint]"
-    Then the last GET request was made to "[Endpoint]"
+    Then a GET request was made to "[Endpoint]"
     And I click "[data-test-back]"
     Then the url should be [Back]
   Where:

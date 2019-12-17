@@ -1,5 +1,5 @@
 import Route from '@ember/routing/route';
-import config from 'consul-ui/config/environment';
+import { config } from 'consul-ui/env';
 
 import { routes } from 'consul-ui/router';
 import flat from 'flat';
@@ -26,7 +26,7 @@ Route.reopen(
     return prev;
   }, {})
 );
-if (config.CONSUL_NSPACES_ENABLED) {
+if (config('CONSUL_NSPACES_ENABLED')) {
   const dotRe = /\./g;
   initialize = function(container) {
     const all = Object.keys(flat(routes))

@@ -1,6 +1,7 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
+import { get } from '@ember/object';
 
 // TODO: We should potentially move all these nspace related things
 // up a level to application.js
@@ -24,42 +25,48 @@ const findActiveNspace = function(nspaces, nspace) {
 };
 export default Route.extend({
   repo: service('repository/dc'),
-  nspaceRepo: service('repository/nspace/disabled'),
+  nspacesRepo: service('repository/nspace/disabled'),
+  settingsRepo: service('settings'),
   model: function(params) {
     const repo = this.repo;
-    const nspaceRepo = this.nspaceRepo;
+    const nspacesRepo = this.nspacesRepo;
+    const settingsRepo = this.settingsRepo;
     return hash({
       dcs: repo.findAll(),
-      nspaces: nspaceRepo.findAll(),
-      nspace: this.nspaceRepo.getActive(),
-    }).then(function(model) {
-      return hash({
-        ...model,
-        ...{
-          dc: repo.findBySlug(params.dc, model.dcs),
-          // if there is only 1 namespace then use that
-          // otherwise find the namespace object that corresponds
-          // to the active one
-          nspace:
-            model.nspaces.length > 1
-              ? findActiveNspace(model.nspaces, model.nspace)
-              : model.nspaces.firstObject,
-        },
+      nspaces: nspacesRepo.findAll(),
+      nspace: nspacesRepo.getActive(),
+      token: settingsRepo.findBySlug('token'),
+    })
+      .then(function(model) {
+        return hash({
+          ...model,
+          ...{
+            dc: repo.findBySlug(params.dc, model.dcs),
+            // if there is only 1 namespace then use that
+            // otherwise find the namespace object that corresponds
+            // to the active one
+            nspace:
+              model.nspaces.length > 1
+                ? findActiveNspace(model.nspaces, model.nspace)
+                : model.nspaces.firstObject,
+          },
+        });
+      })
+      .then(function(model) {
+        if (get(model, 'token.SecretID')) {
+          return hash({
+            ...model,
+            ...{
+              // When disabled nspaces is [], so nspace is undefined
+              permissions: nspacesRepo.authorize(params.dc, get(model, 'nspace.Name')),
+            },
+          });
+        } else {
+          return model;
+        }
       });
-    });
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
-  },
-  actions: {
-    // TODO: This will eventually be deprecated please see
-    // https://deprecations.emberjs.com/v3.x/#toc_deprecate-router-events
-    willTransition: function(transition) {
-      // This will refresh both dcs and nspaces on any route transition
-      // under here
-      if (typeof transition !== 'undefined' && transition.from.name.endsWith('nspaces.create')) {
-        this.refresh();
-      }
-    },
   },
 });

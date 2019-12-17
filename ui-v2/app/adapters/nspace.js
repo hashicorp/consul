@@ -52,4 +52,31 @@ export default Adapter.extend({
       DELETE /v1/namespace/${data[SLUG_KEY]}
     `;
   },
+  requestForAuthorize: function(request, { dc, ns, index }) {
+    return request`
+      POST /v1/internal/acl/authorize?${{ dc, ns, index }}
+
+      ${[
+        {
+          Resource: 'operator',
+          Access: 'write',
+        },
+      ]}
+    `;
+  },
+  authorize: function(store, type, id, snapshot) {
+    return this.request(
+      function(adapter, request, serialized, unserialized) {
+        return adapter.requestForAuthorize(request, serialized, unserialized);
+      },
+      function(serializer, respond, serialized, unserialized) {
+        // Completely skip the serializer here
+        return respond(function(headers, body) {
+          return body;
+        });
+      },
+      snapshot,
+      type.modelName
+    );
+  },
 });

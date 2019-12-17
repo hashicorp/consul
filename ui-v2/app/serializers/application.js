@@ -1,7 +1,6 @@
 import Serializer from './http';
 
 import { set } from '@ember/object';
-import config from 'consul-ui/config/environment';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
@@ -11,6 +10,8 @@ import {
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
+
+const DEFAULT_NSPACE = 'default';
 
 const map = function(obj, cb) {
   if (!Array.isArray(obj)) {
@@ -32,7 +33,7 @@ const attachHeaders = function(headers, body, query = {}) {
     lower[HTTP_HEADERS_DATACENTER.toLowerCase()] = query.dc;
   }
   lower[HTTP_HEADERS_NAMESPACE.toLowerCase()] =
-    typeof query.ns !== 'undefined' ? query.ns : config.CONSUL_NSPACES_UNDEFINED_NAME;
+    typeof query.ns !== 'undefined' ? query.ns : DEFAULT_NSPACE;
   //
   body[HTTP_HEADERS_SYMBOL] = lower;
   return body;
@@ -40,11 +41,7 @@ const attachHeaders = function(headers, body, query = {}) {
 
 export default Serializer.extend({
   attachHeaders: attachHeaders,
-  fingerprint: createFingerprinter(
-    DATACENTER_KEY,
-    NSPACE_KEY,
-    config.CONSUL_NSPACES_UNDEFINED_NAME
-  ),
+  fingerprint: createFingerprinter(DATACENTER_KEY, NSPACE_KEY, DEFAULT_NSPACE),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
       attachHeaders(
