@@ -567,6 +567,9 @@ jobs:
           rm -rf /tmp/vault*
       # Gather deps to run go tests
       - checkout
+      - restore_cache: # restore cache from dev-build job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       # Run go tests
       - run: make test-vault-ca-provider
 
@@ -643,7 +646,7 @@ workflows:
             - dev-build
       - vault-ca-provider:
           requires:
-          - dev-build
+            - dev-build
   website:
     jobs:
       - build-website
