@@ -230,7 +230,6 @@ export default Component.extend({
         }
       });
     });
-    // FIXME: Use https://github.com/mathiasbynens/CSS.escape
     return {
       nodes: nodes.map(item => `#${CSS.escape(item)}`),
       edges: edges.map(item => `#${CSS.escape(item)}`),
