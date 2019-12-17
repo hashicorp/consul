@@ -379,7 +379,6 @@ else
 	@go test $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider -v
 endif
 
-
 proto-delete:
 	@echo "Removing $(PROTOGOFILES)"
 	-@rm $(PROTOGOFILES)
