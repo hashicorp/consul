@@ -1,7 +1,10 @@
 import _config from './config/environment';
 const doc = document;
 const getDevEnvVars = function() {
-  return doc.cookie.split(';').map(item => item.trim().split('='));
+  return doc.cookie
+    .split(';')
+    .filter(item => item !== '')
+    .map(item => item.trim().split('='));
 };
 const getUserEnvVar = function(str) {
   return window.localStorage.getItem(str);
