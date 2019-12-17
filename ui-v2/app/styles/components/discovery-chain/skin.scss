@@ -1,3 +1,8 @@
+/* CSS active states are partly added at the top of */
+/* components/templates/discovery-chain.hbs for reasons */
+/* the styling there almost 100% uses our CSS vars */
+/* defined in our CSS files, but be sure to */
+/* take a look in the discovery-chain.hbs */
 %discovery-chain .tooltip,
 %chain-group > header span {
   @extend %with-tooltip;
@@ -81,6 +86,7 @@
 %route-card section header > * {
   visibility: hidden;
 }
+%resolver-card dt,
 %route-card section header > *::before {
   background-color: $gray-100;
   visibility: visible;
@@ -92,10 +98,14 @@
   content: 'Q';
 }
 %resolver-card dt {
-  @extend %with-cloud-cross-icon;
-  background-color: $gray-100;
   font-size: 0;
   background-size: 80% 80%;
+}
+%resolver-card dl.failover dt {
+  @extend %with-cloud-cross-icon;
+}
+%resolver-card dl.redirect dt {
+  @extend %with-redirect-icon;
 }
 /**/
 %with-chain-outlet::before {
@@ -106,7 +116,7 @@
   border: 2px solid $gray-400;
 }
 %discovery-chain circle {
-  stroke-width: 1;
+  stroke-width: 2;
   stroke: $gray-400;
   fill: $white;
 }

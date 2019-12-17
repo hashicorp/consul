@@ -155,6 +155,8 @@
 %discovery-chain .resolver-inlets {
   @extend %discovery-chain-joints;
 }
+/* there are 3 columns, or %chain-groups the calculation here */
+/* depends on the width of those */
 %discovery-chain .splitter-inlets {
   left: 50%;
   /* keep the extra calculations here for doc purposes */

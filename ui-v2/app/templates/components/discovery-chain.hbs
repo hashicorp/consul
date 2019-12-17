@@ -1,126 +1,141 @@
-<style>
-  {{#if selected.nodes }}
-    {{selected.nodes}} {
-      opacity: 1 !important;
+{{#if isDisplayed }}
+  <style>
+    {{#if selected.nodes }}
+      {{selected.nodes}} {
+        opacity: 1 !important;
 
-      background-color: {{css-var '--white'}};
-      border-color: {{css-var '--gray-500'}};
-    }
-  {{/if}}
-  {{#if selected.edges }}
-    {{selected.edges}} {
-      opacity: 1;
-    }
-  {{/if}}
-</style>
-<div class="routes">
-  <header>
-    <h2>
-      {{chain.ServiceName}} Router
-      <span>
-        <em role="tooltip">Use routers to intercept traffic using L7 criteria such as path prefixes or http headers.</em>
-      </span>
-    </h2>
-  </header>
-  <div role="group">
+        background-color: {{css-var '--white'}};
+        border: {{css-var '--decor-border-100'}};
+        border-radius: {{css-var '--decor-radius-300'}};
+        border-color: {{css-var '--gray-500'}};
+        box-shadow: 0 8px 10px 0 rgba(0, 0, 0, 0.1);
+      }
+    {{/if}}
+    {{#if selected.edges }}
+      {{selected.edges}} {
+        opacity: 1;
+      }
+    {{/if}}
+  </style>
+  <div class="routes">
+    <header>
+      <h2>
+        {{chain.ServiceName}} Router
+        <span>
+          <em role="tooltip">Use routers to intercept traffic using L7 criteria such as path prefixes or http headers.</em>
+        </span>
+      </h2>
+    </header>
+    <div role="group">
+      {{#each routes as |item|}}
+        {{route-card item=item onclick=(action 'click')}}
+      {{/each}}
+    </div>
+  </div>
+  <div class="splitters">
+    <header>
+      <h2>
+        Splitters
+        <span>
+          <em role="tooltip">Splitters are configured to split incoming requests across different services or subsets of a single service.</em>
+        </span>
+      </h2>
+    </header>
+    <div role="group">
+      {{#each (sort-by 'Name' splitters) as |item|}}
+        {{splitter-card item=item onclick=(action 'click')}}
+      {{/each}}
+    </div>
+  </div>
+  <div class="resolvers">
+    <header>
+      <h2>
+        Resolvers
+        <span>
+          <em role="tooltip">Resolvers are used to define which instances of a service should satisfy discovery requests.</em>
+        </span>
+      </h2>
+    </header>
+    <div role="group">
+      {{#each (sort-by 'Name' resolvers) as |item|}}
+        {{resolver-card item=item onclick=(action 'click')}}
+      {{/each}}
+    </div>
+  </div>
+  <svg width="100%" height="100%" viewBox={{concat '0 0 ' width ' ' height}} preserveAspectRatio="none">
     {{#each routes as |item|}}
-      {{route-card item=item onclick=(action 'click')}}
+      {{#let (dom-position (concat '#' item.ID)) as |src|}}
+        {{#let (dom-position (concat '#' item.NextNode)) as |destRect|}}
+          {{#let (tween-to (hash
+            x=destRect.x
+            y=(add destRect.y (div destRect.height 2))
+          ) (concat item.ID)) as |dest|}}
+            <path
+              id={{concat item.ID '>' item.NextNode}}
+              d={{
+                svg-curve (hash
+                  x=dest.x
+                  y=dest.y
+                ) src=(hash
+                  x=(add src.x src.width)
+                  y=(add src.y (div src.height 2))
+            )}} />
+          {{/let}}
+        {{/let}}
+      {{/let}}
     {{/each}}
-  </div>
-</div>
-<div class="splitters">
-  <header>
-    <h2>
-      Splitters
-      <span>
-        <em role="tooltip">Splitters are configured to split incoming requests across different services or subsets of a single service.</em>
-      </span>
-    </h2>
-  </header>
-  <div role="group">
-    {{#each (sort-by 'Name' splitters) as |item|}}
-      {{splitter-card item=item onclick=(action 'click')}}
-    {{/each}}
-  </div>
-</div>
-<div class="resolvers">
-  <header>
-    <h2>
-      Resolvers
-      <span>
-        <em role="tooltip">Resolvers are used to define which instances of a service should satisfy discovery requests.</em>
-      </span>
-    </h2>
-  </header>
-  <div role="group">
-    {{#each (sort-by 'Name' resolvers) as |item|}}
-      {{resolver-card item=item onclick=(action 'click')}}
-    {{/each}}
-  </div>
-</div>
-<svg width="100%" height="100%" viewBox={{concat '0 0 ' width ' ' height}} preserveAspectRatio="none">
-  {{#each routes as |item|}}
-    {{#let (dom-position (concat '#' item.ID)) as |src|}}
-      {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
+    {{#each splitters as |splitter|}}
+      {{#let (dom-position (concat '#' splitter.ID)) as |src|}}
+        {{#each splitter.Splits as |item index|}}
+          {{#let (dom-position (concat '#' item.NextNode)) as |destRect|}}
+          {{#let (tween-to (hash
+            x=destRect.x
+            y=(add destRect.y (div destRect.height 2))
+          ) (concat splitter.ID '-' index)) as |dest|}}
       <path
-        id={{concat item.ID '>' item.NextNode}}
+        id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
+        class="split"
+        data-percentage={{item.Weight}}
         d={{
           svg-curve (hash
             x=dest.x
-            y=(add dest.y (div dest.height 2))
+            y=dest.y
           ) src=(hash
             x=(add src.x src.width)
             y=(add src.y (div src.height 2))
-      )}} />
+        )}} />
+          {{/let}}
+          {{/let}}
+        {{/each}}
       {{/let}}
-    {{/let}}
-  {{/each}}
-  {{#each splitters as |splitter|}}
-    {{#let (dom-position (concat '#' splitter.ID)) as |src|}}
-      {{#each splitter.Splits as |item|}}
+    {{/each}}
+  </svg>
+  <svg class="resolver-inlets" viewBox={{concat '0 0 10 ' height}}>
+    {{#each routes as |item|}}
+      {{#if (starts-with 'resolver:' item.NextNode) }}
         {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
-    <path
-      id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
-      class="split"
-      data-percentage={{item.Weight}}
-      d={{
-        svg-curve (hash
-          x=dest.x
-          y=(add dest.y (div dest.height 2))
-        ) src=(hash
-          x=(add src.x src.width)
-          y=(add src.y (div src.height 2))
-      )}} />
+          <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
         {{/let}}
-      {{/each}}
-    {{/let}}
-  {{/each}}
-</svg>
-<svg class="resolver-inlets" viewBox={{concat '0 0 10 ' height}}>
-  {{#each routes as |item|}}
-    {{#if (starts-with 'resolver:' item.NextNode) }}
-      {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
-        <circle r="3.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
-      {{/let}}
-    {{/if}}
-  {{/each}}
-  {{#each splitters as |item|}}
-      {{#each item.Splits as |item|}}
+      {{/if}}
+    {{/each}}
+    {{#each splitters as |item|}}
+        {{#each item.Splits as |item|}}
+          {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
+            <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
+          {{/let}}
+        {{/each}}
+    {{/each}}
+  </svg>
+  <svg class="splitter-inlets" viewBox={{concat '0 0 10 ' height}}>
+    {{#each routes as |item|}}
+      {{#if (starts-with 'splitter:' item.NextNode) }}
         {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
-          <circle r="3.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
+          <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
         {{/let}}
-      {{/each}}
-  {{/each}}
-</svg>
-<svg class="splitter-inlets" viewBox={{concat '0 0 10 ' height}}>
-  {{#each routes as |item|}}
-    {{#if (starts-with 'splitter:' item.NextNode) }}
-      {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
-        <circle r="3.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
-      {{/let}}
-    {{/if}}
-  {{/each}}
-</svg>
-<div class={{concat 'tooltip' (if activeTooltip ' active' '')}} style={{{ concat 'position: absolute;top:' y 'px;left:' x 'px;'}}}>
-  <span role="tooltip">{{round tooltip decimals=2}}%</span>
-</div>
+      {{/if}}
+    {{/each}}
+  </svg>
+  <div class={{concat 'tooltip' (if activeTooltip ' active' '')}} style={{{ concat 'position: absolute;top:' y 'px;left:' x 'px;'}}}>
+    <span role="tooltip">{{round tooltip decimals=2}}%</span>
+  </div>
+{{/if}}
