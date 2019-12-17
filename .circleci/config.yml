@@ -572,6 +572,8 @@ jobs:
             - consul-modcache-v1-{{ checksum "go.mod" }}
       # Run go tests
       - run: make test-vault-ca-provider
+      - store_test_results:
+          path: /tmp/test-results
 
 workflows:
   version: 2

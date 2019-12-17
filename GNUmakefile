@@ -370,8 +370,15 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
 test-vault-ca-provider:
+ifeq ("$(CIRCLECI)","true")
+# Run in CI
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider
+else
+# Run locally
 	@echo "Running /agent/connect/ca TestVaultCAProvider tests in verbose mode"
 	@go test $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider -v
+endif
+
 
 proto-delete:
 	@echo "Removing $(PROTOGOFILES)"
