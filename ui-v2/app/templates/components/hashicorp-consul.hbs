@@ -47,7 +47,7 @@
     {{/if}}
                     </li>
   {{/if}}
-                    <li>
+                    <li data-test-datacenter-menu>
   {{#if (or (not dcs) (eq dcs.length 1)) }}
                         <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
   {{ else }}

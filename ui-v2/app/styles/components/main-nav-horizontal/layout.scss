@@ -19,20 +19,18 @@
   left: 0;
   right: auto;
 }
-/*TODO: Find em or px equivalant for these */
+/* TODO: Revisit this once its part of menu-panel as its probably */
+/* a property of that */
 %main-nav-horizontal-drop-nav-separator:not(:empty) {
   padding-left: 1em;
   padding-right: 1em;
   padding-bottom: 0.1em;
-  padding-top: 0.57rem;
 }
-%main-nav-horizontal-drop-nav-separator:empty {
-  padding-top: 0.25rem;
-}
-%main-nav-horizontal-drop-nav-separator:first-child:not(:empty) {
-  padding-top: 0.35rem;
+%main-nav-horizontal-drop-nav-separator {
+  padding-top: 0.35em;
 }
 %main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  padding-top: 0.7em;
   margin-top: 0.35em;
 }
 %main-nav-horizontal-drop-nav-header {

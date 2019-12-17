@@ -9,6 +9,9 @@ a[rel*='external'] {
   @extend %with-info-circle-outline-icon, %as-pseudo;
   opacity: 0.4;
 }
+%main-content h2 a {
+  color: $gray-900;
+}
 %main-content h2 a[rel*='help']::after {
   font-size: 0.65em;
   margin-top: 0.2em;

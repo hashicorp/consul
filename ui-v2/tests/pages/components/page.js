@@ -23,5 +23,5 @@ const page = {
     }
   ),
 };
-page.navigation.dc = clickable('[data-test-toggle-button="datacenters"]');
+page.navigation.dc = clickable('[data-test-datacenter-menu] button');
 export default page;
