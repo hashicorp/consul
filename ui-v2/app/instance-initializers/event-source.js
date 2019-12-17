@@ -4,7 +4,7 @@ export function initialize(container) {
   if (env('CONSUL_UI_DISABLE_REALTIME')) {
     return;
   }
-  ['node', 'coordinate', 'session', 'service', 'proxy']
+  ['node', 'coordinate', 'session', 'service', 'proxy', 'discovery-chain']
     .concat(config('CONSUL_NSPACES_ENABLED') ? ['nspace/enabled'] : [])
     .map(function(item) {
       // create repositories that return a promise resolving to an EventSource
@@ -60,6 +60,7 @@ export function initialize(container) {
         route: 'dc/services/show',
         services: {
           repo: 'repository/service/event-source',
+          chainRepo: 'repository/discovery-chain/event-source',
         },
       },
       {

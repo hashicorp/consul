@@ -159,6 +159,11 @@
   background-image: $clock-outline-svg;
 }
 
+%with-cloud-cross-icon {
+  @extend %with-icon;
+  background-image: $cloud-cross-svg;
+}
+
 %with-code-icon {
   @extend %with-icon;
   background-image: $code-svg;
@@ -426,6 +431,11 @@
 %with-queue-icon {
   @extend %with-icon;
   background-image: $queue-svg;
+}
+
+%with-redirect-icon {
+  @extend %with-icon;
+  background-image: $redirect-svg;
 }
 
 %with-refresh-icon {

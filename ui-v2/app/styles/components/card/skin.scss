@@ -1,0 +1,25 @@
+%card:hover,
+%card:focus {
+  @extend %card-intent;
+}
+%card {
+  border: $decor-border-100;
+  border-radius: $decor-radius-100;
+  background-color: rgba($white, 0.9);
+}
+%card > section,
+%card > ul > li {
+  border-top: $decor-border-100;
+}
+%card,
+%card > section,
+%card > ul > li {
+  border-color: $gray-200;
+}
+%card ul {
+  /*TODO: %list-style-none?*/
+  list-style-type: none;
+}
+%card-intent {
+  box-shadow: 0 8px 10px 0 rgba(0, 0, 0, 0.1);
+}
