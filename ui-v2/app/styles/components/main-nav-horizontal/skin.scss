@@ -1,7 +1,3 @@
-%main-nav-horizontal-drop-nav .is-active a::after {
-  @extend %with-check-plain-mask, %as-pseudo;
-  background-color: $magenta-600;
-}
 %main-nav-horizontal-toggle-button {
   text-indent: -9000px;
 }
@@ -12,6 +8,12 @@
   font-size: 1.2em;
 }
 
+%main-nav-horizontal button {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background-color: transparent;
+}
 %main-nav-horizontal-action {
   border-radius: $decor-radius-200;
 }
@@ -33,41 +35,19 @@
 %main-nav-horizontal input {
   display: none;
 }
-%primary-nav input + label {
-  padding-right: 5px !important;
-}
-%primary-nav input + label > a::after {
+%main-nav-horizontal input + label > *::after {
   @extend %as-pseudo;
   @extend %with-chevron-down-mask;
   position: relative;
   top: 2px;
   background-color: $white;
 }
-%primary-nav input:checked + label > a::after {
+%main-nav-horizontal input:checked + label > *::after {
   @extend %with-chevron-up-mask;
 }
 %main-nav-horizontal-toggle-button span {
   visibility: hidden;
 }
-%main-nav-horizontal-drop-nav div {
-  background-color: $gray-050;
-}
-%main-nav-horizontal-drop-nav header {
-  text-transform: uppercase;
-  color: $gray-400;
-}
-%main-nav-horizontal-drop-nav div + ul,
-%main-nav-horizontal-drop-nav .manage-namespaces {
-  border-top: $decor-border-100;
-  border-color: $gray-300;
-}
-%main-nav-horizontal-drop-nav div::before {
-  @extend %with-info-circle-fill-color-icon, %as-pseudo;
-}
-%main-nav-horizontal-drop-nav a {
-  color: $gray-900;
-}
-
 @media #{$--lt-horizontal-nav} {
   %main-nav-horizontal-toggle-button {
     cursor: pointer;
@@ -75,4 +55,25 @@
   %main-nav-horizontal-toggle:checked + label {
     background-color: rgba($black, 0.4);
   }
+}
+/**/
+%main-nav-horizontal-drop-nav-header {
+  background-color: $gray-050;
+}
+%main-nav-horizontal-drop-nav-separator {
+  text-transform: uppercase;
+  color: $gray-400;
+}
+%main-nav-horizontal-drop-nav .is-active > *::after {
+  @extend %with-check-plain-mask, %as-pseudo;
+  background-color: $magenta-600;
+}
+%main-nav-horizontal-drop-nav-header + ul,
+%main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  border-top: $decor-border-100;
+  border-color: $gray-300;
+}
+%main-nav-horizontal-drop-nav-header::before {
+  @extend %with-info-circle-fill-color-icon, %as-pseudo;
+  font-size: 1.1em;
 }

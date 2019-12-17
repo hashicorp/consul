@@ -19,33 +19,38 @@
   left: 0;
   right: auto;
 }
-/*TODO: Find em or px equivalant for these */
-%main-nav-horizontal-drop-nav header {
-  padding: 0.2rem 1rem;
-  padding-top: 0.7rem;
+/* TODO: Revisit this once its part of menu-panel as its probably */
+/* a property of that */
+%main-nav-horizontal-drop-nav-separator:not(:empty) {
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 0.1em;
 }
-%main-nav-horizontal-drop-nav div {
+%main-nav-horizontal-drop-nav-separator {
+  padding-top: 0.35em;
+}
+%main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  padding-top: 0.7em;
+  margin-top: 0.35em;
+}
+%main-nav-horizontal-drop-nav-header {
   padding: 10px;
   padding-left: 36px;
 }
-%main-nav-horizontal-drop-nav .manage-namespaces {
-  margin-top: 4px;
-  padding-top: 4px;
-}
-%main-nav-horizontal-drop-nav div::before {
+%main-nav-horizontal-drop-nav-header::before {
   position: absolute;
   left: 15px;
   top: calc(10px + 0.1em);
 }
-%main-nav-horizontal-drop-nav div {
+%main-nav-horizontal-drop-nav-header {
   max-width: fit-content;
 }
 @supports not (max-width: fit-content) {
-  %main-nav-horizontal-drop-nav div {
+  %main-nav-horizontal-drop-nav-header {
     max-width: 200px;
   }
 }
-%main-nav-horizontal-drop-nav .is-active a::after {
+%main-nav-horizontal-drop-nav .is-active > *::after {
   position: absolute;
   top: 50%;
   margin-top: -8px;
@@ -58,6 +63,9 @@
     padding-right: 47px;
     padding-top: 13px;
   }
+  %main-nav-horizontal button {
+    width: 100%;
+  }
   %main-nav-horizontal-panel {
     transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
     transition-duration: 0.2s;
@@ -67,6 +75,8 @@
     box-sizing: border-box;
     padding: 15px 35px;
     z-index: 499;
+  }
+  %main-nav-horizontal-action {
     text-align: right;
   }
   %main-nav-horizontal-toggle-button {
@@ -108,12 +118,19 @@
   %main-nav-horizontal-drop-nav {
     width: 180px;
   }
-  %main-nav-horizontal-drop-nav div {
+  %main-nav-horizontal-drop-nav-header {
     text-align: left;
+  }
+  %main-nav-horizontal input + label > * {
+    right: -15px;
+    position: relative;
   }
   %main-nav-horizontal-action {
     padding-top: 15px;
     padding-bottom: 15px;
+  }
+  %main-nav-horizontal-drop-nav {
+    top: 38px !important;
   }
 }
 @media #{$--horizontal-nav} {
@@ -132,5 +149,8 @@
   }
   %main-nav-horizontal-drop-nav {
     min-width: 266px;
+  }
+  %main-nav-horizontal input + label {
+    padding-right: 5px !important;
   }
 }

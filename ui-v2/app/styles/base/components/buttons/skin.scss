@@ -95,6 +95,9 @@
   @extend %frame-red-900;
 }
 
+%internal-button {
+  color: $gray-900;
+}
 %internal-button-dangerous {
   @extend %frame-red-300;
 }
