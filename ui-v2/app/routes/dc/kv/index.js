@@ -25,15 +25,15 @@ export default Route.extend(WithKvActions, {
   model: function(params) {
     let key = params.key || '/';
     const dc = this.modelFor('dc').dc.Name;
-    const repo = this.repo;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
       isLoading: false,
-      parent: repo.findBySlug(key, dc),
+      parent: this.repo.findBySlug(key, dc, nspace),
     }).then(model => {
       return hash({
         ...model,
         ...{
-          items: repo.findAllBySlug(get(model.parent, 'Key'), dc).catch(e => {
+          items: this.repo.findAllBySlug(get(model.parent, 'Key'), dc, nspace).catch(e => {
             const status = get(e, 'errors.firstObject.status');
             switch (status) {
               case '403':

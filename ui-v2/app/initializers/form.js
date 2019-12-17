@@ -6,6 +6,7 @@ import token from 'consul-ui/forms/token';
 import policy from 'consul-ui/forms/policy';
 import role from 'consul-ui/forms/role';
 import intention from 'consul-ui/forms/intention';
+import nspace from 'consul-ui/forms/nspace';
 
 export function initialize(application) {
   // Service-less injection using private properties at a per-project level
@@ -17,6 +18,7 @@ export function initialize(application) {
     policy: policy,
     role: role,
     intention: intention,
+    nspace: nspace,
   };
   FormBuilder.reopen({
     form: function(name) {

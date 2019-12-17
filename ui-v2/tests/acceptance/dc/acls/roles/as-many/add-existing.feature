@@ -32,7 +32,7 @@ Feature: dc / acls / roles / as many / add existing: Add existing
       Description: The Description
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Description: The Description
       Roles:
