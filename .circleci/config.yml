@@ -565,9 +565,11 @@ jobs:
           wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
           sudo unzip -d /usr/local/bin /tmp/vault.zip
           rm -rf /tmp/vault*
+      # Create directory to store test results
+      - run: mkdir -p $TEST_RESULTS_DIR
       # Gather deps to run go tests
       - checkout
-      - restore_cache: # restore cache from dev-build job
+      - restore_cache:
           keys:
             - consul-modcache-v1-{{ checksum "go.mod" }}
       # Run go tests
