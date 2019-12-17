@@ -118,9 +118,9 @@ jobs:
             - cov_*.part
 
       - store_test_results:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
       - store_artifacts:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
 
   # split off a job for the API package since it is separate
   go-test-api:
@@ -150,9 +150,9 @@ jobs:
             - cov_*.part
 
       - store_test_results:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
       - store_artifacts:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
 
   # combine code coverage results from the parallel circleci executors
   coverage-merge:
@@ -170,12 +170,12 @@ jobs:
           command: |
             echo "mode: set" > coverage.out
             grep -h -v "mode: set" cov_*.part >> coverage.out
-            go tool cover -html=coverage.out -o /tmp/test-results/coverage.html
+            go tool cover -html=coverage.out -o $TEST_RESULTS_DIR/coverage.html
       - run:
           name: codecov upload
           command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
       - store_artifacts:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
 
   # build all distros
   build-distros: &build-distros
@@ -578,7 +578,7 @@ jobs:
       # Run go tests
       - run: make test-vault-ca-provider
       - store_test_results:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
 
 workflows:
   version: 2
