@@ -99,7 +99,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 
 	b := &Builder{
 		Flags: flags,
-		Head:  []Source{DefaultSource()},
+		Head:  []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
 	if b.boolVal(b.Flags.DevMode) {
@@ -128,7 +128,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultEnterpriseSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
 	if b.boolVal(b.Flags.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
