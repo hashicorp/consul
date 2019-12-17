@@ -1,11 +1,11 @@
 import _config from './config/environment';
-// const doc = document;
-// const getDevEnvVars = function() {
-//   return doc.cookie
-//     .split(';')
-//     .filter(item => item !== '')
-//     .map(item => item.trim().split('='));
-// };
+const doc = document;
+const getDevEnvVars = function() {
+  return doc.cookie
+    .split(';')
+    .filter(item => item !== '')
+    .map(item => item.trim().split('='));
+};
 const getUserEnvVar = function(str) {
   return window.localStorage.getItem(str);
 };
@@ -32,34 +32,30 @@ export const env = function(str) {
   return user !== null ? user : _config[str];
 };
 export const config = function(key) {
-  // temporarily remove this as we aren't making use of it right
-  // now anyway, but we'll be needing it later
-  // right now this might be why CI won't pass
-
-  // let $;
-  // switch (_config.environment) {
-  //   case 'development':
-  //   case 'staging':
-  //   case 'test':
-  //     $ = getDevEnvVars().reduce(function(prev, [key, value]) {
-  //       const val = !!JSON.parse(String(value).toLowerCase());
-  //       switch (key) {
-  //         case 'CONSUL_ACLS_ENABLE':
-  //           prev['CONSUL_ACLS_ENABLED'] = val;
-  //           break;
-  //         case 'CONSUL_NSPACES_ENABLE':
-  //           prev['CONSUL_NSPACES_ENABLED'] = val;
-  //           break;
-  //         default:
-  //           prev[key] = value;
-  //       }
-  //       return prev;
-  //     }, {});
-  //     if (typeof $[key] !== 'undefined') {
-  //       return $[key];
-  //     }
-  //     break;
-  // }
+  let $;
+  switch (_config.environment) {
+    case 'development':
+    case 'staging':
+    case 'test':
+      $ = getDevEnvVars().reduce(function(prev, [key, value]) {
+        const val = !!JSON.parse(String(value).toLowerCase());
+        switch (key) {
+          case 'CONSUL_ACLS_ENABLE':
+            prev['CONSUL_ACLS_ENABLED'] = val;
+            break;
+          case 'CONSUL_NSPACES_ENABLE':
+            prev['CONSUL_NSPACES_ENABLED'] = val;
+            break;
+          default:
+            prev[key] = value;
+        }
+        return prev;
+      }, {});
+      if (typeof $[key] !== 'undefined') {
+        return $[key];
+      }
+      break;
+  }
   return _config[key];
 };
 export default env;
