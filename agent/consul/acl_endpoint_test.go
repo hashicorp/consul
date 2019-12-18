@@ -2070,6 +2070,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	defer codec.Close()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
 
 	acl := ACL{srv: s1}
 
