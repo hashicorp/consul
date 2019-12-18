@@ -1,5 +1,18 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* api: **(Consul Enterprise only)** The API client will now configure the HTTP Client's configured default namespace to the value of the `CONSUL_NAMESPACE` environment variable if not explicitly overridden.
+* namespaces: **(Consul Enterprise only)** The desired namespace will be defaulted to the namespace of the ACL token used for an HTTP/RPC request if no other namespace is explicitly set.
+* namespaces: **(Consul Enterprise only)** Allow for creating and resolving tokens not linked to any roles, policies or service identities. These tokens can be granted access based on the default policies and roles associated with the tokens namespace. 
+
+
+BUG FIXES
+
+* api: **(Consul Enterprise only)** The Meta field was added into the `Namespace` struct definition within the API module. Previously the HTTP accepted this field, it was just missing from the API client.
+* cli: **(Consul Enterprise only)** Changed the CLI parameter used to specify the namespace from `-ns` to `-namespace.
+* dns: **(Consul Enterprise only)** Fixed an issue resulting in the `dns_config.prefer_namespace` configuration to not work properly.
+
 ## 1.7.0-beta1 (December 10, 2019)
 
 NOTES:
