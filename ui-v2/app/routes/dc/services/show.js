@@ -14,9 +14,10 @@ export default Route.extend({
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
-      item: this.repo.findBySlug(params.name, dc, this.modelFor('nspace').nspace.substr(1)),
-      chain: this.chainRepo.findBySlug(params.name, dc),
+      item: this.repo.findBySlug(params.name, dc, nspace),
+      chain: this.chainRepo.findBySlug(params.name, dc, nspace),
       urls: this.settings.findBySlug('urls'),
       dc: dc,
     });

@@ -77,8 +77,12 @@ export default Route.extend(WithBlockingActions, {
         error.message = 'Error';
       }
       const $root = this.dom.root();
+      const nspace = {
+        Name: this.paramsFor('nspace').nspace.substr(1) || 'default',
+      };
       hash({
         error: error,
+        nspace: this.nspacesRepo.getActive(),
         dc:
           error.status.toString().indexOf('5') !== 0
             ? this.repo.getActive()
@@ -89,6 +93,9 @@ export default Route.extend(WithBlockingActions, {
       })
         .then(model => {
           removeLoading($root);
+          model.nspaces = [model.nspace];
+          // we can't use setupController as we received an error
+          // so we do it manually instead
           next(() => {
             this.controllerFor('error').setProperties(model);
           });

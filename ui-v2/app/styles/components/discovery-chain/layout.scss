@@ -33,7 +33,7 @@
   @extend %blink-in-fade-out-active;
 }
 %resolver-card dt {
-  @extend %with-pseudo-tooltip;
+  @extend %with-pseudo-tooltip, %tooltip-right;
 }
 
 %discovery-chain {

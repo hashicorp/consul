@@ -1,5 +1,6 @@
 import Route from '@ember/routing/route';
 import { get } from '@ember/object';
+import { config } from 'consul-ui/env';
 import { inject as service } from '@ember/service';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 export default Route.extend(WithBlockingActions, {
@@ -31,7 +32,9 @@ export default Route.extend(WithBlockingActions, {
                   return false;
                 });
               } else {
-                if (get(item, 'token.Namespace') !== nspace) {
+                // TODO: Ideally we wouldn't need to use config() at a route level
+                // transitionTo should probably remove it instead if NSPACES aren't enabled
+                if (config('CONSUL_NSPACES_ENABLED') && get(item, 'token.Namespace') !== nspace) {
                   let routeName = this.router.currentRouteName;
                   if (!routeName.startsWith('nspace')) {
                     routeName = `nspace.${routeName}`;

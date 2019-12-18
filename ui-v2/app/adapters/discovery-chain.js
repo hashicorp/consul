@@ -1,7 +1,7 @@
 import Adapter from './application';
 
 export default Adapter.extend({
-  requestForQueryRecord: function(request, { dc, index, id }) {
+  requestForQueryRecord: function(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }

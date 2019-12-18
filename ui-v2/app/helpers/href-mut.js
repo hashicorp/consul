@@ -22,14 +22,14 @@ export default Helper.extend({
       atts = atts.concat(getRouteParams(parent, params));
       current = parent;
     }
-    let route = this.router.currentRoute.name;
+    let route = this.router.currentRouteName;
     // TODO: this is specific to consul/nspaces
     // 'ideally' we could try and do this elsewhere
     // not super important though.
     // This will turn an URL that has no nspace (/ui/dc-1/nodes) into one
     // that does have a namespace (/ui/~nspace/dc-1/nodes) if you href-mut with
     // a nspace parameter
-    if (typeof params.nspace !== 'undefined' && !route.startsWith('nspace.')) {
+    if (typeof params.nspace !== 'undefined' && route.startsWith('dc.')) {
       route = `nspace.${route}`;
       atts.push(params.nspace);
     }
