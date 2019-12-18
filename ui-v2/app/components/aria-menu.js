@@ -34,6 +34,7 @@ const keys = {
   horizontal: {},
 };
 const COMPONENT_ID = 'component-aria-menu-';
+// ^menuitem supports menuitemradio and menuitemcheckbox
 const MENU_ITEMS = '[role^="menuitem"]';
 export default Component.extend({
   tagName: '',
@@ -68,7 +69,6 @@ export default Component.extend({
       // Also we may do this but not need it if we return early below
       // although once we add support for [A-Za-z] it unlikely we won't use
       // the keypress
-      // ^menuitem supports menuitemradio and menuitemcheckbox
       // TODO: We need to use > somehow here so we don't select submenus
       const $items = [...this.dom.elements(MENU_ITEMS, this.$menu)];
       if (!this.expanded) {
