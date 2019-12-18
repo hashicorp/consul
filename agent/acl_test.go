@@ -223,7 +223,7 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 	require.True(t, acl.IsErrRootDenied(err))
 }
 
-func authzFromPolicy(policy *acl.Policy, cfg *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+func authzFromPolicy(policy *acl.Policy, cfg *acl.Config) (acl.Authorizer, error) {
 	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 

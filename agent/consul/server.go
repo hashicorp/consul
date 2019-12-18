@@ -110,7 +110,7 @@ var (
 type Server struct {
 	// enterpriseACLConfig is the Consul Enterprise specific items
 	// necessary for ACLs
-	enterpriseACLConfig *acl.EnterpriseACLConfig
+	enterpriseACLConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver

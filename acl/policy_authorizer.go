@@ -313,13 +313,13 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 	return nil
 }
 
-func newPolicyAuthorizer(policies []*Policy, ent *EnterpriseACLConfig) (Authorizer, error) {
+func newPolicyAuthorizer(policies []*Policy, ent *Config) (Authorizer, error) {
 	policy := MergePolicies(policies)
 
 	return newPolicyAuthorizerFromRules(&policy.PolicyRules, ent)
 }
 
-func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *EnterpriseACLConfig) (Authorizer, error) {
+func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (Authorizer, error) {
 	p := &policyAuthorizer{
 		agentRules:         radix.New(),
 		intentionRules:     radix.New(),

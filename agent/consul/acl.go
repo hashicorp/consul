@@ -130,7 +130,7 @@ type ACLResolverConfig struct {
 	AutoDisable bool
 
 	// EnterpriseACLConfig contains Consul Enterprise specific ACL configuration
-	EnterpriseConfig *acl.EnterpriseACLConfig
+	EnterpriseConfig *acl.Config
 }
 
 // ACLResolver is the type to handle all your token and policy resolution needs.
@@ -163,7 +163,7 @@ type ACLResolver struct {
 	logger *log.Logger
 
 	delegate ACLResolverDelegate
-	entConf  *acl.EnterpriseACLConfig
+	entConf  *acl.Config
 
 	cache         *structs.ACLCaches
 	identityGroup singleflight.Group

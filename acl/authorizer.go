@@ -145,7 +145,7 @@ type Authorizer interface {
 	Snapshot(*AuthorizerContext) EnforcementDecision
 
 	// Embedded Interface for Consul Enterprise specific ACL enforcement
-	EnterpriseAuthorizer
+	enterpriseAuthorizer
 }
 
 func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx *AuthorizerContext) (EnforcementDecision, error) {
@@ -234,7 +234,7 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.SessionWrite(segment, ctx), nil
 		}
 	default:
-		if processed, decision, err := EnforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {
+		if processed, decision, err := enforceEnterprise(authz, rsc, segment, lowerAccess, ctx); processed {
 			return decision, err
 		}
 		return Deny, fmt.Errorf("Invalid ACL resource requested: %q", rsc)

@@ -696,7 +696,7 @@ func (policies ACLPolicyListStubs) Sort() {
 	})
 }
 
-func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) ([]*acl.Policy, error) {
+func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Config) ([]*acl.Policy, error) {
 	// Parse the policies
 	parsed := make([]*acl.Policy, 0, len(policies))
 	for _, policy := range policies {
@@ -721,7 +721,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Ente
 	return parsed, nil
 }
 
-func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.Config) (acl.Authorizer, error) {
 	// Determine the cache key
 	cacheKey := policies.HashKey()
 	entry := cache.GetAuthorizer(cacheKey)
@@ -746,7 +746,7 @@ func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.EnterpriseACL
 	return authorizer, nil
 }
 
-func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (*acl.Policy, error) {
+func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.Config) (*acl.Policy, error) {
 	parsed, err := policies.resolveWithCache(cache, entConf)
 	if err != nil {
 		return nil, err
