@@ -16,6 +16,7 @@ BUG FIXES
 * cli: **(Consul Enterprise only)** Changed the CLI parameter used to specify the namespace from `-ns` to `-namespace.
 * dns: **(Consul Enterprise only)** Fixed an issue resulting in the `dns_config.prefer_namespace` configuration to not work properly.
 * dns: Updated miekg/dns dependency to fix a memory leak. [[GH-6748](https://github.com/hashicorp/consul/pull/6748)]
+* log: handle discard all logfiles properly [[GH-6945](https://github.com/hashicorp/consul/pull/6945)]
 
 ## 1.7.0-beta1 (December 10, 2019)
 
