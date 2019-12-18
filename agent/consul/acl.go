@@ -69,6 +69,44 @@ const (
 	tokenRoleResolutionMaxRetries = 5
 )
 
+// missingIdentity is used to return some identity in the event that the real identity cannot be ascertained
+type missingIdentity struct {
+	reason string
+	token  string
+}
+
+func (id *missingIdentity) ID() string {
+	return id.reason
+}
+
+func (id *missingIdentity) SecretToken() string {
+	return id.token
+}
+
+func (id *missingIdentity) PolicyIDs() []string {
+	return nil
+}
+
+func (id *missingIdentity) RoleIDs() []string {
+	return nil
+}
+
+func (id *missingIdentity) EmbeddedPolicy() *structs.ACLPolicy {
+	return nil
+}
+
+func (id *missingIdentity) ServiceIdentityList() []*structs.ACLServiceIdentity {
+	return nil
+}
+
+func (id *missingIdentity) IsExpired(asOf time.Time) bool {
+	return false
+}
+
+func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
+	return structs.DefaultEnterpriseMeta()
+}
+
 func minTTL(a time.Duration, b time.Duration) time.Duration {
 	if a < b {
 		return a
@@ -287,7 +325,7 @@ func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.Aut
 	}
 }
 
-func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
+func (r *ACLResolver) resolveTokenLegacy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	defer metrics.MeasureSince([]string{"acl", "resolveTokenLegacy"}, time.Now())
 
 	// Attempt to resolve locally first (local results are not cached)
@@ -297,18 +335,23 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 		if err == nil && identity != nil {
 			policies, err := r.resolvePoliciesForIdentity(identity)
 			if err != nil {
-				return nil, err
+				return identity, nil, err
 			}
 
 			authz, err := policies.Compile(r.cache, r.entConf)
 			if err != nil {
-				return nil, err
+				return identity, nil, err
 			}
 
-			return acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.RootAuthorizer(r.config.ACLDefaultPolicy)}), nil
+			return identity, acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.RootAuthorizer(r.config.ACLDefaultPolicy)}), nil
 		}
 
-		return nil, err
+		return nil, nil, err
+	}
+
+	identity := &missingIdentity{
+		reason: "legacy-token",
+		token:  token,
 	}
 
 	// Look in the cache prior to making a RPC request
@@ -317,9 +360,9 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	if entry != nil && entry.Age() <= minTTL(entry.TTL, r.config.ACLTokenTTL) {
 		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
 		if entry.Authorizer != nil {
-			return entry.Authorizer, nil
+			return identity, entry.Authorizer, nil
 		}
-		return nil, acl.ErrNotFound
+		return identity, nil, acl.ErrNotFound
 	}
 
 	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
@@ -334,9 +377,9 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 	if !waitForResult {
 		// waitForResult being false requires the cacheEntry to not be nil
 		if entry.Authorizer != nil {
-			return entry.Authorizer, nil
+			return identity, entry.Authorizer, nil
 		}
-		return nil, acl.ErrNotFound
+		return identity, nil, acl.ErrNotFound
 	}
 
 	// block waiting for the async RPC to finish.
@@ -347,7 +390,7 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (acl.Authorizer, error) {
 		authorizer = res.Val.(acl.Authorizer)
 	}
 
-	return authorizer, res.Err
+	return identity, authorizer, res.Err
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
@@ -987,13 +1030,13 @@ func (r *ACLResolver) disableACLsWhenUpstreamDisabled(err error) error {
 	return err
 }
 
-func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
+func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	if !r.ACLsEnabled() {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if acl.RootAuthorizer(token) != nil {
-		return nil, acl.ErrRootDenied
+		return nil, nil, acl.ErrRootDenied
 	}
 
 	// handle the anonymous token
@@ -1002,8 +1045,8 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 	}
 
 	if r.delegate.UseLegacyACLs() {
-		authorizer, err := r.resolveTokenLegacy(token)
-		return authorizer, r.disableACLsWhenUpstreamDisabled(err)
+		identity, authorizer, err := r.resolveTokenLegacy(token)
+		return identity, authorizer, r.disableACLsWhenUpstreamDisabled(err)
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
@@ -1013,10 +1056,10 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 		r.disableACLsWhenUpstreamDisabled(err)
 		if IsACLRemoteError(err) {
 			r.logger.Printf("[ERR] consul.acl: %v", err)
-			return r.down, nil
+			return &missingIdentity{reason: "primary-dc-down", token: token}, r.down, nil
 		}
 
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Build the Authorizer
@@ -1024,7 +1067,7 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 
 	authz, err := policies.Compile(r.cache, r.entConf)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	chain = append(chain, authz)
 
@@ -1032,15 +1075,20 @@ func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
 	if err != nil {
 		if IsACLRemoteError(err) {
 			r.logger.Printf("[ERR] consul.acl: %v", err)
-			return r.down, nil
+			return identity, r.down, nil
 		}
-		return nil, err
+		return nil, nil, err
 	} else if authz != nil {
 		chain = append(chain, authz)
 	}
 
 	chain = append(chain, acl.RootAuthorizer(r.config.ACLDefaultPolicy))
-	return acl.NewChainedAuthorizer(chain), nil
+	return identity, acl.NewChainedAuthorizer(chain), nil
+}
+
+func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
+	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
+	return authz, err
 }
 
 func (r *ACLResolver) ACLsEnabled() bool {

@@ -21,6 +21,10 @@ func (m *EnterpriseMeta) addToHash(_ hash.Hash, _ bool) {
 	// do nothing
 }
 
+func (m *EnterpriseMeta) Merge(_ *EnterpriseMeta) {
+	// do nothing
+}
+
 func (m *EnterpriseMeta) Matches(_ *EnterpriseMeta) bool {
 	return true
 }
