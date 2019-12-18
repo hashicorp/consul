@@ -1,3 +1,10 @@
+/*TODO: Rename this to %app-view-brand-icon or similar */
+%with-external-source-icon {
+  background-repeat: no-repeat;
+  background-size: contain;
+  width: 18px;
+  height: 18px;
+}
 %app-view h2,
 %app-view fieldset {
   border-bottom: $decor-border-200;

@@ -98,6 +98,11 @@
   background-image: $check-circle-fill-svg;
 }
 
+%with-check-circle-fill-mask {
+  @extend %with-mask;
+  mask-image: $check-circle-fill-svg;
+}
+
 %with-check-circle-outline-icon {
   @extend %with-icon;
   background-image: $check-circle-outline-svg;

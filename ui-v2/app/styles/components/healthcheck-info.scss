@@ -1,10 +1,9 @@
 @import './healthcheck-info/index';
-@import './icons/index';
-tr .healthcheck-info {
+%table tr .healthcheck-info {
   @extend %healthcheck-info;
 }
 // TODO: Look at why we can't have the zeros in the healthcheck-info
-td span.zero {
+%table td span.zero {
   @extend %with-minus-square-fill-color-icon;
   background-position: left center;
   display: block;

@@ -5,14 +5,12 @@
   float: right;
 }
 %token-yours {
-  text-indent: 20px;
   color: $blue-500;
-  padding-left: 15px;
 }
-%token-yours::after {
-  @extend %with-tick;
-  border-radius: 100%;
+%token-yours::before {
+  @extend %with-check-circle-fill-mask, %as-pseudo;
   background-color: $blue-500;
+  margin-right: 5px;
 }
 .me ~ :nth-last-child(2) {
   @extend %token-yours;
