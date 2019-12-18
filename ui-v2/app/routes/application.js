@@ -11,9 +11,6 @@ const removeLoading = function($from) {
 };
 export default Route.extend(WithBlockingActions, {
   dom: service('dom'),
-  init: function() {
-    this._super(...arguments);
-  },
   nspacesRepo: service('repository/nspace/disabled'),
   repo: service('repository/dc'),
   settings: service('settings'),
@@ -77,9 +74,6 @@ export default Route.extend(WithBlockingActions, {
         error.message = 'Error';
       }
       const $root = this.dom.root();
-      const nspace = {
-        Name: this.paramsFor('nspace').nspace.substr(1) || 'default',
-      };
       hash({
         error: error,
         nspace: this.nspacesRepo.getActive(),
