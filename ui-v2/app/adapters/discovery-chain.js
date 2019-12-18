@@ -1,5 +1,6 @@
 import Adapter from './application';
 
+// TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
   requestForQueryRecord: function(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
@@ -8,7 +9,10 @@ export default Adapter.extend({
     return request`
       GET /v1/discovery-chain/${id}?${{ dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
 });
