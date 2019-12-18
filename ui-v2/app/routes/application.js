@@ -11,9 +11,6 @@ const removeLoading = function($from) {
 };
 export default Route.extend(WithBlockingActions, {
   dom: service('dom'),
-  init: function() {
-    this._super(...arguments);
-  },
   nspacesRepo: service('repository/nspace/disabled'),
   repo: service('repository/dc'),
   settings: service('settings'),
@@ -79,6 +76,7 @@ export default Route.extend(WithBlockingActions, {
       const $root = this.dom.root();
       hash({
         error: error,
+        nspace: this.nspacesRepo.getActive(),
         dc:
           error.status.toString().indexOf('5') !== 0
             ? this.repo.getActive()
@@ -89,6 +87,9 @@ export default Route.extend(WithBlockingActions, {
       })
         .then(model => {
           removeLoading($root);
+          model.nspaces = [model.nspace];
+          // we can't use setupController as we received an error
+          // so we do it manually instead
           next(() => {
             this.controllerFor('error').setProperties(model);
           });

@@ -69,4 +69,22 @@ export default Route.extend({
   setupController: function(controller, model) {
     controller.setProperties(model);
   },
+  actions: {
+    // TODO: This will eventually be deprecated please see
+    // https://deprecations.emberjs.com/v3.x/#toc_deprecate-router-events
+    willTransition: function(transition) {
+      this._super(...arguments);
+      if (typeof transition !== 'undefined' && transition.from.name.endsWith('nspaces.create')) {
+        // Only when we create, reload the nspaces in the main menu to update them
+        // as we don't block for those
+        this.nspacesRepo.findAll().then(items => {
+          if (typeof this.controller !== 'undefined') {
+            this.controller.setProperties({
+              nspaces: items,
+            });
+          }
+        });
+      }
+    },
+  },
 });

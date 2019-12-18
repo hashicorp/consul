@@ -34,12 +34,14 @@ const keys = {
   horizontal: {},
 };
 const COMPONENT_ID = 'component-aria-menu-';
+// ^menuitem supports menuitemradio and menuitemcheckbox
+const MENU_ITEMS = '[role^="menuitem"]';
 export default Component.extend({
   tagName: '',
   dom: service('dom'),
   guid: '',
   expanded: false,
-  direction: 'vertical',
+  orientation: 'vertical',
   init: function() {
     this._super(...arguments);
     set(this, 'guid', this.dom.guid(this));
@@ -67,9 +69,8 @@ export default Component.extend({
       // Also we may do this but not need it if we return early below
       // although once we add support for [A-Za-z] it unlikely we won't use
       // the keypress
-      // ^menuitem supports menuitemradio and menuitemcheckbox
       // TODO: We need to use > somehow here so we don't select submenus
-      const $items = [...this.dom.elements('[role^="menuitem"]', this.$menu)];
+      const $items = [...this.dom.elements(MENU_ITEMS, this.$menu)];
       if (!this.expanded) {
         this.$trigger.dispatchEvent(new MouseEvent('click'));
         if (e.keyCode === ENTER || e.keyCode === SPACE) {
@@ -79,17 +80,17 @@ export default Component.extend({
       }
       // this will prevent anything happening if you haven't pushed a
       // configurable key
-      if (typeof keys[this.direction][e.keyCode] === 'undefined') {
+      if (typeof keys[this.orientation][e.keyCode] === 'undefined') {
         return;
       }
-      const $focused = this.dom.element('[role="menuitem"]:focus', this.$menu);
+      const $focused = this.dom.element(`${MENU_ITEMS}:focus`, this.$menu);
       let i;
       if ($focused) {
         i = $items.findIndex(function($item) {
           return $item === $focused;
         });
       }
-      const $next = $items[keys[this.direction][e.keyCode]($items, i)];
+      const $next = $items[keys[this.orientation][e.keyCode]($items, i)];
       $next.focus();
     },
     // TODO: The argument here needs to change to an event
