@@ -76,8 +76,7 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 
 func (f *HTTPFlags) NamespaceFlags() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	// TODO (namespaces) Do we want to allow setting via an env var? CONSUL_NAMESPACE
-	fs.Var(&f.namespace, "ns",
+	fs.Var(&f.namespace, "namespace",
 		"Specifies the namespace to query. If not provided, the namespace will"+
 			"default to the `default` namespace. Namespaces is a Consul Enterprise feature.")
 	return fs
