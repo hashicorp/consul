@@ -10,7 +10,7 @@ const getNodesByType = function(nodes = {}, type) {
 const targetsToFailover = function(targets, a) {
   let type;
   const Targets = targets.map(function(b) {
-    // FIXME: this isn't going to work past namespace for services
+    // TODO: this isn't going to work past namespace for services
     // with dots in the name
     const [aRev, bRev] = [a, b].map(item => item.split('.').reverse());
     const types = ['Datacenter', 'Namespace', 'Service', 'Subset'];
@@ -57,7 +57,7 @@ const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes 
       let failoverable = resolver;
       if (item.ServiceSubset) {
         failoverable = item;
-        // FIXME: Sometimes we have set the resolvers ID to the ID of the
+        // TODO: Sometimes we have set the resolvers ID to the ID of the
         // subset this just shifts the subset of the front of the URL for the moment
         const temp = item.ID.split('.');
         temp.shift();
@@ -65,7 +65,7 @@ const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes 
         resolver.Children.push(item);
       }
       if (typeof node.Resolver.Failover !== 'undefined') {
-        // FIXME: Figure out if we can get rid of this
+        // TODO: Figure out if we can get rid of this
         /* eslint ember/no-side-effects: "warn" */
         set(failoverable, 'Failover', targetsToFailover(node.Resolver.Failover.Targets, item.ID));
       } else {
@@ -245,7 +245,7 @@ export default Component.extend({
   // the developer access to the mouse event therefore we just use JS to add our events
   // revisit this post Octane
   addPathListeners: function() {
-    // FIXME: Figure out if we can remove this next
+    // TODO: Figure out if we can remove this next
     next(() => {
       this._listeners.remove();
       [...this.dom.elements('path.split', this.element)].forEach(item => {
