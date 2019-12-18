@@ -32,182 +32,182 @@ type StaticAuthorizer struct {
 	defaultAllow bool
 }
 
-func (s *StaticAuthorizer) ACLRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) ACLRead(*AuthorizerContext) EnforcementDecision {
 	if s.allowManage {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) ACLWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) ACLWrite(*AuthorizerContext) EnforcementDecision {
 	if s.allowManage {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) AgentRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) AgentRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) AgentWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) AgentWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) EventRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) EventWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) IntentionDefaultAllow(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) IntentionRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) IntentionRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) IntentionWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) IntentionWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) KeyRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) KeyRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) KeyList(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) KeyList(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) KeyWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) KeyWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) KeyWritePrefix(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) KeyWritePrefix(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) KeyringRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) KeyringRead(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) KeyringWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) NodeRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) NodeRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) NodeWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) OperatorRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) OperatorWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) OperatorWrite(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) PreparedQueryRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) PreparedQueryRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) PreparedQueryWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) PreparedQueryWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) ServiceRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) ServiceWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) SessionRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) SessionRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) SessionWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) SessionWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
 	return Deny
 }
 
-func (s *StaticAuthorizer) Snapshot(_ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (s *StaticAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 	if s.allowManage {
 		return Allow
 	}

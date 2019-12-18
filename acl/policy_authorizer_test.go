@@ -17,7 +17,7 @@ func TestPolicyAuthorizer(t *testing.T) {
 	type aclCheck struct {
 		name   string
 		prefix string
-		check  func(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext)
+		check  func(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext)
 	}
 
 	type aclTest struct {

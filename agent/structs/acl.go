@@ -1590,7 +1590,7 @@ func (r *RemoteACLAuthorizationRequest) RequestDatacenter() string {
 
 func CreateACLAuthorizationResponses(authz acl.Authorizer, requests []ACLAuthorizationRequest) ([]ACLAuthorizationResponse, error) {
 	responses := make([]ACLAuthorizationResponse, len(requests))
-	var ctx acl.EnterpriseAuthorizerContext
+	var ctx acl.AuthorizerContext
 
 	for idx, req := range requests {
 		req.FillAuthzContext(&ctx)

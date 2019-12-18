@@ -208,7 +208,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 	var rule acl.Authorizer
 
 	if args.TokenIDType == structs.ACLTokenAccessor {
-		var entCtx acl.EnterpriseAuthorizerContext
+		var entCtx acl.AuthorizerContext
 		args.FillAuthzContext(&entCtx)
 
 		var err error
@@ -277,7 +277,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 
 	defer metrics.MeasureSince([]string{"acl", "token", "clone"}, time.Now())
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.ACLToken.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -348,7 +348,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 	defer metrics.MeasureSince([]string{"acl", "token", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.ACLToken.FillAuthzContext(&entCtx)
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
@@ -737,7 +737,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	defer metrics.MeasureSince([]string{"acl", "token", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -826,7 +826,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -930,7 +930,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -1002,7 +1002,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	defer metrics.MeasureSince([]string{"acl", "policy", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.Policy.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -1138,7 +1138,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	defer metrics.MeasureSince([]string{"acl", "policy", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -1195,7 +1195,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -1351,7 +1351,7 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -1432,7 +1432,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	defer metrics.MeasureSince([]string{"acl", "role", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.Role.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -1582,7 +1582,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	defer metrics.MeasureSince([]string{"acl", "role", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -1635,7 +1635,7 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -1721,7 +1721,7 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -1763,7 +1763,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 
 	defer metrics.MeasureSince([]string{"acl", "bindingrule", "upsert"}, time.Now())
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.BindingRule.FillAuthzContext(&entCtx)
 
 	// Verify token is permitted to modify ACLs
@@ -1894,7 +1894,7 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 
 	defer metrics.MeasureSince([]string{"acl", "bindingrule", "delete"}, time.Now())
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	// Verify token is permitted to modify ACLs
@@ -1948,7 +1948,7 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := a.srv.ResolveToken(args.Token)
@@ -1989,7 +1989,7 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -2031,7 +2031,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 	defer metrics.MeasureSince([]string{"acl", "authmethod", "upsert"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.AuthMethod.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -2119,7 +2119,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 	defer metrics.MeasureSince([]string{"acl", "authmethod", "delete"}, time.Now())
 
 	// Verify token is permitted to modify ACLs
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
@@ -2173,7 +2173,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := a.srv.ResolveToken(args.Token)

@@ -59,7 +59,7 @@ func servicePreApply(service *structs.NodeService, rule acl.Authorizer) error {
 		return fmt.Errorf("Invalid service address")
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 
 	// Apply the ACL policy if any. The 'consul' service is excluded
@@ -359,7 +359,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		}
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	args.FillAuthzContext(&authzContext)
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.

@@ -295,7 +295,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			if err != nil {
 				return "", nil, err
 			}
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			svc.FillAuthzContext(&authzContext)
 			if rule != nil && rule.ServiceRead(svc.Service, &authzContext) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied

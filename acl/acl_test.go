@@ -36,315 +36,315 @@ func legacyPolicy(policy *Policy) *Policy {
 // nicer in the embedded struct within TestACL
 //
 
-func checkAllowACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.ACLRead(entCtx))
 }
 
-func checkAllowACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.ACLWrite(entCtx))
 }
 
-func checkAllowAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.AgentRead(prefix, entCtx))
 }
 
-func checkAllowAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.AgentWrite(prefix, entCtx))
 }
 
-func checkAllowEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.EventRead(prefix, entCtx))
 }
 
-func checkAllowEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.EventWrite(prefix, entCtx))
 }
 
-func checkAllowIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.IntentionDefaultAllow(entCtx))
 }
 
-func checkAllowIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.IntentionRead(prefix, entCtx))
 }
 
-func checkAllowIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.IntentionWrite(prefix, entCtx))
 }
 
-func checkAllowKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.KeyRead(prefix, entCtx))
 }
 
-func checkAllowKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.KeyList(prefix, entCtx))
 }
 
-func checkAllowKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.KeyringRead(entCtx))
 }
 
-func checkAllowKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.KeyringWrite(entCtx))
 }
 
-func checkAllowKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.KeyWrite(prefix, entCtx))
 }
 
-func checkAllowKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.KeyWritePrefix(prefix, entCtx))
 }
 
-func checkAllowNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.NodeRead(prefix, entCtx))
 }
 
-func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.NodeWrite(prefix, entCtx))
 }
 
-func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.OperatorRead(entCtx))
 }
 
-func checkAllowOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.OperatorWrite(entCtx))
 }
 
-func checkAllowPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.PreparedQueryRead(prefix, entCtx))
 }
 
-func checkAllowPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.PreparedQueryWrite(prefix, entCtx))
 }
 
-func checkAllowServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.ServiceRead(prefix, entCtx))
 }
 
-func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.ServiceWrite(prefix, entCtx))
 }
 
-func checkAllowSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.SessionRead(prefix, entCtx))
 }
 
-func checkAllowSessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowSessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.SessionWrite(prefix, entCtx))
 }
 
-func checkAllowSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkAllowSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.Snapshot(entCtx))
 }
 
-func checkDenyACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.ACLRead(entCtx))
 }
 
-func checkDenyACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.ACLWrite(entCtx))
 }
 
-func checkDenyAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.AgentRead(prefix, entCtx))
 }
 
-func checkDenyAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.AgentWrite(prefix, entCtx))
 }
 
-func checkDenyEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.EventRead(prefix, entCtx))
 }
 
-func checkDenyEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.EventWrite(prefix, entCtx))
 }
 
-func checkDenyIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.IntentionDefaultAllow(entCtx))
 }
 
-func checkDenyIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.IntentionRead(prefix, entCtx))
 }
 
-func checkDenyIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.IntentionWrite(prefix, entCtx))
 }
 
-func checkDenyKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.KeyRead(prefix, entCtx))
 }
 
-func checkDenyKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.KeyList(prefix, entCtx))
 }
 
-func checkDenyKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.KeyringRead(entCtx))
 }
 
-func checkDenyKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.KeyringWrite(entCtx))
 }
 
-func checkDenyKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.KeyWrite(prefix, entCtx))
 }
 
-func checkDenyKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.KeyWritePrefix(prefix, entCtx))
 }
 
-func checkDenyNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.NodeRead(prefix, entCtx))
 }
 
-func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.NodeWrite(prefix, entCtx))
 }
 
-func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.OperatorRead(entCtx))
 }
 
-func checkDenyOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.OperatorWrite(entCtx))
 }
 
-func checkDenyPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.PreparedQueryRead(prefix, entCtx))
 }
 
-func checkDenyPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.PreparedQueryWrite(prefix, entCtx))
 }
 
-func checkDenyServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.ServiceRead(prefix, entCtx))
 }
 
-func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.ServiceWrite(prefix, entCtx))
 }
 
-func checkDenySessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenySessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.SessionRead(prefix, entCtx))
 }
 
-func checkDenySessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenySessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.SessionWrite(prefix, entCtx))
 }
 
-func checkDenySnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDenySnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.Snapshot(entCtx))
 }
 
-func checkDefaultACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.ACLRead(entCtx))
 }
 
-func checkDefaultACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultACLWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.ACLWrite(entCtx))
 }
 
-func checkDefaultAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultAgentRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.AgentRead(prefix, entCtx))
 }
 
-func checkDefaultAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultAgentWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.AgentWrite(prefix, entCtx))
 }
 
-func checkDefaultEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultEventRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.EventRead(prefix, entCtx))
 }
 
-func checkDefaultEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultEventWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.EventWrite(prefix, entCtx))
 }
 
-func checkDefaultIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultIntentionDefaultAllow(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.IntentionDefaultAllow(entCtx))
 }
 
-func checkDefaultIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultIntentionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.IntentionRead(prefix, entCtx))
 }
 
-func checkDefaultIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultIntentionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.IntentionWrite(prefix, entCtx))
 }
 
-func checkDefaultKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultKeyRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.KeyRead(prefix, entCtx))
 }
 
-func checkDefaultKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultKeyList(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.KeyList(prefix, entCtx))
 }
 
-func checkDefaultKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultKeyringRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.KeyringRead(entCtx))
 }
 
-func checkDefaultKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultKeyringWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.KeyringWrite(entCtx))
 }
 
-func checkDefaultKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultKeyWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.KeyWrite(prefix, entCtx))
 }
 
-func checkDefaultKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultKeyWritePrefix(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.KeyWritePrefix(prefix, entCtx))
 }
 
-func checkDefaultNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.NodeRead(prefix, entCtx))
 }
 
-func checkDefaultNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.NodeWrite(prefix, entCtx))
 }
 
-func checkDefaultOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.OperatorRead(entCtx))
 }
 
-func checkDefaultOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultOperatorWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.OperatorWrite(entCtx))
 }
 
-func checkDefaultPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultPreparedQueryRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.PreparedQueryRead(prefix, entCtx))
 }
 
-func checkDefaultPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.PreparedQueryWrite(prefix, entCtx))
 }
 
-func checkDefaultServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.ServiceRead(prefix, entCtx))
 }
 
-func checkDefaultServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.ServiceWrite(prefix, entCtx))
 }
 
-func checkDefaultSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultSessionRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.SessionRead(prefix, entCtx))
 }
 
-func checkDefaultSessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultSessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.SessionWrite(prefix, entCtx))
 }
 
-func checkDefaultSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext) {
+func checkDefaultSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.Snapshot(entCtx))
 }
 
@@ -352,7 +352,7 @@ func TestACL(t *testing.T) {
 	type aclCheck struct {
 		name   string
 		prefix string
-		check  func(t *testing.T, authz Authorizer, prefix string, entCtx *EnterpriseAuthorizerContext)
+		check  func(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext)
 	}
 
 	type aclTest struct {

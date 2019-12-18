@@ -53,102 +53,102 @@ const (
 // Authorizer is the interface for policy enforcement.
 type Authorizer interface {
 	// ACLRead checks for permission to list all the ACLs
-	ACLRead(*EnterpriseAuthorizerContext) EnforcementDecision
+	ACLRead(*AuthorizerContext) EnforcementDecision
 
 	// ACLWrite checks for permission to manipulate ACLs
-	ACLWrite(*EnterpriseAuthorizerContext) EnforcementDecision
+	ACLWrite(*AuthorizerContext) EnforcementDecision
 
 	// AgentRead checks for permission to read from agent endpoints for a
 	// given node.
-	AgentRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	AgentRead(string, *AuthorizerContext) EnforcementDecision
 
 	// AgentWrite checks for permission to make changes via agent endpoints
 	// for a given node.
-	AgentWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	AgentWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// EventRead determines if a specific event can be queried.
-	EventRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	EventRead(string, *AuthorizerContext) EnforcementDecision
 
 	// EventWrite determines if a specific event may be fired.
-	EventWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	EventWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// IntentionDefaultAllow determines the default authorized behavior
 	// when no intentions match a Connect request.
-	IntentionDefaultAllow(*EnterpriseAuthorizerContext) EnforcementDecision
+	IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision
 
 	// IntentionRead determines if a specific intention can be read.
-	IntentionRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	IntentionRead(string, *AuthorizerContext) EnforcementDecision
 
 	// IntentionWrite determines if a specific intention can be
 	// created, modified, or deleted.
-	IntentionWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	IntentionWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// KeyList checks for permission to list keys under a prefix
-	KeyList(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	KeyList(string, *AuthorizerContext) EnforcementDecision
 
 	// KeyRead checks for permission to read a given key
-	KeyRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	KeyRead(string, *AuthorizerContext) EnforcementDecision
 
 	// KeyWrite checks for permission to write a given key
-	KeyWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	KeyWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// KeyWritePrefix checks for permission to write to an
 	// entire key prefix. This means there must be no sub-policies
 	// that deny a write.
-	KeyWritePrefix(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	KeyWritePrefix(string, *AuthorizerContext) EnforcementDecision
 
 	// KeyringRead determines if the encryption keyring used in
 	// the gossip layer can be read.
-	KeyringRead(*EnterpriseAuthorizerContext) EnforcementDecision
+	KeyringRead(*AuthorizerContext) EnforcementDecision
 
 	// KeyringWrite determines if the keyring can be manipulated
-	KeyringWrite(*EnterpriseAuthorizerContext) EnforcementDecision
+	KeyringWrite(*AuthorizerContext) EnforcementDecision
 
 	// NodeRead checks for permission to read (discover) a given node.
-	NodeRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	NodeRead(string, *AuthorizerContext) EnforcementDecision
 
 	// NodeWrite checks for permission to create or update (register) a
 	// given node.
-	NodeWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	NodeWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// OperatorRead determines if the read-only Consul operator functions
 	// can be used.
-	OperatorRead(*EnterpriseAuthorizerContext) EnforcementDecision
+	OperatorRead(*AuthorizerContext) EnforcementDecision
 
 	// OperatorWrite determines if the state-changing Consul operator
 	// functions can be used.
-	OperatorWrite(*EnterpriseAuthorizerContext) EnforcementDecision
+	OperatorWrite(*AuthorizerContext) EnforcementDecision
 
 	// PreparedQueryRead determines if a specific prepared query can be read
 	// to show its contents (this is not used for execution).
-	PreparedQueryRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	PreparedQueryRead(string, *AuthorizerContext) EnforcementDecision
 
 	// PreparedQueryWrite determines if a specific prepared query can be
 	// created, modified, or deleted.
-	PreparedQueryWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	PreparedQueryWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// ServiceRead checks for permission to read a given service
-	ServiceRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	ServiceRead(string, *AuthorizerContext) EnforcementDecision
 
 	// ServiceWrite checks for permission to create or update a given
 	// service
-	ServiceWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	ServiceWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// SessionRead checks for permission to read sessions for a given node.
-	SessionRead(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	SessionRead(string, *AuthorizerContext) EnforcementDecision
 
 	// SessionWrite checks for permission to create sessions for a given
 	// node.
-	SessionWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision
+	SessionWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// Snapshot checks for permission to take and restore snapshots.
-	Snapshot(*EnterpriseAuthorizerContext) EnforcementDecision
+	Snapshot(*AuthorizerContext) EnforcementDecision
 
 	// Embedded Interface for Consul Enterprise specific ACL enforcement
 	EnterpriseAuthorizer
 }
 
-func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx *EnterpriseAuthorizerContext) (EnforcementDecision, error) {
+func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx *AuthorizerContext) (EnforcementDecision, error) {
 	lowerAccess := strings.ToLower(access)
 
 	switch rsc {

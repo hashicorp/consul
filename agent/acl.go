@@ -75,7 +75,7 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 	// Vet the service itself.
 	if rule.ServiceWrite(service.Service, &authzContext) != acl.Allow {
@@ -114,7 +114,7 @@ func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) erro
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 
 	// Vet any changes based on the existing services's info.
 	if existing := a.State.Service(serviceID); existing != nil {
@@ -141,7 +141,7 @@ func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
@@ -181,7 +181,7 @@ func (a *Agent) vetCheckUpdate(token string, checkID structs.CheckID) error {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	checkID.FillAuthzContext(&authzContext)
 
 	// Vet any changes based on the existing check's info.
@@ -213,7 +213,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
@@ -241,7 +241,7 @@ func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*st
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	// Filter out services based on the service policy.
 	for id, service := range *services {
 		service.FillAuthzContext(&authzContext)
@@ -265,7 +265,7 @@ func (a *Agent) filterChecks(token string, checks *map[structs.CheckID]*structs.
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
 	for id, check := range *checks {
 		if len(check.ServiceName) > 0 {

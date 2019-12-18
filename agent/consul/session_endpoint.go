@@ -41,7 +41,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 
 	//  The entMeta to populate is the one in the Session struct, not SessionRequest
 	//  This is because the Session is what is passed to downstream functions like raftApply
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.Session.FillAuthzContext(&entCtx)
 
 	// Fetch the ACL token, if any, and apply the policy.
@@ -162,7 +162,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 	}
 
 	// TODO (namespaces) TODO (acls) infer args.entmeta if not provided
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := s.srv.ResolveToken(args.Token)
@@ -204,7 +204,7 @@ func (s *Session) List(args *structs.SessionSpecificRequest,
 	}
 
 	// TODO (namespaces) TODO (acls) infer args.entmeta if not provided
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := s.srv.ResolveToken(args.Token)
@@ -241,7 +241,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	}
 
 	// TODO (namespaces) TODO (acls) infer args.entmeta if not provided
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := s.srv.ResolveToken(args.Token)
@@ -292,7 +292,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 
 	// TODO (namespaces) (freddy):infer args.entmeta if not provided
 	// Fetch the ACL token, if any, and apply the policy.
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := s.srv.ResolveToken(args.Token)

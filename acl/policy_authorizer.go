@@ -341,7 +341,7 @@ func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *EnterpriseACLConfig) 
 }
 
 // ACLRead checks if listing of ACLs is allowed
-func (p *policyAuthorizer) ACLRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ACLRead(*AuthorizerContext) EnforcementDecision {
 	if p.aclRule != nil {
 		return enforce(p.aclRule.access, AccessRead)
 	}
@@ -349,7 +349,7 @@ func (p *policyAuthorizer) ACLRead(*EnterpriseAuthorizerContext) EnforcementDeci
 }
 
 // ACLWrite checks if modification of ACLs is allowed
-func (p *policyAuthorizer) ACLWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ACLWrite(*AuthorizerContext) EnforcementDecision {
 	if p.aclRule != nil {
 		return enforce(p.aclRule.access, AccessWrite)
 	}
@@ -358,7 +358,7 @@ func (p *policyAuthorizer) ACLWrite(*EnterpriseAuthorizerContext) EnforcementDec
 
 // AgentRead checks for permission to read from agent endpoints for a given
 // node.
-func (p *policyAuthorizer) AgentRead(node string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) AgentRead(node string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(node, p.agentRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -367,7 +367,7 @@ func (p *policyAuthorizer) AgentRead(node string, _ *EnterpriseAuthorizerContext
 
 // AgentWrite checks for permission to make changes via agent endpoints for a
 // given node.
-func (p *policyAuthorizer) AgentWrite(node string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) AgentWrite(node string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(node, p.agentRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -375,7 +375,7 @@ func (p *policyAuthorizer) AgentWrite(node string, _ *EnterpriseAuthorizerContex
 }
 
 // Snapshot checks if taking and restoring snapshots is allowed.
-func (p *policyAuthorizer) Snapshot(_ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 	if p.aclRule != nil {
 		return enforce(p.aclRule.access, AccessWrite)
 	}
@@ -384,7 +384,7 @@ func (p *policyAuthorizer) Snapshot(_ *EnterpriseAuthorizerContext) EnforcementD
 
 // EventRead is used to determine if the policy allows for a
 // specific user event to be read.
-func (p *policyAuthorizer) EventRead(name string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) EventRead(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.eventRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -393,7 +393,7 @@ func (p *policyAuthorizer) EventRead(name string, _ *EnterpriseAuthorizerContext
 
 // EventWrite is used to determine if new events can be created
 // (fired) by the policy.
-func (p *policyAuthorizer) EventWrite(name string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) EventWrite(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.eventRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -402,14 +402,14 @@ func (p *policyAuthorizer) EventWrite(name string, _ *EnterpriseAuthorizerContex
 
 // IntentionDefaultAllow returns whether the default behavior when there are
 // no matching intentions is to allow or deny.
-func (p *policyAuthorizer) IntentionDefaultAllow(_ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) IntentionDefaultAllow(_ *AuthorizerContext) EnforcementDecision {
 	// We always go up, this can't be determined by a policy.
 	return Default
 }
 
 // IntentionRead checks if writing (creating, updating, or deleting) of an
 // intention is allowed.
-func (p *policyAuthorizer) IntentionRead(prefix string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(prefix, p.intentionRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -418,7 +418,7 @@ func (p *policyAuthorizer) IntentionRead(prefix string, _ *EnterpriseAuthorizerC
 
 // IntentionWrite checks if writing (creating, updating, or deleting) of an
 // intention is allowed.
-func (p *policyAuthorizer) IntentionWrite(prefix string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) IntentionWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(prefix, p.intentionRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -426,7 +426,7 @@ func (p *policyAuthorizer) IntentionWrite(prefix string, _ *EnterpriseAuthorizer
 }
 
 // KeyRead returns if a key is allowed to be read
-func (p *policyAuthorizer) KeyRead(key string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) KeyRead(key string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(key, p.keyRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -434,7 +434,7 @@ func (p *policyAuthorizer) KeyRead(key string, _ *EnterpriseAuthorizerContext) E
 }
 
 // KeyList returns if a key is allowed to be listed
-func (p *policyAuthorizer) KeyList(key string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) KeyList(key string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(key, p.keyRules); ok {
 		return enforce(rule.access, AccessList)
 	}
@@ -442,7 +442,7 @@ func (p *policyAuthorizer) KeyList(key string, _ *EnterpriseAuthorizerContext) E
 }
 
 // KeyWrite returns if a key is allowed to be written
-func (p *policyAuthorizer) KeyWrite(key string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) KeyWrite(key string, entCtx *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(key, p.keyRules); ok {
 		decision := enforce(rule.access, AccessWrite)
 		if decision == Allow {
@@ -459,7 +459,7 @@ func (p *policyAuthorizer) KeyWrite(key string, entCtx *EnterpriseAuthorizerCont
 // the KV can be removed. For that reason we must be able to
 // delete everything under the prefix. First we must have "write"
 // on the prefix itself
-func (p *policyAuthorizer) KeyWritePrefix(prefix string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) KeyWritePrefix(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	// Conditions for Allow:
 	//   * The longest prefix match rule that would apply to the given prefix
 	//     grants AccessWrite
@@ -537,7 +537,7 @@ func (p *policyAuthorizer) KeyWritePrefix(prefix string, _ *EnterpriseAuthorizer
 
 // KeyringRead is used to determine if the keyring can be
 // read by the current ACL token.
-func (p *policyAuthorizer) KeyringRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) KeyringRead(*AuthorizerContext) EnforcementDecision {
 	if p.keyringRule != nil {
 		return enforce(p.keyringRule.access, AccessRead)
 	}
@@ -545,7 +545,7 @@ func (p *policyAuthorizer) KeyringRead(*EnterpriseAuthorizerContext) Enforcement
 }
 
 // KeyringWrite determines if the keyring can be manipulated.
-func (p *policyAuthorizer) KeyringWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision {
 	if p.keyringRule != nil {
 		return enforce(p.keyringRule.access, AccessWrite)
 	}
@@ -553,7 +553,7 @@ func (p *policyAuthorizer) KeyringWrite(*EnterpriseAuthorizerContext) Enforcemen
 }
 
 // OperatorRead determines if the read-only operator functions are allowed.
-func (p *policyAuthorizer) OperatorRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if p.operatorRule != nil {
 		return enforce(p.operatorRule.access, AccessRead)
 	}
@@ -562,7 +562,7 @@ func (p *policyAuthorizer) OperatorRead(*EnterpriseAuthorizerContext) Enforcemen
 
 // OperatorWrite determines if the state-changing operator functions are
 // allowed.
-func (p *policyAuthorizer) OperatorWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) OperatorWrite(*AuthorizerContext) EnforcementDecision {
 	if p.operatorRule != nil {
 		return enforce(p.operatorRule.access, AccessWrite)
 	}
@@ -570,7 +570,7 @@ func (p *policyAuthorizer) OperatorWrite(*EnterpriseAuthorizerContext) Enforceme
 }
 
 // NodeRead checks if reading (discovery) of a node is allowed
-func (p *policyAuthorizer) NodeRead(name string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) NodeRead(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -578,7 +578,7 @@ func (p *policyAuthorizer) NodeRead(name string, _ *EnterpriseAuthorizerContext)
 }
 
 // NodeWrite checks if writing (registering) a node is allowed
-func (p *policyAuthorizer) NodeWrite(name string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) NodeWrite(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -587,7 +587,7 @@ func (p *policyAuthorizer) NodeWrite(name string, _ *EnterpriseAuthorizerContext
 
 // PreparedQueryRead checks if reading (listing) of a prepared query is
 // allowed - this isn't execution, just listing its contents.
-func (p *policyAuthorizer) PreparedQueryRead(prefix string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) PreparedQueryRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(prefix, p.preparedQueryRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -596,7 +596,7 @@ func (p *policyAuthorizer) PreparedQueryRead(prefix string, _ *EnterpriseAuthori
 
 // PreparedQueryWrite checks if writing (creating, updating, or deleting) of a
 // prepared query is allowed.
-func (p *policyAuthorizer) PreparedQueryWrite(prefix string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) PreparedQueryWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(prefix, p.preparedQueryRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -604,7 +604,7 @@ func (p *policyAuthorizer) PreparedQueryWrite(prefix string, _ *EnterpriseAuthor
 }
 
 // ServiceRead checks if reading (discovery) of a service is allowed
-func (p *policyAuthorizer) ServiceRead(name string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ServiceRead(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -612,7 +612,7 @@ func (p *policyAuthorizer) ServiceRead(name string, _ *EnterpriseAuthorizerConte
 }
 
 // ServiceWrite checks if writing (registering) a service is allowed
-func (p *policyAuthorizer) ServiceWrite(name string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
@@ -620,7 +620,7 @@ func (p *policyAuthorizer) ServiceWrite(name string, _ *EnterpriseAuthorizerCont
 }
 
 // SessionRead checks for permission to read sessions for a given node.
-func (p *policyAuthorizer) SessionRead(node string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) SessionRead(node string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(node, p.sessionRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -628,7 +628,7 @@ func (p *policyAuthorizer) SessionRead(node string, _ *EnterpriseAuthorizerConte
 }
 
 // SessionWrite checks for permission to create sessions for a given node.
-func (p *policyAuthorizer) SessionWrite(node string, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) SessionWrite(node string, _ *AuthorizerContext) EnforcementDecision {
 	// Check for an exact rule or catch-all
 	if rule, ok := getPolicy(node, p.sessionRules); ok {
 		return enforce(rule.access, AccessWrite)

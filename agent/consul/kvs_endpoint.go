@@ -31,7 +31,7 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 	if rule != nil {
 		switch op {
 		case api.KVDeleteTree:
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			dirEnt.FillAuthzContext(&authzContext)
 
 			if rule.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
@@ -45,7 +45,7 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 			// These could reveal information based on the outcome
 			// of the transaction, and they operate on individual
 			// keys so we check them here.
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			dirEnt.FillAuthzContext(&authzContext)
 
 			if rule.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
@@ -53,7 +53,7 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 			}
 
 		default:
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			dirEnt.FillAuthzContext(&authzContext)
 
 			if rule.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
@@ -132,7 +132,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := k.srv.ResolveToken(args.Token)
@@ -178,7 +178,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := k.srv.ResolveToken(args.Token)
@@ -230,7 +230,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	args.FillAuthzContext(&entCtx)
 
 	rule, err := k.srv.ResolveToken(args.Token)

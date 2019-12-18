@@ -49,28 +49,28 @@ func WildcardEnterpriseMeta() *EnterpriseMeta {
 }
 
 // FillAuthzContext stub
-func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.EnterpriseAuthorizerContext) {}
+func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (_ *EnterpriseMeta) Normalize() {}
 
 // FillAuthzContext stub
-func (_ *DirEntry) FillAuthzContext(_ *acl.EnterpriseAuthorizerContext) {}
+func (_ *DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 // FillAuthzContext stub
-func (_ *RegisterRequest) FillAuthzContext(_ *acl.EnterpriseAuthorizerContext) {}
+func (_ *RegisterRequest) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (_ *RegisterRequest) GetEnterpriseMeta() *EnterpriseMeta {
 	return nil
 }
 
 // OSS Stub
-func (op *TxnNodeOp) FillAuthzContext(ctx *acl.EnterpriseAuthorizerContext) {}
+func (op *TxnNodeOp) FillAuthzContext(ctx *acl.AuthorizerContext) {}
 
 // OSS Stub
-func (_ *TxnServiceOp) FillAuthzContext(_ *acl.EnterpriseAuthorizerContext) {}
+func (_ *TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 // OSS Stub
-func (_ *TxnCheckOp) FillAuthzContext(_ *acl.EnterpriseAuthorizerContext) {}
+func (_ *TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func ServiceIDString(id string, _ *EnterpriseMeta) string {
 	return id

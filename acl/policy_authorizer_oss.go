@@ -9,7 +9,7 @@ func (authz *enterprisePolicyAuthorizer) init(*EnterpriseACLConfig) {
 	// nothing to do
 }
 
-func (authz *enterprisePolicyAuthorizer) enforce(_ *EnterpriseRule, _ *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz *enterprisePolicyAuthorizer) enforce(_ *EnterpriseRule, _ *AuthorizerContext) EnforcementDecision {
 	return Default
 }
 
