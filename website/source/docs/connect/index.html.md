@@ -18,6 +18,10 @@ with Connect](/docs/connect/native.html) for optimal performance and security.
 Connect can help you secure your services and provide data about service-to-service
 communications.
 
+Review the video below to learn more about Consul Connect from HashiCorp's co-founder Armon. 
+
+<iframe src="https://www.youtube.com/embed/8T8t4-hQY74" frameborder="0" allowfullscreen="true"  width="560" height="315" ></iframe>
+
 ## Application Security
 
 Connect enables secure deployment best-practices with automatic

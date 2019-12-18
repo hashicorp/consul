@@ -157,4 +157,9 @@
     @extend .table;
     @extend .table-striped;
   }
+
+  iframe {
+    width: 100%;
+    max-width: 560px;
+  }
 }
