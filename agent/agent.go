@@ -136,6 +136,7 @@ type delegate interface {
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string, prune bool) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
 	ACLsEnabled() bool
 	UseLegacyACLs() bool
@@ -2700,8 +2701,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			ttl.Start()
 			a.checkTTLs[cid] = ttl
 
-			a.logger.Printf("[DEBUG] ttl checks: %+v", a.checkTTLs)
-
 		case chkType.IsHTTP():
 			if existing, ok := a.checkHTTPs[cid]; ok {
 				existing.Stop()
@@ -3160,7 +3159,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 
 	// Check if the state has expired
 	if time.Now().Unix() >= p.Expires {
-		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", cid)
+		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", cid.String())
 		return a.purgeCheckState(cid)
 	}
 

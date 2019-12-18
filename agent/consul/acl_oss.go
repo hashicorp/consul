@@ -16,7 +16,7 @@ func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
-func newEnterpriseACLConfig(*log.Logger) *acl.EnterpriseACLConfig {
+func newEnterpriseACLConfig(*log.Logger) *acl.Config {
 	return nil
 }
 

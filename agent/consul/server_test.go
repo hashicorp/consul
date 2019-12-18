@@ -41,6 +41,21 @@ func uniqueNodeName(name string) string {
 	return fmt.Sprintf("%s-node-%d", name, atomic.AddInt64(&id, 1))
 }
 
+// This will find the leader of a list of servers and verify that leader establishment has completed
+func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
+	t.Helper()
+	retry.Run(t, func(r *retry.R) {
+		hasLeader := false
+		for _, srv := range servers {
+			if srv.IsLeader() {
+				hasLeader = true
+				require.True(r, srv.isReadyForConsistentReads(), "Leader %s hasn't finished establishing leadership yet", srv.config.NodeName)
+			}
+		}
+		require.True(r, hasLeader, "Cluster has not elected a leader yet")
+	})
+}
+
 func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()

@@ -6,82 +6,82 @@ import (
 
 type testAuthorizer EnforcementDecision
 
-func (authz testAuthorizer) ACLRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) ACLRead(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) ACLWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) ACLWrite(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) AgentRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) AgentRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) AgentWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) AgentWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) EventRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) EventWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) IntentionDefaultAllow(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) IntentionRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) IntentionRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) IntentionWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) IntentionWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) KeyList(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) KeyList(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) KeyRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) KeyRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) KeyWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) KeyWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) KeyWritePrefix(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) KeyWritePrefix(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) KeyringRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) KeyringRead(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) KeyringWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) NodeRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) NodeRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) NodeWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) OperatorRead(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) OperatorWrite(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) OperatorWrite(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) PreparedQueryRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) PreparedQueryRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) PreparedQueryWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) PreparedQueryWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) ServiceRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) ServiceWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) SessionRead(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) SessionRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) SessionWrite(string, *EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) SessionWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) Snapshot(*EnterpriseAuthorizerContext) EnforcementDecision {
+func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
 

@@ -220,8 +220,13 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	services := s.agent.State.Services(&entMeta)
-	if err := s.agent.filterServices(token, &services); err != nil {
+	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
 		return nil, err
 	}
 
@@ -269,6 +274,12 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 		return nil, err
 	}
 
+	// need to resolve to default the meta
+	_, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// Parse hash specially. Eventually this should happen in parseWait and end up
 	// in QueryOptions but I didn't want to make very general changes right away.
 	hash := req.URL.Query().Get("hash")
@@ -291,13 +302,13 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			ws.Add(svcState.WatchCh)
 
 			// Check ACLs.
-			rule, err := s.agent.resolveToken(token)
+			authz, err := s.agent.resolveToken(token)
 			if err != nil {
 				return "", nil, err
 			}
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			svc.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceRead(svc.Service, &authzContext) != acl.Allow {
+			if authz != nil && authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied
 			}
 
@@ -332,6 +343,11 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 	filter, err := bexpr.CreateFilter(filterExpression, nil, nil)
@@ -340,7 +356,7 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	checks := s.agent.State.Checks(&entMeta)
-	if err := s.agent.filterChecks(token, &checks); err != nil {
+	if err := s.agent.filterChecksWithAuthorizer(authz, &checks); err != nil {
 		return nil, err
 	}
 
@@ -480,6 +496,9 @@ func (s *HTTPServer) syncChanges() {
 }
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var token string
+	s.parseToken(req, &token)
+
 	var args structs.CheckDefinition
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
@@ -504,12 +523,17 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// Construct the health check.
 	health := args.HealthCheck(s.agent.config.NodeName)
 
 	// Verify the check type.
 	chkType := args.CheckType()
-	err := chkType.Validate()
+	err = chkType.Validate()
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(resp, fmt.Errorf("Invalid check: %v", err))
@@ -528,9 +552,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetCheckRegister(token, health); err != nil {
+	if err := s.agent.vetCheckRegisterWithAuthorizer(authz, health); err != nil {
 		return nil, err
 	}
 
@@ -553,9 +575,14 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &checkID.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	checkID.Normalize()
 
-	if err := s.agent.vetCheckUpdate(token, checkID); err != nil {
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
 		return nil, err
 	}
 
@@ -636,9 +663,14 @@ func (s *HTTPServer) agentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 		return nil, err
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &cid.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	cid.Normalize()
 
-	if err := s.agent.vetCheckUpdate(token, cid); err != nil {
+	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, cid); err != nil {
 		return nil, err
 	}
 
@@ -808,6 +840,14 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	var token string
+	s.parseToken(req, &token)
+
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get the node service.
 	ns := args.NodeService()
 	if ns.Weights != nil {
@@ -864,9 +904,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Get the provided token, if any, and vet against any ACL policies.
-	var token string
-	s.parseToken(req, &token)
-	if err := s.agent.vetServiceRegister(token, ns); err != nil {
+	if err := s.agent.vetServiceRegisterWithAuthorizer(authz, ns); err != nil {
 		return nil, err
 	}
 
@@ -934,9 +972,14 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	sid.Normalize()
 
-	if err := s.agent.vetServiceUpdate(token, sid); err != nil {
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
 		return nil, err
 	}
 
@@ -982,9 +1025,14 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		return nil, err
 	}
 
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	sid.Normalize()
 
-	if err := s.agent.vetServiceUpdate(token, sid); err != nil {
+	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
 		return nil, err
 	}
 

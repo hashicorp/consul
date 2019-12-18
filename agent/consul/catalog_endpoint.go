@@ -35,7 +35,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, rule acl.Authorizer) error {
+func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -59,7 +59,7 @@ func servicePreApply(service *structs.NodeService, rule acl.Authorizer) error {
 		return fmt.Errorf("Invalid service address")
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 
 	// Apply the ACL policy if any. The 'consul' service is excluded
@@ -68,14 +68,14 @@ func servicePreApply(service *structs.NodeService, rule acl.Authorizer) error {
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if rule != nil && rule.ServiceWrite(service.Service, &authzContext) != acl.Allow {
+		if authz != nil && authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if rule != nil && rule.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz != nil && authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -92,17 +92,25 @@ func checkPreApply(check *structs.HealthCheck) {
 
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
-	if err := c.srv.validateEnterpriseRequest(args.GetEnterpriseMeta(), true); err != nil {
-		return err
-	}
-
 	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"catalog", "register"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(args.GetEnterpriseMeta(), true); err != nil {
+		return err
+	}
+
+	// This needs to happen before the other preapply checks as it will fixup some of the
+	// internal enterprise metas on the services and checks
+	state := c.srv.fsm.State()
+	entMeta, err := state.ValidateRegisterRequest(args)
 	if err != nil {
 		return err
 	}
@@ -117,7 +125,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	// Handle a service registration.
 	if args.Service != nil {
-		if err := servicePreApply(args.Service, rule); err != nil {
+		if err := servicePreApply(args.Service, authz); err != nil {
 			return err
 		}
 	}
@@ -141,20 +149,14 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
-	state := c.srv.fsm.State()
-	entMeta, err := state.ValidateRegisterRequest(args)
-	if err != nil {
-		return err
-	}
-
 	// Check the complete register request against the given ACL policy.
-	if rule != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil && c.srv.config.ACLEnforceVersion8 {
 		state := c.srv.fsm.State()
 		_, ns, err := state.NodeServices(nil, args.Node, entMeta)
 		if err != nil {
 			return fmt.Errorf("Node lookup failed: %v", err)
 		}
-		if err := vetRegisterWithACL(rule, args, ns); err != nil {
+		if err := vetRegisterWithACL(authz, args, ns); err != nil {
 			return err
 		}
 	}
@@ -171,10 +173,6 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 // Deregister is used to remove a service registration for a given node.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
-	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
-		return err
-	}
-
 	if done, err := c.srv.forward("Catalog.Deregister", args, args, reply); done {
 		return err
 	}
@@ -186,13 +184,17 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
 	}
 
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, true); err != nil {
+		return err
+	}
+
 	// Check the complete deregister request against the given ACL policy.
-	if rule != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil && c.srv.config.ACLEnforceVersion8 {
 		state := c.srv.fsm.State()
 
 		var ns *structs.NodeService
@@ -211,7 +213,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 			}
 		}
 
-		if err := vetDeregisterWithACL(rule, args, ns, nc); err != nil {
+		if err := vetDeregisterWithACL(authz, args, ns, nc); err != nil {
 			return err
 		}
 
@@ -282,15 +284,20 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 
 // ListServices is used to query the services in a DC
 func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
-	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := c.srv.forward("Catalog.ListServices", args, args, reply); done {
 		return err
 	}
 
 	(*reply).EnterpriseMeta = args.EnterpriseMeta
+
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
 
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
@@ -308,17 +315,13 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				return err
 			}
 
-			reply.Index, reply.Services = index, services
-			return c.srv.filterACL(args.Token, reply)
+			reply.Index, reply.Services, reply.EnterpriseMeta = index, services, args.EnterpriseMeta
+			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
 
 // ServiceNodes returns all the nodes registered as part of a service
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
-	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := c.srv.forward("Catalog.ServiceNodes", args, args, reply); done {
 		return err
 	}
@@ -359,18 +362,20 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 		}
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
-	args.FillAuthzContext(&authzContext)
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
-		// Fetch the ACL token, if any.
-		rule, err := c.srv.ResolveToken(args.Token)
-		if err != nil {
-			return err
-		}
-
-		if rule != nil && rule.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}
@@ -455,10 +460,6 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 // NodeServices returns all the services registered as part of a node
 func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
-	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := c.srv.forward("Catalog.NodeServices", args, args, reply); done {
 		return err
 	}
@@ -471,6 +472,15 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 	var filterType map[string]*structs.NodeService
 	filter, err := bexpr.CreateFilter(args.Filter, nil, filterType)
 	if err != nil {
+		return err
+	}
+
+	_, err = c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -501,10 +511,6 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 }
 
 func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServiceList) error {
-	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := c.srv.forward("Catalog.NodeServiceList", args, args, reply); done {
 		return err
 	}
@@ -517,6 +523,15 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 	var filterType map[string]*structs.NodeService
 	filter, err := bexpr.CreateFilter(args.Filter, nil, filterType)
 	if err != nil {
+		return err
+	}
+
+	_, err = c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 

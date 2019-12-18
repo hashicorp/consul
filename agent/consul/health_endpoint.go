@@ -20,16 +20,21 @@ type Health struct {
 // ChecksInState is used to get all the checks in a given state
 func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := h.srv.forward("Health.ChecksInState", args, args, reply); done {
 		return err
 	}
 
 	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.HealthChecks)
 	if err != nil {
+		return err
+	}
+
+	_, err = h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -66,16 +71,21 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 // NodeChecks is used to get all the checks for a node
 func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := h.srv.forward("Health.NodeChecks", args, args, reply); done {
 		return err
 	}
 
 	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.HealthChecks)
 	if err != nil {
+		return err
+	}
+
+	_, err = h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -105,10 +115,6 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
 
-	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	// Reject if tag filtering is on
 	if args.TagFilter {
 		return fmt.Errorf("Tag filtering is not supported")
@@ -121,6 +127,15 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 	filter, err := bexpr.CreateFilter(args.Filter, nil, reply.HealthChecks)
 	if err != nil {
+		return err
+	}
+
+	_, err = h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -156,10 +171,6 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 // ServiceNodes returns all the nodes registered as part of a service including health info
 func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
-	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
-		return err
-	}
-
 	if done, err := h.srv.forward("Health.ServiceNodes", args, args, reply); done {
 		return err
 	}
@@ -180,16 +191,20 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		f = h.serviceNodesDefault
 	}
 
+	var authzContext acl.AuthorizerContext
+	authz, err := h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
-		// Fetch the ACL token, if any.
-		rule, err := h.srv.ResolveToken(args.Token)
-		if err != nil {
-			return err
-		}
-
-		if rule != nil && rule.ServiceRead(args.ServiceName, nil) != acl.Allow {
+		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}

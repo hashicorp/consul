@@ -2,7 +2,7 @@
 
 package acl
 
-// EnterpriseACLConfig stub
-type EnterpriseACLConfig struct{}
+// Config stub
+type Config struct{}
 
-func (_ *EnterpriseACLConfig) Close() {}
+func (_ *Config) Close() {}

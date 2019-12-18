@@ -14,7 +14,7 @@ func (d *dirEntFilter) Len() int {
 	return len(d.ent)
 }
 func (d *dirEntFilter) Filter(i int) bool {
-	var entCtx acl.EnterpriseAuthorizerContext
+	var entCtx acl.AuthorizerContext
 	d.ent[i].FillAuthzContext(&entCtx)
 
 	return d.authorizer.KeyRead(d.ent[i].Key, &entCtx) != acl.Allow

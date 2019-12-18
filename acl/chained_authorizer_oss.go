@@ -1,3 +1,0 @@
-// +build !consulent
-
-package acl
