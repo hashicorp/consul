@@ -3631,6 +3631,303 @@ func TestStateStore_Check_Snapshot(t *testing.T) {
 	}
 }
 
+func TestStateStore_ServiceDump(t *testing.T) {
+	s := testStateStore(t)
+
+	type operation struct {
+		name      string
+		modFn     func(*testing.T)
+		allFired  bool
+		kindFired bool
+		checkAll  func(*testing.T, structs.CheckServiceNodes)
+		checkKind func(*testing.T, structs.CheckServiceNodes)
+	}
+
+	sortDump := func(dump structs.CheckServiceNodes) {
+		sort.Slice(dump, func(i, j int) bool {
+			if dump[i].Node.Node < dump[j].Node.Node {
+				return true
+			} else if dump[i].Node.Node > dump[j].Node.Node {
+				return false
+			}
+
+			if dump[i].Service.Service < dump[j].Service.Service {
+				return true
+			} else if dump[i].Service.Service > dump[j].Service.Service {
+				return false
+			}
+
+			return false
+		})
+
+		for i := 0; i < len(dump); i++ {
+			sort.Slice(dump[i].Checks, func(m, n int) bool {
+				return dump[i].Checks[m].CheckID < dump[i].Checks[n].CheckID
+			})
+		}
+	}
+
+	operations := []operation{
+		{
+			name: "register some nodes",
+			modFn: func(t *testing.T) {
+				testRegisterNode(t, s, 0, "node1")
+				testRegisterNode(t, s, 1, "node2")
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 0)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 0)
+			},
+		},
+		{
+			name: "register services against them",
+			modFn: func(t *testing.T) {
+				testRegisterService(t, s, 2, "node1", "service1")
+				testRegisterSidecarProxy(t, s, 3, "node1", "service1")
+				testRegisterService(t, s, 4, "node2", "service1")
+				testRegisterSidecarProxy(t, s, 5, "node2", "service1")
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 4)
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node1", dump[1].Node.Node)
+				require.Equal(t, "node2", dump[2].Node.Node)
+				require.Equal(t, "node2", dump[3].Node.Node)
+
+				require.Equal(t, "service1", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+				require.Equal(t, "service1", dump[2].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[3].Service.Service)
+
+				require.Len(t, dump[0].Checks, 0)
+				require.Len(t, dump[1].Checks, 0)
+				require.Len(t, dump[2].Checks, 0)
+				require.Len(t, dump[3].Checks, 0)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 2)
+
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node2", dump[1].Node.Node)
+
+				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+
+				require.Len(t, dump[0].Checks, 0)
+				require.Len(t, dump[1].Checks, 0)
+			},
+		},
+		{
+			name: "register service-level checks",
+			modFn: func(t *testing.T) {
+				testRegisterCheck(t, s, 6, "node1", "service1", "check1", api.HealthCritical)
+				testRegisterCheck(t, s, 7, "node2", "service1-sidecar-proxy", "check1", api.HealthCritical)
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 4)
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node1", dump[1].Node.Node)
+				require.Equal(t, "node2", dump[2].Node.Node)
+				require.Equal(t, "node2", dump[3].Node.Node)
+
+				require.Equal(t, "service1", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+				require.Equal(t, "service1", dump[2].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[3].Service.Service)
+
+				require.Len(t, dump[0].Checks, 1)
+				require.Len(t, dump[1].Checks, 0)
+				require.Len(t, dump[2].Checks, 0)
+				require.Len(t, dump[3].Checks, 1)
+
+				require.Equal(t, api.HealthCritical, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthCritical, dump[3].Checks[0].Status)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 2)
+
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node2", dump[1].Node.Node)
+
+				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+
+				require.Len(t, dump[0].Checks, 0)
+				require.Len(t, dump[1].Checks, 1)
+
+				require.Equal(t, api.HealthCritical, dump[1].Checks[0].Status)
+			},
+		},
+		{
+			name: "register node-level checks",
+			modFn: func(t *testing.T) {
+				testRegisterCheck(t, s, 8, "node1", "", "check2", api.HealthPassing)
+				testRegisterCheck(t, s, 9, "node2", "", "check2", api.HealthPassing)
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 4)
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node1", dump[1].Node.Node)
+				require.Equal(t, "node2", dump[2].Node.Node)
+				require.Equal(t, "node2", dump[3].Node.Node)
+
+				require.Equal(t, "service1", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+				require.Equal(t, "service1", dump[2].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[3].Service.Service)
+
+				require.Len(t, dump[0].Checks, 2)
+				require.Len(t, dump[1].Checks, 1)
+				require.Len(t, dump[2].Checks, 1)
+				require.Len(t, dump[3].Checks, 2)
+
+				require.Equal(t, api.HealthCritical, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[0].Checks[1].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[2].Checks[0].Status)
+				require.Equal(t, api.HealthCritical, dump[3].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[3].Checks[1].Status)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 2)
+
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node2", dump[1].Node.Node)
+
+				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+
+				require.Len(t, dump[0].Checks, 1)
+				require.Len(t, dump[1].Checks, 2)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthCritical, dump[1].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[1].Status)
+			},
+		},
+		{
+			name: "pass a previously failing check",
+			modFn: func(t *testing.T) {
+				testRegisterCheck(t, s, 10, "node1", "service1", "check1", api.HealthPassing)
+				testRegisterCheck(t, s, 11, "node2", "service1-sidecar-proxy", "check1", api.HealthPassing)
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 4)
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node1", dump[1].Node.Node)
+				require.Equal(t, "node2", dump[2].Node.Node)
+				require.Equal(t, "node2", dump[3].Node.Node)
+
+				require.Equal(t, "service1", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+				require.Equal(t, "service1", dump[2].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[3].Service.Service)
+
+				require.Len(t, dump[0].Checks, 2)
+				require.Len(t, dump[1].Checks, 1)
+				require.Len(t, dump[2].Checks, 1)
+				require.Len(t, dump[3].Checks, 2)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[0].Checks[1].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[2].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[3].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[3].Checks[1].Status)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 2)
+
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node2", dump[1].Node.Node)
+
+				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+
+				require.Len(t, dump[0].Checks, 1)
+				require.Len(t, dump[1].Checks, 2)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[1].Status)
+			},
+		},
+		{
+			name: "delete a node",
+			modFn: func(t *testing.T) {
+				s.DeleteNode(12, "node2")
+			},
+			allFired:  true, // fires due to "index"
+			kindFired: true, // fires due to "index"
+			checkAll: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 2)
+				require.Equal(t, "node1", dump[0].Node.Node)
+				require.Equal(t, "node1", dump[1].Node.Node)
+
+				require.Equal(t, "service1", dump[0].Service.Service)
+				require.Equal(t, "service1-sidecar-proxy", dump[1].Service.Service)
+
+				require.Len(t, dump[0].Checks, 2)
+				require.Len(t, dump[1].Checks, 1)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+				require.Equal(t, api.HealthPassing, dump[0].Checks[1].Status)
+				require.Equal(t, api.HealthPassing, dump[1].Checks[0].Status)
+			},
+			checkKind: func(t *testing.T, dump structs.CheckServiceNodes) {
+				require.Len(t, dump, 1)
+
+				require.Equal(t, "node1", dump[0].Node.Node)
+
+				require.Equal(t, "service1-sidecar-proxy", dump[0].Service.Service)
+
+				require.Len(t, dump[0].Checks, 1)
+
+				require.Equal(t, api.HealthPassing, dump[0].Checks[0].Status)
+			},
+		},
+	}
+	for _, op := range operations {
+		op := op
+		require.True(t, t.Run(op.name, func(t *testing.T) {
+			wsAll := memdb.NewWatchSet()
+			_, _, err := s.ServiceDump(wsAll, "", false, nil)
+			require.NoError(t, err)
+
+			wsKind := memdb.NewWatchSet()
+			_, _, err = s.ServiceDump(wsKind, structs.ServiceKindConnectProxy, true, nil)
+			require.NoError(t, err)
+
+			op.modFn(t)
+
+			require.Equal(t, op.allFired, watchFired(wsAll), "all dump watch firing busted")
+			require.Equal(t, op.kindFired, watchFired(wsKind), "kind dump watch firing busted")
+
+			_, dump, err := s.ServiceDump(nil, "", false, nil)
+			require.NoError(t, err)
+			sortDump(dump)
+			op.checkAll(t, dump)
+
+			_, dump, err = s.ServiceDump(nil, structs.ServiceKindConnectProxy, true, nil)
+			require.NoError(t, err)
+			sortDump(dump)
+			op.checkKind(t, dump)
+		}))
+	}
+}
+
 func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	s := testStateStore(t)
 
