@@ -20,6 +20,8 @@ export default Adapter.extend({
     `;
   },
   requestForQueryRecord: function(request, { dc, ns, index, id }) {
+    // FIXME: Why is `ns` undefined here, but passed correctly to requestForQuery?
+
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }

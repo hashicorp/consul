@@ -7,14 +7,16 @@ export const NSPACE_QUERY_PARAM = 'ns';
 export default Adapter.extend({
   repo: service('settings'),
   client: service('client/http'),
-  formatNspace: function(nspace) {
+  formatNspace: function(queryParamKeys) {
     if (config.CONSUL_NSPACES_ENABLED) {
-      return nspace !== '' ? { [NSPACE_QUERY_PARAM]: nspace } : undefined;
+      return {
+        [NSPACE_QUERY_PARAM]: queryParamKeys,
+      };
     }
   },
-  formatDatacenter: function(dc) {
+  formatDatacenter: function(queryParamKeys) {
     return {
-      [DATACENTER_QUERY_PARAM]: dc,
+      [DATACENTER_QUERY_PARAM]: queryParamKeys,
     };
   },
   // TODO: kinda protected for the moment
