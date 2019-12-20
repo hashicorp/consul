@@ -9,13 +9,18 @@ export default Mixin.create(WithBlockingActions, {
     use: function(item) {
       return this.feedback.execute(() => {
         return this.repo
-          .findBySlug(get(item, 'AccessorID'), this.modelFor('dc').dc.Name)
+          .findBySlug(
+            get(item, 'AccessorID'),
+            this.modelFor('dc').dc.Name,
+            this.modelFor('nspace').nspace.substr(1)
+          )
           .then(item => {
             return this.settings
               .persist({
                 token: {
                   AccessorID: get(item, 'AccessorID'),
                   SecretID: get(item, 'SecretID'),
+                  Namespace: get(item, 'Namespace'),
                 },
               })
               .then(() => {

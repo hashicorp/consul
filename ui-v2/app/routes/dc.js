@@ -1,6 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
+import { hash, Promise } from 'rsvp';
 import { get } from '@ember/object';
 
 // TODO: We should potentially move all these nspace related things
@@ -74,13 +74,28 @@ export default Route.extend({
     // https://deprecations.emberjs.com/v3.x/#toc_deprecate-router-events
     willTransition: function(transition) {
       this._super(...arguments);
-      if (typeof transition !== 'undefined' && transition.from.name.endsWith('nspaces.create')) {
+      if (
+        typeof transition !== 'undefined' &&
+        (transition.from.name.endsWith('nspaces.create') ||
+          transition.from.name.startsWith('nspace.dc.acls.tokens'))
+      ) {
         // Only when we create, reload the nspaces in the main menu to update them
         // as we don't block for those
-        this.nspacesRepo.findAll().then(items => {
+        // And also when we [Use] a token reload the nspaces that you are able to see,
+        // including your permissions for being able to manage namespaces
+        // Potentially we should just do this on every single transition
+        // but then we would need to check to see if nspaces are enabled
+        Promise.all([
+          this.nspacesRepo.findAll(),
+          this.nspacesRepo.authorize(
+            get(this.controller, 'dc.Name'),
+            get(this.controller, 'nspace.Name')
+          ),
+        ]).then(([nspaces, permissions]) => {
           if (typeof this.controller !== 'undefined') {
             this.controller.setProperties({
-              nspaces: items,
+              nspaces: nspaces,
+              permissions: permissions,
             });
           }
         });
