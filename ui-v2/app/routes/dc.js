@@ -1,6 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
+import { hash, Promise } from 'rsvp';
 import { get } from '@ember/object';
 
 // TODO: We should potentially move all these nspace related things
