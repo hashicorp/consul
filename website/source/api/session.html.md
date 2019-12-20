@@ -32,8 +32,9 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
@@ -131,8 +132,9 @@ The table below shows this endpoint's support for
   URL as a query parameter. Using this across datacenters is not recommended.
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -176,8 +178,9 @@ The table below shows this endpoint's support for
   URL as a query parameter. Using this across datacenters is not recommended.
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -236,8 +239,9 @@ The table below shows this endpoint's support for
   URL as a query parameter. Using this across datacenters is not recommended.
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. 
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter
   The namespace may be specified as '*' and then results will be returned for all namespaces.
   Added in Consul 1.7.0.
 
@@ -293,8 +297,8 @@ The table below shows this endpoint's support for
   URL as a query parameter. Using this across datacenters is not recommended.
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. 
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace.   This is specified as part of the URL as a query parameter. 
   The namespace may be specified as '*' and then results will be returned for all namespaces.
   Added in Consul 1.7.0.
 
@@ -354,8 +358,9 @@ The table below shows this endpoint's support for
   URL as a query parameter. Using this across datacenters is not recommended.
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 

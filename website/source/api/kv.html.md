@@ -68,7 +68,8 @@ The table below shows this endpoint's support for
   This is specified as part of the URL as a query parameter.
 
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
   This is specified as part of the URL as a query parameter. 
   For recursive lookups, the namespace may be specified as '*' and then results 
   will be returned for all namespaces. Added in Consul 1.7.0.
@@ -209,8 +210,9 @@ The table below shows this endpoint's support for
   of the key. The key must be held by this session to be unlocked.
 
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Payload
 
@@ -269,8 +271,9 @@ The table below shows this endpoint's support for
   deleted if the index matches the `ModifyIndex` of that key.
 
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
-  If not provided, the namespace will default to the `default` namespace. 
-  This is specified as part of the URL as a query parameter. Added in Consul 1.7.0.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
