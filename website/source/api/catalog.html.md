@@ -91,7 +91,8 @@ The table below shows this endpoint's support for
   `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
   the namespace may be provided within the `Service` or `Check` fields but if
   present in multiple places, they must all be the same. If not provided at all, 
-  the namespace will default to the `default` namespace. Added in Consul 1.7.0.
+  the namespace will be inherited from the request's ACL token or will default 
+  to the `default` namespace. Added in Consul 1.7.0.
 
 
 It is important to note that `Check` does not have to be provided with `Service`
@@ -205,8 +206,8 @@ The behavior of the endpoint depends on what keys are provided.
 - `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
   service and checks will be deregistered.  If not provided in the JSON body, the value of
   the `ns` URL query parameter or the `X-Consul-Namespace` header will be used. 
-  If not provided at all, the namespace will default to the `default` namespace. 
-  Added in Consul 1.7.0.
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payloads
 
@@ -406,8 +407,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list services. 
   This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will default to 
-  the `default` namespace. Added in Consul 1.7.0.
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -478,8 +479,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to use for the
   query. This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will default to 
-  the `default` namespace. Added in Consul 1.7.0.
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -684,8 +685,8 @@ The table below shows this endpoint's support for
   
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list services. 
   This value may be provided by either the `ns` URL query parameter or in the 
-  `X-Consul-Namespace` header. If not provided at all, the namespace will default to 
-  the `default` namespace. Added in Consul 1.7.0.
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
