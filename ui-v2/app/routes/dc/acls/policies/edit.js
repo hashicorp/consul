@@ -10,12 +10,13 @@ export default SingleRoute.extend(WithPolicyActions, {
   tokenRepo: service('repository/token'),
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     const tokenRepo = this.tokenRepo;
     return this._super(...arguments).then(model => {
       return hash({
         ...model,
         ...{
-          items: tokenRepo.findByPolicy(get(model.item, 'ID'), dc).catch(function(e) {
+          items: tokenRepo.findByPolicy(get(model.item, 'ID'), dc, nspace).catch(function(e) {
             switch (get(e, 'errors.firstObject.status')) {
               case '403':
               case '401':

@@ -13,7 +13,7 @@ Feature: dc / acls / tokens / login
     secret: something
     ---
     And I submit
-    Then a GET request is made to "/v1/acl/token/self?dc=dc-1" from yaml
+    Then a GET request was made to "/v1/acl/token/self?dc=dc-1" from yaml
     ---
     headers:
       X-Consul-Token: something

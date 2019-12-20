@@ -1,6 +1,6 @@
 import Serializer from './application';
 import { get } from '@ember/object';
-import { PRIMARY_KEY, SLUG_KEY, ATTRS } from 'consul-ui/models/token';
+import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
 
 import WithPolicies from 'consul-ui/mixins/policy/as-many';
 import WithRoles from 'consul-ui/mixins/role/as-many';
@@ -8,7 +8,6 @@ import WithRoles from 'consul-ui/mixins/role/as-many';
 export default Serializer.extend(WithPolicies, WithRoles, {
   primaryKey: PRIMARY_KEY,
   slugKey: SLUG_KEY,
-  attrs: ATTRS,
   serialize: function(snapshot, options) {
     let data = this._super(...arguments);
     // If a token has Rules, use the old API shape

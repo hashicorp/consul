@@ -7,16 +7,24 @@ export default function(visitable, attribute, collection, text, radiogroup) {
       'node-checks',
       'addresses',
       'upstreams',
+      'exposed-paths',
       'tags',
       'meta-data',
     ]),
-    serviceChecks: collection('#service-checks [data-test-healthchecks] li', {}),
-    nodeChecks: collection('#node-checks [data-test-healthchecks] li', {}),
+    serviceChecks: collection('#service-checks [data-test-healthchecks] li', {
+      exposed: attribute('data-test-exposed', '[data-test-exposed]'),
+    }),
+    nodeChecks: collection('#node-checks [data-test-healthchecks] li', {
+      exposed: attribute('data-test-exposed', '[data-test-exposed]'),
+    }),
     upstreams: collection('#upstreams [data-test-tabular-row]', {
       name: text('[data-test-destination-name]'),
       datacenter: text('[data-test-destination-datacenter]'),
       type: text('[data-test-destination-type]'),
       address: text('[data-test-local-bind-address]'),
+    }),
+    exposedPaths: collection('#exposed-paths [data-test-tabular-row]', {
+      combinedAddress: text('[data-test-combined-address]'),
     }),
     addresses: collection('#addresses [data-test-tabular-row]', {
       address: text('[data-test-address]'),

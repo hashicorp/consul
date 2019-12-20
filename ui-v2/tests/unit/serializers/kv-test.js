@@ -29,9 +29,11 @@ module('Unit | Serializer | kv', function(hooks) {
   test('respondForCreate/UpdateRecord returns a KV uid object when receiving a `true` payload', function(assert) {
     const uid = 'key/name';
     const dc = 'dc1';
+    const nspace = 'default';
     const expected = {
-      uid: JSON.stringify([dc, uid]),
+      uid: JSON.stringify([nspace, dc, uid]),
       Key: uid,
+      Namespace: nspace,
       Datacenter: dc,
     };
     const serializer = this.owner.lookup('serializer:kv');
@@ -56,9 +58,11 @@ module('Unit | Serializer | kv', function(hooks) {
   test("respondForCreate/UpdateRecord returns the original object if it's not a Boolean", function(assert) {
     const uid = 'key/name';
     const dc = 'dc1';
+    const nspace = 'default';
     const expected = {
-      uid: JSON.stringify([dc, uid]),
+      uid: JSON.stringify([nspace, dc, uid]),
       Key: uid,
+      Namespace: nspace,
       Datacenter: dc,
     };
     const serializer = this.owner.lookup('serializer:kv');

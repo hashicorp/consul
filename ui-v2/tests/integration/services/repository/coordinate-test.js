@@ -8,6 +8,7 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 });
 
 const dc = 'dc-1';
+const nspace = 'default';
 const now = new Date().getTime();
 test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
   get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
@@ -33,7 +34,9 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
             Object.assign({}, item, {
               SyncTime: now,
               Datacenter: dc,
-              uid: `["${dc}","${item.Node}"]`,
+              // TODO: nspace isn't required here, once we've
+              // refactored out our Serializer this can go
+              uid: `["${nspace}","${dc}","${item.Node}"]`,
             })
           );
         })

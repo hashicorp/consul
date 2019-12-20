@@ -1,0 +1,167 @@
+%main-nav-horizontal > ul > li,
+%main-nav-horizontal-drop-nav a {
+  position: relative;
+}
+%main-nav-horizontal [type='checkbox'] ~ div {
+  display: none;
+}
+%main-nav-horizontal [type='checkbox']:checked ~ div {
+  display: block;
+}
+%main-nav-horizontal-action {
+  display: block;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+%main-nav-horizontal input + label > * {
+  /* less space as the chevron adds space */
+  padding-right: 4px !important;
+}
+%main-nav-horizontal-drop-nav {
+  z-index: 400;
+  /* TODO: We should probably make menu-panel default to left hand side*/
+  left: 0;
+  right: auto;
+}
+/* TODO: Revisit this once its part of menu-panel as its probably */
+/* a property of that */
+%main-nav-horizontal-drop-nav-separator:not(:empty) {
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 0.1em;
+}
+%main-nav-horizontal-drop-nav-separator {
+  padding-top: 0.35em;
+}
+%main-nav-horizontal-drop-nav-separator:not(:first-child) {
+  margin-top: 0.35em;
+}
+%main-nav-horizontal-drop-nav-header {
+  padding: 10px;
+  padding-left: 36px;
+}
+%main-nav-horizontal-drop-nav-header::before {
+  position: absolute;
+  left: 15px;
+  top: calc(10px + 0.1em);
+}
+%main-nav-horizontal-drop-nav-header {
+  max-width: fit-content;
+}
+@supports not (max-width: fit-content) {
+  %main-nav-horizontal-drop-nav-header {
+    max-width: 200px;
+  }
+}
+%main-nav-horizontal-drop-nav .is-active > *::after {
+  position: absolute;
+  top: 50%;
+  margin-top: -8px;
+  right: 10px;
+}
+@media #{$--lt-horizontal-nav} {
+  %main-nav-horizontal-panel label span {
+    visibility: visible !important;
+    display: inline-block;
+    padding-right: 47px;
+    padding-top: 13px;
+  }
+  %main-nav-horizontal button {
+    width: 100%;
+  }
+  %main-nav-horizontal-panel {
+    transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
+    transition-duration: 0.2s;
+    transition-property: width right;
+  }
+  %main-nav-horizontal-panel {
+    box-sizing: border-box;
+    padding: 15px 35px;
+    z-index: 499;
+  }
+  %main-nav-horizontal-action {
+    text-align: right;
+  }
+  %main-nav-horizontal-toggle-button {
+    position: absolute;
+    z-index: 200;
+    right: 0;
+    width: 100px;
+    height: 48px;
+  }
+  %main-nav-horizontal-toggle-button::before {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    margin-top: -0.6em;
+  }
+  %main-nav-horizontal-panel {
+    overflow: auto;
+    position: absolute;
+    z-index: 300;
+    width: 0;
+    height: 100%;
+    top: 0;
+    right: -100%;
+    padding: 0;
+    padding-top: 15px;
+  }
+  %main-nav-horizontal-toggle:checked ~ div {
+    width: 250px;
+    right: 0;
+    padding: 15px 35px;
+    padding-top: 0;
+  }
+  %main-nav-horizontal-toggle:checked + label {
+    width: 100vw;
+    height: 100%;
+    left: 0;
+    top: 0;
+  }
+  %main-nav-horizontal-drop-nav {
+    width: 180px;
+  }
+  %main-nav-horizontal-drop-nav-header {
+    text-align: left;
+  }
+  %main-nav-horizontal input + label > * {
+    right: -15px;
+    position: relative;
+  }
+  %main-nav-horizontal-action {
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+  %main-nav-horizontal-drop-nav {
+    top: 38px !important;
+  }
+}
+@media #{$--horizontal-nav} {
+  %main-nav-horizontal-panel {
+    display: flex;
+  }
+  %main-nav-horizontal-panel {
+    justify-content: space-between;
+    flex-grow: 1;
+  }
+  %main-nav-horizontal-toggle-button {
+    display: none;
+  }
+  %main-nav-horizontal > ul {
+    display: flex;
+  }
+  %main-nav-horizontal-drop-nav {
+    min-width: 266px;
+  }
+  %main-nav-horizontal input + label {
+    /* Usually there is no space between buttons which is */
+    /* fine as the button only highlights when its selected */
+    /* therefore no two siblings are highlighted at the same time */
+    /* which means you don't notice there is no space between the */
+    /* buttons. popover-menu triggers on the other hand can be */
+    /* at the same time as a sibling, therefore they need a little */
+    /* space between it and its sibling - this is a poroperty of */
+    /* the main nav not the popover-menu */
+    padding-right: 5px;
+  }
+}

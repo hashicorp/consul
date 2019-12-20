@@ -26,6 +26,7 @@ export default Model.extend({
   CreateTime: attr('date'),
   //
   Datacenter: attr('string'),
+  Namespace: attr('string'),
   // TODO: Figure out whether we need this or not
   Datacenters: attr(),
   Hash: attr('string'),

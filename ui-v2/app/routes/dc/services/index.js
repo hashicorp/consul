@@ -15,7 +15,6 @@ export default Route.extend({
     },
   },
   model: function(params) {
-    const repo = this.repo;
     let terms = params.s || '';
     // we check for the old style `status` variable here
     // and convert it to the new style filter=status:critical
@@ -32,7 +31,10 @@ export default Route.extend({
     }
     return hash({
       terms: terms !== '' ? terms.split('\n') : [],
-      items: repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
+      items: this.repo.findAllByDatacenter(
+        this.modelFor('dc').dc.Name,
+        this.modelFor('nspace').nspace.substr(1)
+      ),
     });
   },
   setupController: function(controller, model) {

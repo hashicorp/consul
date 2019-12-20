@@ -12,23 +12,12 @@ module('Integration | Component | healthcheck output', function(hooks) {
 
     await render(hbs`{{healthcheck-output}}`);
 
-    assert.notEqual(
-      find('*')
-        .textContent.trim()
-        .indexOf('Output'),
-      -1
-    );
+    assert.equal(find('*').textContent.trim(), '');
 
     // Template block usage:
     await render(hbs`
       {{#healthcheck-output}}{{/healthcheck-output}}
     `);
-
-    assert.notEqual(
-      find('*')
-        .textContent.trim()
-        .indexOf('Output'),
-      -1
-    );
+    assert.equal(find('*').textContent.trim(), '');
   });
 });

@@ -1,0 +1,23 @@
+{{yield}}
+{{#aria-menu as |change keydown ariaLabelledBy ariaControls expanded|}}
+  {{#toggle-button onchange=change as |click|}}
+    <button type="button" aria-haspopup="menu" onkeydown={{keydown}} onclick={{click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
+      {{#yield-slot name='trigger'}}
+        {{yield}}
+      {{/yield-slot}}
+    </button>
+  {{/toggle-button}}
+  <div>
+    {{#yield-slot name='header'}}
+      <div>
+        {{yield}}
+      </div>
+    {{else}}
+    {{/yield-slot}}
+    <ul role="menu" id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{expanded}}>
+      {{#yield-slot name='menu'}}
+        {{yield}}
+      {{/yield-slot}}
+    </ul>
+  </div>
+{{/aria-menu}}

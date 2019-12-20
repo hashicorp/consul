@@ -2,32 +2,14 @@
 .healthchecked-resource > div {
   @extend %stats-card;
 }
-%tooltip-below::after {
-  top: calc(100% - 8px);
-  bottom: auto;
-  border-top: none;
-  border-bottom: 18px solid $gray-500;
-}
-%tooltip-below::before {
-  top: calc(100% + 4px);
-  bottom: auto;
-  /*TODO: This should probably go into base*/
-  line-height: 1em;
-}
-%tooltip-left::before {
-  right: 0;
-}
-%tooltip-right::before {
-  left: -10px;
-}
 %stats-card-icon {
   @extend %tooltip-below;
 }
 %stats-card-icon:first-child::before {
-  right: 0;
+  @extend %tooltip-left;
 }
 %stats-card-icon:last-child::before {
-  left: -10px;
+  @extend %tooltip-right;
 }
 
 %stats-card-icon:last-child {

@@ -3,7 +3,7 @@
 // TODO: This shouldn't be done here, decide the best way to do this
 // %main-decoration ? %main-skin ? %content-skin ?
 // it includes layouts of components, but not layout of itself?
-// %main-components? What about %app-content
+// %main-components? What about %app-view-content
 main,
 %modal-window {
   @extend %main-content;
@@ -11,6 +11,9 @@ main,
 html.template-with-vertical-menu,
 html.template-with-vertical-menu body {
   overflow: hidden;
+}
+html:not(.has-nspaces) [class*='nspace-'] {
+  display: none;
 }
 #wrapper {
   @extend %viewport-container;
@@ -40,7 +43,10 @@ html.template-edit main {
     padding: 0;
   }
 }
-/* TODO: keep margin below forms, move elsewhere */
+%main-content p:not(:last-child) {
+  margin-bottom: 1em;
+}
+/* TODO: keep margin below forms, move elsewhere? */
 %main-content form,
 %main-content form + div .with-confirmation {
   margin-bottom: 2em;

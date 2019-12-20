@@ -19,6 +19,7 @@
     "format:css": "prettier --write \"app/styles/**/*.*\"",
     "start": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:staging": "ember serve --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020} --environment staging",
+    "start:consul": "ember serve --proxy=${CONSUL_HTTP_ADDR:-http://localhost:8500} --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:api": "api-double --dir ./node_modules/@hashicorp/consul-api-double",
     "test": "ember test --test-port=${EMBER_TEST_PORT:-7357}",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
@@ -47,12 +48,13 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.5.5",
     "@ember/jquery": "^0.6.0",
     "@ember/optional-features": "^0.7.0",
-    "@hashicorp/consul-api-double": "^2.0.1",
+    "@hashicorp/consul-api-double": "^2.6.2",
     "@hashicorp/ember-cli-api-double": "^2.0.0",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^3.0.0",
     "chalk": "^2.4.2",
     "clipboard": "^2.0.4",
+    "css.escape": "^1.5.1",
     "ember-auto-import": "^1.4.0",
     "ember-changeset-validations": "^2.1.0",
     "ember-cli": "~3.12.0",
@@ -94,12 +96,14 @@
     "ember-truth-helpers": "^2.0.0",
     "eslint-plugin-ember": "^7.0.0",
     "eslint-plugin-node": "^10.0.0",
+    "flat": "^4.1.0",
     "husky": "^3.0.5",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^3.13.1",
     "jsonlint": "^1.6.3",
     "lint-staged": "^9.2.5",
     "loader.js": "^4.7.0",
+    "ngraph.graph": "^18.0.3",
     "node-sass": "^4.9.3",
     "prettier": "^1.10.2",
     "qunit-dom": "^0.9.0",
@@ -110,9 +114,9 @@
   },
   "ember-addon": {
     "paths": [
-      "lib/startup",
       "lib/block-slots",
-      "lib/commands"
+      "lib/commands",
+      "lib/startup"
     ]
   }
 }

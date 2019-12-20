@@ -13,15 +13,22 @@ export default Route.extend({
       typeof repo !== 'undefined'
     );
     const dc = this.modelFor('dc').dc.Name;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     const create = this.isCreate(...arguments);
     return hash({
       isLoading: false,
       dc: dc,
+      nspace: nspace,
       create: create,
       ...repo.status({
         item: create
-          ? Promise.resolve(repo.create({ Datacenter: dc }))
-          : repo.findBySlug(params.id, dc),
+          ? Promise.resolve(
+              repo.create({
+                Datacenter: dc,
+                Namespace: nspace,
+              })
+            )
+          : repo.findBySlug(params.id, dc, nspace),
       }),
     });
   },

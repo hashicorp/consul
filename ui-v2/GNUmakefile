@@ -29,6 +29,9 @@ build: deps
 start: deps
 	yarn run start
 
+start-consul: deps
+	yarn run start:consul
+
 start-api: deps
 	yarn run start:api
 

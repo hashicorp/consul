@@ -26,6 +26,9 @@
 %table td a {
   display: block;
 }
+%table td.no-actions ~ .actions {
+  display: none;
+}
 %table td:not(.actions),
 %table td:not(.actions) > *:only-child {
   overflow-x: hidden;
@@ -49,4 +52,12 @@
 %table td:not(.actions),
 %table td a {
   padding-right: 0.9em;
+}
+%table tbody td em {
+  display: block;
+  font-style: normal;
+  font-weight: normal;
+}
+%table tbody td em {
+  color: $gray-500;
 }
