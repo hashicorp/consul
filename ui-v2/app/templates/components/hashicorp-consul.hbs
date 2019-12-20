@@ -11,7 +11,7 @@
             <nav>
 {{#if dc}}
                 <ul>
-  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (gt nspaces.length 0))}}
                     <li>
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
