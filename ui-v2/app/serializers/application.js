@@ -41,7 +41,7 @@ const attachHeaders = function(headers, body, query = {}) {
 
 export default Serializer.extend({
   attachHeaders: attachHeaders,
-  fingerprint: createFingerprinter(DATACENTER_KEY, NSPACE_KEY, DEFAULT_NSPACE),
+  fingerprint: createFingerprinter(DATACENTER_KEY, NSPACE_KEY),
   respondForQuery: function(respond, query) {
     return respond((headers, body) =>
       attachHeaders(
@@ -88,9 +88,12 @@ export default Serializer.extend({
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
       // Deletes only need the primaryKey/uid returning
+      // and they need the slug key AND potential namespace in order to
+      // create the correct uid/fingerprint
       return {
         [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
           [slugKey]: data[slugKey],
+          [NSPACE_KEY]: data[NSPACE_KEY],
         })[primaryKey],
       };
     });
