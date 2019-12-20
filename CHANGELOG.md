@@ -1,12 +1,19 @@
 ## UNRELEASED
 
+FEATURES:
+
+* ui: UI support for Namespaces [[GH6639]](https://github.com/hashicorp/consul/pull/6639)
+* ui: Adds UI support for [Exposed Checks](https://github.com/hashicorp/consul/pull/6446) [[GH6575]](https://github.com/hashicorp/consul/pull/6575)
+* ui: Visualisation of the Discovery Chain  [[GH6746]](https://github.com/hashicorp/consul/pull/6746)
+
 IMPROVEMENTS:
 
 * acl: Use constant time comparison when checking for the ACL agent master token. [[GH-6943](https://github.com/hashicorp/consul/pull/6943)]
 * api: **(Consul Enterprise only)** The API client will now configure the HTTP Client's configured default namespace to the value of the `CONSUL_NAMESPACE` environment variable if not explicitly overridden.
 * connect: Allow inlining of the TLS certificate in the Envoy configuration. [[GH-6360](https://github.com/hashicorp/consul/issues/6360)]
 * namespaces: **(Consul Enterprise only)** The desired namespace will be defaulted to the namespace of the ACL token used for an HTTP/RPC request if no other namespace is explicitly set.
-* namespaces: **(Consul Enterprise only)** Allow for creating and resolving tokens not linked to any roles, policies or service identities. These tokens can be granted access based on the default policies and roles associated with the tokens namespace. 
+* namespaces: **(Consul Enterprise only)** Allow for creating and resolving tokens not linked to any roles, policies or service identities. These tokens can be granted access based on the default policies and roles associated with the tokens namespace.
+* ui: Various visual CSS amends and alterations [[GH6495]](https://github.com/hashicorp/consul/pull/6495) [[GH6881]](https://github.com/hashicorp/consul/pull/6881)
 
 BUG FIXES
 
@@ -17,6 +24,7 @@ BUG FIXES
 * dns: Updated miekg/dns dependency to fix a memory leak. [[GH-6748](https://github.com/hashicorp/consul/pull/6748)]
 * log: handle discard all logfiles properly [[GH-6945](https://github.com/hashicorp/consul/pull/6945)]
 * state: restore a few more service-kind index updates so blocking in ServiceDump works in more cases [[GH-6948](https://github.com/hashicorp/consul/issues/6948)]
+- ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
 
 ## 1.7.0-beta1 (December 10, 2019)
 
