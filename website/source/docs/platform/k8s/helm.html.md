@@ -60,7 +60,7 @@ and consider if they're appropriate for your deployment.
 
         * <a name="v-global-gossip-encryption-secret-key" href="#v-global-gossip-encryption-secret-key">`secretKey`</a> (`string: ""`) - The key within the Kubernetes secret that holds the gossip encryption key.
 
-* <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
+  * <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
 
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure running a Consul server within Kubernetes.
 
