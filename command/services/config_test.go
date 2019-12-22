@@ -2,6 +2,7 @@ package services
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
@@ -61,6 +62,32 @@ func TestStructsToAgentService(t *testing.T) {
 				Check: &api.AgentServiceCheck{
 					Name: "ping",
 				},
+			},
+		},
+		{
+			"Service with an unnamed check",
+			&structs.ServiceDefinition{
+				Name: "web",
+				Check: structs.CheckType{
+					TTL: 5 * time.Second,
+				},
+			},
+			&api.AgentServiceRegistration{
+				Name: "web",
+				Check: &api.AgentServiceCheck{
+					TTL: "5s",
+				},
+			},
+		},
+		{
+			"Service with a zero-value check",
+			&structs.ServiceDefinition{
+				Name:  "web",
+				Check: structs.CheckType{},
+			},
+			&api.AgentServiceRegistration{
+				Name:  "web",
+				Check: nil,
 			},
 		},
 		{

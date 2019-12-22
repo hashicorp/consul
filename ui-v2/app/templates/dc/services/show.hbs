@@ -28,6 +28,7 @@
           items=(compact
             (array
               'Instances'
+              'Routing'
               'Tags'
             )
           )
@@ -44,6 +45,7 @@
             (compact
                 (array
                     (hash id=(slugify 'Instances') partial='dc/services/instances')
+                    (hash id=(slugify 'Routing') partial='dc/services/routing')
                     (hash id=(slugify 'Tags') partial='dc/services/tags')
                 )
             ) as |panel|

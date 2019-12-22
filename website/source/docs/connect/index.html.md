@@ -18,6 +18,10 @@ with Connect](/docs/connect/native.html) for optimal performance and security.
 Connect can help you secure your services and provide data about service-to-service
 communications.
 
+Review the video below to learn more about Consul Connect from HashiCorp's co-founder Armon. 
+
+<iframe src="https://www.youtube.com/embed/8T8t4-hQY74" frameborder="0" allowfullscreen="true"  width="560" height="315" ></iframe>
+
 ## Application Security
 
 Connect enables secure deployment best-practices with automatic
@@ -53,10 +57,10 @@ There are several ways to try Connect in different environments.
 
  - The [Kubernetes guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube)
    walks you through configuring Consul Connect in Kubernetes using the Helm
-   chart, and using intentions. You can run the guide on Minikube or an extant
-   Kubernets cluster.
+   chart, and using intentions. You can run the guide on Minikube or an existing
+   Kubernetes cluster.
 
- - The [observability guide](https://learn.hashicorp.com/consul/getting-started-k8s/l7-observability-k8s)
+ - The [observability guide](https://learn.hashicorp.com/consul/kubernetes/l7-observability-k8s)
    shows how to deploy a basic metrics collection and visualization pipeline on
    a Minikube or Kubernetes cluster using the official Helm charts for Consul,
    Prometheus, and Grafana.

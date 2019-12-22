@@ -111,6 +111,7 @@ func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResp
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.ACLRoleListResponse
@@ -148,6 +149,7 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.ACLPolicyListResponse
@@ -339,8 +341,9 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
-		IncludeLocal:  false,
-		IncludeGlobal: true,
+		IncludeLocal:   false,
+		IncludeGlobal:  true,
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.ACLTokenListResponse

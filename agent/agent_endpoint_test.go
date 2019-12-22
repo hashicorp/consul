@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -30,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -309,6 +309,7 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
 	// Define an updated version. Be careful to copy it.
@@ -335,6 +336,7 @@ func TestAgent_Service(t *testing.T) {
 		Meta: map[string]string{},
 		Tags: []string{},
 	}
+	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMeta())
 
 	// Copy and modify
 	updatedResponse := *expectedResponse
@@ -360,6 +362,7 @@ func TestAgent_Service(t *testing.T) {
 		Meta: map[string]string{},
 		Tags: []string{},
 	}
+	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMeta())
 
 	tests := []struct {
 		name       string
@@ -800,7 +803,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		eval(t, "/v1/agent/health/service/id/mysql3", http.StatusServiceUnavailable, "critical")
 	})
 	t.Run("unknown serviceid", func(t *testing.T) {
-		eval(t, "/v1/agent/health/service/id/mysql1", http.StatusNotFound, "ServiceId mysql1 not found")
+		eval(t, "/v1/agent/health/service/id/mysql1", http.StatusNotFound, fmt.Sprintf("ServiceId %s not found", structs.ServiceIDString("mysql1", nil)))
 	})
 
 	nodeCheck := &structs.HealthCheck{
@@ -818,7 +821,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		eval(t, "/v1/agent/health/service/id/mysql", http.StatusServiceUnavailable, "critical")
 	})
 
-	err = a.State.RemoveCheck(nodeCheck.CheckID)
+	err = a.State.RemoveCheck(nodeCheck.CompoundCheckID())
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1061,7 +1064,7 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		eval(t, "/v1/agent/health/service/name/mysql-pool-r", http.StatusServiceUnavailable, "critical")
 	})
 
-	err = a.State.RemoveCheck(nodeCheck.CheckID)
+	err = a.State.RemoveCheck(nodeCheck.CompoundCheckID())
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -1241,11 +1244,11 @@ func TestAgent_Reload(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, dc1)
-	if a.State.Service("redis") == nil {
+	if a.State.Service(structs.NewServiceID("redis", nil)) == nil {
 		t.Fatal("missing redis service")
 	}
 
-	cfg2 := TestConfig(config.Source{
+	cfg2 := TestConfig(testutil.TestLogger(t), config.Source{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `
@@ -1269,7 +1272,7 @@ func TestAgent_Reload(t *testing.T) {
 	if err := a.ReloadConfig(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
-	if a.State.Service("redis-reloaded") == nil {
+	if a.State.Service(structs.NewServiceID("redis-reloaded", nil)) == nil {
 		t.Fatal("missing redis-reloaded service")
 	}
 
@@ -1632,15 +1635,17 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
+	uri := fmt.Sprintf("/v1/agent/force-leave/%s", a.Config.NodeName)
+
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/force-leave/nope", nil)
+		req, _ := http.NewRequest("PUT", uri, nil)
 		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	})
 
 	t.Run("agent master token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/force-leave/nope?token=towel", nil)
+		req, _ := http.NewRequest("PUT", uri+"?token=towel", nil)
 		if _, err := a.srv.AgentForceLeave(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1648,7 +1653,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := makeReadOnlyAgentACL(t, a.srv)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/nope?token=%s", ro), nil)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", ro), nil)
 		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
@@ -1723,8 +1728,8 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	checkID := types.CheckID("test")
-	if _, ok := a.State.Checks()[checkID]; !ok {
+	checkID := structs.NewCheckID("test", nil)
+	if existing := a.State.Check(checkID); existing == nil {
 		t.Fatalf("missing test check")
 	}
 
@@ -1738,7 +1743,7 @@ func TestAgent_RegisterCheck(t *testing.T) {
 	}
 
 	// By default, checks start in critical state.
-	state := a.State.Checks()[checkID]
+	state := a.State.Check(checkID)
 	if state.Status != api.HealthCritical {
 		t.Fatalf("bad: %v", state)
 	}
@@ -1851,10 +1856,8 @@ func TestAgent_RegisterCheckScriptsExecDisable(t *testing.T) {
 	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
 		t.Fatalf("expected script disabled error, got: %s", err)
 	}
-	checkID := types.CheckID("test")
-	if _, ok := a.State.Checks()[checkID]; ok {
-		t.Fatalf("check registered with exec disable")
-	}
+	checkID := structs.NewCheckID("test", nil)
+	require.Nil(t, a.State.Check(checkID), "check registered with exec disabled")
 }
 
 func TestAgent_RegisterCheckScriptsExecRemoteDisable(t *testing.T) {
@@ -1879,10 +1882,8 @@ func TestAgent_RegisterCheckScriptsExecRemoteDisable(t *testing.T) {
 	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
 		t.Fatalf("expected script disabled error, got: %s", err)
 	}
-	checkID := types.CheckID("test")
-	if _, ok := a.State.Checks()[checkID]; ok {
-		t.Fatalf("check registered with exec disable")
-	}
+	checkID := structs.NewCheckID("test", nil)
+	require.Nil(t, a.State.Check(checkID), "check registered with exec disabled")
 }
 
 func TestAgent_RegisterCheck_Passing(t *testing.T) {
@@ -1906,8 +1907,8 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	checkID := types.CheckID("test")
-	if _, ok := a.State.Checks()[checkID]; !ok {
+	checkID := structs.NewCheckID("test", nil)
+	if existing := a.State.Check(checkID); existing == nil {
 		t.Fatalf("missing test check")
 	}
 
@@ -1915,7 +1916,7 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 		t.Fatalf("missing test check ttl")
 	}
 
-	state := a.State.Checks()[checkID]
+	state := a.State.Check(checkID)
 	if state.Status != api.HealthPassing {
 		t.Fatalf("bad: %v", state)
 	}
@@ -2100,16 +2101,14 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := a.State.Checks()["test"]; ok {
-		t.Fatalf("have test check")
-	}
+	requireCheckMissing(t, a, "test")
 }
 
 func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	if err := a.AddCheck(chk, nil, false, "", ConfigSourceLocal); err != nil {
@@ -2153,7 +2152,7 @@ func TestAgent_PassCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	state := a.State.Checks()["test"]
+	state := a.State.Check(structs.NewCheckID("test", nil))
 	if state.Status != api.HealthPassing {
 		t.Fatalf("bad: %v", state)
 	}
@@ -2208,7 +2207,7 @@ func TestAgent_WarnCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	state := a.State.Checks()["test"]
+	state := a.State.Check(structs.NewCheckID("test", nil))
 	if state.Status != api.HealthWarning {
 		t.Fatalf("bad: %v", state)
 	}
@@ -2263,7 +2262,7 @@ func TestAgent_FailCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	state := a.State.Checks()["test"]
+	state := a.State.Check(structs.NewCheckID("test", nil))
 	if state.Status != api.HealthCritical {
 		t.Fatalf("bad: %v", state)
 	}
@@ -2330,7 +2329,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 				t.Fatalf("expected 200, got %d", resp.Code)
 			}
 
-			state := a.State.Checks()["test"]
+			state := a.State.Check(structs.NewCheckID("test", nil))
 			if state.Status != c.Status || state.Output != c.Output {
 				t.Fatalf("bad: %v", state)
 			}
@@ -2358,7 +2357,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		// Since we append some notes about truncating, we just do a
 		// rough check that the output buffer was cut down so this test
 		// isn't super brittle.
-		state := a.State.Checks()["test"]
+		state := a.State.Check(structs.NewCheckID("test", nil))
 		if state.Status != api.HealthPassing || len(state.Output) > 2*maxChecksSize {
 			t.Fatalf("bad: %v, (len:=%d)", state, len(state.Output))
 		}
@@ -2460,23 +2459,30 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	}
 
 	// Ensure the service
-	if _, ok := a.State.Services()["test"]; !ok {
+	sid := structs.NewServiceID("test", nil)
+	svc := a.State.Service(sid)
+	if svc == nil {
 		t.Fatalf("missing test service")
 	}
-	if val := a.State.Service("test").Meta["hello"]; val != "world" {
-		t.Fatalf("Missing meta: %v", a.State.Service("test").Meta)
+	if val := svc.Meta["hello"]; val != "world" {
+		t.Fatalf("Missing meta: %v", svc.Meta)
 	}
-	if val := a.State.Service("test").Weights.Passing; val != 100 {
+	if val := svc.Weights.Passing; val != 100 {
 		t.Fatalf("Expected 100 for Weights.Passing, got: %v", val)
 	}
-	if val := a.State.Service("test").Weights.Warning; val != 3 {
+	if val := svc.Weights.Warning; val != 3 {
 		t.Fatalf("Expected 3 for Weights.Warning, got: %v", val)
 	}
 
 	// Ensure we have a check mapping
-	checks := a.State.Checks()
+	checks := a.State.Checks(structs.WildcardEnterpriseMeta())
 	if len(checks) != 3 {
 		t.Fatalf("bad: %v", checks)
+	}
+	for _, c := range checks {
+		if c.Type != "ttl" {
+			t.Fatalf("expected ttl check type, got %s", c.Type)
+		}
 	}
 
 	if len(a.checkTTLs) != 3 {
@@ -2484,7 +2490,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	}
 
 	// Ensure the token was configured
-	if token := a.State.ServiceToken("test"); token == "" {
+	if token := a.State.ServiceToken(sid); token == "" {
 		t.Fatalf("missing token")
 	}
 }
@@ -2555,15 +2561,14 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks()
+	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
 	require.Equal(t, 3, len(checks))
 
 	checkIDs := []string{}
 	for id := range checks {
-		checkIDs = append(checkIDs, string(id))
+		checkIDs = append(checkIDs, string(id.ID))
 	}
-	sort.Strings(checkIDs)
-	require.Equal(t, []string{"check_1", "check_2", "check_3"}, checkIDs)
+	require.ElementsMatch(t, []string{"check_1", "check_2", "check_3"}, checkIDs)
 }
 
 func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
@@ -2590,8 +2595,9 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			&structs.CheckType{
-				CheckID: types.CheckID("check_1"),
-				TTL:     20 * time.Second,
+				// explicitly not setting the check id to let it be auto-generated
+				// we want to ensure that we are testing out the cases with autogenerated names/ids
+				TTL: 20 * time.Second,
 			},
 			&structs.CheckType{
 				CheckID: types.CheckID("check_2"),
@@ -2614,8 +2620,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			&structs.CheckType{
-				CheckID: types.CheckID("check_1"),
-				TTL:     20 * time.Second,
+				TTL: 20 * time.Second,
 			},
 			&structs.CheckType{
 				CheckID: types.CheckID("check_3"),
@@ -2631,15 +2636,14 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks()
-	require.Equal(t, 2, len(checks))
+	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	require.Len(t, checks, 2)
 
 	checkIDs := []string{}
 	for id := range checks {
-		checkIDs = append(checkIDs, string(id))
+		checkIDs = append(checkIDs, string(id.ID))
 	}
-	sort.Strings(checkIDs)
-	require.Equal(t, []string{"check_1", "check_3"}, checkIDs)
+	require.ElementsMatch(t, []string{"service:test:1", "check_3"}, checkIDs)
 }
 
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
@@ -2807,7 +2811,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				},
 			}
 
-			got := a.State.Service("test")
+			got := a.State.Service(structs.NewServiceID("test", nil))
 			require.Equal(t, svc, got)
 
 			sidecarSvc := &structs.NodeService{
@@ -2841,7 +2845,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					},
 				},
 			}
-			gotSidecar := a.State.Service("test-sidecar-proxy")
+			gotSidecar := a.State.Service(structs.NewServiceID("test-sidecar-proxy", nil))
 			hasNoCorrectTCPCheck := true
 			for _, v := range a.checkTCPs {
 				if strings.HasPrefix(v.TCP, tt.expectedTCPCheckStart) {
@@ -2966,7 +2970,6 @@ func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL string) {
 	t.Helper()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, t.Name(), extraHCL)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -2998,18 +3001,19 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.AgentRegisterService(resp, req)
 	require.NoError(t, err)
-	assert.Nil(obj)
+	require.Nil(t, obj)
 
 	// Ensure the service
-	svc, ok := a.State.Services()["connect-proxy"]
-	assert.True(ok, "has service")
-	assert.Equal(structs.ServiceKindConnectProxy, svc.Kind)
+	sid := structs.NewServiceID("connect-proxy", nil)
+	svc := a.State.Service(sid)
+	require.NotNil(t, svc, "has service")
+	require.Equal(t, structs.ServiceKindConnectProxy, svc.Kind)
 	// Registration must set that default type
 	args.Proxy.Upstreams[0].DestinationType = api.UpstreamDestTypeService
-	assert.Equal(args.Proxy, svc.Proxy.ToAPI())
+	require.Equal(t, args.Proxy, svc.Proxy.ToAPI())
 
 	// Ensure the token was configured
-	assert.Equal("abc123", a.State.ServiceToken("connect-proxy"))
+	require.Equal(t, "abc123", a.State.ServiceToken(structs.NewServiceID("connect-proxy", nil)))
 }
 
 func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService)) *structs.NodeService {
@@ -3033,6 +3037,7 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 			LocalServiceAddress:    "127.0.0.1",
 			LocalServicePort:       port,
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	for _, fn := range fns {
 		fn(ns)
@@ -3048,7 +3053,7 @@ func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 	policyID := testCreatePolicy(t, a, policyName, rules)
 
 	args := map[string]interface{}{
-		"Name": "User Token",
+		"Description": "User Token",
 		"Policies": []map[string]interface{}{
 			map[string]interface{}{
 				"ID": policyID,
@@ -3385,6 +3390,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					Passing: 1,
 					Warning: 1,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			// After we deregister the web service above, the fake sidecar with
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
@@ -3430,6 +3436,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1111,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		{
@@ -3456,9 +3463,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			wantNS: testDefaultSidecar("web", 1111),
 			// Sanity check the rest of the update happened though.
 			assertStateFn: func(t *testing.T, state *local.State) {
-				svcs := state.Services()
-				svc, ok := svcs["web"]
-				require.True(t, ok)
+				svc := state.Service(structs.NewServiceID("web", nil))
+				require.NotNil(t, svc)
 				require.Equal(t, 2222, svc.Port)
 			},
 		},
@@ -3513,7 +3519,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				resp.Body.String())
 
 			// Sanity the target service registration
-			svcs := a.State.Services()
+			svcs := a.State.Services(nil)
 
 			// Parse the expected definition into a ServiceDefinition
 			var sd structs.ServiceDefinition
@@ -3525,8 +3531,9 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			if svcID == "" {
 				svcID = sd.Name
 			}
-			svc, ok := svcs[svcID]
-			require.True(ok, "has service "+svcID)
+			sid := structs.NewServiceID(svcID, nil)
+			svc, ok := svcs[sid]
+			require.True(ok, "has service "+sid.String())
 			assert.Equal(sd.Name, svc.Service)
 			assert.Equal(sd.Port, svc.Port)
 			// Ensure that the actual registered service _doesn't_ still have it's
@@ -3543,7 +3550,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 
 			// Ensure sidecar
-			svc, ok = svcs[tt.wantNS.ID]
+			svc, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 			require.True(ok, "no sidecar registered at "+tt.wantNS.ID)
 			assert.Equal(tt.wantNS, svc)
 
@@ -3561,8 +3568,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				require.NoError(err)
 				require.Nil(obj)
 
-				svcs := a.State.Services()
-				svc, ok = svcs[tt.wantNS.ID]
+				svcs := a.State.Services(nil)
+				svc, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 				if tt.wantSidecarIDLeftAfterDereg {
 					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
 				} else {
@@ -3615,8 +3622,7 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 	assert.Contains(resp.Body.String(), "Port")
 
 	// Ensure the service doesn't exist
-	_, ok := a.State.Services()["connect-proxy"]
-	assert.False(ok)
+	assert.Nil(a.State.Service(structs.NewServiceID("connect-proxy", nil)))
 }
 
 // Tests agent registration of a service that is connect native.
@@ -3660,8 +3666,8 @@ func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 	assert.Nil(obj)
 
 	// Ensure the service
-	svc, ok := a.State.Services()["web"]
-	assert.True(ok, "has service")
+	svc := a.State.Service(structs.NewServiceID("web", nil))
+	require.NotNil(t, svc)
 	assert.True(svc.Connect.Native)
 }
 
@@ -3708,9 +3714,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 		t.Fatalf("expected script disabled error, got: %s", err)
 	}
 	checkID := types.CheckID("test-check")
-	if _, ok := a.State.Checks()[checkID]; ok {
-		t.Fatalf("check registered with exec disable")
-	}
+	require.Nil(t, a.State.Check(structs.NewCheckID(checkID, nil)), "check registered with exec disabled")
 }
 
 func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
@@ -3758,9 +3762,7 @@ func testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T, extra
 		t.Fatalf("expected script disabled error, got: %s", err)
 	}
 	checkID := types.CheckID("test-check")
-	if _, ok := a.State.Checks()[checkID]; ok {
-		t.Fatalf("check registered with exec disable")
-	}
+	require.Nil(t, a.State.Check(structs.NewCheckID(checkID, nil)), "check registered with exec disabled")
 }
 
 func TestAgent_DeregisterService(t *testing.T) {
@@ -3787,13 +3789,8 @@ func TestAgent_DeregisterService(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := a.State.Services()["test"]; ok {
-		t.Fatalf("have test service")
-	}
-
-	if _, ok := a.State.Checks()["test"]; ok {
-		t.Fatalf("have test check")
-	}
+	assert.Nil(t, a.State.Service(structs.NewServiceID("test", nil)), "have test service")
+	assert.Nil(t, a.State.Check(structs.NewCheckID("test", nil)), "have test check")
 }
 
 func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
@@ -3891,9 +3888,9 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was registered
-	checkID := serviceMaintCheckID("test")
-	check, ok := a.State.Checks()[checkID]
-	if !ok {
+	checkID := serviceMaintCheckID(structs.NewServiceID("test", nil))
+	check := a.State.Check(checkID)
+	if check == nil {
 		t.Fatalf("should have registered maintenance check")
 	}
 
@@ -3924,7 +3921,7 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 	}
 
 	// Force the service into maintenance mode
-	if err := a.EnableServiceMaintenance("test", "", ""); err != nil {
+	if err := a.EnableServiceMaintenance(structs.NewServiceID("test", nil), "", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3939,8 +3936,8 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was removed
-	checkID := serviceMaintCheckID("test")
-	if _, ok := a.State.Checks()[checkID]; ok {
+	checkID := serviceMaintCheckID(structs.NewServiceID("test", nil))
+	if existing := a.State.Check(checkID); existing != nil {
 		t.Fatalf("should have removed maintenance check")
 	}
 }
@@ -4009,13 +4006,13 @@ func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was registered
-	check, ok := a.State.Checks()[structs.NodeMaint]
-	if !ok {
+	check := a.State.Check(structs.NodeMaintCheckID)
+	if check == nil {
 		t.Fatalf("should have registered maintenance check")
 	}
 
 	// Check that the token was used
-	if token := a.State.CheckToken(structs.NodeMaint); token != "mytoken" {
+	if token := a.State.CheckToken(structs.NodeMaintCheckID); token != "mytoken" {
 		t.Fatalf("expected 'mytoken', got '%s'", token)
 	}
 
@@ -4045,7 +4042,7 @@ func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was removed
-	if _, ok := a.State.Checks()[structs.NodeMaint]; ok {
+	if existing := a.State.Check(structs.NodeMaintCheckID); existing != nil {
 		t.Fatalf("should have removed maintenance check")
 	}
 }
@@ -4103,17 +4100,22 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	result := a.State.Checks()
-	if _, ok := result["service:memcache"]; !ok {
+	result := a.State.Checks(nil)
+	if _, ok := result[structs.NewCheckID("service:memcache", nil)]; !ok {
 		t.Fatalf("missing memcached check")
 	}
-	if _, ok := result["memcache_check2"]; !ok {
+	if _, ok := result[structs.NewCheckID("memcache_check2", nil)]; !ok {
 		t.Fatalf("missing memcache_check2 check")
 	}
 
 	// Make sure the new check is associated with the service
-	if result["memcache_check2"].ServiceID != "memcache" {
-		t.Fatalf("bad: %#v", result["memcached_check2"])
+	if result[structs.NewCheckID("memcache_check2", nil)].ServiceID != "memcache" {
+		t.Fatalf("bad: %#v", result[structs.NewCheckID("memcached_check2", nil)])
+	}
+
+	// Make sure the new check has the right type
+	if result[structs.NewCheckID("memcache_check2", nil)].Type != "ttl" {
+		t.Fatalf("expected TTL type, got %s", result[structs.NewCheckID("memcache_check2", nil)].Type)
 	}
 }
 

@@ -1,0 +1,74 @@
+/* Display Font (Gilmer) */
+@font-face {
+  font-family: "gilmer-web";
+  src: url("/assets/fonts/gilmer/gilmer-light.woff2") format("woff2"),
+    url("/assets/fonts/gilmer/gilmer-light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "gilmer-web";
+  src: url("/assets/fonts/gilmer/gilmer-regular.woff2") format("woff2"),
+    url("/assets/fonts/gilmer/gilmer-regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "gilmer-web";
+  src: url("/assets/fonts/gilmer/gilmer-medium.woff2") format("woff2"),
+    url("/assets/fonts/gilmer/gilmer-medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "gilmer-web";
+  src: url("/assets/fonts/gilmer/gilmer-bold.woff2") format("woff2"),
+    url("/assets/fonts/gilmer/gilmer-bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Body Font (Metro) */
+@font-face {
+  font-family: "metro-web";
+  src: url("/assets/fonts/metro/metro-sans-book.woff2") format("woff2"),
+    url("/assets/fonts/metro/metro-sans-book.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "metro-web";
+  src: url("/assets/fonts/metro/metro-sans-regular.woff2") format("woff2"),
+    url("/assets/fonts/metro/metro-sans-regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "metro-web";
+  src: url("/assets/fonts/metro/metro-sans-semi-bold.woff2") format("woff2"),
+    url("/assets/fonts/metro/metro-sans-semi-bold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "metro-web";
+  src: url("/assets/fonts/metro/metro-sans-bold.woff2") format("woff2"),
+    url("/assets/fonts/metro/metro-sans-bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Code Font (Deja Vu) */
+@font-face {
+  font-family: "dejavu-sans-mono-web";
+  src: url("/assets/fonts/dejavu/DejaVuSansMono.woff2") format("woff2"),
+    url("/assets/fonts/dejavu/DejaVuSansMono.woff") format("woff");
+  font-style: normal;
+  font-weight: 400;
+}

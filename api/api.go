@@ -71,6 +71,10 @@ const (
 	// client in this package but is defined here for consistency with all the
 	// other ENV names we use.
 	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
+
+	// HTTPNamespaceEnvVar defines an environment variable name which sets
+	// the HTTP Namespace to be used by default. This can still be overridden.
+	HTTPNamespaceEnvName = "CONSUL_NAMESPACE"
 )
 
 // QueryOptions are used to parameterize a query
@@ -300,6 +304,10 @@ type Config struct {
 	// If provided it is read once at startup and never again.
 	TokenFile string
 
+	// Namespace is the name of the namespace to send along for the request
+	// when no other Namespace ispresent in the QueryOptions
+	Namespace string
+
 	TLSConfig TLSConfig
 }
 
@@ -421,6 +429,10 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 		if !doVerify {
 			config.TLSConfig.InsecureSkipVerify = true
 		}
+	}
+
+	if v := os.Getenv(HTTPNamespaceEnvName); v != "" {
+		config.Namespace = v
 	}
 
 	return config
@@ -800,6 +812,9 @@ func (c *Client) newRequest(method, path string) *request {
 	}
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
+	}
+	if c.config.Namespace != "" {
+		r.params.Set("ns", c.config.Namespace)
 	}
 	if c.config.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(r.config.WaitTime))

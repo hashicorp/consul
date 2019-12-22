@@ -79,7 +79,10 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 
 	// Add service health checks to the list of paths to create clusters for if needed
 	if cfgSnap.Proxy.Expose.Checks {
-		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(cfgSnap.Proxy.DestinationServiceID) {
+		// TODO (namespaces) update with real entmeta
+		var psid structs.ServiceID
+		psid.Init(cfgSnap.Proxy.DestinationServiceID, structs.DefaultEnterpriseMeta())
+		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
 			p, err := parseCheckPath(check)
 			if err != nil {
 				s.Logger.Printf("[WARN] envoy: failed to create cluster for check '%s': %v", check.CheckID, err)
@@ -234,6 +237,9 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 					},
 				},
 			},
+			CircuitBreakers: &envoycluster.CircuitBreakers{
+				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
+			},
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
 		}
@@ -338,6 +344,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 						Ads: &envoycore.AggregatedConfigSource{},
 					},
 				},
+			},
+			CircuitBreakers: &envoycluster.CircuitBreakers{
+				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
@@ -448,4 +457,28 @@ func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.Co
 		// Having an empty config enables outlier detection with default config.
 		OutlierDetection: &envoycluster.OutlierDetection{},
 	}, nil
+}
+
+func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoycluster.CircuitBreakers_Thresholds {
+	var empty UpstreamLimits
+	// Make sure to not create any thresholds when passed the zero-value in order
+	// to rely on Envoy defaults
+	if limits == empty {
+		return nil
+	}
+
+	threshold := &envoycluster.CircuitBreakers_Thresholds{}
+	// Likewise, make sure to not set any threshold values on the zero-value in
+	// order to rely on Envoy defaults
+	if limits.MaxConnections != nil {
+		threshold.MaxConnections = makeUint32Value(*limits.MaxConnections)
+	}
+	if limits.MaxPendingRequests != nil {
+		threshold.MaxPendingRequests = makeUint32Value(*limits.MaxPendingRequests)
+	}
+	if limits.MaxConcurrentRequests != nil {
+		threshold.MaxRequests = makeUint32Value(*limits.MaxConcurrentRequests)
+	}
+
+	return []*envoycluster.CircuitBreakers_Thresholds{threshold}
 }

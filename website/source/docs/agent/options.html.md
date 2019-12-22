@@ -16,8 +16,7 @@ descriptions.
 Configuration precedence is evaluated in the following order:
 
 1. Command line arguments
-2. Environment Variables
-3. Configuration files
+2. Configuration files
 
 When loading configuration, Consul loads the configuration from files and
 directories in lexical order. For example, configuration file
@@ -38,6 +37,16 @@ documented below in the
 [Reloadable Configuration](#reloadable-configuration) section. The
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
+
+You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent. 
+
+## Environment Variables
+Environment variables **cannot** be used to configure the Consul client. They
+*can* be used when running other `consul` CLI commands that connect with a
+running agent, e.g. `CONSUL_HTTP_ADDR=192.168.0.1:8500 consul members`.
+
+See [Consul Commands](/docs/commands/index.html#environment-variables) for more
+information.
 
 ## <a name="commandline_options"></a>Command-line Options
 
@@ -274,7 +283,7 @@ The options below are all specified on the command-line.
 
 * <a name="_log_rotate_duration"></a><a href="#_log_rotate_duration">`-log-rotate-duration`</a> - to specify the maximum duration a log should be written to before it needs to be rotated. Must be a duration value such as 30s. Defaults to 24h.
 
-* <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to -1 to disable rotation and discard all log files.
+* <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to -1 to discard old log files when a new one is created.
 
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
@@ -294,8 +303,9 @@ The options below are all specified on the command-line.
 
 * `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
   first attempt fails. This is useful for cases where you know the address will
-  eventually be available. The list can contain IPv4, IPv6, or DNS addresses. In
-  Consul 1.1.0 and later this can be set to a
+  eventually be available. This option can be specified multiple times to
+  specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
+  addresses. In Consul 1.1.0 and later this can be set to a
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template. If Consul is running on the non-default Serf LAN port, this must be
   specified as well. IPv6 must use the "bracketed" syntax. If multiple values
@@ -315,6 +325,11 @@ The options below are all specified on the command-line.
     ```sh
     # Using IPv6
     $ consul agent -retry-join "[::1]:8301"
+    ```
+
+    ```sh
+    # Using multiple addresses
+    $ consul agent -retry-join "consul.domain.internal" -retry-join "10.0.4.67"
     ```
 
     ### Cloud Auto-Joining
@@ -397,9 +412,9 @@ The options below are all specified on the command-line.
   path for the agent to store its PID. This is useful for sending signals (for example, `SIGINT`
   to close the agent or `SIGHUP` to update check definite
 
-* <a name="_protocol"></a><a href="#_protocol">`-protocol`</a> - The Consul protocol version to
-  use. This defaults to the latest version. This should be set only when [upgrading](/docs/upgrading.html).
-  You can view the protocol versions supported by Consul by running `consul -v`.
+* <a name="_protocol"></a><a href="#_protocol">`-protocol`</a> - The Consul protocol version to use. Consul agents speak protocol 2 by default,
+  however agents will automatically use protocol >2 when speaking to compatible agents. This should be set only when
+  [upgrading](/docs/upgrading.html). You can view the protocol versions supported by Consul by running `consul -v`.
 
 * <a name="_raft_protocol"></a><a href="#_raft_protocol">`-raft-protocol`</a> - This controls the internal
   version of the Raft consensus protocol used for server communications. This must be set to 3 in order to
@@ -780,6 +795,9 @@ default will automatically work with some tooling.
       the maximum number of log entries that a server can trail the leader by before being considered unhealthy. Defaults
       to 250.
 
+    * <a name="min_quorum"></a><a href="#min_quorum">`min_quorum`</a> - Sets the minimum number of servers necessary in a cluster
+      before autopilot can prune dead servers. There is no default.
+
     * <a name="server_stabilization_time"></a><a href="#server_stabilization_time">`server_stabilization_time`</a> -
       Controls the minimum amount of time a server must be stable in the 'healthy' state before being added to the
       cluster. Only takes effect if all servers are running Raft protocol version 3 or higher. Must be a duration value
@@ -909,19 +927,18 @@ default will automatically work with some tooling.
 
         <p>There are also a number of common configuration options supported by all providers:</p>
 
-        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The upper bound on the
-          lease duration of a leaf certificate issued for a service. In most
-          cases a new leaf certificate will be requested by a proxy before this
-          limit is reached. This is also the effective limit on how long a
-          server outage can last (with no leader) before network connections
-          will start being rejected, and as a result the defaults is `72h` to
-          last through a weekend without intervention. This value cannot be
-          lower than 1 hour or higher than 1 year.
-
-            This value is also used when rotating out old root certificates from
-            the cluster. When a root certificate has been inactive (rotated out)
-            for more than twice the *current* `leaf_cert_ttl`, it will be removed
-            from the trusted list.
+        * <a name="ca_csr_max_concurrent"></a><a
+          href="#ca_csr_max_concurrent">`csr_max_concurrent`</a> Sets a limit
+          on how many Certificate Signing Requests will be processed
+          concurrently. Defaults to 0 (disabled). This is useful when you have
+          more than one or two cores available to the server. For example on an
+          8 core server, setting this to 1 will ensure that even during a CA
+          rotation no more than one server core on the leader will be consumed
+          at a time with generating new certificates. Setting this is
+          recommended _instead_ of `csr_max_per_second` where you know there are
+          multiple cores available since it is simpler to reason about limiting
+          CSR resources this way without artificially slowing down rotations.
+          Added in 1.4.1.
 
         * <a name="ca_csr_max_per_second"></a><a
           href="#ca_csr_max_per_second">`csr_max_per_second`</a> Sets a rate
@@ -936,18 +953,58 @@ default will automatically work with some tooling.
           `csr_max_concurrent` instead if servers have more than one core.
           Setting this to zero disables rate limiting. Added in 1.4.1.
 
-        * <a name="ca_csr_max_concurrent"></a><a
-          href="#ca_csr_max_concurrent">`csr_max_concurrent`</a> Sets a limit
-          on how many Certificate Signing Requests will be processed
-          concurrently. Defaults to 0 (disabled). This is useful when you have
-          more than one or two cores available to the server. For example on an
-          8 core server, setting this to 1 will ensure that even during a CA
-          rotation no more than one server core on the leader will be consumed
-          at a time with generating new certificates. Setting this is
-          recommended _instead_ of `csr_max_per_second` where you know there are
-          multiple cores available since it is simpler to reason about limiting
-          CSR resources this way without artificially slowing down rotations.
-          Added in 1.4.1.
+        * <a name="ca_leaf_cert_ttl"></a><a href="#ca_leaf_cert_ttl">`leaf_cert_ttl`</a> The upper bound on the
+          lease duration of a leaf certificate issued for a service. In most
+          cases a new leaf certificate will be requested by a proxy before this
+          limit is reached. This is also the effective limit on how long a
+          server outage can last (with no leader) before network connections
+          will start being rejected, and as a result the defaults is `72h` to
+          last through a weekend without intervention. This value cannot be
+          lower than 1 hour or higher than 1 year.
+
+            This value is also used when rotating out old root certificates from
+            the cluster. When a root certificate has been inactive (rotated out)
+            for more than twice the *current* `leaf_cert_ttl`, it will be removed
+            from the trusted list.
+
+        * <a name="ca_private_key_type"></a><a
+          href="#ca_private_key_type">`private_key_type`</a> The type of key to
+          generate for this CA. This is only used when the provider is
+          generating a new key. If `private_key` is set for the Consul provider,
+          or existing root or intermediate PKI paths given for Vault then this
+          will be ignored. Currently supported options are `ec` or `rsa`.
+          Default is `ec`. 
+          
+            It is required that all servers in a Datacenter have
+          the same config for the CA. It is recommended that servers in
+          different Datacenters have the same CA config for key type and size
+          although the built-in CA and Vault provider will both allow mixed CA
+          key types.
+          
+            Some CA providers (currently Vault) will not allow cross-signing a
+            new CA certificate with a different key type. This means that if you
+            migrate from an RSA-keyed Vault CA to an EC-keyed CA from any
+            provider, you may have to proceed without cross-signing which risks
+            temporary connection issues for workloads during the new certificate
+            rollout. We highly recommend testing this outside of production to
+            understand the impact and suggest sticking to same key type where
+            possible.
+
+            Note that this only affects _CA_ keys generated by the provider.
+            Leaf certificate keys are always EC 256 regardless of the CA
+            configuration.
+
+        * <a name="ca_private_key_bits"></a><a
+          href="#ca_private_key_bits">`private_key_bits`</a> The length of key
+          to generate for this CA. This is only used when the provider is
+          generating a new key. If `private_key` is set for the Consul provider,
+          or existing root or intermediate PKI paths given for Vault then this
+          will be ignored.
+
+            Currently supported values are:
+             - `private_key_type = ec` (default): `224, 256, 384, 521`
+               corresponding to the NIST P-* curves of the same name.
+             - `private_key_type = rsa`: `2048, 4096`
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
   [`-datacenter` command-line flag](#_datacenter).
@@ -1103,6 +1160,12 @@ default will automatically work with some tooling.
     * <a name="dns_cache_max_age"></a><a href="#dns_cache_max_age">`cache_max_age`</a> - When [use_cache](#dns_use_cache) is enabled, the agent
       will attempt to re-fetch the result from the servers if the cached value is older than this duration. See: [agent caching](/api/features/caching.html).
 
+    * <a name="dns_prefer_namespace"></a><a href="#dns_prefer_namespace">`prefer_namespace`</a> - **(Enterprise Only)** When
+    set to true, in a DNS query for a service, the label between the domain and the `service` label will be treated as a
+    namespace name instead of a datacenter. When set to false, the default, the behavior will be the same as non-Enterprise
+    versions and will assume the label is the datacenter. See: [this section](/docs/agent/dns.html#namespaced-services-enterprise) for more details.
+    
+    
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 
@@ -1298,6 +1361,15 @@ default will automatically work with some tooling.
 
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).
+
+* <a name="log_rotate_duration"></a><a href="#log_rotate_duration">`log_rotate_duration`</a> Equivalent to the
+  [`-log-rotate-duration` command-line flag](#_log_rotate_duration).
+
+* <a name="log_rotate_bytes"></a><a href="#log_rotate_bytes">`log_rotate_bytes`</a> Equivalent to the
+  [`-log-rotate-bytes` command-line flag](#_log_rotate_bytes).
+
+* <a name="log_rotate_max_files"></a><a href="#log_rotate_max_files">`log_rotate_max_files`</a> Equivalent to the
+  [`-log-rotate-max-files` command-line flag](#_log_rotate_max_files).
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
@@ -1715,12 +1787,17 @@ to the old fragment -->
       currently only supports numeric IDs.
     - `mode` - The permission bits to set on the file.
 
-* <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> - If
-  set to true, Consul requires that all incoming
-  connections make use of TLS and that the client provides a certificate signed
-  by a Certificate Authority from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path).
-  This applies to both server RPC and to the HTTPS API. By default, this is false, and
-  Consul will not enforce the use of TLS or verify a client's authenticity.
+* <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> 
+  - If set to true, Consul requires that all incoming connections make use of TLS
+  and that the client provides a certificate signed by a Certificate Authority
+  from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path).  This applies to
+  both server RPC and to the HTTPS API. By default, this is false, and Consul
+  will not enforce the use of TLS or verify a client's authenticity. Turning
+  on `verify_incoming` on consul clients protects the HTTPS endpoint, by ensuring
+  that the certificate that is presented by a 3rd party tool to the HTTPS
+  endpoint was created by the CA that the consul client was setup with. If the
+  UI is served, the same checks are performed.
+
 
 * <a name="verify_incoming_rpc"></a><a href="#verify_incoming_rpc">`verify_incoming_rpc`</a> - If
   set to true, Consul requires that all incoming RPC
@@ -1753,7 +1830,7 @@ to the old fragment -->
 * <a name="verify_server_hostname"></a><a
   href="#verify_server_hostname">`verify_server_hostname`</a> - If set to true,
   Consul verifies for all outgoing TLS connections that the TLS certificate
-  presented by the servers matches "server.&lt;datacenter&gt;.&lt;domain&gt;"
+  presented by the servers matches `server.<datacenter>.<domain>`
   hostname. By default, this is false, and Consul does not verify the hostname
   of the certificate, only that it is signed by a trusted CA. This setting is
   _critical_ to prevent a compromised client from being restarted as a server

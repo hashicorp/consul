@@ -20,6 +20,10 @@ Usage: `consul kv import [options] [DATA]`
 <%= partial "docs/commands/http_api_options_client" %>
 <%= partial "docs/commands/http_api_options_server" %>
 
+#### Enterprise Options
+
+<%= partial "docs/commands/http_api_namespace_options" %>
+
 ## Examples
 
 To import from a file, prepend the filename with `@`:
@@ -43,5 +47,3 @@ escaping:
 $ consul kv import "$(cat values.json)"
 # Output
 ```
-
-

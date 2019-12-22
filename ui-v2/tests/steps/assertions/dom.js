@@ -13,9 +13,10 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
       });
     })
     .then(['I see the text "$text" in "$selector"'], function(text, selector) {
+      const textContent = find(selector).textContent;
       assert.ok(
-        find(selector).textContent.indexOf(text) !== -1,
-        `Expected to see "${text}" in "${selector}"`
+        textContent.indexOf(text) !== -1,
+        `Expected to see "${text}" in "${selector}", was "${textContent}"`
       );
     })
     .then(['I copied "$text"'], function(text) {

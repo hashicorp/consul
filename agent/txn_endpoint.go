@@ -51,40 +51,6 @@ func decodeValue(rawKV interface{}) error {
 	return nil
 }
 
-// fixupTxnOp looks for non-nil Txn operations and passes them on for
-// value conversion.
-func fixupTxnOp(rawOp interface{}) error {
-	rawMap, ok := rawOp.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("unexpected raw op type: %T", rawOp)
-	}
-	for k, v := range rawMap {
-		switch strings.ToLower(k) {
-		case "kv":
-			if v == nil {
-				return nil
-			}
-			return decodeValue(v)
-		}
-	}
-	return nil
-}
-
-// fixupTxnOps takes the raw decoded JSON and base64 decodes values in Txn ops,
-// replacing them with byte arrays.
-func fixupTxnOps(raw interface{}) error {
-	rawSlice, ok := raw.([]interface{})
-	if !ok {
-		return fmt.Errorf("unexpected raw type: %t", raw)
-	}
-	for _, rawOp := range rawSlice {
-		if err := fixupTxnOp(rawOp); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // isWrite returns true if the given operation alters the state store.
 func isWrite(op api.KVOp) bool {
 	switch op {
@@ -115,7 +81,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.
 	var ops api.TxnOps
-	if err := decodeBody(req, &ops, fixupTxnOps); err != nil {
+	if err := decodeBody(req.Body, &ops); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Failed to parse body: %v", err)
 		return nil, 0, false

@@ -228,7 +228,7 @@ The table below shows this endpoint's support for
   "Body": "{\"check\":\"mem\"}",
   "TCP": "example.com:22",
   "Interval": "10s",
-  "TTL": "15s",
+  "Timeout": "5s",
   "TLSSkipVerify": true
 }
 ```

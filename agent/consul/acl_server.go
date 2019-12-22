@@ -36,13 +36,13 @@ func (s *Server) checkTokenUUID(id string) (bool, error) {
 	// a token that hasn't been reaped yet, then we won't be able to insert the
 	// new token due to a collision.
 
-	if _, token, err := state.ACLTokenGetByAccessor(nil, id); err != nil {
+	if _, token, err := state.ACLTokenGetByAccessor(nil, id, nil); err != nil {
 		return false, err
 	} else if token != nil {
 		return false, nil
 	}
 
-	if _, token, err := state.ACLTokenGetBySecret(nil, id); err != nil {
+	if _, token, err := state.ACLTokenGetBySecret(nil, id, nil); err != nil {
 		return false, err
 	} else if token != nil {
 		return false, nil
@@ -53,7 +53,7 @@ func (s *Server) checkTokenUUID(id string) (bool, error) {
 
 func (s *Server) checkPolicyUUID(id string) (bool, error) {
 	state := s.fsm.State()
-	if _, policy, err := state.ACLPolicyGetByID(nil, id); err != nil {
+	if _, policy, err := state.ACLPolicyGetByID(nil, id, nil); err != nil {
 		return false, err
 	} else if policy != nil {
 		return false, nil
@@ -64,7 +64,7 @@ func (s *Server) checkPolicyUUID(id string) (bool, error) {
 
 func (s *Server) checkRoleUUID(id string) (bool, error) {
 	state := s.fsm.State()
-	if _, role, err := state.ACLRoleGetByID(nil, id); err != nil {
+	if _, role, err := state.ACLRoleGetByID(nil, id, nil); err != nil {
 		return false, err
 	} else if role != nil {
 		return false, nil
@@ -75,7 +75,7 @@ func (s *Server) checkRoleUUID(id string) (bool, error) {
 
 func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 	state := s.fsm.State()
-	if _, rule, err := state.ACLBindingRuleGetByID(nil, id); err != nil {
+	if _, rule, err := state.ACLBindingRuleGetByID(nil, id, nil); err != nil {
 		return false, err
 	} else if rule != nil {
 		return false, nil
@@ -171,7 +171,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return false, nil, nil
 	}
 
-	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token)
+	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token, nil)
 	if err != nil {
 		return true, nil, err
 	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
@@ -182,7 +182,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 }
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
-	index, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID)
+	index, policy, err := s.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
 	if err != nil {
 		return true, nil, err
 	} else if policy != nil {
@@ -196,7 +196,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 }
 
 func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
-	index, role, err := s.fsm.State().ACLRoleGetByID(nil, roleID)
+	index, role, err := s.fsm.State().ACLRoleGetByID(nil, roleID, nil)
 	if err != nil {
 		return true, nil, err
 	} else if role != nil {
@@ -211,6 +211,30 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
 	return s.acls.ResolveToken(token)
+}
+
+func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	return s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+}
+
+func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {

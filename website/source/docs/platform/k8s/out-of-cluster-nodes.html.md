@@ -19,7 +19,9 @@ use the ["k8s" cloud auto-join provider](/docs/agent/cloud-auto-join.html#kubern
 The auto-join provider dynamically discovers IP addresses to join using
 the Kubernetes API. It authenticates with Kubernetes using a standard
 `kubeconfig` file. This works with all major hosted Kubernetes offerings
-as well as self-hosted installations.
+as well as self-hosted installations. The token in the `kubeconfig` file
+needs to have permissions to list pods in the namespace where Consul servers
+are deployed.
 
 The auto-join string below will join a Consul server cluster that is
 started using the [official Helm chart](/docs/platform/k8s/helm.html):

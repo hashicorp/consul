@@ -13,7 +13,9 @@ description: |-
 Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs.
 The ACL is [Capability-based](https://en.wikipedia.org/wiki/Capability-based_security), relying on tokens which
 are associated with policies to determine which fine grained rules can be applied. Consul's capability based
-ACL system is very similar to the design of [AWS IAM](https://aws.amazon.com/iam/).
+ACL system is very similar to the design of [AWS IAM](https://aws.amazon.com/iam/). 
+
+To learn how to setup the ACL system on an existing Consul datacenter, use the [Bootstrapping The ACL System guide](https://learn.hashicorp.com/consul/day-0/acl-guide?utm_source=consul.io&utm_medium=docs).
 
 ## ACL System Overview
 
@@ -49,6 +51,9 @@ Consul operators via Consul's [ACL API](/api/acl/acl.html),
 [ACL CLI](/docs/commands/acl.html), or systems like 
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul/index.html).
 
+If the ACL system becomes inoperable, you can follow the 
+[reset procedure](https://learn.hashicorp.com/consul/security-networking/acl-troubleshooting?utm_source=consul.io&utm_medium=docs) at any time.
+
 ### ACL Policies
 
 An ACL policy is a named set of rules and is composed of the following elements:
@@ -58,12 +63,18 @@ An ACL policy is a named set of rules and is composed of the following elements:
 * **Description** - A human readable description of the policy. (Optional)
 * **Rules** - Set of rules granting or denying permissions. See the [Rule Specification](/docs/acl/acl-rules.html#rule-specification) documentation for more details.
 * **Datacenters** - A list of datacenters the policy is valid within.
+* **Namespace** - **Enterprise Only** - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
+
+-> **Consul Enterprise Namespacing** - Rules defined in a policy in any namespace other than `default` will be [restricted](/docs/acl/acl-rules.html#namespace-rules-enterprise) to being able to grant a subset of the overall privileges and only affecting that single namespace. 
 
 #### Builtin Policies
 
 * **Global Management** - Grants unrestricted privileges to any token that uses it. When created it will be named `global-management`
 and will be assigned the reserved ID of `00000000-0000-0000-0000-000000000001`. This policy can be renamed but modification
 of anything else including the rule set and datacenter scoping will be prevented by Consul.
+
+* **Namespace Management** - **Enterprise Only** - Every namespace created will have a policy injected with the name `namespace-management`. This policy gets injected with a randomized UUID and may be managed like any other user-defined policy
+within the Namespace. (Added in Consul Enterprise 1.7.0)
 
 ### ACL Service Identities
 
@@ -106,6 +117,9 @@ node_prefix "" {
 The [API documentation for roles](/api/acl/roles.html#sample-payload) has some
 examples of using a service identity.
 
+-> **Consul Enterprise Namespacing** - Service Identity rules will be scoped to the single namespace that 
+the corresponding ACL Token or Role resides within.
+
 ### ACL Roles
 
 -> Added in Consul 1.5.0
@@ -116,8 +130,11 @@ of the following elements:
 * **ID** - The role's auto-generated public identifier.
 * **Name** - A unique meaningful name for the role.
 * **Description** - A human readable description of the role. (Optional)
-* **Policy Set** - The list of policies that are applicable for the role.
+* **Policy Set** - The list of policies that are applicable for the role. 
 * **Service Identity Set** - The list of service identities that are applicable for the role.
+* **Namespace** - **Enterprise Only** - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
+
+-> **Consul Enterprise Namespacing** - Roles may only link to policies defined in the same namespace as the role itself.
 
 ### ACL Tokens
 
@@ -133,6 +150,10 @@ elements:
 * **Locality** - Indicates whether the token should be local to the datacenter it was created within or created in
 the primary datacenter and globally replicated.
 * **Expiration Time** - The time at which this token is revoked. (Optional; Added in Consul 1.5.0)
+* **Namespace** - **Enterprise Only** - The namespace this policy resides within. (Added in Consul Enterprise 1.7.0)
+
+-> **Consul Enterprise Namespacing** - Tokens may only link to policies and roles defined in the same namespace as
+the token itself.
 
 #### Builtin Tokens
 
@@ -205,6 +226,9 @@ Consul datacenters, and does not allow modification of any state.
 Constructing rules from these policies is covered in detail on the
 [ACL Rules](/docs/acl/acl-rules.html) page.
 
+-> **Consul Enterprise Namespacing** - In addition to directly linked policies, roles and service identities, Consul Enterprise
+will include the ACL policies and roles defined in the [Namespaces definition](/docs/enterprise/namespaces/index.html#namespace-definition). (Added in Consul Enterprise 1.7.0)
+
 ## Configuring ACLs
 
 ACLs are configured using several different configuration options. These are marked
@@ -270,5 +294,5 @@ The `service_prefix` policy needs read access for any services that can be regis
 
 ## Next Steps
 
-Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/advanced/day-1-operations/acl-guide) or continue reading about
+Setup ACLs with the [Bootstrapping the ACL System guide](https://learn.hashicorp.com/consul/security-networking/production-acls?utm_source=consul.io&utm_medium=docs) or continue reading about
 [ACL rules](/docs/acl/acl-rules.html).

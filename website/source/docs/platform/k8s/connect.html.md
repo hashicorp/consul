@@ -47,6 +47,11 @@ HTTP request with the static text "hello world".
 
 ```yaml
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: static-server
@@ -54,6 +59,7 @@ metadata:
     "consul.hashicorp.com/connect-inject": "true"
 spec:
   containers:
+    # This name will be the service name in Consul.
     - name: static-server
       image: hashicorp/http-echo:latest
       args:
@@ -62,6 +68,8 @@ spec:
       ports:
         - containerPort: 8080
           name: http
+   # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+  serviceAccountName: static-server
 ```
 
 The only change for Connect is the addition of the
@@ -83,6 +91,10 @@ This is useful to transition to Connect by allowing both Connect and
 non-Connect connections. To restrict access to only Connect-authorized clients,
 any listeners should bind to localhost only (such as `127.0.0.1`).
 
+The service name registered in Consul will be set to the name of the first
+container in the Pod. This can be customized with the `consul.hashicorp.com/connect-service`
+annotation. If using ACLs, this name must be the same as the Pod's `ServiceAccount` name.
+
 ### Connecting to Connect-Enabled Services
 
 The example pod specification below configures a pod that is capable
@@ -92,6 +104,11 @@ connection via Connect.
 
 ```yaml
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: static-client
@@ -100,11 +117,14 @@ metadata:
     "consul.hashicorp.com/connect-service-upstreams": "static-server:1234"
 spec:
   containers:
+    # This name will be the service name in Consul.
     - name: static-client
       image: tutum/curl:latest
       # Just spin & wait forever, we'll use `kubectl exec` to demo
       command: [ "/bin/sh", "-c", "--" ]
       args: [ "while true; do sleep 30; done;" ]
+   # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+  serviceAccountName: static-client
 ```
 
 Pods must specify upstream dependencies with the
@@ -164,6 +184,8 @@ Annotations can be used to configure the injection behavior.
   connections, this specifies the name of the service that is being
   served. This defaults to the name of the first container in the pod.
 
+  If using ACLs, this must be the same name as the Pod's `ServiceAccount`.
+
 * `consul.hashicorp.com/connect-service-port` - For pods that accept inbound
   connections, this specifies the port to route inbound connections to. This
   is the port that the service is listening on. The service port defaults to
@@ -180,31 +202,31 @@ Annotations can be used to configure the injection behavior.
 
         The name of the service is the name of the service registered with Consul. You can optionally specify datacenters with this annotation. 
         
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
         ```
 
     * [Prepared Query](https://www.consul.io/docs/connect/proxies.html#upstreams)
 
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams": "prepared_query:[query name]:[port]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams": "prepared_query:[query name]:[port]"
         ````
 
     * Multiple Upstreams
 
         If you would like to specify multiple services or upstreams, delimit them with commas
 
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],[service-name]:[port]:[optional datacenter]"
         ```
 
-        ```annotations:
-        "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
+        ```yaml
+        annotations:
+          "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
         ```
-        
-      
-
-
 
 * `consul.hashicorp.com/connect-service-protocol` - For pods that will be
   registered with Consul's [central configuration](/docs/agent/config_entries.html)
@@ -214,6 +236,24 @@ Annotations can be used to configure the injection behavior.
   [defaultProtocol](/docs/platform/k8s/helm.html#v-connectinject-centralconfig-defaultprotocol)
   option. Specific annotations will always override the default value.
 
+* `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
+  be applied to the Consul service and its sidecar.
+  
+    ```yaml
+    annotations:
+      consul.hashicorp.com/service-tags: foo,bar,baz
+    ```
+    
+* `consul.hashicorp.com/service-meta-<YOUR_KEY>` - Set Consul meta key/value
+   pairs that will be applied to the Consul service and its sidecar.
+   The key will be what comes after `consul.hashicorp.com/service-meta-`, e.g.
+   `consul.hashicorp.com/service-meta-foo: bar` will result in `foo: bar`.
+  
+    ```yaml
+    annotations:
+      consul.hashicorp.com/service-meta-foo: baz
+      consul.hashicorp.com/service-meta-bar: baz
+    ```
 
 ### Deployments, StatefulSets, etc.
 
@@ -241,8 +281,14 @@ spec:
         "consul.hashicorp.com/connect-inject": "true"
     spec:
       containers:
-        - name: example
+        - name: consul-example
           image: "nginx"
+      serviceAccountName: consul-example
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: consul-example
 ```
 
 ~> **A common mistake** is to set the annotation on the Deployment or
@@ -285,6 +331,10 @@ As noted above, the Connect auto-injection requires that local client agents
 are configured. These client agents must be successfully joined to a Consul
 cluster.
 The Consul server cluster can run either in or out of a Kubernetes cluster.
+
+~> NOTE: If setting `global.bootstrapACLs: true`, it's important that your Pod's `ServiceAccount`
+  has the **same name** as the Consul service that's being registered. If not, the init
+  container will log: `Error logging in: Unexpected response code: 403 (rpc error making call: rpc error making call: Permission denied)`.
 
 ### Verifying the Installation
 

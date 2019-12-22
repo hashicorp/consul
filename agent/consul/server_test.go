@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -9,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect/ca"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -36,6 +39,21 @@ var id int64
 
 func uniqueNodeName(name string) string {
 	return fmt.Sprintf("%s-node-%d", name, atomic.AddInt64(&id, 1))
+}
+
+// This will find the leader of a list of servers and verify that leader establishment has completed
+func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
+	t.Helper()
+	retry.Run(t, func(r *retry.R) {
+		hasLeader := false
+		for _, srv := range servers {
+			if srv.IsLeader() {
+				hasLeader = true
+				require.True(r, srv.isReadyForConsistentReads(), "Leader %s hasn't finished establishing leadership yet", srv.config.NodeName)
+			}
+		}
+		require.True(r, hasLeader, "Cluster has not elected a leader yet")
+	})
 }
 
 func testServerConfig(t *testing.T) (string, *Config) {
@@ -245,6 +263,48 @@ func TestServer_StartStop(t *testing.T) {
 	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestServer_fixupACLDatacenter(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "aye"
+		c.PrimaryDatacenter = "aye"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "bee"
+		c.PrimaryDatacenter = "aye"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s1 WAN members want %d", got, want)
+		}
+		if got, want := len(s2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s2 WAN members want %d", got, want)
+		}
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "aye")
+	testrpc.WaitForLeader(t, s2.RPC, "bee")
+
+	require.Equal(t, "aye", s1.config.Datacenter)
+	require.Equal(t, "aye", s1.config.ACLDatacenter)
+	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
+
+	require.Equal(t, "bee", s2.config.Datacenter)
+	require.Equal(t, "aye", s2.config.ACLDatacenter)
+	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 }
 
 func TestServer_JoinLAN(t *testing.T) {
@@ -1076,4 +1136,37 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+}
+
+func TestServer_CALogging(t *testing.T) {
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
+
+	// Setup dummy logger to catch output
+	var buf bytes.Buffer
+	logger := log.New(&buf, "", log.LstdFlags)
+
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil)
+	require.NoError(t, err)
+	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	if _, ok := s1.caProvider.(ca.NeedsLogger); !ok {
+		t.Fatalf("provider does not implement NeedsLogger")
+	}
+
+	// Wait til CA root is setup
+	retry.Run(t, func(r *retry.R) {
+		var out structs.IndexedCARoots
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+			Datacenter: conf1.Datacenter,
+		}, &out))
+	})
+
+	require.Contains(t, buf.String(), "consul CA provider configured")
 }

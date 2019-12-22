@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -51,7 +52,6 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 		return nil, err
 	}
 
-	fixupConfig(&reply)
 	return reply, nil
 }
 
@@ -62,36 +62,19 @@ func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *ht
 	var args structs.CARequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Config, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+	if err := decodeBody(req.Body, &args.Config); err != nil {
+		return nil, BadRequestError{
+			Reason: fmt.Sprintf("Request decode failed: %v", err),
+		}
 	}
 
 	var reply interface{}
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
-	return nil, err
-}
-
-// A hack to fix up the config types inside of the map[string]interface{}
-// so that they get formatted correctly during json.Marshal. Without this,
-// string values that get converted to []uint8 end up getting output back
-// to the user in base64-encoded form.
-func fixupConfig(conf *structs.CAConfiguration) {
-	for k, v := range conf.Config {
-		if raw, ok := v.([]uint8); ok {
-			strVal := structs.Uint8ToString(raw)
-			conf.Config[k] = strVal
-			switch conf.Provider {
-			case structs.ConsulCAProvider:
-				if k == "PrivateKey" && strVal != "" {
-					conf.Config["PrivateKey"] = "hidden"
-				}
-			case structs.VaultCAProvider:
-				if k == "Token" && strVal != "" {
-					conf.Config["Token"] = "hidden"
-				}
-			}
+	if err != nil && err.Error() == consul.ErrStateReadOnly.Error() {
+		return nil, BadRequestError{
+			Reason: "Provider State is read-only. It must be omitted" +
+				" or identical to the current value",
 		}
 	}
+	return nil, err
 }

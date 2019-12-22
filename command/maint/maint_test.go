@@ -52,7 +52,7 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := a.EnableServiceMaintenance("test", "broken 1", ""); err != nil {
+	if err := a.EnableServiceMaintenance(structs.NewServiceID("test", nil), "broken 1", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

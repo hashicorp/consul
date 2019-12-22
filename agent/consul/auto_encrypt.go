@@ -65,7 +65,11 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	//
+	// The Common Name includes the dummy trust domain for now but Server will
+	// override this when it is signed anyway so it's OK.
+	cn := connect.AgentCN(string(c.config.NodeName), dummyTrustDomain)
+	csr, err := connect.CreateCSR(id, cn, pk)
 	if err != nil {
 		return errFn(err)
 	}

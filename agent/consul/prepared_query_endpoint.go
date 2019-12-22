@@ -69,7 +69,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// need to make sure they have write access for whatever they are
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
-		if rule != nil && !rule.PreparedQueryWrite(prefix) {
+		if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
 			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
 			return acl.ErrPermissionDenied
 		}
@@ -89,7 +89,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		}
 
 		if prefix, ok := query.GetACLPrefix(); ok {
-			if rule != nil && !rule.PreparedQueryWrite(prefix) {
+			if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
 				return acl.ErrPermissionDenied
 			}
@@ -520,7 +520,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		f = state.CheckConnectServiceNodes
 	}
 
-	_, nodes, err := f(nil, query.Service.Service)
+	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta)
 	if err != nil {
 		return err
 	}

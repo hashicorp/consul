@@ -2,6 +2,9 @@ package cachetype
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/local"
@@ -10,8 +13,6 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestServiceHTTPChecks_Fetch(t *testing.T) {
@@ -179,7 +180,7 @@ func newMockAgent() *mockAgent {
 	return &m
 }
 
-func (m *mockAgent) ServiceHTTPBasedChecks(id string) []structs.CheckType {
+func (m *mockAgent) ServiceHTTPBasedChecks(id structs.ServiceID) []structs.CheckType {
 	return m.checks
 }
 

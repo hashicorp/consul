@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -388,7 +387,7 @@ func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (inter
 // raftApplyProtobuf will protobuf encode the request and then run it through raft,
 // then return the FSM response along with any errors.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
-	return s.raftApplyWithEncoder(t, msg, agentpb.EncodeInterface)
+	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
 // raftApplyWithEncoder is used to encode a message, run it through raft,

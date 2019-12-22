@@ -46,6 +46,7 @@ type CatalogService struct {
 	CreateIndex              uint64
 	Checks                   HealthChecks
 	ModifyIndex              uint64
+	Namespace                string `json:",omitempty"`
 }
 
 type CatalogNode struct {
@@ -68,10 +69,11 @@ type CatalogRegistration struct {
 
 type CatalogDeregistration struct {
 	Node       string
-	Address    string // Obsolete.
+	Address    string `json:",omitempty"` // Obsolete.
 	Datacenter string
 	ServiceID  string
 	CheckID    string
+	Namespace  string `json:",omitempty"`
 }
 
 // Catalog can be used to query the Catalog endpoints

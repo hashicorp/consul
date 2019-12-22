@@ -323,11 +323,20 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
 	if config.anyVerifyIncoming() {
+		autoEncryptMsg := " AutoEncrypt only secures the connection between client and server and doesn't affect incoming connections on the client."
 		if pool == nil {
-			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+			errMsg := "VerifyIncoming set, and no CA certificate provided!"
+			if config.AutoEncryptTLS {
+				errMsg += autoEncryptMsg
+			}
+			return fmt.Errorf(errMsg)
 		}
-		if cert == nil || cert.Certificate == nil {
-			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+		if cert == nil {
+			errMsg := "VerifyIncoming set, and no Cert/Key pair provided!"
+			if config.AutoEncryptTLS {
+				errMsg += autoEncryptMsg
+			}
+			return fmt.Errorf(errMsg)
 		}
 	}
 	return nil
@@ -351,7 +360,7 @@ func (c *Config) baseVerifyIncoming() bool {
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
-		return &tls.Certificate{}, nil
+		return nil, nil
 	}
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -428,11 +437,16 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
 	// GetCertificate is used when acting as a server and responding to
-	// client requests. Always return the manually configured cert, because
-	// on the server this is all we have. And on the client, this is the
-	// only sensitive option.
+	// client requests. Default to the manually configured cert, but allow
+	// autoEncrypt cert too so that a client can encrypt incoming
+	// connections without having a manual cert configured.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		return c.manual.cert, nil
+		cert := c.manual.cert
+		if cert == nil {
+			cert = c.autoEncrypt.cert
+		}
+
+		return cert, nil
 	}
 
 	// GetClientCertificate is used when acting as a client and responding
@@ -630,9 +644,9 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 // there is no cert, it will return a time in the past.
 func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
 	c.RLock()
+	defer c.RUnlock()
 	tlsCert := c.autoEncrypt.cert
-	c.RUnlock()
-	if tlsCert == nil {
+	if tlsCert == nil || tlsCert.Certificate == nil {
 		return time.Now().AddDate(0, 0, -1)
 	}
 	cert, err := x509.ParseCertificate(tlsCert.Certificate[0])

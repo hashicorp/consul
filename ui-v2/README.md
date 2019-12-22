@@ -21,14 +21,11 @@ All tooling scripts below primarily use `make` which in turn call node package s
 
 ## Running / Development
 
-The source code comes with a small server that runs enough of the consul API
+The source code comes with a small development mode that runs enough of the consul API
 as a set of mocks/fixtures to be able to run the UI without having to run
 consul.
 
-* `make start-api` or `yarn start:api` (this starts a Consul API double running
-on http://localhost:3000)
-* `make start` or `yarn start` to start the ember app that connects to the
-above API double
+* `make start` or `yarn start` to start the ember app
 * Visit your app at [http://localhost:4200](http://localhost:4200).
 
 To enable ACLs using the mock API, use Web Inspector to set a cookie as follows:
@@ -51,6 +48,20 @@ CONSUL_NODE_CODE=1000
 
 See `./node_modules/@hashicorp/consul-api-double` for more details.
 
+If you wish to run the UI code against a running consul instance, uncomment the `proxy`
+line in `.ember-cli` to point ember-cli to your consul instance.
+
+You can also run the UI against a normal Consul installation.
+
+`make start-consul` or `yarn run start:consul` will use the `CONSUL_HTTP_ADDR`
+environment variable to locate the Consul installation. If that it not set
+`start-consul` will use `http://localhost:8500`.
+
+Example usage:
+
+```
+CONSUL_HTTP_ADDR=http://10.0.0.1:8500 make start-consul
+```
 
 ### Code Generators
 

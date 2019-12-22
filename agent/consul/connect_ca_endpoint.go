@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -33,6 +34,7 @@ var (
 	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
 	ErrRateLimited          = errors.New("Rate limit reached, try again later")
 	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
+	ErrStateReadOnly        = errors.New("CA Provider State is read-only")
 )
 
 const (
@@ -119,7 +121,7 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -151,7 +153,7 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -162,10 +164,27 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
+	// Don't allow state changes. Either it needs to be empty or the same to allow
+	// read-modify-write loops that don't touch the State field.
+	if len(args.Config.State) > 0 &&
+		!reflect.DeepEqual(args.Config.State, config.State) {
+		return ErrStateReadOnly
+	}
+
 	// Don't allow users to change the ClusterID.
 	args.Config.ClusterID = config.ClusterID
 	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
 		return nil
+	}
+
+	// If the provider hasn't changed, we need to load the current Provider state
+	// so it can decide if it needs to change resources or not based on the config
+	// change.
+	if args.Config.Provider == config.Provider {
+		// Note this is a shallow copy since the State method doc requires the
+		// provider return a map that will not be further modified and should not
+		// modify the one we pass to Configure.
+		args.Config.State = config.State
 	}
 
 	// Create a new instance of the provider described by the config
@@ -176,7 +195,15 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
-	if err := newProvider.Configure(args.Config.ClusterID, true, args.Config.Config); err != nil {
+	pCfg := ca.ProviderConfig{
+		ClusterID:  args.Config.ClusterID,
+		Datacenter: s.srv.config.Datacenter,
+		// This endpoint can be called in a secondary DC too so set this correctly.
+		IsPrimary: s.srv.config.Datacenter == s.srv.config.PrimaryDatacenter,
+		RawConfig: args.Config.Config,
+		State:     args.Config.State,
+	}
+	if err := newProvider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 	if err := newProvider.GenerateRoot(); err != nil {
@@ -192,6 +219,13 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
+
+	// See if the provider needs to persist any state along with the config
+	pState, err := newProvider.State()
+	if err != nil {
+		return fmt.Errorf("error getting provider state: %v", err)
+	}
+	args.Config.State = pState
 
 	// Compare the new provider's root CA ID to the current one. If they
 	// match, just update the existing provider with the new config.
@@ -226,6 +260,26 @@ func (s *ConnectCA) ConfigurationSet(
 	// either by swapping the provider type or changing the provider's config
 	// to use a different root certificate.
 
+	// First up, sanity check that the current provider actually supports
+	// cross-signing.
+	oldProvider, _ := s.srv.getCAProvider()
+	if oldProvider == nil {
+		return fmt.Errorf("internal error: CA provider is nil")
+	}
+	canXSign, err := oldProvider.SupportsCrossSigning()
+	if err != nil {
+		return fmt.Errorf("CA provider error: %s", err)
+	}
+	if !canXSign && !args.Config.ForceWithoutCrossSigning {
+		return errors.New("The current CA Provider does not support cross-signing. " +
+			"You can try again with ForceWithoutCrossSigningSet but this may cause " +
+			"disruption - see documentation for more.")
+	}
+	if !canXSign && args.Config.ForceWithoutCrossSigning {
+		s.srv.logger.Println("[WARN] current CA doesn't support cross signing but " +
+			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
+	}
+
 	// If it's a config change that would trigger a rotation (different provider/root):
 	// 1. Get the root from the new provider.
 	// 2. Call CrossSignCA on the old provider to sign the new root with the old one to
@@ -237,18 +291,18 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	// Have the old provider cross-sign the new intermediate
-	oldProvider, _ := s.srv.getCAProvider()
-	if oldProvider == nil {
-		return fmt.Errorf("internal error: CA provider is nil")
-	}
-	xcCert, err := oldProvider.CrossSignCA(newRoot)
-	if err != nil {
-		return err
+	if canXSign {
+		// Have the old provider cross-sign the new root
+		xcCert, err := oldProvider.CrossSignCA(newRoot)
+		if err != nil {
+			return err
+		}
+
+		// Add the cross signed cert to the new CA's intermediates (to be attached
+		// to leaf certs).
+		newActiveRoot.IntermediateCerts = []string{xcCert}
 	}
 
-	// Add the cross signed cert to the new root's intermediates.
-	newActiveRoot.IntermediateCerts = []string{xcCert}
 	intermediate, err := newProvider.GenerateIntermediate()
 	if err != nil {
 		return err
@@ -431,7 +485,8 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 	if isService {
-		if rule != nil && !rule.ServiceWrite(serviceID.Service, nil) {
+		// TODO (namespaces) use actual ent authz context
+		if rule != nil && rule.ServiceWrite(serviceID.Service, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -442,7 +497,8 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		if rule != nil && !rule.NodeWrite(agentID.Agent, nil) {
+		// TODO (namespaces) use actual ent authz context
+		if rule != nil && rule.NodeWrite(agentID.Agent, nil) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -471,6 +527,9 @@ func (s *ConnectCA) Sign(
 
 	// All seems to be in order, actually sign it.
 	pem, err := provider.Sign(csr)
+	if err == ca.ErrRateLimited {
+		return ErrRateLimited
+	}
 	if err != nil {
 		return err
 	}
@@ -569,7 +628,7 @@ func (s *ConnectCA) SignIntermediate(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

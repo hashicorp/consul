@@ -17,6 +17,7 @@ body.layout-downloads {
           padding-left: 20px;
 
           h2 {
+            @extend .g-type-display-4;
             margin-top: 4px;
             border: none;
           }
@@ -46,7 +47,6 @@ body.layout-downloads {
         }
 
         .os-name {
-          font-size: 40px;
           margin-bottom: -3px;
         }
       }

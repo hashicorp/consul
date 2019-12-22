@@ -1,8 +1,8 @@
 SHELL = bash
 GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
-	github.com/hashicorp/go-bindata/go-bindata \
+	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
+	github.com/hashicorp/go-bindata/go-bindata@master \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
@@ -307,11 +307,15 @@ cover:
 
 format:
 	@echo "--> Running go fmt"
-	@go fmt $(GOFILES)
+	@go fmt ./...
+	@cd api && go fmt ./... | sed 's@^@api/@'
+	@cd sdk && go fmt ./... | sed 's@^@sdk/@'
 
 vet:
 	@echo "--> Running go vet"
-	@go vet -tags '$(GOTAGS)' $(GOFILES); if [ $$? -eq 1 ]; then \
+	@go vet -tags '$(GOTAGS)' ./... && \
+		(cd api && go vet -tags '$(GOTAGS)' ./...) && \
+		(cd sdk && go vet -tags '$(GOTAGS)' ./...); if [ $$? -ne 0 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -330,7 +334,11 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	go get -v $(GOTOOLS)
+	@mkdir -p .gotools
+	@cd .gotools && if [[ ! -f go.mod ]]; then \
+		go mod init consul-tools ; \
+	fi
+	cd .gotools && go get -v $(GOTOOLS)
 
 version:
 	@echo -n "Version:                    "
@@ -364,6 +372,16 @@ ui-docker: ui-build-image
 
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
+
+test-vault-ca-provider:
+ifeq ("$(CIRCLECI)","true")
+# Run in CI
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider
+else
+# Run locally
+	@echo "Running /agent/connect/ca TestVaultCAProvider tests in verbose mode"
+	@go test $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider -v
+endif
 
 proto-delete:
 	@echo "Removing $(PROTOGOFILES)"

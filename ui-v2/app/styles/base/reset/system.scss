@@ -7,9 +7,11 @@ span,
 strong {
   color: inherit;
 }
+/* %typo-body */
 body {
   color: $gray-900;
 }
+/* TODO: Consider changing this to 'p a, dd a, td a' etc etc*/
 a {
   color: $color-action;
 }
@@ -22,6 +24,7 @@ hr {
 html {
   font-size: $typo-size-000;
 }
+/* %typo-body */
 body {
   line-height: 1.5;
 }

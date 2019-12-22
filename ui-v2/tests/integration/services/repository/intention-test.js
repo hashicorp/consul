@@ -7,6 +7,7 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 
 const dc = 'dc-1';
 const id = 'token-name';
+const nspace = 'default';
 test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
   return repo(
     'Intention',
@@ -29,7 +30,9 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
               CreatedAt: new Date(item.CreatedAt),
               UpdatedAt: new Date(item.UpdatedAt),
               Datacenter: dc,
-              uid: `["${dc}","${item.ID}"]`,
+              // TODO: nspace isn't required here, once we've
+              // refactored out our Serializer this can go
+              uid: `["${nspace}","${dc}","${item.ID}"]`,
             })
           );
         })
@@ -57,7 +60,9 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
             CreatedAt: new Date(item.CreatedAt),
             UpdatedAt: new Date(item.UpdatedAt),
             Datacenter: dc,
-            uid: `["${dc}","${item.ID}"]`,
+            // TODO: nspace isn't required here, once we've
+            // refactored out our Serializer this can go
+            uid: `["${nspace}","${dc}","${item.ID}"]`,
           });
         })
       );

@@ -7,6 +7,7 @@ export default RepositoryService.extend({
   },
   findBySlug: function(slug, dc) {
     return this._super(...arguments).then(function(item) {
+      // TODO: Move this to the Serializer
       const nodes = get(item, 'Nodes');
       if (nodes.length === 0) {
         // TODO: Add an store.error("404", "message") or similar
@@ -21,6 +22,7 @@ export default RepositoryService.extend({
         throw e;
       }
       const service = get(nodes, 'firstObject');
+      // TODO: Use [...new Set()] instead of uniq
       const tags = nodes
         .reduce(function(prev, item) {
           return prev.concat(get(item, 'Service.Tags') || []);
@@ -29,11 +31,13 @@ export default RepositoryService.extend({
       set(service, 'Tags', tags);
       set(service, 'Nodes', nodes);
       set(service, 'meta', get(item, 'meta'));
+      set(service, 'Namespace', get(item, 'Namespace'));
       return service;
     });
   },
   findInstanceBySlug: function(id, node, slug, dc, configuration) {
     return this.findBySlug(slug, dc, configuration).then(function(item) {
+      // TODO: Move this to the Serializer
       // Loop through all the service instances and pick out the one
       // that has the same service id AND node name
       // node names are unique per datacenter
@@ -50,6 +54,7 @@ export default RepositoryService.extend({
           return item.ServiceID == '';
         });
         set(service, 'meta', get(item, 'meta'));
+        set(service, 'Namespace', get(item, 'Namespace'));
         return service;
       }
       // TODO: Add an store.error("404", "message") or similar

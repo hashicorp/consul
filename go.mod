@@ -6,6 +6,8 @@ replace github.com/hashicorp/consul/api => ./api
 
 replace github.com/hashicorp/consul/sdk => ./sdk
 
+replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
+
 require (
 	github.com/Azure/go-autorest v10.15.3+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.3 // indirect
@@ -14,6 +16,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878
 	github.com/armon/go-radix v1.0.0
+	github.com/aws/aws-sdk-go v1.25.41
 	github.com/coredns/coredns v1.1.2
 	github.com/digitalocean/godo v1.10.0 // indirect
 	github.com/docker/go-connections v0.3.0
@@ -29,12 +32,11 @@ require (
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
+	github.com/hashicorp/go-discover v0.0.0-20191202160150-7ec2cfbda7a2
 	github.com/hashicorp/go-hclog v0.9.2
-	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
+	github.com/hashicorp/go-memdb v1.0.3
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/go-plugin v1.0.1
 	github.com/hashicorp/go-raftchunking v0.6.1
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
@@ -54,7 +56,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6
 	github.com/kr/text v0.1.0
-	github.com/miekg/dns v1.0.14
+	github.com/miekg/dns v1.1.22
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.0.0
@@ -71,10 +73,10 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.3.0
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
+	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
+	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/grpc v1.23.0
 	gopkg.in/square/go-jose.v2 v2.3.1

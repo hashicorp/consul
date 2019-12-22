@@ -1,7 +1,6 @@
 package state
 
 import (
-	"reflect"
 	"testing"
 	"time"
 )
@@ -18,16 +17,16 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		tx := s.db.Txn(true)
 		defer tx.Abort()
 
-		if err := g.InsertTxn(tx, "foo/in/the/house", 2); err != nil {
+		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if err := g.InsertTxn(tx, "foo/bar/baz", 5); err != nil {
+		if err := g.InsertTxn(tx, "foo/bar/baz", 5, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if err := g.InsertTxn(tx, "foo/bar/zoo", 8); err != nil {
+		if err := g.InsertTxn(tx, "foo/bar/zoo", 8, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if err := g.InsertTxn(tx, "some/other/path", 9); err != nil {
+		if err := g.InsertTxn(tx, "some/other/path", 9, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		tx.Commit()
@@ -38,25 +37,25 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		if idx, err := g.GetMaxIndexTxn(tx, "foo"); idx != 8 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo", nil); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/in/the/house"); idx != 2 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo/in/the/house", nil); idx != 2 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/baz"); idx != 5 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/baz", nil); idx != 5 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo"); idx != 8 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo", nil); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "some/other/path"); idx != 9 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "some/other/path", nil); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, ""); idx != 9 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "", nil); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "nope"); idx != 0 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "nope", nil); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
 	}()
@@ -77,25 +76,25 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		if idx, err := g.GetMaxIndexTxn(tx, "foo"); idx != 8 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo", nil); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/in/the/house"); idx != 0 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo/in/the/house", nil); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/baz"); idx != 0 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/baz", nil); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo"); idx != 8 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "foo/bar/zoo", nil); idx != 8 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "some/other/path"); idx != 9 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "some/other/path", nil); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, ""); idx != 9 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "", nil); idx != 9 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
-		if idx, err := g.GetMaxIndexTxn(tx, "nope"); idx != 0 || err != nil {
+		if idx, err := g.GetMaxIndexTxn(tx, "nope", nil); idx != 0 || err != nil {
 			t.Fatalf("bad: %d (%s)", idx, err)
 		}
 	}()
@@ -125,7 +124,7 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 		tx := s.db.Txn(true)
 		defer tx.Abort()
 
-		if err := g.InsertTxn(tx, "foo/in/the/house", 2); err != nil {
+		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}()
@@ -140,7 +139,7 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 		tx := s.db.Txn(true)
 		defer tx.Abort()
 
-		if err := g.InsertTxn(tx, "foo/in/the/house", 2); err != nil {
+		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		tx.Commit()
@@ -174,16 +173,16 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		tx := s.db.Txn(true)
 		defer tx.Abort()
 
-		if err := g.InsertTxn(tx, "foo/in/the/house", 2); err != nil {
+		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if err := g.InsertTxn(tx, "foo/bar/baz", 5); err != nil {
+		if err := g.InsertTxn(tx, "foo/bar/baz", 5, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if err := g.InsertTxn(tx, "foo/bar/zoo", 8); err != nil {
+		if err := g.InsertTxn(tx, "foo/bar/zoo", 8, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if err := g.InsertTxn(tx, "some/other/path", 9); err != nil {
+		if err := g.InsertTxn(tx, "some/other/path", 9, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		tx.Commit()
@@ -217,8 +216,16 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		&Tombstone{Key: "foo/in/the/house", Index: 2},
 		&Tombstone{Key: "some/other/path", Index: 9},
 	}
-	if !reflect.DeepEqual(dump, expected) {
-		t.Fatalf("bad: %v", dump)
+	if len(expected) != len(dump) {
+		t.Fatalf("expected %d, got %d tombstones", len(expected), len(dump))
+	}
+	for i, e := range expected {
+		if e.Key != dump[i].Key {
+			t.Fatalf("expected key %s, got %s", e.Key, dump[i].Key)
+		}
+		if e.Index != dump[i].Index {
+			t.Fatalf("expected key %s, got %s", e.Key, dump[i].Key)
+		}
 	}
 
 	// Make another state store and restore from the dump.
@@ -255,8 +262,16 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 			}
 			return dump
 		}()
-		if !reflect.DeepEqual(dump, expected) {
-			t.Fatalf("bad: %v", dump)
+		if len(expected) != len(dump) {
+			t.Fatalf("expected %d, got %d tombstones", len(expected), len(dump))
+		}
+		for i, e := range expected {
+			if e.Key != dump[i].Key {
+				t.Fatalf("expected key %s, got %s", e.Key, dump[i].Key)
+			}
+			if e.Index != dump[i].Index {
+				t.Fatalf("expected idx %d, got %d", e.Index, dump[i].Index)
+			}
 		}
 	}()
 }

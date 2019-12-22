@@ -18,7 +18,9 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -28,7 +30,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sentinel"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
@@ -107,14 +108,14 @@ var (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// sentinel is the Sentinel code engine (can be nil).
-	sentinel sentinel.Evaluator
+	// enterpriseACLConfig is the Consul Enterprise specific items
+	// necessary for ACLs
+	enterpriseACLConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
-	aclAuthMethodValidators    map[string]*authMethodValidatorEntry
-	aclAuthMethodValidatorLock sync.RWMutex
+	aclAuthMethodValidators authmethod.Cache
 
 	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
 	// useNewACLs is used to determine whether we can use new ACLs or not
@@ -326,6 +327,10 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		}
 	}
 
+	if config.PrimaryDatacenter != "" {
+		config.ACLDatacenter = config.PrimaryDatacenter
+	}
+
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
@@ -346,25 +351,26 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 
 	// Create server.
 	s := &Server{
-		config:               config,
-		tokens:               tokens,
-		connPool:             connPool,
-		eventChLAN:           make(chan serf.Event, serfEventChSize),
-		eventChWAN:           make(chan serf.Event, serfEventChSize),
-		logger:               logger,
-		leaveCh:              make(chan struct{}),
-		reconcileCh:          make(chan serf.Member, reconcileChSize),
-		router:               router.NewRouter(logger, config.Datacenter),
-		rpcServer:            rpc.NewServer(),
-		insecureRPCServer:    rpc.NewServer(),
-		tlsConfigurator:      tlsConfigurator,
-		reassertLeaderCh:     make(chan chan error),
-		segmentLAN:           make(map[string]*serf.Serf, len(config.Segments)),
-		sessionTimers:        NewSessionTimers(),
-		tombstoneGC:          gc,
-		serverLookup:         NewServerLookup(),
-		shutdownCh:           shutdownCh,
-		leaderRoutineManager: NewLeaderRoutineManager(logger),
+		config:                  config,
+		tokens:                  tokens,
+		connPool:                connPool,
+		eventChLAN:              make(chan serf.Event, serfEventChSize),
+		eventChWAN:              make(chan serf.Event, serfEventChSize),
+		logger:                  logger,
+		leaveCh:                 make(chan struct{}),
+		reconcileCh:             make(chan serf.Member, reconcileChSize),
+		router:                  router.NewRouter(logger, config.Datacenter),
+		rpcServer:               rpc.NewServer(),
+		insecureRPCServer:       rpc.NewServer(),
+		tlsConfigurator:         tlsConfigurator,
+		reassertLeaderCh:        make(chan chan error),
+		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
+		sessionTimers:           NewSessionTimers(),
+		tombstoneGC:             gc,
+		serverLookup:            NewServerLookup(),
+		shutdownCh:              shutdownCh,
+		leaderRoutineManager:    NewLeaderRoutineManager(logger),
+		aclAuthMethodValidators: authmethod.NewCache(),
 	}
 
 	// Initialize enterprise specific server functionality
@@ -376,11 +382,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
-		Name:        "Config Entry",
-		ReplicateFn: s.replicateConfig,
-		Rate:        s.config.ConfigReplicationRate,
-		Burst:       s.config.ConfigReplicationBurst,
-		Logger:      logger,
+		Name:     "Config Entry",
+		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig},
+		Rate:     s.config.ConfigReplicationRate,
+		Burst:    s.config.ConfigReplicationBurst,
+		Logger:   logger,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {
@@ -391,15 +397,15 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.sentinel = sentinel.New(logger)
+	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
-		Delegate:    s,
-		CacheConfig: serverACLCacheConfig,
-		AutoDisable: false,
-		Logger:      logger,
-		Sentinel:    s.sentinel,
+		Config:           config,
+		Delegate:         s,
+		CacheConfig:      serverACLCacheConfig,
+		AutoDisable:      false,
+		Logger:           logger,
+		EnterpriseConfig: s.enterpriseACLConfig,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -840,6 +846,8 @@ func (s *Server) Shutdown() error {
 
 	// Close the connection pool
 	s.connPool.Shutdown()
+
+	s.acls.Close()
 
 	if s.config.NotifyShutdown != nil {
 		s.config.NotifyShutdown()

@@ -49,9 +49,16 @@ type TxnCheckOp struct {
 	Check HealthCheck
 }
 
-// TxnCheckResult is used to define the result of a single operation on a health
-// check inside a transaction.
+// TxnCheckResult is used to define the result of a single operation on a
+// session inside a transaction.
 type TxnCheckResult *HealthCheck
+
+// TxnSessionOp is used to define a single operation on a session inside a
+// transaction.
+type TxnSessionOp struct {
+	Verb    api.SessionOp
+	Session Session
+}
 
 // TxnKVOp is used to define a single operation on an Intention inside a
 // transaction.
@@ -65,6 +72,7 @@ type TxnOp struct {
 	Node      *TxnNodeOp
 	Service   *TxnServiceOp
 	Check     *TxnCheckOp
+	Session   *TxnSessionOp
 }
 
 // TxnOps is a list of operations within a transaction.

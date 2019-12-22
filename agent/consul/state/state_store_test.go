@@ -26,6 +26,27 @@ func testUUID() string {
 		buf[10:16])
 }
 
+func snapshotIndexes(snap *Snapshot) ([]*IndexEntry, error) {
+	iter, err := snap.Indexes()
+	if err != nil {
+		return nil, err
+	}
+	var indexes []*IndexEntry
+	for index := iter.Next(); index != nil; index = iter.Next() {
+		indexes = append(indexes, index.(*IndexEntry))
+	}
+	return indexes, nil
+}
+
+func restoreIndexes(indexes []*IndexEntry, r *Restore) error {
+	for _, index := range indexes {
+		if err := r.IndexRestore(index); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func testStateStore(t *testing.T) *Store {
 	s, err := NewStateStore(nil)
 	if err != nil {
@@ -86,7 +107,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	service, err := tx.First("services", "id", nodeID, serviceID)
+	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -119,7 +140,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First("checks", "id", nodeID, string(checkID))
+	_, c, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, nodeID, string(checkID))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -157,15 +178,22 @@ func testRegisterConnectNativeService(t *testing.T, s *Store, idx uint64, nodeID
 	require.NoError(t, s.EnsureService(idx, nodeID, svc))
 }
 
-func testSetKey(t *testing.T, s *Store, idx uint64, key, value string) {
-	entry := &structs.DirEntry{Key: key, Value: []byte(value)}
+func testSetKey(t *testing.T, s *Store, idx uint64, key, value string, entMeta *structs.EnterpriseMeta) {
+	entry := &structs.DirEntry{
+		Key:   key,
+		Value: []byte(value),
+	}
+	if entMeta != nil {
+		entry.EnterpriseMeta = *entMeta
+	}
+
 	if err := s.KVSSet(idx, entry); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := tx.First("kvs", "id", key)
+	e, err := firstWithTxn(tx, "kvs", "id", key, entMeta)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -202,7 +230,7 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	}
 	restore.Abort()
 
-	idx, entries, err := s.KVSList(nil, "")
+	idx, entries, err := s.KVSList(nil, "", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

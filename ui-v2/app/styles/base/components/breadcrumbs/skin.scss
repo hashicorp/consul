@@ -2,10 +2,25 @@
   list-style-type: none;
 }
 %breadcrumb::before {
-  content: '❮';
   line-height: 1;
   font-size: 0.7em;
-  margin-top: 0.1em;
+  margin-top: 0.2em;
+}
+%breadcrumb::before {
+  content: '❮';
+}
+%breadcrumb-milestone::before {
+  content: '❮❮';
+}
+%breadcrumb-path::before {
+  content: '/';
+}
+%breadcrumb-folder::before {
+  position: relative;
+  top: 2px;
+  margin-top: -4px;
+  @extend %with-folder-outline-color-icon;
+  @extend %as-pseudo;
 }
 %breadcrumb {
   color: $color-action;

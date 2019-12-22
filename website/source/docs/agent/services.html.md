@@ -15,6 +15,8 @@ a health check. A health check is considered to be application level if it is
 associated with a service. A service is defined in a configuration file
 or added at runtime over the HTTP interface.
 
+Use the [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/services?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
+
 ## Service Definition
 
 To configure a service, either provide the service definition as a
@@ -91,7 +93,8 @@ example shows all possible fields, but note that only a few are required.
       "passing": 5,
       "warning": 1
     },
-    "token": "233b604b-b92e-48c8-a253-5f11514e4b50"
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50",
+    "namespace": "foo"
   }
 }
 ```

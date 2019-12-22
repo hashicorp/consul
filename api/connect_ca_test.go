@@ -83,6 +83,9 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		// Change a config value and update
 		conf.Config["PrivateKey"] = ""
 		conf.Config["RotationPeriod"] = 120 * 24 * time.Hour
+		// Pass through some state as if the provider stored it so we can make sure
+		// we can read it again.
+		conf.Config["test_state"] = map[string]string{"foo": "bar"}
 		_, err = connect.CASetConfig(conf, nil)
 		r.Check(err)
 
@@ -92,5 +95,6 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		parsed, err = ParseConsulCAConfig(updated.Config)
 		r.Check(err)
 		require.Equal(r, expected, parsed)
+		require.Equal(r, "bar", updated.State["foo"])
 	})
 }

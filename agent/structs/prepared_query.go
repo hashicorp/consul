@@ -76,6 +76,9 @@ type ServiceQuery struct {
 	// to the _proxy_ and not the service being proxied. In practice, proxies
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
+
+	// EnterpriseMeta is the embedded enterprise metadata
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 const (

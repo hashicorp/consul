@@ -42,6 +42,10 @@ Usage: `consul acl auth-method create [options] [args]`
   used to access the TokenReview API to validate other JWTs during login. This
   flag is required for `-type=kubernetes`.
 
+#### Enterprise Options
+
+<%= partial "docs/commands/http_api_namespace_options" %>
+
 ## Examples
 
 Create a new Kubernetes auth method:

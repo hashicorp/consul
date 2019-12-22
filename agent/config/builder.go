@@ -99,7 +99,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 
 	b := &Builder{
 		Flags: flags,
-		Head:  []Source{DefaultSource()},
+		Head:  []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
 	if b.boolVal(b.Flags.DevMode) {
@@ -128,7 +128,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultEnterpriseSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
 	if b.boolVal(b.Flags.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
@@ -590,6 +590,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"tls_server_name":       "TLSServerName",
 			"tls_skip_verify":       "TLSSkipVerify",
 
+			// AWS CA config
+			"existing_arn":   "ExistingARN",
+			"delete_on_exit": "DeleteOnExit",
+
 			// Common CA config
 			"leaf_cert_ttl":      "LeafCertTTL",
 			"csr_max_per_second": "CSRMaxPerSecond",
@@ -728,6 +732,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AutopilotDisableUpgradeMigration: b.boolVal(c.Autopilot.DisableUpgradeMigration),
 		AutopilotLastContactThreshold:    b.durationVal("autopilot.last_contact_threshold", c.Autopilot.LastContactThreshold),
 		AutopilotMaxTrailingLogs:         b.intVal(c.Autopilot.MaxTrailingLogs),
+		AutopilotMinQuorum:               b.uintVal(c.Autopilot.MinQuorum),
 		AutopilotRedundancyZoneTag:       b.stringVal(c.Autopilot.RedundancyZoneTag),
 		AutopilotServerStabilizationTime: b.durationVal("autopilot.server_stabilization_time", c.Autopilot.ServerStabilizationTime),
 		AutopilotUpgradeVersionTag:       b.stringVal(c.Autopilot.UpgradeVersionTag),
@@ -903,6 +908,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                   verifyOutgoing,
 		VerifyServerHostname:             verifyServerName,
 		Watches:                          c.Watches,
+	}
+
+	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
+		return RuntimeConfig{}, err
+	} else {
+		rt.EnterpriseRuntimeConfig = entCfg
 	}
 
 	if rt.BootstrapExpect == 1 {
@@ -1094,6 +1105,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		"":                       true,
 		structs.ConsulCAProvider: true,
 		structs.VaultCAProvider:  true,
+		structs.AWSCAProvider:    true,
 	}
 	if _, ok := validCAProviders[rt.ConnectCAProvider]; !ok {
 		return fmt.Errorf("%s is not a valid CA provider", rt.ConnectCAProvider)
@@ -1107,12 +1119,16 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
+		case structs.AWSCAProvider:
+			if _, err := ca.ParseAWSCAConfig(rt.ConnectCAConfig); err != nil {
+				return err
+			}
 		}
 	}
 
 	if rt.AutoEncryptAllowTLS {
 		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc must be enabled.")
+			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 		}
 	}
 
@@ -1212,8 +1228,11 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		AliasService:                   b.stringVal(v.AliasService),
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
+		SuccessBeforePassing:           b.intVal(v.SuccessBeforePassing),
+		FailuresBeforeCritical:         b.intVal(v.FailuresBeforeCritical),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
+		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
 	}
 }
 
@@ -1284,6 +1303,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
+		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
 	}
 }
 
@@ -1441,6 +1461,17 @@ func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
 
 func (b *Builder) intVal(v *int) int {
 	return b.intValWithDefault(v, 0)
+}
+
+func (b *Builder) uintVal(v *uint) uint {
+	return b.uintValWithDefault(v, 0)
+}
+
+func (b *Builder) uintValWithDefault(v *uint, defaultVal uint) uint {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
 }
 
 func (b *Builder) uint64ValWithDefault(v *uint64, defaultVal uint64) uint64 {

@@ -8,9 +8,6 @@
   top: 8px;
   right: 15px;
 }
-%action-group ul.above {
-  bottom: 35px;
-}
-%action-group ul:not(.above) {
-  top: 35px;
+%action-group .type-delete {
+  @extend %internal-button-dangerous;
 }

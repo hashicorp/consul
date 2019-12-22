@@ -159,7 +159,7 @@ $ curl \
   returned by the [`/v1/acl/list`](/api/acl/legacy.html#acl_list) endpoint to
   determine if the replication process has gotten all available ACLs. When in either
   `tokens` or `policies` mode, this index can be compared with the value of the
-  `X-Consul-Index` header returned by the [`/v1/acl/polcies`](/api/acl/policies.html#list-policies)
+  `X-Consul-Index` header returned by the [`/v1/acl/policies`](/api/acl/policies.html#list-policies)
   endpoint to determine if the policy replication process has gotten all available
   ACL policies. Note that ACL replication is rate limited so the indexes may lag behind
   the primary datacenter.
@@ -304,6 +304,12 @@ replication enabled.
 
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the token. Can be useful to track origins.
+  
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
+  the Auth Method to use for Login. If not provided in the JSON body, the value of
+  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token, or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
 

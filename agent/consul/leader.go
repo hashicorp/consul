@@ -371,7 +371,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Create anonymous token if missing.
 	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -395,7 +395,7 @@ func (s *Server) initializeLegacyACL() error {
 
 	// Check for configured master token.
 	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master)
+		_, token, err = state.ACLTokenGetBySecret(nil, master, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get master token: %v", err)
 		}
@@ -473,11 +473,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 	// Purge the auth method validators since they could've changed while we
 	// were not leader.
-	s.purgeAuthMethodValidators()
+	s.aclAuthMethodValidators.Purge()
 
 	// Remove any token affected by CVE-2019-8336
 	if !s.InACLDatacenter() {
-		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken)
+		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
 				TokenIDs: []string{token.AccessorID},
@@ -498,23 +498,29 @@ func (s *Server) initializeACLs(upgrade bool) error {
 
 		s.logger.Printf("[INFO] acl: initializing acls")
 
-		// Create the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		// Create/Upgrade the builtin global-management policy
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
-		if policy == nil {
-			policy := structs.ACLPolicy{
-				ID:          structs.ACLPolicyGlobalManagementID,
-				Name:        "global-management",
-				Description: "Builtin Policy that grants unlimited access",
-				Rules:       structs.ACLPolicyGlobalManagement,
-				Syntax:      acl.SyntaxCurrent,
+		if policy == nil || policy.Rules != structs.ACLPolicyGlobalManagement {
+			newPolicy := structs.ACLPolicy{
+				ID:             structs.ACLPolicyGlobalManagementID,
+				Name:           "global-management",
+				Description:    "Builtin Policy that grants unlimited access",
+				Rules:          structs.ACLPolicyGlobalManagement,
+				Syntax:         acl.SyntaxCurrent,
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
-			policy.SetHash(true)
+			if policy != nil {
+				newPolicy.Name = policy.Name
+				newPolicy.Description = policy.Description
+			}
+
+			newPolicy.SetHash(true)
 
 			req := structs.ACLPolicyBatchSetRequest{
-				Policies: structs.ACLPolicies{&policy},
+				Policies: structs.ACLPolicies{&newPolicy},
 			}
 			_, err := s.raftApply(structs.ACLPolicySetRequestType, &req)
 			if err != nil {
@@ -530,7 +536,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 				s.logger.Printf("[WARN] consul: Configuring a non-UUID master token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master)
+			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get master token: %v", err)
 			}
@@ -554,7 +560,8 @@ func (s *Server) initializeACLs(upgrade bool) error {
 					Local:      false,
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
-					Type: structs.ACLTokenTypeManagement,
+					Type:           structs.ACLTokenTypeManagement,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 
 				token.SetHash(true)
@@ -592,7 +599,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		}
 
 		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID)
+		_, token, err := state.ACLTokenGetBySecret(nil, structs.ACLTokenAnonymousID, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get anonymous token: %v", err)
 		}
@@ -600,7 +607,7 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		if token == nil {
 			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
 			// check for legacy token that needs an upgrade
-			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken)
+			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 			if err != nil {
 				return fmt.Errorf("failed to get anonymous token: %v", err)
 			}
@@ -609,10 +616,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			// the token upgrade routine will take care of upgrading the token if a legacy version exists
 			if legacyToken == nil {
 				token = &structs.ACLToken{
-					AccessorID:  structs.ACLTokenAnonymousID,
-					SecretID:    anonymousToken,
-					Description: "Anonymous Token",
-					CreateTime:  time.Now(),
+					AccessorID:     structs.ACLTokenAnonymousID,
+					SecretID:       anonymousToken,
+					Description:    "Anonymous Token",
+					CreateTime:     time.Now(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
 				token.SetHash(true)
 
@@ -983,7 +991,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny)
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMeta())
 	if err != nil {
 		return err
 	}
@@ -999,7 +1007,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node)
+		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1136,7 +1144,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name)
+			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMeta())
 			if err != nil {
 				return err
 			}
@@ -1153,7 +1161,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -1207,7 +1215,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name)
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
 		if err != nil {
 			return err
 		}
