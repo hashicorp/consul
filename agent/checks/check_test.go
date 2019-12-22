@@ -637,8 +637,8 @@ func TestCheckHTTPBody(t *testing.T) {
 				if got, want := notif.State("checkbody"), api.HealthPassing; got != want {
 					r.Fatalf("got status %q want %q", got, want)
 				}
-				if !strings.Contains(notif.Output("checkbody"), tt.body) {
-					r.Fatalf("got output %q want substring %q", notif.Output("checkbody"), tt.body)
+				if !strings.HasSuffix(notif.Output("checkbody"), tt.body) {
+					r.Fatalf("got output %q want suffix %q", notif.Output("checkbody"), tt.body)
 				}
 			})
 		})
