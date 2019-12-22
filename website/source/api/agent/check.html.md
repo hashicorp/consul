@@ -223,7 +223,7 @@ The table below shows this endpoint's support for
   "Shell": "/bin/bash",
   "HTTP": "https://example.com",
   "Method": "POST",
-  "Header": {"Content-Type": "application/json", "x-foo": ["bar", "baz"]},
+  "Header": {"Content-Type": "application/json"},
   "Body": "{\"check\":\"mem\"}",
   "TCP": "example.com:22",
   "Interval": "10s",
