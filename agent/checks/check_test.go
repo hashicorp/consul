@@ -616,29 +616,31 @@ func TestCheckHTTPBody(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			notif := mock.NewNotify()
 
+			cid := structs.NewCheckID("checkbody", nil)
+			logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
 			check := &CheckHTTP{
-				Notify:   notif,
-				CheckID:  types.CheckID("checkbody"),
-				HTTP:     server.URL,
-				Header:   tt.header,
-				Method:   tt.method,
-				Body:     tt.body,
-				Timeout:  timeout,
-				Interval: 2 * time.Millisecond,
-				Logger:   log.New(ioutil.Discard, uniqueID(), log.LstdFlags),
+				CheckID:       cid,
+				HTTP:          server.URL,
+				Header:        tt.header,
+				Method:        tt.method,
+				Body:          tt.body,
+				Timeout:       timeout,
+				Interval:      2 * time.Millisecond,
+				Logger:        logger,
+				StatusHandler: NewStatusHandler(notif, logger, 0, 0),
 			}
 			check.Start()
 			defer check.Stop()
 
 			retry.Run(t, func(r *retry.R) {
-				if got, want := notif.Updates("checkbody"), 2; got < want {
+				if got, want := notif.Updates(cid), 2; got < want {
 					r.Fatalf("got %d updates want at least %d", got, want)
 				}
-				if got, want := notif.State("checkbody"), api.HealthPassing; got != want {
+				if got, want := notif.State(cid), api.HealthPassing; got != want {
 					r.Fatalf("got status %q want %q", got, want)
 				}
-				if !strings.HasSuffix(notif.Output("checkbody"), tt.body) {
-					r.Fatalf("got output %q want suffix %q", notif.Output("checkbody"), tt.body)
+				if got, want := notif.Output(cid), tt.body; !strings.HasSuffix(got, want) {
+					r.Fatalf("got output %q want suffix %q", got, want)
 				}
 			})
 		})
