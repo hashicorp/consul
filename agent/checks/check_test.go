@@ -613,12 +613,7 @@ func TestCheckHTTPBody(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		desc := tt.desc
-		if desc == "" {
-			desc = fmt.Sprintf("%s %s", tt.method, tt.body)
-		}
-
-		t.Run(desc, func(t *testing.T) {
+		t.Run(tt.desc, func(t *testing.T) {
 			notif := mock.NewNotify()
 
 			check := &CheckHTTP{
