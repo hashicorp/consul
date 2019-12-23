@@ -94,6 +94,7 @@ module.exports = function(environment) {
   if (environment === 'test') {
     // Testem prefers this...
     ENV.locationType = 'none';
+    ENV.CONSUL_NSPACES_TEST = false;
 
     // keep test console output quieter
     ENV.APP.LOG_ACTIVE_GENERATION = false;
@@ -115,14 +116,11 @@ module.exports = function(environment) {
   }
 
   if (environment === 'production') {
-    ENV = Object.assign(
-      {},
-      ENV,
-      {
-        CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
-        CONSUL_NSPACES_ENABLED: '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}'
-      }
-    );
+    ENV = Object.assign({}, ENV, {
+      CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
+      CONSUL_NSPACES_ENABLED:
+        '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
+    });
     // here you can enable a production-specific feature
   }
   return ENV;
