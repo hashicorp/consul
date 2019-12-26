@@ -2,10 +2,11 @@ package agent
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"time"
 

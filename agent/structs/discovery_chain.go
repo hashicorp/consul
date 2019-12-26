@@ -1,9 +1,10 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/lib"
 )

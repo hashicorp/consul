@@ -1,9 +1,10 @@
 package exp
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"

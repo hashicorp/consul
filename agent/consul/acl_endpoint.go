@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"

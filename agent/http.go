@@ -2,7 +2,6 @@ package agent
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"

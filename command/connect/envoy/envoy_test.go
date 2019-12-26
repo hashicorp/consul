@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"encoding/json"
 	"flag"
 	"io/ioutil"
 	"net"
@@ -11,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"

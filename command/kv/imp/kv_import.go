@@ -3,13 +3,14 @@ package imp
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"

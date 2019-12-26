@@ -1,9 +1,10 @@
 package acl
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"

@@ -2,9 +2,10 @@ package exp
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"

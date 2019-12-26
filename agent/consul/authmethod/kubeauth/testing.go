@@ -2,7 +2,6 @@ package kubeauth
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authentication/v1"

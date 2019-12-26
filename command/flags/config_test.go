@@ -2,12 +2,13 @@ package flags
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"path"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/mitchellh/mapstructure"
 )

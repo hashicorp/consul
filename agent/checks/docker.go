@@ -2,13 +2,14 @@ package checks
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/armon/circbuf"
 	"github.com/docker/go-connections/sockets"

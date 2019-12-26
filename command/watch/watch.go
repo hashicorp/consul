@@ -2,13 +2,14 @@ package watch
 
 import (
 	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	osexec "os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/exec"

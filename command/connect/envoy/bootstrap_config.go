@@ -2,13 +2,14 @@ package envoy
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/hashicorp/consul/internal/json"
 )
 
 // BootstrapConfig is the set of keys we care about in a Connect.Proxy.Config

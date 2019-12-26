@@ -2,8 +2,9 @@ package lib
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
+
+	"github.com/hashicorp/consul/internal/json"
 )
 
 // DecodeJSON is a convenience function to create a JSON decoder

@@ -2,13 +2,14 @@ package agent
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"sync/atomic"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/testrpc"
 

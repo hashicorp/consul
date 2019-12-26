@@ -1,13 +1,14 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"

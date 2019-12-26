@@ -1,7 +1,6 @@
 package xds
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -9,6 +8,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"

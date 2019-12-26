@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +10,8 @@ import (
 	"os"
 	osexec "os/exec"
 	"strconv"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/agent/exec"

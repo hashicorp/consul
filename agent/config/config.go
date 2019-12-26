@@ -1,9 +1,10 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"

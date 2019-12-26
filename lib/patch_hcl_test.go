@@ -1,10 +1,11 @@
 package lib
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 )
 
 func parse(s string) map[string]interface{} {

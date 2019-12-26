@@ -1,9 +1,10 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"

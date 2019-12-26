@@ -1,8 +1,9 @@
 package lib
 
 import (
-	"encoding/json"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/stretchr/testify/require"
 )

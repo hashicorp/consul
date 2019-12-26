@@ -1,11 +1,12 @@
 package create
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"

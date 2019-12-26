@@ -1,9 +1,10 @@
 package write
 
 import (
-	"encoding/json"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/hashicorp/consul/internal/json"
 
 	"github.com/hashicorp/hcl"
 )
