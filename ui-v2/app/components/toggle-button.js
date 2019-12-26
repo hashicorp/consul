@@ -32,6 +32,11 @@ export default Component.extend({
     click: function(e) {
       e.preventDefault();
       this.input.checked = !this.input.checked;
+      // manually dispatched mouse events have a detail = 0
+      // real mouse events have the number of click counts
+      if (e.detail !== 0) {
+        e.target.blur();
+      }
       this.actions.change.apply(this, [e]);
     },
     change: function(e) {

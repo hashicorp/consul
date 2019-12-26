@@ -1,7 +1,7 @@
 {{yield}}
-{{#aria-menu as |change keydown ariaLabelledBy ariaControls expanded|}}
+{{#aria-menu as |change keypress ariaLabelledBy ariaControls expanded|}}
   {{#toggle-button onchange=change as |click|}}
-    <button type="button" aria-haspopup="menu" onkeydown={{keydown}} onclick={{click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
+    <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
       {{#yield-slot name='trigger'}}
         {{yield}}
       {{/yield-slot}}

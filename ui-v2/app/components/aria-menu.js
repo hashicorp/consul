@@ -83,6 +83,8 @@ export default Component.extend({
       if (typeof keys[this.orientation][e.keyCode] === 'undefined') {
         return;
       }
+      // prevent any scroll, or default actions
+      e.preventDefault();
       const $focused = this.dom.element(`${MENU_ITEMS}:focus`, this.$menu);
       let i;
       if ($focused) {
