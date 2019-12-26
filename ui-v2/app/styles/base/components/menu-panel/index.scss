@@ -1,6 +1,12 @@
 @import './skin';
 @import './layout';
 
+%menu-panel [role='separator'] {
+  @extend %menu-panel-separator;
+}
+%menu-panel > div {
+  @extend %menu-panel-header;
+}
 %menu-panel > ul > li > * {
   @extend %internal-button;
 }

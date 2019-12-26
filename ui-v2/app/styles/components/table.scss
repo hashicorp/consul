@@ -1,6 +1,16 @@
 @import '../base/components/table/index';
+@import '../base/components/popover-menu/index';
 table {
   @extend %table, %table-flex;
+}
+
+%table-actions [type='checkbox'] {
+  @extend %more-popover-menu;
+}
+%table-actions [type='checkbox'] + label {
+  position: absolute;
+  top: 8px;
+  right: 15px;
 }
 
 html.template-service.template-list td:first-child a span,

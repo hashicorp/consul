@@ -2,6 +2,9 @@
   position: absolute;
   overflow: hidden;
 }
+%menu-panel > ul > li > * {
+  position: relative;
+}
 %menu-panel:not(.left) {
   right: 0px;
 }
@@ -25,4 +28,43 @@
 }
 %menu-panel > ul > li > * {
   text-align: left !important;
+}
+%menu-panel-separator {
+  padding-top: 0.35em;
+}
+%menu-panel-separator:not(:first-child) {
+  margin-top: 0.35em;
+}
+%menu-panel-separator:not(:empty) {
+  padding-left: 1em;
+  padding-right: 1em;
+  padding-bottom: 0.1em;
+}
+%menu-panel-header {
+  padding: 10px;
+  padding-left: 36px;
+}
+%menu-panel .is-active > *::after {
+  position: absolute;
+  top: 50%;
+  margin-top: -8px;
+  right: 10px;
+}
+%menu-panel-header::before {
+  position: absolute;
+  left: 15px;
+  top: calc(10px + 0.1em);
+}
+%menu-panel-header {
+  max-width: fit-content;
+}
+@supports not (max-width: fit-content) {
+  %menu-panel-header {
+    max-width: 200px;
+  }
+}
+@media #{$--lt-horizontal-nav} {
+  %menu-panel-header {
+    text-align: left;
+  }
 }

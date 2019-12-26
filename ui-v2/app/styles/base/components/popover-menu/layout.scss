@@ -1,0 +1,16 @@
+%more-popover-menu {
+  @extend %display-toggle-siblings;
+}
+%more-popover-menu + label > * {
+  @extend %toggle-button;
+}
+%more-popover-menu + label + div {
+  @extend %menu-panel;
+  width: 192px;
+}
+%more-popover-menu + label + div:not(.above) {
+  top: 38px;
+}
+%more-popover-menu + label + div:not(.left) {
+  right: 10px;
+}
