@@ -168,8 +168,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			metrics.MeasureSince(key, start)
 		}
 
-		gzipWrapper, _ := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))
-		gzipHandler := gzipWrapper(http.HandlerFunc(wrapper))
+		gzipHandler := gziphandler.GzipHandler(http.HandlerFunc(wrapper))
 		mux.Handle(pattern, gzipHandler)
 	}
 
