@@ -37,13 +37,13 @@ contacting us at security@hashicorp.com.
 
 ## Quick Start
 
-An extensive quick start is viewable on the Consul website:
+An extensive quick start is available on Consul Learn:
 
-https://www.consul.io/intro/getting-started/install.html
+https://learn.hashicorp.com/consul#getting-started
 
 ## Documentation
 
-Full, comprehensive documentation is viewable on the Consul website:
+Full, comprehensive documentation is available on the Consul website:
 
 https://www.consul.io/docs
 
