@@ -1932,22 +1932,6 @@ type ServiceCheck struct {
 	Namespace string
 }
 
-// CheckIDs returns the IDs for all checks associated with a session, regardless of type
-func (s *Session) CheckIDs() []types.CheckID {
-	// Merge all check IDs into a single slice, since they will be handled the same way
-	checks := make([]types.CheckID, 0, len(s.Checks)+len(s.NodeChecks)+len(s.ServiceChecks))
-	checks = append(checks, s.Checks...)
-
-	for _, c := range s.NodeChecks {
-		checks = append(checks, types.CheckID(c))
-	}
-
-	for _, c := range s.ServiceChecks {
-		checks = append(checks, types.CheckID(c.ID))
-	}
-	return checks
-}
-
 func (s *Session) UnmarshalJSON(data []byte) (err error) {
 	type Alias Session
 	aux := &struct {
