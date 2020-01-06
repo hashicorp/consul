@@ -722,7 +722,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Set up a channel for reliable leader notifications.
-	raftNotifyCh := make(chan bool, 1000)
+	raftNotifyCh := make(chan bool, 10)
 	s.config.RaftConfig.NotifyCh = raftNotifyCh
 	s.raftNotifyCh = raftNotifyCh
 
