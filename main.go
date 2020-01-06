@@ -55,6 +55,7 @@ func realMain() int {
 		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
 		return 1
 	}
+	//fmt.Println("test")
 
 	return exitCode
 }
