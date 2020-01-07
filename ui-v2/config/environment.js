@@ -94,7 +94,7 @@ module.exports = function(environment) {
   if (environment === 'test') {
     // Testem prefers this...
     ENV.locationType = 'none';
-    ENV.CONSUL_NSPACES_TEST = false;
+    ENV.CONSUL_NSPACES_TEST = true;
 
     // keep test console output quieter
     ENV.APP.LOG_ACTIVE_GENERATION = false;
