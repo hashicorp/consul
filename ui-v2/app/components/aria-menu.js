@@ -42,6 +42,7 @@ export default Component.extend({
   guid: '',
   expanded: false,
   orientation: 'vertical',
+  keyboardAccess: true,
   init: function() {
     this._super(...arguments);
     set(this, 'guid', this.dom.guid(this));
@@ -59,6 +60,9 @@ export default Component.extend({
     this._listeners.remove();
   },
   actions: {
+    keypressClick: function(e) {
+      e.target.dispatchEvent(new MouseEvent('click'));
+    },
     keypress: function(e) {
       // If the event is from the trigger and its not an opening/closing
       // key then don't do anything
@@ -97,11 +101,12 @@ export default Component.extend({
     },
     // TODO: The argument here needs to change to an event
     // see toggle-button.change
-    change: function(open) {
+    change: function(e) {
+      const open = e.target.checked;
       if (open) {
-        this.actions.open.apply(this, []);
+        this.actions.open.apply(this, [e]);
       } else {
-        this.actions.close.apply(this, []);
+        this.actions.close.apply(this, [e]);
       }
     },
     close: function(e) {
@@ -127,6 +132,9 @@ export default Component.extend({
           }
           if (e.keyCode === TAB || e.keyCode === ESC) {
             this.$trigger.dispatchEvent(new MouseEvent('click'));
+            return;
+          }
+          if (!this.keyboardAccess) {
             return;
           }
           this.actions.keypress.apply(this, [e]);

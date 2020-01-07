@@ -17,6 +17,10 @@
   @extend %with-icon;
   background-image: $alert-triangle-svg;
 }
+%with-alert-triangle-mask {
+  @extend %with-mask;
+  mask-image: $alert-triangle-svg;
+}
 
 %with-arrow-down-icon {
   @extend %with-icon;

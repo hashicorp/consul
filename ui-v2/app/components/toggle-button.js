@@ -12,6 +12,7 @@ export default Component.extend({
   tagName: '',
   // TODO: reserved for the moment but we don't need it yet
   onblur: null,
+  checked: false,
   onchange: function() {},
   init: function() {
     this._super(...arguments);
@@ -45,15 +46,19 @@ export default Component.extend({
         this._listeners.remove();
         this._listeners.add(this.dom.document(), 'click', e => {
           if (this.dom.isOutside(this.label, e.target)) {
-            this.input.checked = false;
-            // TODO: This should be an event
-            this.onchange(this.input.checked);
-            this._listeners.remove();
+            if (this.dom.isOutside(this.label.nextElementSibling, e.target)) {
+              if (this.input.checked) {
+                this.input.checked = false;
+                // TODO: This should be an event
+                this.onchange({ target: this.input });
+              }
+              this._listeners.remove();
+            }
           }
         });
       }
       // TODO: This should be an event
-      this.onchange(this.input.checked);
+      this.onchange({ target: this.input });
     },
   },
 });

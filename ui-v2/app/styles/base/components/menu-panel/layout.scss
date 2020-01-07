@@ -2,7 +2,26 @@
   position: absolute;
   overflow: hidden;
 }
-%menu-panel > ul > li > * {
+%menu-panel [type='checkbox'] {
+  display: none;
+}
+%menu-panel [type='checkbox'] ~ * {
+  transition: transform 150ms, min-height 150ms;
+  min-height: 0;
+}
+%menu-panel [type='checkbox']:checked ~ * {
+  transform: translateX(calc(-100% - 10px));
+  min-height: 143px;
+}
+%menu-panel-sub-panel {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+}
+%menu-panel > ul > li > div[role='menu'] {
+  @extend %menu-panel-sub-panel;
+}
+%menu-panel > ul > li > *:not(div[role='menu']) {
   position: relative;
 }
 %menu-panel:not(.left) {
@@ -15,7 +34,7 @@
   top: 28px;
 }
 %menu-panel.above {
-  bottom: 28px;
+  bottom: 42px;
 }
 %menu-panel > ul {
   margin: 0;

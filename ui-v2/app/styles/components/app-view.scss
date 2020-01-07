@@ -1,6 +1,17 @@
 @import './app-view/index';
 @import './filter-bar/index';
 @import '../base/components/buttons/index';
+
+@import '../base/components/popover-menu/index';
+
+%app-view-header .actions > [type='checkbox'] {
+  @extend %more-popover-menu;
+}
+%app-view-header .actions label + div {
+  // We need this extra to allow tooltips to show
+  overflow: visible !important;
+}
+
 main {
   @extend %app-view;
 }

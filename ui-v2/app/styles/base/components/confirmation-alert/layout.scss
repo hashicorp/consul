@@ -12,3 +12,9 @@
 %confirmation-alert > ul > li > * {
   width: 100%;
 }
+%confirmation-alert.warning header::before {
+  margin-right: 5px;
+}
+%confirmation-alert.warning header {
+  margin-bottom: 0.5em;
+}
