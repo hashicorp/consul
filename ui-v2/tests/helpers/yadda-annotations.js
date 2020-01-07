@@ -54,7 +54,9 @@ const checkAnnotations = function(annotations, isScenario) {
       });
       if (annotations.namespaceable && !annotations.notnamespaceable) {
         ['', 'default', 'team-1', undefined].forEach(function(item) {
-          test(`Scenario: ${scenario.title} with the ${item} namespace set`, function(assert) {
+          test(`Scenario: ${
+            scenario.title
+          } with the ${item === '' ? 'empty' : typeof item === 'undefined' ? 'undefined' : item} namespace set`, function(assert) {
             const libraries = library.default({
               assert: assert,
               library: Yadda.localisation.English.library(getDictionary(item)),
