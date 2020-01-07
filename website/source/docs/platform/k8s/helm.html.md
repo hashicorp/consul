@@ -127,7 +127,7 @@ and consider if they're appropriate for your deployment.
 
       - <a name="v-server-extravolumes-name" href="#v-server-extravolumes-name">`name`</a> (`string: required`) -
       Name of the configMap or secret to be mounted. This also controls the path
-      that it is mounted to. The volume will be mounted to `/config/userconfig/<name>`.
+      that it is mounted to. The volume will be mounted to `/consul/userconfig/<name>`.
 
       - <a name="v-server-extravolumes-load" href="#v-server-extravolumes-load">`load`</a> (`boolean: false`) -
       If true, then the agent will be configured to automatically load HCL/JSON
@@ -209,7 +209,7 @@ and consider if they're appropriate for your deployment.
 
       - <a name="v-client-extravolumes-name" href="#v-client-extravolumes-name">`name`</a> (`string: required`) -
       Name of the configMap or secret to be mounted. This also controls the path
-      that it is mounted to. The volume will be mounted to `/config/userconfig/<name>`.
+      that it is mounted to. The volume will be mounted to `/consul/userconfig/<name>`.
 
       - <a name="v-client-extravolumes-load" href="#v-client-extravolumes-load">`load`</a> (`boolean: false`) -
       If true, then the agent will be configured to automatically load HCL/JSON
