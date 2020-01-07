@@ -20,28 +20,28 @@ func (c *consulCAMockDelegate) State() *state.Store {
 	return c.state
 }
 
-func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) error {
+func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
 	idx, _, err := c.state.CAConfig(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch req.Op {
 	case structs.CAOpSetProviderState:
 		_, err := c.state.CASetProviderState(idx+1, req.ProviderState)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return true, nil
 	case structs.CAOpDeleteProviderState:
 		if err := c.state.CADeleteProviderState(req.ProviderState.ID); err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return true, nil
 	default:
-		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
+		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }
 
