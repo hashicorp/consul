@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / intentions / filtered select: Intention Service Select Dropdowns
+Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
   In order to use services as intention sources and destinations
   As a user
   I want to be able to choose see existing services in the dropdown, but not existing proxy services

@@ -25,13 +25,16 @@ Feature: dc / acls / policies / update: ACL Policy Update
     And I click validDatacenters
     And I click datacenter
     And I submit
-    Then a PUT request is made to "/v1/acl/policy/policy-id?dc=datacenter&ns=default" with the body from yaml
+    Then a PUT request was made to "/v1/acl/policy/policy-id?dc=datacenter" from yaml
     ---
-      Name: [Name]
-      Description: [Description]
-      Rules: [Rules]
-      Datacenters:
-        - datacenter
+      body:
+        Name: [Name]
+        Description: [Description]
+        Rules: [Rules]
+        Namespace: @namespace
+        Datacenters:
+          - datacenter
+
     ---
     Then the url should be /datacenter/acls/policies
     And "[data-notification]" has the "notification-update" class

@@ -1,4 +1,5 @@
 @setupApplicationTest
+@notNamespaceable
 Feature: dc / acls / tokens / legacy / update: ACL Token Update
   Background:
     Given 1 datacenter model with the value "datacenter"
