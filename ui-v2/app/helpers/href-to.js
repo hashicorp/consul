@@ -27,7 +27,11 @@ export const hrefTo = function(owned, router, [targetRouteName, ...rest], namedA
 
     // this globally converts non-nspaced href-to's to nspace aware
     // href-to's only if you are within a namespace
-    if (router.currentRouteName.startsWith('nspace.') && targetRouteName.startsWith('dc.')) {
+    if (
+      router.currentRouteName !== null &&
+      router.currentRouteName.startsWith('nspace.') &&
+      targetRouteName.startsWith('dc.')
+    ) {
       targetRouteName = `nspace.${targetRouteName}`;
     }
     return _hrefTo(owned, [targetRouteName, ...rest]);

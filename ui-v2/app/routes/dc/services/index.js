@@ -28,11 +28,9 @@ export default Route.extend({
     }
     return {
       terms: terms !== '' ? terms.split('\n') : [],
-      items: this.repo.findAllByDatacenter(
-        this.modelFor('dc').dc.Name,
-        this.modelFor('nspace').nspace.substr(1)
-      ),
-    });
+      dc: this.modelFor('dc').dc.Name,
+      nspace: this.modelFor('nspace').nspace.substr(1),
+    };
   },
   setupController: function(controller, model) {
     controller.setProperties(model);
