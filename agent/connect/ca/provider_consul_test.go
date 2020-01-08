@@ -40,6 +40,8 @@ func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface
 		}
 
 		return true, nil
+	case structs.CAOpIncrementProviderSerialNumber:
+		return uint64(2), nil
 	default:
 		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
