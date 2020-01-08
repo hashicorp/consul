@@ -1,6 +1,6 @@
 {{title 'Services'}}
 {{data-source
-  src=(concat '/' dc '/services')
+  src=(concat '/' nspace '/' dc '/services')
   onchange=(action (mut items) value='data')
   onerror=(action (mut error) value='error')
 }}

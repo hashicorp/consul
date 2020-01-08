@@ -12,6 +12,7 @@ export default Service.extend({
   fromURI: function(src, filter) {
     let temp = src.split('/');
     temp.shift();
+    const nspace = temp.shift();
     const dc = temp.shift();
     const model = temp.shift();
     const repo = this[model];
@@ -37,7 +38,7 @@ export default Service.extend({
       case 'services':
       case 'nodes':
         obj.find = function(configuration) {
-          return repo.findAllByDatacenter(dc, configuration);
+          return repo.findAllByDatacenter(dc, nspace, configuration);
         };
         break;
       // weirder ones
@@ -47,7 +48,7 @@ export default Service.extend({
         node = temp[1];
         slug = temp[2];
         obj.find = function(configuration) {
-          return repo.findInstanceBySlug(id, node, slug, dc, configuration);
+          return repo.findInstanceBySlug(id, node, slug, dc, nspace, configuration);
         };
         break;
       case 'proxy':
@@ -56,13 +57,13 @@ export default Service.extend({
         node = temp[1];
         slug = temp[2];
         obj.find = function(configuration) {
-          return repo.findInstanceBySlug(id, node, slug, dc, configuration);
+          return repo.findInstanceBySlug(id, node, slug, dc, nspace, configuration);
         };
         break;
       // commoner slugs
       default:
         obj.find = function(configuration) {
-          return repo.findBySlug(slug, dc, configuration);
+          return repo.findBySlug(slug, dc, nspace, configuration);
         };
     }
     return obj;

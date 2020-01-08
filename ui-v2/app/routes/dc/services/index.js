@@ -30,6 +30,11 @@ export default Route.extend({
       terms: terms !== '' ? terms.split('\n') : [],
       dc: this.modelFor('dc').dc.Name,
       nspace: this.modelFor('nspace').nspace.substr(1),
+      // TODO: Find out a less manual way of resetting these
+      // that are set via data-source and therefore kept around
+      // between transitions
+      items: undefined,
+      error: undefined,
     };
   },
   setupController: function(controller, model) {
