@@ -452,7 +452,7 @@ func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	// Create an entry with an old-style ID.
-	err := delegate.ApplyCARequest(&structs.CARequest{
+	_, err := delegate.ApplyCARequest(&structs.CARequest{
 		Op: structs.CAOpSetProviderState,
 		ProviderState: &structs.CAConsulProviderState{
 			ID: ",",
