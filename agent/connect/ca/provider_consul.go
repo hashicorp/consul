@@ -147,7 +147,7 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 // GenerateRoot initializes a new root certificate and private key
 // if needed.
 func (c *ConsulProvider) GenerateRoot() error {
-	idx, providerState, err := c.getState()
+	_, providerState, err := c.getState()
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,12 @@ func (c *ConsulProvider) GenerateRoot() error {
 
 	// Generate the root CA if necessary
 	if c.config.RootCert == "" {
-		ca, err := c.generateCA(newState.PrivateKey, idx+1)
+		nextSerial, err := c.incrementAndGetNextSerialNumber()
+		if err != nil {
+			return fmt.Errorf("error computing next serial number: %v", err)
+		}
+
+		ca, err := c.generateCA(newState.PrivateKey, nextSerial)
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
