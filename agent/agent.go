@@ -2467,6 +2467,9 @@ func (a *Agent) cleanupRegistration(serviceIDs []structs.ServiceID, checksIDs []
 		if err := a.purgeServiceConfig(s); err != nil {
 			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge service config %s file: %s", s, err)
 		}
+		if err := a.removeServiceSidecars(s, true); err != nil {
+			a.logger.Printf("[ERR] consul: service registration: cleanup: failed remove sidecars for %s: %s", s, err)
+		}
 	}
 
 	for _, c := range checksIDs {
@@ -2547,6 +2550,10 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID.String())
 
 	// If any Sidecar services exist for the removed service ID, remove them too.
+	return a.removeServiceSidecars(serviceID, persist)
+}
+
+func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
 	var sidecarSID structs.ServiceID
 	sidecarSID.Init(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
