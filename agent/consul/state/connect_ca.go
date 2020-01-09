@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	caBuiltinProviderTableName = "connect-ca-builtin"
-	caConfigTableName          = "connect-ca-config"
-	caRootTableName            = "connect-ca-roots"
-	caLeafIndexName            = "connect-ca-leaf-certs"
+	caBuiltinProviderTableName    = "connect-ca-builtin"
+	caBuiltinProviderSerialNumber = "connect-ca-builtin-serial"
+	caConfigTableName             = "connect-ca-config"
+	caRootTableName               = "connect-ca-roots"
+	caLeafIndexName               = "connect-ca-leaf-certs"
 )
 
 // caBuiltinProviderTableSchema returns a new table schema used for storing
@@ -481,4 +482,32 @@ func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *s
 	}
 
 	return idx, roots, config, nil
+}
+
+func (s *Store) CAIncrementProviderSerialNumber() (uint64, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	existing, err := tx.First("index", "id", caBuiltinProviderSerialNumber)
+	if err != nil {
+		return 0, fmt.Errorf("failed built-in CA serial number lookup: %s", err)
+	}
+
+	var last uint64
+	if existing != nil {
+		last = existing.(*IndexEntry).Value
+	} else {
+		// Serials used to be based on the raft indexes in the provider table,
+		// so bootstrap off of that.
+		last = maxIndexTxn(tx, caBuiltinProviderTableName)
+	}
+	next := last + 1
+
+	if err := tx.Insert("index", &IndexEntry{caBuiltinProviderSerialNumber, next}); err != nil {
+		return 0, fmt.Errorf("failed updating index: %s", err)
+	}
+
+	tx.Commit()
+
+	return next, nil
 }

@@ -357,6 +357,13 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return act
+	case structs.CAOpIncrementProviderSerialNumber:
+		sn, err := c.state.CAIncrementProviderSerialNumber()
+		if err != nil {
+			return err
+		}
+
+		return sn
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
