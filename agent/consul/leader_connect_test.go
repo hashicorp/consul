@@ -334,36 +334,29 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 
 	// Restore the pre-1.6.1 behavior of the SigningKeyID not being derived
 	// from the intermediates.
+	var secondaryRootSigningKeyID string
 	{
-		require := require.New(t)
-
 		state := s2pre.fsm.State()
 
 		// Get the highest index
-		idx, roots, err := state.CARoots(nil)
-		require.NoError(err)
+		idx, activeSecondaryRoot, err := state.CARootActive(nil)
+		require.NoError(t, err)
+		require.NotNil(t, activeSecondaryRoot)
 
-		var activeRoot *structs.CARoot
-		for _, root := range roots {
-			if root.Active {
-				activeRoot = root
-			}
-		}
-		require.NotNil(activeRoot)
-
-		rootCert, err := connect.ParseCert(activeRoot.RootCert)
-		require.NoError(err)
+		rootCert, err := connect.ParseCert(activeSecondaryRoot.RootCert)
+		require.NoError(t, err)
 
 		// Force this to be derived just from the root, not the intermediate.
-		activeRoot.SigningKeyID = connect.EncodeSigningKeyID(rootCert.SubjectKeyId)
+		secondaryRootSigningKeyID = connect.EncodeSigningKeyID(rootCert.SubjectKeyId)
+		activeSecondaryRoot.SigningKeyID = secondaryRootSigningKeyID
 
 		// Store the root cert in raft
 		resp, err := s2pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
 			Op:    structs.CAOpSetRoots,
 			Index: idx,
-			Roots: []*structs.CARoot{activeRoot},
+			Roots: []*structs.CARoot{activeSecondaryRoot},
 		})
-		require.NoError(err)
+		require.NoError(t, err)
 		if respErr, ok := resp.(error); ok {
 			t.Fatalf("respErr: %v", respErr)
 		}
@@ -372,6 +365,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	// Shutdown s2pre and restart it to trigger the secondary CA init to correct
 	// the SigningKeyID.
 	s2pre.Shutdown()
+
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.DataDir = s2pre.config.DataDir
 		c.Datacenter = "dc2"
@@ -401,7 +395,15 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 
 		// Force this to be derived just from the root, not the intermediate.
 		expect := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+
+		// The in-memory representation was saw the correction via a setCAProvider call.
 		require.Equal(r, expect, activeRoot.SigningKeyID)
+
+		// The state store saw the correction, too.
+		_, activeSecondaryRoot, err := s2.fsm.State().CARootActive(nil)
+		require.NoError(r, err)
+		require.NotNil(r, activeSecondaryRoot)
+		require.Equal(r, expect, activeSecondaryRoot.SigningKeyID)
 	})
 }
 
