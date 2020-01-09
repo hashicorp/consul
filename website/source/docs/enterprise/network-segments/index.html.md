@@ -18,7 +18,7 @@ with each other.
 To get started with Network Segments,
 [read the guide](https://learn.hashicorp.com/consul/day-2-operations/network-segments).
 
--> **Note:** Due to limitations in [Serf](https://www.consul.io/docs/internals/gossip.html), a Consul agent configured with too many network segments may not be able to start```
+~> **Note:** Due to limitations in [Serf](https://www.consul.io/docs/internals/gossip.html), a Consul agent configured with too many network segments may not be able to start
 
 # Consul Networking Models
 
