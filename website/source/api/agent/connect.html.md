@@ -56,6 +56,12 @@ The table below shows this endpoint's support for
 - `ClientCertSerial` `(string: <required>)` - The colon-hex-encoded serial
   number for the requesting client cert. This is used to check against
   revocation lists.
+  
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
+  the target service. If not provided in the JSON body, the value of
+  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
 
