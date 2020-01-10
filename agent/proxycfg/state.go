@@ -340,6 +340,18 @@ func (s *state) initWatchesMeshGateway() error {
 	// gateways within those other datacenters. We cannot do that here because we don't
 	// know what they are yet.
 
+	// Watch service-resolvers so we can setup service subset clusters
+	err = s.cache.Notify(s.ctx, cachetype.ConfigEntriesName, &structs.ConfigEntryQuery{
+		Datacenter:   s.source.Datacenter,
+		QueryOptions: structs.QueryOptions{Token: s.token},
+		Kind:         structs.ServiceResolver,
+	}, serviceResolversWatchID, s.ch)
+
+	if err != nil {
+		s.logger.Printf("[ERR] mesh-gateway: failed to register watch for service-resolver config entries")
+		return err
+	}
+
 	return err
 }
 
@@ -701,18 +713,6 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 
 				if err != nil {
 					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for connect-service:%s", svcName)
-					cancel()
-					return err
-				}
-
-				err = s.cache.Notify(ctx, cachetype.ConfigEntriesName, &structs.ConfigEntryQuery{
-					Datacenter:   s.source.Datacenter,
-					QueryOptions: structs.QueryOptions{Token: s.token},
-					Kind:         structs.ServiceResolver,
-				}, serviceResolversWatchID, s.ch)
-
-				if err != nil {
-					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for service-resolver config entries")
 					cancel()
 					return err
 				}
