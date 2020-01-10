@@ -16,8 +16,10 @@ func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
-func newEnterpriseACLConfig(*log.Logger) *acl.Config {
-	return nil
+func newACLConfig(*log.Logger) *acl.Config {
+	return &acl.Config{
+		WildcardName: structs.WildcardSpecifier,
+	}
 }
 
 func (r *ACLResolver) resolveEnterpriseDefaultsForIdentity(identity structs.ACLIdentity) (acl.Authorizer, error) {

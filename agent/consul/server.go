@@ -108,9 +108,8 @@ var (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// enterpriseACLConfig is the Consul Enterprise specific items
-	// necessary for ACLs
-	enterpriseACLConfig *acl.Config
+	// aclConfig is the configuration for the ACL system
+	aclConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
@@ -397,15 +396,15 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
+	s.aclConfig = newACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:           config,
-		Delegate:         s,
-		CacheConfig:      serverACLCacheConfig,
-		AutoDisable:      false,
-		Logger:           logger,
-		EnterpriseConfig: s.enterpriseACLConfig,
+		Config:      config,
+		Delegate:    s,
+		CacheConfig: serverACLCacheConfig,
+		AutoDisable: false,
+		Logger:      logger,
+		ACLConfig:   s.aclConfig,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
