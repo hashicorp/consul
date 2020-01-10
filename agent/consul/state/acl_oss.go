@@ -297,7 +297,7 @@ func (s *Store) aclTokenListByRole(tx *memdb.Txn, role string, _ *structs.Enterp
 	return tx.Get("acl-tokens", "roles", role)
 }
 
-func (s *Store) aclTokenListByAuthMethod(tx *memdb.Txn, authMethod string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func (s *Store) aclTokenListByAuthMethod(tx *memdb.Txn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "authmethod", authMethod)
 }
 

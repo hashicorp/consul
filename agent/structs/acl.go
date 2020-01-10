@@ -227,6 +227,9 @@ type ACLToken struct {
 	// AuthMethod is the name of the auth method used to create this token.
 	AuthMethod string `json:",omitempty"`
 
+	// ACLAuthMethodEnterpriseMeta is the EnterpriseMeta for the AuthMethod that this token was created from
+	ACLAuthMethodEnterpriseMeta
+
 	// ExpirationTime represents the point after which a token should be
 	// considered revoked and is eligible for destruction. The zero value
 	// represents NO expiration.
@@ -1128,6 +1131,7 @@ type ACLTokenListRequest struct {
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
 	Datacenter    string // The datacenter to perform the request within
+	ACLAuthMethodEnterpriseMeta
 	EnterpriseMeta
 	QueryOptions
 }

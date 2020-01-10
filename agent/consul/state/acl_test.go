@@ -218,7 +218,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil)
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	compareTokens(t, token1, tokens[0])
@@ -232,7 +232,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	err = s.ACLBootstrap(32, index, token2.Clone(), false)
 	require.NoError(t, err)
 
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil)
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
 }
@@ -1203,7 +1203,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		{testPolicyID_A, testRoleID_A, ""},
 	} {
 		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s", tc.policy, tc.role, tc.methodName), func(t *testing.T) {
-			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil)
+			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
 			require.Error(t, err)
 		})
 	}
@@ -1212,7 +1212,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil)
+			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
 			require.NoError(t, err)
 			require.Len(t, tokens, len(tc.accessors))
 			tokens.Sort()
@@ -1273,7 +1273,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
 
 	// list tokens without stale links
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil)
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found := false
@@ -1317,7 +1317,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Len(t, retrieved.Policies, 0)
 
 	// list tokens without stale links
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil)
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found = false
@@ -1402,7 +1402,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Equal(t, "node-read-role-renamed", retrieved.Roles[0].Name)
 
 	// list tokens without stale links
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil)
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found := false
@@ -1446,7 +1446,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Len(t, retrieved.Roles, 0)
 
 	// list tokens without stale links
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil)
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found = false
@@ -3610,7 +3610,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "", nil)
+		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
 		require.ElementsMatch(t, tokens, res)
