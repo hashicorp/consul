@@ -15,17 +15,6 @@
           </ol>
         </dd>
       </dl>
-{{else if item.Redirect}}
-      <dl class="redirect">
-        <dt data-tooltip="Redirect">Redirect</dt>
-        <dd>
-          <ol>
-            <li>
-              <span>{{item.ID}}</span>
-            </li>
-          </ol>
-        </dd>
-      </dl>
 {{/if}}
     </a>
   </header>
@@ -47,15 +36,15 @@
               </ol>
             </dd>
           </dl>
-    {{else if item.Redirect}}
+    {{else if child.Redirect}}
           <dl class="redirect">
             <dt data-tooltip="Redirect">Redirect</dt>
             <dd>
-              {{child.ID}}
+              {{child.Name}}
             </dd>
           </dl>
     {{else}}
-          {{child.ServiceSubset}}
+          {{child.Name}}
     {{/if}}
         </a>
       </li>

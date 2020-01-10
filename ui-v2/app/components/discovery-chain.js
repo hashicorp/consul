@@ -3,11 +3,47 @@ import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { next } from '@ember/runloop';
 
-const getNodesByType = function(nodes = {}, type) {
+export const getNodesByType = function(nodes = {}, type) {
   return Object.values(nodes).filter(item => item.Type === type);
 };
-
-const targetsToFailover = function(targets, a) {
+export const getSplitters = function(nodes) {
+  return getNodesByType(nodes, 'splitter').map(function(item) {
+    // Splitters need IDs adding so we can find them in the DOM later
+    item.ID = `splitter:${item.Name}`;
+    return item;
+  });
+};
+export const getRoutes = function(nodes) {
+  return getNodesByType(nodes, 'router').reduce(function(prev, item) {
+    return prev.concat(
+      item.Routes.map(function(route, i) {
+        return createRoute(route, item.Name);
+      })
+    );
+  }, []);
+  // If there is no default route set
+  // then add a default catch-all so you can visualize the fact that there is one
+  // if (!routes.find(item => item.Default)) {
+  //   let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
+  //   const splitterID = `splitter:${this.chain.ServiceName}`;
+  //   // look for a default splitter, if not just go to the default resolver
+  //   if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
+  //     nextNode = splitterID;
+  //   }
+  //   routes.push(
+  //     createRoute(
+  //       {
+  //         Name: this.chain.ServiceName,
+  //         // an empty definition will automatically become the default route
+  //         Definition: {},
+  //         NextNode: nextNode
+  //       },
+  //       this.chain.ServiceName
+  //     )
+  //   );
+  // }
+};
+export const getAlternateServices = function(targets, a) {
   let type;
   const Targets = targets.map(function(b) {
     // TODO: this isn't going to work past namespace for services
@@ -27,70 +63,72 @@ const targetsToFailover = function(targets, a) {
     Targets: Targets,
   };
 };
-const getNodeResolvers = function(nodes = {}) {
-  const failovers = getFailovers(nodes);
-  const resolvers = {};
-  Object.keys(nodes).forEach(function(key) {
-    const node = nodes[key];
-    if (node.Type === 'resolver' && !failovers.includes(key.split(':').pop())) {
-      resolvers[node.Name] = node;
-    }
-  });
-  return resolvers;
-};
 
-const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
+export const getResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
   const resolvers = {};
-  Object.values(targets).forEach(item => {
-    let node = nodes[item.ID];
+  Object.values(targets).forEach(target => {
+    let node = nodes[`resolver:${target.ID}`];
     if (node) {
-      if (typeof resolvers[item.Service] === 'undefined') {
-        resolvers[item.Service] = {
-          ID: item.ID,
-          Name: item.Service,
-          Children: [],
-          Failover: null,
-          Redirect: null,
+      if (typeof resolvers[target.Service] === 'undefined') {
+        resolvers[target.Service] = {
+          ...target,
+          ...Node,
+          ...{
+            ID: `${target.Service}.${nspace}.${dc}`,
+            Name: target.Service,
+            Children: [],
+            Failover: null,
+            Redirect: null,
+          },
         };
       }
-      const resolver = resolvers[item.Service];
-      let failoverable = resolver;
-      if (item.ServiceSubset) {
-        failoverable = item;
-        // TODO: Sometimes we have set the resolvers ID to the ID of the
-        // subset this just shifts the subset of the front of the URL for the moment
-        const temp = item.ID.split('.');
-        temp.shift();
-        resolver.ID = temp.join('.');
-        resolver.Children.push(item);
-      }
+      const resolver = resolvers[target.Service];
+      const alternate = getAlternateServices([target.ID], `service.${nspace}.${dc}`);
+
+      let failovers;
       if (typeof node.Resolver.Failover !== 'undefined') {
-        // TODO: Figure out if we can get rid of this
-        /* eslint ember/no-side-effects: "warn" */
-        set(failoverable, 'Failover', targetsToFailover(node.Resolver.Failover.Targets, item.ID));
-      } else {
-        const res = targetsToFailover([node.Resolver.Target], `service.${nspace}.${dc}`);
-        if (res.Type === 'Datacenter' || res.Type === 'Namespace') {
-          resolver.Children.push(item);
-          set(failoverable, 'Redirect', true);
-        }
+        failovers = getAlternateServices(node.Resolver.Failover.Targets, target.ID);
+      }
+      switch (true) {
+        // This target is a redirect
+        case alternate.Type !== 'Service':
+          resolver.Children.push({
+            Redirect: true,
+            ID: target.ID,
+            Name: target[alternate.Type],
+          });
+          break;
+        // This target is a Subset
+        case typeof target.ServiceSubset !== 'undefined':
+          resolver.Children.push({
+            Subset: true,
+            ID: target.ID,
+            Name: target.ServiceSubset,
+            Filter: target.Subset.Filter,
+            Failover: failovers,
+          });
+          break;
+        // This target is just normal service that might have failovers
+        default:
+          resolver.Failover = failovers;
       }
     }
   });
   return Object.values(resolvers);
 };
-const getFailovers = function(nodes = {}) {
-  const failovers = [];
-  Object.values(nodes)
-    .filter(item => item.Type === 'resolver')
-    .forEach(function(item) {
-      (get(item, 'Resolver.Failover.Targets') || []).forEach(failover => {
-        failovers.push(failover);
-      });
-    });
-  return failovers;
+export const createRoute = function(route, router) {
+  let id;
+  if (typeof route.Definition.Match === 'undefined') {
+    id = 'route:default';
+    route.Default = true;
+  } else {
+    id = `route:${router}-${JSON.stringify(route.Definition.Match)}`;
+  }
+  return {
+    ...route,
+    ID: id,
+  };
 };
-
 export default Component.extend({
   dom: service('dom'),
   ticker: service('ticker'),
@@ -134,61 +172,22 @@ export default Component.extend({
     this.ticker.destroy(this);
   },
   splitters: computed('chain.Nodes', function() {
-    return getNodesByType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
-      set(item, 'ID', `splitter:${item.Name}`);
-      return item;
-    });
+    return getSplitters(get(this, 'chain.Nodes'));
   }),
-  routers: computed('chain.Nodes', function() {
-    // Right now there should only ever be one 'Router'.
-    return getNodesByType(get(this, 'chain.Nodes'), 'router');
+  routes: computed('chain.Nodes', function() {
+    return getRoutes(get(this, 'chain.Nodes'));
   }),
-  routes: computed('chain', 'routers', function() {
-    const routes = get(this, 'routers').reduce(function(prev, item) {
-      return prev.concat(
-        item.Routes.map(function(route, i) {
-          return {
-            ...route,
-            ID: `route:${item.Name}-${JSON.stringify(route.Definition.Match.HTTP)}`,
-          };
-        })
-      );
-    }, []);
-    if (routes.length === 0) {
-      let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
-      const splitterID = `splitter:${this.chain.ServiceName}`;
-      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
-        nextNode = splitterID;
-      }
-      routes.push({
-        Default: true,
-        ID: `route:${this.chain.ServiceName}`,
-        Name: this.chain.ServiceName,
-        Definition: {
-          Match: {
-            HTTP: {
-              PathPrefix: '/',
-            },
-          },
-        },
-        NextNode: nextNode,
-      });
-    }
-    return routes;
-  }),
-  nodeResolvers: computed('chain.Nodes', function() {
-    return getNodeResolvers(get(this, 'chain.Nodes'));
-  }),
-  resolvers: computed('nodeResolvers.[]', 'chain.Targets', function() {
-    return getTargetResolvers(
+  resolvers: computed('chain.{Nodes,Targets}', function() {
+    return getResolvers(
       this.chain.Datacenter,
       this.chain.Namespace,
       get(this, 'chain.Targets'),
-      this.nodeResolvers
+      get(this, 'chain.Nodes')
     );
   }),
   graph: computed('chain.Nodes', function() {
     const graph = this.dataStructs.graph();
+    const router = this.chain.ServiceName;
     Object.entries(get(this, 'chain.Nodes')).forEach(function([key, item]) {
       switch (item.Type) {
         case 'splitter':
@@ -198,10 +197,8 @@ export default Component.extend({
           break;
         case 'router':
           item.Routes.forEach(function(route, i) {
-            graph.addLink(
-              `route:${item.Name}-${JSON.stringify(route.Definition.Match.HTTP)}`,
-              route.NextNode
-            );
+            route = createRoute(route, router);
+            graph.addLink(route.ID, route.NextNode);
           });
           break;
       }
