@@ -1344,20 +1344,9 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 // We prune entries the user doesn't have access to, and we redact any tokens
 // if the user doesn't have a management token.
 func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
-	var authzContext acl.AuthorizerContext
-	// Otherwise, we need to see what the token has access to.
 	ret := make(structs.Intentions, 0, len(*ixns))
 	for _, ixn := range *ixns {
-		// check for acl:read in either the destination or source
-		ixn.FillAuthzContext(&authzContext)
-		aclRead := f.authorizer.ACLRead(&authzContext) == acl.Allow
-
-		// If no prefix ACL applies to this then filter it, since
-		// we know at this point the user doesn't have a management
-		// token, otherwise see what the policy says.
-		prefix, ok := ixn.GetACLPrefix()
-
-		if !aclRead && (!ok || f.authorizer.IntentionRead(prefix, &authzContext) != acl.Allow) {
+		if !ixn.CanRead(f.authorizer) {
 			f.logger.Printf("[DEBUG] consul: dropping intention %q from result due to ACLs", ixn.ID)
 			continue
 		}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
@@ -244,6 +245,43 @@ func (x *Intention) Validate() error {
 	return result
 }
 
+func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
+	if authz == nil {
+		return true
+	}
+	var authzContext acl.AuthorizerContext
+
+	if ixn.SourceName != "" {
+		ixn.FillAuthzContext(&authzContext, false)
+		if authz.IntentionRead(ixn.SourceName, &authzContext) == acl.Allow {
+			return true
+		}
+	}
+
+	if ixn.DestinationName != "" {
+		ixn.FillAuthzContext(&authzContext, true)
+		if authz.IntentionRead(ixn.DestinationName, &authzContext) == acl.Allow {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
+	if authz == nil {
+		return true
+	}
+	var authzContext acl.AuthorizerContext
+
+	if ixn.DestinationName == "" {
+		return false
+	}
+
+	ixn.FillAuthzContext(&authzContext, true)
+	return authz.IntentionWrite(ixn.DestinationName, &authzContext) == acl.Allow
+}
+
 // UpdatePrecedence sets the Precedence value based on the fields of this
 // structure.
 func (x *Intention) UpdatePrecedence() {
@@ -285,13 +323,6 @@ func (x *Intention) countExact(ns, n string) int {
 	}
 
 	return 2
-}
-
-// GetACLPrefix returns the prefix to look up the ACL policy for this
-// intention, and a boolean noting whether the prefix is valid to check
-// or not. You must check the ok value before using the prefix.
-func (x *Intention) GetACLPrefix() (string, bool) {
-	return x.DestinationName, x.DestinationName != ""
 }
 
 // String returns a human-friendly string for this intention.
