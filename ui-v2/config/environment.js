@@ -101,6 +101,25 @@ module.exports = function(environment, $ = process.env) {
         }),
       });
       break;
+    // The coverage environment is for when running test coverage
+    // which should only run on 'Unit' tests therefore don't use api-double
+    // to prevent it causing issues with coverage reporting
+    // (coverage reporting uses a http request which can get caught
+    // by the api-double mock http request)
+    case environment === 'coverage':
+      ENV = Object.assign({}, ENV, {
+        locationType: 'none',
+        CONSUL_NSPACES_TEST: true,
+        CONSUL_ACLS_ENABLED: true,
+        APP: Object.assign({}, ENV.APP, {
+          LOG_ACTIVE_GENERATION: false,
+          LOG_VIEW_LOOKUPS: false,
+
+          rootElement: '#ember-testing',
+          autoboot: false,
+        }),
+      });
+      break;
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
         CONSUL_NSPACES_ENABLED: true,
