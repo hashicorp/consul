@@ -9,7 +9,7 @@
 {{/if}}
     <dl>
       <dt>
-        {{path.type}}
+        {{if (eq path.type 'Default') 'Catch-all' path.type }}
       </dt>
       <dd>
   {{#if (not-eq path.type 'Default')}}

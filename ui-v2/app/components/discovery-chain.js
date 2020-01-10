@@ -17,31 +17,60 @@ export const getRoutes = function(nodes) {
   return getNodesByType(nodes, 'router').reduce(function(prev, item) {
     return prev.concat(
       item.Routes.map(function(route, i) {
+        // Routes also have IDs added via createRoute
         return createRoute(route, item.Name);
       })
     );
   }, []);
-  // If there is no default route set
-  // then add a default catch-all so you can visualize the fact that there is one
-  // if (!routes.find(item => item.Default)) {
-  //   let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
-  //   const splitterID = `splitter:${this.chain.ServiceName}`;
-  //   // look for a default splitter, if not just go to the default resolver
-  //   if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
-  //     nextNode = splitterID;
-  //   }
-  //   routes.push(
-  //     createRoute(
-  //       {
-  //         Name: this.chain.ServiceName,
-  //         // an empty definition will automatically become the default route
-  //         Definition: {},
-  //         NextNode: nextNode
-  //       },
-  //       this.chain.ServiceName
-  //     )
-  //   );
-  // }
+};
+export const findResolver = function(resolvers, service, nspace, dc) {
+  if (typeof resolvers[service] === 'undefined') {
+    resolvers[service] = {
+      ID: `${service}.${nspace}.${dc}`,
+      Name: service,
+      Children: [],
+    };
+  }
+  return resolvers[service];
+};
+export const getResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
+  const resolvers = {};
+  Object.values(targets).forEach(target => {
+    const node = nodes[`resolver:${target.ID}`];
+    const resolver = findResolver(resolvers, target.Service, nspace, dc);
+    // We use this to figure out whether this target is a redirect target
+    const alternate = getAlternateServices([target.ID], `service.${nspace}.${dc}`);
+
+    let failovers;
+    // Figure out the failover type
+    if (typeof node.Resolver.Failover !== 'undefined') {
+      failovers = getAlternateServices(node.Resolver.Failover.Targets, target.ID);
+    }
+    switch (true) {
+      // This target is a redirect
+      case alternate.Type !== 'Service':
+        resolver.Children.push({
+          Redirect: true,
+          ID: target.ID,
+          Name: target[alternate.Type],
+        });
+        break;
+      // This target is a Subset
+      case typeof target.ServiceSubset !== 'undefined':
+        resolver.Children.push({
+          Subset: true,
+          ID: target.ID,
+          Name: target.ServiceSubset,
+          Filter: target.Subset.Filter,
+          Failover: failovers,
+        });
+        break;
+      // This target is just normal service that might have failovers
+      default:
+        resolver.Failover = failovers;
+    }
+  });
+  return Object.values(resolvers);
 };
 export const getAlternateServices = function(targets, a) {
   let type;
@@ -64,65 +93,13 @@ export const getAlternateServices = function(targets, a) {
   };
 };
 
-export const getResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
-  const resolvers = {};
-  Object.values(targets).forEach(target => {
-    let node = nodes[`resolver:${target.ID}`];
-    if (node) {
-      if (typeof resolvers[target.Service] === 'undefined') {
-        resolvers[target.Service] = {
-          ...target,
-          ...Node,
-          ...{
-            ID: `${target.Service}.${nspace}.${dc}`,
-            Name: target.Service,
-            Children: [],
-            Failover: null,
-            Redirect: null,
-          },
-        };
-      }
-      const resolver = resolvers[target.Service];
-      const alternate = getAlternateServices([target.ID], `service.${nspace}.${dc}`);
-
-      let failovers;
-      if (typeof node.Resolver.Failover !== 'undefined') {
-        failovers = getAlternateServices(node.Resolver.Failover.Targets, target.ID);
-      }
-      switch (true) {
-        // This target is a redirect
-        case alternate.Type !== 'Service':
-          resolver.Children.push({
-            Redirect: true,
-            ID: target.ID,
-            Name: target[alternate.Type],
-          });
-          break;
-        // This target is a Subset
-        case typeof target.ServiceSubset !== 'undefined':
-          resolver.Children.push({
-            Subset: true,
-            ID: target.ID,
-            Name: target.ServiceSubset,
-            Filter: target.Subset.Filter,
-            Failover: failovers,
-          });
-          break;
-        // This target is just normal service that might have failovers
-        default:
-          resolver.Failover = failovers;
-      }
-    }
-  });
-  return Object.values(resolvers);
-};
 export const createRoute = function(route, router) {
   let id;
   if (typeof route.Definition.Match === 'undefined') {
     id = 'route:default';
     route.Default = true;
   } else {
-    id = `route:${router}-${JSON.stringify(route.Definition.Match)}`;
+    id = `route:${router}-${JSON.stringify(route.Definition)}`;
   }
   return {
     ...route,
