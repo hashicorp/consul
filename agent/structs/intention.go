@@ -17,9 +17,6 @@ import (
 )
 
 const (
-	// IntentionWildcard is the wildcard value.
-	IntentionWildcard = "*"
-
 	// IntentionDefaultNamespace is the default namespace value.
 	// NOTE(mitchellh): This is only meant to be a temporary constant.
 	// When namespaces are introduced, we should delete this constant and
@@ -175,36 +172,36 @@ func (x *Intention) Validate() error {
 	}
 
 	// Wildcard usage verification
-	if x.SourceNS != IntentionWildcard {
-		if strings.Contains(x.SourceNS, IntentionWildcard) {
+	if x.SourceNS != WildcardSpecifier {
+		if strings.Contains(x.SourceNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceNS: wildcard character '*' cannot be used with partial values"))
 		}
 	}
-	if x.SourceName != IntentionWildcard {
-		if strings.Contains(x.SourceName, IntentionWildcard) {
+	if x.SourceName != WildcardSpecifier {
+		if strings.Contains(x.SourceName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceName: wildcard character '*' cannot be used with partial values"))
 		}
 
-		if x.SourceNS == IntentionWildcard {
+		if x.SourceNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceName: exact value cannot follow wildcard namespace"))
 		}
 	}
-	if x.DestinationNS != IntentionWildcard {
-		if strings.Contains(x.DestinationNS, IntentionWildcard) {
+	if x.DestinationNS != WildcardSpecifier {
+		if strings.Contains(x.DestinationNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationNS: wildcard character '*' cannot be used with partial values"))
 		}
 	}
-	if x.DestinationName != IntentionWildcard {
-		if strings.Contains(x.DestinationName, IntentionWildcard) {
+	if x.DestinationName != WildcardSpecifier {
+		if strings.Contains(x.DestinationName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationName: wildcard character '*' cannot be used with partial values"))
 		}
 
-		if x.DestinationNS == IntentionWildcard {
+		if x.DestinationNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationName: exact value cannot follow wildcard namespace"))
 		}
@@ -276,14 +273,14 @@ func (x *Intention) UpdatePrecedence() {
 // the given namespace and name.
 func (x *Intention) countExact(ns, n string) int {
 	// If NS is wildcard, it must be zero since wildcards only follow exact
-	if ns == IntentionWildcard {
+	if ns == WildcardSpecifier {
 		return 0
 	}
 
 	// Same reasoning as above, a wildcard can only follow an exact value
 	// and an exact value cannot follow a wildcard, so if name is a wildcard
 	// we must have exactly one.
-	if n == IntentionWildcard {
+	if n == WildcardSpecifier {
 		return 1
 	}
 

@@ -109,6 +109,10 @@ const (
 	// ends up being very small. If we see a value below this threshold,
 	// we multiply by time.Second
 	lockDelayMinThreshold = 1000
+
+	// WildcardSpecifier is the string which should be used for specifying a wildcard
+	// The exact semantics of the wildcard is left up to the code where its used.
+	WildcardSpecifier = "*"
 )
 
 var (

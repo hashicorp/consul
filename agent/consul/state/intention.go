@@ -349,14 +349,14 @@ func (s *Store) intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]
 	// We always query for "*/*" so include that. If the namespace is a
 	// wildcard, then we're actually done.
 	result := make([][]interface{}, 0, 3)
-	result = append(result, []interface{}{"*", "*"})
-	if entry.Namespace == structs.IntentionWildcard {
+	result = append(result, []interface{}{structs.WildcardSpecifier, structs.WildcardSpecifier})
+	if entry.Namespace == structs.WildcardSpecifier {
 		return result, nil
 	}
 
 	// Search for NS/* intentions. If we have a wildcard name, then we're done.
-	result = append(result, []interface{}{entry.Namespace, "*"})
-	if entry.Name == structs.IntentionWildcard {
+	result = append(result, []interface{}{entry.Namespace, structs.WildcardSpecifier})
+	if entry.Name == structs.WildcardSpecifier {
 		return result, nil
 	}
 
