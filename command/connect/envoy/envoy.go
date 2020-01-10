@@ -494,13 +494,13 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
-	var caPEM []byte
+	var caPEM string
 	if httpCfg.TLSConfig.CAFile != "" {
 		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read CA file: %s", err)
 		}
-		caPEM = content
+		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
 	}
 
 	return &BootstrapTplArgs{

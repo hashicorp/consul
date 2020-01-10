@@ -25,7 +25,7 @@ type BootstrapTplArgs struct {
 
 	// AgentCAPEM is the CA to use to verify the local agent gRPC service if
 	// TLS is enabled.
-	AgentCAPEM []byte
+	AgentCAPEM string
 
 	// AgentSocket is the path to a Unix Socket for communicating with the
 	// local agent's gRPC endpoint. Disabled if the empty (the default),
@@ -119,7 +119,7 @@ const bootstrapTemplate = `{
           "common_tls_context": {
             "validation_context": {
               "trusted_ca": {
-                "inline_bytes": "{{ .AgentCAPEM }}"
+                "inline_string": "{{ .AgentCAPEM }}"
               }
             }
           }
