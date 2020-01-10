@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/armon/go-radix"
 	"github.com/stretchr/testify/require"
 )
 
@@ -343,6 +344,102 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "PreparedQueryWriteDenied", prefix: "football", check: checkDenyPreparedQueryWrite},
 			},
 		},
+		"Intention Wildcards - prefix denied": aclTest{
+			policy: &Policy{PolicyRules: PolicyRules{
+				Services: []*ServiceRule{
+					&ServiceRule{
+						Name:       "foo",
+						Policy:     PolicyWrite,
+						Intentions: PolicyWrite,
+					},
+				},
+				ServicePrefixes: []*ServiceRule{
+					&ServiceRule{
+						Name:       "",
+						Policy:     PolicyDeny,
+						Intentions: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "AnyAllowed", prefix: "*", check: checkAllowIntentionRead},
+				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
+			},
+		},
+		"Intention Wildcards - prefix allowed": aclTest{
+			policy: &Policy{PolicyRules: PolicyRules{
+				Services: []*ServiceRule{
+					&ServiceRule{
+						Name:       "foo",
+						Policy:     PolicyWrite,
+						Intentions: PolicyDeny,
+					},
+				},
+				ServicePrefixes: []*ServiceRule{
+					&ServiceRule{
+						Name:       "",
+						Policy:     PolicyWrite,
+						Intentions: PolicyWrite,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "AnyAllowed", prefix: "*", check: checkAllowIntentionRead},
+				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
+			},
+		},
+		"Intention Wildcards - all allowed": aclTest{
+			policy: &Policy{PolicyRules: PolicyRules{
+				Services: []*ServiceRule{
+					&ServiceRule{
+						Name:       "foo",
+						Policy:     PolicyWrite,
+						Intentions: PolicyWrite,
+					},
+				},
+				ServicePrefixes: []*ServiceRule{
+					&ServiceRule{
+						Name:       "",
+						Policy:     PolicyWrite,
+						Intentions: PolicyWrite,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "AnyAllowed", prefix: "*", check: checkAllowIntentionRead},
+				{name: "AllAllowed", prefix: "*", check: checkAllowIntentionWrite},
+			},
+		},
+		"Intention Wildcards - all default": aclTest{
+			policy: &Policy{PolicyRules: PolicyRules{
+				Services: []*ServiceRule{
+					&ServiceRule{
+						Name:       "foo",
+						Policy:     PolicyWrite,
+						Intentions: PolicyWrite,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "AnyAllowed", prefix: "*", check: checkAllowIntentionRead},
+				{name: "AllDefault", prefix: "*", check: checkDefaultIntentionWrite},
+			},
+		},
+		"Intention Wildcards - any default": aclTest{
+			policy: &Policy{PolicyRules: PolicyRules{
+				Services: []*ServiceRule{
+					&ServiceRule{
+						Name:       "foo",
+						Policy:     PolicyWrite,
+						Intentions: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "AnyDefault", prefix: "*", check: checkDefaultIntentionRead},
+				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
+			},
+		},
 	}
 
 	for name, tcase := range cases {
@@ -366,6 +463,501 @@ func TestPolicyAuthorizer(t *testing.T) {
 					check.check(t, authz, check.prefix, nil)
 				})
 			}
+		})
+	}
+}
+
+func TestAnyAllowed(t *testing.T) {
+	t.Parallel()
+
+	type radixInsertion struct {
+		segment string
+		value   *policyAuthorizerRadixLeaf
+	}
+
+	type testCase struct {
+		insertions []radixInsertion
+
+		readEnforcement  EnforcementDecision
+		listEnforcement  EnforcementDecision
+		writeEnforcement EnforcementDecision
+	}
+
+	cases := map[string]testCase{
+		"no-rules-default": testCase{
+			readEnforcement:  Default,
+			listEnforcement:  Default,
+			writeEnforcement: Default,
+		},
+		"prefix-write-allowed": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				// this shouldn't affect whether anyAllowed returns things are allowed
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Allow,
+		},
+		"prefix-list-allowed": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessList},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Deny,
+		},
+		"prefix-read-allowed": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessRead},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Deny,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny-other-write-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Allow,
+		},
+		"prefix-deny-other-write-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Allow,
+		},
+		"prefix-deny-other-list-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessList},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny-other-list-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessList},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny-other-read-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessRead},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny-other-read-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessRead},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny-other-deny-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Deny,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny-other-deny-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Deny,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			tree := radix.New()
+
+			for _, insertion := range tcase.insertions {
+				tree.Insert(insertion.segment, insertion.value)
+			}
+
+			var authz policyAuthorizer
+			require.Equal(t, tcase.readEnforcement, authz.anyAllowed(tree, AccessRead))
+			require.Equal(t, tcase.listEnforcement, authz.anyAllowed(tree, AccessList))
+			require.Equal(t, tcase.writeEnforcement, authz.anyAllowed(tree, AccessWrite))
+		})
+	}
+}
+
+func TestAllAllowed(t *testing.T) {
+	t.Parallel()
+
+	type radixInsertion struct {
+		segment string
+		value   *policyAuthorizerRadixLeaf
+	}
+
+	type testCase struct {
+		insertions []radixInsertion
+
+		readEnforcement  EnforcementDecision
+		listEnforcement  EnforcementDecision
+		writeEnforcement EnforcementDecision
+	}
+
+	cases := map[string]testCase{
+		"no-rules-default": testCase{
+			readEnforcement:  Default,
+			listEnforcement:  Default,
+			writeEnforcement: Default,
+		},
+		"prefix-write-allowed": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Allow,
+		},
+		"prefix-list-allowed": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessList},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Deny,
+		},
+		"prefix-read-allowed": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessRead},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-deny": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Deny,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-allow-other-write-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Allow,
+		},
+		"prefix-allow-other-write-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Allow,
+		},
+		"prefix-allow-other-list-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessList},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Deny,
+		},
+		"prefix-allow-other-list-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessList},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Allow,
+			writeEnforcement: Deny,
+		},
+		"prefix-allow-other-read-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessRead},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-allow-other-read-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessRead},
+					},
+				},
+			},
+			readEnforcement:  Allow,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-allow-other-deny-prefix": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Deny,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+		"prefix-allow-other-deny-exact": testCase{
+			insertions: []radixInsertion{
+				radixInsertion{
+					segment: "",
+					value: &policyAuthorizerRadixLeaf{
+						prefix: &policyAuthorizerRule{access: AccessWrite},
+					},
+				},
+				radixInsertion{
+					segment: "foo",
+					value: &policyAuthorizerRadixLeaf{
+						exact: &policyAuthorizerRule{access: AccessDeny},
+					},
+				},
+			},
+			readEnforcement:  Deny,
+			listEnforcement:  Deny,
+			writeEnforcement: Deny,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			tree := radix.New()
+
+			for _, insertion := range tcase.insertions {
+				tree.Insert(insertion.segment, insertion.value)
+			}
+
+			var authz policyAuthorizer
+			require.Equal(t, tcase.readEnforcement, authz.allAllowed(tree, AccessRead))
+			require.Equal(t, tcase.listEnforcement, authz.allAllowed(tree, AccessList))
+			require.Equal(t, tcase.writeEnforcement, authz.allAllowed(tree, AccessWrite))
 		})
 	}
 }
