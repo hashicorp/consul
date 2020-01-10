@@ -38,13 +38,13 @@ There are four specific cases covered with increasing complexity:
    out where etc.)
  - [ ] **If** your new config field needed some validation as it's only valid in
    some cases or with some values (often true).
-      - [ ] Add validation to Validate in `builder.go`.
+      - [ ] Add validation to Validate in `agent/config/builder.go`.
       - [ ] Add a test case to the table test `TestConfigFlagsAndEdgeCases` in
-        `runtime_test.go`.
+        `agent/config/runtime_test.go`.
  - [ ] **If** your new config field needs a non-zero-value default.
-      - [ ] Add that to `DefaultSource` in `defaults.go`.
+      - [ ] Add that to `DefaultSource` in `agent/config/defaults.go`.
       - [ ] Add a test case to the table test `TestConfigFlagsAndEdgeCases` in
-        `runtime_test.go`.
+        `agent/config/runtime_test.go`.
  - [ ] **If** your config should take effect on a reload/HUP.
       - [ ] Add necessary code to to trigger a safe (locked or atomic) update to
         any state the feature needs changing. This needs to be added to one or
@@ -57,8 +57,8 @@ There are four specific cases covered with increasing complexity:
         `TestAgent_reloadConfig*`.
  - [ ] **If** the new config field(s) include an array of structs or maps.
       - [ ] Add the path to the call to `lib.PatchSliceOfMaps` in Parse in
-        `config.go`.
-      - [ ] If none of the tests in `runtime_test.go` failed before you did that,
+        `agent/config/config.go`.
+      - [ ] If none of the tests in `agent/config/runtime_test.go` failed before you did that,
         then you didn't actually test the slice part yet, go back and add tests
         that populate that slice.
  - [ ] Add documentation to `website/source/docs/agent/options.html.md`.
@@ -78,7 +78,7 @@ If the config field also needs a CLI flag, then follow these steps.
  - [ ] Add the new flag to `agent/config/flags.go`.
  - [ ] Add a test case to TestParseFlags in `agent/config/flag_test.go`.
  - [ ] Add a test case (or extend one if appropriate) to the table test
-   `TestConfigFlagsAndEdgeCases` in `runtime_test.go` to ensure setting the
+   `TestConfigFlagsAndEdgeCases` in `agent/config/runtime_test.go` to ensure setting the
    flag works.
  - [ ] Add flag (as well as config file) documentation to
    `website/source/docs/agent/options.html.md`.
