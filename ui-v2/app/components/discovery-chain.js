@@ -3,6 +3,9 @@ import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { next } from '@ember/runloop';
 
+export const getTypeFromId = function(id) {
+  return id.split(':').shift();
+};
 export const getNodesByType = function(nodes = {}, type) {
   return Object.values(nodes).filter(item => item.Type === type);
 };
@@ -13,17 +16,17 @@ export const getSplitters = function(nodes) {
     return item;
   });
 };
-export const getRoutes = function(nodes) {
+export const getRoutes = function(nodes, uid) {
   return getNodesByType(nodes, 'router').reduce(function(prev, item) {
     return prev.concat(
       item.Routes.map(function(route, i) {
         // Routes also have IDs added via createRoute
-        return createRoute(route, item.Name);
+        return createRoute(route, item.Name, uid);
       })
     );
   }, []);
 };
-export const findResolver = function(resolvers, service, nspace, dc) {
+export const findResolver = function(resolvers, service, nspace = 'default', dc) {
   if (typeof resolvers[service] === 'undefined') {
     resolvers[service] = {
       ID: `${service}.${nspace}.${dc}`,
@@ -76,7 +79,8 @@ export const getAlternateServices = function(targets, a) {
   let type;
   const Targets = targets.map(function(b) {
     // TODO: this isn't going to work past namespace for services
-    // with dots in the name
+    // with dots in the name, but by the time that becomes an issue
+    // we might have more data from the endpoint so we don't have to guess
     const [aRev, bRev] = [a, b].map(item => item.split('.').reverse());
     const types = ['Datacenter', 'Namespace', 'Service', 'Subset'];
     return bRev.find(function(item, i) {
@@ -92,18 +96,11 @@ export const getAlternateServices = function(targets, a) {
     Targets: Targets,
   };
 };
-
-export const createRoute = function(route, router) {
-  let id;
-  if (typeof route.Definition.Match === 'undefined') {
-    id = 'route:default';
-    route.Default = true;
-  } else {
-    id = `route:${router}-${JSON.stringify(route.Definition)}`;
-  }
+export const createRoute = function(route, router, uid) {
   return {
     ...route,
-    ID: id,
+    Default: typeof route.Definition.Match === 'undefined',
+    ID: `route:${router}-${uid(route.Definition)}`,
   };
 };
 export default Component.extend({
@@ -152,7 +149,7 @@ export default Component.extend({
     return getSplitters(get(this, 'chain.Nodes'));
   }),
   routes: computed('chain.Nodes', function() {
-    return getRoutes(get(this, 'chain.Nodes'));
+    return getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
   }),
   resolvers: computed('chain.{Nodes,Targets}', function() {
     return getResolvers(
@@ -174,7 +171,7 @@ export default Component.extend({
           break;
         case 'router':
           item.Routes.forEach(function(route, i) {
-            route = createRoute(route, router);
+            route = createRoute(route, router, this.dom.guid);
             graph.addLink(route.ID, route.NextNode);
           });
           break;
@@ -186,9 +183,6 @@ export default Component.extend({
     if (this.selectedId === '' || !this.dom.element(`#${this.selectedId}`)) {
       return {};
     }
-    const getTypeFromId = function(id) {
-      return id.split(':').shift();
-    };
     const id = this.selectedId;
     const type = getTypeFromId(id);
     const nodes = [id];
