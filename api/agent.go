@@ -54,7 +54,7 @@ type AgentCheck struct {
 	ServiceName string
 	Type        string
 	Definition  HealthCheckDefinition
-	Namesapce   string `json:",omitempty"`
+	Namespace   string `json:",omitempty"`
 }
 
 // AgentWeights represent optional weights for a service
