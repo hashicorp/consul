@@ -243,6 +243,8 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 	return Deny, fmt.Errorf("Invalid access level for %s resource: %s", rsc, access)
 }
 
+// NewAuthorizerFromRules is a convenience function to invoke NewPolicyFromSource followed by NewPolicyAuthorizer with
+// the parse policy.
 func NewAuthorizerFromRules(id string, revision uint64, rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (Authorizer, error) {
 	policy, err := NewPolicyFromSource(id, revision, rules, syntax, conf, meta)
 	if err != nil {

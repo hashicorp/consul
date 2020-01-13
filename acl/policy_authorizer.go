@@ -340,7 +340,14 @@ func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (Authorizer, 
 	return p, nil
 }
 
-func anyAllowed(tree *radix.Tree, enforceFn func(raw interface{}, prefixOnly bool) EnforcementDecision) EnforcementDecision {
+// enforceCallbacks are to be passed to anyAllowed or allAllowed. The interface{}
+// parameter will be a value stored in the radix.Tree passed to those functions.
+// prefixOnly indicates that only we only want to consider the prefix matching rule
+// if any. The return value indicates whether this one leaf node in the tree would
+// allow, deny or make no decision regarding some authorization.
+type enforceCallback func(raw interface{}, prefixOnly bool) EnforcementDecision
+
+func anyAllowed(tree *radix.Tree, enforceFn enforceCallback) EnforcementDecision {
 	decision := Default
 
 	// special case for handling a catch-all prefix rule. If the rule woul Deny access then our default decision
@@ -364,7 +371,7 @@ func anyAllowed(tree *radix.Tree, enforceFn func(raw interface{}, prefixOnly boo
 	return decision
 }
 
-func allAllowed(tree *radix.Tree, enforceFn func(raw interface{}, prefixOnly bool) EnforcementDecision) EnforcementDecision {
+func allAllowed(tree *radix.Tree, enforceFn enforceCallback) EnforcementDecision {
 	decision := Default
 
 	// look for a "" prefix rule
