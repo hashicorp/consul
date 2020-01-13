@@ -1501,13 +1501,7 @@ service "bar" {
 func TestIntentionCheck_match(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
-	})
+	dir1, s1 := testACLServerWithConfig(t, nil, false)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
@@ -1515,33 +1509,15 @@ func TestIntentionCheck_match(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create an ACL with service read permissions. This will grant permission.
-	var token string
-	{
-		var rules = `
-service "bar" {
-	policy = "read"
-}`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "api" { policy = "read" }`)
+	require.NoError(t, err)
 
 	// Create some intentions
 	{
 		insert := [][]string{
-			{"foo", "*", "foo", "*"},
-			{"foo", "*", "foo", "bar"},
-			{"bar", "*", "foo", "bar"}, // duplicate destination different source
+			{"web", "db"},
+			{"api", "db"},
+			{"web", "api"},
 		}
 
 		for _, v := range insert {
@@ -1549,18 +1525,17 @@ service "bar" {
 				Datacenter: "dc1",
 				Op:         structs.IntentionOpCreate,
 				Intention: &structs.Intention{
-					SourceNS:        v[0],
-					SourceName:      v[1],
-					DestinationNS:   v[2],
-					DestinationName: v[3],
+					SourceNS:        "default",
+					SourceName:      v[0],
+					DestinationNS:   "default",
+					DestinationName: v[1],
 					Action:          structs.IntentionActionAllow,
 				},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
 			}
-			ixn.WriteRequest.Token = "root"
-
 			// Create
 			var reply string
-			require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -1568,33 +1543,33 @@ service "bar" {
 	req := &structs.IntentionQueryRequest{
 		Datacenter: "dc1",
 		Check: &structs.IntentionQueryCheck{
-			SourceNS:        "foo",
-			SourceName:      "qux",
-			DestinationNS:   "foo",
-			DestinationName: "bar",
+			SourceNS:        "default",
+			SourceName:      "web",
+			DestinationNS:   "default",
+			DestinationName: "api",
 			SourceType:      structs.IntentionSourceConsul,
 		},
+		QueryOptions: structs.QueryOptions{Token: token.SecretID},
 	}
-	req.Token = token
 	var resp structs.IntentionQueryCheckResponse
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-	require.True(resp.Allowed)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
+	require.True(t, resp.Allowed)
 
 	// Test no match for sanity
 	{
 		req := &structs.IntentionQueryRequest{
 			Datacenter: "dc1",
 			Check: &structs.IntentionQueryCheck{
-				SourceNS:        "baz",
-				SourceName:      "qux",
-				DestinationNS:   "foo",
-				DestinationName: "bar",
+				SourceNS:        "default",
+				SourceName:      "db",
+				DestinationNS:   "default",
+				DestinationName: "api",
 				SourceType:      structs.IntentionSourceConsul,
 			},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 		}
-		req.Token = token
 		var resp structs.IntentionQueryCheckResponse
-		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
-		require.False(resp.Allowed)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
+		require.False(t, resp.Allowed)
 	}
 }
