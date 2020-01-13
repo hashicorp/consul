@@ -36,6 +36,126 @@ func (s *Intention) checkIntentionID(id string) (bool, error) {
 	return true, nil
 }
 
+// prepareApplyCreate validates that the requester has permissions to create the new intention,
+// generates a new uuid for the intention and generally validates that the request is well-formed
+func (s *Intention) prepareApplyCreate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+	if !args.Intention.CanWrite(authz) {
+		s.srv.logger.Printf("[WARN] consul.intention: Intention creation denied due to ACLs")
+		return acl.ErrPermissionDenied
+	}
+
+	// If no ID is provided, generate a new ID. This must be done prior to
+	// appending to the Raft log, because the ID is not deterministic. Once
+	// the entry is in the log, the state update MUST be deterministic or
+	// the followers will not converge.
+	if args.Intention.ID != "" {
+		return fmt.Errorf("ID must be empty when creating a new intention")
+	}
+
+	var err error
+	args.Intention.ID, err = lib.GenerateUUID(s.checkIntentionID)
+	if err != nil {
+		return err
+	}
+	// Set the created at
+	args.Intention.CreatedAt = time.Now().UTC()
+	args.Intention.UpdatedAt = args.Intention.CreatedAt
+
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	// Validate. We do not validate on delete since it is valid to only
+	// send an ID in that case.
+	// Set the precedence
+	args.Intention.UpdatePrecedence()
+
+	if err := args.Intention.Validate(); err != nil {
+		return err
+	}
+
+	// make sure we set the hash prior to raft application
+	args.Intention.SetHash(true)
+
+	return nil
+}
+
+// prepareApplyUpdate validates that the requester has permissions on both the updated and existing
+// intention as well as generally validating that the request is well-formed
+func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+	if !args.Intention.CanWrite(authz) {
+		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention %q denied due to ACLs", args.Intention.ID)
+		return acl.ErrPermissionDenied
+	}
+
+	_, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
+	if err != nil {
+		return fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil {
+		return fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	// Perform the ACL check that we have write to the old intention too,
+	// which must be true to perform any rename. This is the only ACL enforcement
+	// done for deletions and a secondary enforcement for updates.
+	if !ixn.CanWrite(authz) {
+		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention %q denied due to ACLs", args.Intention.ID)
+		return acl.ErrPermissionDenied
+	}
+
+	// We always update the updatedat field.
+	args.Intention.UpdatedAt = time.Now().UTC()
+
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	// Validate. We do not validate on delete since it is valid to only
+	// send an ID in that case.
+	// Set the precedence
+	args.Intention.UpdatePrecedence()
+
+	if err := args.Intention.Validate(); err != nil {
+		return err
+	}
+
+	// make sure we set the hash prior to raft application
+	args.Intention.SetHash(true)
+
+	return nil
+}
+
+// prepareApplyDelete ensures that the intention specified by the ID in the request exists
+// and that the requester is authorized to delete it
+func (s *Intention) prepareApplyDelete(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+	// If this is not a create, then we have to verify the ID.
+	state := s.srv.fsm.State()
+	_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
+	if err != nil {
+		return fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil {
+		return fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	// Perform the ACL check that we have write to the old intention too,
+	// which must be true to perform any rename. This is the only ACL enforcement
+	// done for deletions and a secondary enforcement for updates.
+	if !ixn.CanWrite(authz) {
+		s.srv.logger.Printf("[WARN] consul.intention: Deletion operation on intention %q denied due to ACLs", args.Intention.ID)
+		return acl.ErrPermissionDenied
+	}
+
+	return nil
+}
+
 // Apply creates or updates an intention in the data store.
 func (s *Intention) Apply(
 	args *structs.IntentionRequest,
@@ -65,84 +185,24 @@ func (s *Intention) Apply(
 	}
 
 	switch args.Op {
-	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
-		// in this case we should validate that the token has
-		// permissions to write the incoming intention. Later we
-		// must also check that for updates, the token also has
-		// write permissions on that token.
-		if !args.Intention.CanWrite(authz) {
-			if args.Op == structs.IntentionOpCreate {
-				s.srv.logger.Printf("[WARN] consul.intention: Intention creation denied due to ACLs")
-			} else {
-				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention %q denied due to ACLs", args.Intention.ID)
-			}
-			return acl.ErrPermissionDenied
+	case structs.IntentionOpCreate:
+		if err := s.prepareApplyCreate(authz, &entMeta, args); err != nil {
+			return err
+		}
+	case structs.IntentionOpUpdate:
+		if err := s.prepareApplyUpdate(authz, &entMeta, args); err != nil {
+			return err
+		}
+	case structs.IntentionOpDelete:
+		if err := s.prepareApplyDelete(authz, &entMeta, args); err != nil {
+			return err
 		}
 	default:
-		// other ops permissions will be checked later
+		return fmt.Errorf("Invalid Intention operation: %v", args.Op)
 	}
 
-	// If no ID is provided, generate a new ID. This must be done prior to
-	// appending to the Raft log, because the ID is not deterministic. Once
-	// the entry is in the log, the state update MUST be deterministic or
-	// the followers will not converge.
-	if args.Op == structs.IntentionOpCreate {
-		if args.Intention.ID != "" {
-			return fmt.Errorf("ID must be empty when creating a new intention")
-		}
-
-		args.Intention.ID, err = lib.GenerateUUID(s.checkIntentionID)
-		if err != nil {
-			return err
-		}
-		// Set the created at
-		args.Intention.CreatedAt = time.Now().UTC()
-	}
+	// setup the reply which will have been filled in by one of the 3 preparedApply* funcs
 	*reply = args.Intention.ID
-
-	// If this is not a create, then we have to verify the ID.
-	if args.Op != structs.IntentionOpCreate {
-		state := s.srv.fsm.State()
-		_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
-		if err != nil {
-			return fmt.Errorf("Intention lookup failed: %v", err)
-		}
-		if ixn == nil {
-			return fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
-		}
-
-		// Perform the ACL check that we have write to the old intention too,
-		// which must be true to perform any rename. This is the only ACL enforcement
-		// done for deletions and a secondary enforcement for updates.
-		if !ixn.CanWrite(authz) {
-			s.srv.logger.Printf("[WARN] consul.intention: Operation on intention %q denied due to ACLs", args.Intention.ID)
-			return acl.ErrPermissionDenied
-		}
-	}
-
-	// We always update the updatedat field. This has no effect for deletion.
-	args.Intention.UpdatedAt = time.Now().UTC()
-
-	// Default source type
-	if args.Intention.SourceType == "" {
-		args.Intention.SourceType = structs.IntentionSourceConsul
-	}
-
-	args.Intention.DefaultNamespaces(&entMeta)
-
-	// Validate. We do not validate on delete since it is valid to only
-	// send an ID in that case.
-	if args.Op != structs.IntentionOpDelete {
-		// Set the precedence
-		args.Intention.UpdatePrecedence()
-
-		if err := args.Intention.Validate(); err != nil {
-			return err
-		}
-	}
-
-	// make sure we set the hash prior to raft application
-	args.Intention.SetHash(true)
 
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
