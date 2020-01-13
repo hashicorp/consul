@@ -1,10 +1,10 @@
 {{#child-selector repo=repo dc=dc nspace=nspace type="policy" placeholder="Search for policy" items=items}}
   {{yield}}
-  {{#block-slot 'label'}}
+  {{#block-slot name='label'}}
     Apply an existing policy
   {{/block-slot}}
-  {{#block-slot 'create'}}
-    {{#yield-slot 'trigger'}}
+  {{#block-slot name='create'}}
+    {{#yield-slot name='trigger'}}
       {{yield}}
     {{else}}
       <label class="type-dialog" for="new-policy-toggle">
@@ -13,13 +13,13 @@
       {{!TODO: potentially call trigger something else}}
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
       {{#modal-dialog data-test-policy-form onopen=(action 'open') name="new-policy-toggle"}}
-        {{#block-slot 'header'}}
+        {{#block-slot name='header'}}
           <h2>New Policy</h2>
         {{/block-slot}}
-        {{#block-slot 'body'}}
+        {{#block-slot name='body'}}
           {{policy-form form=form dc=dc}}
         {{/block-slot}}
-        {{#block-slot 'actions' as |close|}}
+        {{#block-slot name='actions' as |close|}}
           <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
             {{#if item.isSaving }}
               <div class="progress indeterminate"></div>
@@ -31,20 +31,20 @@
       {{/modal-dialog}}
     {{/yield-slot}}
   {{/block-slot}}
-  {{#block-slot 'option' as |option|}}
+  {{#block-slot name='option' as |option|}}
     {{option.Name}}
   {{/block-slot}}
-  {{#block-slot 'set'}}
+  {{#block-slot name='set'}}
     {{#tabular-details
         data-test-policies
         onchange=(action 'loadItem')
         items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
     }}
-      {{#block-slot 'header'}}
+      {{#block-slot name='header'}}
         <th>Name</th>
         <th>Datacenters</th>
       {{/block-slot}}
-      {{#block-slot 'row'}}
+      {{#block-slot name='row'}}
         <td class={{policy/typeof item}}>
 {{#if item.ID }}
           <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
@@ -56,7 +56,7 @@
           {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
         </td>
       {{/block-slot}}
-      {{#block-slot 'details'}}
+      {{#block-slot name='details'}}
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{#if (eq item.template '')}}
@@ -69,10 +69,10 @@
           </label>
           <div>
             {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}
-              {{#block-slot 'action' as |confirm|}}
+              {{#block-slot name='action' as |confirm|}}
                 <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item items}}>Remove</button>
               {{/block-slot}}
-              {{#block-slot 'dialog' as |execute cancel message|}}
+              {{#block-slot name='dialog' as |execute cancel message|}}
                 <p>
                   {{message}}
                 </p>

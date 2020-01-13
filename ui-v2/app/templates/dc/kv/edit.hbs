@@ -1,8 +1,8 @@
 {{#app-view class="kv edit" loading=isLoading}}
-  {{#block-slot 'notification' as |status type|}}
+  {{#block-slot name='notification' as |status type|}}
     {{partial 'dc/kv/notifications'}}
   {{/block-slot}}
-  {{#block-slot 'breadcrumbs'}}
+  {{#block-slot name='breadcrumbs'}}
     <ol>
         <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
 {{#if (not-eq parent.Key '/')}}
@@ -12,7 +12,7 @@
 {{/if}}
     </ol>
   {{/block-slot}}
-  {{#block-slot 'header'}}
+  {{#block-slot name='header'}}
       <h1>
 {{#if item.Key}}
         {{left-trim item.Key parent.Key}}
@@ -21,7 +21,7 @@
 {{/if}}
       </h1>
   {{/block-slot}}
-  {{#block-slot 'content'}}
+  {{#block-slot name='content'}}
     {{#if session}}
       <p class="notice warning">
         <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
@@ -60,10 +60,10 @@
 {{/if}}
         </dl>
         {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
-          {{#block-slot 'action' as |confirm|}}
+          {{#block-slot name='action' as |confirm|}}
             <button type="button" data-test-delete class="type-delete" {{action confirm "invalidateSession" session}}>Invalidate Session</button>
           {{/block-slot}}
-          {{#block-slot 'dialog' as |execute cancel message|}}
+          {{#block-slot name='dialog' as |execute cancel message|}}
             <p>
               {{message}}
             </p>

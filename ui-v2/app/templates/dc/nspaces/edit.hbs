@@ -1,13 +1,13 @@
 {{#app-view class="nspace edit" loading=isLoading}}
-  {{#block-slot 'notification' as |status type|}}
+  {{#block-slot name='notification' as |status type|}}
     {{partial 'dc/nspaces/notifications'}}
   {{/block-slot}}
-  {{#block-slot 'breadcrumbs'}}
+  {{#block-slot name='breadcrumbs'}}
     <ol>
         <li><a data-test-back href={{href-to 'dc.nspaces'}}>All Namespaces</a></li>
     </ol>
   {{/block-slot}}
-  {{#block-slot 'header'}}
+  {{#block-slot name='header'}}
     <h1>
 {{#if create }}
       New Namespace
@@ -16,9 +16,9 @@
 {{/if}}
     </h1>
   {{/block-slot}}
-  {{#block-slot 'actions'}}
+  {{#block-slot name='actions'}}
   {{/block-slot}}
-  {{#block-slot 'content'}}
+  {{#block-slot name='content'}}
     {{ partial 'dc/nspaces/form'}}
   {{/block-slot}}
 {{/app-view}}

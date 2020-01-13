@@ -1,32 +1,32 @@
 {{#app-view class="acl list" loading=isLoading}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/acls/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
             ACL Tokens <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     {{/block-slot}}
-    {{#block-slot 'actions'}}
+    {{#block-slot name='actions'}}
         <a data-test-create href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
     {{/block-slot}}
-    {{#block-slot 'toolbar'}}
+    {{#block-slot name='toolbar'}}
 {{#if (gt items.length 0) }}
         {{acl-filter searchable=searchable filters=typeFilters search=filters.s type=filters.type onchange=(action 'filter')}}
 {{/if}}
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
         {{#changeable-set dispatcher=searchable}}
-          {{#block-slot 'set' as |filtered|}}
+          {{#block-slot name='set' as |filtered|}}
             {{#tabular-collection
                 items=(sort-by 'Name:asc' filtered) as |item index|
             }}
-                {{#block-slot 'header'}}
+                {{#block-slot name='header'}}
                     <th>Name</th>
                     <th>Type</th>
                 {{/block-slot}}
-                {{#block-slot 'row'}}
+                {{#block-slot name='row'}}
                     <td data-test-acl="{{item.Name}}">
                         <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
                     </td>
@@ -38,9 +38,9 @@
                         {{/if}}
                     </td>
                 {{/block-slot}}
-                {{#block-slot 'actions' as |index change checked|}}
+                {{#block-slot name='actions' as |index change checked|}}
                     {{#confirmation-dialog confirming=false index=index}}
-                        {{#block-slot 'action' as |confirm|}}
+                        {{#block-slot name='action' as |confirm|}}
                             {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
                                 <ul>
                                   <li>
@@ -67,7 +67,7 @@
                               </ul>
                             {{/action-group}}
                         {{/block-slot}}
-                        {{#block-slot 'dialog' as |execute cancel message name|}}
+                        {{#block-slot name='dialog' as |execute cancel message name|}}
                             <p>
                                 {{#if (eq name 'delete')}}
                                     Are you sure you want to delete this ACL token?
@@ -92,7 +92,7 @@
                 {{/block-slot}}
             {{/tabular-collection}}
           {{/block-slot}}
-          {{#block-slot 'empty'}}
+          {{#block-slot name='empty'}}
             <p>
               There are no ACLs.
             </p>

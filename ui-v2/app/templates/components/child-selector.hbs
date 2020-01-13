@@ -1,7 +1,7 @@
 {{yield}}
-  {{#yield-slot 'create'}}{{yield}}{{/yield-slot}}
+  {{#yield-slot name='create'}}{{yield}}{{/yield-slot}}
   <label class="type-text">
-    <span>{{#yield-slot 'label'}}{{yield}}{{/yield-slot}}</span>
+    <span>{{#yield-slot name='label'}}{{yield}}{{/yield-slot}}</span>
       {{#power-select
         onopen=(action 'open')
         search=(action 'search')
@@ -11,11 +11,11 @@
         searchPlaceholder=placeholder
         onchange=(action 'change' 'items[]' items) as |item|
       }}
-        {{#yield-slot 'option' (block-params item)}}{{yield}}{{/yield-slot}}
+        {{#yield-slot name='option' params=(block-params item)}}{{yield}}{{/yield-slot}}
       {{/power-select}}
   </label>
 {{#if (gt items.length 0)}}
-  {{#yield-slot 'set'}}{{yield}}{{/yield-slot}}
+  {{#yield-slot name='set'}}{{yield}}{{/yield-slot}}
 {{else}}
 
 {{/if}}

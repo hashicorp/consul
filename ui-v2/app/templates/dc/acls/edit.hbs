@@ -1,13 +1,13 @@
 {{#app-view class="acl edit" loading=isLoading}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/acls/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'breadcrumbs'}}
+    {{#block-slot name='breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls'}}>All Tokens</a></li>
         </ol>
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
 {{#if item.Name }}
             {{item.Name}}
@@ -16,20 +16,20 @@
 {{/if}}
         </h1>
     {{/block-slot}}
-    {{#block-slot 'actions'}}
+    {{#block-slot name='actions'}}
 {{#if (not create) }}
         {{#feedback-dialog type='inline'}}
-            {{#block-slot 'action' as |success error|}}
+            {{#block-slot name='action' as |success error|}}
                 {{#copy-button success=(action success) error=(action error) clipboardText=item.ID title='copy token ID to clipboard'}}
                     Copy token ID
                 {{/copy-button}}
             {{/block-slot}}
-            {{#block-slot 'success' as |transition|}}
+            {{#block-slot name='success' as |transition|}}
                 <p class={{transition}}>
                     Copied token ID!
                 </p>
             {{/block-slot}}
-            {{#block-slot 'error' as |transition|}}
+            {{#block-slot name='error' as |transition|}}
                 <p class={{transition}}>
                     Sorry, something went wrong!
                 </p>
@@ -37,10 +37,10 @@
         {{/feedback-dialog}}
         <button type="button" {{ action "clone" item }}>Clone token</button>
         {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
-            {{#block-slot 'action' as |confirm|}}
+            {{#block-slot name='action' as |confirm|}}
                 <button data-test-use type="button" {{ action confirm 'use' item }}>Use token</button>
             {{/block-slot}}
-            {{#block-slot 'dialog' as |execute cancel message|}}
+            {{#block-slot name='dialog' as |execute cancel message|}}
                 <p>
                     {{message}}
                 </p>
@@ -50,7 +50,7 @@
         {{/confirmation-dialog}}
 {{/if}}
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
         {{ partial 'dc/acls/form'}}
     {{/block-slot}}
 {{/app-view}}
