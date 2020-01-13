@@ -167,8 +167,9 @@ type ACLResolverConfig struct {
 	// so that it can detect when the servers have gotten ACLs enabled.
 	AutoDisable bool
 
-	// EnterpriseACLConfig contains Consul Enterprise specific ACL configuration
-	EnterpriseConfig *acl.Config
+	// ACLConfig is the configuration necessary to pass through to the acl package when creating authorizers
+	// and when authorizing access
+	ACLConfig *acl.Config
 }
 
 // ACLResolver is the type to handle all your token and policy resolution needs.
@@ -201,7 +202,7 @@ type ACLResolver struct {
 	logger *log.Logger
 
 	delegate ACLResolverDelegate
-	entConf  *acl.Config
+	aclConf  *acl.Config
 
 	cache         *structs.ACLCaches
 	identityGroup singleflight.Group
@@ -254,7 +255,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		config:      config.Config,
 		logger:      config.Logger,
 		delegate:    config.Delegate,
-		entConf:     config.EnterpriseConfig,
+		aclConf:     config.ACLConfig,
 		cache:       cache,
 		autoDisable: config.AutoDisable,
 		down:        down,
@@ -262,7 +263,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 }
 
 func (r *ACLResolver) Close() {
-	r.entConf.Close()
+	r.aclConf.Close()
 }
 
 func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.AuthorizerCacheEntry) (acl.Authorizer, error) {
@@ -295,7 +296,7 @@ func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.Aut
 			policies = append(policies, policy.ConvertFromLegacy())
 		}
 
-		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, policies, r.entConf)
+		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, policies, r.aclConf)
 
 		r.cache.PutAuthorizerWithTTL(token, authorizer, reply.TTL)
 		return authorizer, err
@@ -338,7 +339,7 @@ func (r *ACLResolver) resolveTokenLegacy(token string) (structs.ACLIdentity, acl
 				return identity, nil, err
 			}
 
-			authz, err := policies.Compile(r.cache, r.entConf)
+			authz, err := policies.Compile(r.cache, r.aclConf)
 			if err != nil {
 				return identity, nil, err
 			}
@@ -1065,7 +1066,7 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	// Build the Authorizer
 	var chain []acl.Authorizer
 
-	authz, err := policies.Compile(r.cache, r.entConf)
+	authz, err := policies.Compile(r.cache, r.aclConf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1116,7 +1117,7 @@ func (r *ACLResolver) GetMergedPolicyForToken(token string) (*acl.Policy, error)
 		return nil, acl.ErrNotFound
 	}
 
-	return policies.Merge(r.cache, r.entConf)
+	return policies.Merge(r.cache, r.aclConf)
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules
@@ -1343,21 +1344,9 @@ func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 // We prune entries the user doesn't have access to, and we redact any tokens
 // if the user doesn't have a management token.
 func (f *aclFilter) filterIntentions(ixns *structs.Intentions) {
-	// Otherwise, we need to see what the token has access to.
 	ret := make(structs.Intentions, 0, len(*ixns))
 	for _, ixn := range *ixns {
-		// TODO (namespaces) update to call with an actual ent authz context once connect supports it
-		// This probably should get translated into multiple calls where having acl:read in either the
-		// source or destination namespace is enough to grant read on the intention
-		aclRead := f.authorizer.ACLRead(nil) == acl.Allow
-
-		// If no prefix ACL applies to this then filter it, since
-		// we know at this point the user doesn't have a management
-		// token, otherwise see what the policy says.
-		prefix, ok := ixn.GetACLPrefix()
-
-		// TODO (namespaces) update to call with an actual ent authz context once connect supports it
-		if !aclRead && (!ok || f.authorizer.IntentionRead(prefix, nil) != acl.Allow) {
+		if !ixn.CanRead(f.authorizer) {
 			f.logger.Printf("[DEBUG] consul: dropping intention %q from result due to ACLs", ixn.ID)
 			continue
 		}

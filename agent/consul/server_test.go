@@ -29,6 +29,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	TestDefaultMasterToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+)
+
+// testServerACLConfig wraps another arbitrary Config altering callback
+// to setup some common ACL configurations. A new callback func will
+// be returned that has the original callback invoked after setting
+// up all of the ACL configurations (so they can still be overridden)
+func testServerACLConfig(cb func(*Config)) func(*Config) {
+	return func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+
+		if cb != nil {
+			cb(c)
+		}
+	}
+}
+
 func configureTLS(config *Config) {
 	config.CAFile = "../../test/ca/root.cer"
 	config.CertFile = "../../test/key/ourdomain.cer"
@@ -204,6 +225,17 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+	return dir, srv
+}
+
+// cb is a function that can alter the test servers configuration prior to the server starting.
+func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server) {
+	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
+
+	if initReplicationToken {
+		// setup some tokens here so we get less warnings in the logs
+		srv.tokens.UpdateReplicationToken(TestDefaultMasterToken, token.TokenSourceConfig)
+	}
 	return dir, srv
 }
 

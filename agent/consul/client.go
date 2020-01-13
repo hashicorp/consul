@@ -154,12 +154,12 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 
 	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:           config,
-		Delegate:         c,
-		Logger:           logger,
-		AutoDisable:      true,
-		CacheConfig:      clientACLCacheConfig,
-		EnterpriseConfig: newEnterpriseACLConfig(logger),
+		Config:      config,
+		Delegate:    c,
+		Logger:      logger,
+		AutoDisable: true,
+		CacheConfig: clientACLCacheConfig,
+		ACLConfig:   newACLConfig(logger),
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {

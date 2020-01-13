@@ -1360,9 +1360,12 @@ func (s *HTTPServer) AgentConnectAuthorize(resp http.ResponseWriter, req *http.R
 	var token string
 	s.parseToken(req, &token)
 
-	// TODO (namespaces) probably need an update here to include the namespace with the target in the request
-	// Decode the request from the request body
 	var authReq structs.ConnectAuthorizeRequest
+
+	if err := s.parseEntMetaNoWildcard(req, &authReq.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	if err := decodeBody(req.Body, &authReq); err != nil {
 		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
