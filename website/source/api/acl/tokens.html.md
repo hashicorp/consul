@@ -553,6 +553,12 @@ The table below shows this endpoint's support for
 - `authmethod` `(string: "")` - Filters the token list to those tokens that are
   linked with the specific named auth method.
   
+- `authmethod-ns` `(string: "")` - **(Enterprise Only)** Specifics the namespace
+  of the `authmethod` being used for token lookup. If not provided, the namespace
+  provided by the `ns` parameter will be used. If neither of those is provided
+  then the namespace will be inherited from the request's ACL token. Added in 
+  Consul 1.7.0.
+  
 - `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list
   the tokens for. This value can be specified as the `ns` URL query 
   parameter or the `X-Consul-Namespace` header. If not provided by either,

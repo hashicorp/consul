@@ -831,6 +831,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	var methodMeta *structs.EnterpriseMeta
 	if args.AuthMethod != "" {
 		methodMeta = args.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta.Merge(&args.EnterpriseMeta)
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
