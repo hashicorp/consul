@@ -1,3 +1,9 @@
+## Unreleased
+
+BREAKING CHANGES:
+
+* agent: The ACL requirement for the [agent/force-leave endpoint](https://www.consul.io/api/agent.html#force-leave-and-shutdown) is now `operator:write` rather than `agent:write`. [[GH-7033](https://github.com/hashicorp/consul/pull/7033)]
+
 ## 1.7.0-beta2 (December 20, 2019)
 
 FEATURES:
