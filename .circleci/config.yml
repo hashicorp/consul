@@ -524,8 +524,8 @@ jobs:
           command: make test-ci
       - store_test_results:
           path: ui-v2/test-results
-  # run ember frontend unit tests to prodice coverage report
-  ember-test-coverage:
+  # run ember frontend unit tests to produce coverage report
+  ember-coverage:
     docker:
       - image: *EMBER_IMAGE
     steps:
