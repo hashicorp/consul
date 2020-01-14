@@ -394,34 +394,10 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 
 	newIntermediate := false
 	if needsNewIntermediate {
-		csr, err := provider.GenerateIntermediateCSR()
-		if err != nil {
+		if err := s.setupNewIntermediate(provider, newActiveRoot); err != nil {
 			return err
 		}
-
-		var intermediatePEM string
-		if err := s.forwardDC("ConnectCA.SignIntermediate", s.config.PrimaryDatacenter, s.generateCASignRequest(csr), &intermediatePEM); err != nil {
-			// this is a failure in the primary and shouldn't be capable of erroring out our establishing leadership
-			s.logger.Printf("[WARN] connect: Primary datacenter refused to sign our intermediate CA certificate: %v", err)
-			return nil
-		}
-
-		if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert); err != nil {
-			return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
-		}
-
-		intermediateCert, err := connect.ParseCert(intermediatePEM)
-		if err != nil {
-			return fmt.Errorf("error parsing intermediate cert: %v", err)
-		}
-
-		// Append the new intermediate to our local active root entry. This is
-		// where the root representations start to diverge.
-		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
-		newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 		newIntermediate = true
-
-		s.logger.Printf("[INFO] connect: received new intermediate certificate from primary datacenter")
 	} else {
 		// Discard the primary's representation since our local one is
 		// sufficiently up to date.
@@ -435,64 +411,103 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 		return err
 	}
 	if activeRoot == nil || activeRoot.ID != newActiveRoot.ID || newIntermediate {
-		idx, oldRoots, err := state.CARoots(nil)
-		if err != nil {
+		if err := s.setupNewActiveRoot(provider, newActiveRoot); err != nil {
 			return err
 		}
-
-		_, config, err := state.CAConfig(nil)
-		if err != nil {
-			return err
-		}
-		if config == nil {
-			return fmt.Errorf("local CA not initialized yet")
-		}
-		newConf := *config
-		newConf.ClusterID = newActiveRoot.ExternalTrustDomain
-
-		// Persist any state the provider needs us to
-		newConf.State, err = provider.State()
-		if err != nil {
-			return fmt.Errorf("error getting provider state: %v", err)
-		}
-
-		// Copy the root list and append the new active root, updating the old root
-		// with the time it was rotated out.
-		var newRoots structs.CARoots
-		for _, r := range oldRoots {
-			newRoot := *r
-			if newRoot.Active {
-				newRoot.Active = false
-				newRoot.RotatedOutAt = time.Now()
-			}
-			if newRoot.ExternalTrustDomain == "" {
-				newRoot.ExternalTrustDomain = config.ClusterID
-			}
-			newRoots = append(newRoots, &newRoot)
-		}
-		newRoots = append(newRoots, newActiveRoot)
-
-		args := &structs.CARequest{
-			Op:     structs.CAOpSetRootsAndConfig,
-			Index:  idx,
-			Roots:  newRoots,
-			Config: &newConf,
-		}
-		resp, err := s.raftApply(structs.ConnectCARequestType, &args)
-		if err != nil {
-			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
-		}
-		if respOk, ok := resp.(bool); ok && !respOk {
-			return fmt.Errorf("could not atomically update roots and config")
-		}
-
-		s.logger.Printf("[INFO] connect: updated root certificates from primary datacenter")
 	}
 
 	s.setCAProvider(provider, newActiveRoot)
+	return nil
+}
+
+func (s *Server) setupNewActiveRoot(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	state := s.fsm.State()
+	idx, oldRoots, err := state.CARoots(nil)
+	if err != nil {
+		return err
+	}
+
+	_, config, err := state.CAConfig(nil)
+	if err != nil {
+		return err
+	}
+	if config == nil {
+		return fmt.Errorf("local CA not initialized yet")
+	}
+	newConf := *config
+	newConf.ClusterID = newActiveRoot.ExternalTrustDomain
+
+	// Persist any state the provider needs us to
+	newConf.State, err = provider.State()
+	if err != nil {
+		return fmt.Errorf("error getting provider state: %v", err)
+	}
+
+	// Copy the root list and append the new active root, updating the old root
+	// with the time it was rotated out.
+	var newRoots structs.CARoots
+	for _, r := range oldRoots {
+		newRoot := *r
+		if newRoot.Active {
+			newRoot.Active = false
+			newRoot.RotatedOutAt = time.Now()
+		}
+		if newRoot.ExternalTrustDomain == "" {
+			newRoot.ExternalTrustDomain = config.ClusterID
+		}
+		newRoots = append(newRoots, &newRoot)
+	}
+	newRoots = append(newRoots, newActiveRoot)
+
+	args := &structs.CARequest{
+		Op:     structs.CAOpSetRootsAndConfig,
+		Index:  idx,
+		Roots:  newRoots,
+		Config: &newConf,
+	}
+	resp, err := s.raftApply(structs.ConnectCARequestType, &args)
+	if err != nil {
+		return err
+	}
+	if respErr, ok := resp.(error); ok {
+		return respErr
+	}
+	if respOk, ok := resp.(bool); ok && !respOk {
+		return fmt.Errorf("could not atomically update roots and config")
+	}
+
+	s.logger.Printf("[INFO] connect: updated root certificates from primary datacenter")
+	return nil
+}
+
+func (s *Server) setupNewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	csr, err := provider.GenerateIntermediateCSR()
+	if err != nil {
+		return err
+	}
+
+	var intermediatePEM string
+	if err := s.forwardDC("ConnectCA.SignIntermediate", s.config.PrimaryDatacenter, s.generateCASignRequest(csr), &intermediatePEM); err != nil {
+		// this is a failure in the primary and shouldn't be capable of erroring out our establishing leadership
+		s.logger.Printf("[WARN] connect: Primary datacenter refused to sign our intermediate CA certificate: %v", err)
+		return nil
+	}
+
+	if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert); err != nil {
+		return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
+	}
+
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
+	if err != nil {
+		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+
+	// Append the new intermediate to our local active root entry. This is
+	// where the root representations start to diverge.
+	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
+	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+
+	s.logger.Printf("[INFO] connect: received new intermediate certificate from primary datacenter")
 	return nil
 }
 
