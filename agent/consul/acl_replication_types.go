@@ -34,7 +34,7 @@ func (r *aclTokenReplicator) FetchRemote(srv *Server, lastRemoteIndex uint64) (i
 func (r *aclTokenReplicator) FetchLocal(srv *Server) (int, uint64, error) {
 	r.local = nil
 
-	idx, local, err := srv.fsm.State().ACLTokenList(nil, false, true, "", "", "", srv.replicationEnterpriseMeta())
+	idx, local, err := srv.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, srv.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, 0, err
 	}

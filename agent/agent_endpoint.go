@@ -1405,7 +1405,6 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 		return nil, err
 	}
 
-	// TODO (namespaces) - pass through a real ent authz ctx
 	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}

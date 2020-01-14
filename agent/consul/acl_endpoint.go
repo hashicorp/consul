@@ -828,9 +828,15 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		return acl.ErrPermissionDenied
 	}
 
+	var methodMeta *structs.EnterpriseMeta
+	if args.AuthMethod != "" {
+		methodMeta = args.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta.Merge(&args.EnterpriseMeta)
+	}
+
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, &args.EnterpriseMeta)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, methodMeta, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -2221,13 +2227,16 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 2. Send args.Data.BearerToken to method validator and get back a fields map
-	verifiedFields, err := validator.ValidateLogin(auth.BearerToken)
+	verifiedFields, desiredMeta, err := validator.ValidateLogin(auth.BearerToken)
 	if err != nil {
 		return err
 	}
 
+	// This always will return a valid pointer
+	targetMeta := method.TargetEnterpriseMeta(desiredMeta)
+
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta)
+	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta, targetMeta)
 	if err != nil {
 		return err
 	}
@@ -2256,10 +2265,12 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 			AuthMethod:        auth.AuthMethod,
 			ServiceIdentities: serviceIdentities,
 			Roles:             roleLinks,
-			EnterpriseMeta:    auth.EnterpriseMeta,
+			EnterpriseMeta:    *targetMeta,
 		},
 		WriteRequest: args.WriteRequest,
 	}
+
+	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(&auth.EnterpriseMeta)
 
 	// 5. return token information like a TokenCreate would
 	err = a.tokenSetInternal(&createReq, reply, true)

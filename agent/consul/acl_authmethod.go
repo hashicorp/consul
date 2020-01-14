@@ -43,10 +43,11 @@ func (s *Server) loadAuthMethodValidator(idx uint64, method *structs.ACLAuthMeth
 func (s *Server) evaluateRoleBindings(
 	validator authmethod.Validator,
 	verifiedFields map[string]string,
-	entMeta *structs.EnterpriseMeta,
+	methodMeta *structs.EnterpriseMeta,
+	targetMeta *structs.EnterpriseMeta,
 ) ([]*structs.ACLServiceIdentity, []structs.ACLTokenRoleLink, error) {
 	// Only fetch rules that are relevant for this method.
-	_, rules, err := s.fsm.State().ACLBindingRuleList(nil, validator.Name(), entMeta)
+	_, rules, err := s.fsm.State().ACLBindingRuleList(nil, validator.Name(), methodMeta)
 	if err != nil {
 		return nil, nil, err
 	} else if len(rules) == 0 {
@@ -87,7 +88,7 @@ func (s *Server) evaluateRoleBindings(
 			})
 
 		case structs.BindingRuleBindTypeRole:
-			_, role, err := s.fsm.State().ACLRoleGetByName(nil, bindName, &rule.EnterpriseMeta)
+			_, role, err := s.fsm.State().ACLRoleGetByName(nil, bindName, targetMeta)
 			if err != nil {
 				return nil, nil, err
 			}

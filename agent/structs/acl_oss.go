@@ -28,10 +28,24 @@ node_prefix "" {
 }`
 )
 
+type ACLAuthMethodEnterpriseMeta struct{}
+
+func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *EnterpriseMeta) {
+	// do nothing
+}
+
+func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
 func aclServiceIdentityRules(svc string, _ *EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, svc)
 }
 
 func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
 	return nil
+}
+
+func (m *ACLAuthMethod) TargetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
+	return &m.EnterpriseMeta
 }
