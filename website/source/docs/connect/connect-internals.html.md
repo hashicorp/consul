@@ -46,7 +46,7 @@ also ships with built-in support for [Vault](/docs/connect/ca/vault.html). The P
 and can be extended to support any system by adding additional CA providers.
 
 All APIs required for Connect typically respond in microseconds and impose
-minimal overhead to existing services. Ensuring this, Connect-related APIs calls
+minimal overhead to existing services. To ensure this, Connect-related API calls
 are all made to the local Consul agent over a loopback interface, and all [agent
 Connect endpoints](/api/agent/connect.html) implement local caching, background
 updating, and support blocking queries. Most API calls operate on purely local
