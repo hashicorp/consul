@@ -344,7 +344,7 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 
 		storedRootID, err = connect.CalculateCertFingerprint(storedRoot)
 		if err != nil {
-			return fmt.Errorf("error parsing root fingerprint: %v, %#v", err, primaryRoots)
+			return fmt.Errorf("error parsing root fingerprint: %v, %#v", err, storedRoot)
 		}
 
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
