@@ -34,6 +34,10 @@ var (
 	// maxRetryBackoff is the maximum number of seconds to wait between failed blocking
 	// queries when backing off.
 	maxRetryBackoff = 256
+
+	// certRenewalTimeout is the timeout at which the expiration of the
+	// intermediate cert is checked and renewed in necessary.
+	certRenewalTimeout = time.Hour
 )
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -525,6 +529,7 @@ func (s *Server) startConnectLeader() {
 	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
 		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
 		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
+		s.leaderRoutineManager.Start(secondaryCertRenewWatchRoutineName, s.secondaryIntermediateCertRenewalWatch)
 	}
 
 	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
@@ -604,6 +609,67 @@ func (s *Server) pruneCARoots() error {
 	}
 
 	return nil
+}
+
+// secondaryIntermediateCertRenewalWatch checks the intermediate cert for
+// expiration. As soon as more than half the time a cert is valid has passed,
+// it will try to renew it.
+func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(certRenewalTimeout):
+			retryLoopBackoff(ctx.Done(), func() error {
+				provider, _ := s.getCAProvider()
+				if provider == nil {
+					// this happens when leadership is being revoked and this go routine will be stopped
+					return nil
+				}
+				if !s.configuredSecondaryCA() {
+					return fmt.Errorf("secondary CA is not yet configured.")
+				}
+
+				state := s.fsm.State()
+				_, activeRoot, err := state.CARootActive(nil)
+				if err != nil {
+					return err
+				}
+
+				activeIntermediate, err := provider.ActiveIntermediate()
+				if err != nil {
+					return err
+				}
+
+				if activeIntermediate == "" {
+					return fmt.Errorf("secondary datacenter doesn't have an active intermediate.")
+				}
+
+				intermediateCert, err := connect.ParseCert(activeIntermediate)
+				if err != nil {
+					return fmt.Errorf("error parsing active intermediate cert: %v", err)
+				}
+
+				if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore,
+					intermediateCert.NotAfter) {
+					return nil
+				}
+
+				if err := s.setupNewIntermediate(provider, activeRoot); err != nil {
+					return err
+				}
+
+				if err := s.setupNewActiveRoot(provider, activeRoot); err != nil {
+					return err
+				}
+
+				s.setCAProvider(provider, activeRoot)
+				return nil
+			}, func(err error) {
+				s.logger.Printf("[ERR] connect: %v", err)
+			})
+		}
+	}
 }
 
 // secondaryCARootWatch maintains a blocking query to the primary datacenter's
@@ -864,4 +930,18 @@ func (s *Server) configuredSecondaryCA() bool {
 	s.actingSecondaryLock.RLock()
 	defer s.actingSecondaryLock.RUnlock()
 	return s.actingSecondaryCA
+}
+
+// halfTime returns a duration that is half the time between notBefore and
+// notAfter.
+func halfTime(notBefore, notAfter time.Time) time.Duration {
+	interval := notAfter.Sub(notBefore)
+	return interval / 2
+}
+
+// lessThanHalfTimePassed decides if half the time between notBefore and
+// notAfter has passed relative to now.
+func lessThanHalfTimePassed(now, notBefore, notAfter time.Time) bool {
+	t := notBefore.Add(halfTime(notBefore, notAfter))
+	return t.Sub(now) > 0
 }

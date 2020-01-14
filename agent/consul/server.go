@@ -89,16 +89,17 @@ const (
 )
 
 const (
-	legacyACLReplicationRoutineName = "legacy ACL replication"
-	aclPolicyReplicationRoutineName = "ACL policy replication"
-	aclRoleReplicationRoutineName   = "ACL role replication"
-	aclTokenReplicationRoutineName  = "ACL token replication"
-	aclTokenReapingRoutineName      = "acl token reaping"
-	aclUpgradeRoutineName           = "legacy ACL token upgrade"
-	caRootPruningRoutineName        = "CA root pruning"
-	configReplicationRoutineName    = "config entry replication"
-	intentionReplicationRoutineName = "intention replication"
-	secondaryCARootWatchRoutineName = "secondary CA roots watch"
+	legacyACLReplicationRoutineName    = "legacy ACL replication"
+	aclPolicyReplicationRoutineName    = "ACL policy replication"
+	aclRoleReplicationRoutineName      = "ACL role replication"
+	aclTokenReplicationRoutineName     = "ACL token replication"
+	aclTokenReapingRoutineName         = "acl token reaping"
+	aclUpgradeRoutineName              = "legacy ACL token upgrade"
+	caRootPruningRoutineName           = "CA root pruning"
+	configReplicationRoutineName       = "config entry replication"
+	intentionReplicationRoutineName    = "intention replication"
+	secondaryCARootWatchRoutineName    = "secondary CA roots watch"
+	secondaryCertRenewWatchRoutineName = "secondary cert renew watch"
 )
 
 var (

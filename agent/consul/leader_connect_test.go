@@ -162,6 +162,134 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	}
 }
 
+func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
+	retry.Run(t, func(r *retry.R) {
+		_, root := srv.getCAProvider()
+		if root == nil {
+			r.Fatal("no root")
+		}
+		if root.ID != expect.ID {
+			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
+		}
+	})
+}
+
+func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
+	t.Parallel()
+
+	certRenewalTimeout = 1 * time.Millisecond
+	require := require.New(t)
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.6.0"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     "",
+				"RootCert":       "",
+				"RotationPeriod": "2160h",
+				"LeafCertTTL":    "72h",
+				// The retry loop only retries for 7sec max and
+				// the ttl needs to be below so that it
+				// triggers definitely.
+				"IntermediateCertTTL": 5 * time.Second,
+			},
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// dc2 as a secondary DC
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.Build = "1.6.0"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Create the WAN link
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Get the original intermediate
+	secondaryProvider, _ := s2.getCAProvider()
+	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
+	require.NoError(err)
+	cert, err := connect.ParseCert(intermediatePEM)
+	require.NoError(err)
+	currentCertSerialNumber := cert.SerialNumber
+	currentCertAuthorityKeyId := cert.AuthorityKeyId
+
+	// Capture the current root
+	var originalRoot *structs.CARoot
+	{
+		rootList, activeRoot, err := getTestRoots(s1, "dc1")
+		require.NoError(err)
+		require.Len(rootList.Roots, 1)
+		originalRoot = activeRoot
+	}
+
+	waitForActiveCARoot(t, s1, originalRoot)
+	waitForActiveCARoot(t, s2, originalRoot)
+
+	// Wait for dc2's intermediate to be refreshed.
+	// It is possible that test fails when the blocking query doesn't return.
+	// When https://github.com/hashicorp/consul/pull/3777 is merged
+	// however, defaultQueryTime will be configurable and we con lower it
+	// so that it returns for sure.
+	retry.Run(t, func(r *retry.R) {
+		secondaryProvider, _ := s2.getCAProvider()
+		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+		r.Check(err)
+		cert, err := connect.ParseCert(intermediatePEM)
+		r.Check(err)
+		if cert.SerialNumber.Cmp(currentCertSerialNumber) == 0 || !reflect.DeepEqual(cert.AuthorityKeyId, currentCertAuthorityKeyId) {
+			currentCertSerialNumber = cert.SerialNumber
+			currentCertAuthorityKeyId = cert.AuthorityKeyId
+			r.Fatal("not a renewed intermediate")
+		}
+	})
+	require.NoError(err)
+
+	// Get the new root from dc1 and validate a chain of:
+	// dc2 leaf -> dc2 intermediate -> dc1 root
+	_, caRoot := s1.getCAProvider()
+
+	// Have dc2 sign a leaf cert and make sure the chain is correct.
+	spiffeService := &connect.SpiffeIDService{
+		Host:       "node1",
+		Namespace:  "default",
+		Datacenter: "dc1",
+		Service:    "foo",
+	}
+	raw, _ := connect.TestCSR(t, spiffeService)
+
+	leafCsr, err := connect.ParseCSR(raw)
+	require.NoError(err)
+
+	leafPEM, err := secondaryProvider.Sign(leafCsr)
+	require.NoError(err)
+
+	cert, err = connect.ParseCert(leafPEM)
+	require.NoError(err)
+
+	// Check that the leaf signed by the new intermediate can be verified using the
+	// returned cert chain (signed intermediate + remote root).
+	intermediatePool := x509.NewCertPool()
+	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
+	rootPool := x509.NewCertPool()
+	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
+
+	_, err = cert.Verify(x509.VerifyOptions{
+		Intermediates: intermediatePool,
+		Roots:         rootPool,
+	})
+	require.NoError(err)
+}
+
 func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	t.Parallel()
 
@@ -214,9 +342,10 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey":          newKey,
+			"RootCert":            "",
+			"RotationPeriod":      90 * 24 * time.Hour,
+			"IntermediateCertTTL": 72 * 24 * time.Hour,
 		},
 	}
 	{
@@ -1291,4 +1420,14 @@ func readTestData(t *testing.T, name string) string {
 		t.Fatalf("failed reading fixture file %s: %s", name, err)
 	}
 	return string(bs)
+}
+
+func TestLeader_lessThanHalfTimePassed(t *testing.T) {
+	now := time.Now()
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(-5*time.Second)))
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now))
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(5*time.Second)))
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(10*time.Second)))
+
+	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
 }
