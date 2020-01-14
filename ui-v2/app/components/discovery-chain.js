@@ -3,106 +3,13 @@ import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { next } from '@ember/runloop';
 
-export const getTypeFromId = function(id) {
-  return id.split(':').shift();
-};
-export const getNodesByType = function(nodes = {}, type) {
-  return Object.values(nodes).filter(item => item.Type === type);
-};
-export const getSplitters = function(nodes) {
-  return getNodesByType(nodes, 'splitter').map(function(item) {
-    // Splitters need IDs adding so we can find them in the DOM later
-    item.ID = `splitter:${item.Name}`;
-    return item;
-  });
-};
-export const getRoutes = function(nodes, uid) {
-  return getNodesByType(nodes, 'router').reduce(function(prev, item) {
-    return prev.concat(
-      item.Routes.map(function(route, i) {
-        // Routes also have IDs added via createRoute
-        return createRoute(route, item.Name, uid);
-      })
-    );
-  }, []);
-};
-export const findResolver = function(resolvers, service, nspace = 'default', dc) {
-  if (typeof resolvers[service] === 'undefined') {
-    resolvers[service] = {
-      ID: `${service}.${nspace}.${dc}`,
-      Name: service,
-      Children: [],
-    };
-  }
-  return resolvers[service];
-};
-export const getResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
-  const resolvers = {};
-  Object.values(targets).forEach(target => {
-    const node = nodes[`resolver:${target.ID}`];
-    const resolver = findResolver(resolvers, target.Service, nspace, dc);
-    // We use this to figure out whether this target is a redirect target
-    const alternate = getAlternateServices([target.ID], `service.${nspace}.${dc}`);
+import {
+  createRoute,
+  getSplitters,
+  getRoutes,
+  getResolvers,
+} from 'consul-ui/utils/components/discovery-chain/index';
 
-    let failovers;
-    // Figure out the failover type
-    if (typeof node.Resolver.Failover !== 'undefined') {
-      failovers = getAlternateServices(node.Resolver.Failover.Targets, target.ID);
-    }
-    switch (true) {
-      // This target is a redirect
-      case alternate.Type !== 'Service':
-        resolver.Children.push({
-          Redirect: true,
-          ID: target.ID,
-          Name: target[alternate.Type],
-        });
-        break;
-      // This target is a Subset
-      case typeof target.ServiceSubset !== 'undefined':
-        resolver.Children.push({
-          Subset: true,
-          ID: target.ID,
-          Name: target.ServiceSubset,
-          Filter: target.Subset.Filter,
-          Failover: failovers,
-        });
-        break;
-      // This target is just normal service that might have failovers
-      default:
-        resolver.Failover = failovers;
-    }
-  });
-  return Object.values(resolvers);
-};
-export const getAlternateServices = function(targets, a) {
-  let type;
-  const Targets = targets.map(function(b) {
-    // TODO: this isn't going to work past namespace for services
-    // with dots in the name, but by the time that becomes an issue
-    // we might have more data from the endpoint so we don't have to guess
-    const [aRev, bRev] = [a, b].map(item => item.split('.').reverse());
-    const types = ['Datacenter', 'Namespace', 'Service', 'Subset'];
-    return bRev.find(function(item, i) {
-      const res = item !== aRev[i];
-      if (res) {
-        type = types[i];
-      }
-      return res;
-    });
-  });
-  return {
-    Type: type,
-    Targets: Targets,
-  };
-};
-export const createRoute = function(route, router, uid) {
-  return {
-    ...route,
-    Default: typeof route.Definition.Match === 'undefined',
-    ID: `route:${router}-${uid(route.Definition)}`,
-  };
-};
 export default Component.extend({
   dom: service('dom'),
   ticker: service('ticker'),
@@ -184,14 +91,14 @@ export default Component.extend({
       return {};
     }
     const id = this.selectedId;
-    const type = getTypeFromId(id);
+    const type = id.split(':').shift();
     const nodes = [id];
     const edges = [];
     this.graph.forEachLinkedNode(id, (linkedNode, link) => {
       nodes.push(linkedNode.id);
       edges.push(`${link.fromId}>${link.toId}`);
       this.graph.forEachLinkedNode(linkedNode.id, (linkedNode, link) => {
-        const nodeType = getTypeFromId(linkedNode.id);
+        const nodeType = linkedNode.id.split(':').shift();
         if (type !== nodeType && type !== 'splitter' && nodeType !== 'splitter') {
           nodes.push(linkedNode.id);
           edges.push(`${link.fromId}>${link.toId}`);
