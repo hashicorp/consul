@@ -69,15 +69,15 @@ export default Component.extend({
   graph: computed('chain.Nodes', function() {
     const graph = this.dataStructs.graph();
     const router = this.chain.ServiceName;
-    Object.entries(get(this, 'chain.Nodes')).forEach(function([key, item]) {
+    Object.entries(get(this, 'chain.Nodes')).forEach(([key, item]) => {
       switch (item.Type) {
         case 'splitter':
-          item.Splits.forEach(function(splitter) {
+          item.Splits.forEach(splitter => {
             graph.addLink(`splitter:${item.Name}`, splitter.NextNode);
           });
           break;
         case 'router':
-          item.Routes.forEach(function(route, i) {
+          item.Routes.forEach((route, i) => {
             route = createRoute(route, router, this.dom.guid);
             graph.addLink(route.ID, route.NextNode);
           });
