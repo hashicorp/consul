@@ -506,7 +506,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
 | ---------------- | ----------------- | ------------- | ------------- |
-| `NO`             | `none`            | `none`        | `agent:write` |
+| `NO`             | `none`            | `none`        | `operator:write` |
 
 ### Parameters
 

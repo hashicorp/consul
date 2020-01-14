@@ -475,7 +475,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
