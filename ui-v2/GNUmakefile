@@ -70,6 +70,12 @@ test-node:
 specify-coverage:
 	sed -i "s/exclude, include/include: ['consul-ui\/utils\/**\/*','consul-ui\/search\/**\/*']/g" ./node_modules/ember-cli-code-coverage/index.js
 
+# Currently the when running the tests in coverage mode
+# there is one test error, which is just a consequence of working
+# around the http request mocking, generally tests will
+# also be run in normal test mode at the same time as coverage
+# so always exiting successful is acceptable here just so we can
+# then upload coverage results to a 3rd party service
 test-coverage: deps specify-coverage
 	yarn run test:coverage || exit 0
 
