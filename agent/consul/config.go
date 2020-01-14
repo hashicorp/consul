@@ -549,8 +549,9 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "72h",
+				"RotationPeriod":      "2160h",
+				"LeafCertTTL":         "72h",
+				"IntermediateCertTTL": "8760h", // 365 * 24h
 			},
 		},
 

@@ -424,9 +424,10 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
+	PrivateKey          string
+	RootCert            string
+	RotationPeriod      time.Duration
+	IntermediateCertTTL time.Duration
 
 	// DisableCrossSigning is really only useful in test code to use the built in
 	// provider while exercising logic that depends on the CA provider ability to

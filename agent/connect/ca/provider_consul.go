@@ -478,7 +478,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
 		MaxPathLenZero: true,
-		NotAfter:       effectiveNow.AddDate(1, 0, 0),
+		NotAfter:       effectiveNow.Add(c.config.IntermediateCertTTL),
 		NotBefore:      effectiveNow,
 		SubjectKeyId:   subjectKeyID,
 	}
