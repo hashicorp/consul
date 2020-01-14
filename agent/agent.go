@@ -152,7 +152,7 @@ type notifier interface {
 	Notify(string) error
 }
 
-// The agent is the long running process that is run on every machine.
+// Agent is the long running process that is run on every machine.
 // It exposes an RPC interface that is used by the CLI to control the
 // agent. The agent runs the query interfaces like HTTP, DNS, and RPC.
 // However, it can run in either a client, or server mode. In server
@@ -309,6 +309,8 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
+// New verifies the configuration given has a Datacenter and DataDir
+// configured, and maps the remaining config fields to fields on the Agent.
 func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
@@ -353,6 +355,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	return &a, nil
 }
 
+// LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	lc := local.Config{
 		AdvertiseAddr:       cfg.AdvertiseAddrLAN.String(),
@@ -369,6 +372,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+// Start verifies its configuration and runs an agent's various subprocesses.
 func (a *Agent) Start() error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -1877,7 +1881,7 @@ func (a *Agent) ResumeSync() {
 	}
 }
 
-// syncPausedCh returns either a channel or nil. If nil sync is not paused. If
+// SyncPausedCh returns either a channel or nil. If nil sync is not paused. If
 // non-nil, the channel will be closed when sync resumes.
 func (a *Agent) SyncPausedCh() <-chan struct{} {
 	a.syncMu.Lock()
