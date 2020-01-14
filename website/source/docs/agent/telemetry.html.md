@@ -608,12 +608,6 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
-    <td>`consul.rpc.accept_conn`</td>
-    <td>This increments when a server accepts an RPC connection.</td>
-    <td>connections</td>
-    <td>counter</td>
-  </tr>
-  <tr>
     <td>`consul.catalog.register`</td>
     <td>This measures the time it takes to complete a catalog register operation.</td>
     <td>ms</td>
@@ -692,6 +686,36 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
+    <td>`consul.grpc.client.active_conns`</td>
+    <td>This shows how many outbound gRPC connections the client has open to one or more servers.</td>
+    <td>connections</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.grpc.client.requests`</td>
+    <td>This increments each time a client makes an outbound gRPC request to a Consul server.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
+    <td>`consul.grpc.server.active_conns`</td>
+    <td>This shows how many inbound gRPC connections the server is currently serving.</td>
+    <td>connections</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.grpc.server.active_streams`</td>
+    <td>This shows how many active streaming RPC queries the server is currently serving.</td>
+    <td>streams</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
+    <td>`consul.grpc.server.requests`</td>
+    <td>This increments each time a server receives an inbound gRPC request (including streaming requests) from a client.</td>
+    <td>requests</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.kvs.apply`</td>
     <td>This measures the time it takes to complete an update to the KV store.</td>
     <td>ms</td>
@@ -746,6 +770,12 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
+    <td>`consul.rpc.accept_conn`</td>
+    <td>This increments when a server accepts an RPC connection.</td>
+    <td>connections</td>
+    <td>counter</td>
+  </tr>
+  <tr>
     <td>`consul.rpc.raft_handoff`</td>
     <td>This increments when a server accepts a Raft-related RPC connection.</td>
     <td>connections</td>
@@ -759,13 +789,13 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td>`consul.rpc.request`</td>
-    <td>This increments when a server receives a Consul-related RPC request.</td>
+    <td>This increments when a server receives a Consul-related RPC request. This includes blocking RPC requests.</td>
     <td>requests</td>
     <td>counter</td>
   </tr>
   <tr>
     <td>`consul.rpc.query`</td>
-    <td>This increments when a server sends a (potentially blocking) RPC query.</td>
+    <td>This increments when a server starts handling a (potentially blocking) RPC query. Since it only increments at the start of a blocking RPC it only gives the rate of new blocking calls not the total number currently open.</td>
     <td>queries</td>
     <td>counter</td>
   </tr>
