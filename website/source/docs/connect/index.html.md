@@ -41,7 +41,7 @@ programming languages and frameworks. When you configure Consul Connect to use
 sidecar proxies, those proxies "see" all service-to-service traffic and can
 collect data about it. Consul Connect can configure Envoy proxies to collect
 layer 7 metrics and export them to tools like Prometheus. Correctly instrumented
-application can also send open tracing data through Envoy.
+applications can also send open tracing data through Envoy.
 
 ## Getting Started With Connect
 
