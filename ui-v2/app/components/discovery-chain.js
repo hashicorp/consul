@@ -123,6 +123,16 @@ export default Component.extend({
     // TODO: Figure out if we can remove this next
     next(() => {
       this._listeners.remove();
+      this._listeners.add(this.dom.document(), {
+        click: e => {
+          // all route/splitter/resolver components currently
+          // have classes that end in '-card'
+          if (!this.dom.closest('[class$="-card"]', e.target)) {
+            set(this, 'active', false);
+            set(this, 'selectedId', '');
+          }
+        },
+      });
       [...this.dom.elements('path.split', this.element)].forEach(item => {
         this._listeners.add(item, {
           mouseover: e => this.actions.showSplit.apply(this, [e]),
