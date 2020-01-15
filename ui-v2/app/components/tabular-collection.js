@@ -7,6 +7,8 @@ import style from 'ember-computed-style';
 import SlotsMixin from 'block-slots';
 import WithResizing from 'consul-ui/mixins/with-resizing';
 
+const formatItemStyle = Grid.prototype.formatItemStyle;
+
 export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   tagName: 'table',
   classNames: ['dom-recycling'],
@@ -22,7 +24,15 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
   init: function() {
     this._super(...arguments);
     // TODO: The row height should auto calculate properly from the CSS
+    const o = this;
     this['cell-layout'] = new Grid(get(this, 'width'), get(this, 'rowHeight'));
+    this['cell-layout'].formatItemStyle = function(itemIndex) {
+      let style = formatItemStyle.apply(this, arguments);
+      if (o.checked === itemIndex) {
+        style = `${style};z-index: 1`;
+      }
+      return style;
+    };
   },
   getStyle: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
     const maxRows = get(this, 'rows');
@@ -48,6 +58,14 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
       this.set('maxHeight', Math.max(0, height));
       // TODO: The row height should auto calculate properly from the CSS
       this['cell-layout'] = new Grid($appContent.clientWidth, get(this, 'rowHeight'));
+      const o = this;
+      this['cell-layout'].formatItemStyle = function(itemIndex) {
+        let style = formatItemStyle.apply(this, arguments);
+        if (o.checked === itemIndex) {
+          style = `${style};z-index: 1`;
+        }
+        return style;
+      };
       this.updateItems();
       this.updateScrollPosition();
     }
@@ -81,7 +99,7 @@ export default CollectionComponent.extend(SlotsMixin, WithResizing, {
         this.$tr.style.zIndex = null;
       }
       if (e.target.checked && index != get(this, 'checked')) {
-        set(this, 'checked', index);
+        set(this, 'checked', parseInt(index));
         const target = e.target;
         const $tr = this.dom.closest('tr', target);
         const $group = this.dom.sibling(target, 'div');
