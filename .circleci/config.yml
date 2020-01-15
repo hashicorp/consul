@@ -538,6 +538,7 @@ jobs:
           working_directory: ui-v2
           command: make test-coverage
       - run:
+          name: codecov ui upload
           working_directory: ui-v2
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
 
