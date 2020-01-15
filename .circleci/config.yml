@@ -540,8 +540,6 @@ jobs:
       - run:
           working_directory: ui-v2
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
-      - store_test_results:
-          path: ui-v2/coverage
 
   # Envoy integration tests. Require docker dev binary to be built already
   envoy-integration-test-1.8.0:
