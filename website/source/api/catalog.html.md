@@ -53,8 +53,10 @@ The table below shows this endpoint's support for
 
 - `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
   provided, it will be defaulted to the value of the `Service.Service` property.
-  Only one service with a given `ID` may be present per node. The service
-  `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
+  Only one service with a given `ID` may be present per node. We recommend using
+  [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+  for service definition names for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns).
+  The service `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
   information about these fields and the implications of setting them,
   see the [Service - Agent API](/api/agent/service.html) page
   as registering services differs between using this or the Services Agent endpoint.
