@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"strings"
 
-	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-uuid"
 )
 
 type ConsulGRPCAdapter struct {
@@ -18,7 +17,14 @@ type ConsulGRPCAdapter struct {
 // Subscribe opens a long-lived gRPC stream which sends an initial snapshot
 // of state for the requested topic, then only sends updates.
 func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server stream.Consul_SubscribeServer) error {
-	metrics.IncrCounter([]string{"subscribe", strings.ToLower(req.Topic.String())}, 1)
+	// streamID is just used for message correlation in trace logs. Ideally we'd
+	// only execute this code while trace logs are enabled but it's not that
+	// expensive and theres not a very clean way to do that right now and
+	// impending logging changes so I think this makes sense for now.
+	streamID, err := uuid.GenerateUUID()
+	if err != nil {
+		return err
+	}
 
 	// Forward the request to a remote DC if applicable.
 	if req.Datacenter != "" && req.Datacenter != h.srv.config.Datacenter {
@@ -26,6 +32,15 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		if err != nil {
 			return err
 		}
+
+		h.srv.logger.Printf("[DEBUG] consul: subscribe forward to dc=%s topic=%q key=%q "+
+			"index=%d streamID=%s", req.Datacenter, req.Topic.String(), req.Key,
+			req.Index, streamID)
+
+		defer func() {
+			h.srv.logger.Printf("[DEBUG] consul: subscribe forwarded stream complete "+
+				"streamID=%s", streamID)
+		}()
 
 		// Open a Subscribe call to the remote DC.
 		client := stream.NewConsulClient(conn)
@@ -46,7 +61,13 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 		}
 	}
 
-	h.srv.logger.Printf("consul: stream starting in %s", h.srv.config.Datacenter)
+	h.srv.logger.Printf("[DEBUG] consul: subscribe start topic=%q key=%q "+
+		"index=%d streamID=%s", req.Topic.String(), req.Key, req.Index, streamID)
+
+	defer func() {
+		h.srv.logger.Printf("[DEBUG] consul: subscribe stream closed streamID=%s",
+			streamID)
+	}()
 
 	// Resolve the token and create the ACL filter.
 	rule, err := h.srv.ResolveToken(req.Token)
@@ -68,6 +89,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	// is lower than the last sent index of the topic.
 	state := h.srv.fsm.State()
 	lastSentIndex := state.LastTopicIndex(req.Topic)
+	var snapshotIndex, nSnapEvents uint64
 	sent := make(map[uint32]struct{})
 	if req.Index < lastSentIndex || lastSentIndex == 0 {
 		snapshotCh := make(chan stream.Event, 32)
@@ -79,7 +101,13 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
+			if event.GetEndOfSnapshot() {
+				snapshotIndex = event.Index
+			} else {
+				nSnapEvents++
+			}
 		}
+
 	} else {
 		// If there wasn't a snapshot, just send an end of snapshot message
 		// so the client knows not to wait for one.
@@ -88,10 +116,14 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 			Index:   lastSentIndex,
 			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		}
+		snapshotIndex = lastSentIndex
 		if err := server.Send(&endSnapshotEvent); err != nil {
 			return err
 		}
 	}
+
+	h.srv.logger.Printf("[DEBUG] consul: subscribe snapshot complete snapIndex=%d "+
+		"nEvents=%d streamID=%s", snapshotIndex, nSnapEvents, streamID)
 
 	// Register a subscription on this topic/key with the FSM.
 	eventCh, err := state.Subscribe(req)
@@ -100,6 +132,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	}
 	defer state.Unsubscribe(req)
 
+	var sentEvents uint64
 	for {
 		select {
 		case <-server.Context().Done():
@@ -123,6 +156,10 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
 				return err
 			}
+			sentEvents++
+
+			h.srv.logger.Printf("[DEBUG] consul: subscribe sent event eventIndex=%d "+
+				"streamID=%s", event.Index, streamID)
 		}
 	}
 }
@@ -153,13 +190,13 @@ func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
 		}
 	}
 
-	// Get the unique identifier for the object the event pertains to, and
-	// hash it to save space. This is only used to determine if an object has been
-	// removed and needs to be deleted from the client's cache. In other words, if we hit a
-	// hash collision, it only results in a redundant message being sent without affecting
-	// correctness. 32 bits means there is only a 1% chance of collision with ~9000 items in this map.
-	// For current uses that seems reasonable but when we add KV streaming we may want
-	// to revisit this.
+	// Get the unique identifier for the object the event pertains to, and hash it
+	// to save space. This is only used to determine if an object has been removed
+	// and needs to be deleted from the client's cache. In other words, if we hit
+	// a hash collision, it only results in a redundant message being sent without
+	// affecting correctness. 32 bits means there is only a 1% chance of collision
+	// with ~9000 items in this map. For current uses that seems reasonable but
+	// when we add KV streaming we may want to revisit this.
 	rawId := event.ContentID()
 	hash := fnv.New32a()
 	hash.Write([]byte(rawId))

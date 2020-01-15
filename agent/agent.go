@@ -445,13 +445,15 @@ func (a *Agent) Start() error {
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
 
-	// Set up the gRPC client for the cache.
-	conn, err := a.delegate.GRPCConn()
-	if err != nil {
-		return err
-	}
+	if a.config.EnableBackendStreaming {
+		// Set up the gRPC client for the cache.
+		conn, err := a.delegate.GRPCConn()
+		if err != nil {
+			return err
+		}
 
-	a.streamClient = stream.NewConsulClient(conn)
+		a.streamClient = stream.NewConsulClient(conn)
+	}
 
 	// Register the cache. We do this much later so the delegate is
 	// populated from above.
@@ -1332,6 +1334,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	}
 
 	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
+
+	base.GRPCEnabled = a.config.EnableBackendStreaming
 
 	return base, nil
 }

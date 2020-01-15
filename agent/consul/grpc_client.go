@@ -1,17 +1,18 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"sync"
-	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 
 	"github.com/hashicorp/consul/tlsutil"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -50,11 +51,12 @@ func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
 
 	dialer := newDialer(c.serverProvider, c.tlsConfigurator.OutgoingRPCWrapper())
 	conn, err := grpc.Dial(fmt.Sprintf("%s:///server.%s", c.scheme, datacenter),
-		// use WithInsecure mode here because we handle the TLS wrapping in the custom dialer
-		// based on logic around whether the server has TLS enabled.
+		// use WithInsecure mode here because we handle the TLS wrapping in the
+		// custom dialer based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),
-		grpc.WithDialer(dialer),
+		grpc.WithContextDialer(dialer),
 		grpc.WithDisableRetry(),
+		grpc.WithStatsHandler(grpcStatsHandler),
 		grpc.WithBalancerName("pick_first"))
 	if err != nil {
 		return nil, err
@@ -67,9 +69,10 @@ func (c *GRPCClient) GRPCConn(datacenter string) (*grpc.ClientConn, error) {
 
 // newDialer returns a gRPC dialer function that conditionally wraps the connection
 // with TLS depending on the given useTLS value.
-func newDialer(serverProvider ServerProvider, wrapper tlsutil.DCWrapper) func(string, time.Duration) (net.Conn, error) {
-	return func(addr string, _ time.Duration) (net.Conn, error) {
-		conn, err := net.Dial("tcp", addr)
+func newDialer(serverProvider ServerProvider, wrapper tlsutil.DCWrapper) func(context.Context, string) (net.Conn, error) {
+	return func(ctx context.Context, addr string) (net.Conn, error) {
+		d := net.Dialer{}
+		conn, err := d.DialContext(ctx, "tcp", addr)
 		if err != nil {
 			return nil, err
 		}

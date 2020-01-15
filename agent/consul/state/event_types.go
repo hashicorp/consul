@@ -11,6 +11,15 @@ import (
 
 // GetTopicSnapshot returns a snapshot of the given topic based on the SubscribeRequest.
 func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
+	// Whatever else happens here, we need to be sure we close the eventCh when we
+	// return otherwise the calling Subscribe goroutine will block forever and
+	// leak.
+	defer func() {
+		if eventCh != nil {
+			close(eventCh)
+		}
+	}()
+
 	var snapshotFunc func(*memdb.Txn, context.Context, chan stream.Event, *stream.SubscribeRequest) error
 	switch req.Topic {
 	case stream.Topic_ServiceHealth:
@@ -43,10 +52,6 @@ func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event,
 	case eventCh <- endSnapshotEvent:
 	case <-ctx.Done():
 		return nil
-	}
-
-	if eventCh != nil {
-		close(eventCh)
 	}
 
 	return nil

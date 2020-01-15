@@ -356,8 +356,16 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		ForceTLS:        config.VerifyOutgoing,
 	}
 
-	// Register the gRPC resolver used for connection balancing.
-	grpcResolverBuilder := registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, shutdownCh)
+	var tracker router.ServerTracker
+	var grpcResolverBuilder *ServerResolverBuilder
+
+	if config.GRPCEnabled {
+		// Register the gRPC resolver used for connection balancing.
+		grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, shutdownCh)
+		tracker = grpcResolverBuilder
+	} else {
+		tracker = &router.NoOpServerTracker{}
+	}
 
 	// Create server.
 	s := &Server{
@@ -369,7 +377,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		logger:                  logger,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(logger, config.Datacenter, grpcResolverBuilder),
+		router:                  router.NewRouter(logger, config.Datacenter, tracker),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -489,17 +497,19 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 	go s.lanEventHandler()
 
-	// Start the gRPC server shuffling using the LAN serf for node count.
-	go grpcResolverBuilder.periodicServerRebalance(s.serfLAN)
+	if s.config.GRPCEnabled {
+		// Start the gRPC server shuffling using the LAN serf for node count.
+		go grpcResolverBuilder.periodicServerRebalance(s.serfLAN)
 
-	// Initialize the GRPC listener.
-	if err := s.setupGRPC(); err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
+		// Initialize the GRPC listener.
+		if err := s.setupGRPC(); err != nil {
+			s.Shutdown()
+			return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
+		}
+
+		// Start the GRPC client.
+		s.grpcClient = NewGRPCClient(s.logger, grpcResolverBuilder, tlsConfigurator, config.GRPCResolverScheme)
 	}
-
-	// Start the GRPC client.
-	s.grpcClient = NewGRPCClient(s.logger, grpcResolverBuilder, tlsConfigurator, config.GRPCResolverScheme)
 
 	// Start the flooders after the LAN event handler is wired up.
 	s.floodSegments(config)
@@ -828,7 +838,10 @@ func (s *Server) setupGRPC() error {
 
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.StatsHandler(grpcStatsHandler),
+		grpc.StreamInterceptor(GRPCCountingStreamInterceptor),
+	)
 	stream.RegisterConsulServer(srv, &ConsulGRPCAdapter{Health{s}})
 
 	go srv.Serve(lis)
@@ -836,7 +849,12 @@ func (s *Server) setupGRPC() error {
 
 	// Set up a gRPC client connection to the above listener.
 	dialer := newDialer(s.serverLookup, s.tlsConfigurator.OutgoingRPCWrapper())
-	conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithDialer(dialer), grpc.WithDisableRetry())
+	conn, err := grpc.Dial(lis.Addr().String(),
+		grpc.WithInsecure(),
+		grpc.WithContextDialer(dialer),
+		grpc.WithDisableRetry(),
+		grpc.WithStatsHandler(grpcStatsHandler),
+		grpc.WithBalancerName("pick_first"))
 	if err != nil {
 		return err
 	}
@@ -1234,6 +1252,9 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 // GRPCConn returns a gRPC connection to a server.
 func (s *Server) GRPCConn() (*grpc.ClientConn, error) {
+	if !s.config.GRPCEnabled {
+		return nil, fmt.Errorf("GRPC not enabled")
+	}
 	return s.grpcConn, nil
 }
 

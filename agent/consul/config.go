@@ -425,6 +425,10 @@ type Config struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
+	// GRPCEnabled controls whether servers will listen for gRPC streams or RPC
+	// calls and whether clients will start gRPC clients.
+	GRPCEnabled bool
+
 	// GRPCResolverScheme is the gRPC resolver scheme to use. This is only used for
 	// tests running in parallel to avoid overwriting each other.
 	GRPCResolverScheme string
