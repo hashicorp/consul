@@ -503,8 +503,9 @@ service definition keys for compatibility with the config file format.
   unique per _agent_. This defaults to the `Name` parameter if not provided.
 
 - `Tags` `(array<string>: nil)` - Specifies a list of tags to assign to the
-  service. These tags can be used for later filtering and are exposed via the
-  APIs. We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames) to avoid DNS issues.
+  service. These tags can be used for later filtering and are exposed via the APIs.
+  We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+  for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns)
 
 - `Address` `(string: "")` - Specifies the address of the service. If not
   provided, the agent's address is used as the address for the service during
