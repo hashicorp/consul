@@ -497,7 +497,7 @@ service definition keys for compatibility with the config file format.
 - `Name` `(string: <required>)` - Specifies the logical name of the service.
   Many service instances may share the same logical service name. We recommend using
   [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
-  to avoid DNS issues.
+  for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns).
 
 - `ID` `(string: "")` - Specifies a unique ID for this service. This must be
   unique per _agent_. This defaults to the `Name` parameter if not provided.
