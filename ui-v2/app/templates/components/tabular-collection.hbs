@@ -17,7 +17,7 @@
       {{#yield-slot name='row'}}{{yield cell.item index}}{{/yield-slot}}
 {{#if hasActions }}
       <td class="actions">
-        {{#yield-slot name='actions' (block-params (concat cell.index) (action 'change') checked)}}
+        {{#yield-slot name='actions' params=(block-params (concat cell.index) (action 'change') checked)}}
           {{yield cell.item index}}
         {{/yield-slot}}
       </td>

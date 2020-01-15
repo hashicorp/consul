@@ -16,7 +16,7 @@
     {{else}}
     {{/yield-slot}}
     <ul role="menu" id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
-      {{#yield-slot 'menu' (block-params (concat 'popover-menu-' guid) send keypressClick) }}
+      {{#yield-slot name='menu' params=(block-params (concat 'popover-menu-' guid) send keypressClick) }}
         {{yield}}
       {{/yield-slot}}
     </ul>
