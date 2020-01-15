@@ -1,19 +1,19 @@
 {{#app-view class=(concat 'token ' (if (or isAuthorized isEnabled) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/acls/tokens/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'disabled'}}
+    {{#block-slot name='disabled'}}
       {{partial 'dc/acls/disabled'}}
     {{/block-slot}}
-    {{#block-slot 'authorization'}}
+    {{#block-slot name='authorization'}}
       {{partial 'dc/acls/authorization'}}
     {{/block-slot}}
-    {{#block-slot 'breadcrumbs'}}
+    {{#block-slot name='breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls.tokens'}}>All Tokens</a></li>
         </ol>
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
 {{#if isAuthorized }}
   {{#if create }}
@@ -26,14 +26,14 @@
 {{/if}}
         </h1>
     {{/block-slot}}
-    {{#block-slot 'actions'}}
+    {{#block-slot name='actions'}}
 {{#if (not create)}}
   {{#if (not-eq item.AccessorID token.AccessorID)}}
       {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
-        {{#block-slot 'action' as |confirm|}}
+        {{#block-slot name='action' as |confirm|}}
             <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
         {{/block-slot}}
-        {{#block-slot 'dialog' as |execute cancel message|}}
+        {{#block-slot name='dialog' as |execute cancel message|}}
           <p>
               {{message}}
           </p>
@@ -47,7 +47,7 @@
   {{/if}}
 {{/if}}
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
         {{#if (token/is-legacy item)}}
             <p class="notice info"><strong>Update.</strong> We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}

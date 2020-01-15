@@ -5,19 +5,19 @@
   </form>
 {{/if}}
   {{#changeable-set dispatcher=searchable}}
-    {{#block-slot 'set' as |filtered|}}
+    {{#block-slot name='set' as |filtered|}}
       {{#tabular-collection
           data-test-instances
           items=filtered as |item index|
       }}
-          {{#block-slot 'header'}}
+          {{#block-slot name='header'}}
             <th>ID</th>
             <th>Node</th>
             <th>Address</th>
             <th>Node Checks</th>
             <th>Service Checks</th>
           {{/block-slot}}
-          {{#block-slot 'row'}}
+          {{#block-slot name='row'}}
             <td data-test-id="{{item.Service.ID}}">
               <a href={{href-to 'dc.services.instance' item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service )}}>
                 <span data-test-external-source="{{service/external-source item.Service}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item.Service) '-color-svg') 'none')}}}></span>
@@ -47,7 +47,7 @@
           {{/block-slot}}
       {{/tabular-collection}}
     {{/block-slot}}
-    {{#block-slot 'empty'}}
+    {{#block-slot name='empty'}}
       <p>
         There are no services.
       </p>

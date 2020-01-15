@@ -42,10 +42,10 @@
       <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and (not create) (not-eq item.Name 'default')) }}
       {{#confirmation-dialog message='Are you sure you want to delete this Namespace?'}}
-          {{#block-slot 'action' as |confirm|}}
+          {{#block-slot name='action' as |confirm|}}
               <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
           {{/block-slot}}
-          {{#block-slot 'dialog' as |execute cancel message|}}
+          {{#block-slot name='dialog' as |execute cancel message|}}
             {{delete-confirmation message=message execute=execute cancel=cancel}}
           {{/block-slot}}
       {{/confirmation-dialog}}

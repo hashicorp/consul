@@ -5,17 +5,17 @@
   </form>
 {{/if}}
   {{#changeable-set dispatcher=searchable}}
-    {{#block-slot 'set' as |filtered|}}
+    {{#block-slot name='set' as |filtered|}}
       {{#tabular-collection
           data-test-services
           items=filtered as |item index|
       }}
-          {{#block-slot 'header'}}
+          {{#block-slot name='header'}}
               <th>Service</th>
               <th>Port</th>
               <th>Tags</th>
           {{/block-slot}}
-          {{#block-slot 'row'}}
+          {{#block-slot name='row'}}
               <td data-test-service-name="{{item.Service}}">
                 <a href={{href-to 'dc.services.show' item.Service}}>
                   <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
@@ -31,7 +31,7 @@
           {{/block-slot}}
       {{/tabular-collection}}
     {{/block-slot}}
-    {{#block-slot 'empty'}}
+    {{#block-slot name='empty'}}
       <p>
         There are no services.
       </p>

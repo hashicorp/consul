@@ -8,8 +8,8 @@ import YieldSlot from './yield-slot';
 const BlockSlot = Component.extend({
   layout,
   tagName: '',
-  _name: computed('__name', 'name', function() {
-    return this.name || this.__name;
+  _name: computed('name', function() {
+    return this.name;
   }),
   didInsertElement: function() {
     const slottedComponent = this.nearestOfType(Slots);
@@ -50,10 +50,6 @@ const BlockSlot = Component.extend({
       this.slottedComponent._deactivateSlot(this._name);
     }
   },
-});
-
-BlockSlot.reopenClass({
-  positionalParams: ['__name'],
 });
 
 export default BlockSlot;

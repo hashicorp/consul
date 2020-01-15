@@ -3,7 +3,7 @@
 {{else}}
   {{#hashicorp-consul id="wrapper" permissions=permissions dcs=dcs dc=dc nspaces=nspaces nspace=nspace}}
     {{#app-view class="loading show"}}
-      {{#block-slot 'content'}}
+      {{#block-slot name='content'}}
         {{partial 'consul-loading'}}
       {{/block-slot}}
     {{/app-view}}

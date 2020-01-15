@@ -9,28 +9,28 @@
           <strong>
             {{component.flashType}}!
           </strong>
-          {{#yield-slot 'notification' (block-params (lowercase component.flashType) (lowercase flash.action) flash.item )}}{{yield}}{{/yield-slot}}
+          {{#yield-slot name='notification' params=(block-params (lowercase component.flashType) (lowercase flash.action) flash.item )}}{{yield}}{{/yield-slot}}
         </p>
     {{/flash-message}}
 {{/each}}
     <div>
         <div class="actions">
   {{#if authorized}}
-            {{#yield-slot 'actions'}}{{yield}}{{/yield-slot}}
+            {{#yield-slot name='actions'}}{{yield}}{{/yield-slot}}
   {{/if}}
         </div>
 
         <div>
   {{#if authorized}}
             <nav aria-label="Breadcrumb">
-                {{#yield-slot 'breadcrumbs'}}{{yield}}{{/yield-slot}}
+                {{#yield-slot name='breadcrumbs'}}{{yield}}{{/yield-slot}}
             </nav>
   {{/if}}
-            {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
+            {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
         </div>
     </div>
   {{#if authorized}}
-    {{#yield-slot 'toolbar'}}
+    {{#yield-slot name='toolbar'}}
       <input type="checkbox" id="toolbar-toggle" />
       {{yield}}
     {{/yield-slot}}
@@ -42,11 +42,11 @@
     {{partial 'consul-loading'}}
 {{else}}
     {{#if (not enabled) }}
-      {{#yield-slot 'disabled'}}{{yield}}{{/yield-slot}}
+      {{#yield-slot name='disabled'}}{{yield}}{{/yield-slot}}
     {{else if (not authorized)}}
-      {{#yield-slot 'authorization'}}{{yield}}{{/yield-slot}}
+      {{#yield-slot name='authorization'}}{{yield}}{{/yield-slot}}
     {{else}}
-      {{#yield-slot 'content'}}{{yield}}{{/yield-slot}}
+      {{#yield-slot name='content'}}{{yield}}{{/yield-slot}}
     {{/if}}
 {{/if}}
 </div>

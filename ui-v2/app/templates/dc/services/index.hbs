@@ -1,14 +1,14 @@
 {{#app-view class="service list"}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/services/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
             Services <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     {{/block-slot}}
-    {{#block-slot 'toolbar'}}
+    {{#block-slot name='toolbar'}}
 {{#if (gt items.length 0) }}
       {{phrase-editor
         placeholder='service:name tag:name status:critical search-term'
@@ -18,20 +18,20 @@
       }}
 {{/if}}
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
         {{#changeable-set dispatcher=searchable}}
-          {{#block-slot 'set' as |filtered|}}
+          {{#block-slot name='set' as |filtered|}}
             {{#tabular-collection
                 route='dc.services.show'
                 key='Name'
                 items=filtered as |item index|
             }}
-                {{#block-slot 'header'}}
+                {{#block-slot name='header'}}
                     <th style={{remainingWidth}}>Service</th>
                     <th style={{totalWidth}}>Health Checks<span><em role="tooltip">The number of health checks for the service on all nodes</em></span></th>
                     <th style={{remainingWidth}}>Tags</th>
                 {{/block-slot}}
-                {{#block-slot 'row'}}
+                {{#block-slot name='row'}}
                     <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
                       <a href={{href-to 'dc.services.show' item.Name}}>
                         <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
@@ -50,7 +50,7 @@
                 {{/block-slot}}
             {{/tabular-collection}}
           {{/block-slot}}
-          {{#block-slot 'empty'}}
+          {{#block-slot name='empty'}}
             <p>
               There are no services.
             </p>
