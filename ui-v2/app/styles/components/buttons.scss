@@ -1,7 +1,4 @@
 @import '../base/components/buttons/index';
-%copy-button {
-  @extend %with-clipboard;
-}
 button[type='submit'],
 a.type-create {
   @extend %primary-button;

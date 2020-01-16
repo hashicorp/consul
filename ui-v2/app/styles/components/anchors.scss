@@ -1,6 +1,7 @@
 @import '../base/components/anchors/index';
-a[rel*='external'] {
-  @extend %with-exit;
+a[rel*='external']::after {
+  @extend %with-exit-icon, %as-pseudo;
+  margin-left: 8px;
 }
 %main-content label a[rel*='help'] {
   color: $gray-400;

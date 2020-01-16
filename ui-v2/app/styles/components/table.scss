@@ -1,4 +1,3 @@
-@import './icons/index';
 @import '../base/components/table/index';
 table {
   @extend %table, %table-flex;
@@ -19,8 +18,11 @@ html.template-service.template-list main th:first-child {
   text-indent: 28px;
 }
 
-td.folder {
-  @extend %with-folder;
+td.folder::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
+  background-color: $gray-300;
+  margin-top: 1px;
+  margin-right: 5px;
 }
 table:not(.sessions) tbody tr {
   cursor: pointer;
