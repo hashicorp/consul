@@ -177,7 +177,7 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	t.Parallel()
 
-	certRenewalTimeout = 1 * time.Millisecond
+	intermediateCertRenewInterval = time.Millisecond
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -192,7 +192,11 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 				// The retry loop only retries for 7sec max and
 				// the ttl needs to be below so that it
 				// triggers definitely.
-				"IntermediateCertTTL": 5 * time.Second,
+				// Since certs are created so that they are
+				// valid from 1minute in the past, we need to
+				// account for that, otherwise it will be
+				// expired immediately.
+				"IntermediateCertTTL": time.Minute + (5 * time.Second),
 			},
 		}
 	})

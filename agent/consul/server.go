@@ -127,6 +127,8 @@ type Server struct {
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
 
+	// caProviderReconfigurationLock guards the provider reconfiguration.
+	caProviderReconfigurationLock sync.Mutex
 	// caProvider is the current CA provider in use for Connect. This is
 	// only non-nil when we are the leader.
 	caProvider ca.Provider

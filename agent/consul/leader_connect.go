@@ -35,9 +35,9 @@ var (
 	// queries when backing off.
 	maxRetryBackoff = 256
 
-	// certRenewalTimeout is the timeout at which the expiration of the
-	// intermediate cert is checked and renewed in necessary.
-	certRenewalTimeout = time.Hour
+	// intermediateCertRenewInterval is the interval at which the expiration
+	// of the intermediate cert is checked and renewed if necessary.
+	intermediateCertRenewInterval = time.Hour
 )
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -173,6 +173,9 @@ func (s *Server) initializeCA() error {
 	if err != nil {
 		return err
 	}
+
+	s.caProviderReconfigurationLock.Lock()
+	defer s.caProviderReconfigurationLock.Unlock()
 	s.setCAProvider(provider, nil)
 
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
@@ -398,7 +401,7 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 
 	newIntermediate := false
 	if needsNewIntermediate {
-		if err := s.setupNewIntermediate(provider, newActiveRoot); err != nil {
+		if err := s.getIntermediateCASigned(provider, newActiveRoot); err != nil {
 			return err
 		}
 		newIntermediate = true
@@ -415,7 +418,7 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 		return err
 	}
 	if activeRoot == nil || activeRoot.ID != newActiveRoot.ID || newIntermediate {
-		if err := s.setupNewActiveRoot(provider, newActiveRoot); err != nil {
+		if err := s.persistNewRoot(provider, newActiveRoot); err != nil {
 			return err
 		}
 	}
@@ -424,7 +427,7 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 	return nil
 }
 
-func (s *Server) setupNewActiveRoot(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	state := s.fsm.State()
 	idx, oldRoots, err := state.CARoots(nil)
 	if err != nil {
@@ -484,7 +487,7 @@ func (s *Server) setupNewActiveRoot(provider ca.Provider, newActiveRoot *structs
 	return nil
 }
 
-func (s *Server) setupNewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	csr, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
@@ -619,8 +622,11 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(certRenewalTimeout):
+		case <-time.After(intermediateCertRenewInterval):
 			retryLoopBackoff(ctx.Done(), func() error {
+				s.caProviderReconfigurationLock.Lock()
+				defer s.caProviderReconfigurationLock.Unlock()
+
 				provider, _ := s.getCAProvider()
 				if provider == nil {
 					// this happens when leadership is being revoked and this go routine will be stopped
@@ -655,18 +661,18 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					return nil
 				}
 
-				if err := s.setupNewIntermediate(provider, activeRoot); err != nil {
+				if err := s.getIntermediateCASigned(provider, activeRoot); err != nil {
 					return err
 				}
 
-				if err := s.setupNewActiveRoot(provider, activeRoot); err != nil {
+				if err := s.persistNewRoot(provider, activeRoot); err != nil {
 					return err
 				}
 
 				s.setCAProvider(provider, activeRoot)
 				return nil
 			}, func(err error) {
-				s.logger.Printf("[ERR] connect: %v", err)
+				s.logger.Printf("[ERR] connect: %s: %v", secondaryCertRenewWatchRoutineName, err)
 			})
 		}
 	}
@@ -723,7 +729,7 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
 		return nil
 	}, func(err error) {
-		s.logger.Printf("[ERR] connect: %v", err)
+		s.logger.Printf("[ERR] connect: %s: %v", secondaryCARootWatchRoutineName, err)
 	})
 
 	return nil
@@ -780,7 +786,7 @@ func (s *Server) replicateIntentions(ctx context.Context) error {
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, remote.QueryMeta.Index)
 		return nil
 	}, func(err error) {
-		s.logger.Printf("[ERR] connect: error replicating intentions: %v", err)
+		s.logger.Printf("[ERR] connect: %s: %v", intentionReplicationRoutineName, err)
 	})
 	return nil
 }

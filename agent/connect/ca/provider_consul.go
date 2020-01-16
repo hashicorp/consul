@@ -463,8 +463,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	// Sign the certificate valid from 1 minute in the past, this helps it be
 	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
-	extra := time.Minute
-	effectiveNow := time.Now().Add(-1 * extra)
+	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               csr.Subject,
@@ -479,7 +478,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
 		MaxPathLenZero: true,
-		NotAfter:       effectiveNow.Add(c.config.IntermediateCertTTL + extra),
+		NotAfter:       effectiveNow.Add(c.config.IntermediateCertTTL),
 		NotBefore:      effectiveNow,
 		SubjectKeyId:   subjectKeyID,
 	}
