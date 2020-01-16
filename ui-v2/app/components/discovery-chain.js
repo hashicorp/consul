@@ -3,93 +3,12 @@ import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { next } from '@ember/runloop';
 
-const getNodesByType = function(nodes = {}, type) {
-  return Object.values(nodes).filter(item => item.Type === type);
-};
-
-const targetsToFailover = function(targets, a) {
-  let type;
-  const Targets = targets.map(function(b) {
-    // TODO: this isn't going to work past namespace for services
-    // with dots in the name
-    const [aRev, bRev] = [a, b].map(item => item.split('.').reverse());
-    const types = ['Datacenter', 'Namespace', 'Service', 'Subset'];
-    return bRev.find(function(item, i) {
-      const res = item !== aRev[i];
-      if (res) {
-        type = types[i];
-      }
-      return res;
-    });
-  });
-  return {
-    Type: type,
-    Targets: Targets,
-  };
-};
-const getNodeResolvers = function(nodes = {}) {
-  const failovers = getFailovers(nodes);
-  const resolvers = {};
-  Object.keys(nodes).forEach(function(key) {
-    const node = nodes[key];
-    if (node.Type === 'resolver' && !failovers.includes(key.split(':').pop())) {
-      resolvers[node.Name] = node;
-    }
-  });
-  return resolvers;
-};
-
-const getTargetResolvers = function(dc, nspace = 'default', targets = [], nodes = {}) {
-  const resolvers = {};
-  Object.values(targets).forEach(item => {
-    let node = nodes[item.ID];
-    if (node) {
-      if (typeof resolvers[item.Service] === 'undefined') {
-        resolvers[item.Service] = {
-          ID: item.ID,
-          Name: item.Service,
-          Children: [],
-          Failover: null,
-          Redirect: null,
-        };
-      }
-      const resolver = resolvers[item.Service];
-      let failoverable = resolver;
-      if (item.ServiceSubset) {
-        failoverable = item;
-        // TODO: Sometimes we have set the resolvers ID to the ID of the
-        // subset this just shifts the subset of the front of the URL for the moment
-        const temp = item.ID.split('.');
-        temp.shift();
-        resolver.ID = temp.join('.');
-        resolver.Children.push(item);
-      }
-      if (typeof node.Resolver.Failover !== 'undefined') {
-        // TODO: Figure out if we can get rid of this
-        /* eslint ember/no-side-effects: "warn" */
-        set(failoverable, 'Failover', targetsToFailover(node.Resolver.Failover.Targets, item.ID));
-      } else {
-        const res = targetsToFailover([node.Resolver.Target], `service.${nspace}.${dc}`);
-        if (res.Type === 'Datacenter' || res.Type === 'Namespace') {
-          resolver.Children.push(item);
-          set(failoverable, 'Redirect', true);
-        }
-      }
-    }
-  });
-  return Object.values(resolvers);
-};
-const getFailovers = function(nodes = {}) {
-  const failovers = [];
-  Object.values(nodes)
-    .filter(item => item.Type === 'resolver')
-    .forEach(function(item) {
-      (get(item, 'Resolver.Failover.Targets') || []).forEach(failover => {
-        failovers.push(failover);
-      });
-    });
-  return failovers;
-};
+import {
+  createRoute,
+  getSplitters,
+  getRoutes,
+  getResolvers,
+} from 'consul-ui/utils/components/discovery-chain/index';
 
 export default Component.extend({
   dom: service('dom'),
@@ -134,74 +53,33 @@ export default Component.extend({
     this.ticker.destroy(this);
   },
   splitters: computed('chain.Nodes', function() {
-    return getNodesByType(get(this, 'chain.Nodes'), 'splitter').map(function(item) {
-      set(item, 'ID', `splitter:${item.Name}`);
-      return item;
-    });
+    return getSplitters(get(this, 'chain.Nodes'));
   }),
-  routers: computed('chain.Nodes', function() {
-    // Right now there should only ever be one 'Router'.
-    return getNodesByType(get(this, 'chain.Nodes'), 'router');
+  routes: computed('chain.Nodes', function() {
+    return getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
   }),
-  routes: computed('chain', 'routers', function() {
-    const routes = get(this, 'routers').reduce(function(prev, item) {
-      return prev.concat(
-        item.Routes.map(function(route, i) {
-          return {
-            ...route,
-            ID: `route:${item.Name}-${JSON.stringify(route.Definition.Match.HTTP)}`,
-          };
-        })
-      );
-    }, []);
-    if (routes.length === 0) {
-      let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
-      const splitterID = `splitter:${this.chain.ServiceName}`;
-      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
-        nextNode = splitterID;
-      }
-      routes.push({
-        Default: true,
-        ID: `route:${this.chain.ServiceName}`,
-        Name: this.chain.ServiceName,
-        Definition: {
-          Match: {
-            HTTP: {
-              PathPrefix: '/',
-            },
-          },
-        },
-        NextNode: nextNode,
-      });
-    }
-    return routes;
-  }),
-  nodeResolvers: computed('chain.Nodes', function() {
-    return getNodeResolvers(get(this, 'chain.Nodes'));
-  }),
-  resolvers: computed('nodeResolvers.[]', 'chain.Targets', function() {
-    return getTargetResolvers(
+  resolvers: computed('chain.{Nodes,Targets}', function() {
+    return getResolvers(
       this.chain.Datacenter,
       this.chain.Namespace,
       get(this, 'chain.Targets'),
-      this.nodeResolvers
+      get(this, 'chain.Nodes')
     );
   }),
   graph: computed('chain.Nodes', function() {
     const graph = this.dataStructs.graph();
-    Object.entries(get(this, 'chain.Nodes')).forEach(function([key, item]) {
+    const router = this.chain.ServiceName;
+    Object.entries(get(this, 'chain.Nodes')).forEach(([key, item]) => {
       switch (item.Type) {
         case 'splitter':
-          item.Splits.forEach(function(splitter) {
+          item.Splits.forEach(splitter => {
             graph.addLink(`splitter:${item.Name}`, splitter.NextNode);
           });
           break;
         case 'router':
-          item.Routes.forEach(function(route, i) {
-            graph.addLink(
-              `route:${item.Name}-${JSON.stringify(route.Definition.Match.HTTP)}`,
-              route.NextNode
-            );
+          item.Routes.forEach((route, i) => {
+            route = createRoute(route, router, this.dom.guid);
+            graph.addLink(route.ID, route.NextNode);
           });
           break;
       }
@@ -212,18 +90,15 @@ export default Component.extend({
     if (this.selectedId === '' || !this.dom.element(`#${this.selectedId}`)) {
       return {};
     }
-    const getTypeFromId = function(id) {
-      return id.split(':').shift();
-    };
     const id = this.selectedId;
-    const type = getTypeFromId(id);
+    const type = id.split(':').shift();
     const nodes = [id];
     const edges = [];
     this.graph.forEachLinkedNode(id, (linkedNode, link) => {
       nodes.push(linkedNode.id);
       edges.push(`${link.fromId}>${link.toId}`);
       this.graph.forEachLinkedNode(linkedNode.id, (linkedNode, link) => {
-        const nodeType = getTypeFromId(linkedNode.id);
+        const nodeType = linkedNode.id.split(':').shift();
         if (type !== nodeType && type !== 'splitter' && nodeType !== 'splitter') {
           nodes.push(linkedNode.id);
           edges.push(`${link.fromId}>${link.toId}`);
@@ -248,6 +123,16 @@ export default Component.extend({
     // TODO: Figure out if we can remove this next
     next(() => {
       this._listeners.remove();
+      this._listeners.add(this.dom.document(), {
+        click: e => {
+          // all route/splitter/resolver components currently
+          // have classes that end in '-card'
+          if (!this.dom.closest('[class$="-card"]', e.target)) {
+            set(this, 'active', false);
+            set(this, 'selectedId', '');
+          }
+        },
+      });
       [...this.dom.elements('path.split', this.element)].forEach(item => {
         this._listeners.add(item, {
           mouseover: e => this.actions.showSplit.apply(this, [e]),
