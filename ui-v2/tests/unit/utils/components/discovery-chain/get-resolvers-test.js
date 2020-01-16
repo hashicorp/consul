@@ -62,10 +62,6 @@ module('Unit | Utility | components/discovery-chain/get-resolvers', function() {
           },
         }).then(function({ Chain }) {
           const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
-          const nodeId = Object.keys(Chain.Targets)[0];
-          const subsetId = Object.keys(Chain.Targets)[1];
-          const node = Chain.Nodes[`resolver:${nodeId}`];
-          const subset = Chain.Targets[`${subsetId}`];
           const actualSubset = actual[0].Children[0];
           assert.equal(actualSubset.Subset, true);
           assert.equal(actualSubset.Failover.Type, failoverType);
