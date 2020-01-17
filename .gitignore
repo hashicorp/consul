@@ -4,25 +4,21 @@
 *.old
 *.swp
 *.test
-.fseventsd
 .envrc
 .gotools
+.netlify
 .vagrant/
-.idea/
 /pkg
-Thumbs.db
 bin/
 changelog.tmp
 exit-code
-.netlify
-
-# IDE Specific
-.vscode/*
+Thumbs.db
 
 # MacOS
 .DS_Store
 .AppleDouble
 .LSOverride
+.fseventsd
 
 # Web artifacts
 website/.bundle
