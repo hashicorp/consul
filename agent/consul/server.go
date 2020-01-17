@@ -89,16 +89,17 @@ const (
 )
 
 const (
-	legacyACLReplicationRoutineName = "legacy ACL replication"
-	aclPolicyReplicationRoutineName = "ACL policy replication"
-	aclRoleReplicationRoutineName   = "ACL role replication"
-	aclTokenReplicationRoutineName  = "ACL token replication"
-	aclTokenReapingRoutineName      = "acl token reaping"
-	aclUpgradeRoutineName           = "legacy ACL token upgrade"
-	caRootPruningRoutineName        = "CA root pruning"
-	configReplicationRoutineName    = "config entry replication"
-	intentionReplicationRoutineName = "intention replication"
-	secondaryCARootWatchRoutineName = "secondary CA roots watch"
+	legacyACLReplicationRoutineName    = "legacy ACL replication"
+	aclPolicyReplicationRoutineName    = "ACL policy replication"
+	aclRoleReplicationRoutineName      = "ACL role replication"
+	aclTokenReplicationRoutineName     = "ACL token replication"
+	aclTokenReapingRoutineName         = "acl token reaping"
+	aclUpgradeRoutineName              = "legacy ACL token upgrade"
+	caRootPruningRoutineName           = "CA root pruning"
+	configReplicationRoutineName       = "config entry replication"
+	intentionReplicationRoutineName    = "intention replication"
+	secondaryCARootWatchRoutineName    = "secondary CA roots watch"
+	secondaryCertRenewWatchRoutineName = "secondary cert renew watch"
 )
 
 var (
@@ -126,6 +127,8 @@ type Server struct {
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
 
+	// caProviderReconfigurationLock guards the provider reconfiguration.
+	caProviderReconfigurationLock sync.Mutex
 	// caProvider is the current CA provider in use for Connect. This is
 	// only non-nil when we are the leader.
 	caProvider ca.Provider

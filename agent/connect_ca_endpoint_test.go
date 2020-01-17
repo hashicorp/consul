@@ -90,6 +90,28 @@ func TestConnectCAConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "basic with IntermediateCertTTL",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h",
+					"IntermediateCertTTL": "2h"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":         "72h",
+					"RotationPeriod":      "1h",
+					"IntermediateCertTTL": "2h",
+				},
+			},
+		},
+		{
 			name: "force without cross sign CamelCase",
 			body: `
 			{
@@ -211,7 +233,6 @@ func TestConnectCAConfig(t *testing.T) {
 				}
 				require.NoError(err)
 			}
-
 			// The config should be updated now.
 			{
 				req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)

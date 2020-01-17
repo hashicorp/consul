@@ -155,10 +155,11 @@ func testServerConfig(t *testing.T) (string, *Config) {
 		ClusterID: connect.TestClusterID,
 		Provider:  structs.ConsulCAProvider,
 		Config: map[string]interface{}{
-			"PrivateKey":     "",
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"LeafCertTTL":    "72h",
+			"PrivateKey":          "",
+			"RootCert":            "",
+			"RotationPeriod":      "2160h",
+			"LeafCertTTL":         "72h",
+			"IntermediateCertTTL": "72h",
 		},
 	}
 

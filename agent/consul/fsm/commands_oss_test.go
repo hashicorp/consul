@@ -1280,9 +1280,10 @@ func TestFSM_CAConfig(t *testing.T) {
 		Config: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"PrivateKey":     "asdf",
-				"RootCert":       "qwer",
-				"RotationPeriod": 90 * 24 * time.Hour,
+				"PrivateKey":          "asdf",
+				"RootCert":            "qwer",
+				"RotationPeriod":      90 * 24 * time.Hour,
+				"IntermediateCertTTL": 365 * 24 * time.Hour,
 			},
 		},
 	}
@@ -1312,6 +1313,9 @@ func TestFSM_CAConfig(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 	if got, want := conf.RotationPeriod, 90*24*time.Hour; got != want {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	if got, want := conf.IntermediateCertTTL, 365*24*time.Hour; got != want {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 

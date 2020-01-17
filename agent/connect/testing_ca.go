@@ -361,9 +361,10 @@ func testCAConfigSet(t testing.T, a TestAgentRPC,
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     ca.SigningKey,
-			"RootCert":       ca.RootCert,
-			"RotationPeriod": 180 * 24 * time.Hour,
+			"PrivateKey":          ca.SigningKey,
+			"RootCert":            ca.RootCert,
+			"RotationPeriod":      180 * 24 * time.Hour,
+			"IntermediateCertTTL": 72 * time.Hour,
 		},
 	}
 	args := &structs.CARequest{

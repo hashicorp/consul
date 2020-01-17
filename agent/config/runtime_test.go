@@ -3766,6 +3766,7 @@ func TestFullConfig(t *testing.T) {
 				"ca_provider": "consul",
 				"ca_config": {
 					"rotation_period": "90h",
+					"intermediate_cert_ttl": "8760h",
 					"leaf_cert_ttl": "1h",
 					"csr_max_per_second": 100,
 					"csr_max_concurrent": 2
@@ -4367,6 +4368,7 @@ func TestFullConfig(t *testing.T) {
 				ca_provider = "consul"
 				ca_config {
 					rotation_period = "90h"
+					intermediate_cert_ttl = "8760h"
 					leaf_cert_ttl = "1h"
 					# hack float since json parses numbers as float and we have to
 					# assert against the same thing
@@ -5079,10 +5081,11 @@ func TestFullConfig(t *testing.T) {
 		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"RotationPeriod":   "90h",
-			"LeafCertTTL":      "1h",
-			"CSRMaxPerSecond":  float64(100),
-			"CSRMaxConcurrent": float64(2),
+			"RotationPeriod":      "90h",
+			"IntermediateCertTTL": "8760h",
+			"LeafCertTTL":         "1h",
+			"CSRMaxPerSecond":     float64(100),
+			"CSRMaxConcurrent":    float64(2),
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
