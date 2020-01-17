@@ -69,7 +69,7 @@ module.exports = function(environment) {
     CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com/consul',
     CONSUL_DOCS_API_URL: 'https://www.consul.io/api',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
-    CONSUL_COPYRIGHT_YEAR: '2019',
+    CONSUL_COPYRIGHT_YEAR: '2020',
   });
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
