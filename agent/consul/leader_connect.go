@@ -123,6 +123,8 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 	return p, nil
 }
 
+// getCAProvider is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
 	retries := 0
 	var result ca.Provider
@@ -148,6 +150,8 @@ func (s *Server) getCAProvider() (ca.Provider, *structs.CARoot) {
 	return result, resultRoot
 }
 
+// setCAProvider is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
 	s.caProviderLock.Lock()
 	defer s.caProviderLock.Unlock()
@@ -216,6 +220,8 @@ func (s *Server) initializeCA() error {
 }
 
 // initializeRootCA runs the initialization logic for a root CA.
+// It is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
@@ -322,6 +328,8 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 // initializeSecondaryCA runs the routine for generating an intermediate CA CSR and getting
 // it signed by the primary DC if the root CA of the primary DC has changed since the last
 // intermediate.
+// It is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots structs.IndexedCARoots) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
 	if err != nil {
@@ -427,6 +435,8 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 	return nil
 }
 
+// persistNewRoot is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	state := s.fsm.State()
 	idx, oldRoots, err := state.CARoots(nil)
@@ -487,6 +497,8 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 	return nil
 }
 
+// getIntermediateCASigned is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	csr, err := provider.GenerateIntermediateCSR()
 	if err != nil {
@@ -903,6 +915,8 @@ func nextIndexVal(prevIdx, idx uint64) uint64 {
 }
 
 // initializeSecondaryProvider configures the given provider for a secondary, non-root datacenter.
+// It is being called while holding caProviderReconfigurationLock which means
+// it must never take that lock itself or call anything that does.
 func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs.IndexedCARoots) error {
 	if roots.TrustDomain == "" {
 		return fmt.Errorf("trust domain from primary datacenter is not initialized")
@@ -932,6 +946,8 @@ func (s *Server) initializeSecondaryProvider(provider ca.Provider, roots structs
 	return nil
 }
 
+// configuredSecondaryCA is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func (s *Server) configuredSecondaryCA() bool {
 	s.actingSecondaryLock.RLock()
 	defer s.actingSecondaryLock.RUnlock()
@@ -947,6 +963,8 @@ func halfTime(notBefore, notAfter time.Time) time.Duration {
 
 // lessThanHalfTimePassed decides if half the time between notBefore and
 // notAfter has passed relative to now.
+// lessThanHalfTimePassed is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
 func lessThanHalfTimePassed(now, notBefore, notAfter time.Time) bool {
 	t := notBefore.Add(halfTime(notBefore, notAfter))
 	return t.Sub(now) > 0
