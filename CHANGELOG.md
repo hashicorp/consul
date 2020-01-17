@@ -9,6 +9,9 @@ FEATURES:
 
 * acl: **(Consul Enterprise only)** auth methods defined in the `default` namespace gained the ability to create tokens in alternate namespaces. This capability was implemented for all existing auth methods.
 
+IMPROVEMENTS:
+* dns: Improvement to enable dual stack IPv4/IPv6 addressing of services and lookup via DNS [[GH-6531](https://github.com/hashicorp/consul/issues/6531)]
+
 
 ## 1.7.0-beta2 (December 20, 2019)
 
