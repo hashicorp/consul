@@ -16,7 +16,9 @@ export default Component.extend(Slotted, {
   actions: {
     change: function(e) {
       if (!e.target.checked) {
-        this.dom.element(`#popover-menu-${this.guid}`).checked = false;
+        [...this.dom.elements(`[id^=popover-menu-${this.guid}]`)].forEach(function($item) {
+          $item.checked = false;
+        });
       }
       this.onchange(e);
     },

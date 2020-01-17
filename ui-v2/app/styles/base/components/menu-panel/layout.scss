@@ -6,12 +6,14 @@
   display: none;
 }
 %menu-panel [type='checkbox'] ~ * {
-  transition: transform 150ms, min-height 150ms;
+  transition: transform 150ms, min-height 150ms, max-height 150ms;
   min-height: 0;
 }
 %menu-panel [type='checkbox']:checked ~ * {
   transform: translateX(calc(-100% - 10px));
-  min-height: 143px;
+  /* this needs to autocalculate */
+  /* or be hardcoded */
+  /* min-height: 143px; */
 }
 %menu-panel-sub-panel {
   position: absolute;
@@ -80,10 +82,5 @@
 @supports not (max-width: fit-content) {
   %menu-panel-header {
     max-width: 200px;
-  }
-}
-@media #{$--lt-horizontal-nav} {
-  %menu-panel-header {
-    text-align: left;
   }
 }

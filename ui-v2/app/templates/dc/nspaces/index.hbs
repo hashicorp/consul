@@ -52,31 +52,39 @@
 {{/if}}
           {{/block-slot}}
           {{#block-slot name='actions' as |index change checked|}}
-            {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Namespace?"}}
-              {{#block-slot name='action' as |confirm|}}
-                {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
-                  <ul>
-                    <li>
-                        <a data-test-edit href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
-                    </li>
-{{#if (not-eq item.Name 'default')}}
-                    <li>
-                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
-                    </li>
-{{/if}}
-                  </ul>
-                {{/action-group}}
+            {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
+              {{#block-slot name='trigger'}}
+                More
               {{/block-slot}}
-              {{#block-slot name='dialog' as |execute cancel message name|}}
-                  <p>
-                    {{message}}
-                  </p>
-                  <button type="button" class="type-delete" {{action execute}}>
-                    Confirm Delete
-                  </button>
-                  <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+              {{#block-slot name='menu' as |confirm send keypressClick|}}
+                  <li role="none">
+                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
+                  </li>
+                  <li role="none" class="dangerous">
+                    <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
+                    <div role="menu">
+                      <div class="confirmation-alert warning">
+                        <div>
+                          <header>
+                            Confirm Delete
+                          </header>
+                          <p>
+                            Are you sure you want to delete this key?
+                          </p>
+                        </div>
+                        <ul>
+                          <li class="dangerous">
+                            <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
+                          </li>
+                          <li>
+                            <label for={{confirm}}>Cancel</label>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </li>
               {{/block-slot}}
-            {{/confirmation-dialog}}
+            {{/popover-menu}}
           {{/block-slot}}
         {{/tabular-collection}}
       {{/block-slot}}
