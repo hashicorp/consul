@@ -3757,6 +3757,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
+			"default_query_time": "16743s",
 			"disable_anonymous_signature": true,
 			"disable_coordinates": true,
 			"disable_host_node_id": true,
@@ -3810,6 +3811,7 @@ func TestFullConfig(t *testing.T) {
 				"kv_max_value_size": 1234567800000000
 			},
 			"log_level": "k1zo9Spt",
+			"max_query_time": "18237s",
 			"node_id": "AsUIlw99",
 			"node_meta": {
 				"5mgGQMBk": "mJLtVMSG",
@@ -4356,6 +4358,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
+			default_query_time = "16743s"
 			disable_anonymous_signature = true
 			disable_coordinates = true
 			disable_host_node_id = true
@@ -4410,6 +4413,7 @@ func TestFullConfig(t *testing.T) {
 				kv_max_value_size = 1234567800000000
 			}
 			log_level = "k1zo9Spt"
+			max_query_time = "18237s"
 			node_id = "AsUIlw99"
 			node_meta {
 				"5mgGQMBk" = "mJLtVMSG"
@@ -5064,6 +5068,7 @@ func TestFullConfig(t *testing.T) {
 		DNSCacheMaxAge:                   5 * time.Minute,
 		DataDir:                          dataDir,
 		Datacenter:                       "rzo029wg",
+		DefaultQueryTime:                 16743 * time.Second,
 		DevMode:                          true,
 		DisableAnonymousSignature:        true,
 		DisableCoordinates:               true,
@@ -5098,6 +5103,7 @@ func TestFullConfig(t *testing.T) {
 		LeaveDrainTime:                   8265 * time.Second,
 		LeaveOnTerm:                      true,
 		LogLevel:                         "k1zo9Spt",
+		MaxQueryTime:                     18237 * time.Second,
 		NodeID:                           types.NodeID("AsUIlw99"),
 		NodeMeta:                         map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
 		NodeName:                         "otlLxGaI",
@@ -5924,6 +5930,7 @@ func TestSanitize(t *testing.T) {
 		"DNSCacheMaxAge": "0s",
 		"DataDir": "",
 		"Datacenter": "",
+		"DefaultQueryTime": "0s",
 		"DevMode": false,
 		"DisableAnonymousSignature": false,
 		"DisableCoordinates": false,
@@ -5967,6 +5974,7 @@ func TestSanitize(t *testing.T) {
 		"LogRotateBytes": 0,
 		"LogRotateDuration": "0s",
 		"LogRotateMaxFiles": 0,
+		"MaxQueryTime": "0s",
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",

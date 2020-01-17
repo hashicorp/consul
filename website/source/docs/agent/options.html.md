@@ -285,6 +285,16 @@ The options below are all specified on the command-line.
 
 * <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to -1 to discard old log files when a new one is created.
 
+* <a name="_default_query_time"></a><a href="#_default_query_time">`-default-query-time`</a> - This flag controls the
+  amount of time a blocking query will wait before Consul will force a response.
+  This value can be overridden by the `wait` query parameter. Note that Consul
+  applies some jitter on top of this time. Defaults to 300s.
+
+* <a name="_max_query_time"></a><a href="#_max_query_time">`-max-query-time`</a> -
+  this flag controls the maximum amount of time a blocking query can wait before
+  Consul will force a response. Consul applies jitter to the wait time. The jittered
+  time will be capped to this time. Defaults to 600s.
+
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
@@ -1373,6 +1383,12 @@ default will automatically work with some tooling.
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
+
+* <a name="default_query_time"></a><a href="#default_query_time">`default_query_time`</a>
+  Equivalent to the [`-default-query-time` command-line flag](#_default_query_time).
+
+* <a name="max_query_time"></a><a href="#max_query_time">`max_query_time`</a>
+  Equivalent to the [`-max-query-time` command-line flag](#_max_query_time).
 
 * <a name="node_id"></a><a href="#node_id">`node_id`</a> Equivalent to the
   [`-node-id` command-line flag](#_node_id).

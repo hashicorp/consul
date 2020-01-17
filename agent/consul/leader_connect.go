@@ -34,10 +34,6 @@ var (
 	// maxRetryBackoff is the maximum number of seconds to wait between failed blocking
 	// queries when backing off.
 	maxRetryBackoff = 256
-
-	// maxRootsQueryTime is the maximum time the primary roots watch query can block before
-	// returning.
-	maxRootsQueryTime = maxQueryTime
 )
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -602,7 +598,8 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
-			MaxQueryTime: maxRootsQueryTime,
+			// the maximum time the primary roots watch query can block before returning
+			MaxQueryTime: s.config.MaxQueryTime,
 		},
 	}
 

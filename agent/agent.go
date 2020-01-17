@@ -1263,6 +1263,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSMinVersion = a.config.TLSMinVersion
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
+	base.DefaultQueryTime = a.config.DefaultQueryTime
+	base.MaxQueryTime = a.config.MaxQueryTime
 
 	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
 

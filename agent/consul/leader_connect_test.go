@@ -514,12 +514,11 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	t.Parallel()
 
-	maxRootsQueryTime = 500 * time.Millisecond
-
 	// Initialize dc1 as the primary DC
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.Build = "1.3.0"
+		c.MaxQueryTime = 500 * time.Millisecond
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -531,6 +530,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.Build = "1.6.0"
+		c.MaxQueryTime = 500 * time.Millisecond
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
