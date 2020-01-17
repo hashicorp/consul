@@ -393,6 +393,9 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 	`+extraHCL)
 	defer a.Shutdown()
 
+	chkType := &structs.CheckType{
+		TTL: time.Minute,
+	}
 	tests := []struct {
 		desc       string
 		srv        *structs.NodeService
@@ -437,6 +440,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					Definition:     chkType.GetHealthCheckDefinition(),
 				},
 			},
 		},
@@ -485,6 +489,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					Definition:     chkType.GetHealthCheckDefinition(),
 				},
 				"check-noname": &structs.HealthCheck{
 					Node:           "node1",
@@ -496,6 +501,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					Definition:     chkType.GetHealthCheckDefinition(),
 				},
 				"service:svcid2:3": &structs.HealthCheck{
 					Node:           "node1",
@@ -507,6 +513,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					Definition:     chkType.GetHealthCheckDefinition(),
 				},
 				"service:svcid2:4": &structs.HealthCheck{
 					Node:           "node1",
@@ -518,6 +525,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					Definition:     chkType.GetHealthCheckDefinition(),
 				},
 			},
 		},
@@ -859,6 +867,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceName:    "redis",
 		Type:           "ttl",
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		Definition:     chk1.GetHealthCheckDefinition(),
 	}
 	hchk2 := &structs.HealthCheck{Node: "node1",
 		CheckID:        "chk2",
@@ -868,6 +877,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceName:    "redis",
 		Type:           "ttl",
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		Definition:     chk2.GetHealthCheckDefinition(),
 	}
 
 	// register service with chk1
