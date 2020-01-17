@@ -592,6 +592,8 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 		Datacenter: a.config.Datacenter,
 		Token:      a.tokens.AgentToken(),
 		Agent:      a.config.NodeName,
+		DNSSAN:     a.config.AutoEncryptDNSSAN,
+		IPSAN:      a.config.AutoEncryptIPSAN,
 	}
 
 	// prepolutate leaf cache

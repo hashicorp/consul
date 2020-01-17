@@ -403,6 +403,8 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		NotBefore:      effectiveNow,
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,
+		DNSNames:       csr.DNSNames,
+		IPAddresses:    csr.IPAddresses,
 	}
 
 	// Create the certificate, PEM encode it and return that value.

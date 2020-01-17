@@ -568,6 +568,12 @@ type AutoEncrypt struct {
 	// TLS enables receiving certificates for clients from servers
 	TLS *bool `json:"tls,omitempty" hcl:"tls" mapstructure:"tls"`
 
+	// Additional DNS SAN entries that clients request for their certificates.
+	DNSSAN []string `json:"dns_san,omitempty" hcl:"dns_san" mapstructure:"dns_san"`
+
+	// Additional IP SAN entries that clients request for their certificates.
+	IPSAN []string `json:"ip_san,omitempty" hcl:"ip_san" mapstructure:"ip_san"`
+
 	// AllowTLS enables the RPC endpoint on the server to answer
 	// AutoEncrypt.Sign requests.
 	AllowTLS *bool `json:"allow_tls,omitempty" hcl:"allow_tls" mapstructure:"allow_tls"`

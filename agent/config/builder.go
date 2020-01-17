@@ -651,6 +651,20 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptDNSSAN := []string{}
+	for _, d := range c.AutoEncrypt.DNSSAN {
+		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
+	}
+	autoEncryptIPSAN := []net.IP{}
+	for _, i := range c.AutoEncrypt.IPSAN {
+		ip := net.ParseIP(i)
+		if ip == nil {
+			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
+			continue
+		}
+		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
+
+	}
 	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
 
 	if autoEncryptAllowTLS {
@@ -856,6 +870,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ClientAddrs:                      clientAddrs,
 		ConfigEntryBootstrap:             configEntries,
 		AutoEncryptTLS:                   autoEncryptTLS,
+		AutoEncryptDNSSAN:                autoEncryptDNSSAN,
+		AutoEncryptIPSAN:                 autoEncryptIPSAN,
 		AutoEncryptAllowTLS:              autoEncryptAllowTLS,
 		ConnectEnabled:                   connectEnabled,
 		ConnectCAProvider:                connectCAProvider,

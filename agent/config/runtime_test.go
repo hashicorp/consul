@@ -3758,6 +3758,8 @@ func TestFullConfig(t *testing.T) {
                         },
 			"auto_encrypt": {
 				"tls": true,
+				"dns_san": ["a.com", "b.com"],
+				"ip_san": ["192.168.4.139", "192.168.4.140"],
 				"allow_tls": true
 			},
 			"connect": {
@@ -4357,6 +4359,8 @@ func TestFullConfig(t *testing.T) {
 			}
 			auto_encrypt = {
 				tls = true
+				dns_san = ["a.com", "b.com"]
+				ip_san = ["192.168.4.139", "192.168.4.140"]
 				allow_tls = true
 			}
 			connect {
@@ -5065,6 +5069,8 @@ func TestFullConfig(t *testing.T) {
 			},
 		},
 		AutoEncryptTLS:        true,
+		AutoEncryptDNSSAN:     []string{"a.com", "b.com"},
+		AutoEncryptIPSAN:      []net.IP{net.ParseIP("192.168.4.139"), net.ParseIP("192.168.4.140")},
 		AutoEncryptAllowTLS:   true,
 		ConnectEnabled:        true,
 		ConnectSidecarMinPort: 8888,
@@ -5907,6 +5913,8 @@ func TestSanitize(t *testing.T) {
 		"ClientAddrs": [],
 		"ConfigEntryBootstrap": [],
 		"AutoEncryptTLS": false,
+		"AutoEncryptDNSSAN": [],
+		"AutoEncryptIPSAN": [],
 		"AutoEncryptAllowTLS": false,
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",

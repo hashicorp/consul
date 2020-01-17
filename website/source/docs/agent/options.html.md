@@ -836,6 +836,10 @@ default will automatically work with some tooling.
 
     * <a name="tls"></a><a href="#tls">`tls`</a> (Defaults to `false`) Allows the client to request the Connect CA and certificates from the servers, for encrypting RPC communication. The client will make the request to any servers listed in the `-join` or `-retry-join` option. This requires that every server to have `auto_encrypt.allow_tls` enabled. When both `auto_encrypt` options are used, it allows clients to receive certificates that are generated on the servers. If the `-server-port` is not the default one, it has to be provided to the client as well. Usually this is discovered through LAN gossip, but `auto_encrypt` provision happens before the information can be distributed through gossip. The most secure `auto_encrypt` setup is when the client is provided with the built-in CA, `verify_server_hostname` is turned on, and when an ACL token with `node.write` permissions is setup. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted.
 
+    * <a name="dns_san"></a><a href="#dns_san">`dns_san`</a> (Defaults to `[]`) When this option is being used, the certificates requested by `auto_encrypt` from the server have these `dns_san` set as DNS SAN.
+
+    * <a name="ip_san"></a><a href="#ip_san">`ip_san`</a> (Defaults to `[]`) When this option is being used, the certificates requested by `auto_encrypt` from the server have these `ip_san` set as IP SAN.
+
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
 

@@ -529,6 +529,14 @@ type RuntimeConfig struct {
 	// servers.
 	AutoEncryptTLS bool
 
+	// Additional DNS SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptDNSSAN []string
+
+	// Additional IP SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptIPSAN []net.IP
+
 	// AutoEncryptAllowTLS enables the server to respond to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
