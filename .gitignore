@@ -4,7 +4,6 @@
 *.old
 *.swp
 *.test
-.DS_Store
 .fseventsd
 .envrc
 .gotools
@@ -15,8 +14,18 @@ Thumbs.db
 bin/
 changelog.tmp
 exit-code
+.netlify
+
+# IDE Specific
+.vscode/*
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Web artifacts
 website/.bundle
 website/build/
 website/npm-debug.log
 website/vendor
-.netlify
