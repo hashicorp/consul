@@ -239,3 +239,26 @@ func (c *CheckType) Type() string {
 		return ""
 	}
 }
+
+func (c *CheckType) GetHealthCheckDefinition() HealthCheckDefinition {
+	d := HealthCheckDefinition{
+		HTTP:                           c.HTTP,
+		TLSSkipVerify:                  c.TLSSkipVerify,
+		Header:                         c.Header,
+		Method:                         c.Method,
+		TCP:                            c.TCP,
+		Interval:                       c.Interval,
+		OutputMaxSize:                  uint(c.OutputMaxSize),
+		Timeout:                        c.Timeout,
+		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
+		ScriptArgs:                     c.ScriptArgs,
+		DockerContainerID:              c.DockerContainerID,
+		Shell:                          c.Shell,
+		GRPC:                           c.GRPC,
+		GRPCUseTLS:                     c.GRPCUseTLS,
+		AliasNode:                      c.AliasNode,
+		AliasService:                   c.AliasService,
+		TTL:                            c.TTL,
+	}
+	return d
+}

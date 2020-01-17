@@ -2299,6 +2299,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 			ServiceTags:    service.Tags,
 			Type:           chkType.Type(),
 			EnterpriseMeta: service.EnterpriseMeta,
+			Definition:     chkType.GetHealthCheckDefinition(),
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
