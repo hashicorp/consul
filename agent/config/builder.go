@@ -415,6 +415,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
 	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
+
 	if ipaddr.IsAny(advertiseAddr) {
 
 		var addrtyp string
@@ -460,7 +461,39 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	// derive other advertise addresses from the advertise address
 	advertiseAddrLAN := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
+	advertiseAddrIsV6 := advertiseAddr.IP.To4() == nil
+	var advertiseAddrV4, advertiseAddrV6 *net.IPAddr
+	if !advertiseAddrIsV6 {
+		advertiseAddrV4 = advertiseAddr
+	} else {
+		advertiseAddrV6 = advertiseAddr
+	}
+	advertiseAddrLANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv4", c.AdvertiseAddrLANIPv4), advertiseAddrV4)
+	if advertiseAddrLANIPv4 != nil && advertiseAddrLANIPv4.IP.To4() == nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv4 must be an ipv4 address")
+	}
+	advertiseAddrLANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv6", c.AdvertiseAddrLANIPv6), advertiseAddrV6)
+	if advertiseAddrLANIPv6 != nil && advertiseAddrLANIPv6.IP.To4() != nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv6 must be an ipv6 address")
+	}
+
 	advertiseAddrWAN := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
+	advertiseAddrWANIsV6 := advertiseAddrWAN.IP.To4() == nil
+	var advertiseAddrWANv4, advertiseAddrWANv6 *net.IPAddr
+	if !advertiseAddrWANIsV6 {
+		advertiseAddrWANv4 = advertiseAddrWAN
+	} else {
+		advertiseAddrWANv6 = advertiseAddrWAN
+	}
+	advertiseAddrWANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv4", c.AdvertiseAddrWANIPv4), advertiseAddrWANv4)
+	if advertiseAddrWANIPv4 != nil && advertiseAddrWANIPv4.IP.To4() == nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv4 must be an ipv4 address")
+	}
+	advertiseAddrWANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv6", c.AdvertiseAddrWANIPv6), advertiseAddrWANv6)
+	if advertiseAddrWANIPv6 != nil && advertiseAddrWANIPv6.IP.To4() != nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv6 must be an ipv6 address")
+	}
+
 	rpcAdvertiseAddr := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serverPort}
 	serfAdvertiseAddrLAN := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serfPortLAN}
 	// Only initialize serf WAN advertise address when its enabled
@@ -509,8 +542,22 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
 	}
-	c.TaggedAddresses["lan"] = advertiseAddrLAN.IP.String()
-	c.TaggedAddresses["wan"] = advertiseAddrWAN.IP.String()
+
+	c.TaggedAddresses[structs.TaggedAddressLAN] = advertiseAddrLAN.IP.String()
+	if advertiseAddrLANIPv4 != nil {
+		c.TaggedAddresses[structs.TaggedAddressLANIPv4] = advertiseAddrLANIPv4.IP.String()
+	}
+	if advertiseAddrLANIPv6 != nil {
+		c.TaggedAddresses[structs.TaggedAddressLANIPv6] = advertiseAddrLANIPv6.IP.String()
+	}
+
+	c.TaggedAddresses[structs.TaggedAddressWAN] = advertiseAddrWAN.IP.String()
+	if advertiseAddrWANIPv4 != nil {
+		c.TaggedAddresses[structs.TaggedAddressWANIPv4] = advertiseAddrWANIPv4.IP.String()
+	}
+	if advertiseAddrWANIPv6 != nil {
+		c.TaggedAddresses[structs.TaggedAddressWANIPv6] = advertiseAddrWANIPv6.IP.String()
+	}
 
 	// segments
 	var segments []structs.NetworkSegment

@@ -986,11 +986,11 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool) *ConfigSn
 			Config: map[string]interface{}{},
 		},
 		TaggedAddresses: map[string]structs.ServiceAddress{
-			"lan": structs.ServiceAddress{
+			structs.TaggedAddressLAN: structs.ServiceAddress{
 				Address: "1.2.3.4",
 				Port:    8443,
 			},
-			"wan": structs.ServiceAddress{
+			structs.TaggedAddressWAN: structs.ServiceAddress{
 				Address: "198.18.0.1",
 				Port:    443,
 			},

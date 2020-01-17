@@ -97,8 +97,8 @@ func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, 
 			},
 		},
 		TaggedAddresses: map[string]ServiceAddress{
-			"lan": lanAddr,
-			"wan": wanAddr,
+			TaggedAddressLAN: lanAddr,
+			TaggedAddressWAN: wanAddr,
 		},
 	}
 }

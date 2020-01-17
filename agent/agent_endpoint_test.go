@@ -3031,10 +3031,11 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 
 func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService)) *structs.NodeService {
 	ns := &structs.NodeService{
-		ID:      svc + "-sidecar-proxy",
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: svc + "-sidecar-proxy",
-		Port:    2222,
+		ID:              svc + "-sidecar-proxy",
+		Kind:            structs.ServiceKindConnectProxy,
+		Service:         svc + "-sidecar-proxy",
+		Port:            2222,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Weights: &structs.Weights{
 			Passing: 1,
 			Warning: 1,
@@ -3396,9 +3397,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			// Note here that although the registration here didn't register it, we
 			// should still see the NodeService we pre-registered here.
 			wantNS: &structs.NodeService{
-				ID:      "web-sidecar-proxy",
-				Service: "fake-sidecar",
-				Port:    9999,
+				ID:              "web-sidecar-proxy",
+				Service:         "fake-sidecar",
+				Port:            9999,
+				TaggedAddresses: map[string]structs.ServiceAddress{},
 				Weights: &structs.Weights{
 					Passing: 1,
 					Warning: 1,
@@ -3439,6 +3441,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				Service:                    "web-sidecar-proxy",
 				LocallyRegisteredAsSidecar: true,
 				Port:                       6666,
+				TaggedAddresses:            map[string]structs.ServiceAddress{},
 				Weights: &structs.Weights{
 					Passing: 1,
 					Warning: 1,

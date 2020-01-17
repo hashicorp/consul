@@ -13,6 +13,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
@@ -244,7 +245,7 @@ func (c *cmd) Run(args []string) int {
 		taggedAddrs := make(map[string]api.ServiceAddress)
 
 		if lanAddr != "" {
-			taggedAddrs["lan"] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+			taggedAddrs[structs.TaggedAddressLAN] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
 		}
 
 		wanAddr := ""
@@ -255,7 +256,7 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
 				return 1
 			}
-			taggedAddrs["wan"] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+			taggedAddrs[structs.TaggedAddressWAN] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
 		}
 
 		tcpCheckAddr := lanAddr

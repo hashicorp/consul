@@ -138,7 +138,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
-	s.agent.TranslateAddresses(args.Datacenter, out.Nodes)
+	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {
@@ -284,7 +284,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	}
 
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes)
+	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.ServiceNodes == nil {
@@ -340,7 +340,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	if out.NodeServices != nil {
-		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices)
+		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices, TranslateAddressAcceptAny)
 	}
 
 	// TODO: The NodeServices object in IndexedNodeServices is a pointer to

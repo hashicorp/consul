@@ -269,8 +269,10 @@ func TestAPI_ClientTxn(t *testing.T) {
 					Address:    "127.0.0.1",
 					Datacenter: "dc1",
 					TaggedAddresses: map[string]string{
-						"lan": s.Config.Bind,
-						"wan": s.Config.Bind,
+						"lan":      s.Config.Bind,
+						"lan_ipv4": s.Config.Bind,
+						"wan":      s.Config.Bind,
+						"wan_ipv4": s.Config.Bind,
 					},
 					Meta:        map[string]string{"consul-network-segment": ""},
 					CreateIndex: ret.Results[1].Node.CreateIndex,

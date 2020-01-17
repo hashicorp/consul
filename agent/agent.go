@@ -2258,6 +2258,26 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	a.PauseSync()
 	defer a.ResumeSync()
 
+	// Set default tagged addresses
+	serviceIP := net.ParseIP(service.Address)
+	serviceAddressIs4 := serviceIP != nil && serviceIP.To4() != nil
+	serviceAddressIs6 := serviceIP != nil && serviceIP.To4() == nil
+	if service.TaggedAddresses == nil {
+		service.TaggedAddresses = map[string]structs.ServiceAddress{}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && serviceAddressIs4 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && serviceAddressIs4 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && serviceAddressIs6 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+
 	// Take a snapshot of the current state of checks (if any), and when adding
 	// a check that already existed carry over the state before resuming
 	// anti-entropy.
@@ -2450,6 +2470,34 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
 				"1 and 63 bytes.", tag)
+		}
+	}
+
+	// Check IPv4/IPv6 tagged addresses
+	if service.TaggedAddresses != nil {
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv4 address", structs.TaggedAddressLANIPv4)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv4 address", structs.TaggedAddressWANIPv4)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() != nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv6 address", structs.TaggedAddressLANIPv6)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() != nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv6 address", structs.TaggedAddressLANIPv6)
+			}
 		}
 	}
 

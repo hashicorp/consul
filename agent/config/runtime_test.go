@@ -70,8 +70,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -86,8 +88,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -106,8 +110,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("5.6.7.8:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "5.6.7.8",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "5.6.7.8",
+					"wan_ipv4": "5.6.7.8",
 				}
 				rt.DataDir = dataDir
 			},
@@ -129,8 +135,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfBindAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -282,7 +290,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrWAN = tcpAddr("127.0.0.1:8302")
 				rt.ServerMode = true
 				rt.SkipLeaveOnInt = true
-				rt.TaggedAddresses = map[string]string{"lan": "127.0.0.1", "wan": "127.0.0.1"}
+				rt.TaggedAddresses = map[string]string{
+					"lan":      "127.0.0.1",
+					"lan_ipv4": "127.0.0.1",
+					"wan":      "127.0.0.1",
+					"wan_ipv4": "127.0.0.1",
+				}
 				rt.ConsulCoordinateUpdatePeriod = 100 * time.Millisecond
 				rt.ConsulRaftElectionTimeout = 52 * time.Millisecond
 				rt.ConsulRaftHeartbeatTimeout = 35 * time.Millisecond
@@ -836,8 +849,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:8301")
 				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "10.0.0.1",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "10.0.0.1",
+					"wan_ipv4": "10.0.0.1",
 				}
 				rt.DataDir = dataDir
 			},
@@ -858,8 +873,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("[::]:8301")
 				rt.SerfBindAddrWAN = tcpAddr("[::]:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "dead:beef::1",
-					"wan": "dead:beef::1",
+					"lan":      "dead:beef::1",
+					"lan_ipv6": "dead:beef::1",
+					"wan":      "dead:beef::1",
+					"wan_ipv6": "dead:beef::1",
 				}
 				rt.DataDir = dataDir
 			},
@@ -883,8 +900,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:8301")
 				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1101,8 +1120,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1116,8 +1137,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1154,8 +1177,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfPortWAN = 3000
 				rt.ServerPort = 1000
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1192,8 +1217,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfPortWAN = 3000
 				rt.ServerPort = 1000
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1218,8 +1245,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrWAN = nil
 				rt.SerfBindAddrWAN = nil
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 				rt.SerfPortWAN = -1
@@ -1430,8 +1459,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
 				rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.1.1.1",
-					"wan": "2.2.2.2",
+					"lan":      "1.1.1.1",
+					"lan_ipv4": "1.1.1.1",
+					"wan":      "2.2.2.2",
+					"wan_ipv4": "2.2.2.2",
 				}
 				rt.DataDir = dataDir
 			},
@@ -5464,7 +5495,9 @@ func TestFullConfig(t *testing.T) {
 			"7MYgHrYH": "dALJAhLD",
 			"h6DdBy6K": "ebrr9zZ8",
 			"lan":      "17.99.29.16",
+			"lan_ipv4": "17.99.29.16",
 			"wan":      "78.63.37.19",
+			"wan_ipv4": "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
 		UIContentPath:        "/consul/",
