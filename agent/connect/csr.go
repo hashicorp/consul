@@ -42,9 +42,9 @@ func SigAlgoForKeyType(keyType string) x509.SignatureAlgorithm {
 	}
 }
 
-// CreateCSRWithSAN returns a CSR to sign the given service with SAN entries
+// CreateCSR returns a CSR to sign the given service with SAN entries
 // along with the PEM-encoded private key for this certificate.
-func CreateCSRWithSAN(uri CertURI, commonName string, privateKey crypto.Signer,
+func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer,
 	dnsNames []string, ipAddresses []net.IP, extensions ...pkix.Extension) (string, error) {
 	template := &x509.CertificateRequest{
 		URIs:               []*url.URL{uri.URI()},
@@ -70,13 +70,6 @@ func CreateCSRWithSAN(uri CertURI, commonName string, privateKey crypto.Signer,
 	return csrBuf.String(), nil
 }
 
-// CreateCSR returns a CSR to sign the given service along with the PEM-encoded
-// private key for this certificate.
-func CreateCSR(uri CertURI, commonName string, privateKey crypto.Signer,
-	extensions ...pkix.Extension) (string, error) {
-	return CreateCSRWithSAN(uri, commonName, privateKey, nil, nil, extensions...)
-}
-
 // CreateCSR returns a CA CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
 func CreateCACSR(uri CertURI, commonName string, privateKey crypto.Signer) (string, error) {
@@ -85,7 +78,7 @@ func CreateCACSR(uri CertURI, commonName string, privateKey crypto.Signer) (stri
 		return "", err
 	}
 
-	return CreateCSR(uri, commonName, privateKey, ext)
+	return CreateCSR(uri, commonName, privateKey, nil, nil, ext)
 }
 
 // CreateCAExtension creates a pkix.Extension for the x509 Basic Constraints

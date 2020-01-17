@@ -80,7 +80,7 @@ func TestAutoEncryptSign(t *testing.T) {
 			require.NoError(t, err)
 			dnsNames := []string{"localhost"}
 			ipAddresses := []net.IP{net.ParseIP("127.0.0.1")}
-			csr, err := connect.CreateCSRWithSAN(id, cn, pk, dnsNames, ipAddresses)
+			csr, err := connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
 			require.NoError(t, err, info)
 			require.NotEmpty(t, csr, info)
 			args := &structs.CASignRequest{

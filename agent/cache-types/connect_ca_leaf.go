@@ -550,7 +550,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSRWithSAN(id, commonName, pk, dnsNames, ipAddresses)
+	csr, err := connect.CreateCSR(id, commonName, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return result, err
 	}
