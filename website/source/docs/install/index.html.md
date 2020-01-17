@@ -9,19 +9,55 @@ description: |-
 
 # Install Consul
 
-Installing Consul is simple. There are two approaches to installing Consul:
+Installing Consul is simple. There are two main approaches to installing Consul:
 
-1. Using a [precompiled binary](#precompiled-binaries)
+1. [Installing on Kubernetes](#install-on-kubernetes) 
 
-1. Installing [from source](#compiling-from-source)
+1. Installing as a standalone binary 
 
-Downloading a precompiled binary is easiest, and we provide downloads over TLS
-along with SHA256 sums to verify the binary. We also distribute a PGP signature
-with the SHA256 sums that can be verified.
+   a. Using a [precompiled binary](#precompiled-binaries)
 
-The [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) provide a quick walkthrough of installing and using Consul on your local machine.
+   b. Installing [from source](#compiling-from-source)
 
-## Precompiled Binaries
+   Downloading a precompiled binary is easiest, and we provide downloads over TLS
+   along with SHA256 sums to verify the binary. We also distribute a PGP signature
+   with the SHA256 sums that can be verified.
+
+The Getting Started guides provide a quick walkthrough of installing and using Consul as a
+
+* [Standalone binary your local machine](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs). 
+* [DaeemonsSet on Minikube on your local machine](https://learn.hashicorp.com/consul/kubernetes/minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk)
+
+## Install on Kubernetes
+
+Installing Consul on Kubernetes is done through Helm, which provides an easy way to deploy applications on Kubernetes. 
+
+Determine the latest version of the Consul Helm chart
+by visiting [https://github.com/hashicorp/consul-helm/releases](https://github.com/hashicorp/consul-helm/releases).
+
+Clone the chart at that version. For example, if the latest version is
+`v0.8.1`, you would run:
+
+```bash
+$ git clone --single-branch --branch v0.8.1 https://github.com/hashicorp/consul-helm.git
+Cloning into 'consul-helm'...
+...
+You are in 'detached HEAD' state...
+```
+
+Now you're ready to install Consul! To install Consul with the default
+configuration using Helm 3 run:
+
+```sh
+$ helm install hashicorp ./consul-helm
+NAME: hashicorp
+...
+```
+
+A more detailed set of instructions can be found [here](/docs/platform/k8s/run.html). 
+## Install a Standalone Binary
+
+### Precompiled Binaries
 
 To install the precompiled binary, [download](/downloads.html) the appropriate
 package for your system. Consul is currently packaged as a zip file. We do not
@@ -35,7 +71,7 @@ Copy the binary to anywhere on your system. If you intend to access it from the
 command-line, make sure to place it somewhere on your `PATH`.
 
 
-## Compiling from Source
+### Compiling from Source
 
 To compile from source, you will need [Go](https://golang.org) installed and
 configured properly (including a `GOPATH` environment variable set), as well as
@@ -65,7 +101,7 @@ a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
     $ make dev
     ```
 
-## Verifying the Installation
+### Verifying the Installation
 
 To verify Consul is properly installed, run `consul -v` on your system. You
 should see help output. If you are executing it from the command line, make sure
