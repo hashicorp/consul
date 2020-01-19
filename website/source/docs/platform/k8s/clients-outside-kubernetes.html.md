@@ -1,15 +1,14 @@
 ---
 layout: "docs"
-page_title: "Out-of-Cluster Nodes - Kubernetes"
-sidebar_current: "docs-platform-k8s-ooc-nodes"
+page_title: "Consul Clients Outside of Kubernetes - Kubernetes"
+sidebar_current: "docs-platform-k8s-run-clients-outside"
 description: |-
-  Non-Kubernetes nodes can join a Consul cluster running within Kubernetes. These are considered "out-of-cluster" nodes.
+  Consul clients running on non-Kubernetes nodes can join a Consul cluster running within Kubernetes.
 ---
 
-# Out-of-Cluster Nodes
+# Consul Clients Outside Kubernetes
 
-Non-Kubernetes nodes can join a Consul cluster running within Kubernetes.
-These are considered "out-of-cluster" nodes.
+Consul clients running on non-Kubernetes nodes can join a Consul cluster running within Kubernetes.
 
 ## Auto-join
 
@@ -37,8 +36,8 @@ different pods to have different exposed ports.
 
 ## Networking
 
-Consul typically requires a fully connected network. Therefore, out-of-cluster
-nodes joining a cluster running within Kubernetes must be able to communicate
+Consul typically requires a fully connected network. Therefore,
+nodes outside of Kubernetes joining a cluster running within Kubernetes must be able to communicate
 to pod IPs or Kubernetes node IPs via the network.
 
 -> **Consul Enterprise customers** may use

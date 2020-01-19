@@ -593,25 +593,41 @@
         <a href="/docs/platform/k8s/index.html">Kubernetes</a>
         <ul class="nav">
           <li<%= sidebar_current("docs-platform-k8s-run") %>>
-            <a href="/docs/platform/k8s/run.html">Installing Consul</a>
+            <a href="/docs/platform/k8s/run.html">Installation</a>
             <ul class="nav">
               <li<%= sidebar_current("docs-platform-k8s-run-aks") %>>
-                <a href="/docs/platform/k8s/aks.html">Consul on Azure Cloud</a>
+                <a href="/docs/platform/k8s/aks.html">Azure Kubernetes Service (AKS)</a>
               </li>
               <li<%= sidebar_current("docs-platform-k8s-run-gke") %>>
-                <a href="/docs/platform/k8s/gke.html">Consul on Google Cloud</a>
+                <a href="/docs/platform/k8s/gke.html">Google Kubernetes Service (GKE)</a>
               </li>
               <li<%= sidebar_current("docs-platform-k8s-run-mini") %>>
-                <a href="/docs/platform/k8s/minikube.html">Consul on Minikube</a>
+                <a href="/docs/platform/k8s/minikube.html">Minikube</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-consul-ent") %>>
+                <a href="/docs/platform/k8s/consul-enterprise.html">Consul Enterprise</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-clients-outside") %>>
+                <a href="/docs/platform/k8s/clients-outside-kubernetes.html">Consul Clients Outside Kubernetes</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-servers-outside") %>>
+                <a href="/docs/platform/k8s/servers-outside-kubernetes.html">Consul Servers Outside Kubernetes</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-run-pvcs") %>>
+                <a href="/docs/platform/k8s/predefined-pvcs.html">Predefined Persistent Volume Claims</a>
               </li>
             </ul>
           </li>
-          <li<%= sidebar_current("docs-platform-k8s-helm") %>>
-            <a href="/docs/platform/k8s/helm.html">Helm Chart Reference</a>
-          </li>
-          <li<%= sidebar_current("docs-platform-k8s-ooc-nodes") %>>
-            <a href="/docs/platform/k8s/out-of-cluster-nodes.html">Out-of-Cluster Nodes</a>
-          </li>
+          <li<%= sidebar_current("docs-platform-k8s-ops") %>>
+            <a href="/docs/platform/k8s/operations.html">Operations</a>
+            <ul class="nav">
+              <li<%= sidebar_current("docs-platform-k8s-ops-upgrading") %>>
+                <a href="/docs/platform/k8s/upgrading.html">Upgrading</a>
+              </li>
+              <li<%= sidebar_current("docs-platform-k8s-ops-uninstalling") %>>
+                <a href="/docs/platform/k8s/uninstalling.html">Uninstalling</a>
+              </li>
+            </ul>
           <li<%= sidebar_current("docs-platform-k8s-dns") %>>
             <a href="/docs/platform/k8s/dns.html">Consul DNS</a>
           </li>
@@ -623,6 +639,9 @@
           </li>
           <li<%= sidebar_current("docs-platform-k8s-ambassador") %>>
             <a href="/docs/platform/k8s/ambassador.html">Ambassador Integration</a>
+          </li>
+          <li<%= sidebar_current("docs-platform-k8s-helm") %>>
+            <a href="/docs/platform/k8s/helm.html">Helm Chart Reference</a>
           </li>
         </ul>
       </li>
