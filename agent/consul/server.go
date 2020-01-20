@@ -580,13 +580,20 @@ func (s *Server) setupRaft() error {
 		serverAddressProvider = s.serverLookup
 	}
 
+	raftLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "raft",
+		Level:      hclog.LevelFromString(s.config.LogLevel),
+		Output:     s.config.LogOutput,
+		TimeFormat: `2006/01/02 15:04:05`,
+	})
+
 	// Create a transport layer.
 	transConfig := &raft.NetworkTransportConfig{
 		Stream:                s.raftLayer,
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
 		ServerAddressProvider: serverAddressProvider,
-		Logger:                s.logger,
+		Logger:                raftLogger,
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
@@ -594,12 +601,6 @@ func (s *Server) setupRaft() error {
 
 	// Make sure we set the LogOutput.
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
-	raftLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "raft",
-		Level:      hclog.LevelFromString(s.config.LogLevel),
-		Output:     s.config.LogOutput,
-		TimeFormat: `2006/01/02 15:04:05`,
-	})
 	s.config.RaftConfig.Logger = raftLogger
 
 	// Versions of the Raft protocol below 3 require the LocalID to match the network
