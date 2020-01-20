@@ -542,7 +542,7 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 		grpc.MaxConcurrentStreams(2048),
 	}
 	if tlsConfigurator != nil {
-		if cert := tlsConfigurator.Cert(); cert != nil {
+		if tlsConfigurator.Cert() != nil {
 			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
 			opts = append(opts, grpc.Creds(creds))
 		}
