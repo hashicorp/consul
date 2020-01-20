@@ -6,9 +6,8 @@ export default Component.extend({
   keyboardAccess: false,
   actions: {
     keydown: function(e) {
-      switch (e.keyCode) {
-        case ENTER:
-          e.target.dispatchEvent(new MouseEvent('click'));
+      if (e.keyCode === ENTER) {
+        e.target.dispatchEvent(new MouseEvent('click'));
       }
     },
   },
