@@ -9,7 +9,7 @@ description: |-
 
 # Install Consul
 
-Installing Consul is simple. There are two main approaches to installing Consul:
+There are two main approaches for installing Consul:
 
 1. [Installing on Kubernetes](#install-on-kubernetes) 
 
