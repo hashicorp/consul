@@ -4,7 +4,7 @@ const path = require('path');
 module.exports = function(environment) {
   let ENV = {
     modulePrefix: 'consul-ui',
-    environment: environment,
+    environment,
     rootURL: '/ui/',
     locationType: 'auto',
     EmberENV: {
@@ -28,7 +28,7 @@ module.exports = function(environment) {
   // TODO: These should probably go onto APP
   ENV = Object.assign({}, ENV, {
     CONSUL_UI_DISABLE_REALTIME: typeof process.env.CONSUL_UI_DISABLE_REALTIME !== 'undefined',
-    ' CONSUL_UI_DISABLE_ANCHOR_SELECTION':
+    CONSUL_UI_DISABLE_ANCHOR_SELECTION:
       typeof process.env.CONSUL_UI_DISABLE_ANCHOR_SELECTION !== 'undefined',
     CONSUL_COPYRIGHT_YEAR: (function(val) {
       if (val) {
