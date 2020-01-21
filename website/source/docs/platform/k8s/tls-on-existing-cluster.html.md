@@ -19,6 +19,7 @@ However, depending on your Kubernetes use case, your upgrade procedure may be di
 If you're **not using Consul Connect**, follow this process.
 
 1. Run a Helm upgrade with the following config:
+
    ```yaml
    global:
      tls:
@@ -30,6 +31,7 @@ If you're **not using Consul Connect**, follow this process.
    server:
      updatePartition: <number_of_server_replicas>
    ```
+
    This upgrade will trigger a rolling update of the clients, as well as any
    other `consul-k8s` components, such as sync catalog or client snapshot deployments.
 1. Perform a rolling upgrade of the servers, as described in
@@ -50,7 +52,8 @@ applications to it.
    to ensure Kubernetes doesn't schedule any new workloads on those nodes
    and instead schedules onto the new nodes, which shortly will be TLS-enabled.
 1. Create the following Helm config file for the upgrade:
-    ```yaml
+
+   ```yaml
     global:
       tls:
         enabled: true
@@ -64,6 +67,7 @@ applications to it.
       updateStrategy: |
          type: OnDelete
     ```
+
    In this configuration, we're setting `server.updatePartition` to the number of
    server replicas as described in [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers)
    and `client.updateStrategy` to `OnDelete` to manually trigger an upgrade of the clients.
