@@ -20,17 +20,17 @@ If you're **not using Consul Connect**, follow this process.
 
 1. Run a Helm upgrade with the following config:
 
-       ```yaml
-       global:
-         tls:
-           enabled: true
-           # This configuration sets `verify_outgoing`, `verify_server_hostname`,
-           # and `verify_incoming` to `false` on servers and clients,
-           # which allows TLS-disabled nodes to join the cluster.
-           verify: false
-       server:
-         updatePartition: <number_of_server_replicas>
-       ```
+      ```yaml
+      global:
+        tls:
+          enabled: true
+          # This configuration sets `verify_outgoing`, `verify_server_hostname`,
+          # and `verify_incoming` to `false` on servers and clients,
+          # which allows TLS-disabled nodes to join the cluster.
+          verify: false
+      server:
+        updatePartition: <number_of_server_replicas>
+      ```
 
    This upgrade will trigger a rolling update of the clients, as well as any
    other `consul-k8s` components, such as sync catalog or client snapshot deployments.
@@ -53,20 +53,20 @@ applications to it.
    and instead schedules onto the new nodes, which shortly will be TLS-enabled.
 1. Create the following Helm config file for the upgrade:
 
-       ```yaml
-        global:
-          tls:
-            enabled: true
-            # This configuration sets `verify_outgoing`, `verify_server_hostname`,
-            # and `verify_incoming` to `false` on servers and clients,
-            # which allows TLS-disabled nodes to join the cluster.
-            verify: false
-        server:
-          updatePartition: <number_of_server_replicas>
-        client:
-          updateStrategy: |
-             type: OnDelete
-        ```
+      ```yaml
+       global:
+         tls:
+           enabled: true
+           # This configuration sets `verify_outgoing`, `verify_server_hostname`,
+           # and `verify_incoming` to `false` on servers and clients,
+           # which allows TLS-disabled nodes to join the cluster.
+           verify: false
+       server:
+         updatePartition: <number_of_server_replicas>
+       client:
+         updateStrategy: |
+            type: OnDelete
+       ```
 
    In this configuration, we're setting `server.updatePartition` to the number of
    server replicas as described in [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers)
