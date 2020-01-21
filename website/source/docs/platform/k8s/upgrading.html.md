@@ -72,7 +72,7 @@ However, depending on your Kubernetes use case, your upgrade procedure may be di
 
 ### Gradual TLS Rollout without Consul Connect
 
-If you're not using Consul Connect, follow this process.
+If you're **not using Consul Connect**, follow this process.
 
 1. Run a Helm upgrade with the following config:
    ```yaml
