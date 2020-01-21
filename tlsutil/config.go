@@ -570,6 +570,12 @@ func (c *Configurator) VerifyServerHostname() bool {
 // IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
 func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 	c.log("IncomingGRPCConfig")
+
+	// false has the effect that this config doesn't require a client cert
+	// verification. This is because there is no verify_incoming_grpc
+	// configuration option. And using verify_incoming would be backwards
+	// incompatible, because even if it was set before, it didn't have an
+	// effect on the grpc server.
 	config := c.commonTLSConfig(false)
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingGRPCConfig(), nil
