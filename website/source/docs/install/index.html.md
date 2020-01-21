@@ -55,6 +55,7 @@ NAME: hashicorp
 ```
 
 A more detailed set of instructions can be found [here](/docs/platform/k8s/run.html). 
+
 ## Install a Standalone Binary
 
 ### Precompiled Binaries
