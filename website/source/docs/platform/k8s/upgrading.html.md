@@ -67,4 +67,4 @@ until the clients come up healthy before continuing.
 If you already have a Consul cluster deployed on Kubernetes and
 would like to turn on TLS for internal Consul communication,
 please see
-[Configuring TLS on an Existing Cluster](/docs/tls-on-existing-cluster.html).
+[Configuring TLS on an Existing Cluster](/docs/platform/k8s/tls-on-existing-cluster.html).

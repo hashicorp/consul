@@ -23,7 +23,7 @@ If you're **not using Consul Connect**, follow this process.
    global:
      tls:
        enabled: true
-       # This configuration sets `verify_outgoing`, `verfiy_server_hostname`,
+       # This configuration sets `verify_outgoing`, `verify_server_hostname`,
        # and `verify_incoming` to `false` on servers and clients,
        # which allows TLS-disabled nodes to join the cluster.
        verify: false
@@ -33,7 +33,7 @@ If you're **not using Consul Connect**, follow this process.
    This upgrade will trigger a rolling update of the clients, as well as any
    other `consul-k8s` components, such as sync catalog or client snapshot deployments.
 1. Perform a rolling upgrade of the servers, as described in
-   [Upgrade Consul Servers](#upgrading-consul-servers).
+   [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers).
 1. Repeat steps 1 and 2, turning on TLS verification by setting `global.tls.verify`
    to `true`.
 
@@ -65,7 +65,7 @@ applications to it.
          type: OnDelete
     ```
    In this configuration, we're setting `server.updatePartition` to the number of
-   server replicas as described in [Upgrade Consul Servers](#upgrading-consul-servers)
+   server replicas as described in [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers)
    and `client.updateStrategy` to `OnDelete` to manually trigger an upgrade of the clients.
 1. Run `helm upgrade` with the above config file. The upgrade will trigger an update of all
    components except clients and servers, such as the Consul Connect webhook deployment
@@ -76,14 +76,14 @@ applications to it.
    downtime.
 1. Gradually perform an upgrade of the clients by deleting client pods on the **new** node
    pool.
-1. At this point, all components (e.g., Consul Connect webhook, sync catalog) should be running
+1. At this point, all components (e.g., Consul Connect webhook and sync catalog) should be running
    on the new node pool.
 1. Redeploy all your Connect-enabled applications.
    One way to trigger a redeploy is to run `kubectl drain` on the nodes in the old pool.
    Now that the Connect webhook is TLS-aware, it will add TLS configuration to
    the sidecar proxy. Also, Kubernetes should schedule these applications on the new node pool.
 1. Perform a rolling upgrade of the servers described in
-   [Upgrade Consul Servers](#upgrading-consul-servers).
+   [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers).
 1. If everything is healthy, delete the old node pool.
 1. Finally, set `global.tls.verify` to `true` in your Helm config file, remove the
    `client.updateStrategy` property, and perform a rolling upgrade of the servers.
