@@ -18,7 +18,7 @@ import StorageEventSourceFactory from 'consul-ui/utils/dom/event-source/storage'
 import EmberObject from '@ember/object';
 import { task } from 'ember-concurrency';
 
-import env from 'consul-ui/env';
+import { env } from 'consul-ui/env';
 
 let runner;
 switch (env('CONSUL_UI_REALTIME_RUNNER')) {
