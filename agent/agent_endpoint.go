@@ -683,9 +683,21 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 	if serviceID == "" {
 		return nil, &BadRequestError{Reason: "Missing serviceID"}
 	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	rule, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+
 	services := s.agent.State.Services()
 	for _, service := range services {
 		if service.ID == serviceID {
+			if rule != nil && !rule.ServiceRead(service.Service) {
+				return nil, acl.ErrPermissionDenied
+			}
 			code, status, healthChecks := agentHealthService(serviceID, s)
 			if returnTextPlain(req) {
 				return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
@@ -717,6 +729,18 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 	if serviceName == "" {
 		return nil, &BadRequestError{Reason: "Missing service Name"}
 	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	rule, err := s.agent.resolveToken(token)
+	if err != nil {
+		return nil, err
+	}
+	if rule != nil && !rule.ServiceRead(serviceName) {
+		return nil, acl.ErrPermissionDenied
+	}
+
 	code := http.StatusNotFound
 	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
 	services := s.agent.State.Services()
