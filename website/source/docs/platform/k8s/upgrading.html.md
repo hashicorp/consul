@@ -64,7 +64,7 @@ until the clients come up healthy before continuing.
 
 ## Configuring TLS on an Existing Cluster
 
-As of version `0.16.0`, the Consul Helm chart supports TLS for communication
+As of Consul Helm version `0.16.0`, the chart supports TLS for communication between Consul components
 within the cluster. If you already have a Consul cluster deployed on Kubernetes,
 you may want to configure TLS in a way that minimizes downtime to your applications.
 Consul already supports rolling out TLS on an existing cluster without downtime.
