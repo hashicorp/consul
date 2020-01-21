@@ -39,7 +39,9 @@ contacting us at security@hashicorp.com.
 
 An extensive quick start is viewable on the Consul website:
 
-https://www.consul.io/intro/getting-started/install.html
+* **Standalone binary install:** https://www.consul.io/intro/getting-started/install
+* **Kubernetes install:** https://learn.hashicorp.com/consul/kubernetes/kubernetes-deployment-guide
+* **Minikube install:** https://learn.hashicorp.com/consul/kubernetes/minikube
 
 ## Documentation
 
