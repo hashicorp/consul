@@ -30,7 +30,7 @@ The Getting Started guides provide a quick walkthrough of installing and using C
 
 ## Install on Kubernetes
 
-Installing Consul on Kubernetes is done through Helm, which provides an easy way to deploy applications on Kubernetes. 
+Installing Consul on Kubernetes is done through Helm, which provides a convenient way to deploy applications on Kubernetes. 
 
 Determine the latest version of the Consul Helm chart
 by visiting [https://github.com/hashicorp/consul-helm/releases](https://github.com/hashicorp/consul-helm/releases).
