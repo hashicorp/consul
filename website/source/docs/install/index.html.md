@@ -19,7 +19,7 @@ There are two main approaches for installing Consul:
 
    b. Installing [from source](#compiling-from-source)
 
-   Downloading a precompiled binary is easiest, and we provide downloads over TLS
+   Downloading a precompiled binary is quickest and we provide downloads over TLS
    along with SHA256 sums to verify the binary. We also distribute a PGP signature
    with the SHA256 sums that can be verified.
 
