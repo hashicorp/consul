@@ -319,9 +319,14 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		}
 	}()
 
+	const waitDuration = 3 * time.Second
+
 	// Re-run the query, if errantly woken up with no change, resume blocking.
+	var elapsed time.Duration
 RUN_BLOCKING_QUERY:
-	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=3s&index=%d", waitIndex), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=%s&index=%d",
+		waitDuration.String(),
+		waitIndex), nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -331,11 +336,23 @@ RUN_BLOCKING_QUERY:
 		t.Fatalf("err: %v", err)
 	}
 
+	elapsed = time.Since(start)
+
 	idx := getIndex(t, resp)
 	if idx < waitIndex {
 		t.Fatalf("bad: %v", idx)
 	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the
+			// waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
 		goto RUN_BLOCKING_QUERY
+	}
+
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
 	}
 
 	nodes := obj.(structs.Nodes)
@@ -343,10 +360,6 @@ RUN_BLOCKING_QUERY:
 		t.Fatalf("bad: %v", obj)
 	}
 
-	// Should block at least 100ms
-	if d := time.Since(start); d < 100*time.Millisecond {
-		t.Fatalf("too fast: %v", d)
-	}
 }
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
