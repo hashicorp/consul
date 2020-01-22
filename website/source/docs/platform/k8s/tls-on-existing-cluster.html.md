@@ -34,6 +34,7 @@ If you're **not using Consul Connect**, follow this process.
 
    This upgrade will trigger a rolling update of the clients, as well as any
    other `consul-k8s` components, such as sync catalog or client snapshot deployments.
+
 1. Perform a rolling upgrade of the servers, as described in
    [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers).
 1. Repeat steps 1 and 2, turning on TLS verification by setting `global.tls.verify`
@@ -71,6 +72,7 @@ applications to it.
    In this configuration, we're setting `server.updatePartition` to the number of
    server replicas as described in [Upgrade Consul Servers](/docs/platform/k8s/upgrading.html#upgrading-consul-servers)
    and `client.updateStrategy` to `OnDelete` to manually trigger an upgrade of the clients.
+
 1. Run `helm upgrade` with the above config file. The upgrade will trigger an update of all
    components except clients and servers, such as the Consul Connect webhook deployment
    or the sync catalog deployment. Note that the sync catalog and the client
