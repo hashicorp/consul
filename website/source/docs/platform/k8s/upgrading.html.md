@@ -22,7 +22,7 @@ be updated in batches.
 
 To initiate the upgrade, change the `server.image` value to the
 desired Consul version. For illustrative purposes, the example below will
-use `consul:123.456`. Also set the `server.updatePartition` value
+use `consul:123.456`. Also, set the `server.updatePartition` value
 _equal to the number of server replicas_:
 
 ```yaml
@@ -61,3 +61,10 @@ With the servers upgraded, it is time to upgrade the clients. To upgrade
 the clients, set the `client.image` value to the desired Consul version.
 Then, run `helm upgrade`. This will upgrade the clients in batches, waiting
 until the clients come up healthy before continuing.
+
+## Configuring TLS on an Existing Cluster
+
+If you already have a Consul cluster deployed on Kubernetes and
+would like to turn on TLS for internal Consul communication,
+please see
+[Configuring TLS on an Existing Cluster](/docs/platform/k8s/tls-on-existing-cluster.html).
