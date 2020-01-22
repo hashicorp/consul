@@ -176,6 +176,9 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
 				require.Equal(connect.ServiceCN("foo", connect.TestClusterID), parsed.Subject.CommonName)
 				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				subjectKeyID, err := connect.KeyId(csr.PublicKey)
+				require.NoError(err)
+				require.Equal(subjectKeyID, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 
