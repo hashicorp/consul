@@ -723,9 +723,9 @@ func (a *Agent) listenAndServeGRPC() error {
 	if a.config.HTTPSPort > 0 {
 		// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is
 		// enabled then gRPC will require HTTPS as well.
-		a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
+		a.grpcServer, err = a.xdsServer.GRPCServer(a.tlsConfigurator)
 	} else {
-		a.grpcServer, err = a.xdsServer.GRPCServer("", "")
+		a.grpcServer, err = a.xdsServer.GRPCServer(nil)
 	}
 	if err != nil {
 		return err

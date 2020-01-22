@@ -441,12 +441,7 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	// autoEncrypt cert too so that a client can encrypt incoming
 	// connections without having a manual cert configured.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		cert := c.manual.cert
-		if cert == nil {
-			cert = c.autoEncrypt.cert
-		}
-
-		return cert, nil
+		return c.Cert(), nil
 	}
 
 	// GetClientCertificate is used when acting as a client and responding
@@ -475,6 +470,17 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	}
 
 	return tlsConfig
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) Cert() *tls.Certificate {
+	c.RLock()
+	defer c.RUnlock()
+	cert := c.manual.cert
+	if cert == nil {
+		cert = c.autoEncrypt.cert
+	}
+	return cert
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -559,6 +565,22 @@ func (c *Configurator) VerifyServerHostname() bool {
 	c.RLock()
 	defer c.RUnlock()
 	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
+}
+
+// IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
+func (c *Configurator) IncomingGRPCConfig() *tls.Config {
+	c.log("IncomingGRPCConfig")
+
+	// false has the effect that this config doesn't require a client cert
+	// verification. This is because there is no verify_incoming_grpc
+	// configuration option. And using verify_incoming would be backwards
+	// incompatible, because even if it was set before, it didn't have an
+	// effect on the grpc server.
+	config := c.commonTLSConfig(false)
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingGRPCConfig(), nil
+	}
+	return config
 }
 
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.

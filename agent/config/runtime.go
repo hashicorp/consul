@@ -807,6 +807,7 @@ type RuntimeConfig struct {
 	// Setting this to a value <= 0 disables the endpoint.
 	//
 	// hcl: ports { https = int }
+	// flags: -https-port int
 	HTTPSPort int
 
 	// KeyFile is used to provide a TLS key that is used for serving TLS

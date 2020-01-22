@@ -53,6 +53,14 @@ func TestParseFlags(t *testing.T) {
 			flags: Flags{Config: Config{Ports: Ports{GRPC: pInt(1)}}},
 		},
 		{
+			args:  []string{`-http-port`, `1`},
+			flags: Flags{Config: Config{Ports: Ports{HTTP: pInt(1)}}},
+		},
+		{
+			args:  []string{`-https-port`, `1`},
+			flags: Flags{Config: Config{Ports: Ports{HTTPS: pInt(1)}}},
+		},
+		{
 			args:  []string{`-serf-lan-port`, `1`},
 			flags: Flags{Config: Config{Ports: Ports{SerfLAN: pInt(1)}}},
 		},
