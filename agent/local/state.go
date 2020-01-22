@@ -1345,8 +1345,8 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 
 // ACLAccessorID takes an ACL secret token and retrives identity metadata on the
 // token, returning just the accessorID so we can log it here. In the future we
-// may wish to return more fields from structs.ACLIdentity to log out more debug
-// info when ACLs are denied
+// may wish to return more of the fields on structs.ACLIdentity to log out more
+// debug info when ACLs are denied in state.go.
 func (l *State) ACLAccessorID(token string) string {
 	req := structs.ACLRequest{
 		Datacenter:   l.config.Datacenter,
@@ -1357,8 +1357,6 @@ func (l *State) ACLAccessorID(token string) string {
 		l.logger.Printf("[DEBUG] agent.local: failed to acquire token identity, err=%v", err)
 		return ""
 	}
-
-	// Sometimes we don't get a reply struct back?
 	if reply == nil {
 		return ""
 	}

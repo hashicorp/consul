@@ -266,7 +266,7 @@ func (s *Intention) Get(
 			if len(reply.Intentions) == 0 {
 				_, ident, err := s.srv.ResolveIdentityFromToken(args.Token)
 				if err != nil {
-					s.srv.logger.Printf("[DEBUG] consul.intention: failed to fetch ACL AccessorID, reason: %v", err)
+					s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%v", err)
 				}
 				var accessorID string
 				if ident != nil {
@@ -338,7 +338,7 @@ func (s *Intention) Match(
 			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, &authzContext) != acl.Allow {
 				_, ident, err := s.srv.ResolveIdentityFromToken(args.Token)
 				if err != nil {
-					s.srv.logger.Printf("[DEBUG] consul.intention: failed to fetch ACL AccessorID, reason: %v", err)
+					s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%v", err)
 				}
 				var accessorID string
 				if ident != nil {
@@ -417,7 +417,7 @@ func (s *Intention) Check(
 		if rule != nil && rule.ServiceRead(prefix, &authzContext) != acl.Allow {
 			_, ident, err := s.srv.ResolveIdentityFromToken(args.Token)
 			if err != nil {
-				s.srv.logger.Printf("[DEBUG] consul.intention: failed to fetch ACL AccessorID, reason: %v", err)
+				s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%v", err)
 			}
 			var accessorID string
 			if ident != nil {
