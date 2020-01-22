@@ -26,7 +26,7 @@ Consul provides several key features:
 
 * **Service Segmentation/Service Mesh** - Consul Connect enables secure service-to-service
   communication with automatic TLS encryption and identity-based authorization. Applications 
-  can use sidecar proxies in a service mesh configuration to automatically establish TLS 
+  can use sidecar proxies in a service mesh configuration to establish TLS 
   connections for inbound and outbound connections without being aware of Connect at all. 
 
 Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
