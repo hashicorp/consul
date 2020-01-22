@@ -106,3 +106,27 @@ func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 func (c *Client) ResolveToken(token string) (acl.Authorizer, error) {
 	return c.acls.ResolveToken(token)
 }
+
+func (c *Client) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	return c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+}
+
+func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
+}

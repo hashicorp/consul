@@ -529,6 +529,14 @@ type RuntimeConfig struct {
 	// servers.
 	AutoEncryptTLS bool
 
+	// Additional DNS SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptDNSSAN []string
+
+	// Additional IP SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptIPSAN []net.IP
+
 	// AutoEncryptAllowTLS enables the server to respond to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
@@ -599,6 +607,14 @@ type RuntimeConfig struct {
 	// hcl: data_dir = string
 	// flag: -data-dir string
 	DataDir string
+
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	//
+	// hcl: default_query_time = "duration"
+	// flag: -default-query-time string
+	DefaultQueryTime time.Duration
 
 	// DevMode enables a fast-path mode of operation to bring up an in-memory
 	// server with minimal configuration. Useful for developing Consul.
@@ -845,6 +861,14 @@ type RuntimeConfig struct {
 	// hcl: log_rotate_max_files = int
 	// flags: -log-rotate-max-files int
 	LogRotateMaxFiles int
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	//
+	// hcl: max_query_time = "duration"
+	// flags: -max-query-time string
+	MaxQueryTime time.Duration
 
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.

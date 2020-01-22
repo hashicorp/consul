@@ -12,20 +12,20 @@ html.template-loading main > div {
 %loader circle {
   fill: $magenta-100;
 }
-%main-header::before {
+%main-header-horizontal::before {
   background-color: $magenta-600;
 }
-%header-nav a,
-%header-nav-toggle-button {
+%main-nav-horizontal-action,
+%main-nav-horizontal-toggle-button {
   color: $magenta-050;
 }
 @media #{$--lt-horizontal-nav} {
-  %header-nav-panel {
+  %main-nav-horizontal-panel {
     background-color: $magenta-600;
   }
 }
 @media #{$--horizontal-nav} {
-  %header-nav > ul > li:not(:first-child).is-active > a {
+  %main-nav-horizontal-action-active {
     background-color: $magenta-800;
   }
 }

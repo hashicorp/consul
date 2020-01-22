@@ -13,6 +13,13 @@ import (
 // clients. Some of the enforcement is normative (e.g. self and monitor)
 // and some is informative (e.g. catalog and health).
 func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
+	return a.resolveTokenAndDefaultMeta(id, nil, nil)
+}
+
+// resolveTokenAndDefaultMeta is used to resolve an ACL token secret to an
+// acl.Authorizer and to default any enterprise specific metadata for the request.
+// The defaulted metadata is then used to fill in an acl.AuthorizationContext.
+func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	// ACLs are disabled
 	if !a.delegate.ACLsEnabled() {
 		return nil, nil
@@ -30,7 +37,8 @@ func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
 	if a.tokens.IsAgentMasterToken(id) {
 		return a.aclMasterAuthorizer, nil
 	}
-	return a.delegate.ResolveToken(id)
+
+	return a.delegate.ResolveTokenAndDefaultMeta(id, entMeta, authzContext)
 }
 
 func (a *Agent) initializeACLs() error {
@@ -67,25 +75,30 @@ func (a *Agent) initializeACLs() error {
 // the given token.
 func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	authz, err := a.resolveToken(token)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
+
+	return a.vetServiceRegisterWithAuthorizer(authz, service)
+}
+
+func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *structs.NodeService) error {
+	if authz == nil {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 	// Vet the service itself.
-	if rule.ServiceWrite(service.Service, &authzContext) != acl.Allow {
+	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
-		if rule.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -94,7 +107,7 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 	// since it can be discovered as an instance of that service.
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
-		if rule.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -106,20 +119,25 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 // token.
 func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	authz, err := a.resolveToken(token)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
+
+	return a.vetServiceUpdateWithAuthorizer(authz, serviceID)
+}
+
+func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID structs.ServiceID) error {
+	if authz == nil {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 
 	// Vet any changes based on the existing services's info.
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
-		if rule.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else {
@@ -133,23 +151,28 @@ func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) erro
 // given token.
 func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	authz, err := a.resolveToken(token)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
+
+	return a.vetCheckRegisterWithAuthorizer(authz, check)
+}
+
+func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *structs.HealthCheck) error {
+	if authz == nil {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
 	// Vet the check itself.
 	if len(check.ServiceName) > 0 {
-		if rule.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(check.ServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else {
-		if rule.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
+		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -157,11 +180,11 @@ func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error
 	// Vet any check that might be getting overwritten.
 	if existing := a.State.Check(check.CompoundCheckID()); existing != nil {
 		if len(existing.ServiceName) > 0 {
-			if rule.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
+			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if rule.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
+			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -173,25 +196,30 @@ func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error
 // vetCheckUpdate makes sure that a check update is allowed by the given token.
 func (a *Agent) vetCheckUpdate(token string, checkID structs.CheckID) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	authz, err := a.resolveToken(token)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
+
+	return a.vetCheckUpdateWithAuthorizer(authz, checkID)
+}
+
+func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID structs.CheckID) error {
+	if authz == nil {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	checkID.FillAuthzContext(&authzContext)
 
 	// Vet any changes based on the existing check's info.
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
-			if rule.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
+			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if rule.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
+			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -213,7 +241,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
@@ -233,19 +261,23 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 // filterServices redacts services that the token doesn't have access to.
 func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*structs.NodeService) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	authz, err := a.resolveToken(token)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
+
+	return a.filterServicesWithAuthorizer(authz, services)
+}
+
+func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map[structs.ServiceID]*structs.NodeService) error {
+	if authz == nil {
 		return nil
 	}
-
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	// Filter out services based on the service policy.
 	for id, service := range *services {
 		service.FillAuthzContext(&authzContext)
-		if rule.ServiceRead(service.Service, &authzContext) == acl.Allow {
+		if authz.ServiceRead(service.Service, &authzContext) == acl.Allow {
 			continue
 		}
 		a.logger.Printf("[DEBUG] agent: dropping service %q from result due to ACLs", id.String())
@@ -257,25 +289,30 @@ func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*st
 // filterChecks redacts checks that the token doesn't have access to.
 func (a *Agent) filterChecks(token string, checks *map[structs.CheckID]*structs.HealthCheck) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	authz, err := a.resolveToken(token)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
+
+	return a.filterChecksWithAuthorizer(authz, checks)
+}
+
+func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[structs.CheckID]*structs.HealthCheck) error {
+	if authz == nil {
 		return nil
 	}
 
-	var authzContext acl.EnterpriseAuthorizerContext
+	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
 	for id, check := range *checks {
 		if len(check.ServiceName) > 0 {
 			check.FillAuthzContext(&authzContext)
-			if rule.ServiceRead(check.ServiceName, &authzContext) == acl.Allow {
+			if authz.ServiceRead(check.ServiceName, &authzContext) == acl.Allow {
 				continue
 			}
 		} else {
 			structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
-			if rule.NodeRead(a.config.NodeName, &authzContext) == acl.Allow {
+			if authz.NodeRead(a.config.NodeName, &authzContext) == acl.Allow {
 				continue
 			}
 		}

@@ -1167,7 +1167,13 @@ func (l *State) deleteService(key structs.ServiceID) error {
 	case err == nil || strings.Contains(err.Error(), "Unknown service"):
 		if service, ok := l.services[key]; ok && service.Deleted {
 			delete(l.services, key)
-			l.logger.Printf("[INFO] agent: Deregistered service %q", key)
+			// service deregister also deletes associated checks
+			for _, c := range l.checks {
+				if c.Deleted && c.Check.ServiceID == key.ID {
+					l.pruneCheck(c.Check.CompoundCheckID())
+				}
+			}
+			l.logger.Printf("[INFO] agent: Deregistered service %q", key.ID)
 		}
 		return nil
 
@@ -1204,14 +1210,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 	defer l.Unlock()
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown check"):
-		var c *CheckState
-		var ok bool
-		if c, ok = l.checks[key]; ok && c.Deleted {
-			if c != nil && c.DeferCheck != nil {
-				c.DeferCheck.Stop()
-			}
-			delete(l.checks, key)
-		}
+		l.pruneCheck(key)
 		l.logger.Printf("[INFO] agent: Deregistered check %q", key.String())
 		return nil
 
@@ -1226,6 +1225,15 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 	default:
 		l.logger.Printf("[WARN] agent: Deregistering check %q failed. %s", key.String(), err)
 		return err
+	}
+}
+
+func (l *State) pruneCheck(id structs.CheckID) {
+	if c, ok := l.checks[id]; ok && c.Deleted {
+		if c != nil && c.DeferCheck != nil {
+			c.DeferCheck.Stop()
+		}
+		delete(l.checks, id)
 	}
 }
 
@@ -1280,10 +1288,10 @@ func (l *State) syncService(key structs.ServiceID) error {
 	defer l.Unlock()
 	switch {
 	case err == nil:
-		if _, ok := l.services[key]; ok && l.services[key] != nil {
-			l.services[key].InSync = true
-			if l.services[key].version > currentVersion {
-				l.services[key].InSync = false
+		if s, ok := l.services[key]; ok {
+			s.InSync = true
+			if s.version > currentVersion {
+				s.InSync = false
 			}
 			// Given how the register API works, this info is also updated
 			// every time we sync a service.
@@ -1354,9 +1362,6 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		if l.checks[key].version > currentVersion {
 			l.checks[key].InSync = false
 		}
-		// Given how the register API works, this info is also updated
-		// every time we sync a check.
-		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced check %q", key.String())
 		return nil
 

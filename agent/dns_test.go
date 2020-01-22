@@ -2518,6 +2518,196 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	}
 }
 
+func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "test",
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		require.NoError(t, a.RPC("PreparedQuery.Apply", args, &id))
+	}
+
+	type testCase struct {
+		nodeAddress            string
+		nodeTaggedAddresses    map[string]string
+		serviceAddress         string
+		serviceTaggedAddresses map[string]structs.ServiceAddress
+
+		expectedServiceIPv4Address string
+		expectedServiceIPv6Address string
+		expectedNodeIPv4Address    string
+		expectedNodeIPv6Address    string
+	}
+
+	cases := map[string]testCase{
+		"simple-ipv4": testCase{
+			serviceAddress: "127.0.0.2",
+			nodeAddress:    "127.0.0.1",
+
+			expectedServiceIPv4Address: "127.0.0.2",
+			expectedServiceIPv6Address: "",
+			expectedNodeIPv4Address:    "127.0.0.1",
+			expectedNodeIPv6Address:    "",
+		},
+		"simple-ipv6": testCase{
+			serviceAddress: "::2",
+			nodeAddress:    "::1",
+
+			expectedServiceIPv6Address: "::2",
+			expectedServiceIPv4Address: "",
+			expectedNodeIPv6Address:    "::1",
+			expectedNodeIPv4Address:    "",
+		},
+		"ipv4-with-tagged-ipv6": testCase{
+			serviceAddress: "127.0.0.2",
+			nodeAddress:    "127.0.0.1",
+
+			serviceTaggedAddresses: map[string]structs.ServiceAddress{
+				structs.TaggedAddressLANIPv6: {Address: "::2"},
+			},
+			nodeTaggedAddresses: map[string]string{
+				structs.TaggedAddressLANIPv6: "::1",
+			},
+
+			expectedServiceIPv4Address: "127.0.0.2",
+			expectedServiceIPv6Address: "::2",
+			expectedNodeIPv4Address:    "127.0.0.1",
+			expectedNodeIPv6Address:    "::1",
+		},
+		"ipv6-with-tagged-ipv4": testCase{
+			serviceAddress: "::2",
+			nodeAddress:    "::1",
+
+			serviceTaggedAddresses: map[string]structs.ServiceAddress{
+				structs.TaggedAddressLANIPv4: {Address: "127.0.0.2"},
+			},
+			nodeTaggedAddresses: map[string]string{
+				structs.TaggedAddressLANIPv4: "127.0.0.1",
+			},
+
+			expectedServiceIPv4Address: "127.0.0.2",
+			expectedServiceIPv6Address: "::2",
+			expectedNodeIPv4Address:    "127.0.0.1",
+			expectedNodeIPv6Address:    "::1",
+		},
+	}
+
+	for name, tc := range cases {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			args := &structs.RegisterRequest{
+				Datacenter:      "dc1",
+				Node:            "foo",
+				Address:         tc.nodeAddress,
+				TaggedAddresses: tc.nodeTaggedAddresses,
+				Service: &structs.NodeService{
+					Service:         "db",
+					Address:         tc.serviceAddress,
+					Port:            8080,
+					TaggedAddresses: tc.serviceTaggedAddresses,
+				},
+			}
+
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+			// Look up the SRV record via service and prepared query.
+			questions := []string{
+				"db.service.consul.",
+				id + ".query.consul.",
+			}
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeA)
+
+				c := new(dns.Client)
+				addr := a.config.DNSAddrs[0].String()
+				in, _, err := c.Exchange(m, addr)
+				require.NoError(t, err)
+
+				if tc.expectedServiceIPv4Address != "" {
+					require.Len(t, in.Answer, 1)
+					aRec, ok := in.Answer[0].(*dns.A)
+					require.True(t, ok, "Bad: %#v", in.Answer[0])
+					require.Equal(t, question, aRec.Hdr.Name)
+					require.Equal(t, tc.expectedServiceIPv4Address, aRec.A.String())
+				} else {
+					require.Len(t, in.Answer, 0)
+				}
+
+				m = new(dns.Msg)
+				m.SetQuestion(question, dns.TypeAAAA)
+
+				c = new(dns.Client)
+				addr = a.config.DNSAddrs[0].String()
+				in, _, err = c.Exchange(m, addr)
+				require.NoError(t, err)
+
+				if tc.expectedServiceIPv6Address != "" {
+					require.Len(t, in.Answer, 1)
+					aRec, ok := in.Answer[0].(*dns.AAAA)
+					require.True(t, ok, "Bad: %#v", in.Answer[0])
+					require.Equal(t, question, aRec.Hdr.Name)
+					require.Equal(t, tc.expectedServiceIPv6Address, aRec.AAAA.String())
+				} else {
+					require.Len(t, in.Answer, 0)
+				}
+			}
+
+			// Look up node
+			m := new(dns.Msg)
+			m.SetQuestion("foo.node.consul.", dns.TypeA)
+
+			c := new(dns.Client)
+			addr := a.config.DNSAddrs[0].String()
+			in, _, err := c.Exchange(m, addr)
+			require.NoError(t, err)
+
+			if tc.expectedNodeIPv4Address != "" {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok, "Bad: %#v", in.Answer[0])
+				require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
+				require.Equal(t, tc.expectedNodeIPv4Address, aRec.A.String())
+			} else {
+				require.Len(t, in.Answer, 0)
+			}
+
+			m = new(dns.Msg)
+			m.SetQuestion("foo.node.consul.", dns.TypeAAAA)
+
+			c = new(dns.Client)
+			addr = a.config.DNSAddrs[0].String()
+			in, _, err = c.Exchange(m, addr)
+			require.NoError(t, err)
+
+			if tc.expectedNodeIPv6Address != "" {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.AAAA)
+				require.True(t, ok, "Bad: %#v", in.Answer[0])
+				require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
+				require.Equal(t, tc.expectedNodeIPv6Address, aRec.AAAA.String())
+			} else {
+				require.Len(t, in.Answer, 0)
+			}
+		})
+	}
+}
+
 func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
@@ -3267,7 +3457,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != dns.ErrTruncated {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if in.Truncated != true {
@@ -3952,10 +4142,17 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 								c.Net = protocol
 								m.Compress = compress
 								in, _, err := c.Exchange(m, a.DNSAddr())
-								if err != nil && err != dns.ErrTruncated {
+								if err != nil {
 									t.Fatalf("err: %v", err)
 								}
-
+								// actually check if we need to have the truncate bit
+								resbuf, err := in.Pack()
+								if err != nil {
+									t.Fatalf("Error while packing answer: %s", err)
+								}
+								if !in.Truncated && len(resbuf) > int(maxSz) {
+									t.Fatalf("should have truncate bit %#v %#v", in, len(in.Answer))
+								}
 								// Check for the truncate bit
 								buf, err := m.Pack()
 								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
@@ -4033,7 +4230,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4105,8 +4302,12 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
+		}
+
+		if !in.Truncated {
+			t.Fatalf("should have truncate bit")
 		}
 
 		// Make sure the response size is RFC 1035-compliant for UDP messages

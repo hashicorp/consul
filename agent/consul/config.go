@@ -86,6 +86,16 @@ type Config struct {
 	// DataDir is the directory to store our state in.
 	DataDir string
 
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	DefaultQueryTime time.Duration
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	MaxQueryTime time.Duration
+
 	// DevMode is used to enable a development server mode.
 	DevMode bool
 
@@ -539,13 +549,16 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "72h",
+				"RotationPeriod":      "2160h",
+				"LeafCertTTL":         "72h",
+				"IntermediateCertTTL": "8760h", // 365 * 24h
 			},
 		},
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+		DefaultQueryTime:     300 * time.Second,
+		MaxQueryTime:         600 * time.Second,
 		EnterpriseConfig:     DefaultEnterpriseConfig(),
 	}
 

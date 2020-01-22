@@ -55,6 +55,7 @@ func DefaultSource() Source {
 		check_update_interval = "5m"
 		client_addr = "127.0.0.1"
 		datacenter = "` + consul.DefaultDC + `"
+		default_query_time = "300s"
 		disable_coordinates = false
 		disable_host_node_id = true
 		disable_remote_exec = true
@@ -62,6 +63,7 @@ func DefaultSource() Source {
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
 		log_level = "INFO"
+		max_query_time = "600s"
 		protocol =  2
 		retry_interval = "30s"
 		retry_interval_wan = "30s"

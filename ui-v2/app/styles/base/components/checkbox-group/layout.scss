@@ -1,0 +1,14 @@
+/* TODO: This is positioning the group */
+/* probably should be in a special %form class*/
+%checkbox-group {
+  @extend %form-row;
+}
+%checkbox-group span {
+  display: inline-block;
+  margin-left: 10px;
+  min-width: 50px;
+}
+%checkbox-group label {
+  margin-right: 10px;
+  white-space: nowrap;
+}

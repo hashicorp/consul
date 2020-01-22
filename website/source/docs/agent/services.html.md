@@ -109,6 +109,9 @@ The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
 different versions, or any other service level labels.
 
+We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+for service definition names and tags for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns)
+
 The `address` field can be used to specify a service-specific IP address. By
 default, the IP address of the agent is used, and this does not need to be provided.
 The `port` field can be used as well to make a service-oriented architecture

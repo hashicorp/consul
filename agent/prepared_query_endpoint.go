@@ -163,7 +163,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	// a query can fail over to a different DC than where the execute request
 	// was sent to. That's why we use the reply's DC and not the one from
 	// the args.
-	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes)
+	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil.
 	if reply.Nodes == nil {

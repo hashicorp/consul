@@ -62,10 +62,11 @@ func (l *LogFile) fileNamePattern() string {
 
 func (l *LogFile) openNew() error {
 	fileNamePattern := l.fileNamePattern()
-	// New file name has the format : filename-timestamp.extension
+
 	createTime := now()
 	newfileName := fmt.Sprintf(fileNamePattern, strconv.FormatInt(createTime.UnixNano(), 10))
 	newfilePath := filepath.Join(l.logPath, newfileName)
+
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
 	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
 	if err != nil {
@@ -104,8 +105,14 @@ func (l *LogFile) pruneFiles() error {
 	if err != nil {
 		return err
 	}
-	// Prune if there are more files stored than the configured max
-	stale := len(matches) - l.MaxFiles
+	var stale int
+	if l.MaxFiles <= -1 {
+		// Prune everything
+		stale = len(matches)
+	} else {
+		// Prune if there are more files stored than the configured max
+		stale = len(matches) - l.MaxFiles
+	}
 	for i := 0; i < stale; i++ {
 		if err := os.Remove(matches[i]); err != nil {
 			return err
@@ -123,7 +130,7 @@ func (l *LogFile) Write(b []byte) (n int, err error) {
 
 	l.acquire.Lock()
 	defer l.acquire.Unlock()
-	//Create a new file if we have no file to write to
+	// Create a new file if we have no file to write to
 	if l.FileInfo == nil {
 		if err := l.openNew(); err != nil {
 			return 0, err

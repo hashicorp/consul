@@ -71,6 +71,10 @@ const (
 	// client in this package but is defined here for consistency with all the
 	// other ENV names we use.
 	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
+
+	// HTTPNamespaceEnvVar defines an environment variable name which sets
+	// the HTTP Namespace to be used by default. This can still be overridden.
+	HTTPNamespaceEnvName = "CONSUL_NAMESPACE"
 )
 
 // QueryOptions are used to parameterize a query
@@ -425,6 +429,10 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 		if !doVerify {
 			config.TLSConfig.InsecureSkipVerify = true
 		}
+	}
+
+	if v := os.Getenv(HTTPNamespaceEnvName); v != "" {
+		config.Namespace = v
 	}
 
 	return config

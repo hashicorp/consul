@@ -35,7 +35,7 @@ Feature: dc / acls / roles / as many / add new: Add new
       Description: New Role Description
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Description: The Description
       Roles:
@@ -58,7 +58,7 @@ Feature: dc / acls / roles / as many / add new: Add new
           Name: policy
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Description: The Description
       Roles:
@@ -95,7 +95,7 @@ Feature: dc / acls / roles / as many / add new: Add new
           Name: New-Policy
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Description: The Description
       Roles:
@@ -123,7 +123,7 @@ Feature: dc / acls / roles / as many / add new: Add new
         - ServiceName: New-Service-Identity
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
     ---
       Description: The Description
       Roles:

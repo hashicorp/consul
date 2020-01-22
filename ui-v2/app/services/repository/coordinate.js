@@ -10,8 +10,8 @@ export default RepositoryService.extend({
   getModelName: function() {
     return modelName;
   },
-  findAllByNode: function(node, dc, configuration) {
-    return this.findAllByDatacenter(dc, configuration).then(function(coordinates) {
+  findAllByNode: function(node, dc, nspace, configuration) {
+    return this.findAllByDatacenter(dc, nspace, configuration).then(function(coordinates) {
       let results = {};
       if (get(coordinates, 'length') > 1) {
         results = tomography(node, coordinates.map(item => get(item, 'data')));

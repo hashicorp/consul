@@ -1,7 +1,0 @@
-{{!<ul>}}
-    {{#each items as |item|}}
-        <li data-test-datacenter-picker="{{item.Name}}" class={{if (eq selected.Name item.Name) 'is-active'}}>
-            <a onclick={{action onchange}} href={{href-to 'dc.services' item.Name}}>{{item.Name}}</a>
-        </li>
-    {{/each}}
-{{!</ul>}}

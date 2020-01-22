@@ -73,6 +73,10 @@
                 'Upstreams' ''
 )
 (if
+  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
+                'Exposed Paths' ''
+)
+(if
   (eq item.Kind 'mesh-gateway')
                 'Addresses' ''
 )
@@ -90,6 +94,10 @@
 (if
   (eq item.Kind 'connect-proxy')
                     (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') ''
+)
+(if
+  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
+                    (hash id=(slugify 'Exposed Paths') partial='dc/services/exposedpaths') ''
 )
 (if
   (eq item.Kind 'mesh-gateway')

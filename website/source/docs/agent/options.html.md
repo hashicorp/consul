@@ -283,7 +283,17 @@ The options below are all specified on the command-line.
 
 * <a name="_log_rotate_duration"></a><a href="#_log_rotate_duration">`-log-rotate-duration`</a> - to specify the maximum duration a log should be written to before it needs to be rotated. Must be a duration value such as 30s. Defaults to 24h.
 
-* <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to -1 to disable rotation and discard all log files.
+* <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to -1 to discard old log files when a new one is created.
+
+* <a name="_default_query_time"></a><a href="#_default_query_time">`-default-query-time`</a> - This flag controls the
+  amount of time a blocking query will wait before Consul will force a response.
+  This value can be overridden by the `wait` query parameter. Note that Consul
+  applies some jitter on top of this time. Defaults to 300s.
+
+* <a name="_max_query_time"></a><a href="#_max_query_time">`-max-query-time`</a> -
+  this flag controls the maximum amount of time a blocking query can wait before
+  Consul will force a response. Consul applies jitter to the wait time. The jittered
+  time will be capped to this time. Defaults to 600s.
 
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
@@ -303,8 +313,9 @@ The options below are all specified on the command-line.
 
 * `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
   first attempt fails. This is useful for cases where you know the address will
-  eventually be available. The list can contain IPv4, IPv6, or DNS addresses. In
-  Consul 1.1.0 and later this can be set to a
+  eventually be available. This option can be specified multiple times to
+  specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
+  addresses. In Consul 1.1.0 and later this can be set to a
   [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template. If Consul is running on the non-default Serf LAN port, this must be
   specified as well. IPv6 must use the "bracketed" syntax. If multiple values
@@ -324,6 +335,11 @@ The options below are all specified on the command-line.
     ```sh
     # Using IPv6
     $ consul agent -retry-join "[::1]:8301"
+    ```
+
+    ```sh
+    # Using multiple addresses
+    $ consul agent -retry-join "consul.domain.internal" -retry-join "10.0.4.67"
     ```
 
     ### Cloud Auto-Joining
@@ -819,6 +835,10 @@ default will automatically work with some tooling.
     * <a name="allow_tls"></a><a href="#allow_tls">`allow_tls`</a> (Defaults to `false`) This option enables `auto_encrypt` on the servers and allows them to automatically distribute certificates from the Connect CA to the clients. If enabled, the server can accept incoming connections from both the built-in CA and the Connect CA, as well as their certificates. Note, the server will only present the built-in CA and certificate, which the client can verify using the CA it received from `auto_encrypt` endpoint. If disabled, a client configured with `auto_encrypt.tls` will be unable to start.
 
     * <a name="tls"></a><a href="#tls">`tls`</a> (Defaults to `false`) Allows the client to request the Connect CA and certificates from the servers, for encrypting RPC communication. The client will make the request to any servers listed in the `-join` or `-retry-join` option. This requires that every server to have `auto_encrypt.allow_tls` enabled. When both `auto_encrypt` options are used, it allows clients to receive certificates that are generated on the servers. If the `-server-port` is not the default one, it has to be provided to the client as well. Usually this is discovered through LAN gossip, but `auto_encrypt` provision happens before the information can be distributed through gossip. The most secure `auto_encrypt` setup is when the client is provided with the built-in CA, `verify_server_hostname` is turned on, and when an ACL token with `node.write` permissions is setup. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted.
+
+    * <a name="dns_san"></a><a href="#dns_san">`dns_san`</a> (Defaults to `[]`) When this option is being used, the certificates requested by `auto_encrypt` from the server have these `dns_san` set as DNS SAN.
+
+    * <a name="ip_san"></a><a href="#ip_san">`ip_san`</a> (Defaults to `[]`) When this option is being used, the certificates requested by `auto_encrypt` from the server have these `ip_san` set as IP SAN.
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -1367,6 +1387,12 @@ default will automatically work with some tooling.
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
+
+* <a name="default_query_time"></a><a href="#default_query_time">`default_query_time`</a>
+  Equivalent to the [`-default-query-time` command-line flag](#_default_query_time).
+
+* <a name="max_query_time"></a><a href="#max_query_time">`max_query_time`</a>
+  Equivalent to the [`-max-query-time` command-line flag](#_max_query_time).
 
 * <a name="node_id"></a><a href="#node_id">`node_id`</a> Equivalent to the
   [`-node-id` command-line flag](#_node_id).

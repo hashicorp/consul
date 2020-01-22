@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
@@ -243,7 +245,7 @@ func (c *cmd) Run(args []string) int {
 		taggedAddrs := make(map[string]api.ServiceAddress)
 
 		if lanAddr != "" {
-			taggedAddrs["lan"] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+			taggedAddrs[structs.TaggedAddressLAN] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
 		}
 
 		wanAddr := ""
@@ -254,7 +256,7 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
 				return 1
 			}
-			taggedAddrs["wan"] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+			taggedAddrs[structs.TaggedAddressWAN] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
 		}
 
 		tcpCheckAddr := lanAddr
@@ -422,7 +424,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	if strings.HasPrefix(strings.ToLower(c.grpcAddr), "https://") {
 		useTLS = true
 	} else if useSSLEnv := os.Getenv(api.HTTPSSLEnvName); useSSLEnv != "" {
-		if enabled, err := strconv.ParseBool(useSSLEnv); err != nil {
+		if enabled, err := strconv.ParseBool(useSSLEnv); err == nil {
 			useTLS = enabled
 		}
 	} else if strings.HasPrefix(strings.ToLower(httpCfg.Address), "https://") {
@@ -493,6 +495,15 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
+	var caPEM string
+	if httpCfg.TLSConfig.CAFile != "" {
+		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read CA file: %s", err)
+		}
+		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
+	}
+
 	return &BootstrapTplArgs{
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
@@ -500,7 +511,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AgentPort:             agentPort,
 		AgentSocket:           agentSock,
 		AgentTLS:              useTLS,
-		AgentCAFile:           httpCfg.TLSConfig.CAFile,
+		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
 		AdminBindPort:         adminPort,

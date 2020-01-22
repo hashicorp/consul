@@ -136,6 +136,7 @@ type delegate interface {
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string, prune bool) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
 	ACLsEnabled() bool
 	UseLegacyACLs() bool
@@ -591,6 +592,8 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 		Datacenter: a.config.Datacenter,
 		Token:      a.tokens.AgentToken(),
 		Agent:      a.config.NodeName,
+		DNSSAN:     a.config.AutoEncryptDNSSAN,
+		IPSAN:      a.config.AutoEncryptIPSAN,
 	}
 
 	// prepolutate leaf cache
@@ -1262,6 +1265,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSMinVersion = a.config.TLSMinVersion
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
+	base.DefaultQueryTime = a.config.DefaultQueryTime
+	base.MaxQueryTime = a.config.MaxQueryTime
 
 	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
 
@@ -2255,6 +2260,26 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	a.PauseSync()
 	defer a.ResumeSync()
 
+	// Set default tagged addresses
+	serviceIP := net.ParseIP(service.Address)
+	serviceAddressIs4 := serviceIP != nil && serviceIP.To4() != nil
+	serviceAddressIs6 := serviceIP != nil && serviceIP.To4() == nil
+	if service.TaggedAddresses == nil {
+		service.TaggedAddresses = map[string]structs.ServiceAddress{}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && serviceAddressIs4 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && serviceAddressIs4 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && serviceAddressIs6 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+
 	// Take a snapshot of the current state of checks (if any), and when adding
 	// a check that already existed carry over the state before resuming
 	// anti-entropy.
@@ -2450,6 +2475,34 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 		}
 	}
 
+	// Check IPv4/IPv6 tagged addresses
+	if service.TaggedAddresses != nil {
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv4 address", structs.TaggedAddressLANIPv4)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv4 address", structs.TaggedAddressWANIPv4)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() != nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv6 address", structs.TaggedAddressLANIPv6)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() != nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv6 address", structs.TaggedAddressLANIPv6)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -2465,6 +2518,9 @@ func (a *Agent) cleanupRegistration(serviceIDs []structs.ServiceID, checksIDs []
 		}
 		if err := a.purgeServiceConfig(s); err != nil {
 			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge service config %s file: %s", s, err)
+		}
+		if err := a.removeServiceSidecars(s, true); err != nil {
+			a.logger.Printf("[ERR] consul: service registration: cleanup: failed remove sidecars for %s: %s", s, err)
 		}
 	}
 
@@ -2546,6 +2602,10 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID.String())
 
 	// If any Sidecar services exist for the removed service ID, remove them too.
+	return a.removeServiceSidecars(serviceID, persist)
+}
+
+func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
 	var sidecarSID structs.ServiceID
 	sidecarSID.Init(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
@@ -2699,8 +2759,6 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			ttl.Start()
 			a.checkTTLs[cid] = ttl
-
-			a.logger.Printf("[DEBUG] ttl checks: %+v", a.checkTTLs)
 
 		case chkType.IsHTTP():
 			if existing, ok := a.checkHTTPs[cid]; ok {
@@ -3160,7 +3218,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 
 	// Check if the state has expired
 	if time.Now().Unix() >= p.Expires {
-		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", cid)
+		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", cid.String())
 		return a.purgeCheckState(cid)
 	}
 

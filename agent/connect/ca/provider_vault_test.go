@@ -305,11 +305,39 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
 		require.NoError(t, provider1.GenerateRoot())
 
-		provider2, testVault2 := testVaultProviderWithConfig(t, false, nil)
+		// Ensure that we don't configure vault to try and mint leafs that
+		// outlive their CA during the test (which hard fails in vault).
+		intermediateCertTTL := getIntermediateCertTTL(t, conf)
+		leafCertTTL := intermediateCertTTL - 4*time.Hour
+
+		overrideConf := map[string]interface{}{
+			"LeafCertTTL": []uint8(leafCertTTL.String()),
+		}
+
+		provider2, testVault2 := testVaultProviderWithConfig(t, false, overrideConf)
 		defer testVault2.Stop()
 
 		testSignIntermediateCrossDC(t, provider1, provider2)
 	})
+}
+
+func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
+	t.Helper()
+
+	require.NotNil(t, caConf)
+	require.NotNil(t, caConf.Config)
+
+	iface, ok := caConf.Config["IntermediateCertTTL"]
+	require.True(t, ok)
+
+	ttlBytes, ok := iface.([]uint8)
+	require.True(t, ok)
+
+	ttlString := string(ttlBytes)
+
+	dur, err := time.ParseDuration(ttlString)
+	require.NoError(t, err)
+	return dur
 }
 
 func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {

@@ -5,42 +5,123 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestIntentionGetACLPrefix(t *testing.T) {
-	cases := []struct {
-		Name     string
-		Input    *Intention
-		Expected string
-	}{
-		{
-			"unset name",
-			&Intention{DestinationName: ""},
-			"",
-		},
+func TestIntention_ACLs(t *testing.T) {
+	t.Parallel()
+	type testCase struct {
+		intention Intention
+		rules     string
+		read      bool
+		write     bool
+	}
 
-		{
-			"set name",
-			&Intention{DestinationName: "fo"},
-			"fo",
+	cases := map[string]testCase{
+		"all-denied": testCase{
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "web",
+				DestinationNS:   "default",
+				DestinationName: "api",
+			},
+			read:  false,
+			write: false,
+		},
+		"deny-write-read-dest": testCase{
+			rules: `service "api" { policy = "deny" intentions = "read" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "web",
+				DestinationNS:   "default",
+				DestinationName: "api",
+			},
+			read:  true,
+			write: false,
+		},
+		"deny-write-read-source": testCase{
+			rules: `service "web" { policy = "deny" intentions = "read" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "web",
+				DestinationNS:   "default",
+				DestinationName: "api",
+			},
+			read:  true,
+			write: false,
+		},
+		"allow-write-with-dest-write": testCase{
+			rules: `service "api" { policy = "deny" intentions = "write" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "web",
+				DestinationNS:   "default",
+				DestinationName: "api",
+			},
+			read:  true,
+			write: true,
+		},
+		"deny-write-with-source-write": testCase{
+			rules: `service "web" { policy = "deny" intentions = "write" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "web",
+				DestinationNS:   "default",
+				DestinationName: "api",
+			},
+			read:  true,
+			write: false,
+		},
+		"deny-wildcard-write-allow-read": testCase{
+			rules: `service "*" { policy = "deny" intentions = "write" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "*",
+			},
+			// technically having been granted read/write on any intention will allow
+			// read access for this rule
+			read:  true,
+			write: false,
+		},
+		"allow-wildcard-write": testCase{
+			rules: `service_prefix "" { policy = "deny" intentions = "write" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "*",
+			},
+			read:  true,
+			write: true,
+		},
+		"allow-wildcard-read": testCase{
+			rules: `service "foo" { policy = "deny" intentions = "read" }`,
+			intention: Intention{
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "*",
+			},
+			read:  true,
+			write: false,
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.Name, func(t *testing.T) {
-			actual, ok := tc.Input.GetACLPrefix()
-			if tc.Expected == "" {
-				if !ok {
-					return
-				}
+	config := acl.Config{
+		WildcardName: WildcardSpecifier,
+	}
 
-				t.Fatal("should not be ok")
-			}
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			authz, err := acl.NewAuthorizerFromRules("", 0, tcase.rules, acl.SyntaxCurrent, &config, nil)
+			require.NoError(t, err)
 
-			if actual != tc.Expected {
-				t.Fatalf("bad: %q", actual)
-			}
+			require.Equal(t, tcase.read, tcase.intention.CanRead(authz))
+			require.Equal(t, tcase.write, tcase.intention.CanWrite(authz))
 		})
 	}
 }

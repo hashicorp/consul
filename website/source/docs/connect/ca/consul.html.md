@@ -73,7 +73,8 @@ $ curl localhost:8500/v1/connect/ca/configuration
     "Provider": "consul",
     "Config": {
         "LeafCertTTL": "72h",
-        "RotationPeriod": "2160h"
+        "RotationPeriod": "2160h",
+        "IntermediateCertTTL": "8760h"
     },
     "CreateIndex": 5,
     "ModifyIndex": 5
@@ -106,7 +107,8 @@ $ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
         "LeafCertTTL": "72h",
         "PrivateKey": $key,
         "RootCert": $cert,
-        "RotationPeriod": "2160h"
+        "RotationPeriod": "2160h",
+        "IntermediateCertTTL": "8760h"
     }
 }' > ca_config.json
 ```
@@ -121,7 +123,8 @@ $ cat ca_config.json
     "LeafCertTTL": "72h",
     "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEArqiy1c3pbT3cSkjdEM1APALUareU...",
     "RootCert": "-----BEGIN CERTIFICATE-----\nMIIDijCCAnKgAwIBAgIJAOFZ66em1qC7MA0GCSqGSIb3...",
-    "RotationPeriod": "2160h"
+    "RotationPeriod": "2160h",
+    "IntermediateCertTTL": "8760h"
   }
 }
 

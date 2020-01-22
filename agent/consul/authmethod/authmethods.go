@@ -39,8 +39,9 @@ type Validator interface {
 	// continue to extend the life of the underlying token.
 	//
 	// Returns auth method specific metadata suitable for the Role Binding
-	// process.
-	ValidateLogin(loginToken string) (map[string]string, error)
+	// process as well as the desired enterprise meta for the token to be
+	// created.
+	ValidateLogin(loginToken string) (map[string]string, *structs.EnterpriseMeta, error)
 
 	// AvailableFields returns a slice of all fields that are returned as a
 	// result of ValidateLogin. These are valid fields for use in any

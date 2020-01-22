@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-msgpack/codec"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -226,6 +227,9 @@ type ACLToken struct {
 
 	// AuthMethod is the name of the auth method used to create this token.
 	AuthMethod string `json:",omitempty"`
+
+	// ACLAuthMethodEnterpriseMeta is the EnterpriseMeta for the AuthMethod that this token was created from
+	ACLAuthMethodEnterpriseMeta
 
 	// ExpirationTime represents the point after which a token should be
 	// considered revoked and is eligible for destruction. The zero value
@@ -696,7 +700,7 @@ func (policies ACLPolicyListStubs) Sort() {
 	})
 }
 
-func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) ([]*acl.Policy, error) {
+func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Config) ([]*acl.Policy, error) {
 	// Parse the policies
 	parsed := make([]*acl.Policy, 0, len(policies))
 	for _, policy := range policies {
@@ -721,7 +725,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Ente
 	return parsed, nil
 }
 
-func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.Config) (acl.Authorizer, error) {
 	// Determine the cache key
 	cacheKey := policies.HashKey()
 	entry := cache.GetAuthorizer(cacheKey)
@@ -746,7 +750,7 @@ func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.EnterpriseACL
 	return authorizer, nil
 }
 
-func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.EnterpriseACLConfig) (*acl.Policy, error) {
+func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.Config) (*acl.Policy, error) {
 	parsed, err := policies.resolveWithCache(cache, entConf)
 	if err != nil {
 		return nil, err
@@ -1044,6 +1048,49 @@ type ACLAuthMethod struct {
 	RaftIndex `hash:"ignore"`
 }
 
+// MarshalBinary writes ACLAuthMethod as msgpack encoded. It's only here
+// because we need custom decoding of the raw interface{} values and this
+// completes the interface.
+func (m *ACLAuthMethod) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 256)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	type Alias ACLAuthMethod
+
+	if err := enc.Encode((*Alias)(m)); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+// UnmarshalBinary decodes msgpack encoded ACLAuthMethod. It used
+// default msgpack encoding but fixes up the uint8 strings and other problems we
+// have with encoding map[string]interface{}.
+func (m *ACLAuthMethod) UnmarshalBinary(data []byte) error {
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+
+	type Alias ACLAuthMethod
+	var a Alias
+
+	if err := dec.Decode(&a); err != nil {
+		return err
+	}
+
+	*m = ACLAuthMethod(a)
+
+	var err error
+
+	// Fix strings and maps in the returned maps
+	m.Config, err = lib.MapWalk(m.Config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type ACLReplicationType string
 
 const (
@@ -1128,6 +1175,7 @@ type ACLTokenListRequest struct {
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
 	Datacenter    string // The datacenter to perform the request within
+	ACLAuthMethodEnterpriseMeta
 	EnterpriseMeta
 	QueryOptions
 }
@@ -1590,7 +1638,7 @@ func (r *RemoteACLAuthorizationRequest) RequestDatacenter() string {
 
 func CreateACLAuthorizationResponses(authz acl.Authorizer, requests []ACLAuthorizationRequest) ([]ACLAuthorizationResponse, error) {
 	responses := make([]ACLAuthorizationResponse, len(requests))
-	var ctx acl.EnterpriseAuthorizerContext
+	var ctx acl.AuthorizerContext
 
 	for idx, req := range requests {
 		req.FillAuthzContext(&ctx)

@@ -423,6 +423,27 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 	})
 }
 
+// WaitForActiveCARoot waits until the server can return a Connect CA meaning
+// connect has completed bootstrapping and is ready to use.
+func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/agent/connect/ca/roots")
+		resp, err := s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatalf("failed http get '%s': %v", url, err)
+		}
+		defer resp.Body.Close()
+		// Roots will return an error status until it's been bootstrapped. We could
+		// parse the body and sanity check but that causes either import cycles
+		// since this is used in both `api` and consul test or duplication. The 200
+		// is all we really need to wait for.
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+	})
+}
+
 // WaitForSerfCheck ensures we have a node with serfHealth check registered
 // Behavior mirrors testrpc.WaitForTestAgent but avoids the dependency cycle in api pkg
 func (s *TestServer) WaitForSerfCheck(t *testing.T) {

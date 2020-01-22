@@ -18,8 +18,13 @@
   font-weight: $typo-weight-bold;
 }
 %h2,
-%h3 {
+%h3,
+%h4 {
   font-weight: $typo-weight-semibold;
+}
+%h5,
+%h6 {
+  font-weight: $typo-weight-medium;
 }
 %h1 {
   font-size: $typo-size-100;
@@ -29,6 +34,15 @@
 }
 %h3 {
   font-size: $typo-size-300;
+}
+/*p1 strong, differing weights */
+%h4,
+%h5 {
+  font-size: $typo-size-600;
+}
+/*p2 strong */
+%h6 {
+  font-size: $typo-size-700;
 }
 %typo-p {
   line-height: inherit;

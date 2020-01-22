@@ -47,7 +47,7 @@ type TestACLAgent struct {
 	// Shutdown() is called.
 	DataDir string
 
-	resolveTokenFn func(string) (acl.Authorizer, error)
+	resolveTokenFn func(string) (structs.ACLIdentity, acl.Authorizer, error)
 
 	*Agent
 }
@@ -55,7 +55,7 @@ type TestACLAgent struct {
 // NewTestACLAGent does just enough so that all the code within agent/acl.go can work
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
 // The key is that we are the delegate so we can control the ResolveToken responses
-func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(string) (acl.Authorizer, error)) *TestACLAgent {
+func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(string) (structs.ACLIdentity, acl.Authorizer, error)) *TestACLAgent {
 	a := &TestACLAgent{Name: name, HCL: hcl, resolveTokenFn: resolveFn}
 	hclDataDir := `data_dir = "acl-agent"`
 
@@ -98,7 +98,36 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 		panic("This agent is useless without providing a token resolution function")
 	}
 
+	_, authz, err := a.resolveTokenFn(secretID)
+	return authz, err
+}
+
+func (a *TestACLAgent) ResolveTokenToIdentityAndAuthorizer(secretID string) (structs.ACLIdentity, acl.Authorizer, error) {
+	if a.resolveTokenFn == nil {
+		panic("This agent is useless without providing a token resolution function")
+	}
+
 	return a.resolveTokenFn(secretID)
+}
+
+func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := a.ResolveTokenToIdentityAndAuthorizer(secretID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
 }
 
 // All of these are stubs to satisfy the interface
@@ -150,9 +179,9 @@ func TestACL_Version8(t *testing.T) {
 	t.Parallel()
 
 	t.Run("version 8 disabled", func(t *testing.T) {
-		resolveFn := func(string) (acl.Authorizer, error) {
+		resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
 			require.Fail(t, "should not have called delegate.ResolveToken")
-			return nil, fmt.Errorf("should not have called delegate.ResolveToken")
+			return nil, nil, fmt.Errorf("should not have called delegate.ResolveToken")
 		}
 
 		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
@@ -166,9 +195,9 @@ func TestACL_Version8(t *testing.T) {
 
 	t.Run("version 8 enabled", func(t *testing.T) {
 		called := false
-		resolveFn := func(string) (acl.Authorizer, error) {
+		resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
 			called = true
-			return nil, acl.ErrNotFound
+			return nil, nil, acl.ErrNotFound
 		}
 		a := NewTestACLAgent(t, t.Name(), TestACLConfig()+`
  		acl_enforce_version_8 = true
@@ -183,9 +212,9 @@ func TestACL_Version8(t *testing.T) {
 func TestACL_AgentMasterToken(t *testing.T) {
 	t.Parallel()
 
-	resolveFn := func(string) (acl.Authorizer, error) {
+	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
 		require.Fail(t, "should not have called delegate.ResolveToken")
-		return nil, fmt.Errorf("should not have called delegate.ResolveToken")
+		return nil, nil, fmt.Errorf("should not have called delegate.ResolveToken")
 	}
 
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
@@ -203,9 +232,9 @@ func TestACL_AgentMasterToken(t *testing.T) {
 func TestACL_RootAuthorizersDenied(t *testing.T) {
 	t.Parallel()
 
-	resolveFn := func(string) (acl.Authorizer, error) {
+	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
 		require.Fail(t, "should not have called delegate.ResolveToken")
-		return nil, fmt.Errorf("should not have called delegate.ResolveToken")
+		return nil, nil, fmt.Errorf("should not have called delegate.ResolveToken")
 	}
 
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn)
@@ -223,58 +252,76 @@ func TestACL_RootAuthorizersDenied(t *testing.T) {
 	require.True(t, acl.IsErrRootDenied(err))
 }
 
-func authzFromPolicy(policy *acl.Policy, cfg *acl.EnterpriseACLConfig) (acl.Authorizer, error) {
+func authzFromPolicy(policy *acl.Policy, cfg *acl.Config) (acl.Authorizer, error) {
 	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 
-// catalogPolicy supplies some standard policies to help with testing the
-// catalog-related vet and filter functions.
-func catalogPolicy(token string) (acl.Authorizer, error) {
-	switch token {
+type testToken struct {
+	token structs.ACLToken
+	// yes the rules can exist on the token itself but that is legacy behavior
+	// that I would prefer these tests not rely on
+	rules string
+}
 
-	case "node-ro":
-		return authzFromPolicy(&acl.Policy{
-			PolicyRules: acl.PolicyRules{
-				NodePrefixes: []*acl.NodeRule{
-					&acl.NodeRule{Name: "Node", Policy: "read"},
-				},
+var (
+	nodeROSecret    = "7e80d017-bccc-492f-8dec-65f03aeaebf3"
+	nodeRWSecret    = "e3586ee5-02a2-4bf4-9ec3-9c4be7606e8c"
+	serviceROSecret = "3d2c8552-df3b-4da7-9890-36885cbf56ac"
+	serviceRWSecret = "4a1017a2-f788-4be3-93f2-90566f1340bb"
+	otherRWSecret   = "a38e8016-91b6-4876-b3e7-a307abbb2002"
+
+	testTokens = map[string]testToken{
+		nodeROSecret: testToken{
+			token: structs.ACLToken{
+				AccessorID: "9df2d1a4-2d07-414e-8ead-6053f56ed2eb",
+				SecretID:   nodeROSecret,
 			},
-		}, nil)
-	case "node-rw":
-		return authzFromPolicy(&acl.Policy{
-			PolicyRules: acl.PolicyRules{
-				NodePrefixes: []*acl.NodeRule{
-					&acl.NodeRule{Name: "Node", Policy: "write"},
-				},
+			rules: `node_prefix "Node" { policy = "read" }`,
+		},
+		nodeRWSecret: testToken{
+			token: structs.ACLToken{
+				AccessorID: "efb6b7d5-d343-47c1-b4cb-aa6b94d2f490",
+				SecretID:   nodeROSecret,
 			},
-		}, nil)
-	case "service-ro":
-		return authzFromPolicy(&acl.Policy{
-			PolicyRules: acl.PolicyRules{
-				ServicePrefixes: []*acl.ServiceRule{
-					&acl.ServiceRule{Name: "service", Policy: "read"},
-				},
+			rules: `node_prefix "Node" { policy = "write" }`,
+		},
+		serviceROSecret: testToken{
+			token: structs.ACLToken{
+				AccessorID: "0da53edb-36e5-4603-9c31-79965bad45f5",
+				SecretID:   serviceROSecret,
 			},
-		}, nil)
-	case "service-rw":
-		return authzFromPolicy(&acl.Policy{
-			PolicyRules: acl.PolicyRules{
-				ServicePrefixes: []*acl.ServiceRule{
-					&acl.ServiceRule{Name: "service", Policy: "write"},
-				},
+			rules: `service_prefix "service" { policy = "read" }`,
+		},
+		serviceRWSecret: testToken{
+			token: structs.ACLToken{
+				AccessorID: "52504258-137a-41e6-9326-01f40e80872e",
+				SecretID:   serviceRWSecret,
 			},
-		}, nil)
-	case "other-rw":
-		return authzFromPolicy(&acl.Policy{
-			PolicyRules: acl.PolicyRules{
-				ServicePrefixes: []*acl.ServiceRule{
-					&acl.ServiceRule{Name: "other", Policy: "write"},
-				},
+			rules: `service_prefix "service" { policy = "write" }`,
+		},
+		otherRWSecret: testToken{
+			token: structs.ACLToken{
+				AccessorID: "5e032c5b-c39e-4552-b5ad-8a9365b099c4",
+				SecretID:   otherRWSecret,
 			},
-		}, nil)
-	default:
-		return nil, fmt.Errorf("unknown token %q", token)
+			rules: `service_prefix "other" { policy = "write" }`,
+		},
 	}
+)
+
+func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	tok, ok := testTokens[token]
+	if !ok {
+		return nil, nil, acl.ErrNotFound
+	}
+
+	policy, err := acl.NewPolicyFromSource("", 0, tok.rules, acl.SyntaxCurrent, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	authz, err := authzFromPolicy(policy, nil)
+	return &tok.token, authz, err
 }
 
 func TestACL_vetServiceRegister(t *testing.T) {
@@ -282,14 +329,14 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Register a new service, with permission.
-	err := a.vetServiceRegister("service-rw", &structs.NodeService{
+	err := a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	})
 	require.NoError(t, err)
 
 	// Register a new service without write privs.
-	err = a.vetServiceRegister("service-ro", &structs.NodeService{
+	err = a.vetServiceRegister(serviceROSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	})
@@ -301,7 +348,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 		ID:      "my-service",
 		Service: "other",
 	}, "")
-	err = a.vetServiceRegister("service-rw", &structs.NodeService{
+	err = a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
 	})
@@ -313,7 +360,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a service that doesn't exist.
-	err := a.vetServiceUpdate("service-rw", structs.NewServiceID("my-service", nil))
+	err := a.vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Unknown service")
 
@@ -322,11 +369,11 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 		ID:      "my-service",
 		Service: "service",
 	}, "")
-	err = a.vetServiceUpdate("service-rw", structs.NewServiceID("my-service", nil))
+	err = a.vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
 	// Update without write privs.
-	err = a.vetServiceUpdate("service-ro", structs.NewServiceID("my-service", nil))
+	err = a.vetServiceUpdate(serviceROSecret, structs.NewServiceID("my-service", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
@@ -336,7 +383,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Register a new service check with write privs.
-	err := a.vetCheckRegister("service-rw", &structs.HealthCheck{
+	err := a.vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -344,7 +391,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register a new service check without write privs.
-	err = a.vetCheckRegister("service-ro", &structs.HealthCheck{
+	err = a.vetCheckRegister(serviceROSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -353,13 +400,13 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	require.True(t, acl.IsErrPermissionDenied(err))
 
 	// Register a new node check with write privs.
-	err = a.vetCheckRegister("node-rw", &structs.HealthCheck{
+	err = a.vetCheckRegister(nodeRWSecret, &structs.HealthCheck{
 		CheckID: types.CheckID("my-check"),
 	})
 	require.NoError(t, err)
 
 	// Register a new node check without write privs.
-	err = a.vetCheckRegister("node-ro", &structs.HealthCheck{
+	err = a.vetCheckRegister(nodeROSecret, &structs.HealthCheck{
 		CheckID: types.CheckID("my-check"),
 	})
 	require.Error(t, err)
@@ -376,7 +423,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 		ServiceID:   "my-service",
 		ServiceName: "other",
 	}, "")
-	err = a.vetCheckRegister("service-rw", &structs.HealthCheck{
+	err = a.vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -388,7 +435,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
 	}, "")
-	err = a.vetCheckRegister("service-rw", &structs.HealthCheck{
+	err = a.vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-node-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
@@ -402,7 +449,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	// Update a check that doesn't exist.
-	err := a.vetCheckUpdate("node-rw", structs.NewCheckID("my-check", nil))
+	err := a.vetCheckUpdate(nodeRWSecret, structs.NewCheckID("my-check", nil))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Unknown check")
 
@@ -416,11 +463,11 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 		ServiceID:   "my-service",
 		ServiceName: "service",
 	}, "")
-	err = a.vetCheckUpdate("service-rw", structs.NewCheckID("my-service-check", nil))
+	err = a.vetCheckUpdate(serviceRWSecret, structs.NewCheckID("my-service-check", nil))
 	require.NoError(t, err)
 
 	// Update service check without write privs.
-	err = a.vetCheckUpdate("service-ro", structs.NewCheckID("my-service-check", nil))
+	err = a.vetCheckUpdate(serviceROSecret, structs.NewCheckID("my-service-check", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err), "not permission denied: %s", err.Error())
 
@@ -428,11 +475,11 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
 	}, "")
-	err = a.vetCheckUpdate("node-rw", structs.NewCheckID("my-node-check", nil))
+	err = a.vetCheckUpdate(nodeRWSecret, structs.NewCheckID("my-node-check", nil))
 	require.NoError(t, err)
 
 	// Update without write privs.
-	err = a.vetCheckUpdate("node-ro", structs.NewCheckID("my-node-check", nil))
+	err = a.vetCheckUpdate(nodeROSecret, structs.NewCheckID("my-node-check", nil))
 	require.Error(t, err)
 	require.True(t, acl.IsErrPermissionDenied(err))
 }
@@ -442,7 +489,7 @@ func TestACL_filterMembers(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	var members []serf.Member
-	require.NoError(t, a.filterMembers("node-ro", &members))
+	require.NoError(t, a.filterMembers(nodeROSecret, &members))
 	require.Len(t, members, 0)
 
 	members = []serf.Member{
@@ -450,7 +497,7 @@ func TestACL_filterMembers(t *testing.T) {
 		serf.Member{Name: "Nope"},
 		serf.Member{Name: "Node 2"},
 	}
-	require.NoError(t, a.filterMembers("node-ro", &members))
+	require.NoError(t, a.filterMembers(nodeROSecret, &members))
 	require.Len(t, members, 2)
 	require.Equal(t, members[0].Name, "Node 1")
 	require.Equal(t, members[1].Name, "Node 2")
@@ -461,11 +508,11 @@ func TestACL_filterServices(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	services := make(map[structs.ServiceID]*structs.NodeService)
-	require.NoError(t, a.filterServices("node-ro", &services))
+	require.NoError(t, a.filterServices(nodeROSecret, &services))
 
 	services[structs.NewServiceID("my-service", nil)] = &structs.NodeService{ID: "my-service", Service: "service"}
 	services[structs.NewServiceID("my-other", nil)] = &structs.NodeService{ID: "my-other", Service: "other"}
-	require.NoError(t, a.filterServices("service-ro", &services))
+	require.NoError(t, a.filterServices(serviceROSecret, &services))
 	require.Contains(t, services, structs.NewServiceID("my-service", nil))
 	require.NotContains(t, services, structs.NewServiceID("my-other", nil))
 }
@@ -475,12 +522,12 @@ func TestACL_filterChecks(t *testing.T) {
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy)
 
 	checks := make(map[structs.CheckID]*structs.HealthCheck)
-	require.NoError(t, a.filterChecks("node-ro", &checks))
+	require.NoError(t, a.filterChecks(nodeROSecret, &checks))
 
 	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
 	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
 	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
-	require.NoError(t, a.filterChecks("service-ro", &checks))
+	require.NoError(t, a.filterChecks(serviceROSecret, &checks))
 	_, ok := checks[structs.NewCheckID("my-node", nil)]
 	require.False(t, ok)
 	_, ok = checks[structs.NewCheckID("my-service", nil)]
@@ -491,7 +538,7 @@ func TestACL_filterChecks(t *testing.T) {
 	checks[structs.NewCheckID("my-node", nil)] = &structs.HealthCheck{}
 	checks[structs.NewCheckID("my-service", nil)] = &structs.HealthCheck{ServiceName: "service"}
 	checks[structs.NewCheckID("my-other", nil)] = &structs.HealthCheck{ServiceName: "other"}
-	require.NoError(t, a.filterChecks("node-ro", &checks))
+	require.NoError(t, a.filterChecks(nodeROSecret, &checks))
 	_, ok = checks[structs.NewCheckID("my-node", nil)]
 	require.True(t, ok)
 	_, ok = checks[structs.NewCheckID("my-service", nil)]

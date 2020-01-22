@@ -213,6 +213,30 @@ func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
 	return s.acls.ResolveToken(token)
 }
 
+func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	return s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+}
+
+func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
+}
+
 func (s *Server) filterACL(token string, subj interface{}) error {
 	return s.acls.filterACL(token, subj)
 }

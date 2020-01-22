@@ -24,7 +24,7 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) {
 			r.Fatalf("No leader")
 		}
 		if out.Index < 2 {
-			r.Fatalf("Consul index should be at least 2")
+			r.Fatalf("Consul index should be at least 2 in %s", dc)
 		}
 	})
 }

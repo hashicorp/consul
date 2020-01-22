@@ -1,129 +1,110 @@
-%button {
-  font-family: $typo-family-sans;
+body,
+%form-element-text-input {
+  @extend %typo-body;
 }
-main p:not(:last-child),
-%modal-window p:not(:last-child) {
-  margin-bottom: 1em;
+h1 {
+  @extend %h1;
+  font-size: $typo-header-100;
 }
+h2 {
+  @extend %h2;
+  font-size: $typo-header-200;
+}
+h3 {
+  @extend %h3;
+  font-size: $typo-header-300;
+}
+fieldset > header,
+%main-nav-horizontal-action,
+%app-view-content div > dl > dt,
+%table caption,
+%tbody-th,
+%form-element > span {
+  @extend %h4;
+}
+%internal-button,
+%breadcrumbs li > *,
+%tab-nav {
+  @extend %h5;
+}
+%healthcheck-output dt,
+%table th,
+%table td strong,
+%tooltip-bubble,
+%sliding-toggle label span {
+  @extend %h6;
+}
+
+pre code,
+%notice,
+%notice p,
+%flash-message p,
+%filter-bar input,
+%phrase-editor input {
+  @extend %p1;
+}
+.type-dialog,
+%table td p,
+%table td,
+%healthcheck-output dl > dd,
+%form-element-label,
+%stats-card header a span,
+%footer,
+%main-nav-horizontal-drop-nav > div,
+%app-view h1 span.kind-proxy {
+  @extend %p2;
+}
+.template-error > div,
 %button,
-%form-element textarea,
-%form-element [type='text'],
-%form-element [type='password'] {
-  line-height: 1.5;
+%main-content p,
+%app-view > div.disabled > div,
+%form-element-note,
+%main-nav-horizontal-drop-nav-separator,
+%form-element-error > strong {
+  @extend %p3;
 }
-h3,
+
 %radio-group label {
-  line-height: 1.25;
+  line-height: $typo-lead-200;
 }
-%filter-bar [role='radiogroup'] label {
-  line-height: 1.7;
-}
-%header-nav,
 %tab-nav {
   letter-spacing: 0.03em;
 }
-%footer {
-  letter-spacing: -0.05em;
-}
 
+/*TODO: See if we can collapse these into a */
+/* strong %p3 */
 %button {
-  font-family: $typo-family-sans;
-}
-/* Weighting */
-h1,
-%app-content div > dt,
-%header-drop-nav .is-active {
-  font-weight: $typo-weight-bold;
-}
-h2,
-h3,
-fieldset > header,
-caption,
-%header-nav,
-%healthcheck-output dt,
-%copy-button,
-%app-content div > dl > dt,
-%tbody-th,
-%form-element > span,
-%toggle label span {
   font-weight: $typo-weight-semibold;
 }
-%button {
-  font-weight: $typo-weight-semibold !important;
+%route-card section dt,
+%route-card header:not(.short) dd,
+%splitter-card > header {
+  font-weight: $typo-weight-bold;
 }
-main label a[rel*='help'],
-%pill,
-%tbody-th em,
-%form-element > strong,
-%app-view h1 em {
-  font-weight: $typo-weight-normal;
-}
-th,
-td strong,
-%breadcrumbs li > *,
-%action-group-action,
-%tab-nav,
-%tooltip-bubble {
+%main-nav-horizontal-drop-nav-separator {
   font-weight: $typo-weight-medium;
 }
+/**/
 
-/* Styling */
+/* resets */
+%main-content label a[rel*='help'],
+%pill,
+%form-element > strong,
+%tbody-th em,
+%app-view h1 em,
+%route-card header dt {
+  font-weight: $typo-weight-normal;
+}
+
 %form-element > em,
 %tbody-th em,
 %app-view h1 em {
   font-style: normal;
 }
+/**/
 
-/* Sizing */
-%footer > * {
-  font-size: inherit;
-}
-
-h1 {
-  font-size: $typo-header-100;
-}
-h2 {
-  font-size: $typo-header-200;
-}
-h3 {
-  font-size: $typo-header-300;
-}
-%header-drop-nav .is-active,
+/* TODO: We have nothing else with a 500 */
+/* either make this the biggest %p or don't use it */
 %app-view h1 em {
   font-size: $typo-size-500;
-}
-body,
-pre code,
-input,
-textarea,
-%action-group-action,
-%tbody-th {
-  font-size: $typo-size-600;
-}
-th,
-td,
-caption,
-.type-dialog,
-%healthcheck-output dl > *,
-%form-element > span,
-%tooltip-bubble,
-%stats-card header a span,
-%footer,
-%app-view h1 span.kind-proxy {
-  font-size: $typo-size-700;
-}
-%toggle label span {
-  font-size: $typo-size-700 !important;
-}
-fieldset > p,
-.template-error > div,
-[role='tabpanel'] > p:only-child,
-.with-confirmation p,
-%app-content > p:only-child,
-%app-view > div.disabled > div,
-%button,
-%form-element > em,
-%form-element > strong,
-%feedback-dialog-inline p {
-  font-size: $typo-size-800;
 }

@@ -1,20 +1,27 @@
 import Adapter from './application';
+// TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
-  requestForQuery: function(request, { dc, index }) {
+  requestForQuery: function(request, { dc, ns, index }) {
     return request`
       GET /v1/internal/ui/services?${{ dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
-  requestForQueryRecord: function(request, { dc, index, id }) {
+  requestForQueryRecord: function(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
       GET /v1/health/service/${id}?${{ dc }}
 
-      ${{ index }}
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
     `;
   },
 });

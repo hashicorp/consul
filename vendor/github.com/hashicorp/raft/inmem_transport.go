@@ -24,7 +24,7 @@ type inmemPipeline struct {
 
 	shutdown     bool
 	shutdownCh   chan struct{}
-	shutdownLock sync.Mutex
+	shutdownLock sync.RWMutex
 }
 
 type inmemPipelineInflight struct {
@@ -314,6 +314,17 @@ func (i *inmemPipeline) AppendEntries(args *AppendEntriesRequest, resp *AppendEn
 		Command:  args,
 		RespChan: respCh,
 	}
+
+	// Check if we have been already shutdown, otherwise the random choose
+	// made by select statement below might pick consumerCh even if
+	// shutdownCh was closed.
+	i.shutdownLock.RLock()
+	shutdown := i.shutdown
+	i.shutdownLock.RUnlock()
+	if shutdown {
+		return nil, ErrPipelineShutdown
+	}
+
 	select {
 	case i.peer.consumerCh <- rpc:
 	case <-timeout:

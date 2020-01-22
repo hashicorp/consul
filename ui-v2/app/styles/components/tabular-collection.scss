@@ -72,6 +72,12 @@ table.has-actions tr > *:nth-last-child(5):first-child ~ * {
 html.template-service.template-list main table tr {
   @extend %services-row;
 }
+html.template-nspace.has-acls.template-list main table tr {
+  @extend %with-acls-nspaces-row;
+}
+html.template-nspace:not(.has-acls).template-list main table tr {
+  @extend %nspaces-row;
+}
 html.template-service.template-show #instances table tr {
   @extend %instances-row;
 }
@@ -95,6 +101,9 @@ html.template-token.template-list main table tr th {
 html.template-node.template-show main table.sessions tr {
   @extend %node-sessions-row;
 }
+html.template-instance.template-show main table.exposedpaths tr {
+  @extend %instance-paths-row;
+}
 // this will get auto calculated later in tabular-collection.js
 // keeping this here for reference
 // %services-row > * {
@@ -109,6 +118,22 @@ html.template-node.template-show main table.sessions tr {
 }
 %instances-row > * {
   width: calc(100% / 5);
+}
+// instance-paths are for exposed paths
+// we make the columns that need as much space as possible
+// as wide as possible so 50% each minus enough room
+// for the 3 port columns - we probably need a max of 55px
+// for each port column so 55 * 3 = 165
+// so column 1 and 5 are 50% - 165 each
+// the 3 remaining columns split the 165 thats left between them
+%instance-paths-row > *:nth-child(1),
+%instance-paths-row > *:nth-child(5) {
+  width: calc(50% - 165px) !important;
+}
+%instance-paths-row > *:nth-child(2),
+%instance-paths-row > *:nth-child(3),
+%instance-paths-row > *:nth-child(4) {
+  width: 110px !important;
 }
 %tokens-row > *:first-child,
 %tokens-minimal-row > *:not(last-child),
@@ -133,11 +158,20 @@ html.template-node.template-show main table.sessions tr {
 }
 
 %roles-row > *:nth-child(1),
-%roles-row > *:nth-child(2) {
+%roles-row > *:nth-child(2),
+%with-acls-nspaces-row > *:nth-child(1),
+%with-acls-nspaces-row > *:nth-child(2) {
   width: calc(22% - 20px) !important;
 }
+%with-acls-nspaces-row > *:nth-child(3),
 %roles-row > *:nth-child(3) {
   width: calc(56% - 20px) !important;
+}
+%nspaces-row > *:nth-child(1) {
+  width: 30%;
+}
+%nspaces-row > *:nth-child(2) {
+  width: calc(70% - 60px);
 }
 
 @media #{$--horizontal-session-list} {

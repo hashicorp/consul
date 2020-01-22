@@ -114,7 +114,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 		}
 
 		// Validate the rules compile
-		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.enterpriseACLConfig, nil)
+		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.aclConfig, nil)
 		if err != nil {
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}
@@ -262,7 +262,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "", nil)
+			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "", nil, nil)
 			if err != nil {
 				return err
 			}

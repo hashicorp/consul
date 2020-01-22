@@ -16,10 +16,6 @@ import (
 )
 
 const (
-	// blockSize is the size of the allocated port block. ports are given out
-	// consecutively from that block and after that point in a LRU fashion.
-	blockSize = 1500
-
 	// maxBlocks is the number of available port blocks before exclusions.
 	maxBlocks = 30
 
@@ -32,6 +28,10 @@ const (
 )
 
 var (
+	// blockSize is the size of the allocated port block. ports are given out
+	// consecutively from that block and after that point in a LRU fashion.
+	blockSize int
+
 	// effectiveMaxBlocks is the number of available port blocks.
 	// lowPort + effectiveMaxBlocks * blockSize must be less than 65535.
 	effectiveMaxBlocks int
@@ -71,6 +71,17 @@ var (
 // initialize is used to initialize freeport.
 func initialize() {
 	var err error
+
+	blockSize = 1500
+	limit, err := systemLimit()
+	if err != nil {
+		panic("freeport: error getting system limit: " + err.Error())
+	}
+	if limit > 0 && limit < blockSize {
+		logf("INFO", "blockSize %d too big for system limit %d. Adjusting...", blockSize, limit)
+		blockSize = limit - 3
+	}
+
 	effectiveMaxBlocks, err = adjustMaxBlocks()
 	if err != nil {
 		panic("freeport: ephemeral port range detection failed: " + err.Error())

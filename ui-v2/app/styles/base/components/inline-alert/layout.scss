@@ -1,0 +1,10 @@
+%inline-alert {
+  position: relative;
+  padding-left: 20px;
+}
+%inline-alert::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  margin-top: -8px;
+}

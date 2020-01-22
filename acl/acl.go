@@ -1,72 +1,32 @@
 package acl
 
-import (
-	"errors"
-	"strings"
-)
-
-// These error constants define the standard ACL error types. The values
-// must not be changed since the error values are sent via RPC calls
-// from older clients and may not have the correct type.
 const (
-	errNotFound         = "ACL not found"
-	errRootDenied       = "Cannot resolve root ACL"
-	errDisabled         = "ACL support disabled"
-	errPermissionDenied = "Permission denied"
-	errInvalidParent    = "Invalid Parent"
+	WildcardName = "*"
 )
 
-var (
-	// ErrNotFound indicates there is no matching ACL.
-	ErrNotFound = errors.New(errNotFound)
+// Config encapsualtes all of the generic configuration parameters used for
+// policy parsing and enforcement
+type Config struct {
+	// WildcardName is the string that represents a request to authorize a wildcard permission
+	WildcardName string
 
-	// ErrRootDenied is returned when attempting to resolve a root ACL.
-	ErrRootDenied = errors.New(errRootDenied)
-
-	// ErrDisabled is returned when ACL changes are not permitted since
-	// they are disabled.
-	ErrDisabled = errors.New(errDisabled)
-
-	// ErrPermissionDenied is returned when an ACL based rejection
-	// happens.
-	ErrPermissionDenied = PermissionDeniedError{}
-
-	// ErrInvalidParent is returned when a remotely resolve ACL
-	// token claims to have a non-root parent
-	ErrInvalidParent = errors.New(errInvalidParent)
-)
-
-// IsErrNotFound checks if the given error message is comparable to
-// ErrNotFound.
-func IsErrNotFound(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errNotFound)
+	// embedded enterprise configuration
+	EnterpriseConfig
 }
 
-// IsErrRootDenied checks if the given error message is comparable to
-// ErrRootDenied.
-func IsErrRootDenied(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errRootDenied)
-}
-
-// IsErrDisabled checks if the given error message is comparable to
-// ErrDisabled.
-func IsErrDisabled(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errDisabled)
-}
-
-// IsErrPermissionDenied checks if the given error message is comparable
-// to ErrPermissionDenied.
-func IsErrPermissionDenied(err error) bool {
-	return err != nil && strings.Contains(err.Error(), errPermissionDenied)
-}
-
-type PermissionDeniedError struct {
-	Cause string
-}
-
-func (e PermissionDeniedError) Error() string {
-	if e.Cause != "" {
-		return errPermissionDenied + ": " + e.Cause
+// GetWildcardName will retrieve the configured wildcard name or provide a default
+// in the case that the config is Nil or the wildcard name is unset.
+func (c *Config) GetWildcardName() string {
+	if c == nil || c.WildcardName == "" {
+		return WildcardName
 	}
-	return errPermissionDenied
+	return c.WildcardName
+}
+
+// Close will relinquish any resources this Config might be holding on to or
+// managing.
+func (c *Config) Close() {
+	if c != nil {
+		c.EnterpriseConfig.Close()
+	}
 }

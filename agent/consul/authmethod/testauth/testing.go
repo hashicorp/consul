@@ -80,6 +80,8 @@ func GetSessionToken(sessionID string, token string) (map[string]string, bool) {
 
 type Config struct {
 	SessionID string // unique identifier for this set of tokens in the database
+
+	enterpriseConfig `mapstructure:",squash"`
 }
 
 func newValidator(method *structs.ACLAuthMethod) (authmethod.Validator, error) {
@@ -120,13 +122,13 @@ func (v *Validator) Name() string { return v.name }
 // to extend the life of the underlying token.
 //
 // Returns auth method specific metadata suitable for the Role Binding process.
-func (v *Validator) ValidateLogin(loginToken string) (map[string]string, error) {
+func (v *Validator) ValidateLogin(loginToken string) (map[string]string, *structs.EnterpriseMeta, error) {
 	fields, valid := GetSessionToken(v.config.SessionID, loginToken)
 	if !valid {
-		return nil, acl.ErrNotFound
+		return nil, nil, acl.ErrNotFound
 	}
 
-	return fields, nil
+	return fields, v.testAuthEntMetaFromFields(fields), nil
 }
 
 func (v *Validator) AvailableFields() []string { return availableFields }

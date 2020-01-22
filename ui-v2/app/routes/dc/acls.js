@@ -1,13 +1,15 @@
 import Route from '@ember/routing/route';
 import { get } from '@ember/object';
+import { config } from 'consul-ui/env';
 import { inject as service } from '@ember/service';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 export default Route.extend(WithBlockingActions, {
+  router: service('router'),
   settings: service('settings'),
   feedback: service('feedback'),
   repo: service('repository/token'),
   actions: {
-    authorize: function(secret) {
+    authorize: function(secret, nspace) {
       const dc = this.modelFor('dc').dc.Name;
       return this.feedback.execute(() => {
         return this.repo.self(secret, dc).then(item => {
@@ -16,6 +18,7 @@ export default Route.extend(WithBlockingActions, {
               token: {
                 AccessorID: get(item, 'AccessorID'),
                 SecretID: secret,
+                Namespace: get(item, 'Namespace'),
               },
             })
             .then(item => {
@@ -29,7 +32,17 @@ export default Route.extend(WithBlockingActions, {
                   return false;
                 });
               } else {
-                this.refresh();
+                // TODO: Ideally we wouldn't need to use config() at a route level
+                // transitionTo should probably remove it instead if NSPACES aren't enabled
+                if (config('CONSUL_NSPACES_ENABLED') && get(item, 'token.Namespace') !== nspace) {
+                  let routeName = this.router.currentRouteName;
+                  if (!routeName.startsWith('nspace')) {
+                    routeName = `nspace.${routeName}`;
+                  }
+                  return this.transitionTo(`${routeName}`, `~${get(item, 'token.Namespace')}`, dc);
+                } else {
+                  this.refresh();
+                }
               }
             });
         });

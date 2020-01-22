@@ -108,6 +108,10 @@
   background-image: $check-plain-svg;
 }
 
+%with-check-plain-mask {
+  @extend %with-mask;
+  mask-image: $check-plain-svg;
+}
 %with-chevron-down-2-icon {
   @extend %with-icon;
   background-image: $chevron-down-2-svg;
@@ -117,7 +121,10 @@
   @extend %with-icon;
   background-image: $chevron-down-svg;
 }
-
+%with-chevron-down-mask {
+  @extend %with-mask;
+  mask-image: $chevron-down-svg;
+}
 %with-chevron-left-icon {
   @extend %with-icon;
   background-image: $chevron-left-svg;
@@ -131,6 +138,10 @@
 %with-chevron-up-icon {
   @extend %with-icon;
   background-image: $chevron-up-svg;
+}
+%with-chevron-up-mask {
+  @extend %with-mask;
+  mask-image: $chevron-up-svg;
 }
 
 %with-chevron-icon {
@@ -146,6 +157,11 @@
 %with-clock-outline-icon {
   @extend %with-icon;
   background-image: $clock-outline-svg;
+}
+
+%with-cloud-cross-icon {
+  @extend %with-icon;
+  background-image: $cloud-cross-svg;
 }
 
 %with-code-icon {
@@ -241,6 +257,11 @@
 %with-folder-fill-icon {
   @extend %with-icon;
   background-image: $folder-fill-svg;
+}
+
+%with-folder-outline-color-icon {
+  @extend %with-icon;
+  background-image: $folder-outline-color-svg;
 }
 
 %with-folder-outline-icon {
@@ -377,6 +398,10 @@
   @extend %with-icon;
   background-image: $more-vertical-svg;
 }
+%with-more-vertical-mask {
+  @extend %with-mask;
+  mask-image: $more-vertical-svg;
+}
 
 %with-nomad-logo-color-icon {
   @extend %with-icon;
@@ -408,6 +433,11 @@
   background-image: $queue-svg;
 }
 
+%with-redirect-icon {
+  @extend %with-icon;
+  background-image: $redirect-svg;
+}
+
 %with-refresh-icon {
   @extend %with-icon;
   background-image: $refresh-svg;
@@ -418,13 +448,14 @@
   background-image: $run-svg;
 }
 
-%with-search-icon {
-  @extend %with-icon;
-  background-image: $search-svg;
-}
 %with-search-color-icon {
   @extend %with-icon;
   background-image: $search-color-svg;
+}
+
+%with-search-icon {
+  @extend %with-icon;
+  background-image: $search-svg;
 }
 
 %with-service-identity-icon {

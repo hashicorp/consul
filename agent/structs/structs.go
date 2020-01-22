@@ -109,10 +109,23 @@ const (
 	// ends up being very small. If we see a value below this threshold,
 	// we multiply by time.Second
 	lockDelayMinThreshold = 1000
+
+	// WildcardSpecifier is the string which should be used for specifying a wildcard
+	// The exact semantics of the wildcard is left up to the code where its used.
+	WildcardSpecifier = "*"
 )
 
 var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
+)
+
+const (
+	TaggedAddressWAN     = "wan"
+	TaggedAddressWANIPv4 = "wan_ipv4"
+	TaggedAddressWANIPv6 = "wan_ipv6"
+	TaggedAddressLAN     = "lan"
+	TaggedAddressLANIPv4 = "lan_ipv4"
+	TaggedAddressLANIPv6 = "lan_ipv6"
 )
 
 // metaKeyFormat checks if a metadata key string is valid
@@ -608,7 +621,7 @@ type Node struct {
 
 func (n *Node) BestAddress(wan bool) string {
 	if wan {
-		if addr, ok := n.TaggedAddresses["wan"]; ok {
+		if addr, ok := n.TaggedAddresses[TaggedAddressWAN]; ok {
 			return addr
 		}
 	}
@@ -915,7 +928,7 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	port := ns.Port
 
 	if wan {
-		if wan, ok := ns.TaggedAddresses["wan"]; ok {
+		if wan, ok := ns.TaggedAddresses[TaggedAddressWAN]; ok {
 			addr = wan.Address
 			if wan.Port != 0 {
 				port = wan.Port
@@ -1930,22 +1943,6 @@ type Session struct {
 type ServiceCheck struct {
 	ID        string
 	Namespace string
-}
-
-// CheckIDs returns the IDs for all checks associated with a session, regardless of type
-func (s *Session) CheckIDs() []types.CheckID {
-	// Merge all check IDs into a single slice, since they will be handled the same way
-	checks := make([]types.CheckID, 0, len(s.Checks)+len(s.NodeChecks)+len(s.ServiceChecks))
-	checks = append(checks, s.Checks...)
-
-	for _, c := range s.NodeChecks {
-		checks = append(checks, types.CheckID(c))
-	}
-
-	for _, c := range s.ServiceChecks {
-		checks = append(checks, types.CheckID(c.ID))
-	}
-	return checks
 }
 
 func (s *Session) UnmarshalJSON(data []byte) (err error) {

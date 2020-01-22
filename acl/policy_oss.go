@@ -14,7 +14,7 @@ type EnterprisePolicyMeta struct{}
 // EnterpriseRule stub
 type EnterpriseRule struct{}
 
-func (r *EnterpriseRule) Validate(string, *EnterpriseACLConfig) error {
+func (r *EnterpriseRule) Validate(string, *Config) error {
 	// nothing to validate
 	return nil
 }
@@ -22,12 +22,12 @@ func (r *EnterpriseRule) Validate(string, *EnterpriseACLConfig) error {
 // EnterprisePolicyRules stub
 type EnterprisePolicyRules struct{}
 
-func (r *EnterprisePolicyRules) Validate(*EnterpriseACLConfig) error {
+func (r *EnterprisePolicyRules) Validate(*Config) error {
 	// nothing to validate
 	return nil
 }
 
-func decodeRules(rules string, _ *EnterpriseACLConfig, _ *EnterprisePolicyMeta) (*Policy, error) {
+func decodeRules(rules string, _ *Config, _ *EnterprisePolicyMeta) (*Policy, error) {
 	p := &Policy{}
 
 	if err := hcl.Decode(p, rules); err != nil {

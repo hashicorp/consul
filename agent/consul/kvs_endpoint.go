@@ -21,20 +21,20 @@ type KVS struct {
 // preApply does all the verification of a KVS update that is performed BEFORE
 // we submit as a Raft log entry. This includes enforcing the lock delay which
 // must only be done on the leader.
-func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
+func kvsPreApply(srv *Server, authz acl.Authorizer, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
 	if dirEnt.Key == "" && op != api.KVDeleteTree {
 		return false, fmt.Errorf("Must provide key")
 	}
 
 	// Apply the ACL policy if any.
-	if rule != nil {
+	if authz != nil {
 		switch op {
 		case api.KVDeleteTree:
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			dirEnt.FillAuthzContext(&authzContext)
 
-			if rule.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
+			if authz.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 
@@ -45,18 +45,18 @@ func kvsPreApply(srv *Server, rule acl.Authorizer, op api.KVOp, dirEnt *structs.
 			// These could reveal information based on the outcome
 			// of the transaction, and they operate on individual
 			// keys so we check them here.
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			dirEnt.FillAuthzContext(&authzContext)
 
-			if rule.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
+			if authz.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 
 		default:
-			var authzContext acl.EnterpriseAuthorizerContext
+			var authzContext acl.AuthorizerContext
 			dirEnt.FillAuthzContext(&authzContext)
 
-			if rule.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
+			if authz.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
 				return false, acl.ErrPermissionDenied
 			}
 		}
@@ -88,16 +88,17 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	}
 	defer metrics.MeasureSince([]string{"kvs", "apply"}, time.Now())
 
+	// Perform the pre-apply checks.
+	authz, err := k.srv.ResolveTokenAndDefaultMeta(args.Token, &args.DirEnt.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
 	if err := k.srv.validateEnterpriseRequest(&args.DirEnt.EnterpriseMeta, true); err != nil {
 		return err
 	}
 
-	// Perform the pre-apply checks.
-	rule, err := k.srv.ResolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	ok, err := kvsPreApply(k.srv, rule, args.Op, &args.DirEnt)
+	ok, err := kvsPreApply(k.srv, authz, args.Op, &args.DirEnt)
 	if err != nil {
 		return err
 	}
@@ -128,15 +129,14 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	if done, err := k.srv.forward("KVS.Get", args, args, reply); done {
 		return err
 	}
-	if err := k.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+
+	var authzContext acl.AuthorizerContext
+	authz, err := k.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
-	args.FillAuthzContext(&entCtx)
-
-	rule, err := k.srv.ResolveToken(args.Token)
-	if err != nil {
+	if err := k.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if rule != nil && rule.KeyRead(args.Key, &entCtx) != acl.Allow {
+			if authz != nil && authz.KeyRead(args.Key, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -174,18 +174,18 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	if done, err := k.srv.forward("KVS.List", args, args, reply); done {
 		return err
 	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := k.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
 	if err := k.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
-	args.FillAuthzContext(&entCtx)
-
-	rule, err := k.srv.ResolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	if rule != nil && k.srv.config.ACLEnableKeyListPolicy && rule.KeyList(args.Key, &entCtx) != acl.Allow {
+	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -197,8 +197,8 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			if err != nil {
 				return err
 			}
-			if rule != nil {
-				ent = FilterDirEnt(rule, ent)
+			if authz != nil {
+				ent = FilterDirEnt(authz, ent)
 			}
 
 			if len(ent) == 0 {
@@ -226,18 +226,18 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 	if done, err := k.srv.forward("KVS.ListKeys", args, args, reply); done {
 		return err
 	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := k.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
 	if err := k.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
 
-	var entCtx acl.EnterpriseAuthorizerContext
-	args.FillAuthzContext(&entCtx)
-
-	rule, err := k.srv.ResolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	if rule != nil && k.srv.config.ACLEnableKeyListPolicy && rule.KeyList(args.Prefix, &entCtx) != acl.Allow {
+	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Prefix, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -258,8 +258,8 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 				reply.Index = index
 			}
 
-			if rule != nil {
-				entries = FilterDirEnt(rule, entries)
+			if authz != nil {
+				entries = FilterDirEnt(authz, entries)
 			}
 
 			// Collect the keys from the filtered entries

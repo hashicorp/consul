@@ -29,12 +29,12 @@
     border-top: 0 !important;
   }
 }
-%app-content div > dl > dd {
+%app-view-content div > dl > dd {
   color: $gray-400;
 }
 [role='tabpanel'] > p:only-child,
 .template-error > div,
-%app-content > p:only-child,
+%app-view-content > p:only-child,
 %app-view > div.disabled > div {
   @extend %frame-gray-500;
 }

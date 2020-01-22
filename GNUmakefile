@@ -1,8 +1,8 @@
 SHELL = bash
 GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
-	github.com/hashicorp/go-bindata/go-bindata \
+	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
+	github.com/hashicorp/go-bindata/go-bindata@master \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
 	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
@@ -372,6 +372,16 @@ ui-docker: ui-build-image
 
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
+
+test-vault-ca-provider:
+ifeq ("$(CIRCLECI)","true")
+# Run in CI
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
+else
+# Run locally
+	@echo "Running /agent/connect/ca TestVault(CA)?Provider tests in verbose mode"
+	@go test $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider' -v
+endif
 
 proto-delete:
 	@echo "Removing $(PROTOGOFILES)"

@@ -34,14 +34,14 @@ func (c *ChainedAuthorizer) executeChain(enforce func(authz Authorizer) Enforcem
 }
 
 // ACLRead checks for permission to list all the ACLs
-func (c *ChainedAuthorizer) ACLRead(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) ACLRead(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.ACLRead(entCtx)
 	})
 }
 
 // ACLWrite checks for permission to manipulate ACLs
-func (c *ChainedAuthorizer) ACLWrite(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) ACLWrite(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.ACLWrite(entCtx)
 	})
@@ -49,7 +49,7 @@ func (c *ChainedAuthorizer) ACLWrite(entCtx *EnterpriseAuthorizerContext) Enforc
 
 // AgentRead checks for permission to read from agent endpoints for a
 // given node.
-func (c *ChainedAuthorizer) AgentRead(node string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) AgentRead(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.AgentRead(node, entCtx)
 	})
@@ -57,21 +57,21 @@ func (c *ChainedAuthorizer) AgentRead(node string, entCtx *EnterpriseAuthorizerC
 
 // AgentWrite checks for permission to make changes via agent endpoints
 // for a given node.
-func (c *ChainedAuthorizer) AgentWrite(node string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) AgentWrite(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.AgentWrite(node, entCtx)
 	})
 }
 
 // EventRead determines if a specific event can be queried.
-func (c *ChainedAuthorizer) EventRead(name string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) EventRead(name string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.EventRead(name, entCtx)
 	})
 }
 
 // EventWrite determines if a specific event may be fired.
-func (c *ChainedAuthorizer) EventWrite(name string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) EventWrite(name string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.EventWrite(name, entCtx)
 	})
@@ -79,14 +79,14 @@ func (c *ChainedAuthorizer) EventWrite(name string, entCtx *EnterpriseAuthorizer
 
 // IntentionDefaultAllow determines the default authorized behavior
 // when no intentions match a Connect request.
-func (c *ChainedAuthorizer) IntentionDefaultAllow(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) IntentionDefaultAllow(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.IntentionDefaultAllow(entCtx)
 	})
 }
 
 // IntentionRead determines if a specific intention can be read.
-func (c *ChainedAuthorizer) IntentionRead(prefix string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) IntentionRead(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.IntentionRead(prefix, entCtx)
 	})
@@ -94,28 +94,28 @@ func (c *ChainedAuthorizer) IntentionRead(prefix string, entCtx *EnterpriseAutho
 
 // IntentionWrite determines if a specific intention can be
 // created, modified, or deleted.
-func (c *ChainedAuthorizer) IntentionWrite(prefix string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) IntentionWrite(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.IntentionWrite(prefix, entCtx)
 	})
 }
 
 // KeyList checks for permission to list keys under a prefix
-func (c *ChainedAuthorizer) KeyList(keyPrefix string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) KeyList(keyPrefix string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.KeyList(keyPrefix, entCtx)
 	})
 }
 
 // KeyRead checks for permission to read a given key
-func (c *ChainedAuthorizer) KeyRead(key string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) KeyRead(key string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.KeyRead(key, entCtx)
 	})
 }
 
 // KeyWrite checks for permission to write a given key
-func (c *ChainedAuthorizer) KeyWrite(key string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) KeyWrite(key string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.KeyWrite(key, entCtx)
 	})
@@ -124,7 +124,7 @@ func (c *ChainedAuthorizer) KeyWrite(key string, entCtx *EnterpriseAuthorizerCon
 // KeyWritePrefix checks for permission to write to an
 // entire key prefix. This means there must be no sub-policies
 // that deny a write.
-func (c *ChainedAuthorizer) KeyWritePrefix(keyPrefix string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) KeyWritePrefix(keyPrefix string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.KeyWritePrefix(keyPrefix, entCtx)
 	})
@@ -132,21 +132,21 @@ func (c *ChainedAuthorizer) KeyWritePrefix(keyPrefix string, entCtx *EnterpriseA
 
 // KeyringRead determines if the encryption keyring used in
 // the gossip layer can be read.
-func (c *ChainedAuthorizer) KeyringRead(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) KeyringRead(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.KeyringRead(entCtx)
 	})
 }
 
 // KeyringWrite determines if the keyring can be manipulated
-func (c *ChainedAuthorizer) KeyringWrite(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) KeyringWrite(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.KeyringWrite(entCtx)
 	})
 }
 
 // NodeRead checks for permission to read (discover) a given node.
-func (c *ChainedAuthorizer) NodeRead(node string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) NodeRead(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.NodeRead(node, entCtx)
 	})
@@ -154,7 +154,7 @@ func (c *ChainedAuthorizer) NodeRead(node string, entCtx *EnterpriseAuthorizerCo
 
 // NodeWrite checks for permission to create or update (register) a
 // given node.
-func (c *ChainedAuthorizer) NodeWrite(node string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) NodeWrite(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.NodeWrite(node, entCtx)
 	})
@@ -162,7 +162,7 @@ func (c *ChainedAuthorizer) NodeWrite(node string, entCtx *EnterpriseAuthorizerC
 
 // OperatorRead determines if the read-only Consul operator functions
 // can be used.
-func (c *ChainedAuthorizer) OperatorRead(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) OperatorRead(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.OperatorRead(entCtx)
 	})
@@ -170,7 +170,7 @@ func (c *ChainedAuthorizer) OperatorRead(entCtx *EnterpriseAuthorizerContext) En
 
 // OperatorWrite determines if the state-changing Consul operator
 // functions can be used.
-func (c *ChainedAuthorizer) OperatorWrite(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) OperatorWrite(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.OperatorWrite(entCtx)
 	})
@@ -178,7 +178,7 @@ func (c *ChainedAuthorizer) OperatorWrite(entCtx *EnterpriseAuthorizerContext) E
 
 // PreparedQueryRead determines if a specific prepared query can be read
 // to show its contents (this is not used for execution).
-func (c *ChainedAuthorizer) PreparedQueryRead(query string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) PreparedQueryRead(query string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.PreparedQueryRead(query, entCtx)
 	})
@@ -186,14 +186,14 @@ func (c *ChainedAuthorizer) PreparedQueryRead(query string, entCtx *EnterpriseAu
 
 // PreparedQueryWrite determines if a specific prepared query can be
 // created, modified, or deleted.
-func (c *ChainedAuthorizer) PreparedQueryWrite(query string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) PreparedQueryWrite(query string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.PreparedQueryWrite(query, entCtx)
 	})
 }
 
 // ServiceRead checks for permission to read a given service
-func (c *ChainedAuthorizer) ServiceRead(name string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) ServiceRead(name string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.ServiceRead(name, entCtx)
 	})
@@ -201,14 +201,14 @@ func (c *ChainedAuthorizer) ServiceRead(name string, entCtx *EnterpriseAuthorize
 
 // ServiceWrite checks for permission to create or update a given
 // service
-func (c *ChainedAuthorizer) ServiceWrite(name string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) ServiceWrite(name string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.ServiceWrite(name, entCtx)
 	})
 }
 
 // SessionRead checks for permission to read sessions for a given node.
-func (c *ChainedAuthorizer) SessionRead(node string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) SessionRead(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.SessionRead(node, entCtx)
 	})
@@ -216,14 +216,14 @@ func (c *ChainedAuthorizer) SessionRead(node string, entCtx *EnterpriseAuthorize
 
 // SessionWrite checks for permission to create sessions for a given
 // node.
-func (c *ChainedAuthorizer) SessionWrite(node string, entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) SessionWrite(node string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.SessionWrite(node, entCtx)
 	})
 }
 
 // Snapshot checks for permission to take and restore snapshots.
-func (c *ChainedAuthorizer) Snapshot(entCtx *EnterpriseAuthorizerContext) EnforcementDecision {
+func (c *ChainedAuthorizer) Snapshot(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.Snapshot(entCtx)
 	})

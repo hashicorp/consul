@@ -89,16 +89,17 @@ const (
 )
 
 const (
-	legacyACLReplicationRoutineName = "legacy ACL replication"
-	aclPolicyReplicationRoutineName = "ACL policy replication"
-	aclRoleReplicationRoutineName   = "ACL role replication"
-	aclTokenReplicationRoutineName  = "ACL token replication"
-	aclTokenReapingRoutineName      = "acl token reaping"
-	aclUpgradeRoutineName           = "legacy ACL token upgrade"
-	caRootPruningRoutineName        = "CA root pruning"
-	configReplicationRoutineName    = "config entry replication"
-	intentionReplicationRoutineName = "intention replication"
-	secondaryCARootWatchRoutineName = "secondary CA roots watch"
+	legacyACLReplicationRoutineName    = "legacy ACL replication"
+	aclPolicyReplicationRoutineName    = "ACL policy replication"
+	aclRoleReplicationRoutineName      = "ACL role replication"
+	aclTokenReplicationRoutineName     = "ACL token replication"
+	aclTokenReapingRoutineName         = "acl token reaping"
+	aclUpgradeRoutineName              = "legacy ACL token upgrade"
+	caRootPruningRoutineName           = "CA root pruning"
+	configReplicationRoutineName       = "config entry replication"
+	intentionReplicationRoutineName    = "intention replication"
+	secondaryCARootWatchRoutineName    = "secondary CA roots watch"
+	secondaryCertRenewWatchRoutineName = "secondary cert renew watch"
 )
 
 var (
@@ -108,9 +109,8 @@ var (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// enterpriseACLConfig is the Consul Enterprise specific items
-	// necessary for ACLs
-	enterpriseACLConfig *acl.EnterpriseACLConfig
+	// aclConfig is the configuration for the ACL system
+	aclConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
@@ -127,6 +127,8 @@ type Server struct {
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
 
+	// caProviderReconfigurationLock guards the provider reconfiguration.
+	caProviderReconfigurationLock sync.Mutex
 	// caProvider is the current CA provider in use for Connect. This is
 	// only non-nil when we are the leader.
 	caProvider ca.Provider
@@ -397,15 +399,15 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
+	s.aclConfig = newACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:           config,
-		Delegate:         s,
-		CacheConfig:      serverACLCacheConfig,
-		AutoDisable:      false,
-		Logger:           logger,
-		EnterpriseConfig: s.enterpriseACLConfig,
+		Config:      config,
+		Delegate:    s,
+		CacheConfig: serverACLCacheConfig,
+		AutoDisable: false,
+		Logger:      logger,
+		ACLConfig:   s.aclConfig,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -578,13 +580,20 @@ func (s *Server) setupRaft() error {
 		serverAddressProvider = s.serverLookup
 	}
 
+	raftLogger := hclog.New(&hclog.LoggerOptions{
+		Name:       "raft",
+		Level:      hclog.LevelFromString(s.config.LogLevel),
+		Output:     s.config.LogOutput,
+		TimeFormat: `2006/01/02 15:04:05`,
+	})
+
 	// Create a transport layer.
 	transConfig := &raft.NetworkTransportConfig{
 		Stream:                s.raftLayer,
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
 		ServerAddressProvider: serverAddressProvider,
-		Logger:                s.logger,
+		Logger:                raftLogger,
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
@@ -592,12 +601,6 @@ func (s *Server) setupRaft() error {
 
 	// Make sure we set the LogOutput.
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
-	raftLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "raft",
-		Level:      hclog.LevelFromString(s.config.LogLevel),
-		Output:     s.config.LogOutput,
-		TimeFormat: `2006/01/02 15:04:05`,
-	})
 	s.config.RaftConfig.Logger = raftLogger
 
 	// Versions of the Raft protocol below 3 require the LocalID to match the network

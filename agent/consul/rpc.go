@@ -24,13 +24,6 @@ import (
 )
 
 const (
-	// maxQueryTime is used to bound the limit of a blocking query
-	maxQueryTime = 600 * time.Second
-
-	// defaultQueryTime is the amount of time we block waiting for a change
-	// if no time is specified. Previously we would wait the maxQueryTime.
-	defaultQueryTime = 300 * time.Second
-
 	// jitterFraction is a the limit to the amount of jitter we apply
 	// to a user specified MaxQueryTime. We divide the specified time by
 	// the fraction. So 16 == 6.25% limit of jitter. This same fraction
@@ -319,7 +312,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
 			return structs.ErrDCNotAvailable
 		}
-		s.logger.Printf("[WARN] consul.rpc: RPC request for unknown DC %q", dc)
+		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found (method: %s)", dc, method)
 		return structs.ErrNoDCPath
 	}
 
@@ -327,7 +320,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
-		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
+		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v (method: %s)", server.Addr, dc, err, method)
 		return err
 	}
 
@@ -466,10 +459,10 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 
 	queryTimeout = queryOpts.GetMaxQueryTime()
 	// Restrict the max query time, and ensure there is always one.
-	if queryTimeout > maxQueryTime {
-		queryTimeout = maxQueryTime
+	if queryTimeout > s.config.MaxQueryTime {
+		queryTimeout = s.config.MaxQueryTime
 	} else if queryTimeout <= 0 {
-		queryTimeout = defaultQueryTime
+		queryTimeout = s.config.DefaultQueryTime
 	}
 
 	// Apply a small amount of jitter to the request.
