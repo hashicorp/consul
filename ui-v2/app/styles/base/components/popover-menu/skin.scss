@@ -1,0 +1,9 @@
+%more-popover-menu + label > *::after {
+  @extend %with-more-horizontal-icon, %as-pseudo;
+  opacity: 0.7;
+  width: 16px;
+  height: 16px;
+}
+%more-popover-menu + label > * {
+  font-size: 0;
+}

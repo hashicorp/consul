@@ -1,63 +1,26 @@
-%main-nav-horizontal > ul > li,
-%main-nav-horizontal-drop-nav a {
-  position: relative;
-}
 %main-nav-horizontal [type='checkbox'] ~ div {
   display: none;
 }
 %main-nav-horizontal [type='checkbox']:checked ~ div {
   display: block;
 }
+%main-nav-horizontal [type='checkbox'] + label > * {
+  /* less space as the chevron adds space */
+  padding-right: 4px !important;
+}
+%main-nav-horizontal > ul > li {
+  position: relative;
+}
 %main-nav-horizontal-action {
   display: block;
   padding: 5px 12px;
   white-space: nowrap;
-}
-%main-nav-horizontal input + label > * {
-  /* less space as the chevron adds space */
-  padding-right: 4px !important;
 }
 %main-nav-horizontal-drop-nav {
   z-index: 400;
   /* TODO: We should probably make menu-panel default to left hand side*/
   left: 0;
   right: auto;
-}
-/* TODO: Revisit this once its part of menu-panel as its probably */
-/* a property of that */
-%main-nav-horizontal-drop-nav-separator:not(:empty) {
-  padding-left: 1em;
-  padding-right: 1em;
-  padding-bottom: 0.1em;
-}
-%main-nav-horizontal-drop-nav-separator {
-  padding-top: 0.35em;
-}
-%main-nav-horizontal-drop-nav-separator:not(:first-child) {
-  margin-top: 0.35em;
-}
-%main-nav-horizontal-drop-nav-header {
-  padding: 10px;
-  padding-left: 36px;
-}
-%main-nav-horizontal-drop-nav-header::before {
-  position: absolute;
-  left: 15px;
-  top: calc(10px + 0.1em);
-}
-%main-nav-horizontal-drop-nav-header {
-  max-width: fit-content;
-}
-@supports not (max-width: fit-content) {
-  %main-nav-horizontal-drop-nav-header {
-    max-width: 200px;
-  }
-}
-%main-nav-horizontal-drop-nav .is-active > *::after {
-  position: absolute;
-  top: 50%;
-  margin-top: -8px;
-  right: 10px;
 }
 @media #{$--lt-horizontal-nav} {
   %main-nav-horizontal-panel label span {
@@ -120,9 +83,7 @@
   }
   %main-nav-horizontal-drop-nav {
     width: 180px;
-  }
-  %main-nav-horizontal-drop-nav-header {
-    text-align: left;
+    top: 38px !important;
   }
   %main-nav-horizontal input + label > * {
     right: -15px;
@@ -131,9 +92,6 @@
   %main-nav-horizontal-action {
     padding-top: 15px;
     padding-bottom: 15px;
-  }
-  %main-nav-horizontal-drop-nav {
-    top: 38px !important;
   }
 }
 @media #{$--horizontal-nav} {
