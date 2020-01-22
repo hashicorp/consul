@@ -178,7 +178,7 @@ type ACLResolverConfig struct {
 //   - Resolving tokens locally via the ACLResolverDelegate
 //   - Resolving policies locally via the ACLResolverDelegate
 //   - Resolving roles locally via the ACLResolverDelegate
-//   - Resolving legacy tokens remotely via a ACL.GetPolicy RPC
+//   - Resolving legacy tokens remotely via an ACL.GetPolicy RPC
 //   - Resolving tokens remotely via an ACL.TokenRead RPC
 //   - Resolving policies remotely via an ACL.PolicyResolve RPC
 //   - Resolving roles remotely via an ACL.RoleResolve RPC
@@ -437,7 +437,10 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	return nil, err
 }
 
-func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
+// ResolveIdentityFromToken takes a token as a string and returns an ACLIdentity.
+// We read the value from ACLResolver's cache if available, and if the read misses
+// we initiate an RPC for the value.
+func (r *ACLResolver) ResolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
 	// Attempt to resolve locally first (local results are not cached)
 	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
 		return identity, err
@@ -765,6 +768,11 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 	var expired []*structs.ACLPolicy
 	expCacheMap := make(map[string]*structs.PolicyCacheEntry)
 
+	var accessorID string
+	if identity != nil {
+		accessorID = identity.ID()
+	}
+
 	for _, policyID := range policyIDs {
 		if done, policy, err := r.delegate.ResolvePolicyFromID(policyID); done {
 			if err != nil && !acl.IsErrNotFound(err) {
@@ -774,7 +782,7 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 			if policy != nil {
 				policies = append(policies, policy)
 			} else {
-				r.logger.Printf("[WARN] acl: policy %q not found for identity %q", policyID, identity.ID())
+				r.logger.Printf("[WARN] acl: policy not found for identity, policy=%q identity=%q", policyID, accessorID)
 			}
 
 			continue
@@ -868,7 +876,11 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 			if role != nil {
 				roles = append(roles, role)
 			} else {
-				r.logger.Printf("[WARN] acl: role %q not found for identity %q", roleID, identity.ID())
+				var accessorID string
+				if identity != nil {
+					accessorID = identity.ID()
+				}
+				r.logger.Printf("[WARN] acl: role not found for identity, role=%q identity=%q", roleID, accessorID)
 			}
 
 			continue
@@ -946,7 +958,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 
 	for i := 0; i < tokenPolicyResolutionMaxRetries; i++ {
 		// Resolve the token to an ACLIdentity
-		identity, err := r.resolveIdentityFromToken(token)
+		identity, err := r.ResolveIdentityFromToken(token)
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
@@ -985,7 +997,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 
 	for i := 0; i < tokenRoleResolutionMaxRetries; i++ {
 		// Resolve the token to an ACLIdentity
-		identity, err := r.resolveIdentityFromToken(token)
+		identity, err := r.ResolveIdentityFromToken(token)
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {

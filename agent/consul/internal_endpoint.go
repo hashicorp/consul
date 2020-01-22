@@ -126,7 +126,16 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
-		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
+		_, ident, err := m.srv.ResolveIdentityFromToken(args.Token)
+		if err != nil {
+			m.srv.logger.Printf("[DEBUG] consul.intention: failed to fetch ACL AccessorID, err=%v", err)
+		}
+		var accessorID string
+		if ident != nil {
+			accessorID = ident.ID()
+		}
+		m.srv.logger.Printf("[DEBUG] consul: user event blocked by ACLs, event=%q accessorID=%q", args.Name, accessorID)
+
 		return acl.ErrPermissionDenied
 	}
 
@@ -163,7 +172,15 @@ func (m *Internal) KeyringOperation(
 		switch args.Operation {
 		case structs.KeyringList:
 			if rule.KeyringRead(nil) != acl.Allow {
-				return fmt.Errorf("Reading keyring denied by ACLs")
+				_, ident, err := m.srv.ResolveIdentityFromToken(args.Token)
+				if err != nil {
+					m.srv.logger.Printf("[DEBUG] failed to fetch ACL AccessorID, err=%v", err)
+				}
+				var accessorID string
+				if ident != nil {
+					accessorID = ident.ID()
+				}
+				return fmt.Errorf("Reading keyring denied by ACLs, accessorID=%v", accessorID)
 			}
 		case structs.KeyringInstall:
 			fallthrough
@@ -171,7 +188,15 @@ func (m *Internal) KeyringOperation(
 			fallthrough
 		case structs.KeyringRemove:
 			if rule.KeyringWrite(nil) != acl.Allow {
-				return fmt.Errorf("Modifying keyring denied due to ACLs")
+				_, ident, err := m.srv.ResolveIdentityFromToken(args.Token)
+				if err != nil {
+					m.srv.logger.Printf("[DEBUG] failed to fetch ACL AccessorID, err=%v", err)
+				}
+				var accessorID string
+				if ident != nil {
+					accessorID = ident.ID()
+				}
+				return fmt.Errorf("Modifying keyring denied due to ACLs, accessorID=%v", accessorID)
 			}
 		default:
 			panic("Invalid keyring operation")

@@ -137,6 +137,7 @@ type delegate interface {
 	RemoveFailedNode(node string, prune bool) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
 	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error)
 	RPC(method string, args interface{}, reply interface{}) error
 	ACLsEnabled() bool
 	UseLegacyACLs() bool
@@ -1925,17 +1926,25 @@ OUTER:
 			}
 
 			for segment, coord := range cs {
+				agentToken := a.tokens.AgentToken()
 				req := structs.CoordinateUpdateRequest{
 					Datacenter:   a.config.Datacenter,
 					Node:         a.config.NodeName,
 					Segment:      segment,
 					Coord:        coord,
-					WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
+					WriteRequest: structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
+				//  todo(mkcp) port all of these logger calls to hclog w/ loglevel configuration
 				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
-						a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+						_, tokenIdent, err2 := a.ResolveIdentityFromToken(agentToken)
+						if err2 != nil {
+							a.logger.Printf("[DEBUG] agent: failed to acquire token identity, err=%v", err2)
+						}
+						if tokenIdent != nil {
+							a.logger.Printf("[DEBUG] agent: Coordinate update blocked by ACLs, accessorID=%v", tokenIdent.ID())
+						}
 					} else {
 						a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
 					}

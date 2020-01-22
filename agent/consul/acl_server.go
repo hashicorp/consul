@@ -164,6 +164,7 @@ func (s *Server) ACLsEnabled() bool {
 	return s.config.ACLsEnabled
 }
 
+// fixme(kit): write a doc comment for this public function
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
 	// when not in the ACL datacenter
@@ -235,6 +236,28 @@ func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 	entMeta.FillAuthzContext(authzContext)
 
 	return authz, err
+}
+
+// fixme(mkcp): just ResolveTokenAndDefaultMeta copied but we return the identity too. This is pretty janky, but the fn is called in ~60 places so
+// I'm not ready to refactor it just yet
+func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (structs.ACLIdentity, acl.Authorizer, error) {
+	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return identity, authz, err
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
