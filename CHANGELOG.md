@@ -11,6 +11,7 @@ FEATURES:
 
 IMPROVEMENTS:
 * dns: Improvement to enable dual stack IPv4/IPv6 addressing of services and lookup via DNS [[GH-6531](https://github.com/hashicorp/consul/issues/6531)]
+* lock: `consul lock` will now receive shutdown signals during the lock-acquisition process. [[GH-5909](https://github.com/hashicorp/consul/pull/5909)]
 
 
 ## 1.7.0-beta2 (December 20, 2019)
