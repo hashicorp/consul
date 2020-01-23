@@ -1118,6 +1118,56 @@ func TestCatalogNodeServices(t *testing.T) {
 	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
 }
 
+func TestCatalogNodeServiceList(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register node with a regular service and connect proxy
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Tags:    []string{"a"},
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a connect proxy
+	args.Service = structs.TestNodeServiceProxy(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/node-services/foo?dc=dc1", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServiceList(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	services := obj.(*structs.NodeServiceList)
+	if len(services.Services) != 2 {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	var proxySvc *structs.NodeService
+	for _, svc := range services.Services {
+		if svc.ID == "web-proxy" {
+			proxySvc = svc
+		}
+	}
+	require.NotNil(t, proxySvc, "Missing proxy service registration")
+	// Proxy service should have it's config intact
+	require.Equal(t, args.Service.Proxy, proxySvc.Proxy)
+}
+
 func TestCatalogNodeServices_Filter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")

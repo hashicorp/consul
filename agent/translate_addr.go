@@ -149,6 +149,14 @@ func (a *Agent) TranslateAddresses(dc string, subj interface{}, accept Translate
 			entry.Address = a.TranslateServiceAddress(dc, entry.Address, entry.TaggedAddresses, accept)
 			entry.Port = a.TranslateServicePort(dc, entry.Port, entry.TaggedAddresses)
 		}
+	case *structs.NodeServiceList:
+		if v.Node != nil {
+			v.Node.Address = a.TranslateAddress(dc, v.Node.Address, v.Node.TaggedAddresses, accept)
+		}
+		for _, entry := range v.Services {
+			entry.Address = a.TranslateServiceAddress(dc, entry.Address, entry.TaggedAddresses, accept)
+			entry.Port = a.TranslateServicePort(dc, entry.Port, entry.TaggedAddresses)
+		}
 	default:
 		panic(fmt.Errorf("Unhandled type passed to address translator: %#v", subj))
 	}
