@@ -269,7 +269,7 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 ```
 
 - `provider` (required) - the name of the provider ("scaleway" in this case).
-- `region` (required) - the name of the region.
+- `region` (required) - the name of the region (actually, "par1" or "ams1")
 - `tag_name` (required) - the name of the tag to auto-join on.
 - `organization` (required) - the organization access key to use for auth (equal to access key).
 - `token` (required) - the token to use for auth.
