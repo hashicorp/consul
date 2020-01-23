@@ -196,6 +196,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -210,6 +212,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -225,6 +229,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "b"
+				rt.ACLDatacenter = "b"
+				rt.PrimaryDatacenter = "b"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -254,6 +260,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 		},
@@ -436,6 +444,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -452,6 +462,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -467,6 +479,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -1398,6 +1412,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.Bootstrap = false
 				rt.BootstrapExpect = 0
 				rt.Datacenter = "b"
+				rt.ACLDatacenter = "b"
+				rt.PrimaryDatacenter = "b"
 				rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.DataDir = dataDir
@@ -1453,6 +1469,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.1.1.1:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 				rt.Datacenter = "b"
+				rt.ACLDatacenter = "b"
+				rt.PrimaryDatacenter = "b"
 				rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
 				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
@@ -1503,6 +1521,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl:  []string{`datacenter = "A"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 		},

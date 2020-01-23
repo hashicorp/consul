@@ -689,9 +689,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		aclsEnabled = b.boolVal(c.ACL.Enabled)
 	}
 
-	aclDC := primaryDatacenter
-	if aclsEnabled && aclDC == "" {
-		aclDC = datacenter
+	// Set the primary DC if it wasn't set.
+	if primaryDatacenter == "" {
+		primaryDatacenter = datacenter
 	}
 
 	enableTokenReplication := false
@@ -776,7 +776,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLsEnabled:               aclsEnabled,
 		ACLAgentMasterToken:       b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
 		ACLAgentToken:             b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-		ACLDatacenter:             aclDC,
+		ACLDatacenter:             primaryDatacenter,
 		ACLDefaultPolicy:          b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
 		ACLDownPolicy:             b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
 		ACLEnableKeyListPolicy:    b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
