@@ -70,7 +70,7 @@ type CheckState struct {
 	// Check is the local copy of the health check record.
 	//
 	// Must Clone() the overall CheckState before mutating this. After mutation
-	// reinstall into the checks map.
+	// reinstall into the checks map. If Deleted is true, this field can be nil.
 	Check *structs.HealthCheck
 
 	// Token is the ACL record to update or delete the health check
@@ -1093,7 +1093,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		delete(l.services, key)
 		// service deregister also deletes associated checks
 		for _, c := range l.checks {
-			if c.Deleted && c.Check.ServiceID == key.ID {
+			if c.Deleted && c.Check != nil && c.Check.ServiceID == key.ID {
 				l.pruneCheck(c.Check.CompoundCheckID())
 			}
 		}
