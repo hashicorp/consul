@@ -130,6 +130,21 @@ func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *stru
 	return authz, err
 }
 
+func (a *TestACLAgent) ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error) {
+	if a.resolveTokenFn == nil {
+		panic("This agent is useless without providing a token resolution function")
+	}
+
+	// note(kit) This is almost certainly not useful test behavior, but I have no idea how I should be testing this x)
+	//           I've just been getting an infinite loop where i accidentally dispatch right back to the delegate
+	identity, _, err := a.resolveTokenFn(secretID)
+	if err != nil {
+		return true, nil, err
+	}
+
+	return true, identity, nil
+}
+
 // All of these are stubs to satisfy the interface
 func (a *TestACLAgent) Encrypted() bool {
 	return false

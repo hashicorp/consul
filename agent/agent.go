@@ -1938,7 +1938,7 @@ OUTER:
 				//  todo(mkcp) port all of these logger calls to hclog w/ loglevel configuration
 				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
-						_, tokenIdent, err2 := a.ResolveIdentityFromToken(agentToken)
+						_, tokenIdent, err2 := a.resolveIdentityFromToken(agentToken)
 						if err2 != nil {
 							a.logger.Printf("[DEBUG] agent: failed to acquire token identity, err=%v", err2)
 						}

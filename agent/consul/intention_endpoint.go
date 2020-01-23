@@ -44,7 +44,7 @@ func (s *Intention) prepareApplyCreate(ident structs.ACLIdentity, authz acl.Auth
 		if ident != nil {
 			accessorID = ident.ID()
 		}
-		s.srv.logger.Printf("[WARN] consul.intention: Intention creation denied due to ACLs, accessorID=%v", accessorID)
+		s.srv.logger.Printf("[WARN] consul.intention: Intention creation denied due to ACLs, accessorID=%q", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -95,7 +95,7 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 		if ident != nil {
 			accessorID = ident.ID()
 		}
-		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention denied due to ACLs, intention=%q accessorID=%v", args.Intention.ID, accessorID)
+		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention denied due to ACLs, intention=%q accessorID=%q", args.Intention.ID, accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -115,7 +115,7 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 		if ident != nil {
 			accessorID = ident.ID()
 		}
-		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention denied due to ACLs, intention=%q accessorID=%v", args.Intention.ID, accessorID)
+		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention denied due to ACLs, intention=%q accessorID=%q", args.Intention.ID, accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -151,7 +151,7 @@ func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Auth
 	state := s.srv.fsm.State()
 	_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
 	if err != nil {
-		return fmt.Errorf("Intention lookup failed: %v", err)
+		return fmt.Errorf("Intention lookup failed: %q", err)
 	}
 	if ixn == nil {
 		return fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
@@ -165,7 +165,7 @@ func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Auth
 		if ident != nil {
 			accessorID = ident.ID()
 		}
-		s.srv.logger.Printf("[WARN] consul.intention: Deletion operation on intention denied due to ACLs, intention=%q accessorID=%v", args.Intention.ID, accessorID)
+		s.srv.logger.Printf("[WARN] consul.intention: Deletion operation on intention denied due to ACLs, intention=%q accessorID=%q", args.Intention.ID, accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -266,13 +266,13 @@ func (s *Intention) Get(
 			if len(reply.Intentions) == 0 {
 				_, ident, err := s.srv.ResolveIdentityFromToken(args.Token)
 				if err != nil {
-					s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%v", err)
+					s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%q", err)
 				}
 				var accessorID string
 				if ident != nil {
 					accessorID = ident.ID()
 				}
-				s.srv.logger.Printf("[WARN] consul.intention: Request to get intention denied due to ACLs, intention=%s accessorID=%v", args.IntentionID, accessorID)
+				s.srv.logger.Printf("[WARN] consul.intention: Request to get intention denied due to ACLs, intention=%s accessorID=%q", args.IntentionID, accessorID)
 				return acl.ErrPermissionDenied
 			}
 
@@ -338,13 +338,13 @@ func (s *Intention) Match(
 			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, &authzContext) != acl.Allow {
 				_, ident, err := s.srv.ResolveIdentityFromToken(args.Token)
 				if err != nil {
-					s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%v", err)
+					s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%q", err)
 				}
 				var accessorID string
 				if ident != nil {
 					accessorID = ident.ID()
 				}
-				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention prefix denied due to ACLs, prefix=%s accessorID=%v", prefix, accessorID)
+				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention prefix denied due to ACLs, prefix=%s accessorID=%q", prefix, accessorID)
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -417,13 +417,13 @@ func (s *Intention) Check(
 		if rule != nil && rule.ServiceRead(prefix, &authzContext) != acl.Allow {
 			_, ident, err := s.srv.ResolveIdentityFromToken(args.Token)
 			if err != nil {
-				s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%v", err)
+				s.srv.logger.Printf("[DEBUG] consul.intention: failed to failed to acquire token identity, err=%q", err)
 			}
 			var accessorID string
 			if ident != nil {
 				accessorID = ident.ID()
 			}
-			s.srv.logger.Printf("[WARN] consul.intention: test on intention denied due to ACLs, intention=%s accessorID=%v", prefix, accessorID)
+			s.srv.logger.Printf("[WARN] consul.intention: test on intention denied due to ACLs, intention=%s accessorID=%q", prefix, accessorID)
 			return acl.ErrPermissionDenied
 		}
 	}

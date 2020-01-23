@@ -41,8 +41,9 @@ func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.Enterpris
 	return a.delegate.ResolveTokenAndDefaultMeta(id, entMeta, authzContext)
 }
 
-// ResolveIdentityFromToken is used to resolve an ACL token secret a structs.ACLIdentity.
-func (a *Agent) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
+// resolveIdentityFromToken takes an ACL token's secretID, ensures ACLs are
+// enabled, and retrieves its ACLIdentity.
+func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error) {
 	// ACLs are disabled
 	if !a.delegate.ACLsEnabled() {
 		return false, nil, nil
@@ -53,7 +54,7 @@ func (a *Agent) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentit
 		return false, nil, nil
 	}
 
-	return a.delegate.ResolveIdentityFromToken(token)
+	return a.delegate.ResolveIdentityFromToken(secretID)
 }
 
 func (a *Agent) initializeACLs() error {
@@ -258,7 +259,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 
 	_, tokenIdent, err := a.delegate.ResolveIdentityFromToken(token)
 	if err != nil {
-		a.logger.Printf("[DEBUG] agent: failed to acquire token identity, err=%v", err)
+		a.logger.Printf("[DEBUG] agent: failed to acquire token identity, err=%q", err)
 	}
 
 	var authzContext acl.AuthorizerContext
@@ -274,7 +275,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if tokenIdent != nil {
 			accessorID = tokenIdent.ID()
 		}
-		a.logger.Printf("[DEBUG] agent: dropping node from result due to ACLs, node=%q accessorID=%v", node, accessorID)
+		a.logger.Printf("[DEBUG] agent: dropping node from result due to ACLs, node=%q accessorID=%q", node, accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--
 	}

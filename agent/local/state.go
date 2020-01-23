@@ -1144,7 +1144,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
 		accessorID := l.ACLAccessorID(ct)
-		l.logger.Printf("[DEBUG] agent: Check deregistration blocked by ACLs, check=%q accessorID=%v", key.String(), accessorID)
+		l.logger.Printf("[DEBUG] agent: Check deregistration blocked by ACLs, check=%q accessorID=%q", key.String(), accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "deregistration"}, 1)
 		return nil
 
@@ -1283,7 +1283,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
 		accessorID := l.ACLAccessorID(ct)
-		l.logger.Printf("[DEBUG] agent: Check registration blocked by ACLs, check=%q accessorID=%v", key, accessorID)
+		l.logger.Printf("[DEBUG] agent: Check registration blocked by ACLs, check=%q accessorID=%q", key, accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
 
@@ -1317,7 +1317,7 @@ func (l *State) syncNodeInfo() error {
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
 		accessorID := l.ACLAccessorID(at)
-		l.logger.Printf("[DEBUG] agent: Node info update blocked by ACLs, nodeID=%v accessorID=%v", l.config.NodeID, accessorID)
+		l.logger.Printf("[DEBUG] agent: Node info update blocked by ACLs, nodeID=%q accessorID=%q", l.config.NodeID, accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
 
@@ -1354,7 +1354,7 @@ func (l *State) ACLAccessorID(token string) string {
 	}
 	var reply structs.ACLIdentity
 	if err := l.Delegate.RPC("ACL.ResolveIdentityFromToken", &req, &reply); err != nil {
-		l.logger.Printf("[DEBUG] agent.local: failed to acquire token identity, err=%v", err)
+		l.logger.Printf("[DEBUG] agent.local: failed to acquire token identity, err=%q", err)
 		return ""
 	}
 	if reply == nil {
