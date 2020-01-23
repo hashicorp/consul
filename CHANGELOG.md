@@ -10,9 +10,10 @@ FEATURES:
 * acl: **(Consul Enterprise only)** auth methods defined in the `default` namespace gained the ability to create tokens in alternate namespaces. This capability was implemented for all existing auth methods.
 
 IMPROVEMENTS:
+
+* agent: default the primary_datacenter to the datacenter if not configured [[GH-7111](https://github.com/hashicorp/consul/issues/7111)]
 * dns: Improvement to enable dual stack IPv4/IPv6 addressing of services and lookup via DNS [[GH-6531](https://github.com/hashicorp/consul/issues/6531)]
 * lock: `consul lock` will now receive shutdown signals during the lock-acquisition process. [[GH-5909](https://github.com/hashicorp/consul/pull/5909)]
-
 
 ## 1.7.0-beta2 (December 20, 2019)
 
