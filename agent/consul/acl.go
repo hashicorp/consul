@@ -437,7 +437,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	return nil, err
 }
 
-// resolveIdentityFromToken takes a token as a string and returns an ACLIdentity.
+// resolveIdentityFromToken takes a token secret as a string and returns an ACLIdentity.
 // We read the value from ACLResolver's cache if available, and if the read misses
 // we initiate an RPC for the value.
 func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
