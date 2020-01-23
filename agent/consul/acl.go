@@ -437,10 +437,10 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	return nil, err
 }
 
-// ResolveIdentityFromToken takes a token as a string and returns an ACLIdentity.
+// resolveIdentityFromToken takes a token as a string and returns an ACLIdentity.
 // We read the value from ACLResolver's cache if available, and if the read misses
 // we initiate an RPC for the value.
-func (r *ACLResolver) ResolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
+func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
 	// Attempt to resolve locally first (local results are not cached)
 	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
 		return identity, err
@@ -782,7 +782,7 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 			if policy != nil {
 				policies = append(policies, policy)
 			} else {
-				r.logger.Printf("[WARN] acl: policy not found for identity, policy=%q identity=%q", policyID, accessorID)
+				r.logger.Printf("[WARN] acl: policy not found for identity, policy=%q accessorID=%q", policyID, accessorID)
 			}
 
 			continue
@@ -880,7 +880,7 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 				if identity != nil {
 					accessorID = identity.ID()
 				}
-				r.logger.Printf("[WARN] acl: role not found for identity, role=%q identity=%q", roleID, accessorID)
+				r.logger.Printf("[WARN] acl: role not found for identity, role=%q accessorID=%q", roleID, accessorID)
 			}
 
 			continue
@@ -958,7 +958,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 
 	for i := 0; i < tokenPolicyResolutionMaxRetries; i++ {
 		// Resolve the token to an ACLIdentity
-		identity, err := r.ResolveIdentityFromToken(token)
+		identity, err := r.resolveIdentityFromToken(token)
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
@@ -997,7 +997,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 
 	for i := 0; i < tokenRoleResolutionMaxRetries; i++ {
 		// Resolve the token to an ACLIdentity
-		identity, err := r.ResolveIdentityFromToken(token)
+		identity, err := r.resolveIdentityFromToken(token)
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
