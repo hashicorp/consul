@@ -1061,6 +1061,8 @@ type DiscoveryChainRequest struct {
 	// overridden for any resolver in the compiled chain.
 	OverrideConnectTimeout time.Duration
 
+	InternalRetainDetails bool `json:"-"`
+
 	Datacenter string // where to route the RPC
 	QueryOptions
 }
@@ -1086,6 +1088,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		OverrideMeshGateway    MeshGatewayConfig
 		OverrideProtocol       string
 		OverrideConnectTimeout time.Duration
+		InternalRetainDetails  bool
 	}{
 		Name:                   r.Name,
 		EvaluateInDatacenter:   r.EvaluateInDatacenter,
@@ -1093,6 +1096,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		OverrideMeshGateway:    r.OverrideMeshGateway,
 		OverrideProtocol:       r.OverrideProtocol,
 		OverrideConnectTimeout: r.OverrideConnectTimeout,
+		InternalRetainDetails:  r.InternalRetainDetails,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

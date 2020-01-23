@@ -92,6 +92,7 @@ const (
 	DiscoveryGraphNodeTypeRouter   = "router"
 	DiscoveryGraphNodeTypeSplitter = "splitter"
 	DiscoveryGraphNodeTypeResolver = "resolver"
+	DiscoveryGraphNodeTypeRedirect = "redirect" // INTERNAL
 )
 
 // DiscoveryGraphNode is a single node in the compiled discovery chain.
@@ -107,6 +108,13 @@ type DiscoveryGraphNode struct {
 
 	// fields for Type==resolver
 	Resolver *DiscoveryResolver `json:",omitempty"`
+
+	// fields for Type==redirect
+	Redirect *DiscoveryRedirect `json:",omitempty"`
+
+	// Discard is a flag used during compilation to indicate a node should be
+	// discarded before the chain is returned from Compile().
+	Discard bool `json:"-"`
 }
 
 func (s *DiscoveryGraphNode) IsRouter() bool {
@@ -115,6 +123,10 @@ func (s *DiscoveryGraphNode) IsRouter() bool {
 
 func (s *DiscoveryGraphNode) IsSplitter() bool {
 	return s.Type == DiscoveryGraphNodeTypeSplitter
+}
+
+func (s *DiscoveryGraphNode) IsRedirect() bool {
+	return s.Type == DiscoveryGraphNodeTypeRedirect
 }
 
 func (s *DiscoveryGraphNode) IsResolver() bool {
@@ -169,6 +181,12 @@ func (r *DiscoveryResolver) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// INTERNAL
+type DiscoveryRedirect struct {
+	Mechanism string // "explicit", "default-subset"
+	NextNode  string `json:",omitempty"`
+}
+
 // compiled form of ServiceRoute
 type DiscoveryRoute struct {
 	Definition *ServiceRoute `json:",omitempty"`
@@ -184,6 +202,16 @@ type DiscoverySplit struct {
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
 	Targets []string `json:",omitempty"`
+
+	// InternalTargets is like Targets but each item includes additional
+	// details about the target resolution such as redirects.
+	InternalTargets [][]DiscoveryFailoverTargetDetail `json:",omitempty"` // INTERNAL
+}
+
+// INTERNAL
+type DiscoveryFailoverTargetDetail struct {
+	RedirectMechanism string `json:",omitempty"` // "<none>", "explicit", "default-subset"
+	Name              string
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver

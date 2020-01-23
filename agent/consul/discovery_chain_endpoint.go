@@ -89,6 +89,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 				OverrideMeshGateway:    args.OverrideMeshGateway,
 				OverrideProtocol:       args.OverrideProtocol,
 				OverrideConnectTimeout: args.OverrideConnectTimeout,
+				InternalRetainDetails:  args.InternalRetainDetails,
 				Entries:                entries,
 			})
 			if err != nil {

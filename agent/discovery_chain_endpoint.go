@@ -13,12 +13,25 @@ import (
 )
 
 func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.discoveryChainRead(resp, req, false)
+}
+
+func (s *HTTPServer) UIDiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.discoveryChainRead(resp, req, true)
+}
+
+func (s *HTTPServer) discoveryChainRead(resp http.ResponseWriter, req *http.Request, ui bool) (interface{}, error) {
 	var args structs.DiscoveryChainRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	args.InternalRetainDetails = ui
 
-	args.Name = strings.TrimPrefix(req.URL.Path, "/v1/discovery-chain/")
+	if ui {
+		args.Name = strings.TrimPrefix(req.URL.Path, "/v1/internal/discovery-chain/")
+	} else {
+		args.Name = strings.TrimPrefix(req.URL.Path, "/v1/discovery-chain/")
+	}
 	if args.Name == "" {
 		return nil, BadRequestError{Reason: "Missing chain name"}
 	}
