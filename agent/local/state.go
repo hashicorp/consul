@@ -21,7 +21,6 @@ import (
 )
 
 const fullSyncReadMaxStale = 2 * time.Second
-const versionRollover = 65533
 
 // Config is the configuration for the State.
 type Config struct {
@@ -55,8 +54,7 @@ type ServiceState struct {
 	// memdb.WatchSet when watching agent local changes with hash-based blocking.
 	WatchCh chan struct{}
 
-	// Defines the version of the state, so in changes of the certain Service
-	// can be tracked by version numbers
+	// Defines the version of the state
 	version uint64
 }
 
@@ -71,10 +69,6 @@ func (s *ServiceState) Clone() *ServiceState {
 }
 
 func (s *ServiceState) increment() {
-	if s.version > versionRollover {
-		s.version = 1
-		return
-	}
 	s.version = s.version + 1
 }
 
@@ -108,8 +102,7 @@ type CheckState struct {
 	// deleted but has not been removed on the server yet.
 	Deleted bool
 
-	// Defines the version of the state, so in changes of the certain Service
-	// can be tracked by version numbers
+	// Defines the version of the state
 	version uint64
 }
 
@@ -137,10 +130,6 @@ func (c *CheckState) CriticalFor() time.Duration {
 }
 
 func (c *CheckState) increment() {
-	if c.version > versionRollover {
-		c.version = 1
-		return
-	}
 	c.version = c.version + 1
 }
 
@@ -402,7 +391,6 @@ func (l *State) setServiceStateLocked(s *ServiceState) {
 	l.services[key] = s
 
 	if hasOld && old.WatchCh != nil {
-		l.services[structs.NewServiceID(s.Service.ID, nil)].version = old.version
 		close(old.WatchCh)
 	}
 
@@ -1230,7 +1218,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 
 func (l *State) pruneCheck(id structs.CheckID) {
 	if c, ok := l.checks[id]; ok && c.Deleted {
-		if c != nil && c.DeferCheck != nil {
+		if c.DeferCheck != nil {
 			c.DeferCheck.Stop()
 		}
 		delete(l.checks, id)
@@ -1327,8 +1315,11 @@ func (l *State) syncService(key structs.ServiceID) error {
 // syncCheck is used to sync a check to the server
 func (l *State) syncCheck(key structs.CheckID) error {
 	l.Lock()
+	if l.checks[key] == nil {
+		return nil
+	}
 	var currentVersion = l.checks[key].version
-	c := l.checks[key]
+	c := *l.checks[key]
 	l.Unlock()
 
 	req := structs.RegisterRequest{
@@ -1358,7 +1349,9 @@ func (l *State) syncCheck(key structs.CheckID) error {
 	defer l.Unlock()
 	switch {
 	case err == nil:
-		l.checks[key].InSync = true
+		if c, ok := l.checks[key]; ok && c.version == currentVersion {
+			c.InSync = true
+		}
 		if l.checks[key].version > currentVersion {
 			l.checks[key].InSync = false
 		}
