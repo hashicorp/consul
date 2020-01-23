@@ -135,8 +135,6 @@ func (a *TestACLAgent) ResolveIdentityFromToken(secretID string) (bool, structs.
 		panic("This agent is useless without providing a token resolution function")
 	}
 
-	// note(kit) This is almost certainly not useful test behavior, but I have no idea how I should be testing this x)
-	//           I've just been getting an infinite loop where i accidentally dispatch right back to the delegate
 	identity, _, err := a.resolveTokenFn(secretID)
 	if err != nil {
 		return true, nil, err
