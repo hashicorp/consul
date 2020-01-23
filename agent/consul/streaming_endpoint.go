@@ -2,11 +2,8 @@ package consul
 
 import (
 	"context"
-	"fmt"
-	"hash/fnv"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
-	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -28,210 +25,154 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 	// Forward the request to a remote DC if applicable.
 	if req.Datacenter != "" && req.Datacenter != h.srv.config.Datacenter {
-		conn, err := h.srv.grpcClient.GRPCConn(req.Datacenter)
-		if err != nil {
-			return err
-		}
-
-		h.srv.logger.Printf("[DEBUG] consul: subscribe forward to dc=%s topic=%q key=%q "+
-			"index=%d streamID=%s", req.Datacenter, req.Topic.String(), req.Key,
-			req.Index, streamID)
-
-		defer func() {
-			h.srv.logger.Printf("[DEBUG] consul: subscribe forwarded stream complete "+
-				"streamID=%s", streamID)
-		}()
-
-		// Open a Subscribe call to the remote DC.
-		client := stream.NewConsulClient(conn)
-		streamHandle, err := client.Subscribe(server.Context(), req)
-		if err != nil {
-			return err
-		}
-
-		// Relay the events back to the client.
-		for {
-			event, err := streamHandle.Recv()
-			if err != nil {
-				return err
-			}
-			if err := server.Send(event); err != nil {
-				return err
-			}
-		}
+		return h.forwardAndProxy(req, server, streamID)
 	}
 
 	h.srv.logger.Printf("[DEBUG] consul: subscribe start topic=%q key=%q "+
 		"index=%d streamID=%s", req.Topic.String(), req.Key, req.Index, streamID)
 
+	var sentCount uint64
 	defer func() {
 		h.srv.logger.Printf("[DEBUG] consul: subscribe stream closed streamID=%s",
 			streamID)
 	}()
 
 	// Resolve the token and create the ACL filter.
-	rule, err := h.srv.ResolveToken(req.Token)
+	// TODO: handle token expiry gracefully...
+	authz, err := h.srv.ResolveToken(req.Token)
 	if err != nil {
 		return err
 	}
-	aclFilter := newACLFilter(rule, h.srv.logger, h.srv.config.ACLEnforceVersion8)
+	aclFilter := newACLFilter(authz, h.srv.logger, h.srv.config.ACLEnforceVersion8)
 
-	// Create the boolean expression filter.
-	var eval *bexpr.Evaluator
-	if req.Filter != "" {
-		eval, err = bexpr.CreateEvaluator(req.Filter, nil)
-		if err != nil {
-			return fmt.Errorf("Failed to create boolean expression evaluator: %v", err)
-		}
-	}
-
-	// Send an initial snapshot of the state via events if the requested index
-	// is lower than the last sent index of the topic.
 	state := h.srv.fsm.State()
-	lastSentIndex := state.LastTopicIndex(req.Topic)
-	var snapshotIndex, nSnapEvents uint64
-	sent := make(map[uint32]struct{})
-	if req.Index < lastSentIndex || lastSentIndex == 0 {
-		snapshotCh := make(chan stream.Event, 32)
-		go state.GetTopicSnapshot(server.Context(), snapshotCh, req)
-
-		// Wait for the events to come in and send them to the client.
-		for event := range snapshotCh {
-			event.SetACLRules()
-			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
-				return err
-			}
-			if event.GetEndOfSnapshot() {
-				snapshotIndex = event.Index
-			} else {
-				nSnapEvents++
-			}
-		}
-
-	} else {
-		// If there wasn't a snapshot, just send an end of snapshot message
-		// so the client knows not to wait for one.
-		endSnapshotEvent := stream.Event{
-			Topic:   req.Topic,
-			Index:   lastSentIndex,
-			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
-		}
-		snapshotIndex = lastSentIndex
-		if err := server.Send(&endSnapshotEvent); err != nil {
-			return err
-		}
-	}
-
-	h.srv.logger.Printf("[DEBUG] consul: subscribe snapshot complete snapIndex=%d "+
-		"nEvents=%d streamID=%s", snapshotIndex, nSnapEvents, streamID)
 
 	// Register a subscription on this topic/key with the FSM.
-	eventCh, err := state.Subscribe(req)
+	sub, err := state.Subscribe(req)
 	if err != nil {
 		return err
 	}
 	defer state.Unsubscribe(req)
 
-	var sentEvents uint64
+	// Deliver the events
 	for {
-		select {
-		case <-server.Context().Done():
-			return nil
-		case event, ok := <-eventCh:
-			// If the channel was closed, that means the state store filled it up
-			// faster than we could pull events out.
-			if !ok {
-				return fmt.Errorf("handler could not keep up with events")
+		events, err := sub.Next(server.Context())
+		if err == stream.ErrSubscriptionReload {
+			event := stream.Event{
+				Payload: &stream.Event_ReloadStream{ReloadStream: true},
 			}
-
-			// If we need to reload the stream (because our ACL token was updated)
-			// then pass the event along to the client and exit.
-			if event.GetReloadStream() {
-				if err := server.Send(&event); err != nil {
-					return err
-				}
-				return nil
-			}
-
-			if err := sendEvent(event, aclFilter, eval, sent, server); err != nil {
+			if err := server.Send(&event); err != nil {
 				return err
 			}
-			sentEvents++
+			h.srv.logger.Printf("[DEBUG] consul: subscribe stream reloaded "+
+				"streamID=%s", streamID)
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 
-			h.srv.logger.Printf("[DEBUG] consul: subscribe sent event eventIndex=%d "+
-				"streamID=%s", event.Index, streamID)
+		filteredEvents, err := aclFilterEvents(events, aclFilter)
+		if err != nil {
+			return err
+		}
+
+		// TODO: bexpr filtering?
+		snapshotDone := false
+		if len(filteredEvents) == 1 {
+			if events[0].GetEndOfSnapshot() {
+				snapshotDone = true
+				h.srv.logger.Printf("[DEBUG] consul: subscribe snapshot complete "+
+					"idx=%d sent=%d streamID=%s", events[0].Index, sentCount,
+					streamID)
+			} else if events[0].GetResumeStream() {
+				snapshotDone = true
+				h.srv.logger.Printf("[DEBUG] consul: subscribe resuming stream "+
+					"idx=%d sent=%d streamID=%s", events[0].Index, sentCount,
+					streamID)
+			} else if snapshotDone {
+				// Count this event too in the normal case as "sent" the above cases
+				// only show the number of events sent _before_ the snapshot ended.
+				h.srv.logger.Printf("[DEBUG] consul: subscribe sending event "+
+					"idx=%d sent=%d streamID=%s", events[0].Index, sentCount+1,
+					streamID)
+			}
+			sentCount++
+			if err := server.Send(&events[0]); err != nil {
+				return err
+			}
+		} else if len(filteredEvents) > 1 {
+			e := &stream.Event{
+				Topic: req.Topic,
+				Key:   req.Key,
+				Index: events[0].Index,
+				Payload: &stream.Event_EventBatch{
+					EventBatch: &stream.EventBatch{
+						Events: filteredEvents,
+					},
+				},
+			}
+			sentCount += uint64(len(filteredEvents))
+			h.srv.logger.Printf("[DEBUG] consul: subscribe sending events "+
+				"idx=%d sent=%d batchSize=%d streamID=%s", events[0].Index,
+				sentCount, len(filteredEvents), streamID)
+			if err := server.Send(e); err != nil {
+				return err
+			}
 		}
 	}
 }
 
-// sendEvent sends the given event along the stream if it passes ACL, boolean, and
-// any topic-specific filtering.
-func sendEvent(event stream.Event, aclFilter *aclFilter, eval *bexpr.Evaluator,
-	sent map[uint32]struct{}, server stream.Consul_SubscribeServer) error {
-	// If it's a special case event, skip the filtering and just send it.
-	if event.GetEndOfSnapshot() || event.GetReloadStream() {
-		return server.Send(&event)
-	}
-	allowEvent := true
+func aclFilterEvents(events []stream.Event, aclFilter *aclFilter) ([]*stream.Event, error) {
+	// We return a slice of pointers since that is what EventBatch needs anyway
+	// even if we do no filtering.
+	filtered := make([]*stream.Event, 0, len(events))
 
-	// Filter by ACL rules.
-	if !aclFilter.allowEvent(event) {
-		allowEvent = false
+	for idx := range events {
+		// Get pointer to the actual event. We don't use _, event ranging to save to
+		// confusion of making a local copy, this is more explicit.
+		event := &events[idx]
+		if aclFilter.allowEvent(event) {
+			filtered = append(filtered, event)
+		}
+	}
+	return filtered, nil
+}
+
+func (h *ConsulGRPCAdapter) forwardAndProxy(req *stream.SubscribeRequest,
+	server stream.Consul_SubscribeServer, streamID string) error {
+
+	conn, err := h.srv.grpcClient.GRPCConn(req.Datacenter)
+	if err != nil {
+		return err
 	}
 
-	// Apply the user's boolean expression filtering.
-	if eval != nil {
-		allow, err := eval.Evaluate(event.FilterObject())
+	h.srv.logger.Printf("[DEBUG] consul: subscribe forward to dc=%s topic=%q key=%q "+
+		"index=%d streamID=%s", req.Datacenter, req.Topic.String(), req.Key,
+		req.Index, streamID)
+
+	defer func() {
+		h.srv.logger.Printf("[DEBUG] consul: subscribe forwarded stream complete "+
+			"streamID=%s", streamID)
+	}()
+
+	// Open a Subscribe call to the remote DC.
+	client := stream.NewConsulClient(conn)
+	streamHandle, err := client.Subscribe(server.Context(), req)
+	if err != nil {
+		return err
+	}
+
+	// Relay the events back to the client.
+	for {
+		event, err := streamHandle.Recv()
 		if err != nil {
 			return err
 		}
-		if !allow {
-			allowEvent = false
+		if err := server.Send(event); err != nil {
+			return err
 		}
 	}
-
-	// Get the unique identifier for the object the event pertains to, and hash it
-	// to save space. This is only used to determine if an object has been removed
-	// and needs to be deleted from the client's cache. In other words, if we hit
-	// a hash collision, it only results in a redundant message being sent without
-	// affecting correctness. 32 bits means there is only a 1% chance of collision
-	// with ~9000 items in this map. For current uses that seems reasonable but
-	// when we add KV streaming we may want to revisit this.
-	rawId := event.ContentID()
-	hash := fnv.New32a()
-	hash.Write([]byte(rawId))
-	idHash := hash.Sum32()
-
-	// If the event would be filtered but the agent needs to know about
-	// the delete, send a delete event before removing the ID from the sent map.
-	if !allowEvent {
-		if _, ok := sent[idHash]; ok {
-			deleteEvent, err := stream.MakeDeleteEvent(&event)
-			if err != nil {
-				return err
-			}
-
-			// Send the delete.
-			if err := server.Send(deleteEvent); err != nil {
-				return err
-			}
-
-			delete(sent, idHash)
-			return nil
-		} else {
-			// If the event should be filtered and the agent doesn't know about it,
-			// just return early and don't send anything.
-			return nil
-		}
-	}
-
-	// Send the event.
-	if err := server.Send(&event); err != nil {
-		return err
-	}
-	sent[idHash] = struct{}{}
-
-	return nil
 }
 
 // Test is an internal endpoint used for checking connectivity/balancing logic.

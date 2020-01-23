@@ -8,11 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,7 +21,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type Topic int32
 
@@ -161,7 +158,7 @@ func (m *SubscribeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_SubscribeRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +230,9 @@ type Event struct {
 	//	*Event_ACLPolicy
 	//	*Event_ACLRole
 	//	*Event_EndOfSnapshot
+	//	*Event_ResumeStream
 	//	*Event_ReloadStream
+	//	*Event_EventBatch
 	Payload              isEvent_Payload `protobuf_oneof:"Payload"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
@@ -254,7 +253,7 @@ func (m *Event) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Event.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -280,22 +279,28 @@ type isEvent_Payload interface {
 }
 
 type Event_ServiceHealth struct {
-	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,6,opt,name=ServiceHealth,proto3,oneof" json:"ServiceHealth,omitempty"`
+	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,5,opt,name=ServiceHealth,proto3,oneof"`
 }
 type Event_ACLToken struct {
-	ACLToken *ACLTokenUpdate `protobuf:"bytes,7,opt,name=ACLToken,proto3,oneof" json:"ACLToken,omitempty"`
+	ACLToken *ACLTokenUpdate `protobuf:"bytes,6,opt,name=ACLToken,proto3,oneof"`
 }
 type Event_ACLPolicy struct {
-	ACLPolicy *ACLPolicyUpdate `protobuf:"bytes,8,opt,name=ACLPolicy,proto3,oneof" json:"ACLPolicy,omitempty"`
+	ACLPolicy *ACLPolicyUpdate `protobuf:"bytes,7,opt,name=ACLPolicy,proto3,oneof"`
 }
 type Event_ACLRole struct {
-	ACLRole *ACLRoleUpdate `protobuf:"bytes,9,opt,name=ACLRole,proto3,oneof" json:"ACLRole,omitempty"`
+	ACLRole *ACLRoleUpdate `protobuf:"bytes,8,opt,name=ACLRole,proto3,oneof"`
 }
 type Event_EndOfSnapshot struct {
-	EndOfSnapshot bool `protobuf:"varint,10,opt,name=EndOfSnapshot,proto3,oneof" json:"EndOfSnapshot,omitempty"`
+	EndOfSnapshot bool `protobuf:"varint,9,opt,name=EndOfSnapshot,proto3,oneof"`
+}
+type Event_ResumeStream struct {
+	ResumeStream bool `protobuf:"varint,10,opt,name=ResumeStream,proto3,oneof"`
 }
 type Event_ReloadStream struct {
-	ReloadStream bool `protobuf:"varint,11,opt,name=ReloadStream,proto3,oneof" json:"ReloadStream,omitempty"`
+	ReloadStream bool `protobuf:"varint,11,opt,name=ReloadStream,proto3,oneof"`
+}
+type Event_EventBatch struct {
+	EventBatch *EventBatch `protobuf:"bytes,12,opt,name=EventBatch,proto3,oneof"`
 }
 
 func (*Event_ServiceHealth) isEvent_Payload() {}
@@ -303,7 +308,9 @@ func (*Event_ACLToken) isEvent_Payload()      {}
 func (*Event_ACLPolicy) isEvent_Payload()     {}
 func (*Event_ACLRole) isEvent_Payload()       {}
 func (*Event_EndOfSnapshot) isEvent_Payload() {}
+func (*Event_ResumeStream) isEvent_Payload()  {}
 func (*Event_ReloadStream) isEvent_Payload()  {}
+func (*Event_EventBatch) isEvent_Payload()    {}
 
 func (m *Event) GetPayload() isEvent_Payload {
 	if m != nil {
@@ -375,6 +382,13 @@ func (m *Event) GetEndOfSnapshot() bool {
 	return false
 }
 
+func (m *Event) GetResumeStream() bool {
+	if x, ok := m.GetPayload().(*Event_ResumeStream); ok {
+		return x.ResumeStream
+	}
+	return false
+}
+
 func (m *Event) GetReloadStream() bool {
 	if x, ok := m.GetPayload().(*Event_ReloadStream); ok {
 		return x.ReloadStream
@@ -382,16 +396,243 @@ func (m *Event) GetReloadStream() bool {
 	return false
 }
 
-// XXX_OneofWrappers is for the internal use of the proto package.
-func (*Event) XXX_OneofWrappers() []interface{} {
-	return []interface{}{
+func (m *Event) GetEventBatch() *EventBatch {
+	if x, ok := m.GetPayload().(*Event_EventBatch); ok {
+		return x.EventBatch
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Event) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Event_OneofMarshaler, _Event_OneofUnmarshaler, _Event_OneofSizer, []interface{}{
 		(*Event_ServiceHealth)(nil),
 		(*Event_ACLToken)(nil),
 		(*Event_ACLPolicy)(nil),
 		(*Event_ACLRole)(nil),
 		(*Event_EndOfSnapshot)(nil),
+		(*Event_ResumeStream)(nil),
 		(*Event_ReloadStream)(nil),
+		(*Event_EventBatch)(nil),
 	}
+}
+
+func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Event)
+	// Payload
+	switch x := m.Payload.(type) {
+	case *Event_ServiceHealth:
+		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ServiceHealth); err != nil {
+			return err
+		}
+	case *Event_ACLToken:
+		_ = b.EncodeVarint(6<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ACLToken); err != nil {
+			return err
+		}
+	case *Event_ACLPolicy:
+		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ACLPolicy); err != nil {
+			return err
+		}
+	case *Event_ACLRole:
+		_ = b.EncodeVarint(8<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ACLRole); err != nil {
+			return err
+		}
+	case *Event_EndOfSnapshot:
+		t := uint64(0)
+		if x.EndOfSnapshot {
+			t = 1
+		}
+		_ = b.EncodeVarint(9<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(t)
+	case *Event_ResumeStream:
+		t := uint64(0)
+		if x.ResumeStream {
+			t = 1
+		}
+		_ = b.EncodeVarint(10<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(t)
+	case *Event_ReloadStream:
+		t := uint64(0)
+		if x.ReloadStream {
+			t = 1
+		}
+		_ = b.EncodeVarint(11<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(t)
+	case *Event_EventBatch:
+		_ = b.EncodeVarint(12<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.EventBatch); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Event.Payload has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Event)
+	switch tag {
+	case 5: // Payload.ServiceHealth
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ServiceHealthUpdate)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Event_ServiceHealth{msg}
+		return true, err
+	case 6: // Payload.ACLToken
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ACLTokenUpdate)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Event_ACLToken{msg}
+		return true, err
+	case 7: // Payload.ACLPolicy
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ACLPolicyUpdate)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Event_ACLPolicy{msg}
+		return true, err
+	case 8: // Payload.ACLRole
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ACLRoleUpdate)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Event_ACLRole{msg}
+		return true, err
+	case 9: // Payload.EndOfSnapshot
+		if wire != proto.WireVarint {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Payload = &Event_EndOfSnapshot{x != 0}
+		return true, err
+	case 10: // Payload.ResumeStream
+		if wire != proto.WireVarint {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Payload = &Event_ResumeStream{x != 0}
+		return true, err
+	case 11: // Payload.ReloadStream
+		if wire != proto.WireVarint {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Payload = &Event_ReloadStream{x != 0}
+		return true, err
+	case 12: // Payload.EventBatch
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(EventBatch)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Event_EventBatch{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Event_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Event)
+	// Payload
+	switch x := m.Payload.(type) {
+	case *Event_ServiceHealth:
+		s := proto.Size(x.ServiceHealth)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Event_ACLToken:
+		s := proto.Size(x.ACLToken)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Event_ACLPolicy:
+		s := proto.Size(x.ACLPolicy)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Event_ACLRole:
+		s := proto.Size(x.ACLRole)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Event_EndOfSnapshot:
+		n += 1 // tag and wire
+		n += 1
+	case *Event_ResumeStream:
+		n += 1 // tag and wire
+		n += 1
+	case *Event_ReloadStream:
+		n += 1 // tag and wire
+		n += 1
+	case *Event_EventBatch:
+		s := proto.Size(x.EventBatch)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type EventBatch struct {
+	Events               []*Event `protobuf:"bytes,1,rep,name=Events,proto3" json:"Events,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EventBatch) Reset()         { *m = EventBatch{} }
+func (m *EventBatch) String() string { return proto.CompactTextString(m) }
+func (*EventBatch) ProtoMessage()    {}
+func (*EventBatch) Descriptor() ([]byte, []int) {
+	return fileDescriptor_38d2980c9543da44, []int{2}
+}
+func (m *EventBatch) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *EventBatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_EventBatch.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *EventBatch) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EventBatch.Merge(m, src)
+}
+func (m *EventBatch) XXX_Size() int {
+	return m.Size()
+}
+func (m *EventBatch) XXX_DiscardUnknown() {
+	xxx_messageInfo_EventBatch.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EventBatch proto.InternalMessageInfo
+
+func (m *EventBatch) GetEvents() []*Event {
+	if m != nil {
+		return m.Events
+	}
+	return nil
 }
 
 type ACLRule struct {
@@ -406,7 +647,7 @@ func (m *ACLRule) Reset()         { *m = ACLRule{} }
 func (m *ACLRule) String() string { return proto.CompactTextString(m) }
 func (*ACLRule) ProtoMessage()    {}
 func (*ACLRule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{2}
+	return fileDescriptor_38d2980c9543da44, []int{3}
 }
 func (m *ACLRule) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -416,7 +657,7 @@ func (m *ACLRule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ACLRule.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -461,7 +702,7 @@ func (m *ServiceHealthUpdate) Reset()         { *m = ServiceHealthUpdate{} }
 func (m *ServiceHealthUpdate) String() string { return proto.CompactTextString(m) }
 func (*ServiceHealthUpdate) ProtoMessage()    {}
 func (*ServiceHealthUpdate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{3}
+	return fileDescriptor_38d2980c9543da44, []int{4}
 }
 func (m *ServiceHealthUpdate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -471,7 +712,7 @@ func (m *ServiceHealthUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte,
 		return xxx_messageInfo_ServiceHealthUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -516,7 +757,7 @@ func (m *ACLTokenUpdate) Reset()         { *m = ACLTokenUpdate{} }
 func (m *ACLTokenUpdate) String() string { return proto.CompactTextString(m) }
 func (*ACLTokenUpdate) ProtoMessage()    {}
 func (*ACLTokenUpdate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{4}
+	return fileDescriptor_38d2980c9543da44, []int{5}
 }
 func (m *ACLTokenUpdate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -526,7 +767,7 @@ func (m *ACLTokenUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_ACLTokenUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -571,7 +812,7 @@ func (m *ACLPolicyUpdate) Reset()         { *m = ACLPolicyUpdate{} }
 func (m *ACLPolicyUpdate) String() string { return proto.CompactTextString(m) }
 func (*ACLPolicyUpdate) ProtoMessage()    {}
 func (*ACLPolicyUpdate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{5}
+	return fileDescriptor_38d2980c9543da44, []int{6}
 }
 func (m *ACLPolicyUpdate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -581,7 +822,7 @@ func (m *ACLPolicyUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_ACLPolicyUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -626,7 +867,7 @@ func (m *ACLRoleUpdate) Reset()         { *m = ACLRoleUpdate{} }
 func (m *ACLRoleUpdate) String() string { return proto.CompactTextString(m) }
 func (*ACLRoleUpdate) ProtoMessage()    {}
 func (*ACLRoleUpdate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{6}
+	return fileDescriptor_38d2980c9543da44, []int{7}
 }
 func (m *ACLRoleUpdate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -636,7 +877,7 @@ func (m *ACLRoleUpdate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return xxx_messageInfo_ACLRoleUpdate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -680,7 +921,7 @@ func (m *TestRequest) Reset()         { *m = TestRequest{} }
 func (m *TestRequest) String() string { return proto.CompactTextString(m) }
 func (*TestRequest) ProtoMessage()    {}
 func (*TestRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{7}
+	return fileDescriptor_38d2980c9543da44, []int{8}
 }
 func (m *TestRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -690,7 +931,7 @@ func (m *TestRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_TestRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -727,7 +968,7 @@ func (m *TestResponse) Reset()         { *m = TestResponse{} }
 func (m *TestResponse) String() string { return proto.CompactTextString(m) }
 func (*TestResponse) ProtoMessage()    {}
 func (*TestResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_38d2980c9543da44, []int{8}
+	return fileDescriptor_38d2980c9543da44, []int{9}
 }
 func (m *TestResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -737,7 +978,7 @@ func (m *TestResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_TestResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -770,6 +1011,7 @@ func init() {
 	proto.RegisterEnum("stream.ACLResource", ACLResource_name, ACLResource_value)
 	proto.RegisterType((*SubscribeRequest)(nil), "stream.SubscribeRequest")
 	proto.RegisterType((*Event)(nil), "stream.Event")
+	proto.RegisterType((*EventBatch)(nil), "stream.EventBatch")
 	proto.RegisterType((*ACLRule)(nil), "stream.ACLRule")
 	proto.RegisterType((*ServiceHealthUpdate)(nil), "stream.ServiceHealthUpdate")
 	proto.RegisterType((*ACLTokenUpdate)(nil), "stream.ACLTokenUpdate")
@@ -782,54 +1024,57 @@ func init() {
 func init() { proto.RegisterFile("subscribe.proto", fileDescriptor_38d2980c9543da44) }
 
 var fileDescriptor_38d2980c9543da44 = []byte{
-	// 741 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x55, 0xdd, 0x6e, 0xd3, 0x48,
-	0x14, 0xb6, 0xf3, 0x9f, 0x93, 0x26, 0x71, 0xa7, 0xdd, 0xae, 0x95, 0xd5, 0x66, 0xb3, 0xde, 0x55,
-	0x15, 0x22, 0x11, 0x20, 0x45, 0x82, 0xdb, 0xd4, 0x69, 0xd5, 0x8a, 0xa8, 0xa9, 0x9c, 0x22, 0xae,
-	0x1d, 0xe7, 0xd0, 0x5a, 0x75, 0x6d, 0xe3, 0x99, 0x14, 0x7a, 0xc3, 0x73, 0xf0, 0x12, 0xbc, 0x07,
-	0xdc, 0xf1, 0x08, 0xa8, 0xbc, 0x08, 0x9a, 0x19, 0xdb, 0xb5, 0x53, 0xa4, 0x5e, 0x70, 0xe7, 0xf3,
-	0x9d, 0xef, 0x3b, 0x73, 0x7e, 0xe6, 0x8c, 0xa1, 0x4d, 0x57, 0x0b, 0xea, 0x44, 0xee, 0x02, 0x87,
-	0x61, 0x14, 0xb0, 0x80, 0x54, 0x28, 0x8b, 0xd0, 0xbe, 0xea, 0x34, 0x29, 0x8b, 0x56, 0x0e, 0xa3,
-	0x12, 0x36, 0x3e, 0xab, 0xa0, 0xcd, 0x13, 0xaa, 0x85, 0xef, 0x56, 0x48, 0x19, 0xf9, 0x0f, 0xca,
-	0x67, 0x41, 0xe8, 0x3a, 0xba, 0xda, 0x53, 0xfb, 0xad, 0x51, 0x73, 0x28, 0xb5, 0x43, 0x01, 0x5a,
-	0xd2, 0x47, 0x34, 0x28, 0xbe, 0xc2, 0x1b, 0xbd, 0xd0, 0x53, 0xfb, 0x75, 0x8b, 0x7f, 0x92, 0x6d,
-	0x2e, 0xbb, 0x44, 0x5f, 0x2f, 0x0a, 0x4c, 0x1a, 0x1c, 0x3d, 0xf6, 0x97, 0xf8, 0x41, 0x2f, 0xf5,
-	0xd4, 0x7e, 0xc9, 0x92, 0x06, 0xd9, 0x81, 0xca, 0xa1, 0xeb, 0x31, 0x8c, 0xf4, 0xb2, 0x20, 0xc7,
-	0x16, 0xe9, 0x02, 0x4c, 0x6c, 0x66, 0x3b, 0xe8, 0x73, 0x5f, 0x45, 0xf8, 0x32, 0x88, 0xf1, 0xb5,
-	0x08, 0xe5, 0x83, 0x6b, 0xf4, 0x7f, 0x27, 0x49, 0x99, 0x4e, 0x31, 0x9b, 0xce, 0x1e, 0x6c, 0xf0,
-	0xe2, 0xdd, 0x08, 0x97, 0x63, 0x73, 0x4a, 0xf5, 0x52, 0xaf, 0xd8, 0x6f, 0x8c, 0xda, 0x49, 0xcc,
-	0xb1, 0x39, 0xb5, 0x56, 0x1e, 0x5a, 0x39, 0x12, 0x31, 0xa1, 0x39, 0xc7, 0xe8, 0xda, 0x75, 0xf0,
-	0x08, 0x6d, 0x8f, 0x5d, 0x88, 0x74, 0x1b, 0xa3, 0xbf, 0x12, 0x55, 0xce, 0xf9, 0x3a, 0x5c, 0xda,
-	0x0c, 0x8f, 0x14, 0x2b, 0xaf, 0x21, 0xcf, 0xa1, 0x36, 0x36, 0xa7, 0xb2, 0x6f, 0x55, 0xa1, 0xdf,
-	0xc9, 0x9c, 0x2a, 0xf0, 0x54, 0x9a, 0x32, 0xc9, 0x0b, 0xa8, 0x8f, 0xcd, 0xe9, 0x69, 0xe0, 0xb9,
-	0xce, 0x8d, 0x5e, 0x13, 0xb2, 0x3f, 0x33, 0x32, 0xe9, 0x48, 0x75, 0x77, 0x5c, 0xf2, 0x0c, 0xaa,
-	0xbc, 0x98, 0xc0, 0x43, 0xbd, 0x2e, 0x64, 0x7f, 0x64, 0x6b, 0x0c, 0x3c, 0x4c, 0x45, 0x09, 0x8f,
-	0xec, 0x42, 0xf3, 0xc0, 0x5f, 0xce, 0xde, 0xce, 0x7d, 0x3b, 0xa4, 0x17, 0x01, 0xd3, 0xa1, 0xa7,
-	0xf6, 0x6b, 0xbc, 0x92, 0x1c, 0x4c, 0xfe, 0xe7, 0x3d, 0xf4, 0x02, 0x7b, 0x39, 0x17, 0x01, 0xf5,
-	0x46, 0x4c, 0xcb, 0xa1, 0xfb, 0x75, 0xa8, 0x9e, 0xda, 0x37, 0x1c, 0x30, 0xce, 0x64, 0x2e, 0x2b,
-	0x0f, 0xc9, 0x13, 0xa8, 0x59, 0x48, 0x83, 0x55, 0xe4, 0x60, 0x3c, 0xcf, 0xad, 0x6c, 0x5e, 0xb1,
-	0xcb, 0x4a, 0x49, 0x44, 0x87, 0xea, 0x1c, 0xcf, 0xaf, 0xd0, 0x67, 0xf1, 0x70, 0x13, 0xd3, 0xf8,
-	0x08, 0x5b, 0xbf, 0x68, 0x3c, 0xf9, 0x17, 0x0a, 0xb3, 0x30, 0x8e, 0xbd, 0x99, 0xc4, 0x36, 0x6d,
-	0x66, 0x7b, 0xc1, 0xf9, 0x2c, 0xb4, 0x0a, 0xb3, 0x90, 0x4c, 0x40, 0x33, 0x2f, 0xd0, 0xb9, 0x8c,
-	0xe5, 0x27, 0xc1, 0x12, 0x45, 0xf0, 0xc6, 0x48, 0x4f, 0x05, 0x6b, 0x7e, 0xeb, 0x9e, 0xc2, 0x78,
-	0x03, 0xad, 0xfc, 0xe0, 0xc8, 0xdf, 0x99, 0xa3, 0x9b, 0x99, 0xb2, 0xe2, 0x63, 0x77, 0x93, 0xb5,
-	0x91, 0x67, 0x69, 0xeb, 0xe3, 0x8f, 0x17, 0xc9, 0x98, 0x42, 0x7b, 0x6d, 0xb4, 0x0f, 0x45, 0xee,
-	0x40, 0x4d, 0xd2, 0x8f, 0x27, 0x71, 0x97, 0x52, 0xdb, 0x38, 0x84, 0x66, 0x6e, 0xe2, 0x0f, 0xc5,
-	0xda, 0x81, 0x0a, 0x27, 0xa7, 0x91, 0x62, 0xcb, 0x78, 0x0c, 0x8d, 0x33, 0xa4, 0x2c, 0x79, 0x3a,
-	0xf2, 0xfb, 0xab, 0xde, 0xdb, 0xdf, 0x21, 0x6c, 0x48, 0x3a, 0x0d, 0x03, 0x9f, 0x22, 0xe7, 0xf3,
-	0xe6, 0x61, 0x74, 0x62, 0x5f, 0x61, 0xc2, 0xbf, 0x43, 0x06, 0x8b, 0x78, 0xcb, 0xc9, 0xe6, 0xda,
-	0xb2, 0x69, 0x0a, 0xd1, 0x61, 0x3b, 0x07, 0x99, 0x81, 0xef, 0xa3, 0xc3, 0x34, 0x95, 0x34, 0xc5,
-	0x7a, 0x88, 0xb6, 0x51, 0xad, 0x40, 0xda, 0xd0, 0x48, 0x3a, 0xe7, 0x22, 0xd5, 0x8a, 0x64, 0x43,
-	0x2c, 0x1d, 0xaf, 0x80, 0x6a, 0xa5, 0xc1, 0x23, 0xa8, 0xa7, 0x17, 0x81, 0xbb, 0x2c, 0x3c, 0x77,
-	0x29, 0xc3, 0x48, 0x53, 0x48, 0x0b, 0x60, 0x82, 0x51, 0x62, 0xab, 0x83, 0x7f, 0xa0, 0x2c, 0x5a,
-	0x42, 0x00, 0x2a, 0xb2, 0x6f, 0x9a, 0xc2, 0xbf, 0x27, 0xe8, 0x21, 0x43, 0x4d, 0x1d, 0x0c, 0xc4,
-	0x51, 0xe9, 0x35, 0x6d, 0xc9, 0xf2, 0x5c, 0x07, 0xc7, 0xe6, 0x54, 0x53, 0x48, 0x03, 0xaa, 0xfc,
-	0x92, 0x70, 0x43, 0x1d, 0xbd, 0x87, 0x8a, 0x19, 0xf8, 0x74, 0xe5, 0x91, 0x97, 0x50, 0x4f, 0x1f,
-	0x61, 0x92, 0x5e, 0xb6, 0xf5, 0x77, 0xb9, 0x93, 0x8e, 0x45, 0xbc, 0x80, 0x86, 0xf2, 0x54, 0x25,
-	0x7b, 0x50, 0xe2, 0xfd, 0x24, 0xe9, 0xba, 0x64, 0x86, 0xd1, 0xd9, 0xce, 0x83, 0xb2, 0xe5, 0x86,
-	0xb2, 0xaf, 0x7d, 0xb9, 0xed, 0xaa, 0xdf, 0x6e, 0xbb, 0xea, 0xf7, 0xdb, 0xae, 0xfa, 0xe9, 0x47,
-	0x57, 0x59, 0x54, 0xc4, 0xdf, 0x60, 0xef, 0x67, 0x00, 0x00, 0x00, 0xff, 0xff, 0x29, 0xce, 0xf5,
-	0xe5, 0x37, 0x06, 0x00, 0x00,
+	// 793 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x55, 0xd1, 0x6e, 0xe3, 0x44,
+	0x14, 0xf5, 0x34, 0xa9, 0x93, 0xdc, 0xd4, 0xad, 0xf7, 0x6e, 0x29, 0x56, 0x11, 0x21, 0x18, 0x58,
+	0x85, 0x48, 0x14, 0x48, 0x57, 0x82, 0xd7, 0xd4, 0xd9, 0x55, 0x57, 0x44, 0xdb, 0x95, 0x53, 0xc4,
+	0xb3, 0xeb, 0x5c, 0x5a, 0x6b, 0x1d, 0xdb, 0x78, 0xc6, 0x0b, 0x7d, 0xe1, 0x3b, 0xf8, 0x01, 0x1e,
+	0xf9, 0x0f, 0x1e, 0xf9, 0x04, 0x54, 0x7e, 0x04, 0xcd, 0x8c, 0xed, 0xd8, 0x59, 0xa4, 0x7d, 0xe0,
+	0xcd, 0xf7, 0xdc, 0x73, 0xee, 0xcc, 0x3d, 0xbe, 0x33, 0x03, 0x47, 0xbc, 0xb8, 0xe1, 0x61, 0x1e,
+	0xdd, 0xd0, 0x59, 0x96, 0xa7, 0x22, 0x45, 0x93, 0x8b, 0x9c, 0x82, 0xcd, 0xa9, 0xc5, 0x45, 0x5e,
+	0x84, 0x82, 0x6b, 0xd8, 0xfd, 0x83, 0x81, 0xbd, 0xaa, 0xa8, 0x3e, 0xfd, 0x54, 0x10, 0x17, 0xf8,
+	0x09, 0xec, 0x5f, 0xa7, 0x59, 0x14, 0x3a, 0x6c, 0xcc, 0x26, 0x87, 0x33, 0xeb, 0x4c, 0x6b, 0xcf,
+	0x14, 0xe8, 0xeb, 0x1c, 0xda, 0xd0, 0xf9, 0x8e, 0xee, 0x9d, 0xbd, 0x31, 0x9b, 0x0c, 0x7c, 0xf9,
+	0x89, 0xc7, 0x52, 0xf6, 0x9a, 0x12, 0xa7, 0xa3, 0x30, 0x1d, 0x48, 0xf4, 0x45, 0xb2, 0xa6, 0x5f,
+	0x9c, 0xee, 0x98, 0x4d, 0xba, 0xbe, 0x0e, 0xf0, 0x04, 0xcc, 0xe7, 0x51, 0x2c, 0x28, 0x77, 0xf6,
+	0x15, 0xb9, 0x8c, 0x70, 0x04, 0xb0, 0x08, 0x44, 0x10, 0x52, 0x22, 0x73, 0xa6, 0xca, 0x35, 0x10,
+	0xf7, 0xf7, 0x2e, 0xec, 0x3f, 0x7b, 0x43, 0xc9, 0xff, 0xd9, 0xa4, 0xde, 0x4e, 0xa7, 0xb9, 0x9d,
+	0x73, 0x38, 0x90, 0xcd, 0x47, 0x39, 0xad, 0xe7, 0xde, 0x92, 0x3b, 0xdd, 0x71, 0x67, 0x32, 0x9c,
+	0x1d, 0x55, 0x35, 0xe7, 0xde, 0xd2, 0x2f, 0x62, 0xf2, 0x5b, 0x24, 0xf4, 0xc0, 0x5a, 0x51, 0xfe,
+	0x26, 0x0a, 0xe9, 0x92, 0x82, 0x58, 0xdc, 0xa9, 0x56, 0x86, 0xb3, 0x0f, 0x2a, 0x55, 0x2b, 0xf9,
+	0x7d, 0xb6, 0x0e, 0x04, 0x5d, 0x1a, 0x7e, 0x5b, 0x83, 0x4f, 0xa1, 0x3f, 0xf7, 0x96, 0xda, 0x37,
+	0x53, 0xe9, 0x4f, 0x1a, 0xab, 0x2a, 0xbc, 0x96, 0xd6, 0x4c, 0xfc, 0x06, 0x06, 0x73, 0x6f, 0xf9,
+	0x2a, 0x8d, 0xa3, 0xf0, 0xde, 0xe9, 0x29, 0xd9, 0xfb, 0x0d, 0x99, 0x4e, 0xd4, 0xba, 0x2d, 0x17,
+	0xbf, 0x86, 0x9e, 0x6c, 0x26, 0x8d, 0xc9, 0xe9, 0x2b, 0xd9, 0x7b, 0xcd, 0x1e, 0xd3, 0x98, 0x6a,
+	0x51, 0xc5, 0xc3, 0x27, 0x60, 0x3d, 0x4b, 0xd6, 0x57, 0x3f, 0xae, 0x92, 0x20, 0xe3, 0x77, 0xa9,
+	0x70, 0x06, 0x63, 0x36, 0xe9, 0xcb, 0x4e, 0x5a, 0x30, 0x7e, 0x2a, 0x3d, 0xe4, 0xc5, 0x86, 0x56,
+	0xaa, 0xa0, 0x03, 0x25, 0xad, 0x85, 0x6a, 0x56, 0x9c, 0x06, 0xeb, 0x92, 0x35, 0xdc, 0xb2, 0xb6,
+	0x28, 0x3e, 0x05, 0x50, 0x7f, 0xf9, 0x22, 0x10, 0xe1, 0x9d, 0x73, 0xa0, 0x76, 0x8a, 0xd5, 0x4e,
+	0xb7, 0x99, 0x4b, 0xc3, 0x6f, 0xf0, 0x2e, 0x06, 0xd0, 0x7b, 0x15, 0xdc, 0xcb, 0x32, 0xee, 0x79,
+	0xb3, 0x00, 0x7e, 0x06, 0xa6, 0x8a, 0xb8, 0xc3, 0xd4, 0x8f, 0xb5, 0x5a, 0xa5, 0xfc, 0x32, 0xe9,
+	0x5e, 0x6b, 0x73, 0x8a, 0x98, 0xf0, 0x4b, 0xe8, 0xfb, 0xc4, 0xd3, 0x22, 0x0f, 0xa9, 0x1c, 0xb0,
+	0xc7, 0x4d, 0xa3, 0xca, 0x94, 0x5f, 0x93, 0xd0, 0x81, 0xde, 0x8a, 0x6e, 0x37, 0x94, 0x88, 0x72,
+	0xda, 0xaa, 0xd0, 0xfd, 0x15, 0x1e, 0xff, 0xc7, 0x24, 0xe0, 0xc7, 0xb0, 0x77, 0x95, 0x95, 0xb5,
+	0x1f, 0x55, 0xb5, 0xbd, 0x40, 0x04, 0x71, 0x7a, 0x7b, 0x95, 0xf9, 0x7b, 0x57, 0x19, 0x2e, 0xc0,
+	0xf6, 0xee, 0x28, 0x7c, 0x5d, 0xca, 0x5f, 0xa6, 0x6b, 0x52, 0xc5, 0x87, 0x33, 0xa7, 0x16, 0xec,
+	0xe4, 0xfd, 0xb7, 0x14, 0xee, 0x0f, 0x70, 0xd8, 0x9e, 0x24, 0xfc, 0xb0, 0xb1, 0xb4, 0xd5, 0x68,
+	0xab, 0x5c, 0xf6, 0x49, 0x75, 0x8e, 0xf5, 0x5a, 0xf6, 0xee, 0x3c, 0x96, 0x27, 0xdb, 0x5d, 0xc2,
+	0xd1, 0xce, 0xac, 0xbd, 0xab, 0xf2, 0x29, 0xf4, 0x35, 0xfd, 0xc5, 0xa2, 0x74, 0xa9, 0x8e, 0xdd,
+	0xe7, 0x60, 0xb5, 0x46, 0xf0, 0x5d, 0xb5, 0x4e, 0xc0, 0x94, 0xe4, 0xba, 0x52, 0x19, 0xb9, 0x5f,
+	0xc0, 0xf0, 0x9a, 0xb8, 0xa8, 0xee, 0xb2, 0xf6, 0x85, 0xc2, 0xde, 0xba, 0x50, 0xce, 0xe0, 0x40,
+	0xd3, 0x79, 0x96, 0x26, 0x9c, 0x24, 0x5f, 0x9a, 0x47, 0xf9, 0xcb, 0x60, 0x43, 0x15, 0x7f, 0x8b,
+	0x4c, 0x6f, 0xca, 0x6b, 0x07, 0x1f, 0xed, 0x9c, 0x7e, 0xdb, 0x40, 0x07, 0x8e, 0x5b, 0x90, 0x97,
+	0x26, 0x09, 0x85, 0xc2, 0x66, 0x68, 0xa9, 0xf3, 0xaa, 0x6c, 0xe3, 0xf6, 0x1e, 0x1e, 0xc1, 0xb0,
+	0x72, 0x2e, 0x22, 0x6e, 0x77, 0xf0, 0x40, 0xdd, 0x02, 0xb2, 0x03, 0x6e, 0x77, 0xa7, 0x9f, 0xc3,
+	0xa0, 0x1e, 0x04, 0x99, 0xf2, 0xe9, 0x36, 0xe2, 0x82, 0x72, 0xdb, 0xc0, 0x43, 0x80, 0x05, 0xe5,
+	0x55, 0xcc, 0xa6, 0x1f, 0xc1, 0xbe, 0xb2, 0x04, 0x01, 0x4c, 0xed, 0x9b, 0x6d, 0xc8, 0xef, 0x05,
+	0xc5, 0x24, 0xc8, 0x66, 0xd3, 0xa9, 0x5a, 0xaa, 0x1e, 0xd3, 0x43, 0xdd, 0x5e, 0x14, 0xd2, 0xdc,
+	0x5b, 0xda, 0x06, 0x0e, 0xa1, 0x27, 0x87, 0x44, 0x06, 0x6c, 0xf6, 0x33, 0x98, 0x5e, 0x9a, 0xf0,
+	0x22, 0xc6, 0x6f, 0x61, 0x50, 0xbf, 0x0a, 0x58, 0x0f, 0xdb, 0xee, 0x43, 0x71, 0xda, 0x3e, 0x47,
+	0xae, 0xf1, 0x15, 0xc3, 0x73, 0xe8, 0x4a, 0x3f, 0xb1, 0x3e, 0x2e, 0x8d, 0x9f, 0x71, 0x7a, 0xdc,
+	0x06, 0xb5, 0xe5, 0xae, 0x71, 0x61, 0xff, 0xf9, 0x30, 0x62, 0x7f, 0x3d, 0x8c, 0xd8, 0xdf, 0x0f,
+	0x23, 0xf6, 0xdb, 0x3f, 0x23, 0xe3, 0xc6, 0x54, 0xcf, 0xd3, 0xf9, 0xbf, 0x01, 0x00, 0x00, 0xff,
+	0xff, 0x0d, 0x38, 0xe4, 0xd6, 0xc8, 0x06, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -844,6 +1089,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ConsulClient interface {
+	// Susbscribe is a generic event streaming mechanism used for efficiently
+	// requesting a specific result snapshot and then following updates that
+	// affect that snapshot.
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Consul_SubscribeClient, error)
 	// Test is only used internally for testing connectivity/balancing logic.
 	Test(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (*TestResponse, error)
@@ -900,20 +1148,12 @@ func (c *consulClient) Test(ctx context.Context, in *TestRequest, opts ...grpc.C
 
 // ConsulServer is the server API for Consul service.
 type ConsulServer interface {
+	// Susbscribe is a generic event streaming mechanism used for efficiently
+	// requesting a specific result snapshot and then following updates that
+	// affect that snapshot.
 	Subscribe(*SubscribeRequest, Consul_SubscribeServer) error
 	// Test is only used internally for testing connectivity/balancing logic.
 	Test(context.Context, *TestRequest) (*TestResponse, error)
-}
-
-// UnimplementedConsulServer can be embedded to have forward compatible implementations.
-type UnimplementedConsulServer struct {
-}
-
-func (*UnimplementedConsulServer) Subscribe(req *SubscribeRequest, srv Consul_SubscribeServer) error {
-	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
-}
-func (*UnimplementedConsulServer) Test(ctx context.Context, req *TestRequest) (*TestResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Test not implemented")
 }
 
 func RegisterConsulServer(s *grpc.Server, srv ConsulServer) {
@@ -981,7 +1221,7 @@ var _Consul_serviceDesc = grpc.ServiceDesc{
 func (m *SubscribeRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -989,64 +1229,54 @@ func (m *SubscribeRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SubscribeRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *SubscribeRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Datacenter) > 0 {
-		i -= len(m.Datacenter)
-		copy(dAtA[i:], m.Datacenter)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.Filter) > 0 {
-		i -= len(m.Filter)
-		copy(dAtA[i:], m.Filter)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Filter)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.Index != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.Token) > 0 {
-		i -= len(m.Token)
-		copy(dAtA[i:], m.Token)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Token)))
-		i--
-		dAtA[i] = 0x1a
+	if m.Topic != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
 	}
 	if len(m.Key) > 0 {
-		i -= len(m.Key)
-		copy(dAtA[i:], m.Key)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Topic != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
-		i--
-		dAtA[i] = 0x8
+	if len(m.Token) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Token)))
+		i += copy(dAtA[i:], m.Token)
 	}
-	return len(dAtA) - i, nil
+	if m.Index != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
+	}
+	if len(m.Filter) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Filter)))
+		i += copy(dAtA[i:], m.Filter)
+	}
+	if len(m.Datacenter) > 0 {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
+		i += copy(dAtA[i:], m.Datacenter)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *Event) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1054,184 +1284,194 @@ func (m *Event) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Event) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if m.Payload != nil {
-		{
-			size := m.Payload.Size()
-			i -= size
-			if _, err := m.Payload.MarshalTo(dAtA[i:]); err != nil {
-				return 0, err
-			}
-		}
-	}
-	if len(m.RequiredACLs) > 0 {
-		for iNdEx := len(m.RequiredACLs) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.RequiredACLs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintSubscribe(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if m.Index != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
-		i--
-		dAtA[i] = 0x18
+	if m.Topic != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
 	}
 	if len(m.Key) > 0 {
-		i -= len(m.Key)
-		copy(dAtA[i:], m.Key)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
+		i += copy(dAtA[i:], m.Key)
 	}
-	if m.Topic != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
-		i--
-		dAtA[i] = 0x8
+	if m.Index != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
 	}
-	return len(dAtA) - i, nil
+	if len(m.RequiredACLs) > 0 {
+		for _, msg := range m.RequiredACLs {
+			dAtA[i] = 0x22
+			i++
+			i = encodeVarintSubscribe(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.Payload != nil {
+		nn1, err := m.Payload.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn1
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *Event_ServiceHealth) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event_ServiceHealth) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ServiceHealth != nil {
-		{
-			size, err := m.ServiceHealth.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSubscribe(dAtA, i, uint64(size))
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.ServiceHealth.Size()))
+		n2, err := m.ServiceHealth.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
-		i--
-		dAtA[i] = 0x32
+		i += n2
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *Event_ACLToken) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event_ACLToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ACLToken != nil {
-		{
-			size, err := m.ACLToken.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSubscribe(dAtA, i, uint64(size))
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.ACLToken.Size()))
+		n3, err := m.ACLToken.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
-		i--
-		dAtA[i] = 0x3a
+		i += n3
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *Event_ACLPolicy) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event_ACLPolicy) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ACLPolicy != nil {
-		{
-			size, err := m.ACLPolicy.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSubscribe(dAtA, i, uint64(size))
+		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.ACLPolicy.Size()))
+		n4, err := m.ACLPolicy.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
-		i--
-		dAtA[i] = 0x42
+		i += n4
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *Event_ACLRole) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event_ACLRole) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	i := 0
 	if m.ACLRole != nil {
-		{
-			size, err := m.ACLRole.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSubscribe(dAtA, i, uint64(size))
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.ACLRole.Size()))
+		n5, err := m.ACLRole.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
-		i--
-		dAtA[i] = 0x4a
+		i += n5
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 func (m *Event_EndOfSnapshot) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event_EndOfSnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i--
+	i := 0
+	dAtA[i] = 0x48
+	i++
 	if m.EndOfSnapshot {
 		dAtA[i] = 1
 	} else {
 		dAtA[i] = 0
 	}
-	i--
+	i++
+	return i, nil
+}
+func (m *Event_ResumeStream) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
 	dAtA[i] = 0x50
-	return len(dAtA) - i, nil
+	i++
+	if m.ResumeStream {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i++
+	return i, nil
 }
 func (m *Event_ReloadStream) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Event_ReloadStream) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i--
+	i := 0
+	dAtA[i] = 0x58
+	i++
 	if m.ReloadStream {
 		dAtA[i] = 1
 	} else {
 		dAtA[i] = 0
 	}
-	i--
-	dAtA[i] = 0x58
-	return len(dAtA) - i, nil
+	i++
+	return i, nil
 }
+func (m *Event_EventBatch) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.EventBatch != nil {
+		dAtA[i] = 0x62
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.EventBatch.Size()))
+		n6, err := m.EventBatch.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+	}
+	return i, nil
+}
+func (m *EventBatch) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EventBatch) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Events) > 0 {
+		for _, msg := range m.Events {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintSubscribe(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func (m *ACLRule) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1239,38 +1479,31 @@ func (m *ACLRule) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLRule) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ACLRule) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Resource != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Resource))
 	}
 	if len(m.Segment) > 0 {
-		i -= len(m.Segment)
-		copy(dAtA[i:], m.Segment)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Segment)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Segment)))
+		i += copy(dAtA[i:], m.Segment)
 	}
-	if m.Resource != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Resource))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ServiceHealthUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1278,43 +1511,35 @@ func (m *ServiceHealthUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceHealthUpdate) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServiceHealthUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
 	}
 	if m.CheckServiceNode != nil {
-		{
-			size, err := m.CheckServiceNode.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSubscribe(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.CheckServiceNode.Size()))
+		n7, err := m.CheckServiceNode.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n7
 	}
-	if m.Op != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ACLTokenUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1322,43 +1547,35 @@ func (m *ACLTokenUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLTokenUpdate) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ACLTokenUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
 	}
 	if m.Token != nil {
-		{
-			size, err := m.Token.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintSubscribe(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Token.Size()))
+		n8, err := m.Token.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n8
 	}
-	if m.Op != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ACLPolicyUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1366,38 +1583,31 @@ func (m *ACLPolicyUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLPolicyUpdate) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ACLPolicyUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
 	}
 	if len(m.PolicyID) > 0 {
-		i -= len(m.PolicyID)
-		copy(dAtA[i:], m.PolicyID)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.PolicyID)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.PolicyID)))
+		i += copy(dAtA[i:], m.PolicyID)
 	}
-	if m.Op != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ACLRoleUpdate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1405,38 +1615,31 @@ func (m *ACLRoleUpdate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLRoleUpdate) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ACLRoleUpdate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Op != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
 	}
 	if len(m.RoleID) > 0 {
-		i -= len(m.RoleID)
-		copy(dAtA[i:], m.RoleID)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.RoleID)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.RoleID)))
+		i += copy(dAtA[i:], m.RoleID)
 	}
-	if m.Op != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Op))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *TestRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1444,33 +1647,26 @@ func (m *TestRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TestRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *TestRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Datacenter) > 0 {
-		i -= len(m.Datacenter)
-		copy(dAtA[i:], m.Datacenter)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Datacenter)))
+		i += copy(dAtA[i:], m.Datacenter)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *TestResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1478,39 +1674,30 @@ func (m *TestResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *TestResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *TestResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.ServerName) > 0 {
-		i -= len(m.ServerName)
-		copy(dAtA[i:], m.ServerName)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.ServerName)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.ServerName)))
+		i += copy(dAtA[i:], m.ServerName)
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func encodeVarintSubscribe(dAtA []byte, offset int, v uint64) int {
-	offset -= sovSubscribe(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *SubscribeRequest) Size() (n int) {
 	if m == nil {
@@ -1634,6 +1821,15 @@ func (m *Event_EndOfSnapshot) Size() (n int) {
 	n += 2
 	return n
 }
+func (m *Event_ResumeStream) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
 func (m *Event_ReloadStream) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1643,6 +1839,36 @@ func (m *Event_ReloadStream) Size() (n int) {
 	n += 2
 	return n
 }
+func (m *Event_EventBatch) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.EventBatch != nil {
+		l = m.EventBatch.Size()
+		n += 1 + l + sovSubscribe(uint64(l))
+	}
+	return n
+}
+func (m *EventBatch) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Events) > 0 {
+		for _, e := range m.Events {
+			l = e.Size()
+			n += 1 + l + sovSubscribe(uint64(l))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
 func (m *ACLRule) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1771,7 +1997,14 @@ func (m *TestResponse) Size() (n int) {
 }
 
 func sovSubscribe(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozSubscribe(x uint64) (n int) {
 	return sovSubscribe(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -2129,7 +2362,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 6:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ServiceHealth", wireType)
 			}
@@ -2164,7 +2397,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			m.Payload = &Event_ServiceHealth{v}
 			iNdEx = postIndex
-		case 7:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ACLToken", wireType)
 			}
@@ -2199,7 +2432,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			m.Payload = &Event_ACLToken{v}
 			iNdEx = postIndex
-		case 8:
+		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ACLPolicy", wireType)
 			}
@@ -2234,7 +2467,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			m.Payload = &Event_ACLPolicy{v}
 			iNdEx = postIndex
-		case 9:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ACLRole", wireType)
 			}
@@ -2269,7 +2502,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			m.Payload = &Event_ACLRole{v}
 			iNdEx = postIndex
-		case 10:
+		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EndOfSnapshot", wireType)
 			}
@@ -2290,6 +2523,27 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Payload = &Event_EndOfSnapshot{b}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResumeStream", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Payload = &Event_ResumeStream{b}
 		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ReloadStream", wireType)
@@ -2311,6 +2565,129 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Payload = &Event_ReloadStream{b}
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventBatch", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &EventBatch{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Payload = &Event_EventBatch{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSubscribe(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *EventBatch) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSubscribe
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EventBatch: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EventBatch: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Events", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Events = append(m.Events, &Event{})
+			if err := m.Events[len(m.Events)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSubscribe(dAtA[iNdEx:])
@@ -3044,7 +3421,6 @@ func (m *TestResponse) Unmarshal(dAtA []byte) error {
 func skipSubscribe(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
-	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -3076,8 +3452,10 @@ func skipSubscribe(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
+			return iNdEx, nil
 		case 1:
 			iNdEx += 8
+			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -3098,30 +3476,55 @@ func skipSubscribe(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthSubscribe
 			}
 			iNdEx += length
-		case 3:
-			depth++
-		case 4:
-			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupSubscribe
+			if iNdEx < 0 {
+				return 0, ErrInvalidLengthSubscribe
 			}
-			depth--
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowSubscribe
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipSubscribe(dAtA[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthSubscribe
+				}
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
 		case 5:
 			iNdEx += 4
+			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
-		if iNdEx < 0 {
-			return 0, ErrInvalidLengthSubscribe
-		}
-		if depth == 0 {
-			return iNdEx, nil
-		}
 	}
-	return 0, io.ErrUnexpectedEOF
+	panic("unreachable")
 }
 
 var (
-	ErrInvalidLengthSubscribe        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowSubscribe          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupSubscribe = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthSubscribe = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowSubscribe   = fmt.Errorf("proto: integer overflow")
 )

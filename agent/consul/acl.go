@@ -1124,7 +1124,7 @@ func (f *aclFilter) allowSession(node string, ent *acl.EnterpriseAuthorizerConte
 }
 
 // allowEvent is used to determine if a stream.Event is accessible for an ACL.
-func (f *aclFilter) allowEvent(event stream.Event) bool {
+func (f *aclFilter) allowEvent(event *stream.Event) bool {
 	// Fast path if ACLs are not enabled
 	if f.authorizer == nil {
 		return true

@@ -2,10 +2,13 @@ package consul
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,10 +19,21 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
+
+// requireEqualProtos is a helper that runs arrays or structures containing
+// proto buf messages through JSON encoding before comparing/diffing them. This
+// is necessary because require.Equal doesn't compare them equal and generates
+// really unhelpful output in this case for some reason.
+func requireEqualProtos(t *testing.T, want, got interface{}) {
+	gotJSON, err := json.Marshal(got)
+	require.NoError(t, err)
+	expectJSON, err := json.Marshal(want)
+	require.NoError(t, err)
+	require.JSONEq(t, string(expectJSON), string(gotJSON))
+}
 
 func TestStreaming_Subscribe(t *testing.T) {
 	t.Parallel()
@@ -106,7 +120,10 @@ func TestStreaming_Subscribe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+	streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
+		Topic: stream.Topic_ServiceHealth,
+		Key:   "redis",
+	})
 	require.NoError(err)
 
 	// Start a goroutine to read updates off the stream.
@@ -125,7 +142,8 @@ func TestStreaming_Subscribe(t *testing.T) {
 
 	expected := []*stream.Event{
 		{
-			Key: "redis",
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -141,13 +159,20 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Address: "3.4.5.6",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
+							// A trip through protobuf converts these zero-value strcuts in
+							// ServiceNode into zero-value protobuf versions including
+							// zero-value (not nil) map type...
+							Proxy: stream.ConnectProxyConfig{
+								Config: stream.UntypedMap{},
+							},
 						},
 					},
 				},
 			},
 		},
 		{
-			Key: "redis",
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -163,6 +188,9 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Address: "1.1.1.1",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
+							Proxy: stream.ConnectProxyConfig{
+								Config: stream.UntypedMap{},
+							},
 						},
 					},
 				},
@@ -170,6 +198,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 		},
 		{
 			Topic:   stream.Topic_ServiceHealth,
+			Key:     "redis",
 			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		},
 	}
@@ -183,8 +212,10 @@ func TestStreaming_Subscribe(t *testing.T) {
 		node.Service.RaftIndex = snapshotEvents[i].GetServiceHealth().CheckServiceNode.Service.RaftIndex
 		expected[i].SetACLRules()
 	}
+	// Fix index on snapshot event
 	expected[2].Index = snapshotEvents[2].Index
-	verify.Values(t, "", snapshotEvents, expected)
+
+	requireEqualProtos(t, expected, snapshotEvents)
 
 	// Update the registration by adding a check.
 	req.Check = &structs.HealthCheck{
@@ -200,7 +231,8 @@ func TestStreaming_Subscribe(t *testing.T) {
 	select {
 	case event := <-eventCh:
 		expected := &stream.Event{
-			Key: "redis",
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -218,6 +250,9 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Port:      8080,
 							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
 							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+							Proxy: stream.ConnectProxyConfig{
+								Config: stream.UntypedMap{},
+							},
 						},
 						Checks: []*stream.HealthCheck{
 							{
@@ -241,7 +276,7 @@ func TestStreaming_Subscribe(t *testing.T) {
 		node.Node.RaftIndex = event.GetServiceHealth().CheckServiceNode.Node.RaftIndex
 		node.Service.RaftIndex = event.GetServiceHealth().CheckServiceNode.Service.RaftIndex
 		node.Checks[0].RaftIndex = event.GetServiceHealth().CheckServiceNode.Checks[0].RaftIndex
-		verify.Values(t, "", event, expected)
+		requireEqualProtos(t, expected, event)
 	case <-time.After(3 * time.Second):
 		t.Fatal("never got event")
 	}
@@ -373,7 +408,8 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 
 	expected := []*stream.Event{
 		{
-			Key: "redis",
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -389,13 +425,17 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 							Address: "3.4.5.6",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
+							Proxy: stream.ConnectProxyConfig{
+								Config: stream.UntypedMap{},
+							},
 						},
 					},
 				},
 			},
 		},
 		{
-			Key: "redis",
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -411,6 +451,9 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 							Address: "1.1.1.1",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
+							Proxy: stream.ConnectProxyConfig{
+								Config: stream.UntypedMap{},
+							},
 						},
 					},
 				},
@@ -418,6 +461,7 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 		},
 		{
 			Topic:   stream.Topic_ServiceHealth,
+			Key:     "redis",
 			Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
 		},
 	}
@@ -432,7 +476,7 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 		expected[i].SetACLRules()
 	}
 	expected[2].Index = snapshotEvents[2].Index
-	verify.Values(t, "", snapshotEvents, expected)
+	requireEqualProtos(t, expected, snapshotEvents)
 
 	// Update the registration by adding a check.
 	req.Check = &structs.HealthCheck{
@@ -448,7 +492,8 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 	select {
 	case event := <-eventCh:
 		expected := &stream.Event{
-			Key: "redis",
+			Topic: stream.Topic_ServiceHealth,
+			Key:   "redis",
 			Payload: &stream.Event_ServiceHealth{
 				ServiceHealth: &stream.ServiceHealthUpdate{
 					Op: stream.CatalogOp_Register,
@@ -466,6 +511,9 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 							Port:      8080,
 							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
 							Weights:   &stream.Weights{Passing: 1, Warning: 1},
+							Proxy: stream.ConnectProxyConfig{
+								Config: stream.UntypedMap{},
+							},
 						},
 						Checks: []*stream.HealthCheck{
 							{
@@ -489,7 +537,7 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 		node.Node.RaftIndex = event.GetServiceHealth().CheckServiceNode.Node.RaftIndex
 		node.Service.RaftIndex = event.GetServiceHealth().CheckServiceNode.Service.RaftIndex
 		node.Checks[0].RaftIndex = event.GetServiceHealth().CheckServiceNode.Checks[0].RaftIndex
-		verify.Values(t, "", event, expected)
+		requireEqualProtos(t, expected, event)
 	case <-time.After(3 * time.Second):
 		t.Fatal("never got event")
 	}
@@ -592,11 +640,10 @@ func TestStreaming_Subscribe_SkipSnapshot(t *testing.T) {
 		eventCh := make(chan *stream.Event, 0)
 		go testSendEvents(t, eventCh, streamHandle)
 
-		// We should only get an empty snapshot and a single "end of snapshot"
-		// message to denote it.
+		// We should get no snapshot and the first event should be "resume stream"
 		select {
 		case event := <-eventCh:
-			require.True(event.GetEndOfSnapshot())
+			require.True(event.GetResumeStream())
 		case <-time.After(500 * time.Millisecond):
 			t.Fatalf("never got event")
 		}
@@ -862,27 +909,35 @@ func TestStreaming_Subscribe_ACLUpdate(t *testing.T) {
 	joinLAN(t, client, server)
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create a new token that only has access to one node.
-	var token string
-	arg := structs.ACLRequest{
+	// Create a new token/policy that only has access to one node.
+	var token structs.ACLToken
+
+	policy, err := upsertTestPolicyWithRules(codec, "root", "dc1", fmt.Sprintf(`
+		service "foo" {
+			policy = "write"
+		}
+		node "%s" {
+			policy = "write"
+		}
+		`, server.config.NodeName))
+	require.NoError(err)
+
+	arg := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "Service/node token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: fmt.Sprintf(`
-service "foo" {
-	policy = "write"
-}
-node "%s" {
-	policy = "write"
-}
-`, server.config.NodeName),
+		ACLToken: structs.ACLToken{
+			Description: "Service/node token",
+			Policies: []structs.ACLTokenPolicyLink{
+				structs.ACLTokenPolicyLink{
+					ID: policy.ID,
+				},
+			},
+			Local: false,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
-	auth, err := server.ResolveToken(token)
+
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &arg, &token))
+	auth, err := server.ResolveToken(token.SecretID)
 	require.NoError(err)
 	require.Equal(auth.NodeRead("denied", nil), acl.Deny)
 
@@ -899,7 +954,7 @@ node "%s" {
 		streamHandle, err := streamClient.Subscribe(ctx, &stream.SubscribeRequest{
 			Topic: stream.Topic_ServiceHealth,
 			Key:   "foo",
-			Token: token,
+			Token: token.SecretID,
 		})
 		require.NoError(err)
 
@@ -923,22 +978,21 @@ node "%s" {
 		require.True(snapshotEvents[1].GetEndOfSnapshot())
 
 		// Update a different token and make sure we don't see an event.
-		arg := structs.ACLRequest{
+		arg2 := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "Ignored token",
-				Type: structs.ACLTokenTypeClient,
-				Rules: `
-service "foo" {
-	policy = "read"
-}
-`,
+			ACLToken: structs.ACLToken{
+				Description: "Ignored token",
+				Policies: []structs.ACLTokenPolicyLink{
+					structs.ACLTokenPolicyLink{
+						ID: policy.ID,
+					},
+				},
+				Local: false,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		var reply string
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &reply))
+		var ignoredToken structs.ACLToken
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &arg2, &ignoredToken))
 
 		select {
 		case event := <-eventCh:
@@ -947,28 +1001,13 @@ service "foo" {
 		}
 
 		// Update our token to trigger a refresh event.
-		arg = structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				ID:   token,
-				Name: "Service/node token",
-				Type: structs.ACLTokenTypeClient,
-				Rules: fmt.Sprintf(`
-	service "foo" {
-		policy = "write"
-	}
-	node "%s" {
-		policy = "write"
-	}
-	node "bar" {
-		policy = "read"
-	}
-	`, server.config.NodeName),
-			},
+		token.Policies = []structs.ACLTokenPolicyLink{}
+		arg := structs.ACLTokenSetRequest{
+			Datacenter:   "dc1",
+			ACLToken:     token,
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
-		require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &reply))
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &arg, &token))
 
 		select {
 		case event := <-eventCh:
@@ -1189,9 +1228,22 @@ func retryFailedConn(t *testing.T, conn *grpc.ClientConn) {
 	require.True(t, conn.WaitForStateChange(ctx, state))
 }
 
-func TestStreaming_Filter(t *testing.T) {
-	t.Parallel()
+func TestStreaming_DeliversAllMessages(t *testing.T) {
+	// This is a fuzz/probabilistic test to try to provoke streaming into dropping
+	// messages. There is a bug in the initial implementation that should make
+	// this fail. While we can't be certain a pass means it's correct, it is
+	// useful for finding bugs in our concurrency design.
 
+	// The issue is that when updates are coming in fast such that updates occur
+	// in between us making the snapshot and beginning the stream updates, we
+	// shouldn't miss anything.
+
+	// To test this, we will run a background goroutine that will write updates as
+	// fast as possible while we then try to stream the results and ensure that we
+	// see every change. We'll make the updates monotonically increasing so we can
+	// easily tell if we missed one.
+
+	require := require.New(t)
 	dir1, server := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
@@ -1202,64 +1254,150 @@ func TestStreaming_Filter(t *testing.T) {
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
+	dir2, client := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.GRPCEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer client.Shutdown()
+
+	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
+	joinLAN(t, client, server)
+	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	// Prep the cluster with some data we can use in our filters.
-	registerTestCatalogEntries(t, codec)
-
-	// Set up a test function for reading some snapshot events from subscribe to test
-	// with different filters.
-	testSubscribe := func(t *testing.T, req stream.SubscribeRequest, numEvents int) []*stream.Event {
-		conn, err := server.GRPCConn()
-		require.NoError(t, err)
-
-		// Make sure the connection succeeded.
-		retryFailedConn(t, conn)
-
-		streamClient := stream.NewConsulClient(conn)
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		streamHandle, err := streamClient.Subscribe(ctx, &req)
-		require.NoError(t, err)
-
-		// Start a goroutine to read updates off the stream.
-		eventCh := make(chan *stream.Event, 0)
-		go testSendEvents(t, eventCh, streamHandle)
-
-		var snapshotEvents []*stream.Event
-		for i := 0; i < numEvents+1; i++ {
-			select {
-			case event := <-eventCh:
-				if !event.GetEndOfSnapshot() {
-					snapshotEvents = append(snapshotEvents, event)
-				}
-			case <-time.After(3 * time.Second):
-				t.Fatalf("did not receive events past %d (filter %q)", len(snapshotEvents), req.Filter)
-			}
+	// Register a whole bunch of service instances so that the initial snapshot on
+	// subscribe is big enough to take a bit of time to load giving more
+	// opportunity for missed updates if there is a bug.
+	for i := 0; i < 1000; i++ {
+		req := &structs.RegisterRequest{
+			Node:       fmt.Sprintf("node-redis-%03d", i),
+			Address:    "3.4.5.6",
+			Datacenter: "dc1",
+			Service: &structs.NodeService{
+				ID:      fmt.Sprintf("redis-%03d", i),
+				Service: "redis",
+				Port:    11211,
+			},
 		}
-
-		return snapshotEvents
+		var out struct{}
+		require.NoError(server.RPC("Catalog.Register", &req, &out))
 	}
 
-	t.Run("ServiceNodes", func(t *testing.T) {
-		req := stream.SubscribeRequest{
-			Topic:  stream.Topic_ServiceHealth,
-			Key:    "redis",
-			Filter: "Service.Meta.version == 2",
+	// Start background writer
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	go func() {
+		// Update the registration with a monotonically increasing port as fast as
+		// we can.
+		req := &structs.RegisterRequest{
+			Node:       "node1",
+			Address:    "3.4.5.6",
+			Datacenter: "dc1",
+			Service: &structs.NodeService{
+				ID:      "redis-canary",
+				Service: "redis",
+				Port:    0,
+			},
+		}
+		for {
+			if ctx.Err() != nil {
+				return
+			}
+			var out struct{}
+			require.NoError(server.RPC("Catalog.Register", &req, &out))
+			req.Service.Port++
+			if req.Service.Port > 100 {
+				return
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
+
+	// Now start a whole bunch of streamers in parallel to maximise chance of
+	// catching a race.
+	conn, err := client.GRPCConn()
+	require.NoError(err)
+
+	streamClient := stream.NewConsulClient(conn)
+
+	n := 5
+	var wg sync.WaitGroup
+	var updateCount uint64
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go verifyMonotonicStreamUpdates(ctx, t, streamClient, &wg, i, &updateCount)
+	}
+
+	// Wait until all subscribers have verified the first bunch of updates all got
+	// delivered.
+	wg.Wait()
+
+	// Sanity check that at least some non-snapshot messages were delivered. We
+	// can't know exactly how many because it's timing dependent based on when
+	// each subscribers snapshot occurs.
+	require.True(atomic.LoadUint64(&updateCount) > 0,
+		"at least some of the subscribers should have received non-snapshot updates")
+}
+
+func verifyMonotonicStreamUpdates(ctx context.Context, t *testing.T, client stream.ConsulClient, wg *sync.WaitGroup, i int, updateCount *uint64) {
+	defer wg.Done()
+	streamHandle, err := client.Subscribe(ctx, &stream.SubscribeRequest{Topic: stream.Topic_ServiceHealth, Key: "redis"})
+	if err != nil {
+		if strings.Contains(err.Error(), "context deadline exceeded") ||
+			strings.Contains(err.Error(), "context canceled") {
+			t.Log("Context cancelled before Subscribe completed")
+			return
+		}
+	}
+	require.NoError(t, err)
+
+	snapshotDone := false
+	expectPort := 0
+	for {
+		event, err := streamHandle.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			if strings.Contains(err.Error(), "context deadline exceeded") ||
+				strings.Contains(err.Error(), "context canceled") {
+				break
+			}
+			t.Log(err)
 		}
 
-		events := testSubscribe(t, req, 1)
-		require.Len(t, events, 1)
-
-		req.Key = "web"
-		req.Filter = "Node.Meta.os == linux"
-		events = testSubscribe(t, req, 2)
-		require.Len(t, events, 2)
-		require.Equal(t, "baz", events[0].GetServiceHealth().CheckServiceNode.Node.Node)
-		require.Equal(t, "baz", events[1].GetServiceHealth().CheckServiceNode.Node.Node)
-
-		req.Filter = "Node.Meta.os == linux and Service.Meta.version == 1"
-		events = testSubscribe(t, req, 1)
-		require.Len(t, events, 1)
-	})
+		// Ignore snapshot message
+		if event.GetEndOfSnapshot() {
+			snapshotDone = true
+			t.Logf("subscriber %05d: snapshot done, expect next port to be %d", i, expectPort)
+		} else if snapshotDone {
+			// Verify we get all updates in order
+			health := event.GetServiceHealth()
+			require.NotNil(t, health)
+			csn := health.GetCheckServiceNode()
+			require.NotNil(t, csn)
+			require.NotNil(t, csn.Service)
+			require.Equal(t, expectPort, csn.Service.Port,
+				"subscriber %05d: missed %d update(s)!", i, csn.Service.Port-expectPort)
+			atomic.AddUint64(updateCount, 1)
+			t.Logf("subscriber %05d: got event with correct port=%d", i, expectPort)
+			expectPort++
+		} else {
+			// This is a snapshot update. Check if it's an update for the canary
+			// instance that got applied before our snapshot was sent (likely)
+			svc := event.GetServiceHealth().GetCheckServiceNode().Service
+			if svc.ID == "redis-canary" {
+				// Update the expected port we see in the next update to be one more
+				// than the port in the snapshot.
+				expectPort = svc.Port + 1
+				t.Logf("subscriber %05d: saw canary in snapshot with port %d", i, svc.Port)
+			}
+		}
+		if expectPort > 100 {
+			return
+		}
+	}
 }

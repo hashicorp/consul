@@ -1,7 +1,6 @@
 package state
 
 import (
-	"context"
 	"sort"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -87,15 +86,16 @@ func nodeServiceHealth(s *Store, tx *memdb.Txn, idx uint64, nodeName string) ([]
 		return nil, err
 	}
 
-	events := checkServiceNodesToServiceHealth(idx, nodes, nil, nil, false)
+	events := checkServiceNodesToServiceHealth(idx, nodes, nil, false)
 	return events, nil
 }
 
 // checkServiceNodesToServiceHealth converts a list of CheckServiceNodes to
-// ServiceHealth events for streaming. If a non-nil channel and context are passed,
-// the events will be sent to the channel instead of appended to a slice.
+// ServiceHealth events for streaming. If a non-nil event buffer is passed,
+// events are appended to the buffer one at a time and an empty slice is
+// returned to avoid keeping a full copy in memory.
 func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNodes,
-	ctx context.Context, eventCh chan stream.Event, connect bool) []stream.Event {
+	buf *stream.EventBuffer, connect bool) []stream.Event {
 	var events []stream.Event
 	for _, n := range nodes {
 		event := stream.Event{
@@ -118,19 +118,12 @@ func checkServiceNodesToServiceHealth(idx uint64, nodes structs.CheckServiceNode
 				CheckServiceNode: stream.ToCheckServiceNode(&n),
 			},
 		}
-
-		// Send the event on the channel if one was provided.
-		if eventCh != nil {
-			select {
-			case <-ctx.Done():
-				return nil
-			case eventCh <- event:
-			}
+		if buf != nil {
+			buf.Append([]stream.Event{event})
 		} else {
 			events = append(events, event)
 		}
 	}
-
 	return events
 }
 

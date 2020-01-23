@@ -161,7 +161,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
-	s.publisher = NewEventPublisher(s)
+	s.publisher = NewEventPublisher(s, 0, 0)
 	return s, nil
 }
 
@@ -328,14 +328,10 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 	return nil
 }
 
-func (s *Store) LastTopicIndex(topic stream.Topic) uint64 {
-	return s.publisher.LastTopicIndex(topic)
+func (s *Store) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
+	return s.publisher.Subscribe(req)
 }
 
-func (s *Store) Subscribe(subscription *stream.SubscribeRequest) (<-chan stream.Event, error) {
-	return s.publisher.Subscribe(subscription)
-}
-
-func (s *Store) Unsubscribe(subscription *stream.SubscribeRequest) {
-	s.publisher.Unsubscribe(subscription)
+func (s *Store) Unsubscribe(req *stream.SubscribeRequest) {
+	s.publisher.Unsubscribe(req)
 }

@@ -1,86 +1,61 @@
 package state
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-// GetTopicSnapshot returns a snapshot of the given topic based on the SubscribeRequest.
-func (s *Store) GetTopicSnapshot(ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
-	// Whatever else happens here, we need to be sure we close the eventCh when we
-	// return otherwise the calling Subscribe goroutine will block forever and
-	// leak.
-	defer func() {
-		if eventCh != nil {
-			close(eventCh)
-		}
-	}()
+// unboundSnapFn is a stream.SnapFn with state store as the first argument. This
+// is bound to a concrete state store instance in the EventPublisher on startup.
+type unboundSnapFn func(*Store, *stream.SubscribeRequest, *stream.EventBuffer) (uint64, error)
 
-	var snapshotFunc func(*memdb.Txn, context.Context, chan stream.Event, *stream.SubscribeRequest) error
-	switch req.Topic {
-	case stream.Topic_ServiceHealth:
-		snapshotFunc = s.ServiceHealthSnapshot
+type topicHandlers struct {
+	Snapshot unboundSnapFn
+}
 
-	case stream.Topic_ServiceHealthConnect:
-		snapshotFunc = s.ServiceHealthConnectSnapshot
+// topicRegistry is a map of topic handlers. It must only be written to during
+// init().
+var topicRegistry map[stream.Topic]topicHandlers
 
-	default:
-		return fmt.Errorf("only ServiceHealth and ServiceHealthConnect topics supported")
+func init() {
+	topicRegistry = map[stream.Topic]topicHandlers{
+		stream.Topic_ServiceHealth: topicHandlers{
+			Snapshot: (*Store).ServiceHealthSnapshot,
+		},
+		stream.Topic_ServiceHealthConnect: topicHandlers{
+			Snapshot: (*Store).ServiceHealthConnectSnapshot,
+		},
 	}
+}
 
-	// Compute the index to send back with the "end of snapshot" message.
+// ServiceHealthSnapshot returns stream.Events that provide a snapshot of the
+// current state.
+func (s *Store) ServiceHealthSnapshot(req *stream.SubscribeRequest, buf *stream.EventBuffer) (uint64, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	idx, err := s.computeIndexTxn(tx)
-	if err != nil {
-		return err
-	}
-	if err := snapshotFunc(tx, ctx, eventCh, req); err != nil {
-		return err
-	}
-
-	endSnapshotEvent := stream.Event{
-		Topic:   req.Topic,
-		Index:   idx,
-		Payload: &stream.Event_EndOfSnapshot{EndOfSnapshot: true},
-	}
-	select {
-	case eventCh <- endSnapshotEvent:
-	case <-ctx.Done():
-		return nil
-	}
-
-	return nil
-}
-
-// ServiceHealthSnapshot returns stream.Events that provide a snapshot of the
-// current state.
-func (s *Store) ServiceHealthSnapshot(tx *memdb.Txn, ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
 	idx, nodes, err := s.checkServiceNodesTxn(tx, nil, req.Key, false)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	checkServiceNodesToServiceHealth(idx, nodes, ctx, eventCh, false)
+	checkServiceNodesToServiceHealth(idx, nodes, buf, false)
 
-	return nil
+	return idx, nil
 }
 
 // ServiceHealthSnapshot returns stream.Events that provide a snapshot of the
 // current state.
-func (s *Store) ServiceHealthConnectSnapshot(tx *memdb.Txn, ctx context.Context, eventCh chan stream.Event, req *stream.SubscribeRequest) error {
+func (s *Store) ServiceHealthConnectSnapshot(req *stream.SubscribeRequest, buf *stream.EventBuffer) (uint64, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
 	idx, nodes, err := s.checkServiceNodesTxn(tx, nil, req.Key, true)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	checkServiceNodesToServiceHealth(idx, nodes, ctx, eventCh, true)
-
-	return nil
+	checkServiceNodesToServiceHealth(idx, nodes, buf, true)
+	return idx, nil
 }
 
 // RegistrationEvents returns stream.Events that correspond to a catalog
@@ -96,7 +71,7 @@ func (s *Store) RegistrationEvents(tx *memdb.Txn, idx uint64, node, service stri
 		return nil, err
 	}
 
-	serviceHealthEvents := checkServiceNodesToServiceHealth(idx, nodes, nil, nil, false)
+	serviceHealthEvents := checkServiceNodesToServiceHealth(idx, nodes, nil, false)
 	serviceHealthConnectEvents := serviceHealthToConnectEvents(serviceHealthEvents)
 
 	return append(serviceHealthEvents, serviceHealthConnectEvents...), nil

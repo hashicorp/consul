@@ -13,7 +13,6 @@ import (
 	github_com_hashicorp_consul_types "github.com/hashicorp/consul/types"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	time "time"
 )
 
@@ -27,7 +26,7 @@ var _ = time.Kitchen
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Used to return information about a node
 type Node struct {
@@ -54,7 +53,7 @@ func (m *Node) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Node.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +119,7 @@ func (m *ServiceDefinition) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_ServiceDefinition.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +158,7 @@ func (m *ServiceAddress) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_ServiceAddress.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +206,7 @@ func (m *HealthCheck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_HealthCheck.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +250,7 @@ func (m *HealthCheckDefinition) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return xxx_messageInfo_HealthCheckDefinition.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +291,7 @@ func (m *CheckServiceNode) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return xxx_messageInfo_CheckServiceNode.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -388,7 +387,7 @@ func (m *NodeService) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_NodeService.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -457,7 +456,7 @@ func (m *ConnectProxyConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_ConnectProxyConfig.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -524,7 +523,7 @@ func (m *Upstream) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Upstream.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -576,7 +575,7 @@ func (m *ServiceConnect) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_ServiceConnect.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -619,7 +618,7 @@ func (m *ServiceDefinitionConnectProxy) XXX_Marshal(b []byte, deterministic bool
 		return xxx_messageInfo_ServiceDefinitionConnectProxy.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -659,7 +658,7 @@ func (m *RaftIndex) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_RaftIndex.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -698,7 +697,7 @@ func (m *Weights) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Weights.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -763,7 +762,7 @@ func (m *CheckType) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_CheckType.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -800,7 +799,7 @@ func (m *MeshGatewayConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_MeshGatewayConfig.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -837,7 +836,7 @@ func (m *ProtoHeaders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_ProtoHeaders.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -874,7 +873,7 @@ func (m *StringList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_StringList.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -916,7 +915,7 @@ func (m *ACLToken) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ACLToken.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1091,7 +1090,7 @@ var fileDescriptor_e774e8f5f348d14d = []byte{
 func (m *Node) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1099,98 +1098,83 @@ func (m *Node) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Node) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Node) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	{
-		size, err := m.RaftIndex.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x3a
-	if len(m.Meta) > 0 {
-		for k := range m.Meta {
-			v := m.Meta[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x32
-		}
-	}
-	if len(m.TaggedAddresses) > 0 {
-		for k := range m.TaggedAddresses {
-			v := m.TaggedAddresses[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if len(m.Datacenter) > 0 {
-		i -= len(m.Datacenter)
-		copy(dAtA[i:], m.Datacenter)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Datacenter)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.Address) > 0 {
-		i -= len(m.Address)
-		copy(dAtA[i:], m.Address)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
-		i--
-		dAtA[i] = 0x1a
+	if len(m.ID) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ID)))
+		i += copy(dAtA[i:], m.ID)
 	}
 	if len(m.Node) > 0 {
-		i -= len(m.Node)
-		copy(dAtA[i:], m.Node)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Node)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Node)))
+		i += copy(dAtA[i:], m.Node)
 	}
-	if len(m.ID) > 0 {
-		i -= len(m.ID)
-		copy(dAtA[i:], m.ID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ID)))
-		i--
-		dAtA[i] = 0xa
+	if len(m.Address) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
 	}
-	return len(dAtA) - i, nil
+	if len(m.Datacenter) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Datacenter)))
+		i += copy(dAtA[i:], m.Datacenter)
+	}
+	if len(m.TaggedAddresses) > 0 {
+		for k, _ := range m.TaggedAddresses {
+			dAtA[i] = 0x2a
+			i++
+			v := m.TaggedAddresses[k]
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + 1 + len(v) + sovStructs(uint64(len(v)))
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
+		}
+	}
+	if len(m.Meta) > 0 {
+		for k, _ := range m.Meta {
+			dAtA[i] = 0x32
+			i++
+			v := m.Meta[k]
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + 1 + len(v) + sovStructs(uint64(len(v)))
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
+		}
+	}
+	dAtA[i] = 0x3a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.RaftIndex.Size()))
+	n1, err := m.RaftIndex.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n1
+	return i, nil
 }
 
 func (m *ServiceDefinition) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1198,195 +1182,180 @@ func (m *ServiceDefinition) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceDefinition) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServiceDefinition) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.TaggedAddresses) > 0 {
-		for k := range m.TaggedAddresses {
-			v := m.TaggedAddresses[k]
-			baseI := i
-			if v != nil {
-				{
-					size, err := v.MarshalToSizedBuffer(dAtA[:i])
-					if err != nil {
-						return 0, err
-					}
-					i -= size
-					i = encodeVarintStructs(dAtA, i, uint64(size))
-				}
-				i--
-				dAtA[i] = 0x12
+	if len(m.Kind) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Kind)))
+		i += copy(dAtA[i:], m.Kind)
+	}
+	if len(m.ID) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ID)))
+		i += copy(dAtA[i:], m.ID)
+	}
+	if len(m.Name) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
+	}
+	if len(m.Tags) > 0 {
+		for _, s := range m.Tags {
+			dAtA[i] = 0x22
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
 			}
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	if len(m.Address) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
+	}
+	if len(m.Meta) > 0 {
+		for k, _ := range m.Meta {
+			dAtA[i] = 0x32
+			i++
+			v := m.Meta[k]
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + 1 + len(v) + sovStructs(uint64(len(v)))
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
 			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0x82
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
 		}
 	}
-	if m.Connect != nil {
-		{
-			size, err := m.Connect.MarshalToSizedBuffer(dAtA[:i])
+	if m.Port != 0 {
+		dAtA[i] = 0x38
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Port))
+	}
+	dAtA[i] = 0x42
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Check.Size()))
+	n2, err := m.Check.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n2
+	if len(m.Checks) > 0 {
+		for _, msg := range m.Checks {
+			dAtA[i] = 0x4a
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0x7a
 	}
-	if m.Proxy != nil {
-		{
-			size, err := m.Proxy.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
+	if m.Weights != nil {
+		dAtA[i] = 0x52
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Weights.Size()))
+		n3, err := m.Weights.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
-		i--
-		dAtA[i] = 0x72
+		i += n3
 	}
-	if len(m.ProxyDestination) > 0 {
-		i -= len(m.ProxyDestination)
-		copy(dAtA[i:], m.ProxyDestination)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ProxyDestination)))
-		i--
-		dAtA[i] = 0x6a
+	if len(m.Token) > 0 {
+		dAtA[i] = 0x5a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Token)))
+		i += copy(dAtA[i:], m.Token)
 	}
 	if m.EnableTagOverride {
-		i--
+		dAtA[i] = 0x60
+		i++
 		if m.EnableTagOverride {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x60
+		i++
 	}
-	if len(m.Token) > 0 {
-		i -= len(m.Token)
-		copy(dAtA[i:], m.Token)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Token)))
-		i--
-		dAtA[i] = 0x5a
+	if len(m.ProxyDestination) > 0 {
+		dAtA[i] = 0x6a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ProxyDestination)))
+		i += copy(dAtA[i:], m.ProxyDestination)
 	}
-	if m.Weights != nil {
-		{
-			size, err := m.Weights.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x52
-	}
-	if len(m.Checks) > 0 {
-		for iNdEx := len(m.Checks) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Checks[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintStructs(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x4a
-		}
-	}
-	{
-		size, err := m.Check.MarshalToSizedBuffer(dAtA[:i])
+	if m.Proxy != nil {
+		dAtA[i] = 0x72
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Proxy.Size()))
+		n4, err := m.Proxy.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
+		i += n4
 	}
-	i--
-	dAtA[i] = 0x42
-	if m.Port != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.Port))
-		i--
-		dAtA[i] = 0x38
+	if m.Connect != nil {
+		dAtA[i] = 0x7a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Connect.Size()))
+		n5, err := m.Connect.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
 	}
-	if len(m.Meta) > 0 {
-		for k := range m.Meta {
-			v := m.Meta[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
+	if len(m.TaggedAddresses) > 0 {
+		for k, _ := range m.TaggedAddresses {
+			dAtA[i] = 0x82
+			i++
+			dAtA[i] = 0x1
+			i++
+			v := m.TaggedAddresses[k]
+			msgSize := 0
+			if v != nil {
+				msgSize = v.Size()
+				msgSize += 1 + sovStructs(uint64(msgSize))
+			}
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + msgSize
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
 			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x32
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			if v != nil {
+				dAtA[i] = 0x12
+				i++
+				i = encodeVarintStructs(dAtA, i, uint64(v.Size()))
+				n6, err := v.MarshalTo(dAtA[i:])
+				if err != nil {
+					return 0, err
+				}
+				i += n6
+			}
 		}
 	}
-	if len(m.Address) > 0 {
-		i -= len(m.Address)
-		copy(dAtA[i:], m.Address)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.Tags) > 0 {
-		for iNdEx := len(m.Tags) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Tags[iNdEx])
-			copy(dAtA[i:], m.Tags[iNdEx])
-			i = encodeVarintStructs(dAtA, i, uint64(len(m.Tags[iNdEx])))
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.ID) > 0 {
-		i -= len(m.ID)
-		copy(dAtA[i:], m.ID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ID)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Kind) > 0 {
-		i -= len(m.Kind)
-		copy(dAtA[i:], m.Kind)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Kind)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ServiceAddress) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1394,34 +1363,28 @@ func (m *ServiceAddress) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceAddress) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServiceAddress) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Port != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.Port))
-		i--
-		dAtA[i] = 0x10
-	}
 	if len(m.Address) > 0 {
-		i -= len(m.Address)
-		copy(dAtA[i:], m.Address)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
 	}
-	return len(dAtA) - i, nil
+	if m.Port != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Port))
+	}
+	return i, nil
 }
 
 func (m *HealthCheck) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1429,107 +1392,96 @@ func (m *HealthCheck) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *HealthCheck) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HealthCheck) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	{
-		size, err := m.RaftIndex.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x5a
-	{
-		size, err := m.Definition.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x52
-	if len(m.ServiceTags) > 0 {
-		for iNdEx := len(m.ServiceTags) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.ServiceTags[iNdEx])
-			copy(dAtA[i:], m.ServiceTags[iNdEx])
-			i = encodeVarintStructs(dAtA, i, uint64(len(m.ServiceTags[iNdEx])))
-			i--
-			dAtA[i] = 0x4a
-		}
-	}
-	if len(m.ServiceName) > 0 {
-		i -= len(m.ServiceName)
-		copy(dAtA[i:], m.ServiceName)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ServiceName)))
-		i--
-		dAtA[i] = 0x42
-	}
-	if len(m.ServiceID) > 0 {
-		i -= len(m.ServiceID)
-		copy(dAtA[i:], m.ServiceID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ServiceID)))
-		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.Output) > 0 {
-		i -= len(m.Output)
-		copy(dAtA[i:], m.Output)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Output)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.Notes) > 0 {
-		i -= len(m.Notes)
-		copy(dAtA[i:], m.Notes)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Notes)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.Status) > 0 {
-		i -= len(m.Status)
-		copy(dAtA[i:], m.Status)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Status)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0x1a
+	if len(m.Node) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Node)))
+		i += copy(dAtA[i:], m.Node)
 	}
 	if len(m.CheckID) > 0 {
-		i -= len(m.CheckID)
-		copy(dAtA[i:], m.CheckID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.CheckID)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.CheckID)))
+		i += copy(dAtA[i:], m.CheckID)
 	}
-	if len(m.Node) > 0 {
-		i -= len(m.Node)
-		copy(dAtA[i:], m.Node)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Node)))
-		i--
-		dAtA[i] = 0xa
+	if len(m.Name) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
 	}
-	return len(dAtA) - i, nil
+	if len(m.Status) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Status)))
+		i += copy(dAtA[i:], m.Status)
+	}
+	if len(m.Notes) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Notes)))
+		i += copy(dAtA[i:], m.Notes)
+	}
+	if len(m.Output) > 0 {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Output)))
+		i += copy(dAtA[i:], m.Output)
+	}
+	if len(m.ServiceID) > 0 {
+		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ServiceID)))
+		i += copy(dAtA[i:], m.ServiceID)
+	}
+	if len(m.ServiceName) > 0 {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ServiceName)))
+		i += copy(dAtA[i:], m.ServiceName)
+	}
+	if len(m.ServiceTags) > 0 {
+		for _, s := range m.ServiceTags {
+			dAtA[i] = 0x4a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	dAtA[i] = 0x52
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Definition.Size()))
+	n7, err := m.Definition.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n7
+	dAtA[i] = 0x5a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.RaftIndex.Size()))
+	n8, err := m.RaftIndex.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n8
+	return i, nil
 }
 
 func (m *HealthCheckDefinition) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1537,87 +1489,77 @@ func (m *HealthCheckDefinition) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *HealthCheckDefinition) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HealthCheckDefinition) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	n9, err9 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.DeregisterCriticalServiceAfter, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.DeregisterCriticalServiceAfter):])
-	if err9 != nil {
-		return 0, err9
+	if len(m.HTTP) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.HTTP)))
+		i += copy(dAtA[i:], m.HTTP)
 	}
-	i -= n9
-	i = encodeVarintStructs(dAtA, i, uint64(n9))
-	i--
-	dAtA[i] = 0x42
-	n10, err10 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Timeout, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.Timeout):])
-	if err10 != nil {
-		return 0, err10
-	}
-	i -= n10
-	i = encodeVarintStructs(dAtA, i, uint64(n10))
-	i--
-	dAtA[i] = 0x3a
-	n11, err11 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Interval, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.Interval):])
-	if err11 != nil {
-		return 0, err11
-	}
-	i -= n11
-	i = encodeVarintStructs(dAtA, i, uint64(n11))
-	i--
-	dAtA[i] = 0x32
-	if len(m.TCP) > 0 {
-		i -= len(m.TCP)
-		copy(dAtA[i:], m.TCP)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.TCP)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.Method) > 0 {
-		i -= len(m.Method)
-		copy(dAtA[i:], m.Method)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Method)))
-		i--
-		dAtA[i] = 0x22
-	}
-	{
-		size := m.Header.Size()
-		i -= size
-		if _, err := m.Header.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1a
 	if m.TLSSkipVerify {
-		i--
+		dAtA[i] = 0x10
+		i++
 		if m.TLSSkipVerify {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x10
+		i++
 	}
-	if len(m.HTTP) > 0 {
-		i -= len(m.HTTP)
-		copy(dAtA[i:], m.HTTP)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.HTTP)))
-		i--
-		dAtA[i] = 0xa
+	dAtA[i] = 0x1a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Header.Size()))
+	n9, err := m.Header.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	return len(dAtA) - i, nil
+	i += n9
+	if len(m.Method) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Method)))
+		i += copy(dAtA[i:], m.Method)
+	}
+	if len(m.TCP) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.TCP)))
+		i += copy(dAtA[i:], m.TCP)
+	}
+	dAtA[i] = 0x32
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.Interval)))
+	n10, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Interval, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n10
+	dAtA[i] = 0x3a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.Timeout)))
+	n11, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Timeout, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n11
+	dAtA[i] = 0x42
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.DeregisterCriticalServiceAfter)))
+	n12, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.DeregisterCriticalServiceAfter, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n12
+	return i, nil
 }
 
 func (m *CheckServiceNode) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1625,60 +1567,49 @@ func (m *CheckServiceNode) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CheckServiceNode) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CheckServiceNode) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Checks) > 0 {
-		for iNdEx := len(m.Checks) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Checks[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintStructs(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1a
+	if m.Node != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Node.Size()))
+		n13, err := m.Node.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += n13
 	}
 	if m.Service != nil {
-		{
-			size, err := m.Service.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Service.Size()))
+		n14, err := m.Service.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
 	}
-	if m.Node != nil {
-		{
-			size, err := m.Node.MarshalToSizedBuffer(dAtA[:i])
+	if len(m.Checks) > 0 {
+		for _, msg := range m.Checks {
+			dAtA[i] = 0x1a
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0xa
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *NodeService) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1686,178 +1617,166 @@ func (m *NodeService) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *NodeService) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *NodeService) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.TaggedAddresses) > 0 {
-		for k := range m.TaggedAddresses {
-			v := m.TaggedAddresses[k]
-			baseI := i
-			if v != nil {
-				{
-					size, err := v.MarshalToSizedBuffer(dAtA[:i])
-					if err != nil {
-						return 0, err
-					}
-					i -= size
-					i = encodeVarintStructs(dAtA, i, uint64(size))
-				}
-				i--
-				dAtA[i] = 0x12
+	if len(m.Kind) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Kind)))
+		i += copy(dAtA[i:], m.Kind)
+	}
+	if len(m.ID) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ID)))
+		i += copy(dAtA[i:], m.ID)
+	}
+	if len(m.Service) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Service)))
+		i += copy(dAtA[i:], m.Service)
+	}
+	if len(m.Tags) > 0 {
+		for _, s := range m.Tags {
+			dAtA[i] = 0x22
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
 			}
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	if len(m.Address) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
+		i += copy(dAtA[i:], m.Address)
+	}
+	if len(m.Meta) > 0 {
+		for k, _ := range m.Meta {
+			dAtA[i] = 0x32
+			i++
+			v := m.Meta[k]
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + 1 + len(v) + sovStructs(uint64(len(v)))
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
 			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x7a
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
 		}
 	}
-	{
-		size, err := m.RaftIndex.MarshalToSizedBuffer(dAtA[:i])
+	if m.Port != 0 {
+		dAtA[i] = 0x38
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Port))
+	}
+	if m.Weights != nil {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Weights.Size()))
+		n15, err := m.Weights.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x72
-	if m.LocallyRegisteredAsSidecar {
-		i--
-		if m.LocallyRegisteredAsSidecar {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x68
-	}
-	{
-		size, err := m.Connect.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x62
-	{
-		size, err := m.Proxy.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x5a
-	if len(m.ProxyDestination) > 0 {
-		i -= len(m.ProxyDestination)
-		copy(dAtA[i:], m.ProxyDestination)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ProxyDestination)))
-		i--
-		dAtA[i] = 0x52
+		i += n15
 	}
 	if m.EnableTagOverride {
-		i--
+		dAtA[i] = 0x48
+		i++
 		if m.EnableTagOverride {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x48
+		i++
 	}
-	if m.Weights != nil {
-		{
-			size, err := m.Weights.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
+	if len(m.ProxyDestination) > 0 {
+		dAtA[i] = 0x52
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ProxyDestination)))
+		i += copy(dAtA[i:], m.ProxyDestination)
+	}
+	dAtA[i] = 0x5a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Proxy.Size()))
+	n16, err := m.Proxy.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n16
+	dAtA[i] = 0x62
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Connect.Size()))
+	n17, err := m.Connect.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n17
+	if m.LocallyRegisteredAsSidecar {
+		dAtA[i] = 0x68
+		i++
+		if m.LocallyRegisteredAsSidecar {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	dAtA[i] = 0x72
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.RaftIndex.Size()))
+	n18, err := m.RaftIndex.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n18
+	if len(m.TaggedAddresses) > 0 {
+		for k, _ := range m.TaggedAddresses {
+			dAtA[i] = 0x7a
+			i++
+			v := m.TaggedAddresses[k]
+			msgSize := 0
+			if v != nil {
+				msgSize = v.Size()
+				msgSize += 1 + sovStructs(uint64(msgSize))
 			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x42
-	}
-	if m.Port != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.Port))
-		i--
-		dAtA[i] = 0x38
-	}
-	if len(m.Meta) > 0 {
-		for k := range m.Meta {
-			v := m.Meta[k]
-			baseI := i
-			i -= len(v)
-			copy(dAtA[i:], v)
-			i = encodeVarintStructs(dAtA, i, uint64(len(v)))
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + msgSize
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
 			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x32
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			if v != nil {
+				dAtA[i] = 0x12
+				i++
+				i = encodeVarintStructs(dAtA, i, uint64(v.Size()))
+				n19, err := v.MarshalTo(dAtA[i:])
+				if err != nil {
+					return 0, err
+				}
+				i += n19
+			}
 		}
 	}
-	if len(m.Address) > 0 {
-		i -= len(m.Address)
-		copy(dAtA[i:], m.Address)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Address)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.Tags) > 0 {
-		for iNdEx := len(m.Tags) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Tags[iNdEx])
-			copy(dAtA[i:], m.Tags[iNdEx])
-			i = encodeVarintStructs(dAtA, i, uint64(len(m.Tags[iNdEx])))
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if len(m.Service) > 0 {
-		i -= len(m.Service)
-		copy(dAtA[i:], m.Service)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Service)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.ID) > 0 {
-		i -= len(m.ID)
-		copy(dAtA[i:], m.ID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ID)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Kind) > 0 {
-		i -= len(m.Kind)
-		copy(dAtA[i:], m.Kind)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Kind)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ConnectProxyConfig) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1865,84 +1784,70 @@ func (m *ConnectProxyConfig) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ConnectProxyConfig) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ConnectProxyConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.MeshGateway != nil {
-		{
-			size, err := m.MeshGateway.MarshalToSizedBuffer(dAtA[:i])
+	if len(m.DestinationServiceName) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationServiceName)))
+		i += copy(dAtA[i:], m.DestinationServiceName)
+	}
+	if len(m.DestinationServiceID) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationServiceID)))
+		i += copy(dAtA[i:], m.DestinationServiceID)
+	}
+	if len(m.LocalServiceAddress) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.LocalServiceAddress)))
+		i += copy(dAtA[i:], m.LocalServiceAddress)
+	}
+	if m.LocalServicePort != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.LocalServicePort))
+	}
+	dAtA[i] = 0x2a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Config.Size()))
+	n20, err := m.Config.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n20
+	if len(m.Upstreams) > 0 {
+		for _, msg := range m.Upstreams {
+			dAtA[i] = 0x32
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
+	}
+	if m.MeshGateway != nil {
 		dAtA[i] = 0x3a
-	}
-	if len(m.Upstreams) > 0 {
-		for iNdEx := len(m.Upstreams) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Upstreams[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintStructs(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x32
-		}
-	}
-	{
-		size := m.Config.Size()
-		i -= size
-		if _, err := m.Config.MarshalTo(dAtA[i:]); err != nil {
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.MeshGateway.Size()))
+		n21, err := m.MeshGateway.MarshalTo(dAtA[i:])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintStructs(dAtA, i, uint64(size))
+		i += n21
 	}
-	i--
-	dAtA[i] = 0x2a
-	if m.LocalServicePort != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.LocalServicePort))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.LocalServiceAddress) > 0 {
-		i -= len(m.LocalServiceAddress)
-		copy(dAtA[i:], m.LocalServiceAddress)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.LocalServiceAddress)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.DestinationServiceID) > 0 {
-		i -= len(m.DestinationServiceID)
-		copy(dAtA[i:], m.DestinationServiceID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationServiceID)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.DestinationServiceName) > 0 {
-		i -= len(m.DestinationServiceName)
-		copy(dAtA[i:], m.DestinationServiceName)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationServiceName)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *Upstream) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1950,84 +1855,70 @@ func (m *Upstream) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Upstream) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Upstream) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.MeshGateway != nil {
-		{
-			size, err := m.MeshGateway.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x42
-	}
-	{
-		size := m.Config.Size()
-		i -= size
-		if _, err := m.Config.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x3a
-	if m.LocalBindPort != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.LocalBindPort))
-		i--
-		dAtA[i] = 0x30
-	}
-	if len(m.LocalBindAddress) > 0 {
-		i -= len(m.LocalBindAddress)
-		copy(dAtA[i:], m.LocalBindAddress)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.LocalBindAddress)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.Datacenter) > 0 {
-		i -= len(m.Datacenter)
-		copy(dAtA[i:], m.Datacenter)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Datacenter)))
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.DestinationName) > 0 {
-		i -= len(m.DestinationName)
-		copy(dAtA[i:], m.DestinationName)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationName)))
-		i--
-		dAtA[i] = 0x1a
+	if len(m.DestinationType) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationType)))
+		i += copy(dAtA[i:], m.DestinationType)
 	}
 	if len(m.DestinationNamespace) > 0 {
-		i -= len(m.DestinationNamespace)
-		copy(dAtA[i:], m.DestinationNamespace)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationNamespace)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationNamespace)))
+		i += copy(dAtA[i:], m.DestinationNamespace)
 	}
-	if len(m.DestinationType) > 0 {
-		i -= len(m.DestinationType)
-		copy(dAtA[i:], m.DestinationType)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationType)))
-		i--
-		dAtA[i] = 0xa
+	if len(m.DestinationName) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.DestinationName)))
+		i += copy(dAtA[i:], m.DestinationName)
 	}
-	return len(dAtA) - i, nil
+	if len(m.Datacenter) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Datacenter)))
+		i += copy(dAtA[i:], m.Datacenter)
+	}
+	if len(m.LocalBindAddress) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.LocalBindAddress)))
+		i += copy(dAtA[i:], m.LocalBindAddress)
+	}
+	if m.LocalBindPort != 0 {
+		dAtA[i] = 0x30
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.LocalBindPort))
+	}
+	dAtA[i] = 0x3a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Config.Size()))
+	n22, err := m.Config.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n22
+	if m.MeshGateway != nil {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.MeshGateway.Size()))
+		n23, err := m.MeshGateway.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n23
+	}
+	return i, nil
 }
 
 func (m *ServiceConnect) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2035,56 +1926,47 @@ func (m *ServiceConnect) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceConnect) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServiceConnect) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.SidecarService != nil {
-		{
-			size, err := m.SidecarService.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Proxy != nil {
-		{
-			size, err := m.Proxy.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintStructs(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x12
-	}
 	if m.Native {
-		i--
+		dAtA[i] = 0x8
+		i++
 		if m.Native {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x8
+		i++
 	}
-	return len(dAtA) - i, nil
+	if m.Proxy != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Proxy.Size()))
+		n24, err := m.Proxy.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n24
+	}
+	if m.SidecarService != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.SidecarService.Size()))
+		n25, err := m.SidecarService.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n25
+	}
+	return i, nil
 }
 
 func (m *ServiceDefinitionConnectProxy) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2092,62 +1974,58 @@ func (m *ServiceDefinitionConnectProxy) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceDefinitionConnectProxy) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ServiceDefinitionConnectProxy) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Upstreams) > 0 {
-		for iNdEx := len(m.Upstreams) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Upstreams[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintStructs(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	{
-		size := m.Config.Size()
-		i -= size
-		if _, err := m.Config.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintStructs(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1a
-	if len(m.ExecMode) > 0 {
-		i -= len(m.ExecMode)
-		copy(dAtA[i:], m.ExecMode)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.ExecMode)))
-		i--
-		dAtA[i] = 0x12
-	}
 	if len(m.Command) > 0 {
-		for iNdEx := len(m.Command) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Command[iNdEx])
-			copy(dAtA[i:], m.Command[iNdEx])
-			i = encodeVarintStructs(dAtA, i, uint64(len(m.Command[iNdEx])))
-			i--
+		for _, s := range m.Command {
 			dAtA[i] = 0xa
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
 		}
 	}
-	return len(dAtA) - i, nil
+	if len(m.ExecMode) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.ExecMode)))
+		i += copy(dAtA[i:], m.ExecMode)
+	}
+	dAtA[i] = 0x1a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Config.Size()))
+	n26, err := m.Config.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n26
+	if len(m.Upstreams) > 0 {
+		for _, msg := range m.Upstreams {
+			dAtA[i] = 0x22
+			i++
+			i = encodeVarintStructs(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
 }
 
 func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2155,32 +2033,27 @@ func (m *RaftIndex) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RaftIndex) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *RaftIndex) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.ModifyIndex != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.ModifyIndex))
-		i--
-		dAtA[i] = 0x10
-	}
 	if m.CreateIndex != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.CreateIndex))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.CreateIndex))
 	}
-	return len(dAtA) - i, nil
+	if m.ModifyIndex != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.ModifyIndex))
+	}
+	return i, nil
 }
 
 func (m *Weights) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2188,32 +2061,27 @@ func (m *Weights) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Weights) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Weights) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.Warning != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.Warning))
-		i--
-		dAtA[i] = 0x10
-	}
 	if m.Passing != 0 {
-		i = encodeVarintStructs(dAtA, i, uint64(m.Passing))
-		i--
 		dAtA[i] = 0x8
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Passing))
 	}
-	return len(dAtA) - i, nil
+	if m.Warning != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(m.Warning))
+	}
+	return i, nil
 }
 
 func (m *CheckType) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2221,187 +2089,174 @@ func (m *CheckType) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CheckType) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CheckType) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	{
-		size := m.Header.Size()
-		i -= size
-		if _, err := m.Header.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
+	if len(m.CheckID) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.CheckID)))
+		i += copy(dAtA[i:], m.CheckID)
+	}
+	if len(m.Name) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
+	}
+	if len(m.Status) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Status)))
+		i += copy(dAtA[i:], m.Status)
+	}
+	if len(m.Notes) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Notes)))
+		i += copy(dAtA[i:], m.Notes)
+	}
+	if len(m.ScriptArgs) > 0 {
+		for _, s := range m.ScriptArgs {
+			dAtA[i] = 0x2a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
 		}
-		i = encodeVarintStructs(dAtA, i, uint64(size))
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
-	n23, err23 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.DeregisterCriticalServiceAfter, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.DeregisterCriticalServiceAfter):])
-	if err23 != nil {
-		return 0, err23
+	if len(m.HTTP) > 0 {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.HTTP)))
+		i += copy(dAtA[i:], m.HTTP)
 	}
-	i -= n23
-	i = encodeVarintStructs(dAtA, i, uint64(n23))
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0x9a
-	n24, err24 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.TTL, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.TTL):])
-	if err24 != nil {
-		return 0, err24
+	if len(m.Method) > 0 {
+		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Method)))
+		i += copy(dAtA[i:], m.Method)
 	}
-	i -= n24
-	i = encodeVarintStructs(dAtA, i, uint64(n24))
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0x92
-	n25, err25 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Timeout, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.Timeout):])
-	if err25 != nil {
-		return 0, err25
+	if len(m.TCP) > 0 {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.TCP)))
+		i += copy(dAtA[i:], m.TCP)
 	}
-	i -= n25
-	i = encodeVarintStructs(dAtA, i, uint64(n25))
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0x8a
-	if m.TLSSkipVerify {
-		i--
-		if m.TLSSkipVerify {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+	dAtA[i] = 0x4a
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.Interval)))
+	n27, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Interval, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n27
+	if len(m.AliasNode) > 0 {
+		dAtA[i] = 0x52
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.AliasNode)))
+		i += copy(dAtA[i:], m.AliasNode)
+	}
+	if len(m.AliasService) > 0 {
+		dAtA[i] = 0x5a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.AliasService)))
+		i += copy(dAtA[i:], m.AliasService)
+	}
+	if len(m.DockerContainerID) > 0 {
+		dAtA[i] = 0x62
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.DockerContainerID)))
+		i += copy(dAtA[i:], m.DockerContainerID)
+	}
+	if len(m.Shell) > 0 {
+		dAtA[i] = 0x6a
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Shell)))
+		i += copy(dAtA[i:], m.Shell)
+	}
+	if len(m.GRPC) > 0 {
+		dAtA[i] = 0x72
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.GRPC)))
+		i += copy(dAtA[i:], m.GRPC)
 	}
 	if m.GRPCUseTLS {
-		i--
+		dAtA[i] = 0x78
+		i++
 		if m.GRPCUseTLS {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x78
+		i++
 	}
-	if len(m.GRPC) > 0 {
-		i -= len(m.GRPC)
-		copy(dAtA[i:], m.GRPC)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.GRPC)))
-		i--
-		dAtA[i] = 0x72
-	}
-	if len(m.Shell) > 0 {
-		i -= len(m.Shell)
-		copy(dAtA[i:], m.Shell)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Shell)))
-		i--
-		dAtA[i] = 0x6a
-	}
-	if len(m.DockerContainerID) > 0 {
-		i -= len(m.DockerContainerID)
-		copy(dAtA[i:], m.DockerContainerID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.DockerContainerID)))
-		i--
-		dAtA[i] = 0x62
-	}
-	if len(m.AliasService) > 0 {
-		i -= len(m.AliasService)
-		copy(dAtA[i:], m.AliasService)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.AliasService)))
-		i--
-		dAtA[i] = 0x5a
-	}
-	if len(m.AliasNode) > 0 {
-		i -= len(m.AliasNode)
-		copy(dAtA[i:], m.AliasNode)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.AliasNode)))
-		i--
-		dAtA[i] = 0x52
-	}
-	n26, err26 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Interval, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.Interval):])
-	if err26 != nil {
-		return 0, err26
-	}
-	i -= n26
-	i = encodeVarintStructs(dAtA, i, uint64(n26))
-	i--
-	dAtA[i] = 0x4a
-	if len(m.TCP) > 0 {
-		i -= len(m.TCP)
-		copy(dAtA[i:], m.TCP)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.TCP)))
-		i--
-		dAtA[i] = 0x42
-	}
-	if len(m.Method) > 0 {
-		i -= len(m.Method)
-		copy(dAtA[i:], m.Method)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Method)))
-		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.HTTP) > 0 {
-		i -= len(m.HTTP)
-		copy(dAtA[i:], m.HTTP)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.HTTP)))
-		i--
-		dAtA[i] = 0x32
-	}
-	if len(m.ScriptArgs) > 0 {
-		for iNdEx := len(m.ScriptArgs) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.ScriptArgs[iNdEx])
-			copy(dAtA[i:], m.ScriptArgs[iNdEx])
-			i = encodeVarintStructs(dAtA, i, uint64(len(m.ScriptArgs[iNdEx])))
-			i--
-			dAtA[i] = 0x2a
+	if m.TLSSkipVerify {
+		dAtA[i] = 0x80
+		i++
+		dAtA[i] = 0x1
+		i++
+		if m.TLSSkipVerify {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
 		}
+		i++
 	}
-	if len(m.Notes) > 0 {
-		i -= len(m.Notes)
-		copy(dAtA[i:], m.Notes)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Notes)))
-		i--
-		dAtA[i] = 0x22
+	dAtA[i] = 0x8a
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.Timeout)))
+	n28, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.Timeout, dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	if len(m.Status) > 0 {
-		i -= len(m.Status)
-		copy(dAtA[i:], m.Status)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Status)))
-		i--
-		dAtA[i] = 0x1a
+	i += n28
+	dAtA[i] = 0x92
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.TTL)))
+	n29, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.TTL, dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0x12
+	i += n29
+	dAtA[i] = 0x9a
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.DeregisterCriticalServiceAfter)))
+	n30, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.DeregisterCriticalServiceAfter, dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	if len(m.CheckID) > 0 {
-		i -= len(m.CheckID)
-		copy(dAtA[i:], m.CheckID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.CheckID)))
-		i--
-		dAtA[i] = 0xa
+	i += n30
+	dAtA[i] = 0xa2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintStructs(dAtA, i, uint64(m.Header.Size()))
+	n31, err := m.Header.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	return len(dAtA) - i, nil
+	i += n31
+	return i, nil
 }
 
 func (m *MeshGatewayConfig) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2409,29 +2264,23 @@ func (m *MeshGatewayConfig) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *MeshGatewayConfig) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *MeshGatewayConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Mode) > 0 {
-		i -= len(m.Mode)
-		copy(dAtA[i:], m.Mode)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.Mode)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.Mode)))
+		i += copy(dAtA[i:], m.Mode)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ProtoHeaders) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2439,48 +2288,45 @@ func (m *ProtoHeaders) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ProtoHeaders) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ProtoHeaders) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Headers) > 0 {
-		for k := range m.Headers {
+		for k, _ := range m.Headers {
+			dAtA[i] = 0xa
+			i++
 			v := m.Headers[k]
-			baseI := i
+			msgSize := 0
 			if v != nil {
-				{
-					size, err := v.MarshalToSizedBuffer(dAtA[:i])
-					if err != nil {
-						return 0, err
-					}
-					i -= size
-					i = encodeVarintStructs(dAtA, i, uint64(size))
-				}
-				i--
-				dAtA[i] = 0x12
+				msgSize = v.Size()
+				msgSize += 1 + sovStructs(uint64(msgSize))
 			}
-			i -= len(k)
-			copy(dAtA[i:], k)
+			mapSize := 1 + len(k) + sovStructs(uint64(len(k))) + msgSize
+			i = encodeVarintStructs(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
+			i++
 			i = encodeVarintStructs(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintStructs(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0xa
+			i += copy(dAtA[i:], k)
+			if v != nil {
+				dAtA[i] = 0x12
+				i++
+				i = encodeVarintStructs(dAtA, i, uint64(v.Size()))
+				n32, err := v.MarshalTo(dAtA[i:])
+				if err != nil {
+					return 0, err
+				}
+				i += n32
+			}
 		}
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *StringList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2488,31 +2334,32 @@ func (m *StringList) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *StringList) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *StringList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Values) > 0 {
-		for iNdEx := len(m.Values) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Values[iNdEx])
-			copy(dAtA[i:], m.Values[iNdEx])
-			i = encodeVarintStructs(dAtA, i, uint64(len(m.Values[iNdEx])))
-			i--
+		for _, s := range m.Values {
 			dAtA[i] = 0xa
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
 		}
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *ACLToken) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2520,42 +2367,33 @@ func (m *ACLToken) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ACLToken) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ACLToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.SecretID) > 0 {
-		i -= len(m.SecretID)
-		copy(dAtA[i:], m.SecretID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.SecretID)))
-		i--
-		dAtA[i] = 0x12
-	}
 	if len(m.AccessorID) > 0 {
-		i -= len(m.AccessorID)
-		copy(dAtA[i:], m.AccessorID)
-		i = encodeVarintStructs(dAtA, i, uint64(len(m.AccessorID)))
-		i--
 		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.AccessorID)))
+		i += copy(dAtA[i:], m.AccessorID)
 	}
-	return len(dAtA) - i, nil
+	if len(m.SecretID) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStructs(dAtA, i, uint64(len(m.SecretID)))
+		i += copy(dAtA[i:], m.SecretID)
+	}
+	return i, nil
 }
 
 func encodeVarintStructs(dAtA []byte, offset int, v uint64) int {
-	offset -= sovStructs(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *Node) Size() (n int) {
 	if m == nil {
@@ -3181,7 +3019,14 @@ func (m *ACLToken) Size() (n int) {
 }
 
 func sovStructs(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozStructs(x uint64) (n int) {
 	return sovStructs(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -8296,7 +8141,6 @@ func (m *ACLToken) Unmarshal(dAtA []byte) error {
 func skipStructs(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
-	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -8328,8 +8172,10 @@ func skipStructs(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
+			return iNdEx, nil
 		case 1:
 			iNdEx += 8
+			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -8350,30 +8196,55 @@ func skipStructs(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthStructs
 			}
 			iNdEx += length
-		case 3:
-			depth++
-		case 4:
-			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupStructs
+			if iNdEx < 0 {
+				return 0, ErrInvalidLengthStructs
 			}
-			depth--
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowStructs
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipStructs(dAtA[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthStructs
+				}
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
 		case 5:
 			iNdEx += 4
+			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
-		if iNdEx < 0 {
-			return 0, ErrInvalidLengthStructs
-		}
-		if depth == 0 {
-			return iNdEx, nil
-		}
 	}
-	return 0, io.ErrUnexpectedEOF
+	panic("unreachable")
 }
 
 var (
-	ErrInvalidLengthStructs        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowStructs          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupStructs = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthStructs = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowStructs   = fmt.Errorf("proto: integer overflow")
 )

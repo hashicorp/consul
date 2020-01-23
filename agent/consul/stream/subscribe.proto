@@ -1,3 +1,10 @@
+/**
+ * Subscribe represents our "streaming" subscription protocol.
+ *
+ * There is only one important RPC currently which models a generic description
+ * to a topic-based pub-sub system. The state store published updates as Events.
+ * The majority of this file is defining those event types.
+ */
 syntax = "proto3";
 
 package stream;
@@ -5,6 +12,9 @@ package stream;
 import "structs.proto";
 
 service Consul {
+    // Susbscribe is a generic event streaming mechanism used for efficiently
+    // requesting a specific result snapshot and then following updates that
+    // affect that snapshot.
     rpc Subscribe(SubscribeRequest) returns (stream Event) {}
 
     // Test is only used internally for testing connectivity/balancing logic.
@@ -34,17 +44,34 @@ message Event {
     uint64 Index = 3;
     repeated ACLRule RequiredACLs = 4;
     oneof Payload {
-        ServiceHealthUpdate ServiceHealth = 6;
-        ACLTokenUpdate ACLToken = 7;
-        ACLPolicyUpdate ACLPolicy = 8;
-        ACLRoleUpdate ACLRole = 9;
+        ServiceHealthUpdate ServiceHealth = 5;
+        ACLTokenUpdate ACLToken = 6;
+        ACLPolicyUpdate ACLPolicy = 7;
+        ACLRoleUpdate ACLRole = 8;
 
-        // EndOfSnapshot indicates the event stream for the initial snapshot has ended.
-        bool EndOfSnapshot = 10;
+        // EndOfSnapshot indicates the event stream for the initial snapshot has
+        // ended.
+        bool EndOfSnapshot = 9;
+
+        // ResumeStream indicates that the client is still up-to-date, there
+        // will be no snapshot, and the rest of the stream will be individual
+        // update events.
+        bool ResumeStream = 10;
 
         // ReloadStream indicates the client should re-start the Subscribe call.
         bool ReloadStream = 11;
+
+        // EventBatch is a set of events. This is typically used as the payload
+        // type where multiple events are emitted in a single topic and raft
+        // index (e.g. transactional updates). In this case the Topic and Index
+        // values of all events will match and the whole set should be delivered
+        // and consumed atomically.
+        EventBatch EventBatch = 12;
     }
+}
+
+message EventBatch {
+    repeated Event Events = 1;
 }
 
 enum CatalogOp {
@@ -64,7 +91,7 @@ enum ACLResource {
 
 message ACLRule {
     ACLResource Resource = 1;
-    string Segment = 2; 
+    string Segment = 2;
 }
 
 message ServiceHealthUpdate {
