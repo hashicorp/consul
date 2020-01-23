@@ -14,9 +14,11 @@ poll "closed_issue_locker" "locker" {
   sleep_between_issues = "5s"
 
   message = <<-EOF
-    I'm going to lock this issue because it has been closed for _30 days_ ⏳. This helps our maintainers find and focus on the active issues.
+    Hey there,
 
-    If you have found a problem that seems similar to this, please open a new issue and complete the issue template so we can capture all the details necessary to investigate further.
+    This issue has been automatically locked because it is closed and there hasn't been any activity for at least _30_ days.
+
+    If you are still experiencing problems, or still have questions, feel free to [open a new one](https://github.com/hashicorp/consul/issues/new) :+1:.
   EOF
 }
 
@@ -27,8 +29,10 @@ poll "stale_issue_closer" "closer" {
     sleep_between_issues = "5s"
     labels = ["waiting-reply"]
     message = <<-EOF
-    I'm going to close this issue due to inactivity (_30 days_ without response ⏳ ). This helps our maintainers find and focus on the active issues.
+    Hey there,
 
-    If you feel this issue should be reopened, we encourage creating a new issue linking back to this one for added context. Thanks!
+    This issue has been automatically closed because there hasn't been any activity for at least _20_ days.
+
+    If you are still experiencing problems, or still have questions, feel free to [open a new one](https://github.com/hashicorp/consul/issues/new) :+1:.
     EOF
 }
