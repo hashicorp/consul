@@ -22,7 +22,7 @@ poll "closed_issue_locker" "locker" {
   EOF
 }
 
-poll "stale_issue_closer" "closer" {
+poll "stale_issue_closer" "stale_closer" {
     schedule = "0 22 23 * * *"
     no_reply_in_last = "480h" # 20 days
     max_issues = 500
@@ -32,6 +32,21 @@ poll "stale_issue_closer" "closer" {
     Hey there,
 
     This issue has been automatically closed because there hasn't been any activity for at least _20_ days.
+
+    If you are still experiencing problems, or still have questions, feel free to [open a new one](https://github.com/hashicorp/consul/issues/new) :+1:.
+    EOF
+}
+
+poll "stale_issue_closer" "close_closer" {
+    schedule = "0 50 2 * * *"
+    no_reply_in_last = "1m" # hack to close issue with that label immediately.
+    max_issues = 500
+    sleep_between_issues = "5s"
+    labels = ["close-issue"]
+    message = <<-EOF
+    Hey there,
+
+    This issue has been automatically closed because it was labled with `close-issue`.
 
     If you are still experiencing problems, or still have questions, feel free to [open a new one](https://github.com/hashicorp/consul/issues/new) :+1:.
     EOF
