@@ -8,6 +8,7 @@ BREAKING CHANGES:
 FEATURES:
 
 * acl: **(Consul Enterprise only)** auth methods defined in the `default` namespace gained the ability to create tokens in alternate namespaces. This capability was implemented for all existing auth methods.
+* connect: **(Consul Enterprise only)** Namespaces are now fully functional with Connect and Configuration Entries.
 
 IMPROVEMENTS:
 
