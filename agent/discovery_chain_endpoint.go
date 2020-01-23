@@ -24,7 +24,11 @@ func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Requ
 	}
 
 	args.EvaluateInDatacenter = req.URL.Query().Get("compile-dc")
-	// TODO(namespaces): args.EvaluateInNamespace = req.URL.Query().Get("compile-namespace")
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+	args.WithEnterpriseMeta(&entMeta)
 
 	if req.Method == "POST" {
 		var raw map[string]interface{}

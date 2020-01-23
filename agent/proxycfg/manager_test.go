@@ -138,7 +138,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	dbChainCacheKey := testGenCacheKey(&structs.DiscoveryChainRequest{
 		Name:                 "db",
 		EvaluateInDatacenter: "dc1",
-		EvaluateInNamespace:  "default",
+		EvaluateInNamespace:  "",
 		// This is because structs.TestUpstreams uses an opaque config
 		// to override connect timeouts.
 		OverrideConnectTimeout: 1 * time.Second,
@@ -147,26 +147,29 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	})
 
 	dbHealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: "my-token", Filter: ""},
-		ServiceName:  "db",
-		Connect:      true,
+		Datacenter:     "dc1",
+		QueryOptions:   structs.QueryOptions{Token: "my-token", Filter: ""},
+		ServiceName:    "db",
+		Connect:        true,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	})
 	db_v1_HealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
 		Datacenter: "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token",
 			Filter: "Service.Meta.version == v1",
 		},
-		ServiceName: "db",
-		Connect:     true,
+		ServiceName:    "db",
+		Connect:        true,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	})
 	db_v2_HealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
 		Datacenter: "dc1",
 		QueryOptions: structs.QueryOptions{Token: "my-token",
 			Filter: "Service.Meta.version == v2",
 		},
-		ServiceName: "db",
-		Connect:     true,
+		ServiceName:    "db",
+		Connect:        true,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	})
 
 	// Create test cases using some of the common data above.
@@ -185,7 +188,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			expectSnap: &ConfigSnapshot{
 				Kind:            structs.ServiceKindConnectProxy,
 				Service:         webProxy.Service,
-				ProxyID:         webProxy.ID,
+				ProxyID:         webProxy.CompoundServiceID(),
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
 				Proxy:           webProxy.Proxy,
@@ -206,8 +209,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
 						"db": {},
 					},
-					UpstreamEndpoints:    map[string]structs.CheckServiceNodes{},
-					WatchedServiceChecks: map[string][]structs.CheckType{},
+					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
+					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 				},
 				Datacenter: "dc1",
 			},
@@ -229,7 +232,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			expectSnap: &ConfigSnapshot{
 				Kind:            structs.ServiceKindConnectProxy,
 				Service:         webProxy.Service,
-				ProxyID:         webProxy.ID,
+				ProxyID:         webProxy.CompoundServiceID(),
 				Address:         webProxy.Address,
 				Port:            webProxy.Port,
 				Proxy:           webProxy.Proxy,
@@ -251,8 +254,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
 						"db": {},
 					},
-					UpstreamEndpoints:    map[string]structs.CheckServiceNodes{},
-					WatchedServiceChecks: map[string][]structs.CheckType{},
+					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
+					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
 				},
 				Datacenter: "dc1",
 			},
@@ -331,7 +334,7 @@ func testManager_BasicLifecycle(
 	}()
 
 	// BEFORE we register, we should be able to get a watch channel
-	wCh, cancel := m.Watch(webProxy.ID)
+	wCh, cancel := m.Watch(webProxy.CompoundServiceID())
 	defer cancel()
 
 	// And it should block with nothing sent on it yet
@@ -355,7 +358,7 @@ func testManager_BasicLifecycle(
 	assertWatchChanRecvs(t, wCh, expectSnap)
 
 	// Register a second watcher
-	wCh2, cancel2 := m.Watch(webProxy.ID)
+	wCh2, cancel2 := m.Watch(webProxy.CompoundServiceID())
 	defer cancel2()
 
 	// New watcher should immediately receive the current state
@@ -463,11 +466,11 @@ func TestManager_deliverLatest(t *testing.T) {
 	require.NoError(err)
 
 	snap1 := &ConfigSnapshot{
-		ProxyID: "test-proxy",
+		ProxyID: structs.NewServiceID("test-proxy", nil),
 		Port:    1111,
 	}
 	snap2 := &ConfigSnapshot{
-		ProxyID: "test-proxy",
+		ProxyID: structs.NewServiceID("test-proxy", nil),
 		Port:    2222,
 	}
 

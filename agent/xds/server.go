@@ -115,7 +115,7 @@ type ConfigFetcher interface {
 // easier testing without several layers of mocked cache, local state and
 // proxycfg.Manager.
 type ConfigManager interface {
-	Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
+	Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
 }
 
 // Server represents a gRPC server that can handle both XDS and ext_authz
@@ -200,7 +200,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 	var ok bool
 	var stateCh <-chan *proxycfg.ConfigSnapshot
 	var watchCancel func()
-	var proxyID string
+	var proxyID structs.ServiceID
 
 	// need to run a small state machine to get through initial authentication.
 	var state = stateInit
@@ -254,15 +254,16 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			return err
 		}
 
+		var authzContext acl.AuthorizerContext
 		switch cfgSnap.Kind {
 		case structs.ServiceKindConnectProxy:
-			// TODO (namespaces) - pass through a real ent authz ctx
-			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, nil) != acl.Allow {
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")
 			}
 		case structs.ServiceKindMeshGateway:
-			// TODO (namespaces) - pass through a real ent authz ctx
-			if rule != nil && rule.ServiceWrite(cfgSnap.Service, nil) != acl.Allow {
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")
 			}
 		default:
@@ -310,7 +311,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 				continue
 			}
 			// Start authentication process, we need the proxyID
-			proxyID = req.Node.Id
+			proxyID = structs.NewServiceID(req.Node.Id, parseEnterpriseMeta(req.Node))
 
 			// Start watching config for that proxy
 			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)

@@ -26,6 +26,10 @@ func (m *EnterpriseMeta) Merge(_ *EnterpriseMeta) {
 	// do nothing
 }
 
+func (m *EnterpriseMeta) MergeNoWildcard(_ *EnterpriseMeta) {
+	// do nothing
+}
+
 func (m *EnterpriseMeta) Matches(_ *EnterpriseMeta) bool {
 	return true
 }
@@ -36,6 +40,10 @@ func (m *EnterpriseMeta) IsSame(_ *EnterpriseMeta) bool {
 
 func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 	return false
+}
+
+func (m *EnterpriseMeta) NamespaceOrDefault() string {
+	return "default"
 }
 
 // ReplicationEnterpriseMeta stub
@@ -81,8 +89,17 @@ func ServiceIDString(id string, _ *EnterpriseMeta) string {
 	return id
 }
 
+func ParseServiceIDString(input string) (string, *EnterpriseMeta) {
+	return input, DefaultEnterpriseMeta()
+}
+
 func (sid *ServiceID) String() string {
 	return sid.ID
+}
+
+func ServiceIDFromString(input string) ServiceID {
+	id, _ := ParseServiceIDString(input)
+	return ServiceID{ID: id}
 }
 
 func (cid *CheckID) String() string {

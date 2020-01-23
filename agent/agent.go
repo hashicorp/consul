@@ -4024,6 +4024,14 @@ func (a *Agent) registerCache() {
 		RefreshTimeout: 10 * time.Minute,
 	})
 
+	a.cache.RegisterType(cachetype.CatalogServiceListName, &cachetype.CatalogServiceList{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
 	a.cache.RegisterType(cachetype.CatalogDatacentersName, &cachetype.CatalogDatacenters{
 		RPC: a,
 	}, &cache.RegisterOptions{

@@ -456,7 +456,7 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsertCAS:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
+		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry, req.Entry.GetEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -464,14 +464,14 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		if err := c.state.EnsureConfigEntry(index, req.Entry); err != nil {
+		if err := c.state.EnsureConfigEntry(index, req.Entry, req.Entry.GetEnterpriseMeta()); err != nil {
 			return err
 		}
 		return true
 	case structs.ConfigEntryDelete:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
-		return c.state.DeleteConfigEntry(index, req.Entry.GetKind(), req.Entry.GetName())
+		return c.state.DeleteConfigEntry(index, req.Entry.GetKind(), req.Entry.GetName(), req.Entry.GetEnterpriseMeta())
 	default:
 		return fmt.Errorf("invalid config entry operation type: %v", req.Op)
 	}

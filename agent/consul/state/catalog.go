@@ -748,6 +748,32 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	return idx, results, nil
 }
 
+func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	idx := s.catalogServicesMaxIndex(tx, entMeta)
+
+	services, err := s.catalogServiceList(tx, entMeta, true)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed querying services: %s", err)
+	}
+	ws.Add(services.WatchCh())
+
+	unique := make(map[structs.ServiceID]struct{})
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		unique[svc.CompoundServiceName()] = struct{}{}
+	}
+
+	results := make(structs.ServiceList, 0, len(unique))
+	for sid, _ := range unique {
+		results = append(results, structs.ServiceInfo{Name: sid.ID, EnterpriseMeta: sid.EnterpriseMeta})
+	}
+
+	return idx, results, nil
+}
+
 // ServicesByNodeMeta returns all services, filtered by the given node metadata.
 func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string, entMeta *structs.EnterpriseMeta) (uint64, structs.Services, error) {
 	tx := s.db.Txn(false)

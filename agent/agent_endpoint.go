@@ -292,7 +292,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			svcState := s.agent.State.ServiceState(sid)
 			if svcState == nil {
 				resp.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(resp, "unknown service ID: %s", id)
+				fmt.Fprintf(resp, "unknown service ID: %s", sid.String())
 				return "", nil, nil
 			}
 

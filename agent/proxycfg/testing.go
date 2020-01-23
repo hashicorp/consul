@@ -571,7 +571,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: "web-sidecar-proxy",
-		ProxyID: "web-sidecar-proxy",
+		ProxyID: structs.NewServiceID("web-sidecar-proxy", nil),
 		Address: "0.0.0.0",
 		Port:    9999,
 		Proxy: structs.ConnectProxyConfig{
@@ -590,7 +590,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
 				"db": dbChain,
 			},
-			UpstreamEndpoints: map[string]structs.CheckServiceNodes{
+			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
 			},
 			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
@@ -866,7 +866,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: "web-sidecar-proxy",
-		ProxyID: "web-sidecar-proxy",
+		ProxyID: structs.NewServiceID("web-sidecar-proxy", nil),
 		Address: "0.0.0.0",
 		Port:    9999,
 		Proxy: structs.ConnectProxyConfig{
@@ -979,7 +979,7 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool) *ConfigSn
 	snap := &ConfigSnapshot{
 		Kind:    structs.ServiceKindMeshGateway,
 		Service: "mesh-gateway",
-		ProxyID: "mesh-gateway",
+		ProxyID: structs.NewServiceID("mesh-gateway", nil),
 		Address: "1.2.3.4",
 		Port:    8443,
 		Proxy: structs.ConnectProxyConfig{
@@ -1004,17 +1004,17 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool) *ConfigSn
 
 	if populateServices {
 		snap.MeshGateway = configSnapshotMeshGateway{
-			WatchedServices: map[string]context.CancelFunc{
-				"foo": nil,
-				"bar": nil,
+			WatchedServices: map[structs.ServiceID]context.CancelFunc{
+				structs.NewServiceID("foo", nil): nil,
+				structs.NewServiceID("bar", nil): nil,
 			},
 			WatchedServicesSet: true,
 			WatchedDatacenters: map[string]context.CancelFunc{
 				"dc2": nil,
 			},
-			ServiceGroups: map[string]structs.CheckServiceNodes{
-				"foo": TestGatewayServiceGroupFooDC1(t),
-				"bar": TestGatewayServiceGroupBarDC1(t),
+			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
+				structs.NewServiceID("foo", nil): TestGatewayServiceGroupFooDC1(t),
+				structs.NewServiceID("bar", nil): TestGatewayServiceGroupBarDC1(t),
 			},
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
@@ -1029,7 +1029,7 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: "web-proxy",
-		ProxyID: "web-proxy",
+		ProxyID: structs.NewServiceID("web-proxy", nil),
 		Address: "1.2.3.4",
 		Port:    8080,
 		Proxy: structs.ConnectProxyConfig{

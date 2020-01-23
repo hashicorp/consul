@@ -338,9 +338,12 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: map[string]map[string]interface{}{
-				"redis": map[string]interface{}{
-					"protocol": "tcp",
+			UpstreamIDConfigs: structs.UpstreamConfigs{
+				structs.UpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
 				},
 			},
 		},
@@ -376,9 +379,12 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: map[string]map[string]interface{}{
-				"redis": map[string]interface{}{
-					"protocol": "tcp",
+			UpstreamIDConfigs: structs.UpstreamConfigs{
+				structs.UpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
 				},
 			},
 		},
@@ -549,9 +555,12 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamConfigs: map[string]map[string]interface{}{
-				"redis": map[string]interface{}{
-					"protocol": "tcp",
+			UpstreamIDConfigs: structs.UpstreamConfigs{
+				structs.UpstreamConfig{
+					Upstream: structs.NewServiceID("redis", nil),
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
 				},
 			},
 		},

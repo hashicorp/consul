@@ -957,7 +957,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 	state := s.fsm.State()
 	for _, entry := range entries {
 		// avoid a round trip through Raft if we know the CAS is going to fail
-		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName())
+		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("Failed to determine whether the configuration for %q / %q already exists: %v", entry.GetKind(), entry.GetName(), err)
 		}

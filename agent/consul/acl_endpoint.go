@@ -821,17 +821,26 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	var authzContext acl.AuthorizerContext
-	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	var requestMeta structs.EnterpriseMeta
+	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &requestMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	}
+	// merge the token default meta into the requests meta
+	args.EnterpriseMeta.Merge(&requestMeta)
+	args.EnterpriseMeta.FillAuthzContext(&authzContext)
+	if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	var methodMeta *structs.EnterpriseMeta
 	if args.AuthMethod != "" {
 		methodMeta = args.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
-		methodMeta.Merge(&args.EnterpriseMeta)
+		// attempt to merge in the overall meta, wildcards will not be merged
+		methodMeta.MergeNoWildcard(&args.EnterpriseMeta)
+		// in the event that the meta above didn't merge due to being a wildcard
+		// we ensure that proper token based meta inference occurs
+		methodMeta.Merge(&requestMeta)
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,

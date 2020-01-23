@@ -67,7 +67,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		entry          discoveryChainConfigEntry
-		expectServices []string
+		expectServices []ServiceID
 		expectACLs     []testACL
 	}{
 		{
@@ -92,7 +92,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 					Service: "other",
 				},
 			},
-			expectServices: []string{"other"},
+			expectServices: []ServiceID{NewServiceID("other", nil)},
 			expectACLs: []testACL{
 				defaultDenyCase,
 				readTestCase,
@@ -123,7 +123,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 					},
 				},
 			},
-			expectServices: []string{"other1", "other2"},
+			expectServices: []ServiceID{NewServiceID("other1", nil), NewServiceID("other2", nil)},
 			expectACLs: []testACL{
 				defaultDenyCase,
 				readTestCase,
@@ -163,7 +163,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 					{Weight: 50, Service: "c"},
 				},
 			},
-			expectServices: []string{"a", "b", "c"},
+			expectServices: []ServiceID{NewServiceID("a", nil), NewServiceID("b", nil), NewServiceID("c", nil)},
 			expectACLs: []testACL{
 				defaultDenyCase,
 				readTestCase,
@@ -182,7 +182,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 				Kind: ServiceRouter,
 				Name: "test",
 			},
-			expectServices: []string{"test"},
+			expectServices: []ServiceID{NewServiceID("test", nil)},
 			expectACLs: []testACL{
 				defaultDenyCase,
 				readTestCase,
@@ -213,7 +213,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 					},
 				},
 			},
-			expectServices: []string{"bar", "foo", "test"},
+			expectServices: []ServiceID{NewServiceID("bar", nil), NewServiceID("foo", nil), NewServiceID("test", nil)},
 			expectACLs: []testACL{
 				defaultDenyCase,
 				readTestCase,

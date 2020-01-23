@@ -32,6 +32,14 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 	}
 	pathArgs := strings.SplitN(strings.TrimPrefix(req.URL.Path, "/v1/config/"), "/", 2)
 
+	if len(pathArgs) == 2 {
+		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
+	} else if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
 	switch len(pathArgs) {
 	case 2:
 		// Both kind/name provided.
@@ -85,6 +93,11 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 		return nil, nil
 	}
 	args.Entry = entry
+	// Parse enterprise meta.
+	meta := args.Entry.GetEnterpriseMeta()
+	if err := s.parseEntMetaNoWildcard(req, meta); err != nil {
+		return nil, err
+	}
 
 	var reply struct{}
 	if err := s.agent.RPC("ConfigEntry.Delete", &args, &reply); err != nil {
@@ -112,6 +125,13 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 	} else {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decoding failed: %v", err)}
 	}
+
+	// Parse enterprise meta.
+	var meta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &meta); err != nil {
+		return nil, err
+	}
+	args.Entry.GetEnterpriseMeta().Merge(&meta)
 
 	// Check for cas value
 	if casStr := req.URL.Query().Get("cas"); casStr != "" {

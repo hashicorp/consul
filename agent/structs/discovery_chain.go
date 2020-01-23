@@ -238,3 +238,7 @@ func (t *DiscoveryTarget) setID() {
 func (t *DiscoveryTarget) String() string {
 	return t.ID
 }
+
+func (t *DiscoveryTarget) ServiceID() ServiceID {
+	return NewServiceID(t.Service, t.GetEnterpriseMetadata())
+}

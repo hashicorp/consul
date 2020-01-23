@@ -19,7 +19,7 @@ function retry {
 
   for ((i=1;i<=$max;i++))
   do
-    if $@
+    if "$@"
     then
       if test $errtrace -eq 1
       then
@@ -42,13 +42,13 @@ function retry {
 function retry_default {
   set +E
   ret=0
-  retry 5 1 $@ || ret=1
+  retry 5 1 "$@" || ret=1
   set -E
   return $ret
 }
 
 function retry_long {
-  retry 30 1 $@
+  retry 30 1 "$@"
 }
 
 function echored {
@@ -108,15 +108,16 @@ function assert_proxy_presents_cert_uri {
   local HOSTPORT=$1
   local SERVICENAME=$2
   local DC=${3:-primary}
+  local NS=${4:-default}
 
 
   CERT=$(retry_default get_cert $HOSTPORT)
 
-  echo "WANT SERVICE: $SERVICENAME"
+  echo "WANT SERVICE: ${NS}/${SERVICENAME}"
   echo "GOT CERT:"
   echo "$CERT"
 
-  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/default/dc/${DC}/svc/$SERVICENAME"
+  echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
 }
 
 function assert_envoy_version {
@@ -290,10 +291,41 @@ function assert_envoy_metric_at_least {
   fi
 }
 
+function assert_envoy_aggregate_metric_at_least {
+  set -eEuo pipefail
+  local HOSTPORT=$1
+  local METRIC=$2
+  local EXPECT_COUNT=$3
+
+  METRICS=$(get_envoy_metrics $HOSTPORT "$METRIC")
+
+  if [ -z "${METRICS}" ]
+  then
+    echo "Metric not found" 1>&2
+    return 1
+  fi
+
+  GOT_COUNT=$(awk '{ sum += $2 } END { print sum }' <<< "$METRICS")
+
+  if [ -z "$GOT_COUNT" ]
+  then
+    echo "Couldn't parse metric count" 1>&2
+    return 1
+  fi
+
+  if [ $EXPECT_COUNT -gt $GOT_COUNT ]
+  then
+    echo "$METRIC - expected >= count: $EXPECT_COUNT, actual count: $GOT_COUNT" 1>&2
+    return 1
+  fi
+}
+
 function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
-  run retry_default curl -s -f "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing"
+  local NS=$3
+  
+  run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
@@ -302,8 +334,9 @@ function assert_service_has_healthy_instances_once {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
+  local NS=$4
 
-  GOT_COUNT=$(get_healthy_service_count $SERVICE_NAME $DC)
+  GOT_COUNT=$(get_healthy_service_count "$SERVICE_NAME" "$DC" "$NS")
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
 }
@@ -312,8 +345,9 @@ function assert_service_has_healthy_instances {
   local SERVICE_NAME=$1
   local EXPECT_COUNT=$2
   local DC=${3:-primary}
+  local NS=$4
 
-  run retry_long assert_service_has_healthy_instances_once $SERVICE_NAME $EXPECT_COUNT $DC
+  run retry_long assert_service_has_healthy_instances_once "$SERVICE_NAME" "$EXPECT_COUNT" "$DC" "$NS"
   [ "$status" -eq 0 ]
 }
 
@@ -333,6 +367,20 @@ function docker_curl {
   local DC=$1
   shift 1
   docker run -ti --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+}
+
+function docker_exec {
+  if ! docker exec -i "$@"
+  then
+    echo "Failed to execute: docker exec -i $@" 1>&2
+    return 1
+  fi
+}
+
+function docker_consul_exec {
+  local DC=$1
+  shift 1
+  docker_exec envoy_consul-${DC}_1 "$@"
 }
 
 function get_envoy_pid {
@@ -417,6 +465,7 @@ function gen_envoy_bootstrap {
   ADMIN_PORT=$2
   DC=${3:-primary}
   IS_MGW=${4:-0}
+  EXTRA_ENVOY_BS_ARGS="${5-}"
 
   PROXY_ID="$SERVICE"
   if ! is_set "$IS_MGW"
@@ -426,7 +475,7 @@ function gen_envoy_bootstrap {
 
   if output=$(docker_consul "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
-    -admin-bind 0.0.0.0:$ADMIN_PORT 2>&1); then
+    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json

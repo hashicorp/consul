@@ -37,7 +37,7 @@ func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token s
 // (upstream instances) in the snapshot.
 func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0,
-		len(cfgSnap.ConnectProxy.UpstreamEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
+		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
 	for _, u := range cfgSnap.Proxy.Upstreams {
 		id := u.Identifier()
@@ -56,7 +56,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 			}
 			clusterName := connect.UpstreamSNI(&u, "", dc, cfgSnap.Roots.TrustDomain)
 
-			endpoints, ok := cfgSnap.ConnectProxy.UpstreamEndpoints[id]
+			endpoints, ok := cfgSnap.ConnectProxy.PreparedQueryEndpoints[id]
 			if ok {
 				la := makeLoadAssignment(
 					clusterName,
@@ -167,7 +167,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// generate the endpoints for the local service groups
 	for svc, endpoints := range cfgSnap.MeshGateway.ServiceGroups {
-		clusterName := connect.ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		la := makeLoadAssignment(
 			clusterName,
 			[]loadAssignmentEndpointGroup{
@@ -181,7 +181,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	// generate the endpoints for the service subsets
 	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
 		for subsetName, subset := range resolver.Subsets {
-			clusterName := connect.ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 			endpoints := cfgSnap.MeshGateway.ServiceGroups[svc]
 
