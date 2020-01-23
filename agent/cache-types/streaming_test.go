@@ -11,13 +11,18 @@ import (
 // TestStreamingClient is a mock StreamingClient for testing that allows
 // for queueing up custom events to a subscriber.
 type TestStreamingClient struct {
-	events chan *stream.Event
+	events chan eventOrErr
 	ctx    context.Context
+}
+
+type eventOrErr struct {
+	Err   error
+	Event *stream.Event
 }
 
 func NewTestStreamingClient() *TestStreamingClient {
 	return &TestStreamingClient{
-		events: make(chan *stream.Event, 32),
+		events: make(chan eventOrErr, 32),
 	}
 }
 
@@ -29,14 +34,21 @@ func (t *TestStreamingClient) Subscribe(ctx context.Context, in *stream.Subscrib
 
 func (t *TestStreamingClient) QueueEvents(events ...*stream.Event) {
 	for _, e := range events {
-		t.events <- e
+		t.events <- eventOrErr{Event: e}
 	}
+}
+
+func (t *TestStreamingClient) QueueErr(err error) {
+	t.events <- eventOrErr{Err: err}
 }
 
 func (t *TestStreamingClient) Recv() (*stream.Event, error) {
 	select {
-	case e := <-t.events:
-		return e, nil
+	case eoe := <-t.events:
+		if eoe.Err != nil {
+			return nil, eoe.Err
+		}
+		return eoe.Event, nil
 	case <-t.ctx.Done():
 		return nil, t.ctx.Err()
 	}

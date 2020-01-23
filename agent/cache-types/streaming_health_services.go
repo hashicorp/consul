@@ -21,6 +21,8 @@ type StreamingHealthServices struct {
 	logger *log.Logger
 }
 
+// NewStreamingHealthServices creates a cache-type for watching for service
+// health results via streaming updates.
 func NewStreamingHealthServices(client StreamingClient, logger *log.Logger) *StreamingHealthServices {
 	return &StreamingHealthServices{
 		client: client,
@@ -28,6 +30,7 @@ func NewStreamingHealthServices(client StreamingClient, logger *log.Logger) *Str
 	}
 }
 
+// Fetch implements cache.Type
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	// The request should be a ServiceSpecificRequest.
 	reqReal, ok := req.(*structs.ServiceSpecificRequest)
@@ -36,7 +39,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
-	subscribeReq := stream.SubscribeRequest{
+	r := stream.SubscribeRequest{
 		Topic:      stream.Topic_ServiceHealth,
 		Key:        reqReal.ServiceName,
 		Token:      reqReal.Token,
@@ -45,60 +48,73 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 		Datacenter: reqReal.Datacenter,
 	}
 
-	// Switch the topic if Connect is enabled.
+	// Connect requests need a different topic
 	if reqReal.Connect {
-		subscribeReq.Topic = stream.Topic_ServiceHealthConnect
+		r.Topic = stream.Topic_ServiceHealthConnect
 	}
 
-	handler := healthServicesHandler{
-		state: make(map[string]structs.CheckServiceNode),
-	}
-	indexFunc := func(v interface{}) uint64 {
-		if v, ok := v.(*structs.IndexedCheckServiceNodes); ok {
-			return v.Index
-		}
-		return 0
-	}
-
-	return watchSubscriber(c.client, c.logger, opts, subscribeReq, &handler, indexFunc)
+	view := MaterializedViewFromFetch(c, opts, r)
+	return view.Fetch(opts)
 }
 
+// SupportsBlocking implements cache.Type
 func (c *StreamingHealthServices) SupportsBlocking() bool {
 	return true
 }
 
-// healthServicesHandler maintains a view of the health of a service
-// based on incoming events from a Subscriber.
-type healthServicesHandler struct {
-	state map[string]structs.CheckServiceNode
+// NewMaterializedView implements StreamingCacheType
+func (c *StreamingHealthServices) NewMaterializedViewState() MaterializedViewState {
+	return make(healthViewState)
 }
 
-// HandleEvent updates the handler's state based on register/deregister events.
-func (h *healthServicesHandler) HandleEvent(event *stream.Event) {
-	serviceHealth := event.GetServiceHealth()
-	node := serviceHealth.CheckServiceNode
-	id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
+// StreamingClient implements StreamingCacheType
+func (c *StreamingHealthServices) StreamingClient() StreamingClient {
+	return c.client
+}
 
-	switch serviceHealth.Op {
-	case stream.CatalogOp_Register:
-		checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
-		h.state[id] = checkServiceNode
-	case stream.CatalogOp_Deregister:
-		delete(h.state, id)
+// Logger implements StreamingCacheType
+func (c *StreamingHealthServices) Logger() *log.Logger {
+	return c.logger
+}
+
+// healthViewState implements MaterializedViewState for storing the view state
+// of a service health result. We store it as a map to make updates and
+// deletions a little easier but we could just store a result type
+// (IndexedCheckServiceNodes) and update it in place for each event - that
+// involves re-sorting each time etc. though.
+type healthViewState map[string]structs.CheckServiceNode
+
+// Update implements MaterializedViewState
+func (s healthViewState) Update(events []*stream.Event) error {
+	for _, event := range events {
+		serviceHealth := event.GetServiceHealth()
+		if serviceHealth == nil {
+			return fmt.Errorf("unexpected event type for service health view: %T",
+				event.GetPayload())
+		}
+		node := serviceHealth.CheckServiceNode
+		id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
+
+		switch serviceHealth.Op {
+		case stream.CatalogOp_Register:
+			checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
+			s[id] = checkServiceNode
+		case stream.CatalogOp_Deregister:
+			delete(s, id)
+		}
 	}
+	return nil
 }
 
-// State returns the current view of the state based on the events seen.
-func (h *healthServicesHandler) State(idx uint64) interface{} {
+// Result implements MaterializedViewState
+func (s healthViewState) Result(index uint64) (interface{}, error) {
 	var result structs.IndexedCheckServiceNodes
-	for _, node := range h.state {
+	// Avoid a nil slice if there are no results in the view
+	result.Nodes = structs.CheckServiceNodes{}
+	for _, node := range s {
 		result.Nodes = append(result.Nodes, node)
 	}
 	result.Nodes.Sort()
-	result.Index = idx
-	return &result
-}
-
-func (h *healthServicesHandler) Reset() {
-	h.state = make(map[string]structs.CheckServiceNode)
+	result.Index = index
+	return &result, nil
 }

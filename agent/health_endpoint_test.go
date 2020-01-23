@@ -656,7 +656,6 @@ func TestHealthServiceNodes(t *testing.T) {
 	}
 
 	// Ensure background refresh works
-	var index uint64
 	{
 		// Register a new instance of the service
 		args2 := args
@@ -679,7 +678,7 @@ func TestHealthServiceNodes(t *testing.T) {
 			if header == "" || header == "0" {
 				r.Fatalf("Want non-zero header: %q", header)
 			}
-			index, err = strconv.ParseUint(header, 10, 64)
+			_, err = strconv.ParseUint(header, 10, 64)
 			r.Check(err)
 
 			// Should be a cache hit! The data should've updated in the cache
@@ -690,28 +689,125 @@ func TestHealthServiceNodes(t *testing.T) {
 			}
 		})
 	}
+}
 
-	// Test blocking queries (for streaming)
-	// Register a new instance of the service after a delay
-	go func() {
-		time.Sleep(200 * time.Millisecond)
+func TestHealthServiceNodes_Blocking(t *testing.T) {
+	t.Parallel()
 
-		args3 := args
-		args3.Node = "zoo"
-		args3.Address = "127.0.0.3"
-		require.NoError(a.RPC("Catalog.Register", args3, &out))
-	}()
+	cases := []struct {
+		name string
+		hcl  string
+	}{
+		//{"no streaming, empty initial", ""},
+		{"streaming, empty initial", "enable_backend_streaming = true"},
+	}
 
-	{
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/health/service/test?index=%d", index), nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.HealthServiceNodes(resp, req)
-		require.NoError(err)
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewTestAgent(t, t.Name(), tc.hcl)
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-		nodes := obj.(structs.CheckServiceNodes)
-		if len(nodes) != 3 {
-			t.Fatalf("Want 3 nodes")
-		}
+			// Register some initial service instances
+			for i := 0; i < 2; i++ {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       "bar",
+					Address:    "127.0.0.1",
+					Service: &structs.NodeService{
+						ID:      fmt.Sprintf("test%03d", i),
+						Service: "test",
+					},
+				}
+
+				var out struct{}
+				require.NoError(t, a.RPC("Catalog.Register", args, &out))
+			}
+
+			// Initial request should return two instances
+			req, _ := http.NewRequest("GET", "/v1/health/service/test?dc=dc1", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			require.NoError(t, err)
+
+			nodes := obj.(structs.CheckServiceNodes)
+			require.Len(t, nodes, 2)
+
+			idx := getIndex(t, resp)
+			require.True(t, idx > 0)
+
+			// Blocking on that index should block. We test that by launching another
+			// goroutine that will wait a while before updating the registration and
+			// make sure that we unblock before timeout and see the update but that it
+			// takes at least as long as the sleep time.
+			sleep := 200 * time.Millisecond
+			start := time.Now()
+			go func() {
+				time.Sleep(sleep)
+
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       "zoo",
+					Address:    "127.0.0.3",
+					Service: &structs.NodeService{
+						ID:      "test",
+						Service: "test",
+					},
+				}
+
+				var out struct{}
+				require.NoError(t, a.RPC("Catalog.Register", args, &out))
+			}()
+
+			{
+				timeout := 30 * time.Second
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s",
+					idx, timeout)
+				req, _ := http.NewRequest("GET", url, nil)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(t, err)
+				elapsed := time.Since(start)
+				require.True(t, elapsed > sleep, "request should block for at "+
+					" least as long as sleep. sleep=%s, elapsed=%s", sleep, elapsed)
+
+				require.True(t, elapsed < timeout, "request should unblock before"+
+					" it timed out. timeout=%s, elapsed=%s", timeout, elapsed)
+
+				nodes := obj.(structs.CheckServiceNodes)
+				require.Len(t, nodes, 3)
+
+				newIdx := getIndex(t, resp)
+				require.True(t, idx < newIdx, "index should have increased."+
+					"idx=%d, newIdx=%d", idx, newIdx)
+
+				idx = newIdx
+			}
+
+			// Blocking should last until timeout in absence of updates
+			start = time.Now()
+			{
+				timeout := 200 * time.Millisecond
+				url := fmt.Sprintf("/v1/health/service/test?dc=dc1&index=%d&wait=%s",
+					idx, timeout)
+				req, _ := http.NewRequest("GET", url, nil)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.HealthServiceNodes(resp, req)
+				require.NoError(t, err)
+				elapsed := time.Since(start)
+				// Note that servers add jitter to timeout requested but don't remove it
+				// so this should always be true.
+				require.True(t, elapsed > timeout, "request should block for at "+
+					" least as long as timeout. timeout=%s, elapsed=%s", timeout, elapsed)
+
+				nodes := obj.(structs.CheckServiceNodes)
+				require.Len(t, nodes, 3)
+
+				newIdx := getIndex(t, resp)
+				require.Equal(t, idx, newIdx)
+			}
+		})
 	}
 }
 
