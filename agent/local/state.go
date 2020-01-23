@@ -70,7 +70,7 @@ type CheckState struct {
 	// Check is the local copy of the health check record.
 	//
 	// Must Clone() the overall CheckState before mutating this. After mutation
-	// reinstall into the checks map.
+	// reinstall into the checks map. If Deleted is true, this field can be nil.
 	Check *structs.HealthCheck
 
 	// Token is the ACL record to update or delete the health check
