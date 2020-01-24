@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -573,6 +574,36 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(cc.RootCAs.Subjects()) != 2 {
+		t.Fatalf("didn't load root CAs")
+	}
+
+	// Load certs in-memory
+	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	keyPEM, err := ioutil.ReadFile("../test/hostname/Alice.key")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	caPEM, err := ioutil.ReadFile("../test/hostname/CertAuth.crt")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Setup config with in-memory certs
+	cc, err = SetupTLSConfig(&TLSConfig{
+		CertPEM: certPEM,
+		KeyPEM:  keyPEM,
+		CAPem:   caPEM,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(cc.Certificates) != 1 {
+		t.Fatalf("missing certificate: %v", cc.Certificates)
+	}
+	if cc.RootCAs == nil {
 		t.Fatalf("didn't load root CAs")
 	}
 }

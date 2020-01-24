@@ -470,16 +470,6 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 		tlsClientConfig.ServerName = server
 	}
 
-	if tlsConfig.CertFile != "" && tlsConfig.KeyFile != "" {
-		tlsCert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
-	} else if tlsConfig.CertFile != "" || tlsConfig.KeyFile != "" {
-		return nil, fmt.Errorf("both client cert and client key must be provided")
-	}
-
 	if len(tlsConfig.CertPEM) != 0 && len(tlsConfig.KeyPEM) != 0 {
 		tlsCert, err := tls.X509KeyPair(tlsConfig.CertPEM, tlsConfig.KeyPEM)
 		if err != nil {
@@ -487,6 +477,16 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 		}
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
 	} else if len(tlsConfig.CertPEM) != 0 || len(tlsConfig.KeyPEM) != 0 {
+		return nil, fmt.Errorf("both client cert and client key must be provided")
+	}
+
+	if tlsConfig.CertFile != "" && tlsConfig.KeyFile != "" {
+		tlsCert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
+	} else if tlsConfig.CertFile != "" || tlsConfig.KeyFile != "" {
 		return nil, fmt.Errorf("both client cert and client key must be provided")
 	}
 
