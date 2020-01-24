@@ -25,6 +25,7 @@ MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
+GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
@@ -127,6 +128,7 @@ export GO_BUILD_TAG
 export UI_BUILD_TAG
 export BUILD_CONTAINER_NAME
 export GIT_COMMIT
+export GIT_COMMIT_YEAR
 export GIT_DIRTY
 export GIT_DESCRIBE
 export GOTAGS
@@ -284,6 +286,7 @@ test-docker: linux go-build-image
 		-e 'GOTEST_PKGS=$(GOTEST_PKGS)' \
 		-e 'GOTAGS=$(GOTAGS)' \
 		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
+		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
 		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
 		-e 'GIT_DESCRIBE=$(GIT_DESCRIBE)' \
 		$(TEST_PARALLELIZATION) \
