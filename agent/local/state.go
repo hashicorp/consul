@@ -1283,7 +1283,6 @@ func (l *State) syncService(key structs.ServiceID) error {
 			}
 			// Given how the register API works, this info is also updated
 			// every time we sync a service.
-			l.nodeInfoInSync = true
 			var checkKey structs.CheckID
 			for _, check := range checks {
 				checkKey.Init(check.CheckID, &check.EnterpriseMeta)
@@ -1361,7 +1360,12 @@ func (l *State) syncCheck(key structs.CheckID) error {
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
-		l.checks[key].InSync = true
+		if c, ok := l.checks[key]; ok && c.version == currentVersion {
+			c.InSync = true
+		}
+		if l.checks[key].version > currentVersion {
+			l.checks[key].InSync = false
+		}
 		l.logger.Printf("[WARN] agent: Check %q registration blocked by ACLs", key)
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
