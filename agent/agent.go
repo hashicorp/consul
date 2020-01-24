@@ -1935,16 +1935,12 @@ OUTER:
 					WriteRequest: structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
-				//  todo(mkcp) port all of these logger calls to hclog w/ loglevel configuration
+				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
+				// todo(kit) handle acl.ErrNotFound cases here in the future
 				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
-						_, tokenIdent, err2 := a.resolveIdentityFromToken(agentToken)
-						if err2 != nil {
-							a.logger.Printf("[DEBUG] agent: failed to acquire token identity, err=%v", err2)
-						}
-						if tokenIdent != nil {
-							a.logger.Printf("[DEBUG] agent: Coordinate update blocked by ACLs, accessorID=%v", tokenIdent.ID())
-						}
+						accessorID := a.aclAccessorID(agentToken)
+						a.logger.Printf("[DEBUG] agent: Coordinate update blocked by ACLs, accessorID=%v", accessorID)
 					} else {
 						a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
 					}

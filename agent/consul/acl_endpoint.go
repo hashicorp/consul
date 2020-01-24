@@ -2392,17 +2392,3 @@ func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]st
 	*reply = responses
 	return nil
 }
-
-// ResolveIdentityFromToken passes through a request from the ACL type to the ACL's srv delegate.
-func (a *ACL) ResolveIdentityFromToken(args *structs.ACLRequest, reply *structs.ACLIdentity) error {
-	_, ident, err := a.srv.ResolveIdentityFromToken(args.WriteRequest.Token)
-	if err != nil {
-		return err
-	} else if ident == nil {
-		return fmt.Errorf("Failed to initialize identity")
-	}
-
-	// Set our reply and return
-	*reply = ident
-	return nil
-}

@@ -121,6 +121,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
+	ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error)
 }
 
 // State is used to represent the node's services,
@@ -1106,7 +1107,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
-		accessorID := l.ACLAccessorID(st)
+		accessorID := l.aclAccessorID(st)
 		l.logger.Printf("[DEBUG] agent: Service deregistration blocked by ACLs, service=%q accessorID=%v", key.String(), accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
 		return nil
@@ -1143,7 +1144,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
-		accessorID := l.ACLAccessorID(ct)
+		accessorID := l.aclAccessorID(ct)
 		l.logger.Printf("[DEBUG] agent: Check deregistration blocked by ACLs, check=%q accessorID=%q", key.String(), accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "deregistration"}, 1)
 		return nil
@@ -1231,7 +1232,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 			checkKey.Init(check.CheckID, &check.EnterpriseMeta)
 			l.checks[checkKey].InSync = true
 		}
-		accessorID := l.ACLAccessorID(st)
+		accessorID := l.aclAccessorID(st)
 		l.logger.Printf("[DEBUG] agent: Service registration blocked by ACLs, check=%q accessorID=%s", key.String(), accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "registration"}, 1)
 		return nil
@@ -1282,7 +1283,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
-		accessorID := l.ACLAccessorID(ct)
+		accessorID := l.aclAccessorID(ct)
 		l.logger.Printf("[DEBUG] agent: Check registration blocked by ACLs, check=%q accessorID=%q", key, accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
@@ -1316,7 +1317,7 @@ func (l *State) syncNodeInfo() error {
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
-		accessorID := l.ACLAccessorID(at)
+		accessorID := l.aclAccessorID(at)
 		l.logger.Printf("[DEBUG] agent: Node info update blocked by ACLs, nodeID=%q accessorID=%q", l.config.NodeID, accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
@@ -1343,23 +1344,17 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 	}
 }
 
-// ACLAccessorID takes an ACL secret token and retrives identity metadata on the
-// token, returning just the accessorID so we can log it here. In the future we
-// may wish to return more of the fields on structs.ACLIdentity to log out more
-// debug info when ACLs are denied in state.go.
-func (l *State) ACLAccessorID(token string) string {
-	req := structs.ACLRequest{
-		Datacenter:   l.config.Datacenter,
-		WriteRequest: structs.WriteRequest{Token: token},
-	}
-	var reply structs.ACLIdentity
-	if err := l.Delegate.RPC("ACL.ResolveIdentityFromToken", &req, &reply); err != nil {
-		l.logger.Printf("[DEBUG] agent.local: failed to acquire token identity, err=%q", err)
+// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
+// critical purposes, such as logging. Therefore we interpret all errors as empty-string
+// so we can safely log it without handling non-critical errors at the usage site.
+func (l *State) aclAccessorID(secretID string) string {
+	_, ident, err := l.Delegate.ResolveIdentityFromToken(secretID)
+	if err != nil {
+		l.logger.Printf("[DEBUG] agent.local: %v", err)
 		return ""
 	}
-	if reply == nil {
+	if ident == nil {
 		return ""
 	}
-
-	return reply.ID()
+	return ident.ID()
 }

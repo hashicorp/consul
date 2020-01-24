@@ -126,16 +126,8 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
-		_, ident, err := m.srv.ResolveIdentityFromToken(args.Token)
-		if err != nil {
-			m.srv.logger.Printf("[DEBUG] consul.intention: failed to fetch ACL AccessorID, err=%v", err)
-		}
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
+		accessorID := m.aclAccessorID(args.Token)
 		m.srv.logger.Printf("[DEBUG] consul: user event blocked by ACLs, event=%q accessorID=%q", args.Name, accessorID)
-
 		return acl.ErrPermissionDenied
 	}
 
@@ -172,15 +164,7 @@ func (m *Internal) KeyringOperation(
 		switch args.Operation {
 		case structs.KeyringList:
 			if rule.KeyringRead(nil) != acl.Allow {
-				_, ident, err := m.srv.ResolveIdentityFromToken(args.Token)
-				if err != nil {
-					m.srv.logger.Printf("[DEBUG] failed to fetch ACL AccessorID, err=%v", err)
-				}
-				var accessorID string
-				if ident != nil {
-					accessorID = ident.ID()
-				}
-				return fmt.Errorf("Reading keyring denied by ACLs, accessorID=%v", accessorID)
+				return fmt.Errorf("Reading keyring denied by ACLs")
 			}
 		case structs.KeyringInstall:
 			fallthrough
@@ -188,15 +172,7 @@ func (m *Internal) KeyringOperation(
 			fallthrough
 		case structs.KeyringRemove:
 			if rule.KeyringWrite(nil) != acl.Allow {
-				_, ident, err := m.srv.ResolveIdentityFromToken(args.Token)
-				if err != nil {
-					m.srv.logger.Printf("[DEBUG] failed to fetch ACL AccessorID, err=%v", err)
-				}
-				var accessorID string
-				if ident != nil {
-					accessorID = ident.ID()
-				}
-				return fmt.Errorf("Modifying keyring denied due to ACLs, accessorID=%v", accessorID)
+				return fmt.Errorf("Modifying keyring denied due to ACLs")
 			}
 		default:
 			panic("Invalid keyring operation")
@@ -281,4 +257,19 @@ func (m *Internal) executeKeyringOpMgr(
 		NumNodes:   serfResp.NumNodes,
 		Error:      errStr,
 	})
+}
+
+// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
+// critical purposes, such as logging. Therefore we interpret all errors as empty-string
+// so we can safely log it without handling non-critical errors at the usage site.
+func (m *Internal) aclAccessorID(secretID string) string {
+	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
+	if err != nil {
+		m.srv.logger.Printf("[DEBUG] consul.internal: %v", err)
+		return ""
+	}
+	if ident == nil {
+		return ""
+	}
+	return ident.ID()
 }
