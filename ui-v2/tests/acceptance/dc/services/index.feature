@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services: List Services
+Feature: dc / services / index: List Services
   Scenario:
     Given 1 datacenter model with the value "dc-1"
     And 6 service models from yaml

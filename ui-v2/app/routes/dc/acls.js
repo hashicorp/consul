@@ -16,9 +16,9 @@ export default Route.extend(WithBlockingActions, {
           return this.settings
             .persist({
               token: {
+                Namespace: get(item, 'Namespace'),
                 AccessorID: get(item, 'AccessorID'),
                 SecretID: secret,
-                Namespace: get(item, 'Namespace'),
               },
             })
             .then(item => {

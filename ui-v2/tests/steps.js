@@ -121,6 +121,10 @@ export default function(assert, library) {
   assertForm(library, assert, find, getCurrentPage);
 
   return library.given(["I'm using a legacy token"], function(number, model, data) {
-    window.localStorage['consul:token'] = JSON.stringify({ AccessorID: null, SecretID: 'id' });
+    window.localStorage['consul:token'] = JSON.stringify({
+      Namespace: 'default',
+      AccessorID: null,
+      SecretID: 'id',
+    });
   });
 }

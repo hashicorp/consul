@@ -4,7 +4,9 @@ import { inject as service } from '@ember/service';
 import { SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
+import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
+const Namespace = nonEmptySet('Namespace');
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
   store: service('store'),
@@ -35,7 +37,6 @@ export default Adapter.extend({
   requestForCreateRecord: function(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
       PUT /v1/acl/token?${params}
@@ -46,6 +47,7 @@ export default Adapter.extend({
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,
         Local: serialized.Local,
+        ...Namespace(serialized.Namespace),
       }}
     `;
   },
@@ -66,13 +68,13 @@ export default Adapter.extend({
     }
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${params}
 
       ${{
         Description: serialized.Description,
+        Namespace: serialized.Namespace,
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,

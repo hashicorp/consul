@@ -32,6 +32,9 @@ export default function(type) {
     case 'token':
       requests = ['/v1/acl/tokens', '/v1/acl/token/'];
       break;
+    case 'nspace':
+      requests = ['/v1/namespaces', '/v1/namespace/'];
+      break;
   }
   // TODO: An instance of URL should come in here (instead of 2 args)
   return function(url, method) {

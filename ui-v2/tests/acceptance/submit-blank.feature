@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: submit blank
+Feature: submit-blank
   In order to prevent form's being saved without values
   As a user
   I shouldn't be able to submit a blank form

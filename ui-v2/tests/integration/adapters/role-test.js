@@ -36,9 +36,7 @@ module('Integration | Adapter | role', function(hooks) {
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:role');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/role?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
-      }`;
+      const expected = `PUT /v1/acl/role?dc=${dc}`;
       const actual = adapter
         .requestForCreateRecord(
           client.url,
@@ -55,9 +53,7 @@ module('Integration | Adapter | role', function(hooks) {
     test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:role');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/role/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
-      }`;
+      const expected = `PUT /v1/acl/role/${id}?dc=${dc}`;
       const actual = adapter
         .requestForUpdateRecord(
           client.url,
