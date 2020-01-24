@@ -3,7 +3,7 @@ import { setupApplicationTest } from 'ember-qunit';
 import { Promise } from 'rsvp';
 import Yadda from 'yadda';
 
-import { config } from '../../env';
+import { env } from '../../env';
 import api from './api';
 import getDictionary from '../dictionary';
 
@@ -32,7 +32,7 @@ const runTest = function(context, libraries, steps, scenarioContext) {
 };
 const checkAnnotations = function(annotations, isScenario) {
   annotations = {
-    namespaceable: config('CONSUL_NSPACES_TEST'),
+    namespaceable: env('CONSUL_NSPACES_TEST'),
     ...annotations,
   };
   if (annotations.ignore) {
