@@ -34,6 +34,7 @@ function build_ui {
    #
    # Notes:
    #   Use the GIT_COMMIT environment variable to pass off to the build
+   #   Use the GIT_COMMIT_YEAR environment variable to pass off to the build
 
    if ! test -d "$1"
    then
@@ -63,6 +64,13 @@ function build_ui {
    then
       commit_hash=$(git rev-parse --short HEAD)
    fi
+   
+   local commit_year="${GIT_COMMIT_YEAR}"
+   if test -z "${commit_year}"
+   then
+      commit_year=$(git show -s --format=%cd --date=format:%Y HEAD)
+   fi
+   
    local logo_type="${CONSUL_BINARY_TYPE}"
    if test "$logo_type" != "oss"
    then
@@ -73,7 +81,7 @@ function build_ui {
    pushd ${ui_dir} > /dev/null
 
    status "Creating the UI Build Container with image: ${image_name} and version '${version}'"
-   local container_id=$(docker create -it -e "CONSUL_GIT_SHA=${commit_hash}" -e "CONSUL_VERSION=${version}" -e "CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}" ${image_name})
+   local container_id=$(docker create -it -e "CONSUL_GIT_SHA=${commit_hash}" -e "CONSUL_COPYRIGHT_YEAR=${commit_year}" -e "CONSUL_VERSION=${version}" -e "CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}" ${image_name})
    local ret=$?
    if test $ret -eq 0
    then
