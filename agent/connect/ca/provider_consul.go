@@ -343,6 +343,12 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", err
 	}
 
+	// Create the subjectKeyId for the cert from the csr public key.
+	subjectKeyID, err := connect.KeyId(csr.PublicKey)
+	if err != nil {
+		return "", err
+	}
+
 	// Parse the SPIFFE ID
 	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
@@ -402,7 +408,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		NotAfter:       effectiveNow.Add(c.config.LeafCertTTL),
 		NotBefore:      effectiveNow,
 		AuthorityKeyId: keyId,
-		SubjectKeyId:   keyId,
+		SubjectKeyId:   subjectKeyID,
 		DNSNames:       csr.DNSNames,
 		IPAddresses:    csr.IPAddresses,
 	}

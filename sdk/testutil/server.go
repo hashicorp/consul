@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -350,8 +351,14 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
-		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			return errors.Wrap(err, "failed to kill consul server")
+		if runtime.GOOS == "windows" {
+			if err := s.cmd.Process.Kill(); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
+		} else { // interrupt is not supported in windows
+			if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
 		}
 	}
 

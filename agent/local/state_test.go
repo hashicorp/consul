@@ -1081,6 +1081,81 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	}
 }
 
+func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	// Register info
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+		Address:    "127.0.0.1",
+	}
+
+	var out struct{}
+
+	// Exists remote (delete)
+	svcID := "deleted-check-service"
+	srv := &structs.NodeService{
+		ID:      svcID,
+		Service: "echo",
+		Tags:    []string{},
+		Address: "127.0.0.1",
+		Port:    8080,
+	}
+	args.Service = srv
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Exists remote (delete)
+	chk := &structs.HealthCheck{
+		Node:           a.Config.NodeName,
+		CheckID:        "lb",
+		Name:           "lb",
+		ServiceID:      svcID,
+		Status:         api.HealthPassing,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+
+	args.Check = chk
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := a.State.SyncFull(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var services structs.IndexedNodeServices
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       a.Config.NodeName,
+	}
+
+	if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// The consul service will still be registered
+	if len(services.NodeServices.Services) != 1 {
+		t.Fatalf("Expected all services to be deleted, got: %#v", services.NodeServices.Services)
+	}
+
+	var checks structs.IndexedHealthChecks
+	// Verify that we are in sync
+	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// The serfHealth check will still be here
+	if len(checks.HealthChecks) != 1 {
+		t.Fatalf("Expected the health check to be deleted, got: %#v", checks.HealthChecks)
+	}
+}
+
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	t.Parallel()
 	dc := "dc1"
