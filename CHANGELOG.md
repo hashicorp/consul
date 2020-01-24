@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * agent: do not deregister service checks twice [[GH-6168](https://github.com/hashicorp/consul/pull/6168)]
 * agent: remove service sidecars in `cleanupRegistration` [[GH-7022](https://github.com/hashicorp/consul/pull/7022)]
 * agent: setup grpc server with auto_encrypt certs and add `-https-port` [[GH-7086](https://github.com/hashicorp/consul/pull/7086)
+* api: A new `/v1/catalog/node-services/:node` endpoint was added that mirrors the existing `/v1/catalog/node/:node` endpoint but has a response structure that contains a slice of services instead of a map of service ids to services. This new endpoint allow retrieving all services in all namespaces for a node. [[GH-7115](https://github.com/hashicorp/consul/pull/7115)]
 * auto_encrypt: set dns and ip san for k8s and provide configuration [[GH-6944](https://github.com/hashicorp/consul/pull/6944)]
 * connect: check if intermediate cert needs to be renewed. [[GH-6835](https://github.com/hashicorp/consul/pull/6835)]
 * dns: Improvement to enable dual stack IPv4/IPv6 addressing of services and lookup via DNS [[GH-6531](https://github.com/hashicorp/consul/issues/6531)]
