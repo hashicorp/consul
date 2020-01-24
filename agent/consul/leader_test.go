@@ -956,7 +956,6 @@ func TestLeader_ChangeServerID(t *testing.T) {
 	})
 }
 
-//Sometimes passed Sometimes failed
 func TestLeader_ChangeNodeID(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
