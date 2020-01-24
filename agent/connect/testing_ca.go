@@ -211,7 +211,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 	// Cert template for generation
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: ServiceCN(service, TestClusterID)},
+		Subject:               pkix.Name{CommonName: ServiceCN(service, "default", TestClusterID)},
 		URIs:                  []*url.URL{spiffeId.URI()},
 		SignatureAlgorithm:    SigAlgoForKeyType(rootKeyType),
 		BasicConstraintsValid: true,

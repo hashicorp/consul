@@ -452,7 +452,7 @@ type asyncRegisterRequest struct {
 func makeConfigRequest(agent *Agent, registration *serviceRegistration) *structs.ServiceConfigRequest {
 	ns := registration.service
 	name := ns.Service
-	var upstreams []string
+	var upstreams []structs.ServiceID
 
 	// Note that only sidecar proxies should even make it here for now although
 	// later that will change to add the condition.
@@ -465,16 +465,19 @@ func makeConfigRequest(agent *Agent, registration *serviceRegistration) *structs
 		// learn about their configs.
 		for _, us := range ns.Proxy.Upstreams {
 			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-				upstreams = append(upstreams, us.DestinationName)
+				sid := us.DestinationID()
+				sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+				upstreams = append(upstreams, sid)
 			}
 		}
 	}
 
 	req := &structs.ServiceConfigRequest{
-		Name:         name,
-		Datacenter:   agent.config.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: agent.tokens.AgentToken()},
-		Upstreams:    upstreams,
+		Name:           name,
+		Datacenter:     agent.config.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: agent.tokens.AgentToken()},
+		UpstreamIDs:    upstreams,
+		EnterpriseMeta: ns.EnterpriseMeta,
 	}
 	if registration.token != "" {
 		req.QueryOptions.Token = registration.token
@@ -527,7 +530,7 @@ func (w *serviceConfigWatch) mergeServiceConfig() (*structs.NodeService, error) 
 			us.MeshGateway.Mode = ns.Proxy.MeshGateway.Mode
 		}
 
-		usCfg, ok := w.defaults.UpstreamConfigs[us.DestinationName]
+		usCfg, ok := w.defaults.UpstreamIDConfigs.GetUpstreamConfig(us.DestinationID())
 		if !ok {
 			// No config defaults to merge
 			continue

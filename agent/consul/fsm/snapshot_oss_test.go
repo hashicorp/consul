@@ -240,8 +240,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: "global",
 	}
-	require.NoError(fsm.state.EnsureConfigEntry(18, serviceConfig))
-	require.NoError(fsm.state.EnsureConfigEntry(19, proxyConfig))
+	require.NoError(fsm.state.EnsureConfigEntry(18, serviceConfig, structs.DefaultEnterpriseMeta()))
+	require.NoError(fsm.state.EnsureConfigEntry(19, proxyConfig, structs.DefaultEnterpriseMeta()))
 
 	chunkState := &raftchunking.State{
 		ChunkMap: make(raftchunking.ChunkMap),
@@ -479,11 +479,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Equal(caConfig, caConf)
 
 	// Verify config entries are restored
-	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMeta())
 	require.NoError(err)
 	assert.Equal(serviceConfig, serviceConfEntry)
 
-	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMeta())
 	require.NoError(err)
 	assert.Equal(proxyConfig, proxyConfEntry)
 

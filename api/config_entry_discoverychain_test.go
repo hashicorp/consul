@@ -130,6 +130,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:          ServiceResolver,
 				Name:          "test-failover",
+				Namespace:     defaultNamespace,
 				DefaultSubset: "v1",
 				Subsets: map[string]ServiceResolverSubset{
 					"v1": ServiceResolverSubset{
@@ -144,7 +145,8 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Datacenters: []string{"dc2"},
 					},
 					"v1": ServiceResolverFailover{
-						Service: "alternate",
+						Service:   "alternate",
+						Namespace: defaultNamespace,
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
@@ -154,12 +156,13 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		{
 			name: "redirect",
 			entry: &ServiceResolverConfigEntry{
-				Kind: ServiceResolver,
-				Name: "test-redirect",
+				Kind:      ServiceResolver,
+				Name:      "test-redirect",
+				Namespace: defaultNamespace,
 				Redirect: &ServiceResolverRedirect{
 					Service:       "test-failover",
 					ServiceSubset: "v2",
-					Namespace:     "c",
+					Namespace:     defaultNamespace,
 					Datacenter:    "d",
 				},
 			},
@@ -168,19 +171,20 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		{
 			name: "mega splitter", // use one mega object to avoid multiple trips
 			entry: &ServiceSplitterConfigEntry{
-				Kind: ServiceSplitter,
-				Name: "test-split",
+				Kind:      ServiceSplitter,
+				Name:      "test-split",
+				Namespace: defaultNamespace,
 				Splits: []ServiceSplit{
 					{
 						Weight:        90,
 						Service:       "test-failover",
 						ServiceSubset: "v1",
-						Namespace:     "c",
+						Namespace:     defaultNamespace,
 					},
 					{
 						Weight:    10,
 						Service:   "test-redirect",
-						Namespace: "z",
+						Namespace: defaultNamespace,
 					},
 				},
 			},
@@ -189,8 +193,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		{
 			name: "mega router", // use one mega object to avoid multiple trips
 			entry: &ServiceRouterConfigEntry{
-				Kind: ServiceRouter,
-				Name: "test-route",
+				Kind:      ServiceRouter,
+				Name:      "test-route",
+				Namespace: defaultNamespace,
 				Routes: []ServiceRoute{
 					{
 						Match: &ServiceRouteMatch{
@@ -207,7 +212,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Destination: &ServiceRouteDestination{
 							Service:               "test-failover",
 							ServiceSubset:         "v2",
-							Namespace:             "sec",
+							Namespace:             defaultNamespace,
 							PrefixRewrite:         "/",
 							RequestTimeout:        5 * time.Second,
 							NumRetries:            5,

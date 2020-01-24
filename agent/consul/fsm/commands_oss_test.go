@@ -1422,6 +1422,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		Config: map[string]interface{}{
 			"foo": "bar",
 		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
 	// Create a new request.
@@ -1441,7 +1442,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 
 	// Verify it's in the state store.
 	{
-		_, config, err := fsm.state.ConfigEntry(nil, structs.ProxyDefaults, "global")
+		_, config, err := fsm.state.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 		require.NoError(err)
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1

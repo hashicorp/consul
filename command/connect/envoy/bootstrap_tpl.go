@@ -92,6 +92,10 @@ type BootstrapTplArgs struct {
 	// the bootstrap config. It's format may vary based on Envoy version used.
 	// See https://www.envoyproxy.io/docs/envoy/v1.9.0/api-v2/config/trace/v2/trace.proto.
 	TracingConfigJSON string
+
+	// Namespace is the Consul Enterprise Namespace of the proxy service instance as
+	// registered with the Consul agent.
+	Namespace string
 }
 
 const bootstrapTemplate = `{
@@ -106,7 +110,10 @@ const bootstrapTemplate = `{
   },
   "node": {
     "cluster": "{{ .ProxyCluster }}",
-    "id": "{{ .ProxyID }}"
+    "id": "{{ .ProxyID }}",
+    "metadata": {
+      "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}"
+    }
   },
   "static_resources": {
     "clusters": [

@@ -803,19 +803,30 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 	}
 }
 
-func (s *ServiceNode) CompoundServiceID() ServiceID {
-	id := s.ServiceID
-	if id == "" {
-		id = s.ServiceName
+func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
+	var id string
+	if sn.ServiceID == "" || (preferName && sn.ServiceName != "") {
+		id = sn.ServiceName
+	} else {
+		id = sn.ServiceID
 	}
 
-	entMeta := s.EnterpriseMeta
+	// copy the ent meta and normalize it
+	entMeta := sn.EnterpriseMeta
 	entMeta.Normalize()
 
 	return ServiceID{
 		ID:             id,
 		EnterpriseMeta: entMeta,
 	}
+}
+
+func (sn *ServiceNode) CompoundServiceID() ServiceID {
+	return sn.compoundID(false)
+}
+
+func (sn *ServiceNode) CompoundServiceName() ServiceID {
+	return sn.compoundID(true)
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -938,11 +949,12 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	return addr, port
 }
 
-func (ns *NodeService) CompoundServiceID() ServiceID {
-	id := ns.ID
-
-	if id == "" {
+func (ns *NodeService) compoundID(preferName bool) ServiceID {
+	var id string
+	if ns.ID == "" || (preferName && ns.Service != "") {
 		id = ns.Service
+	} else {
+		id = ns.ID
 	}
 
 	// copy the ent meta and normalize it
@@ -953,6 +965,14 @@ func (ns *NodeService) CompoundServiceID() ServiceID {
 		ID:             id,
 		EnterpriseMeta: entMeta,
 	}
+}
+
+func (ns *NodeService) CompoundServiceID() ServiceID {
+	return ns.compoundID(false)
+}
+
+func (ns *NodeService) CompoundServiceName() ServiceID {
+	return ns.compoundID(true)
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -1642,6 +1662,22 @@ type IndexedServices struct {
 	// In various situations we need to know the meta that the services are for - in particular
 	// this is needed to be able to properly filter the list based on ACLs
 	EnterpriseMeta
+	QueryMeta
+}
+
+type ServiceInfo struct {
+	Name string
+	EnterpriseMeta
+}
+
+func (si *ServiceInfo) ToServiceID() ServiceID {
+	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+}
+
+type ServiceList []ServiceInfo
+
+type IndexedServiceList struct {
+	Services ServiceList
 	QueryMeta
 }
 

@@ -515,17 +515,17 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
-			Namespace:  "default",
+			Namespace:  req.TargetNamespace(),
 			Service:    req.Service,
 		}
-		commonName = connect.ServiceCN(req.Service, roots.TrustDomain)
+		commonName = connect.ServiceCN(req.Service, req.TargetNamespace(), roots.TrustDomain)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
-		commonName = connect.ServiceCN(req.Agent, roots.TrustDomain)
+		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
 		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}, req.IPSAN...)
 	} else {
@@ -645,6 +645,8 @@ type ConnectCALeafRequest struct {
 	IPSAN         []net.IP
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
+
+	structs.EnterpriseMeta
 }
 
 func (r *ConnectCALeafRequest) Key() string {

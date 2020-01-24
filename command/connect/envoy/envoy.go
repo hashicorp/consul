@@ -131,6 +131,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -517,6 +518,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AdminBindPort:         adminPort,
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
+		Namespace:             httpCfg.Namespace,
 	}, nil
 }
 

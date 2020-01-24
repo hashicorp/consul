@@ -7,9 +7,9 @@ import (
 // TestIntention returns a valid, uninserted (no ID set) intention.
 func TestIntention(t testing.T) *Intention {
 	return &Intention{
-		SourceNS:        "eng",
+		SourceNS:        IntentionDefaultNamespace,
 		SourceName:      "api",
-		DestinationNS:   "eng",
+		DestinationNS:   IntentionDefaultNamespace,
 		DestinationName: "db",
 		Action:          IntentionActionAllow,
 		SourceType:      IntentionSourceConsul,

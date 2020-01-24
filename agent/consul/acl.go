@@ -1647,6 +1647,25 @@ func (f *aclFilter) filterAuthMethods(methods *structs.ACLAuthMethods) {
 	*methods = ret
 }
 
+func (f *aclFilter) filterServiceList(services *structs.ServiceList) {
+	ret := make(structs.ServiceList, 0, len(*services))
+	for _, svc := range *services {
+		var authzContext acl.AuthorizerContext
+
+		svc.FillAuthzContext(&authzContext)
+
+		if f.authorizer.ServiceRead(svc.Name, &authzContext) != acl.Allow {
+			sid := structs.NewServiceID(svc.Name, &svc.EnterpriseMeta)
+			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", sid.String())
+			continue
+		}
+
+		ret = append(ret, svc)
+	}
+
+	*services = ret
+}
+
 func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
 	if authorizer == nil {
 		return nil
@@ -1726,6 +1745,8 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 	case **structs.ACLAuthMethod:
 		filt.filterAuthMethod(v)
 
+	case *structs.IndexedServiceList:
+		filt.filterServiceList(&v.Services)
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))
 	}

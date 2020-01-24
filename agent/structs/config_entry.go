@@ -41,6 +41,7 @@ type ConfigEntry interface {
 	CanRead(acl.Authorizer) bool
 	CanWrite(acl.Authorizer) bool
 
+	GetEnterpriseMeta() *EnterpriseMeta
 	GetRaftIndex() *RaftIndex
 }
 
@@ -61,6 +62,7 @@ type ServiceConfigEntry struct {
 	//
 	// Connect ConnectConfiguration
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -84,6 +86,8 @@ func (e *ServiceConfigEntry) Normalize() error {
 	e.Kind = ServiceDefaults
 	e.Protocol = strings.ToLower(e.Protocol)
 
+	e.EnterpriseMeta.Normalize()
+
 	return nil
 }
 
@@ -91,12 +95,16 @@ func (e *ServiceConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return rule.ServiceRead(e.Name, nil) == acl.Allow
+func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
 }
 
-func (e *ServiceConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return rule.ServiceWrite(e.Name, nil) == acl.Allow
+func (e *ServiceConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ServiceWrite(e.Name, &authzContext) == acl.Allow
 }
 
 func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
@@ -105,6 +113,14 @@ func (e *ServiceConfigEntry) GetRaftIndex() *RaftIndex {
 	}
 
 	return &e.RaftIndex
+}
+
+func (e *ServiceConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+
+	return &e.EnterpriseMeta
 }
 
 type ConnectConfiguration struct {
@@ -119,6 +135,7 @@ type ProxyConfigEntry struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty"`
 	Expose      ExposeConfig      `json:",omitempty"`
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
 
@@ -142,6 +159,8 @@ func (e *ProxyConfigEntry) Normalize() error {
 	e.Kind = ProxyDefaults
 	e.Name = ProxyConfigGlobal
 
+	e.EnterpriseMeta.Normalize()
+
 	return nil
 }
 
@@ -154,15 +173,17 @@ func (e *ProxyConfigEntry) Validate() error {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
 	}
 
-	return nil
+	return e.validateEnterpriseMeta()
 }
 
-func (e *ProxyConfigEntry) CanRead(rule acl.Authorizer) bool {
+func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
 	return true
 }
 
-func (e *ProxyConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return rule.OperatorWrite(nil) == acl.Allow
+func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.OperatorWrite(&authzContext) == acl.Allow
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
@@ -171,6 +192,14 @@ func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {
 	}
 
 	return &e.RaftIndex
+}
+
+func (e *ProxyConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+	if e == nil {
+		return nil
+	}
+
+	return &e.EnterpriseMeta
 }
 
 func (e *ProxyConfigEntry) MarshalBinary() (data []byte, err error) {
@@ -459,6 +488,7 @@ type ConfigEntryQuery struct {
 	Name       string
 	Datacenter string
 
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
 
@@ -496,7 +526,12 @@ func (r *ConfigEntryQuery) CacheInfo() cache.RequestInfo {
 type ServiceConfigRequest struct {
 	Name       string
 	Datacenter string
-	Upstreams  []string
+	// DEPRECATED
+	// Upstreams is a list of upstream service names to use for resolving the service config
+	// UpstreamIDs should be used instead which can encode more than just the name to
+	// uniquely identify a service.
+	Upstreams   []string
+	UpstreamIDs []ServiceID
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
@@ -538,11 +573,29 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	return info
 }
 
+type UpstreamConfig struct {
+	Upstream ServiceID
+	Config   map[string]interface{}
+}
+
+type UpstreamConfigs []UpstreamConfig
+
+func (configs UpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
+	for _, usconf := range configs {
+		if usconf.Upstream.Matches(&sid) {
+			return usconf.Config, true
+		}
+	}
+
+	return nil, false
+}
+
 type ServiceConfigResponse struct {
-	ProxyConfig     map[string]interface{}
-	UpstreamConfigs map[string]map[string]interface{}
-	MeshGateway     MeshGatewayConfig `json:",omitempty"`
-	Expose          ExposeConfig      `json:",omitempty"`
+	ProxyConfig       map[string]interface{}
+	UpstreamConfigs   map[string]map[string]interface{}
+	UpstreamIDConfigs UpstreamConfigs
+	MeshGateway       MeshGatewayConfig `json:",omitempty"`
+	Expose            ExposeConfig      `json:",omitempty"`
 	QueryMeta
 }
 
@@ -593,6 +646,13 @@ func (r *ServiceConfigResponse) UnmarshalBinary(data []byte) error {
 	}
 	for k := range r.UpstreamConfigs {
 		r.UpstreamConfigs[k], err = lib.MapWalk(r.UpstreamConfigs[k])
+		if err != nil {
+			return err
+		}
+	}
+
+	for k := range r.UpstreamIDConfigs {
+		r.UpstreamIDConfigs[k].Config, err = lib.MapWalk(r.UpstreamIDConfigs[k].Config)
 		if err != nil {
 			return err
 		}

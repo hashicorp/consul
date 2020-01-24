@@ -22,9 +22,9 @@ func TestStore_ConfigEntry(t *testing.T) {
 	}
 
 	// Create
-	require.NoError(s.EnsureConfigEntry(0, expected))
+	require.NoError(s.EnsureConfigEntry(0, expected, nil))
 
-	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(err)
 	require.Equal(uint64(0), idx)
 	require.Equal(expected, config)
@@ -37,17 +37,17 @@ func TestStore_ConfigEntry(t *testing.T) {
 			"DestinationServiceName": "bar",
 		},
 	}
-	require.NoError(s.EnsureConfigEntry(1, updated))
+	require.NoError(s.EnsureConfigEntry(1, updated, nil))
 
-	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(err)
 	require.Equal(uint64(1), idx)
 	require.Equal(updated, config)
 
 	// Delete
-	require.NoError(s.DeleteConfigEntry(2, structs.ProxyDefaults, "global"))
+	require.NoError(s.DeleteConfigEntry(2, structs.ProxyDefaults, "global", nil))
 
-	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(err)
 	require.Equal(uint64(2), idx)
 	require.Nil(config)
@@ -57,19 +57,19 @@ func TestStore_ConfigEntry(t *testing.T) {
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
 	}
-	require.NoError(s.EnsureConfigEntry(3, serviceConf))
+	require.NoError(s.EnsureConfigEntry(3, serviceConf, nil))
 
 	ws := memdb.NewWatchSet()
-	_, _, err = s.ConfigEntry(ws, structs.ServiceDefaults, "foo")
+	_, _, err = s.ConfigEntry(ws, structs.ServiceDefaults, "foo", nil)
 	require.NoError(err)
 
 	// Make an unrelated modification and make sure the watch doesn't fire.
-	require.NoError(s.EnsureConfigEntry(4, updated))
+	require.NoError(s.EnsureConfigEntry(4, updated, nil))
 	require.False(watchFired(ws))
 
 	// Update the watched config and make sure it fires.
 	serviceConf.Protocol = "http"
-	require.NoError(s.EnsureConfigEntry(5, serviceConf))
+	require.NoError(s.EnsureConfigEntry(5, serviceConf, nil))
 	require.True(watchFired(ws))
 }
 
@@ -86,9 +86,9 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 	}
 
 	// Create
-	require.NoError(s.EnsureConfigEntry(1, expected))
+	require.NoError(s.EnsureConfigEntry(1, expected, nil))
 
-	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(err)
 	require.Equal(uint64(1), idx)
 	require.Equal(expected, config)
@@ -101,23 +101,23 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 			"DestinationServiceName": "bar",
 		},
 	}
-	ok, err := s.EnsureConfigEntryCAS(2, 99, updated)
+	ok, err := s.EnsureConfigEntryCAS(2, 99, updated, nil)
 	require.False(ok)
 	require.NoError(err)
 
 	// Entry should not be changed
-	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(err)
 	require.Equal(uint64(1), idx)
 	require.Equal(expected, config)
 
 	// Update with a valid index
-	ok, err = s.EnsureConfigEntryCAS(2, 1, updated)
+	ok, err = s.EnsureConfigEntryCAS(2, 1, updated, nil)
 	require.True(ok)
 	require.NoError(err)
 
 	// Entry should be updated
-	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	idx, config, err = s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(err)
 	require.Equal(uint64(2), idx)
 	require.Equal(updated, config)
@@ -141,25 +141,25 @@ func TestStore_ConfigEntries(t *testing.T) {
 		Name: "test3",
 	}
 
-	require.NoError(s.EnsureConfigEntry(0, entry1))
-	require.NoError(s.EnsureConfigEntry(1, entry2))
-	require.NoError(s.EnsureConfigEntry(2, entry3))
+	require.NoError(s.EnsureConfigEntry(0, entry1, nil))
+	require.NoError(s.EnsureConfigEntry(1, entry2, nil))
+	require.NoError(s.EnsureConfigEntry(2, entry3, nil))
 
 	// Get all entries
-	idx, entries, err := s.ConfigEntries(nil)
+	idx, entries, err := s.ConfigEntries(nil, nil)
 	require.NoError(err)
 	require.Equal(uint64(2), idx)
 	require.Equal([]structs.ConfigEntry{entry1, entry2, entry3}, entries)
 
 	// Get all proxy entries
-	idx, entries, err = s.ConfigEntriesByKind(nil, structs.ProxyDefaults)
+	idx, entries, err = s.ConfigEntriesByKind(nil, structs.ProxyDefaults, nil)
 	require.NoError(err)
 	require.Equal(uint64(2), idx)
 	require.Equal([]structs.ConfigEntry{entry1}, entries)
 
 	// Get all service entries
 	ws := memdb.NewWatchSet()
-	idx, entries, err = s.ConfigEntriesByKind(ws, structs.ServiceDefaults)
+	idx, entries, err = s.ConfigEntriesByKind(ws, structs.ServiceDefaults, nil)
 	require.NoError(err)
 	require.Equal(uint64(2), idx)
 	require.Equal([]structs.ConfigEntry{entry2, entry3}, entries)
@@ -172,20 +172,19 @@ func TestStore_ConfigEntries(t *testing.T) {
 		Kind:     structs.ServiceDefaults,
 		Name:     "test2",
 		Protocol: "tcp",
-	}))
+	}, nil))
 	require.True(watchFired(ws))
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
-	for _, tc := range []struct {
-		name           string
+	type tcase struct {
 		entries        []structs.ConfigEntry
 		op             func(t *testing.T, s *Store) error
 		expectErr      string
 		expectGraphErr bool
-	}{
-		{
-			name:    "splitter fails without default protocol",
+	}
+	cases := map[string]tcase{
+		"splitter fails without default protocol": tcase{
 			entries: []structs.ConfigEntry{},
 			op: func(t *testing.T, s *Store) error {
 				entry := &structs.ServiceSplitterConfigEntry{
@@ -196,13 +195,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						{Weight: 10, Namespace: "v2"},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name: "splitter fails with tcp protocol",
+		"splitter fails with tcp protocol": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -219,13 +217,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						{Weight: 10, Namespace: "v2"},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name: "splitter works with http protocol",
+		"splitter works with http protocol": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -235,9 +232,22 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					},
 				},
 				&structs.ServiceConfigEntry{
-					Kind:     structs.ServiceDefaults,
-					Name:     "main",
-					Protocol: "http",
+					Kind:           structs.ServiceDefaults,
+					Name:           "main",
+					Protocol:       "http",
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v1",
+						},
+						"v2": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v2",
+						},
+					},
 				},
 			},
 			op: func(t *testing.T, s *Store) error {
@@ -245,15 +255,15 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 90, ServiceSubset: "v1"},
+						{Weight: 10, ServiceSubset: "v2"},
 					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 		},
-		{
-			name: "splitter works with http protocol (from proxy-defaults)",
+		"splitter works with http protocol (from proxy-defaults)": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -272,11 +282,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						{Weight: 10, Namespace: "v2"},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 		},
-		{
-			name: "router fails with tcp protocol",
+		"router fails with tcp protocol": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -301,13 +310,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name:    "router fails without default protocol",
+		"router fails without default protocol": tcase{
 			entries: []structs.ConfigEntry{},
 			op: func(t *testing.T, s *Store) error {
 				entry := &structs.ServiceRouterConfigEntry{
@@ -326,37 +334,47 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		{
-			name: "cannot remove default protocol after splitter created",
+		"cannot remove default protocol after splitter created": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "http",
 				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v1",
+						},
+						"v2": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v2",
+						},
+					},
+				},
 				&structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 90, ServiceSubset: "v1"},
+						{Weight: 10, ServiceSubset: "v2"},
 					},
 				},
 			},
 			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ServiceDefaults, "main")
+				return s.DeleteConfigEntry(0, structs.ServiceDefaults, "main", nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name: "cannot remove global default protocol after splitter created",
+		"cannot remove global default protocol after splitter created": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -375,13 +393,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 				},
 			},
 			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name: "can remove global default protocol after splitter created if service default overrides it",
+		"can remove global default protocol after splitter created if service default overrides it": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -395,33 +412,56 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Name:     "main",
 					Protocol: "http",
 				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v1",
+						},
+						"v2": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v2",
+						},
+					},
+				},
 				&structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 90, ServiceSubset: "v1"},
+						{Weight: 10, ServiceSubset: "v2"},
 					},
 				},
 			},
 			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+				return s.DeleteConfigEntry(0, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
 			},
 		},
-		{
-			name: "cannot change to tcp protocol after splitter created",
+		"cannot change to tcp protocol after splitter created": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "http",
 				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v1",
+						},
+						"v2": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v2",
+						},
+					},
+				},
 				&structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 90, ServiceSubset: "v1"},
+						{Weight: 10, ServiceSubset: "v2"},
 					},
 				},
 			},
@@ -431,18 +471,26 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Name:     "main",
 					Protocol: "tcp",
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name: "cannot remove default protocol after router created",
+		"cannot remove default protocol after router created": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "http",
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"other": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == other",
+						},
+					},
 				},
 				&structs.ServiceRouterConfigEntry{
 					Kind: structs.ServiceRouter,
@@ -455,25 +503,33 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 								},
 							},
 							Destination: &structs.ServiceRouteDestination{
-								Namespace: "other",
+								ServiceSubset: "other",
 							},
 						},
 					},
 				},
 			},
 			op: func(t *testing.T, s *Store) error {
-				return s.DeleteConfigEntry(0, structs.ServiceDefaults, "main")
+				return s.DeleteConfigEntry(0, structs.ServiceDefaults, "main", nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
-		{
-			name: "cannot change to tcp protocol after router created",
+		"cannot change to tcp protocol after router created": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "http",
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"other": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == other",
+						},
+					},
 				},
 				&structs.ServiceRouterConfigEntry{
 					Kind: structs.ServiceRouter,
@@ -486,7 +542,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 								},
 							},
 							Destination: &structs.ServiceRouteDestination{
-								Namespace: "other",
+								ServiceSubset: "other",
 							},
 						},
 					},
@@ -498,14 +554,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Name:     "main",
 					Protocol: "tcp",
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "does not permit advanced routing or splitting behavior",
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		{
-			name: "cannot split to a service using tcp",
+		"cannot split to a service using tcp": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -527,13 +582,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						{Weight: 10, Service: "other"},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
 		},
-		{
-			name: "cannot route to a service using tcp",
+		"cannot route to a service using tcp": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -563,14 +617,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		{
-			name: "cannot failover to a service using a different protocol",
+		"cannot failover to a service using a different protocol": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -598,13 +651,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
 		},
-		{
-			name: "cannot redirect to a service using a different protocol",
+		"cannot redirect to a service using a different protocol": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
@@ -630,14 +682,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						Service: "other",
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      "uses inconsistent protocols",
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		{
-			name: "redirect to a subset that does exist is fine",
+		"redirect to a subset that does exist is fine": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
@@ -659,11 +710,10 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						ServiceSubset: "v1",
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 		},
-		{
-			name: "cannot redirect to a subset that does not exist",
+		"cannot redirect to a subset that does not exist": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind:           structs.ServiceResolver,
@@ -680,14 +730,13 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						ServiceSubset: "v1",
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      `does not have a subset named "v1"`,
 			expectGraphErr: true,
 		},
 		/////////////////////////////////////////////////
-		{
-			name: "cannot introduce circular resolver redirect",
+		"cannot introduce circular resolver redirect": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{
 					Kind: structs.ServiceResolver,
@@ -705,13 +754,12 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						Service: "other",
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      `detected circular resolver redirect`,
 			expectGraphErr: true,
 		},
-		{
-			name: "cannot introduce circular split",
+		"cannot introduce circular split": tcase{
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -736,18 +784,21 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						{Weight: 100, Service: "other"},
 					},
 				}
-				return s.EnsureConfigEntry(0, entry)
+				return s.EnsureConfigEntry(0, entry, nil)
 			},
 			expectErr:      `detected circular reference`,
 			expectGraphErr: true,
 		},
-	} {
+	}
+
+	for name, tc := range cases {
+		name := name
 		tc := tc
 
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(name, func(t *testing.T) {
 			s := testStateStore(t)
 			for _, entry := range tc.entries {
-				require.NoError(t, s.EnsureConfigEntry(0, entry))
+				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 			}
 
 			err := tc.op(t, s)
@@ -819,7 +870,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				{Kind: structs.ServiceDefaults, Name: "main"},
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
-				defaults := entrySet.GetService("main")
+				defaults := entrySet.GetService(structs.NewServiceID("main", nil))
 				require.NotNil(t, defaults)
 				require.Equal(t, "grpc", defaults.Protocol)
 			},
@@ -912,7 +963,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				{Kind: structs.ServiceRouter, Name: "main"},
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
-				router := entrySet.GetRouter("main")
+				router := entrySet.GetRouter(structs.NewServiceID("main", nil))
 				require.NotNil(t, router)
 				require.Len(t, router.Routes, 1)
 
@@ -992,7 +1043,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				{Kind: structs.ServiceSplitter, Name: "main"},
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
-				splitter := entrySet.GetSplitter("main")
+				splitter := entrySet.GetSplitter(structs.NewServiceID("main", nil))
 				require.NotNil(t, splitter)
 				require.Len(t, splitter.Splits, 2)
 
@@ -1044,7 +1095,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 				{Kind: structs.ServiceResolver, Name: "main"},
 			},
 			checkAfter: func(t *testing.T, entrySet *structs.DiscoveryChainConfigEntries) {
-				resolver := entrySet.GetResolver("main")
+				resolver := entrySet.GetResolver(structs.NewServiceID("main", nil))
 				require.NotNil(t, resolver)
 				require.Equal(t, 33*time.Second, resolver.ConnectTimeout)
 			},
@@ -1055,18 +1106,18 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := testStateStore(t)
 			for _, entry := range tc.entries {
-				require.NoError(t, s.EnsureConfigEntry(0, entry))
+				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 			}
 
 			t.Run("without override", func(t *testing.T) {
-				_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", nil)
+				_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", nil, nil)
 				require.NoError(t, err)
 				got := entrySetToKindNames(entrySet)
 				require.ElementsMatch(t, tc.expectBefore, got)
 			})
 
 			t.Run("with override", func(t *testing.T) {
-				_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", tc.overrides)
+				_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", tc.overrides, nil)
 
 				if tc.expectAfterErr != "" {
 					require.Error(t, err)
@@ -1146,10 +1197,10 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	}
 
 	for _, entry := range entries {
-		require.NoError(t, s.EnsureConfigEntry(0, entry))
+		require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 	}
 
-	_, entrySet, err := s.ReadDiscoveryChainConfigEntries(nil, "main")
+	_, entrySet, err := s.ReadDiscoveryChainConfigEntries(nil, "main", nil)
 	require.NoError(t, err)
 
 	require.Len(t, entrySet.Routers, 0)

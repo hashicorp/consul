@@ -27,8 +27,8 @@ import (
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	chans   map[string]chan *proxycfg.ConfigSnapshot
-	cancels chan string
+	chans   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
+	cancels chan structs.ServiceID
 	authz   map[string]connectAuthzResult
 }
 
@@ -41,21 +41,21 @@ type connectAuthzResult struct {
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		chans:   map[string]chan *proxycfg.ConfigSnapshot{},
-		cancels: make(chan string, 10),
+		chans:   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
+		cancels: make(chan structs.ServiceID, 10),
 		authz:   make(map[string]connectAuthzResult),
 	}
 }
 
 // RegisterProxy simulates a proxy registration
-func (m *testManager) RegisterProxy(t *testing.T, proxyID string) {
+func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
 	m.chans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
 }
 
 // Deliver simulates a proxy registration
-func (m *testManager) DeliverConfig(t *testing.T, proxyID string, cfg *proxycfg.ConfigSnapshot) {
+func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg *proxycfg.ConfigSnapshot) {
 	t.Helper()
 	m.Lock()
 	defer m.Unlock()
@@ -67,7 +67,7 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID string, cfg *proxycfg.
 }
 
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
+func (m *testManager) Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
 	m.Lock()
 	defer m.Unlock()
 	// ch might be nil but then it will just block forever
@@ -81,7 +81,7 @@ func (m *testManager) Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, pr
 // probably won't work if you are running multiple Watches in parallel on
 // multiple proxyIDS due to timing/ordering issues but I don't think we need to
 // do that.
-func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID string) {
+func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID structs.ServiceID) {
 	t.Helper()
 	select {
 	case got := <-m.cancels:
@@ -120,13 +120,15 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	}
 	s.Initialize()
 
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
 	go func() {
 		err := s.StreamAggregatedResources(envoy.stream)
 		require.NoError(t, err)
 	}()
 
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, "web-sidecar-proxy")
+	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover
 	envoy.SendReq(t, ClusterType, 0, 0)
@@ -136,7 +138,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	// Deliver a new snapshot
 	snap := proxycfg.TestConfigSnapshot(t)
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 1, 1))
 
@@ -179,7 +181,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// doesn't know _what_ changed. We could do something trivial but let's
 	// simulate a leaf cert expiring and being rotated.
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	// All 3 response that have something to return should return with new version
 	// note that the ordering is not deterministic in general. Trying to make this
@@ -223,7 +225,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	// Change config again and make sure it's delivered to everyone!
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 7))
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(t, snap, "", 3, 8))
@@ -468,12 +470,13 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				errCh <- s.StreamAggregatedResources(envoy.stream)
 			}()
 
+			sid := structs.NewServiceID("web-sidecar-proxy", nil)
 			// Register the proxy to create state needed to Watch() on
-			mgr.RegisterProxy(t, "web-sidecar-proxy")
+			mgr.RegisterProxy(t, sid)
 
 			// Deliver a new snapshot
 			snap := proxycfg.TestConfigSnapshot(t)
-			mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+			mgr.DeliverConfig(t, sid, snap)
 
 			// Send initial listener discover, in real life Envoy always sends cluster
 			// first but it doesn't really matter and listener has a response that
@@ -493,7 +496,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				if tt.wantDenied {
 					require.Error(t, err)
 					require.Contains(t, err.Error(), "permission denied")
-					mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+					mgr.AssertWatchCancelled(t, sid)
 				} else {
 					require.NoError(t, err)
 				}
@@ -549,8 +552,9 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 		}
 	}
 
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, "web-sidecar-proxy")
+	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
 	envoy.SendReq(t, ClusterType, 0, 0)
@@ -570,7 +574,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 
 	// Deliver a new snapshot
 	snap := proxycfg.TestConfigSnapshot(t)
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
 
@@ -589,7 +593,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 		require.Equal(t, codes.Unauthenticated, gerr.Code())
 		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
 
-		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+		mgr.AssertWatchCancelled(t, sid)
 	case <-time.After(50 * time.Millisecond):
 		t.Fatalf("timed out waiting for handler to finish")
 	}
@@ -640,8 +644,9 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 		}
 	}
 
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 	// Register the proxy to create state needed to Watch() on
-	mgr.RegisterProxy(t, "web-sidecar-proxy")
+	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
 	envoy.SendReq(t, ClusterType, 0, 0)
@@ -661,7 +666,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 
 	// Deliver a new snapshot
 	snap := proxycfg.TestConfigSnapshot(t)
-	mgr.DeliverConfig(t, "web-sidecar-proxy", snap)
+	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, token, 1, 1))
 
@@ -688,7 +693,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 		require.Equal(t, codes.Unauthenticated, gerr.Code())
 		require.Equal(t, "unauthenticated: ACL not found", gerr.Message())
 
-		mgr.AssertWatchCancelled(t, "web-sidecar-proxy")
+		mgr.AssertWatchCancelled(t, sid)
 	case <-time.After(200 * time.Millisecond):
 		t.Fatalf("timed out waiting for handler to finish")
 	}

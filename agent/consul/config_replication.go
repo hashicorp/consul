@@ -105,6 +105,7 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.IndexedGenericConfigEntries
@@ -138,7 +139,7 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (u
 	// replication process is.
 	defer metrics.MeasureSince([]string{"leader", "replication", "config", "apply"}, time.Now())
 
-	_, local, err := s.fsm.State().ConfigEntries(nil)
+	_, local, err := s.fsm.State().ConfigEntries(nil, s.replicationEnterpriseMeta())
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve local config entries: %v", err)
 	}

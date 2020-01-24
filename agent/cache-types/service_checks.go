@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -55,8 +56,8 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 
 	hash, resp, err := c.Agent.LocalBlockingQuery(true, lastHash, reqReal.MaxQueryTime,
 		func(ws memdb.WatchSet) (string, interface{}, error) {
-			// TODO (namespaces) update with the real ent meta once thats plumbed through
-			svcState := c.Agent.LocalState().ServiceState(structs.NewServiceID(reqReal.ServiceID, nil))
+			sid := structs.NewServiceID(reqReal.ServiceID, &reqReal.EnterpriseMeta)
+			svcState := c.Agent.LocalState().ServiceState(sid)
 			if svcState == nil {
 				return "", result, fmt.Errorf("Internal cache failure: service '%s' not in agent state", reqReal.ServiceID)
 			}
@@ -64,8 +65,7 @@ func (c *ServiceHTTPChecks) Fetch(opts cache.FetchOptions, req cache.Request) (c
 			// WatchCh will receive updates on service (de)registrations and check (de)registrations
 			ws.Add(svcState.WatchCh)
 
-			// TODO (namespaces) update with a real entMeta
-			reply := c.Agent.ServiceHTTPBasedChecks(structs.NewServiceID(reqReal.ServiceID, nil))
+			reply := c.Agent.ServiceHTTPBasedChecks(sid)
 
 			hash, err := hashChecks(reply)
 			if err != nil {
@@ -103,16 +103,28 @@ type ServiceHTTPChecksRequest struct {
 	ServiceID     string
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
+	structs.EnterpriseMeta
 }
 
 func (s *ServiceHTTPChecksRequest) CacheInfo() cache.RequestInfo {
-	return cache.RequestInfo{
+	info := cache.RequestInfo{
 		Token:      "",
-		Key:        ServiceHTTPChecksName + ":" + s.ServiceID,
 		Datacenter: "",
 		MinIndex:   s.MinQueryIndex,
 		Timeout:    s.MaxQueryTime,
 	}
+
+	v, err := hashstructure.Hash([]interface{}{
+		s.ServiceID,
+		s.EnterpriseMeta,
+	}, nil)
+	if err == nil {
+		// If there is an error, we don't set the key. A blank key forces
+		// no cache for this request.
+		info.Key = strconv.FormatUint(v, 10)
+	}
+
+	return info
 }
 
 func hashChecks(checks []structs.CheckType) (string, error) {

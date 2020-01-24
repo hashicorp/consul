@@ -1105,6 +1105,8 @@ service "foo" {
 			Op:         structs.IntentionOpCreate,
 			Intention:  structs.TestIntention(t),
 		}
+		ixn.Intention.SourceNS = "default"
+		ixn.Intention.DestinationNS = "default"
 		ixn.Intention.DestinationName = name
 		ixn.WriteRequest.Token = "root"
 
@@ -1230,13 +1232,7 @@ func TestIntentionMatch_good(t *testing.T) {
 func TestIntentionMatch_acl(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
-	})
+	dir1, s1 := testACLServerWithConfig(t, nil, false)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
@@ -1244,37 +1240,15 @@ func TestIntentionMatch_acl(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create an ACL with service write permissions. This will grant
-	// intentions read.
-	var token string
-	{
-		var rules = `
-service "bar" {
-	policy = "write"
-}`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "bar" { policy = "write" }`)
+	require.NoError(t, err)
 
 	// Create some records
 	{
-		insert := [][]string{
-			{"foo", "*"},
-			{"foo", "bar"},
-			{"foo", "baz"}, // shouldn't match
-			{"bar", "bar"}, // shouldn't match
-			{"bar", "*"},   // shouldn't match
-			{"*", "*"},
+		insert := []string{
+			"*",
+			"bar",
+			"baz",
 		}
 
 		for _, v := range insert {
@@ -1283,13 +1257,12 @@ service "bar" {
 				Op:         structs.IntentionOpCreate,
 				Intention:  structs.TestIntention(t),
 			}
-			ixn.Intention.DestinationNS = v[0]
-			ixn.Intention.DestinationName = v[1]
-			ixn.WriteRequest.Token = "root"
+			ixn.Intention.DestinationName = v
+			ixn.WriteRequest.Token = TestDefaultMasterToken
 
 			// Create
 			var reply string
-			assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+			require.Nil(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 		}
 	}
 
@@ -1301,7 +1274,7 @@ service "bar" {
 				Type: structs.IntentionMatchDestination,
 				Entries: []structs.IntentionMatchEntry{
 					{
-						Namespace: "foo",
+						Namespace: "default",
 						Name:      "bar",
 					},
 				},
@@ -1309,8 +1282,8 @@ service "bar" {
 		}
 		var resp structs.IndexedIntentionMatches
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp)
-		assert.True(acl.IsErrPermissionDenied(err))
-		assert.Len(resp.Matches, 0)
+		require.True(t, acl.IsErrPermissionDenied(err))
+		require.Len(t, resp.Matches, 0)
 	}
 
 	// Test with proper token
@@ -1321,24 +1294,24 @@ service "bar" {
 				Type: structs.IntentionMatchDestination,
 				Entries: []structs.IntentionMatchEntry{
 					{
-						Namespace: "foo",
+						Namespace: "default",
 						Name:      "bar",
 					},
 				},
 			},
-			QueryOptions: structs.QueryOptions{Token: token},
+			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 		}
 		var resp structs.IndexedIntentionMatches
-		assert.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
-		assert.Len(resp.Matches, 1)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp))
+		require.Len(t, resp.Matches, 1)
 
-		expected := [][]string{{"foo", "bar"}, {"foo", "*"}, {"*", "*"}}
-		var actual [][]string
+		expected := []string{"bar", "*"}
+		var actual []string
 		for _, ixn := range resp.Matches[0] {
-			actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
+			actual = append(actual, ixn.DestinationName)
 		}
 
-		assert.Equal(expected, actual)
+		require.ElementsMatch(t, expected, actual)
 	}
 }
 

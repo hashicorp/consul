@@ -45,8 +45,8 @@ type Manager struct {
 
 	mu       sync.Mutex
 	started  bool
-	proxies  map[string]*state
-	watchers map[string]map[uint64]chan *ConfigSnapshot
+	proxies  map[structs.ServiceID]*state
+	watchers map[structs.ServiceID]map[uint64]chan *ConfigSnapshot
 }
 
 // ManagerConfig holds the required external dependencies for a Manager
@@ -79,8 +79,8 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 		// Single item buffer is enough since there is no data transferred so this
 		// is "level triggering" and we can't miss actual data.
 		stateCh:  make(chan struct{}, 1),
-		proxies:  make(map[string]*state),
-		watchers: make(map[string]map[uint64]chan *ConfigSnapshot),
+		proxies:  make(map[structs.ServiceID]*state),
+		watchers: make(map[structs.ServiceID]map[uint64]chan *ConfigSnapshot),
 	}
 	return m, nil
 }
@@ -130,7 +130,7 @@ func (m *Manager) syncState() {
 
 	// Traverse the local state and ensure all proxy services are registered
 	services := m.State.Services(structs.WildcardEnterpriseMeta())
-	for _, svc := range services {
+	for sid, svc := range services {
 		if svc.Kind != structs.ServiceKindConnectProxy && svc.Kind != structs.ServiceKindMeshGateway {
 			continue
 		}
@@ -141,20 +141,16 @@ func (m *Manager) syncState() {
 		// know that so we'd need to set it here if not during registration of the
 		// proxy service. Sidecar Service in the interim can do that, but we should
 		// validate more generally that that is always true.
-		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(svc.CompoundServiceID()))
+		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(sid))
 		if err != nil {
-			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", svc.ID,
+			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", sid.String(),
 				err)
 		}
 	}
 
 	// Now see if any proxies were removed
 	for proxyID := range m.proxies {
-		var key structs.ServiceID
-		// TODO (namespaces) pass through some real enterprise meta that probably needs to come from the proxy tracking
-		key.Init(proxyID, nil)
-
-		if _, ok := services[key]; !ok {
+		if _, ok := services[proxyID]; !ok {
 			// Remove them
 			m.removeProxyServiceLocked(proxyID)
 		}
@@ -163,7 +159,8 @@ func (m *Manager) syncState() {
 
 // ensureProxyServiceLocked adds or changes the proxy to our state.
 func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string) error {
-	state, ok := m.proxies[ns.ID]
+	sid := ns.CompoundServiceID()
+	state, ok := m.proxies[sid]
 
 	if ok {
 		if !state.Changed(ns, token) {
@@ -190,7 +187,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	if err != nil {
 		return err
 	}
-	m.proxies[ns.ID] = state
+	m.proxies[sid] = state
 
 	// Start a goroutine that will wait for changes and broadcast them to watchers.
 	go func(ch <-chan ConfigSnapshot) {
@@ -205,7 +202,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 
 // removeProxyService is called when a service deregisters and frees all
 // resources for that service.
-func (m *Manager) removeProxyServiceLocked(proxyID string) {
+func (m *Manager) removeProxyServiceLocked(proxyID structs.ServiceID) {
 	state, ok := m.proxies[proxyID]
 	if !ok {
 		return
@@ -269,7 +266,7 @@ OUTER:
 		// This should not be possible since we should be the only sender, enforced
 		// by m.mu but error and drop the update rather than panic.
 		m.Logger.Printf("[ERR] proxycfg: failed to deliver ConfigSnapshot to %q",
-			snap.ProxyID)
+			snap.ProxyID.String())
 	}
 }
 
@@ -277,7 +274,7 @@ OUTER:
 // will not fail, but no updates will be delivered until the proxy is
 // registered. If there is already a valid snapshot in memory, it will be
 // delivered immediately.
-func (m *Manager) Watch(proxyID string) (<-chan *ConfigSnapshot, CancelFunc) {
+func (m *Manager) Watch(proxyID structs.ServiceID) (<-chan *ConfigSnapshot, CancelFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -311,7 +308,7 @@ func (m *Manager) Watch(proxyID string) (<-chan *ConfigSnapshot, CancelFunc) {
 
 // closeWatchLocked cleans up state related to a single watcher. It assumes the
 // lock is held.
-func (m *Manager) closeWatchLocked(proxyID string, watchIdx uint64) {
+func (m *Manager) closeWatchLocked(proxyID structs.ServiceID, watchIdx uint64) {
 	if watchers, ok := m.watchers[proxyID]; ok {
 		if ch, ok := watchers[watchIdx]; ok {
 			delete(watchers, watchIdx)
