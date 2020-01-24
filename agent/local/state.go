@@ -1277,10 +1277,8 @@ func (l *State) syncService(key structs.ServiceID) error {
 	switch {
 	case err == nil:
 		if s, ok := l.services[key]; ok {
+			if s.version != currentVersion { return nil }
 			s.InSync = true
-			if s.version > currentVersion {
-				s.InSync = false
-			}
 			// Given how the register API works, this info is also updated
 			// every time we sync a service.
 			var checkKey structs.CheckID
