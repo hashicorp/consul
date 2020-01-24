@@ -979,9 +979,9 @@
     "@glimmer/util" "^0.42.0"
 
 "@hashicorp/api-double@^1.3.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.6.0.tgz#23c48d1982b81b6c9164067354d7653320ba761f"
-  integrity sha512-U11NttTVvJUVOFH4bgS8eZ+0s6j4/4DYPz9xkJM2ciZBnG353l2G7LYeivt55QajnCl3ImevEO4vSlvvFf4I4Q==
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.6.1.tgz#67c4c4c5cbf9f51f3b8bc992ab2df21acf63b318"
+  integrity sha512-JkQZIsH/2B9T2oK5SQNDakvqlHjxQHu0I9ftmmrxqkxYvYoLN+Whp7dzQ8HswOp1vIJyqbvUhSw06XfH/eimZA==
   dependencies:
     array-range "^1.0.1"
     backtick-template "^0.2.0"
@@ -992,9 +992,9 @@
     js-yaml "^3.13.1"
 
 "@hashicorp/consul-api-double@^2.6.2":
-  version "2.10.1"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.10.1.tgz#50401a9394cb228fc1005239b98a63ea11dfdbcf"
-  integrity sha512-b4/8hbXabwrYyiuoIxv66ayyu3dnHgMke0b7F8d8nVh8oAA12qnbrY9uCExWAm+hddXUjb3NAliUWypUQL9ZqA==
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-2.11.0.tgz#0b833893ccc5cfb9546b1513127d5e92d30f2262"
+  integrity sha512-2MO1jiwuJyPlSGQ4AeFtLKJWmLSj0msoiaRHPtj6YPjm69ZkY/t4U4SU3cfpVn2Dx7wHzXe//9GvNHI1gRxAzg==
 
 "@hashicorp/ember-cli-api-double@^2.0.0":
   version "2.0.0"
@@ -3345,9 +3345,9 @@ caniuse-lite@^1.0.30000792, caniuse-lite@^1.0.30000805, caniuse-lite@^1.0.300009
   integrity sha512-vrMcvSuMz16YY6GSVZ0dWDTJP8jqk3iFQ/Aq5iqblPwxSVVZI+zxDyTX0VPqtQsDnfdrBDcsmhgTEOh5R8Lbpw==
 
 caniuse-lite@^1.0.30000844:
-  version "1.0.30001019"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001019.tgz#857e3fccaad2b2feb3f1f6d8a8f62d747ea648e1"
-  integrity sha512-6ljkLtF1KM5fQ+5ZN0wuyVvvebJxgJPTmScOMaFuQN2QuOzvRJnWSKfzQskQU5IOU4Gap3zasYPIinzwUjoj/g==
+  version "1.0.30001022"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001022.tgz#9eeffe580c3a8f110b7b1742dcf06a395885e4c6"
+  integrity sha512-FjwPPtt/I07KyLPkBQ0g7/XuZg6oUkYBVnPHNj3VHJbOjmmJ/GdSo/GUY6MwINEQvjhP6WZVbX8Tvms8xh0D5A==
 
 capture-exit@^2.0.0:
   version "2.0.0"
@@ -4302,9 +4302,9 @@ electron-to-chromium@^1.3.247, electron-to-chromium@^1.3.30:
   integrity sha512-NWJ5TztDnjExFISZHFwpoJjMbLUifsNBnx7u2JI0gCw6SbKyQYYWWtBHasO/jPtHym69F4EZuTpRNGN11MT/jg==
 
 electron-to-chromium@^1.3.47:
-  version "1.3.327"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.327.tgz#516f28b4271727004362b4ac814494ae64d9dde7"
-  integrity sha512-DNMd91VtKt44LIkFtpICxAWu/GSGFLUMDM/kFINJ3Oe47OimSnbMvO3ChkUCdUyit+pRdhdCcM3+i5bpli5gqg==
+  version "1.3.340"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.340.tgz#5d4fe78e984d4211194cf5a52e08069543da146f"
+  integrity sha512-hRFBAglhcj5iVYH+o8QU0+XId1WGoc0VGowJB1cuJAt3exHGrivZvWeAO5BRgBZqwZtwxjm8a5MQeGoT/Su3ww==
 
 elegant-spinner@^1.0.1:
   version "1.0.1"
@@ -9959,9 +9959,9 @@ resolve@^1.1.3, resolve@^1.1.7, resolve@^1.10.1, resolve@^1.11.1, resolve@^1.12.
     path-parse "^1.0.6"
 
 resolve@^1.10.0, resolve@^1.3.3:
-  version "1.14.1"
-  resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.14.1.tgz#9e018c540fcf0c427d678b9931cbf45e984bcaff"
-  integrity sha512-fn5Wobh4cxbLzuHaE+nphztHy43/b++4M6SsGFC2gB8uYwf0C8LcarfCz1un7UTW8OFQg9iNjZ4xpcFVGebDPg==
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.15.0.tgz#1b7ca96073ebb52e741ffd799f6b39ea462c67f5"
+  integrity sha512-+hTmAldEGE80U2wJJDC1lebb5jWqvTYAfm3YZ1ckk1gBr0MnCqUKlwK1e+anaFljIl+F5tR5IoZcm4ZDA1zMQw==
   dependencies:
     path-parse "^1.0.6"
 
