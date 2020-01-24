@@ -40,6 +40,9 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
         .dom(document.querySelector(selector))
         .hasClass(cls, `Expected [class] to contain ${cls} on ${selector}`);
     })
+    .then([`I don't see the "$selector" element`], function(selector) {
+      assert.equal(document.querySelector(selector), null, `Expected not to see ${selector}`);
+    })
     .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
       assert.ok(
         !document.querySelector(selector).classList.contains(cls),
