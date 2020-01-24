@@ -136,10 +136,10 @@ github.com/golang/glog
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/ptypes/any
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
@@ -423,7 +423,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/singleflight
 golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
@@ -467,8 +467,8 @@ google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/resolver
 google.golang.org/grpc/stats
 google.golang.org/grpc/codes
-google.golang.org/grpc/status
 google.golang.org/grpc/metadata
+google.golang.org/grpc/status
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/roundrobin
