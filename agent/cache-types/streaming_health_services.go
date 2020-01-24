@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-bexpr"
 )
 
 const (
@@ -64,7 +65,9 @@ func (c *StreamingHealthServices) SupportsBlocking() bool {
 
 // NewMaterializedView implements StreamingCacheType
 func (c *StreamingHealthServices) NewMaterializedViewState() MaterializedViewState {
-	return make(healthViewState)
+	return &healthViewState{
+		state: make(map[string]structs.CheckServiceNode),
+	}
 }
 
 // StreamingClient implements StreamingCacheType
@@ -82,10 +85,27 @@ func (c *StreamingHealthServices) Logger() *log.Logger {
 // deletions a little easier but we could just store a result type
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
-type healthViewState map[string]structs.CheckServiceNode
+type healthViewState struct {
+	state  map[string]structs.CheckServiceNode
+	filter *bexpr.Filter
+}
+
+// InitFilter implements MaterializedViewState
+func (s *healthViewState) InitFilter(expression string) error {
+	// We apply filtering to the raw CheckServiceNodes before we are done mutating
+	// state in Update to save from storing stuff in memory we'll only filter
+	// later. Because the state is just a map of those types, we can simply run
+	// that map through filter and it will remove any entries that don't match.
+	filter, err := bexpr.CreateFilter(expression, nil, s.state)
+	if err != nil {
+		return err
+	}
+	s.filter = filter
+	return nil
+}
 
 // Update implements MaterializedViewState
-func (s healthViewState) Update(events []*stream.Event) error {
+func (s *healthViewState) Update(events []*stream.Event) error {
 	for _, event := range events {
 		serviceHealth := event.GetServiceHealth()
 		if serviceHealth == nil {
@@ -98,20 +118,27 @@ func (s healthViewState) Update(events []*stream.Event) error {
 		switch serviceHealth.Op {
 		case stream.CatalogOp_Register:
 			checkServiceNode := stream.FromCheckServiceNode(serviceHealth.CheckServiceNode)
-			s[id] = checkServiceNode
+			s.state[id] = checkServiceNode
 		case stream.CatalogOp_Deregister:
-			delete(s, id)
+			delete(s.state, id)
 		}
+	}
+	if s.filter != nil {
+		filtered, err := s.filter.Execute(s.state)
+		if err != nil {
+			return err
+		}
+		s.state = filtered.(map[string]structs.CheckServiceNode)
 	}
 	return nil
 }
 
 // Result implements MaterializedViewState
-func (s healthViewState) Result(index uint64) (interface{}, error) {
+func (s *healthViewState) Result(index uint64) (interface{}, error) {
 	var result structs.IndexedCheckServiceNodes
 	// Avoid a nil slice if there are no results in the view
 	result.Nodes = structs.CheckServiceNodes{}
-	for _, node := range s {
+	for _, node := range s.state {
 		result.Nodes = append(result.Nodes, node)
 	}
 	result.Nodes.Sort()

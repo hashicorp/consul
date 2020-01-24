@@ -41,6 +41,16 @@ func makeHealthEvent(t *testing.T, idx uint64, nodeIdx int, svc string, register
 	}
 }
 
+func makeBatchEvent(t *testing.T, idx uint64, events ...*stream.Event) *stream.Event {
+	return &stream.Event{
+		Topic: stream.Topic_ServiceHealth,
+		Index: idx,
+		Payload: &stream.Event_EventBatch{EventBatch: &stream.EventBatch{
+			Events: events,
+		}},
+	}
+}
+
 func makeEOSEvent(t *testing.T, idx uint64) *stream.Event {
 	return &stream.Event{
 		Topic:   stream.Topic_ServiceHealth,
@@ -66,7 +76,6 @@ func makeReloadEvent(t *testing.T, idx uint64) *stream.Event {
 }
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
-	require := require.New(t)
 	client := NewTestStreamingClient()
 	typ := StreamingHealthServices{
 		client: client,
@@ -93,39 +102,38 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		},
 	}
 
-	t.Run("empty snapshot returned", func(t *testing.T) {
+	require.True(t, t.Run("empty snapshot returned", func(t *testing.T) {
 		// Fetch should return an empty
 		// result of the right type with a non-zero index, and in the background begin
 		// streaming updates.
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
-		require.Equal(uint64(1), result.Index)
-		require.Equal(empty, result.Value)
+		require.Equal(t, uint64(1), result.Index)
+		require.Equal(t, empty, result.Value)
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
+	}))
 
-	t.Run("blocks for timeout", func(t *testing.T) {
-
+	require.True(t, t.Run("blocks for timeout", func(t *testing.T) {
 		// Subsequent fetch should block for the timeout
 		start := time.Now()
 		opts.Timeout = 200 * time.Millisecond
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(elapsed >= 200*time.Millisecond,
+		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until timeout")
 
-		require.Equal(opts.MinIndex, result.Index, "result index should not have changed")
-		require.Equal(empty, result.Value, "result value should not have changed")
+		require.Equal(t, opts.MinIndex, result.Index, "result index should not have changed")
+		require.Equal(t, empty, result.Value, "result value should not have changed")
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
+	}))
 
-	t.Run("blocks until update", func(t *testing.T) {
+	require.True(t, t.Run("blocks until update", func(t *testing.T) {
 		// Make another blocking query with a longer timeout and trigger an update
 		// event part way through.
 		start := time.Now()
@@ -138,22 +146,22 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.Timeout = time.Second
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(elapsed >= 200*time.Millisecond,
+		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until the event was delivered")
-		require.True(elapsed < time.Second,
+		require.True(t, elapsed < time.Second,
 			"Fetch should have returned before the timeout")
 
-		require.Equal(uint64(4), result.Index, "result index should not have changed")
-		require.Len(result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 1,
+		require.Equal(t, uint64(4), result.Index, "result index should not have changed")
+		require.Len(t, result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 1,
 			"result value should contain the new registration")
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
+	}))
 
-	t.Run("reconnects and resumes after stream error", func(t *testing.T) {
+	require.True(t, t.Run("reconnects and resumes after stream error", func(t *testing.T) {
 		client.QueueErr(errors.New("broken pipe"))
 
 		// After the error the view should re-subscribe with same index so will get
@@ -165,13 +173,13 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		start := time.Now()
 		opts.Timeout = 200 * time.Millisecond
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(elapsed >= 200*time.Millisecond,
+		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until timeout")
 
-		require.Equal(opts.MinIndex, result.Index, "result index should not have changed")
-		require.Equal(opts.LastResult.Value, result.Value, "result value should not have changed")
+		require.Equal(t, opts.MinIndex, result.Index, "result index should not have changed")
+		require.Equal(t, opts.LastResult.Value, result.Value, "result value should not have changed")
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
@@ -181,25 +189,23 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.Timeout = time.Second
 		result, err = typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		elapsed = time.Since(start)
-		require.True(elapsed >= 200*time.Millisecond,
+		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until the event was delivered")
-		require.True(elapsed < time.Second,
+		require.True(t, elapsed < time.Second,
 			"Fetch should have returned before the timeout")
 
-		require.Equal(uint64(10), result.Index, "result index should not have changed")
-		require.Len(result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 2,
+		require.Equal(t, uint64(10), result.Index, "result index should not have changed")
+		require.Len(t, result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 2,
 			"result value should contain the new registration")
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
-
+	}))
 }
 
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
-	require := require.New(t)
 	client := NewTestStreamingClient()
 	typ := StreamingHealthServices{
 		client: client,
@@ -233,19 +239,19 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		return nodes
 	}
 
-	t.Run("full snapshot returned", func(t *testing.T) {
+	require.True(t, t.Run("full snapshot returned", func(t *testing.T) {
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 
-		require.Equal(uint64(5), result.Index)
-		require.ElementsMatch([]string{"node001", "node002", "node003"},
+		require.Equal(t, uint64(5), result.Index)
+		require.ElementsMatch(t, []string{"node001", "node002", "node003"},
 			gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
+	}))
 
-	t.Run("blocks until deregistration", func(t *testing.T) {
+	require.True(t, t.Run("blocks until deregistration", func(t *testing.T) {
 		// Make another blocking query with a longer timeout and trigger an update
 		// event part way through.
 		start := time.Now()
@@ -258,22 +264,22 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 
 		opts.Timeout = time.Second
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(elapsed >= 200*time.Millisecond,
+		require.True(t, elapsed >= 200*time.Millisecond,
 			"Fetch should have blocked until the event was delivered")
-		require.True(elapsed < time.Second,
+		require.True(t, elapsed < time.Second,
 			"Fetch should have returned before the timeout")
 
-		require.Equal(uint64(20), result.Index)
-		require.ElementsMatch([]string{"node002", "node003"},
+		require.Equal(t, uint64(20), result.Index)
+		require.ElementsMatch(t, []string{"node002", "node003"},
 			gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
+	}))
 
-	t.Run("server reload is respected", func(t *testing.T) {
+	require.True(t, t.Run("server reload is respected", func(t *testing.T) {
 		// Simulates the server noticing the request's ACL token privs changing. To
 		// detect this we'll queue up the new snapshot as a different set of nodes
 		// to the first.
@@ -290,16 +296,159 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		start := time.Now()
 		opts.Timeout = time.Second
 		result, err := typ.Fetch(opts, req)
-		require.NoError(err)
+		require.NoError(t, err)
 		elapsed := time.Since(start)
-		require.True(elapsed < time.Second,
+		require.True(t, elapsed < time.Second,
 			"Fetch should have returned before the timeout")
 
-		require.Equal(uint64(50), result.Index)
-		require.ElementsMatch([]string{"node003", "node004", "node005"},
+		require.Equal(t, uint64(50), result.Index)
+		require.ElementsMatch(t, []string{"node003", "node004", "node005"},
 			gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	})
+	}))
+}
+
+func TestStreamingHealthServices_EventBatches(t *testing.T) {
+	client := NewTestStreamingClient()
+	typ := StreamingHealthServices{
+		client: client,
+		logger: log.New(os.Stderr, "test", log.LstdFlags),
+	}
+
+	// Create an initial snapshot of 3 instances but in a single event batch
+	client.QueueEvents(
+		makeBatchEvent(t, 5,
+			makeHealthEvent(t, 10, 1, "web", true),
+			makeHealthEvent(t, 10, 2, "web", true),
+			makeHealthEvent(t, 10, 3, "web", true),
+		),
+		makeEOSEvent(t, 5),
+	)
+
+	// This contains the view state so important we share it between calls.
+	opts := cache.FetchOptions{
+		MinIndex: 0,
+		Timeout:  1 * time.Second,
+	}
+	req := &structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "web",
+	}
+
+	gatherNodes := func(res interface{}) []string {
+		nodes := make([]string, 0, 3)
+		r := res.(*structs.IndexedCheckServiceNodes)
+		for _, csn := range r.Nodes {
+			nodes = append(nodes, csn.Node.Node)
+		}
+		return nodes
+	}
+
+	require.True(t, t.Run("full snapshot returned", func(t *testing.T) {
+		result, err := typ.Fetch(opts, req)
+		require.NoError(t, err)
+
+		require.Equal(t, uint64(5), result.Index)
+		require.ElementsMatch(t, []string{"node001", "node002", "node003"},
+			gatherNodes(result.Value))
+
+		opts.MinIndex = result.Index
+		opts.LastResult = &result
+	}))
+
+	require.True(t, t.Run("batched updates work too", func(t *testing.T) {
+		// Simulate multiple registrations happening in one Txn (so all have same
+		// index)
+		client.QueueEvents(makeBatchEvent(t, 20,
+			// Deregister an existing node
+			makeHealthEvent(t, 20, 1, "web", false),
+			// Register another
+			makeHealthEvent(t, 30, 4, "web", true),
+		))
+		opts.Timeout = time.Second
+		result, err := typ.Fetch(opts, req)
+		require.NoError(t, err)
+
+		require.Equal(t, uint64(20), result.Index)
+		require.ElementsMatch(t, []string{"node002", "node003", "node004"},
+			gatherNodes(result.Value))
+
+		opts.MinIndex = result.Index
+		opts.LastResult = &result
+	}))
+}
+
+func TestStreamingHealthServices_Filtering(t *testing.T) {
+	client := NewTestStreamingClient()
+	typ := StreamingHealthServices{
+		client: client,
+		logger: log.New(os.Stderr, "test", log.LstdFlags),
+	}
+
+	// Create an initial snapshot of 3 instances but in a single event batch
+	client.QueueEvents(
+		makeBatchEvent(t, 5,
+			makeHealthEvent(t, 5, 1, "web", true),
+			makeHealthEvent(t, 5, 2, "web", true),
+			makeHealthEvent(t, 5, 3, "web", true),
+		),
+		makeEOSEvent(t, 5),
+	)
+
+	// This contains the view state so important we share it between calls.
+	opts := cache.FetchOptions{
+		MinIndex: 0,
+		Timeout:  1 * time.Second,
+	}
+	req := &structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "web",
+		QueryOptions: structs.QueryOptions{
+			Filter: `Node.Node == "node002"`,
+		},
+	}
+
+	gatherNodes := func(res interface{}) []string {
+		nodes := make([]string, 0, 3)
+		r := res.(*structs.IndexedCheckServiceNodes)
+		for _, csn := range r.Nodes {
+			nodes = append(nodes, csn.Node.Node)
+		}
+		return nodes
+	}
+
+	require.True(t, t.Run("filtered snapshot returned", func(t *testing.T) {
+		result, err := typ.Fetch(opts, req)
+		require.NoError(t, err)
+
+		require.Equal(t, uint64(5), result.Index)
+		require.ElementsMatch(t, []string{"node002"},
+			gatherNodes(result.Value))
+
+		opts.MinIndex = result.Index
+		opts.LastResult = &result
+	}))
+
+	require.True(t, t.Run("filtered updates work too", func(t *testing.T) {
+		// Simulate multiple registrations happening in one Txn (so all have same
+		// index)
+		client.QueueEvents(makeBatchEvent(t, 20,
+			// Deregister an existing node
+			makeHealthEvent(t, 20, 1, "web", false),
+			// Register another
+			makeHealthEvent(t, 30, 4, "web", true),
+		))
+		opts.Timeout = time.Second
+		result, err := typ.Fetch(opts, req)
+		require.NoError(t, err)
+
+		require.Equal(t, uint64(20), result.Index)
+		require.ElementsMatch(t, []string{"node002"},
+			gatherNodes(result.Value))
+
+		opts.MinIndex = result.Index
+		opts.LastResult = &result
+	}))
 }

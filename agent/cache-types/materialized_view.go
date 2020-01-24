@@ -28,6 +28,16 @@ type StreamingClient interface {
 // MaterializedViewState is the interface used to manage they type-specific
 // materialized view logic.
 type MaterializedViewState interface {
+	// InitFilter is called once when the view is constructed if the subscription
+	// has a non-empty Filter argument. The implementor is expected to create a
+	// *bexpr.Filter and store it locally so it can be used to filter events
+	// and/or results. Ideally filtering should occur inside `Update` calls such
+	// that we don't store objects in the view state that are just filtered when
+	// the result is returned, however in some cases it might not be possible and
+	// the type may choose to store the whole view and only apply filtering in the
+	// Result method just before returning a result.
+	InitFilter(expression string) error
+
 	// Update is called when one or more events are received. The first call will
 	// include _all_ events in the initial snapshot which may be an empty set.
 	// Subsequent calls will contain one or more update events in the order they
@@ -43,22 +53,6 @@ type MaterializedViewState interface {
 	// Update.
 	Result(index uint64) (interface{}, error)
 }
-
-// // A MaterializedView is a view of some subset of the state on the Consul
-// // servers which is populated and kept up to date via streaming subscriptions.
-// //
-// // Each blocking endpoint will need to define the materialized view it needs
-// // including which topic to subscribe too, how to handle incoming events to
-// // update the view, and how to format the view data as an appropriate result
-// // struct to be returned to cache callers - typically this is the same result
-// // struct the equivalent non-streaming RPC would return.
-// type MaterializedView interface {
-// 	SubscribeRequest() *stream.SubscribeRequest
-// 	HandleEvent(e *stream.Event)
-// 	SnapshotComplete(index uint64)
-// 	Result() (uint64, interface{}, error)
-// 	Index() uint64
-// }
 
 // StreamingCacheType is the interface a cache-type needs to implement to make
 // use of streaming as the transport for updates from the server.
@@ -77,6 +71,8 @@ type StreamingCacheType interface {
 // cache type and manages the actual streaming RPC call to the servers behind
 // the scenes until the cache result is discarded when TTL expires.
 type MaterializedView struct {
+	// Properties above the lock are immutable after the view is constructed in
+	// MaterializedViewFromFetch and must not be modified.
 	typ        StreamingCacheType
 	client     StreamingClient
 	logger     *log.Logger
@@ -84,11 +80,14 @@ type MaterializedView struct {
 	ctx        context.Context
 	cancelFunc func()
 
+	// l protects the mutable state - all fields below it must only be accessed
+	// while holding l.
 	l            sync.Mutex
 	index        uint64
 	state        MaterializedViewState
 	snapshotDone bool
 	updateCh     chan struct{}
+	fatalErr     error
 }
 
 // MaterializedViewFromFetch retrieves an existing view from the cache result
@@ -277,13 +276,18 @@ func (v *MaterializedView) runSubscription() error {
 			continue
 		}
 
-		// TODO(banks): handle bexpr filtering since server side can't do that now.
-
 		// We have an event for the topic
+		events := []*stream.Event{event}
+
+		// If the event is a batch, unwrap and deliver the raw events
+		if batch := event.GetEventBatch(); batch != nil {
+			events = batch.GetEvents()
+		}
+
 		if snapshotDone {
 			// We've already got a snapshot, this is an update, deliver it right away.
 			v.l.Lock()
-			if err := v.state.Update([]*stream.Event{event}); err != nil {
+			if err := v.state.Update(events); err != nil {
 				v.l.Unlock()
 				// This error is kinda fatal to the view - we didn't apply some events
 				// the server sent us which means our view is now not in sync. The only
@@ -296,7 +300,7 @@ func (v *MaterializedView) runSubscription() error {
 			v.notifyUpdateLocked()
 			v.l.Unlock()
 		} else {
-			snapshotEvents = append(snapshotEvents, event)
+			snapshotEvents = append(snapshotEvents, events...)
 		}
 	}
 }
@@ -307,6 +311,20 @@ func (v *MaterializedView) reset() {
 	defer v.l.Unlock()
 
 	v.state = v.typ.NewMaterializedViewState()
+	if v.req.Filter != "" {
+		if err := v.state.InitFilter(v.req.Filter); err != nil {
+			// If this errors we are stuck - it's fatal for the whole request as it
+			// means there was a bug or an invalid filter string we couldn't parse.
+			// Stop the whole view by closing it and cancelling context, but also set
+			// the error internally so that Fetch calls can return a meaningful error
+			// and not just "context cancelled".
+			v.fatalErr = err
+			if v.cancelFunc != nil {
+				v.cancelFunc()
+			}
+			return
+		}
+	}
 	v.notifyUpdateLocked()
 	// Always start from zero when we have a new state so we load a snapshot from
 	// the servers.
@@ -389,8 +407,12 @@ func (v *MaterializedView) Fetch(opts cache.FetchOptions) (cache.FetchResult, er
 			return result, nil
 
 		case <-v.ctx.Done():
-			// Shouldn't happen(tm) because cache shouldn't close the view while there
-			// are still active Fetches going on but return the error anyway.
+			v.l.Lock()
+			err := v.fatalErr
+			v.l.Unlock()
+			if err != nil {
+				return result, err
+			}
 			return result, v.ctx.Err()
 		}
 	}
