@@ -520,7 +520,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		return fmt.Errorf("Must provide node")
 	}
 
-	var filterType map[string]*structs.NodeService
+	var filterType []*structs.NodeService
 	filter, err := bexpr.CreateFilter(args.Filter, nil, filterType)
 	if err != nil {
 		return err

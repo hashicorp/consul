@@ -655,7 +655,7 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 Parameters and response format are the same as
 [`/catalog/service/:service`](/api/catalog.html#list-nodes-for-service).
 
-## List Services for Node
+## Retrieve Map of Services for a Node
 
 This endpoint returns the node's registered services.
 
@@ -752,6 +752,136 @@ $ curl \
 
 The filter will be executed against each value in the `Services` mapping within the
 top level Node object. The following selectors and filter operations are supported:
+
+| Selector                               | Supported Operations                               |
+| -------------------------------------- | -------------------------------------------------- |
+| `Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                       | Equal, Not Equal                                   |
+| `EnableTagOverride`                    | Equal, Not Equal                                   |
+| `ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                 | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                      | Equal, Not Equal                                   |
+| `Weights.Warning`                      | Equal, Not Equal                                   |
+
+## List Services for Node
+
+This endpoint returns the node's registered services.
+
+| Method | Path                           | Produces                   |
+| ------ | ------------------------------ | -------------------------- |
+| `GET`  | `/catalog/node-services/:node` | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
+| ---------------- | ----------------- | ------------- | ------------------------ |
+| `YES`            | `all`             | `none`        | `node:read,service:read` |
+
+### Parameters
+
+- `node` `(string: <required>)` - Specifies the name of the node for which
+  to list services. This is specified as part of the URL.
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list services. 
+  This value may be provided by either the `ns` URL query parameter or in the 
+  `X-Consul-Namespace` header. If not provided at all, the namespace will be inherited
+  from the request's ACL token or will default to the `default` namespace. The `*`
+  wildcard may be used and then services from all namespaces will be returned. Added in Consul 1.7.0.
+
+### Sample Request
+
+```text
+$ curl \
+    http://127.0.0.1:8500/v1/catalog/node-services/my-node
+```
+
+### Sample Response
+
+```json
+{
+  "Node": {
+    "ID": "40e4a748-2192-161a-0510-9bf59fe950b5",
+    "Node": "foobar",
+    "Address": "10.1.10.12",
+    "Datacenter": "dc1",
+    "TaggedAddresses": {
+      "lan": "10.1.10.12",
+      "wan": "10.1.10.12"
+    },
+    "Meta": {
+      "instance_type": "t2.medium"
+    }
+  },
+  "Services": [
+    {
+      "ID": "consul",
+      "Service": "consul",
+      "Tags": null,
+      "Meta": {},
+      "Port": 8300
+    },
+    {
+      "ID": "redis",
+      "Service": "redis",
+      "TaggedAddresses": {
+        "lan": {
+          "address": "10.1.10.12",
+          "port": 8000,
+        },
+        "wan": {
+          "address": "198.18.1.2",
+          "port": 80
+        }
+      },
+      "Tags": [
+        "v1"
+      ],
+      "Meta": {
+        "redis_version": "4.0"
+      },
+      "Port": 8000,
+      "Namespace": "default"
+    }
+  }
+}
+```
+
+### Filtering
+
+The filter will be executed against each value in the `Services` list within the
+top level object. The following selectors and filter operations are supported:
 
 | Selector                               | Supported Operations                               |
 | -------------------------------------- | -------------------------------------------------- |

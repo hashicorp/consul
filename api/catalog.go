@@ -54,6 +54,11 @@ type CatalogNode struct {
 	Services map[string]*AgentService
 }
 
+type CatalogNodeServiceList struct {
+	Node     *Node
+	Services []*AgentService
+}
+
 type CatalogRegistration struct {
 	ID              string
 	Node            string
@@ -248,6 +253,30 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 	qm.RequestTime = rtt
 
 	var out *CatalogNode
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}
+
+// NodeServiceList is used to query for service information about a single node. It differs from
+// the Node function only in its return type which will contain a list of services as opposed to
+// a map of service ids to services. This different structure allows for using the wildcard specifier
+// '*' for the Namespace in the QueryOptions.
+func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeServiceList, *QueryMeta, error) {
+	r := c.c.newRequest("GET", "/v1/catalog/node-services/"+node)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(c.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out *CatalogNodeServiceList
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
