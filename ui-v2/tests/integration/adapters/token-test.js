@@ -64,9 +64,7 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/token?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
-      }`;
+      const expected = `PUT /v1/acl/token?dc=${dc}`;
       const actual = adapter
         .requestForCreateRecord(
           client.url,
@@ -83,9 +81,7 @@ module('Integration | Adapter | token', function(hooks) {
     test(`requestForUpdateRecord returns the correct url (without Rules it uses the v2 API) when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/acl/token/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
-      }`;
+      const expected = `PUT /v1/acl/token/${id}?dc=${dc}`;
       const actual = adapter
         .requestForUpdateRecord(
           client.url,

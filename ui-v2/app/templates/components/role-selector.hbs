@@ -9,10 +9,10 @@
   {{#block-slot name='body'}}
 
   <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
-    {{#role-form form=form dc=dc}}
+    {{#role-form form=form dc=dc nspace=nspace}}
       {{#block-slot name='policy'}}
 
-        {{#policy-selector source=source dc=dc items=item.Policies}}
+        {{#policy-selector source=source dc=dc nspace=nspace items=item.Policies}}
           {{#block-slot name='trigger'}}
             <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
               <span>Create new policy</span>

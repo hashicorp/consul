@@ -3,7 +3,9 @@ import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
+import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
+const Namespace = nonEmptySet('Namespace');
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
   requestForQuery: function(request, { dc, ns, index, id }) {
@@ -32,7 +34,6 @@ export default Adapter.extend({
   requestForCreateRecord: function(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
       PUT /v1/acl/role?${params}
@@ -40,16 +41,15 @@ export default Adapter.extend({
       ${{
         Name: serialized.Name,
         Description: serialized.Description,
-        Namespace: serialized.Namespace,
         Policies: serialized.Policies,
         ServiceIdentities: serialized.ServiceIdentities,
+        ...Namespace(serialized.Namespace),
       }}
     `;
   },
   requestForUpdateRecord: function(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
       PUT /v1/acl/role/${data[SLUG_KEY]}?${params}

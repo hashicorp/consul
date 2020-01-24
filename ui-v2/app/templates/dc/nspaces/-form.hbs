@@ -23,14 +23,14 @@
     <p>
       By adding roles to this namespaces, you will apply them to all tokens created within this namespace.
     </p>
-    {{role-selector dc=dc items=item.ACLs.RoleDefaults}}
+    {{role-selector dc=dc nspace='default' items=item.ACLs.RoleDefaults}}
   </fieldset>
   <fieldset id="policies">
     <h2>Policies</h2>
     <p>
       By adding policies to this namespaces, you will apply them to all tokens created within this namespace.
     </p>
-    {{policy-selector dc=dc items=item.ACLs.PolicyDefaults}}
+    {{policy-selector dc=dc nspace='default' items=item.ACLs.PolicyDefaults}}
   </fieldset>
 {{/if}}
   <div>

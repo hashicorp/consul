@@ -1,31 +1,31 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / update: ACL Token Update
+Feature: dc / nspaces / update: Nspace Update
   Background:
     Given 1 datacenter model with the value "datacenter"
-    And 1 token model from yaml
+    And 1 nspace model from yaml
     ---
-      AccessorID: key
-      Policies: ~
+      Name: namespace
+      Description: empty
+      PolicyDefaults: ~
     ---
-    When I visit the token page for yaml
+    When I visit the nspace page for yaml
     ---
       dc: datacenter
-      token: key
+      namespace: namespace
     ---
-    Then the url should be /datacenter/acls/tokens/key
-  Scenario: Update to [Name]
+    Then the url should be /datacenter/namespaces/namespace
+  Scenario: Update to [Description]
     Then I fill in with yaml
     ---
       Description: [Description]
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/namespace/namespace" from yaml
     ---
       body:
-        Namespace: @namespace
         Description: [Description]
     ---
-    Then the url should be /datacenter/acls/tokens
+    Then the url should be /datacenter/namespaces
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
     Where:
@@ -35,8 +35,8 @@ Feature: dc / acls / tokens / update: ACL Token Update
       | description with spaces |
       ---------------------------
   Scenario: There was an error saving the key
-    Given the url "/v1/acl/token/key" responds with a 500 status
+    Given the url "/v1/namespace/namespace" responds with a 500 status
     And I submit
-    Then the url should be /datacenter/acls/tokens/key
+    Then the url should be /datacenter/namespaces/namespace
     Then "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "error" class

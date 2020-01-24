@@ -979,9 +979,9 @@
     "@glimmer/util" "^0.42.0"
 
 "@hashicorp/api-double@^1.3.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.6.0.tgz#23c48d1982b81b6c9164067354d7653320ba761f"
-  integrity sha512-U11NttTVvJUVOFH4bgS8eZ+0s6j4/4DYPz9xkJM2ciZBnG353l2G7LYeivt55QajnCl3ImevEO4vSlvvFf4I4Q==
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/api-double/-/api-double-1.6.1.tgz#67c4c4c5cbf9f51f3b8bc992ab2df21acf63b318"
+  integrity sha512-JkQZIsH/2B9T2oK5SQNDakvqlHjxQHu0I9ftmmrxqkxYvYoLN+Whp7dzQ8HswOp1vIJyqbvUhSw06XfH/eimZA==
   dependencies:
     array-range "^1.0.1"
     backtick-template "^0.2.0"
@@ -3345,9 +3345,9 @@ caniuse-lite@^1.0.30000792, caniuse-lite@^1.0.30000805, caniuse-lite@^1.0.300009
   integrity sha512-vrMcvSuMz16YY6GSVZ0dWDTJP8jqk3iFQ/Aq5iqblPwxSVVZI+zxDyTX0VPqtQsDnfdrBDcsmhgTEOh5R8Lbpw==
 
 caniuse-lite@^1.0.30000844:
-  version "1.0.30001021"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001021.tgz#e75ed1ef6dbadd580ac7e7720bb16f07b083f254"
-  integrity sha512-wuMhT7/hwkgd8gldgp2jcrUjOU9RXJ4XxGumQeOsUr91l3WwmM68Cpa/ymCnWEDqakwFXhuDQbaKNHXBPgeE9g==
+  version "1.0.30001022"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001022.tgz#9eeffe580c3a8f110b7b1742dcf06a395885e4c6"
+  integrity sha512-FjwPPtt/I07KyLPkBQ0g7/XuZg6oUkYBVnPHNj3VHJbOjmmJ/GdSo/GUY6MwINEQvjhP6WZVbX8Tvms8xh0D5A==
 
 capture-exit@^2.0.0:
   version "2.0.0"
@@ -4302,9 +4302,9 @@ electron-to-chromium@^1.3.247, electron-to-chromium@^1.3.30:
   integrity sha512-NWJ5TztDnjExFISZHFwpoJjMbLUifsNBnx7u2JI0gCw6SbKyQYYWWtBHasO/jPtHym69F4EZuTpRNGN11MT/jg==
 
 electron-to-chromium@^1.3.47:
-  version "1.3.335"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.335.tgz#5fb6084a25cb1e2542df91e62b62e1931a602303"
-  integrity sha512-ngKsDGd/xr2lAZvilxTfdvfEiQKmavyXd6irlswaHnewmXoz6JgbM9FUNwgp3NFIUHHegh1F87H8f5BJ8zABxw==
+  version "1.3.340"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.340.tgz#5d4fe78e984d4211194cf5a52e08069543da146f"
+  integrity sha512-hRFBAglhcj5iVYH+o8QU0+XId1WGoc0VGowJB1cuJAt3exHGrivZvWeAO5BRgBZqwZtwxjm8a5MQeGoT/Su3ww==
 
 elegant-spinner@^1.0.1:
   version "1.0.1"
@@ -9959,9 +9959,9 @@ resolve@^1.1.3, resolve@^1.1.7, resolve@^1.10.1, resolve@^1.11.1, resolve@^1.12.
     path-parse "^1.0.6"
 
 resolve@^1.10.0, resolve@^1.3.3:
-  version "1.14.2"
-  resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.14.2.tgz#dbf31d0fa98b1f29aa5169783b9c290cb865fea2"
-  integrity sha512-EjlOBLBO1kxsUxsKjLt7TAECyKW6fOh1VRkykQkKGzcBbjjPIxBqGh0jf7GJ3k/f5mxMqW3htMD3WdTUVtW8HQ==
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.15.0.tgz#1b7ca96073ebb52e741ffd799f6b39ea462c67f5"
+  integrity sha512-+hTmAldEGE80U2wJJDC1lebb5jWqvTYAfm3YZ1ckk1gBr0MnCqUKlwK1e+anaFljIl+F5tR5IoZcm4ZDA1zMQw==
   dependencies:
     path-parse "^1.0.6"
 

@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / anonymous no delete: The anonymous token has no delete buttons
+Feature: dc / acls / tokens / anonymous-no-delete: The anonymous token has no delete buttons
   Background:
     Given 1 datacenter model with the value "dc-1"
     And 1 token model from yaml
