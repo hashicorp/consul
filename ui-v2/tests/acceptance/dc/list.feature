@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc > list: List Models
+Feature: dc / list: List Models
   Scenario: Listing [Model]
     Given 1 datacenter model with the value "dc-1"
     And 3 [Model] models

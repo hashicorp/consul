@@ -17,6 +17,10 @@
   @extend %with-icon;
   background-image: $alert-triangle-svg;
 }
+%with-alert-triangle-mask {
+  @extend %with-mask;
+  mask-image: $alert-triangle-svg;
+}
 
 %with-arrow-down-icon {
   @extend %with-icon;
@@ -96,6 +100,11 @@
 %with-check-circle-fill-icon {
   @extend %with-icon;
   background-image: $check-circle-fill-svg;
+}
+
+%with-check-circle-fill-mask {
+  @extend %with-mask;
+  mask-image: $check-circle-fill-svg;
 }
 
 %with-check-circle-outline-icon {
@@ -178,6 +187,10 @@
   @extend %with-icon;
   background-image: $copy-action-svg;
 }
+%with-copy-action-mask {
+  @extend %with-mask;
+  mask-image: $copy-action-svg;
+}
 
 %with-copy-success-icon {
   @extend %with-icon;
@@ -229,11 +242,6 @@
   background-image: $expand-more-svg;
 }
 
-%with-eye-icon {
-  @extend %with-icon;
-  background-image: $eye-svg;
-}
-
 %with-file-fill-icon {
   @extend %with-icon;
   background-image: $file-fill-svg;
@@ -269,6 +277,11 @@
   background-image: $folder-outline-svg;
 }
 
+%with-folder-outline-mask {
+  @extend %with-mask;
+  mask-image: $folder-outline-svg;
+}
+
 %with-git-branch-icon {
   @extend %with-icon;
   background-image: $git-branch-svg;
@@ -289,6 +302,10 @@
   background-image: $hashicorp-logo-svg;
 }
 
+%with-hashicorp-logo-mask {
+  @extend %with-mask;
+  mask-image: $hashicorp-logo-svg;
+}
 %with-help-circle-fill-icon {
   @extend %with-icon;
   background-image: $help-circle-fill-svg;
@@ -473,6 +490,11 @@
   background-image: $star-fill-svg;
 }
 
+%with-star-fill-mask {
+  @extend %with-mask;
+  mask-image: $star-fill-svg;
+}
+
 %with-star-outline-icon {
   @extend %with-icon;
   background-image: $star-outline-svg;
@@ -572,8 +594,16 @@
   @extend %with-icon;
   background-image: $visibility-hide-svg;
 }
+%with-visibility-hide-mask {
+  @extend %with-mask;
+  mask-image: $visibility-hide-svg;
+}
 
 %with-visibility-show-icon {
   @extend %with-icon;
   background-image: $visibility-show-svg;
+}
+%with-visibility-show-mask {
+  @extend %with-mask;
+  mask-image: $visibility-show-svg;
 }

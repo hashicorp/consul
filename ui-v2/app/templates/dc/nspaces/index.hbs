@@ -1,34 +1,34 @@
 {{#app-view class="nspace list" loading=isLoading}}
-  {{#block-slot 'notification' as |status type subject|}}
+  {{#block-slot name='notification' as |status type subject|}}
     {{partial 'dc/nspaces/notifications'}}
   {{/block-slot}}
-  {{#block-slot 'header'}}
+  {{#block-slot name='header'}}
     <h1>
       Namespaces
     </h1>
   {{/block-slot}}
-  {{#block-slot 'actions'}}
+  {{#block-slot name='actions'}}
       <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
   {{/block-slot}}
-  {{#block-slot 'content'}}
+  {{#block-slot name='content'}}
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
       {{freetext-filter searchable=searchable value=s placeholder="Search"}}
     </form>
 {{/if}}
     {{#changeable-set dispatcher=searchable}}
-      {{#block-slot 'set' as |filtered|}}
+      {{#block-slot name='set' as |filtered|}}
         {{#tabular-collection
             items=filtered as |item index|
         }}
-          {{#block-slot 'header'}}
+          {{#block-slot name='header'}}
               <th>Name</th>
               <th>Description</th>
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
               <th>Roles &amp; Policies</th>
 {{/if}}
           {{/block-slot}}
-          {{#block-slot 'row'}}
+          {{#block-slot name='row'}}
 {{#if item.DeletedAt}}
               <td class="no-actions" colspan="3">
                 <p>
@@ -51,36 +51,46 @@
   {{/if}}
 {{/if}}
           {{/block-slot}}
-          {{#block-slot 'actions' as |index change checked|}}
-            {{#confirmation-dialog confirming=false index=index message="Are you sure you want to delete this Namespace?"}}
-              {{#block-slot 'action' as |confirm|}}
-                {{#action-group index=index onchange=(action change) checked=(if (eq checked index) 'checked')}}
-                  <ul>
-                    <li>
-                        <a data-test-edit href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
-                    </li>
-{{#if (not-eq item.Name 'default')}}
-                    <li>
-                        <button type="button" class="type-delete" data-test-delete {{action confirm 'delete' item}}>Delete</button>
-                    </li>
+          {{#block-slot name='actions' as |index change checked|}}
+            {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
+              {{#block-slot name='trigger'}}
+                More
+              {{/block-slot}}
+              {{#block-slot name='menu' as |confirm send keypressClick|}}
+                  <li role="none">
+                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
+                  </li>
+{{#if (not-eq item.Name 'default') }}
+                  <li role="none" class="dangerous">
+                    <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
+                    <div role="menu">
+                      <div class="confirmation-alert warning">
+                        <div>
+                          <header>
+                            Confirm Delete
+                          </header>
+                          <p>
+                            Are you sure you want to delete this key?
+                          </p>
+                        </div>
+                        <ul>
+                          <li class="dangerous">
+                            <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
+                          </li>
+                          <li>
+                            <label for={{confirm}}>Cancel</label>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </li>
 {{/if}}
-                  </ul>
-                {{/action-group}}
               {{/block-slot}}
-              {{#block-slot 'dialog' as |execute cancel message name|}}
-                  <p>
-                    {{message}}
-                  </p>
-                  <button type="button" class="type-delete" {{action execute}}>
-                    Confirm Delete
-                  </button>
-                  <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-              {{/block-slot}}
-            {{/confirmation-dialog}}
+            {{/popover-menu}}
           {{/block-slot}}
         {{/tabular-collection}}
       {{/block-slot}}
-      {{#block-slot 'empty'}}
+      {{#block-slot name='empty'}}
         <p>
           There are no Namespaces.
         </p>

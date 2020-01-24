@@ -1,25 +1,27 @@
 {{yield}}
 {{#if hasCaption}}
-  <caption>{{#yield-slot 'caption'}}{{yield}}{{/yield-slot}}</caption>
+  <caption>{{#yield-slot name='caption'}}{{yield}}{{/yield-slot}}</caption>
 {{/if}}
   <thead>
-      <tr>
-          {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
+    <tr>
+      {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
 {{#if hasActions }}
-          <th class="actions">Actions<input type="radio" name="actions" id="actions_close" onchange={{action change}} value="" /></th>
+      <th class="actions">Actions</th>
 {{/if}}
-      </tr>
+    </tr>
   </thead>
-  {{#ember-native-scrollable tagName='tbody' content-size=_contentSize scroll-left=_scrollLeft scroll-top=_scrollTop scrollChange=(action "scrollChange") clientSizeChange=(action "clientSizeChange")}}
-      <tr></tr>
+  {{#ember-native-scrollable tagName='tbody' content-size=_contentSize scroll-left=_scrollLeft scroll-top=_scrollTop scrollChange=(action 'scrollChange') clientSizeChange=(action "clientSizeChange")}}
+    <tr></tr>
 {{~#each _cells as |cell index|~}}
-      <tr data-test-tabular-row style={{{cell.style}}} onclick={{action 'click'}}>
-        {{#yield-slot 'row'}}{{yield cell.item index}}{{/yield-slot}}
+    <tr data-test-tabular-row style={{{cell.style}}} onclick={{action 'click'}}>
+      {{#yield-slot name='row'}}{{yield cell.item index}}{{/yield-slot}}
 {{#if hasActions }}
-          <td class="actions">
-              {{#yield-slot 'actions' (block-params (concat index) change checked)}}{{yield cell.item index}}{{/yield-slot}}
-          </td>
+      <td class="actions">
+        {{#yield-slot name='actions' params=(block-params (concat cell.index) (action 'change') checked)}}
+          {{yield cell.item index}}
+        {{/yield-slot}}
+      </td>
 {{/if}}
-      </tr>
+    </tr>
 {{~/each~}}
   {{/ember-native-scrollable}}

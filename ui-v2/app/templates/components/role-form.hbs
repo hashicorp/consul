@@ -18,9 +18,9 @@
 {{!TODO: temporary policies id, look at the inception token modals and get rid of id="policies" and use something else}}
 <fieldset id="policies" class="policies">
   <h2>Policies</h2>
-  {{#yield-slot 'policy' (block-params item)}}
+  {{#yield-slot name='policy' params=(block-params item)}}
     {{yield}}
   {{else}}
-    {{policy-selector dc=dc items=item.Policies}}
+    {{policy-selector dc=dc nspace=nspace items=item.Policies}}
   {{/yield-slot}}
 </fieldset>

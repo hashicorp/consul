@@ -10,3 +10,23 @@
 %menu-panel > ul > li {
   list-style-type: none;
 }
+%menu-panel-separator {
+  text-transform: uppercase;
+  color: $gray-400;
+}
+%menu-panel-header + ul,
+%menu-panel-separator:not(:first-child) {
+  border-top: $decor-border-100;
+  border-color: $gray-300;
+}
+%menu-panel-header {
+  background-color: $gray-050;
+}
+%menu-panel-header::before {
+  @extend %with-info-circle-fill-color-icon, %as-pseudo;
+  font-size: 1.1em;
+}
+%menu-panel .is-active > *::after {
+  @extend %with-check-plain-mask, %as-pseudo;
+  background-color: $magenta-600;
+}
