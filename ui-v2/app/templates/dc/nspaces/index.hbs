@@ -60,6 +60,7 @@
                   <li role="none">
                     <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.nspaces.edit' item.Name}}>Edit</a>
                   </li>
+{{#if (not-eq item.Name 'default') }}
                   <li role="none" class="dangerous">
                     <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
                     <div role="menu">
@@ -83,6 +84,7 @@
                       </div>
                     </div>
                   </li>
+{{/if}}
               {{/block-slot}}
             {{/popover-menu}}
           {{/block-slot}}
