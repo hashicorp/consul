@@ -97,7 +97,7 @@ module.exports = function(environment) {
           autoboot: false,
         }),
       });
-    // passthrough
+      break;
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
         '@hashicorp/ember-cli-api-double': {
@@ -105,14 +105,16 @@ module.exports = function(environment) {
           endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
         },
       });
-    // passthrough
+      break;
     case environment === 'production':
       ENV = Object.assign({}, ENV, {
         CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
         CONSUL_NSPACES_ENABLED:
           '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
       });
-    // passthrough
+      break;
+  }
+  switch (true) {
     case isDevLike:
       ENV = Object.assign({}, ENV, {
         CONSUL_NSPACES_ENABLED: true,
