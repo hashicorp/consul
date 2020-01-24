@@ -76,7 +76,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		resources[i+1] = upstreamListener
 	}
 
-	cfgSnap.Proxy.Expose.Finalize(s.Logger)
+	cfgSnap.Proxy.Expose.Finalize()
 	paths := cfgSnap.Proxy.Expose.Paths
 
 	// Add service health checks to the list of paths to create listeners for if needed
@@ -85,7 +85,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
 			p, err := parseCheckPath(check)
 			if err != nil {
-				s.Logger.Printf("[WARN] envoy: failed to create listener for check '%s': %v", check.CheckID, err)
+				s.Logger.Warn("failed to create listener for", "check", check.CheckID, "error", err)
 				continue
 			}
 			paths = append(paths, p)
@@ -185,7 +185,7 @@ func (s *Server) listenersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	// TODO - prevent invalid configurations of binding to the same port/addr
@@ -326,7 +326,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	if cfg.PublicListenerJSON != "" {
@@ -381,7 +381,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %v", err)
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	// No user config, use default listener
@@ -449,8 +449,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-			u.Identifier(), err)
+		s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 	}
 	if cfg.ListenerJSON != "" {
 		return makeListenerFromUserConfig(cfg.ListenerJSON)
@@ -552,12 +551,11 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-			u.Identifier(), err)
+		s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 	}
 	if cfg.ListenerJSON != "" {
-		s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
-			u.Identifier(), "envoy_listener_json", chain.ServiceName)
+		s.Logger.Warn("ignoring escape hatch setting because already configured for",
+			"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
 	}
 
 	addr := u.LocalBindAddress

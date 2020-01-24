@@ -2,7 +2,6 @@ package local
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 )
 
 const fullSyncReadMaxStale = 2 * time.Second
@@ -142,7 +142,7 @@ type State struct {
 	// created.
 	TriggerSyncChanges func()
 
-	logger *log.Logger
+	logger hclog.Logger
 
 	// Config is the agent config
 	config Config
@@ -177,10 +177,10 @@ type State struct {
 }
 
 // NewState creates a new local state for the agent.
-func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
+func NewState(c Config, logger hclog.Logger, tokens *token.Store) *State {
 	l := &State{
 		config:         c,
-		logger:         lg,
+		logger:         logger,
 		services:       make(map[structs.ServiceID]*ServiceState),
 		checks:         make(map[structs.CheckID]*CheckState),
 		checkAliases:   make(map[structs.ServiceID]map[structs.CheckID]chan<- struct{}),
@@ -953,7 +953,7 @@ func (l *State) updateSyncState() error {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
 			if id == structs.SerfCompoundCheckID {
-				l.logger.Printf("[DEBUG] agent: Skipping remote check %q since it is managed automatically", structs.SerfCheckID)
+				l.logger.Debug("Skipping remote check since it is managed automatically", "check", structs.SerfCheckID)
 				continue
 			}
 
@@ -1036,7 +1036,7 @@ func (l *State) SyncChanges() error {
 		case !s.InSync:
 			err = l.syncService(id)
 		default:
-			l.logger.Printf("[DEBUG] agent: Service %q in sync", id.String())
+			l.logger.Debug("Service in sync", "service", id.String())
 		}
 		if err != nil {
 			return err
@@ -1057,7 +1057,7 @@ func (l *State) SyncChanges() error {
 			}
 			err = l.syncCheck(id)
 		default:
-			l.logger.Printf("[DEBUG] agent: Check %q in sync", id.String())
+			l.logger.Debug("Check in sync", "check", id.String())
 		}
 		if err != nil {
 			return err
@@ -1067,7 +1067,7 @@ func (l *State) SyncChanges() error {
 	// Now sync the node level info if we need to, and didn't do any of
 	// the other sync operations.
 	if l.nodeInfoInSync {
-		l.logger.Printf("[DEBUG] agent: Node info in sync")
+		l.logger.Debug("Node info in sync")
 		return nil
 	}
 	return l.syncNodeInfo()
@@ -1097,19 +1097,22 @@ func (l *State) deleteService(key structs.ServiceID) error {
 				l.pruneCheck(c.Check.CompoundCheckID())
 			}
 		}
-		l.logger.Printf("[INFO] agent: Deregistered service %q", key.ID)
+		l.logger.Info("Deregistered service", "service", key.ID)
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[key].InSync = true
-		l.logger.Printf("[WARN] agent: Service %q deregistration blocked by ACLs", key)
+		l.logger.Warn("Service deregistration blocked by ACLs", "service", key)
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "deregistration"}, 1)
 		return nil
 
 	default:
-		l.logger.Printf("[WARN] agent: Deregistering service %q failed. %s", key, err)
+		l.logger.Warn("Deregistering service failed.",
+			"service", key.String(),
+			"error", err,
+		)
 		return err
 	}
 }
@@ -1132,19 +1135,22 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown check"):
 		l.pruneCheck(key)
-		l.logger.Printf("[INFO] agent: Deregistered check %q", key.String())
+		l.logger.Info("Deregistered check", "check", key.String())
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
-		l.logger.Printf("[WARN] agent: Check %q deregistration blocked by ACLs", key.String())
+		l.logger.Warn("Check deregistration blocked by ACLs", "check", key.String())
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "deregistration"}, 1)
 		return nil
 
 	default:
-		l.logger.Printf("[WARN] agent: Deregistering check %q failed. %s", key.String(), err)
+		l.logger.Warn("Deregistering check failed.",
+			"check", key.String(),
+			"error", err,
+		)
 		return err
 	}
 }
@@ -1212,7 +1218,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 			checkKey.Init(check.CheckID, &check.EnterpriseMeta)
 			l.checks[checkKey].InSync = true
 		}
-		l.logger.Printf("[INFO] agent: Synced service %q", key.String())
+		l.logger.Info("Synced service", "service", key.String())
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
@@ -1224,12 +1230,15 @@ func (l *State) syncService(key structs.ServiceID) error {
 			checkKey.Init(check.CheckID, &check.EnterpriseMeta)
 			l.checks[checkKey].InSync = true
 		}
-		l.logger.Printf("[WARN] agent: Service %q registration blocked by ACLs", key.String())
+		l.logger.Warn("Service registration blocked by ACLs", "service", key.String())
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "registration"}, 1)
 		return nil
 
 	default:
-		l.logger.Printf("[WARN] agent: Syncing service %q failed. %s", key.String(), err)
+		l.logger.Warn("Syncing service failed.",
+			"service", key.String(),
+			"error", err,
+		)
 		return err
 	}
 }
@@ -1267,19 +1276,22 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		// Given how the register API works, this info is also updated
 		// every time we sync a check.
 		l.nodeInfoInSync = true
-		l.logger.Printf("[INFO] agent: Synced check %q", key.String())
+		l.logger.Info("Synced check", "check", key.String())
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[key].InSync = true
-		l.logger.Printf("[WARN] agent: Check %q registration blocked by ACLs", key)
+		l.logger.Warn("Check registration blocked by ACLs", "check", key.String())
 		metrics.IncrCounter([]string{"acl", "blocked", "check", "registration"}, 1)
 		return nil
 
 	default:
-		l.logger.Printf("[WARN] agent: Syncing check %q failed. %s", key, err)
+		l.logger.Warn("Syncing check failed.",
+			"check", key.String(),
+			"error", err,
+		)
 		return err
 	}
 }
@@ -1299,19 +1311,19 @@ func (l *State) syncNodeInfo() error {
 	switch {
 	case err == nil:
 		l.nodeInfoInSync = true
-		l.logger.Printf("[INFO] agent: Synced node info")
+		l.logger.Info("Synced node info")
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true
-		l.logger.Printf("[WARN] agent: Node info update blocked by ACLs")
+		l.logger.Warn("Node info update blocked by ACLs")
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
 
 	default:
-		l.logger.Printf("[WARN] agent: Syncing node info failed. %s", err)
+		l.logger.Warn("Syncing node info failed.", "error", err)
 		return err
 	}
 }

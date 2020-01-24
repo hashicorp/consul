@@ -1177,11 +1177,11 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 		for scan.Scan() {
 			line := scan.Text()
 
-			if strings.Contains(line, "consul: failed to establish leadership") {
+			if strings.Contains(line, "failed to establish leadership") {
 				ch <- ""
 				return
 			}
-			if strings.Contains(line, "connect: initialized primary datacenter") {
+			if strings.Contains(line, "initialized primary datacenter") {
 				ch <- "leadership should not have gotten here if config entries properly failed"
 				return
 			}

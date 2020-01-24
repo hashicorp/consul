@@ -8,13 +8,15 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
 // Session endpoint is used to manipulate sessions for KV
 type Session struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // Apply is used to apply a modifying request to the data store. This should
@@ -106,12 +108,12 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		for {
 			var err error
 			if args.Session.ID, err = uuid.GenerateUUID(); err != nil {
-				s.srv.logger.Printf("[ERR] consul.session: UUID generation failed: %v", err)
+				s.logger.Error("UUID generation failed", "error", err)
 				return err
 			}
 			_, sess, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
 			if err != nil {
-				s.srv.logger.Printf("[ERR] consul.session: Session lookup failed: %v", err)
+				s.logger.Error("Session lookup failed", "error", err)
 				return err
 			}
 			if sess == nil {
@@ -123,7 +125,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	// Apply the update
 	resp, err := s.srv.raftApply(structs.SessionRequestType, args)
 	if err != nil {
-		s.srv.logger.Printf("[ERR] consul.session: Apply failed: %v", err)
+		s.logger.Error("Apply failed", "error", err)
 		return err
 	}
 
@@ -292,7 +294,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	// Reset the session TTL timer.
 	reply.Sessions = structs.Sessions{session}
 	if err := s.srv.resetSessionTimer(args.SessionID, session); err != nil {
-		s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
+		s.logger.Error("Session renew failed", "error", err)
 		return err
 	}
 

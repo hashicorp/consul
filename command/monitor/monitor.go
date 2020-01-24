@@ -24,6 +24,7 @@ type cmd struct {
 
 	// flags
 	logLevel string
+	logJSON  bool
 }
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
@@ -36,6 +37,8 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Log level of the agent.")
+	c.flags.BoolVar(&c.logJSON, "log-json", false,
+		"Output logs in JSON format.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -54,7 +57,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	eventDoneCh := make(chan struct{})
-	logCh, err := client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
+	logCh, err := client.Agent().Monitor(c.logLevel, c.logJSON, eventDoneCh, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1

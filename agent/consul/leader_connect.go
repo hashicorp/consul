@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 	uuid "github.com/hashicorp/go-uuid"
 )
 
@@ -163,6 +164,7 @@ func (s *Server) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
 // if this is a secondary DC.
 func (s *Server) initializeCA() error {
+	connectLogger := s.loggers.Named(logging.Connect)
 	// Bail if connect isn't enabled.
 	if !s.config.ConnectEnabled {
 		return nil
@@ -186,12 +188,14 @@ func (s *Server) initializeCA() error {
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		versionOk, foundPrimary := ServersInDCMeetMinimumVersion(s.WANMembers(), s.config.PrimaryDatacenter, minMultiDCConnectVersion)
 		if !foundPrimary {
-			s.logger.Printf("[WARN] connect: primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
+			connectLogger.Warn("primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
 			// return nil because we will initialize the secondary CA later
 			return nil
 		} else if !versionOk {
 			// return nil because we will initialize the secondary CA later
-			s.logger.Printf("[WARN] connect: servers in the primary datacenter are not at least at version %s - deferring initialization of the secondary datacenter CA", minMultiDCConnectVersion)
+			connectLogger.Warn("servers in the primary datacenter are not at least at the minimum version - deferring initialization of the secondary datacenter CA",
+				"min_version", minMultiDCConnectVersion.String(),
+			)
 			return nil
 		}
 
@@ -212,7 +216,7 @@ func (s *Server) initializeCA() error {
 			return err
 		}
 
-		s.logger.Printf("[INFO] connect: initialized secondary datacenter CA with provider %q", conf.Provider)
+		connectLogger.Info("initialized secondary datacenter CA with provider", "provider", conf.Provider)
 		return nil
 	}
 
@@ -223,6 +227,7 @@ func (s *Server) initializeCA() error {
 // It is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
 func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
+	connectLogger := s.loggers.Named(logging.Connect)
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
 		Datacenter: s.config.Datacenter,
@@ -311,7 +316,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		Roots: []*structs.CARoot{rootCA},
 	})
 	if err != nil {
-		s.logger.Printf("[ERR] connect: Apply failed %v", err)
+		connectLogger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -320,7 +325,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 
 	s.setCAProvider(provider, rootCA)
 
-	s.logger.Printf("[INFO] connect: initialized primary datacenter CA with provider %q", conf.Provider)
+	connectLogger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
 
 	return nil
 }
@@ -438,6 +443,7 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 // persistNewRoot is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
 func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	connectLogger := s.loggers.Named(logging.Connect)
 	state := s.fsm.State()
 	idx, oldRoots, err := state.CARoots(nil)
 	if err != nil {
@@ -493,13 +499,14 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 		return fmt.Errorf("could not atomically update roots and config")
 	}
 
-	s.logger.Printf("[INFO] connect: updated root certificates from primary datacenter")
+	connectLogger.Info("updated root certificates from primary datacenter")
 	return nil
 }
 
 // getIntermediateCASigned is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
 func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	connectLogger := s.loggers.Named(logging.Connect)
 	csr, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
@@ -508,7 +515,7 @@ func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *st
 	var intermediatePEM string
 	if err := s.forwardDC("ConnectCA.SignIntermediate", s.config.PrimaryDatacenter, s.generateCASignRequest(csr), &intermediatePEM); err != nil {
 		// this is a failure in the primary and shouldn't be capable of erroring out our establishing leadership
-		s.logger.Printf("[WARN] connect: Primary datacenter refused to sign our intermediate CA certificate: %v", err)
+		connectLogger.Warn("Primary datacenter refused to sign our intermediate CA certificate", "error", err)
 		return nil
 	}
 
@@ -526,7 +533,7 @@ func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *st
 	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
 	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 
-	s.logger.Printf("[INFO] connect: received new intermediate certificate from primary datacenter")
+	connectLogger.Info("received new intermediate certificate from primary datacenter")
 	return nil
 }
 
@@ -567,7 +574,7 @@ func (s *Server) runCARootPruning(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			if err := s.pruneCARoots(); err != nil {
-				s.logger.Printf("[ERR] connect: error pruning CA roots: %v", err)
+				s.loggers.Named(logging.Connect).Error("error pruning CA roots", "error", err)
 			}
 		}
 	}
@@ -598,7 +605,7 @@ func (s *Server) pruneCARoots() error {
 	var newRoots structs.CARoots
 	for _, r := range roots {
 		if !r.Active && !r.RotatedOutAt.IsZero() && time.Now().Sub(r.RotatedOutAt) > common.LeafCertTTL*2 {
-			s.logger.Printf("[INFO] connect: pruning old unused root CA (ID: %s)", r.ID)
+			s.loggers.Named(logging.Connect).Info("pruning old unused root CA", "id", r.ID)
 			continue
 		}
 		newRoot := *r
@@ -630,6 +637,8 @@ func (s *Server) pruneCARoots() error {
 // expiration. As soon as more than half the time a cert is valid has passed,
 // it will try to renew it.
 func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) error {
+	connectLogger := s.loggers.Named(logging.Connect)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -684,7 +693,10 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 				s.setCAProvider(provider, activeRoot)
 				return nil
 			}, func(err error) {
-				s.logger.Printf("[ERR] connect: %s: %v", secondaryCertRenewWatchRoutineName, err)
+				connectLogger.Error("error renewing intermediate certs",
+					"routine", secondaryCertRenewWatchRoutineName,
+					"error", err,
+				)
 			})
 		}
 	}
@@ -694,6 +706,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 // ConnectCA.Roots endpoint to monitor when it needs to request a new signed
 // intermediate certificate.
 func (s *Server) secondaryCARootWatch(ctx context.Context) error {
+	connectLogger := s.loggers.Named(logging.Connect)
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
@@ -702,7 +715,7 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 		},
 	}
 
-	s.logger.Printf("[DEBUG] connect: starting Connect CA root replication from primary datacenter %q", s.config.PrimaryDatacenter)
+	connectLogger.Debug("starting Connect CA root replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
 
 	retryLoopBackoff(ctx.Done(), func() error {
 		var roots structs.IndexedCARoots
@@ -741,7 +754,10 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
 		return nil
 	}, func(err error) {
-		s.logger.Printf("[ERR] connect: %s: %v", secondaryCARootWatchRoutineName, err)
+		connectLogger.Error("CA root replication failed, will retry",
+			"routine", secondaryCARootWatchRoutineName,
+			"error", err,
+		)
 	})
 
 	return nil
@@ -750,11 +766,12 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 // replicateIntentions executes a blocking query to the primary datacenter to replicate
 // the intentions there to the local state.
 func (s *Server) replicateIntentions(ctx context.Context) error {
+	connectLogger := s.loggers.Named(logging.Connect)
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.PrimaryDatacenter,
 	}
 
-	s.logger.Printf("[DEBUG] connect: starting Connect intention replication from primary datacenter %q", s.config.PrimaryDatacenter)
+	connectLogger.Debug("starting Connect intention replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
 
 	retryLoopBackoff(ctx.Done(), func() error {
 		// Always use the latest replication token value in case it changed while looping.
@@ -798,7 +815,10 @@ func (s *Server) replicateIntentions(ctx context.Context) error {
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, remote.QueryMeta.Index)
 		return nil
 	}, func(err error) {
-		s.logger.Printf("[ERR] connect: %s: %v", intentionReplicationRoutineName, err)
+		connectLogger.Error("error replicating intentions",
+			"routine", intentionReplicationRoutineName,
+			"error", err,
+		)
 	})
 	return nil
 }

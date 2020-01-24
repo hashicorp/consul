@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"net/url"
 	"sync"
@@ -18,6 +17,8 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 var ErrNotInitialized = errors.New("provider not initialized")
@@ -30,7 +31,7 @@ type ConsulProvider struct {
 	clusterID string
 	isPrimary bool
 	spiffeID  *connect.SpiffeIDSigning
-	logger    *log.Logger
+	logger    hclog.Logger
 
 	// testState is only used to test Consul leader's handling of providers that
 	// need to persist state. Consul provider actually manages it's state directly
@@ -119,8 +120,10 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
-	c.logger.Printf("[DEBUG] consul CA provider configured ID=%s IsPrimary=%v",
-		c.id, c.isPrimary)
+	c.logger.Debug("consul CA provider configured",
+		"id", c.id,
+		"is_primary", c.isPrimary,
+	)
 
 	return nil
 }
@@ -669,8 +672,11 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 }
 
 // SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (c *ConsulProvider) SetLogger(logger *log.Logger) {
-	c.logger = logger
+func (c *ConsulProvider) SetLogger(logger hclog.Logger) {
+	c.logger = logger.
+		ResetNamed(logging.Connect).
+		Named(logging.CA).
+		Named(logging.Consul)
 }
 
 func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {

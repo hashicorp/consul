@@ -869,11 +869,14 @@ func (a *Agent) DisableNodeMaintenance() error {
 // Providing a non-nil stopCh can be used to close the connection and stop the
 // log stream. An empty string will be sent down the given channel when there's
 // nothing left to stream, after which the caller should close the stopCh.
-func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+func (a *Agent) Monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
 	if loglevel != "" {
 		r.params.Add("loglevel", loglevel)
+	}
+	if logJSON {
+		r.params.Set("logjson", "true")
 	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {

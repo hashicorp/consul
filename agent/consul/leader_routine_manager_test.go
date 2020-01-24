@@ -16,7 +16,7 @@ func TestLeaderRoutineManager(t *testing.T) {
 	var running uint32
 	// tlog := testutil.NewCancellableTestLogger(t)
 	// defer tlog.Cancel()
-	mgr := NewLeaderRoutineManager(testutil.TestLogger(t))
+	mgr := NewLeaderRoutineManager(testutil.Logger(t))
 
 	run := func(ctx context.Context) error {
 		atomic.StoreUint32(&running, 1)

@@ -2,16 +2,15 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -28,7 +27,6 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1248,7 +1246,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis service")
 	}
 
-	cfg2 := TestConfig(testutil.TestLogger(t), config.Source{
+	cfg2 := TestConfig(testutil.Logger(t), config.Source{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `
@@ -4137,69 +4135,153 @@ func TestAgent_RegisterCheck_Service(t *testing.T) {
 
 func TestAgent_Monitor(t *testing.T) {
 	t.Parallel()
-	logWriter := logger.NewLogWriter(512)
-	a := NewTestAgentWithFields(t, true, TestAgent{
-		LogWriter: logWriter,
-		LogOutput: io.MultiWriter(os.Stderr, logWriter),
-		HCL:       `node_name = "invalid!"`,
-	})
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Try passing an invalid log level
-	req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=invalid", nil)
-	resp := newClosableRecorder()
-	if _, err := a.srv.AgentMonitor(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if resp.Code != 400 {
-		t.Fatalf("bad: %v", resp.Code)
-	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	if !strings.Contains(string(body), "Unknown log level") {
-		t.Fatalf("bad: %s", body)
-	}
+	t.Run("unknown log level", func(t *testing.T) {
+		// Try passing an invalid log level
+		req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=invalid", nil)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentMonitor(resp, req)
+		if err == nil {
+			t.Fatal("expected BadRequestError to have occurred, got nil")
+		}
 
-	// Try to stream logs until we see the expected log line
-	retry.Run(t, func(r *retry.R) {
-		req, _ = http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
-		resp = newClosableRecorder()
-		done := make(chan struct{})
-		go func() {
-			if _, err := a.srv.AgentMonitor(resp, req); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-			close(done)
-		}()
+		// Note that BadRequestError is handled outside the endpoint handler so we
+		// still see a 200 if we check here.
+		if _, ok := err.(BadRequestError); !ok {
+			t.Fatalf("expected BadRequestError to have occurred, got %#v", err)
+		}
 
-		resp.Close()
-		<-done
-
-		got := resp.Body.Bytes()
-		want := []byte(`[WARN] agent: Node name "invalid!" will not be discoverable via DNS`)
-		if !bytes.Contains(got, want) {
-			r.Fatalf("got %q and did not find %q", got, want)
+		substring := "Unknown log level"
+		if !strings.Contains(err.Error(), substring) {
+			t.Fatalf("got: %s, wanted message containing: %s", err.Error(), substring)
 		}
 	})
-}
 
-type closableRecorder struct {
-	*httptest.ResponseRecorder
-	closer chan bool
-}
+	t.Run("stream unstructured logs", func(t *testing.T) {
+		// Try to stream logs until we see the expected log line
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+			cancelCtx, cancelFunc := context.WithCancel(context.Background())
+			req = req.WithContext(cancelCtx)
 
-func newClosableRecorder() *closableRecorder {
-	r := httptest.NewRecorder()
-	closer := make(chan bool)
-	return &closableRecorder{r, closer}
-}
+			resp := httptest.NewRecorder()
+			errCh := make(chan error)
+			go func() {
+				_, err := a.srv.AgentMonitor(resp, req)
+				errCh <- err
+			}()
 
-func (r *closableRecorder) Close() {
-	close(r.closer)
-}
+			args := &structs.ServiceDefinition{
+				Name: "monitor",
+				Port: 8000,
+				Check: structs.CheckType{
+					TTL: 15 * time.Second,
+				},
+			}
 
-func (r *closableRecorder) CloseNotify() <-chan bool {
-	return r.closer
+			registerReq, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			if _, err := a.srv.AgentRegisterService(nil, registerReq); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			// Wait until we have received some type of logging output
+			require.Eventually(t, func() bool {
+				return len(resp.Body.Bytes()) > 0
+			}, 3*time.Second, 100*time.Millisecond)
+
+			cancelFunc()
+			err := <-errCh
+			require.NoError(t, err)
+
+			got := resp.Body.String()
+
+			// Only check a substring that we are highly confident in finding
+			want := "Synced service: service="
+			if !strings.Contains(got, want) {
+				r.Fatalf("got %q and did not find %q", got, want)
+			}
+		})
+	})
+
+	t.Run("stream JSON logs", func(t *testing.T) {
+		// Try to stream logs until we see the expected log line
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug&logjson", nil)
+			cancelCtx, cancelFunc := context.WithCancel(context.Background())
+			req = req.WithContext(cancelCtx)
+
+			resp := httptest.NewRecorder()
+			errCh := make(chan error)
+			go func() {
+				_, err := a.srv.AgentMonitor(resp, req)
+				errCh <- err
+			}()
+
+			args := &structs.ServiceDefinition{
+				Name: "monitor",
+				Port: 8000,
+				Check: structs.CheckType{
+					TTL: 15 * time.Second,
+				},
+			}
+
+			registerReq, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			if _, err := a.srv.AgentRegisterService(nil, registerReq); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			// Wait until we have received some type of logging output
+			require.Eventually(t, func() bool {
+				return len(resp.Body.Bytes()) > 0
+			}, 3*time.Second, 100*time.Millisecond)
+
+			cancelFunc()
+			err := <-errCh
+			require.NoError(t, err)
+
+			// Each line is output as a separate JSON object, we grab the first and
+			// make sure it can be unmarshalled.
+			firstLine := bytes.Split(resp.Body.Bytes(), []byte("\n"))[0]
+			var output map[string]interface{}
+			if err := json.Unmarshal(firstLine, &output); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		})
+	})
+
+	// hopefully catch any potential regression in serf/memberlist logging setup.
+	t.Run("serf shutdown logging", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+		cancelCtx, cancelFunc := context.WithCancel(context.Background())
+		req = req.WithContext(cancelCtx)
+
+		resp := httptest.NewRecorder()
+		errCh := make(chan error)
+		go func() {
+			_, err := a.srv.AgentMonitor(resp, req)
+			errCh <- err
+		}()
+
+		require.NoError(t, a.Shutdown())
+
+		// Wait until we have received some type of logging output
+		require.Eventually(t, func() bool {
+			return len(resp.Body.Bytes()) > 0
+		}, 3*time.Second, 100*time.Millisecond)
+
+		cancelFunc()
+		err := <-errCh
+		require.NoError(t, err)
+
+		got := resp.Body.String()
+		want := "serf: Shutdown without a Leave"
+		if !strings.Contains(got, want) {
+			t.Fatalf("got %q and did not find %q", got, want)
+		}
+	})
 }
 
 func TestAgent_Monitor_ACLDeny(t *testing.T) {

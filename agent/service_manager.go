@@ -186,9 +186,9 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 	s.services[sid] = watch
 
 	if updating {
-		s.agent.logger.Printf("[DEBUG] agent.manager: updated local registration for service %q", service.ID)
+		s.agent.logger.Debug("updated local registration for service", "service", service.ID)
 	} else {
-		s.agent.logger.Printf("[DEBUG] agent.manager: added local registration for service %q", service.ID)
+		s.agent.logger.Debug("added local registration for service", "service", service.ID)
 	}
 
 	return nil
@@ -365,7 +365,7 @@ func (w *serviceConfigWatch) runWatch(wg *sync.WaitGroup) {
 			return
 		case event := <-w.updateCh:
 			if err := w.handleUpdate(event); err != nil {
-				w.agent.logger.Printf("[ERR] agent.manager: error handling service update: %v", err)
+				w.agent.logger.Error("error handling service update", "error", err)
 			}
 		}
 	}

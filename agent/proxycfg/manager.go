@@ -2,12 +2,12 @@ package proxycfg
 
 import (
 	"errors"
-	"log"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -65,7 +65,7 @@ type ManagerConfig struct {
 	// for now and cleaner than passing the entire RuntimeConfig.
 	Source *structs.QuerySource
 	// logger is the agent's logger to be used for logging logs.
-	Logger *log.Logger
+	Logger hclog.Logger
 }
 
 // NewManager constructs a manager from the provided agent cache.
@@ -143,8 +143,10 @@ func (m *Manager) syncState() {
 		// validate more generally that that is always true.
 		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(sid))
 		if err != nil {
-			m.Logger.Printf("[ERR] failed to watch proxy service %s: %s", sid.String(),
-				err)
+			m.Logger.Error("failed to watch proxy service",
+				"service", sid.String(),
+				"error", err,
+			)
 		}
 	}
 
@@ -265,8 +267,9 @@ OUTER:
 	default:
 		// This should not be possible since we should be the only sender, enforced
 		// by m.mu but error and drop the update rather than panic.
-		m.Logger.Printf("[ERR] proxycfg: failed to deliver ConfigSnapshot to %q",
-			snap.ProxyID.String())
+		m.Logger.Error("failed to deliver ConfigSnapshot to proxy",
+			"proxy", snap.ProxyID.String(),
+		)
 	}
 }
 

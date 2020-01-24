@@ -74,7 +74,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
-	cfgSnap.Proxy.Expose.Finalize(s.Logger)
+	cfgSnap.Proxy.Expose.Finalize()
 	paths := cfgSnap.Proxy.Expose.Paths
 
 	// Add service health checks to the list of paths to create clusters for if needed
@@ -83,7 +83,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
 			p, err := parseCheckPath(check)
 			if err != nil {
-				s.Logger.Printf("[WARN] envoy: failed to create cluster for check '%s': %v", check.CheckID, err)
+				s.Logger.Warn("failed to create cluster for", "check", check.CheckID, "error", err)
 				continue
 			}
 			paths = append(paths, p)
@@ -97,7 +97,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path.LocalPathPort), path.Protocol, path.LocalPathPort)
 		if err != nil {
-			s.Logger.Printf("[WARN] envoy: failed to make local cluster for '%s': %s", path.Path, err)
+			s.Logger.Warn("failed to make local cluster", "path", path.Path, "error", err)
 			continue
 		}
 		clusters = append(clusters, c)
@@ -162,7 +162,7 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	// If we have overridden local cluster config try to parse it into an Envoy cluster
@@ -212,8 +212,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-			upstream.Identifier(), err)
+		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(), "error", err)
 	}
 	if cfg.ClusterJSON != "" {
 		c, err = makeClusterFromUserConfig(cfg.ClusterJSON)
@@ -268,8 +267,8 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-			upstream.Identifier(), err)
+		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(),
+			"error", err)
 	}
 
 	var escapeHatchCluster *envoy.Cluster
@@ -282,8 +281,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 				return nil, err
 			}
 		} else {
-			s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
-				upstream.Identifier(), "envoy_cluster_json", chain.ServiceName)
+			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
+				"discovery chain", chain.ServiceName, "upstream", upstream.Identifier(),
+				"envoy_cluster_json", chain.ServiceName)
 		}
 	}
 
@@ -325,7 +325,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
+		s.Logger.Debug("generating cluster for", "cluster", clusterName)
 		c := &envoy.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,
@@ -438,7 +438,7 @@ func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.Co
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse mesh gateway config: %s", err)
+		s.Logger.Warn("failed to parse mesh gateway config", "error", err)
 	}
 
 	return &envoy.Cluster{

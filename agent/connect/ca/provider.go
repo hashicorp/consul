@@ -3,7 +3,8 @@ package ca
 import (
 	"crypto/x509"
 	"errors"
-	"log"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 //go:generate mockery -name Provider -inpkg
@@ -161,6 +162,5 @@ type Provider interface {
 // Consul logger to output diagnostic messages.
 type NeedsLogger interface {
 	// SetLogger will pass a configured Logger to the provider.
-	// TODO(hclog) convert this to an hclog.Logger.
-	SetLogger(logger *log.Logger)
+	SetLogger(logger hclog.Logger)
 }

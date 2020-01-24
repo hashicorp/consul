@@ -106,14 +106,14 @@ func (s *Server) invalidateSession(id string, entMeta *structs.EnterpriseMeta) {
 	for attempt := uint(0); attempt < maxInvalidateAttempts; attempt++ {
 		_, err := s.raftApply(structs.SessionRequestType, args)
 		if err == nil {
-			s.logger.Printf("[DEBUG] consul.state: Session %s TTL expired", id)
+			s.logger.Debug("Session TTL expired", "session", id)
 			return
 		}
 
-		s.logger.Printf("[ERR] consul.session: Invalidation failed: %v", err)
+		s.logger.Error("Invalidation failed", "error", err)
 		time.Sleep((1 << attempt) * invalidateRetryBase)
 	}
-	s.logger.Printf("[ERR] consul.session: maximum revoke attempts reached for session: %s", id)
+	s.logger.Error("maximum revoke attempts reached for session", "error", id)
 }
 
 // clearSessionTimer is used to clear the session time for

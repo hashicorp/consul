@@ -3,12 +3,12 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
@@ -21,10 +21,10 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
-	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/prometheus/client_golang/prometheus"
@@ -111,7 +111,9 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 			return nil, nil
 		}
 		handlerOptions := promhttp.HandlerOpts{
-			ErrorLog:      s.agent.logger,
+			ErrorLog: s.agent.logger.StandardLogger(&hclog.StandardLoggerOptions{
+				InferLevels: true,
+			}),
 			ErrorHandling: promhttp.ContinueOnError,
 		}
 
@@ -491,7 +493,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 // only warn because the write did succeed and anti-entropy will sync later.
 func (s *HTTPServer) syncChanges() {
 	if err := s.agent.State.SyncChanges(); err != nil {
-		s.agent.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+		s.agent.logger.Error("failed to sync changes", "error", err)
 	}
 }
 
@@ -1110,31 +1112,31 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 		logLevel = "INFO"
 	}
 
-	// Upper case the level since that's required by the filter.
-	logLevel = strings.ToUpper(logLevel)
-
-	// Create a level filter and flusher.
-	filter := logger.LevelFilter()
-	filter.MinLevel = logutils.LogLevel(logLevel)
-	if !logger.ValidateLevelFilter(filter.MinLevel, filter) {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Unknown log level: %s", filter.MinLevel)
-		return nil, nil
+	var logJSON bool
+	if _, ok := req.URL.Query()["logjson"]; ok {
+		logJSON = true
 	}
+
+	if !logging.ValidateLogLevel(logLevel) {
+		return nil, BadRequestError{
+			Reason: fmt.Sprintf("Unknown log level: %s", logLevel),
+		}
+	}
+
 	flusher, ok := resp.(http.Flusher)
 	if !ok {
 		return nil, fmt.Errorf("Streaming not supported")
 	}
 
-	// Set up a log handler.
-	handler := &httpLogHandler{
-		filter: filter,
-		logCh:  make(chan string, 512),
-		logger: s.agent.logger,
-	}
-	s.agent.LogWriter.RegisterHandler(handler)
-	defer s.agent.LogWriter.DeregisterHandler(handler)
-	notify := resp.(http.CloseNotifier).CloseNotify()
+	monitor := monitor.New(monitor.Config{
+		BufferSize: 512,
+		Logger:     s.agent.logger,
+		LoggerOptions: &hclog.LoggerOptions{
+			Level:      logging.LevelFromString(logLevel),
+			JSONFormat: logJSON,
+		},
+	})
+	logsCh := monitor.Start()
 
 	// Send header so client can start streaming body
 	resp.WriteHeader(http.StatusOK)
@@ -1147,39 +1149,16 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	// Stream logs until the connection is closed.
 	for {
 		select {
-		case <-notify:
-			s.agent.LogWriter.DeregisterHandler(handler)
-			if handler.droppedCount > 0 {
-				s.agent.logger.Printf("[WARN] agent: Dropped %d logs during monitor request", handler.droppedCount)
+		case <-req.Context().Done():
+			droppedCount := monitor.Stop()
+			if droppedCount > 0 {
+				s.agent.logger.Warn("Dropped logs during monitor request", "dropped_count", droppedCount)
 			}
 			return nil, nil
-		case log := <-handler.logCh:
-			fmt.Fprintln(resp, log)
+		case log := <-logsCh:
+			fmt.Fprint(resp, string(log))
 			flusher.Flush()
 		}
-	}
-}
-
-type httpLogHandler struct {
-	filter       *logutils.LevelFilter
-	logCh        chan string
-	logger       *log.Logger
-	droppedCount int
-}
-
-func (h *httpLogHandler) HandleLog(log string) {
-	// Check the log level
-	if !h.filter.Check([]byte(log)) {
-		return
-	}
-
-	// Do a non-blocking send
-	select {
-	case h.logCh <- log:
-	default:
-		// Just increment a counter for dropped logs to this handler; we can't log now
-		// because the lock is already held by the LogWriter invoking this
-		h.droppedCount++
 	}
 }
 
@@ -1273,17 +1252,17 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 
 		data, err := json.Marshal(tokens)
 		if err != nil {
-			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			s.agent.logger.Warn("failed to persist tokens", "error", err)
 			return nil, fmt.Errorf("Failed to marshal tokens for persistence: %v", err)
 		}
 
 		if err := file.WriteAtomicWithPerms(filepath.Join(s.agent.config.DataDir, tokensPath), data, 0600); err != nil {
-			s.agent.logger.Printf("[WARN] agent: failed to persist tokens - %v", err)
+			s.agent.logger.Warn("failed to persist tokens", "error", err)
 			return nil, fmt.Errorf("Failed to persist tokens - %v", err)
 		}
 	}
 
-	s.agent.logger.Printf("[INFO] agent: Updated agent's ACL token %q", target)
+	s.agent.logger.Info("Updated agent's ACL token", "token", target)
 	return nil, nil
 }
 

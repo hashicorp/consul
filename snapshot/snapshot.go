@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 )
 
@@ -26,7 +26,7 @@ type Snapshot struct {
 // and returns an object that gives access to the file as an io.Reader. You must
 // arrange to call Close() on the returned object or else you will leak a
 // temporary file.
-func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
+func New(logger hclog.Logger, r *raft.Raft) (*Snapshot, error) {
 	// Take the snapshot.
 	future := r.Snapshot()
 	if err := future.Error(); err != nil {
@@ -40,7 +40,7 @@ func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			logger.Printf("[ERR] snapshot: Failed to close Raft snapshot: %v", err)
+			logger.Error("Failed to close Raft snapshot: %v", err)
 		}
 	}()
 
@@ -61,7 +61,7 @@ func New(logger *log.Logger, r *raft.Raft) (*Snapshot, error) {
 		}
 
 		if err := os.Remove(archive.Name()); err != nil {
-			logger.Printf("[ERR] snapshot: Failed to clean up temp snapshot: %v", err)
+			logger.Error("Failed to clean up temp snapshot", "error", err)
 		}
 	}()
 
@@ -142,7 +142,7 @@ func Verify(in io.Reader) (*raft.SnapshotMeta, error) {
 
 // Restore takes the snapshot from the reader and attempts to apply it to the
 // given Raft instance.
-func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
+func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
 	// Wrap the reader in a gzip decompressor.
 	decomp, err := gzip.NewReader(in)
 	if err != nil {
@@ -150,7 +150,7 @@ func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
 	}
 	defer func() {
 		if err := decomp.Close(); err != nil {
-			logger.Printf("[ERR] snapshot: Failed to close snapshot decompressor: %v", err)
+			logger.Error("Failed to close snapshot decompressor", "error", err)
 		}
 	}()
 
@@ -162,10 +162,10 @@ func Restore(logger *log.Logger, in io.Reader, r *raft.Raft) error {
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			logger.Printf("[ERR] snapshot: Failed to close temp snapshot: %v", err)
+			logger.Error("Failed to close temp snapshot", "error", err)
 		}
 		if err := os.Remove(snap.Name()); err != nil {
-			logger.Printf("[ERR] snapshot: Failed to clean up temp snapshot: %v", err)
+			logger.Error("Failed to clean up temp snapshot", "error", err)
 		}
 	}()
 

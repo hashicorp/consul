@@ -399,6 +399,9 @@ The options below are all specified on the command-line.
   agent via [`consul monitor`](/docs/commands/monitor.html) and use any log level. Also, the
   log level can be changed during a config reload.
 
+* <a name="_log_json"></a><a href="#_log_json">`-log-json`</a> - This flag
+  enables the agent to output logs in a JSON format. By default this is false.
+
 * <a name="_node"></a><a href="#_node">`-node`</a> - The name of this node in the cluster.
   This must be unique within the cluster. By default this is the hostname of the machine.
 
@@ -1391,6 +1394,9 @@ default will automatically work with some tooling.
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
+
+* <a name="log_json"></a><a href="#log_json">`log_json`</a> Equivalent to the
+  [`-log-json` command-line flag](#_log_json).
 
 * <a name="default_query_time"></a><a href="#default_query_time">`default_query_time`</a>
   Equivalent to the [`-default-query-time` command-line flag](#_default_query_time).

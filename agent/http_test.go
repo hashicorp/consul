@@ -497,9 +497,9 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest("GET", url, nil)
 			a.srv.wrap(handler, []string{"GET"})(resp, req)
-
-			if got := buf.String(); !strings.Contains(got, want) {
-				t.Fatalf("got %s want %s", got, want)
+			bufout := buf.String()
+			if !strings.Contains(bufout, want) {
+				t.Fatalf("got %s want %s", bufout, want)
 			}
 		})
 	}

@@ -55,7 +55,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	// Apply the update
 	resp, err := op.srv.raftApply(structs.AutopilotRequestType, args)
 	if err != nil {
-		op.srv.logger.Printf("[ERR] consul.operator: Apply failed: %v", err)
+		op.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {

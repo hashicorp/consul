@@ -1,10 +1,9 @@
-package logger
+package logging
 
 import (
 	"bytes"
 
 	"github.com/hashicorp/go-syslog"
-	"github.com/hashicorp/logutils"
 )
 
 // levelPriority is used to map a log level to a
@@ -14,7 +13,7 @@ var levelPriority = map[string]gsyslog.Priority{
 	"DEBUG": gsyslog.LOG_INFO,
 	"INFO":  gsyslog.LOG_NOTICE,
 	"WARN":  gsyslog.LOG_WARNING,
-	"ERR":   gsyslog.LOG_ERR,
+	"ERROR": gsyslog.LOG_ERR,
 	"CRIT":  gsyslog.LOG_CRIT,
 }
 
@@ -22,17 +21,11 @@ var levelPriority = map[string]gsyslog.Priority{
 // writing them to a Syslogger. Implements the io.Writer
 // interface.
 type SyslogWrapper struct {
-	l    gsyslog.Syslogger
-	filt *logutils.LevelFilter
+	l gsyslog.Syslogger
 }
 
 // Write is used to implement io.Writer
 func (s *SyslogWrapper) Write(p []byte) (int, error) {
-	// Skip syslog if the log level doesn't apply
-	if !s.filt.Check(p) {
-		return 0, nil
-	}
-
 	// Extract log level
 	var level string
 	afterLevel := p

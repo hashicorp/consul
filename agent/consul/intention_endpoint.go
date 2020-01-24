@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -22,7 +23,8 @@ var (
 // Intention manages the Connect intentions.
 type Intention struct {
 	// srv is a pointer back to the server.
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 func (s *Intention) checkIntentionID(id string) (bool, error) {
@@ -40,7 +42,7 @@ func (s *Intention) checkIntentionID(id string) (bool, error) {
 // generates a new uuid for the intention and generally validates that the request is well-formed
 func (s *Intention) prepareApplyCreate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	if !args.Intention.CanWrite(authz) {
-		s.srv.logger.Printf("[WARN] consul.intention: Intention creation denied due to ACLs")
+		s.logger.Warn("Intention creation denied due to ACLs", "intention", args.Intention.ID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -87,7 +89,7 @@ func (s *Intention) prepareApplyCreate(authz acl.Authorizer, entMeta *structs.En
 // intention as well as generally validating that the request is well-formed
 func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	if !args.Intention.CanWrite(authz) {
-		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention %q denied due to ACLs", args.Intention.ID)
+		s.logger.Warn("Operation on intention denied due to ACLs", "intention", args.Intention.ID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -103,7 +105,7 @@ func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.En
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-		s.srv.logger.Printf("[WARN] consul.intention: Update operation on intention %q denied due to ACLs", args.Intention.ID)
+		s.logger.Warn("Operation on intention denied due to ACLs", "intention", args.Intention.ID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -149,7 +151,7 @@ func (s *Intention) prepareApplyDelete(authz acl.Authorizer, entMeta *structs.En
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-		s.srv.logger.Printf("[WARN] consul.intention: Deletion operation on intention %q denied due to ACLs", args.Intention.ID)
+		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -207,7 +209,7 @@ func (s *Intention) Apply(
 	// Commit
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
 	if err != nil {
-		s.srv.logger.Printf("[ERR] consul.intention: Apply failed %v", err)
+		s.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -248,7 +250,7 @@ func (s *Intention) Get(
 
 			// If ACLs prevented any responses, error
 			if len(reply.Intentions) == 0 {
-				s.srv.logger.Printf("[WARN] consul.intention: Request to get intention '%s' denied due to ACLs", args.IntentionID)
+				s.logger.Warn("Request to get intention denied due to ACLs", "intention", args.IntentionID)
 				return acl.ErrPermissionDenied
 			}
 
@@ -312,7 +314,7 @@ func (s *Intention) Match(
 		for _, entry := range args.Match.Entries {
 			entry.FillAuthzContext(&authzContext)
 			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, &authzContext) != acl.Allow {
-				s.srv.logger.Printf("[WARN] consul.intention: Operation on intention prefix '%s' denied due to ACLs", prefix)
+				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix)
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -383,7 +385,7 @@ func (s *Intention) Check(
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
 		if rule != nil && rule.ServiceRead(prefix, &authzContext) != acl.Allow {
-			s.srv.logger.Printf("[WARN] consul.intention: test on intention '%s' denied due to ACLs", prefix)
+			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix)
 			return acl.ErrPermissionDenied
 		}
 	}

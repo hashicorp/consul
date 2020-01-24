@@ -542,6 +542,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "-log-json",
+			args: []string{
+				`-log-json`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.LogJSON = true
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "-log-rotate-max-files",
 			args: []string{
 				`-log-rotate-max-files=2`,
@@ -3865,6 +3876,7 @@ func TestFullConfig(t *testing.T) {
 				"kv_max_value_size": 1234567800000000
 			},
 			"log_level": "k1zo9Spt",
+			"log_json": true,
 			"max_query_time": "18237s",
 			"node_id": "AsUIlw99",
 			"node_meta": {
@@ -4470,6 +4482,7 @@ func TestFullConfig(t *testing.T) {
 				kv_max_value_size = 1234567800000000
 			}
 			log_level = "k1zo9Spt"
+			log_json = true
 			max_query_time = "18237s"
 			node_id = "AsUIlw99"
 			node_meta {
@@ -5163,6 +5176,7 @@ func TestFullConfig(t *testing.T) {
 		LeaveDrainTime:                   8265 * time.Second,
 		LeaveOnTerm:                      true,
 		LogLevel:                         "k1zo9Spt",
+		LogJSON:                          true,
 		MaxQueryTime:                     18237 * time.Second,
 		NodeID:                           types.NodeID("AsUIlw99"),
 		NodeMeta:                         map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
@@ -6034,6 +6048,7 @@ func TestSanitize(t *testing.T) {
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,
 		"LogLevel": "",
+		"LogJSON": false,
 		"LogFile": "",
 		"LogRotateBytes": 0,
 		"LogRotateDuration": "0s",

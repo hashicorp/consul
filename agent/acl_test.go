@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"io"
-	"log"
 	"testing"
 	"time"
 
@@ -14,9 +13,9 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/stretchr/testify/require"
@@ -39,9 +38,6 @@ type TestACLAgent struct {
 	// to os.Stderr.
 	LogOutput io.Writer
 
-	// LogWriter is used for streaming logs.
-	LogWriter *logger.LogWriter
-
 	// DataDir is the data directory which is used when Config.DataDir
 	// is not set. It is created automatically and removed when
 	// Shutdown() is called.
@@ -60,7 +56,11 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	hclDataDir := `data_dir = "acl-agent"`
 
 	logOutput := testutil.TestWriter(t)
-	logger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   a.Name,
+		Level:  hclog.Debug,
+		Output: logOutput,
+	})
 
 	a.Config = TestConfig(logger,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
@@ -74,7 +74,6 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveFn func(strin
 	a.Agent = agent
 
 	agent.LogOutput = logOutput
-	agent.LogWriter = a.LogWriter
 	agent.logger = logger
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 

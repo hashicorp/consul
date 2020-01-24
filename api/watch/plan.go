@@ -3,12 +3,12 @@ package watch
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
+	"io"
 	"reflect"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -18,6 +18,10 @@ const (
 	// maximum back off time, this is to prevent
 	// exponential runaway
 	maxBackoffTime = 180 * time.Second
+
+	// Name used with hclog Logger. We do not add this to the logging package
+	// because we do not want to pull in the root consul module.
+	watchLoggerName = "watch"
 )
 
 func (p *Plan) Run(address string) error {
@@ -26,10 +30,13 @@ func (p *Plan) Run(address string) error {
 
 // Run is used to run a watch plan
 func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
+	// Create the logger
+	logger := newWatchLogger(p.LogOutput)
+
 	// Setup the client
 	p.address = address
 	if conf == nil {
-		conf = consulapi.DefaultConfig()
+		conf = consulapi.DefaultConfigWithLogger(logger)
 	}
 	conf.Address = address
 	conf.Datacenter = p.Datacenter
@@ -39,13 +46,6 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 		return fmt.Errorf("Failed to connect to agent: %v", err)
 	}
 
-	// Create the logger
-	output := p.LogOutput
-	if output == nil {
-		output = os.Stderr
-	}
-	logger := log.New(output, "", log.LstdFlags)
-
 	return p.RunWithClientAndLogger(client, logger)
 }
 
@@ -53,8 +53,13 @@ func (p *Plan) RunWithConfig(address string, conf *consulapi.Config) error {
 // log.Logger instance. Using this, the plan's Datacenter, Token and LogOutput
 // fields are ignored and the passed client is expected to be configured as
 // needed.
-func (p *Plan) RunWithClientAndLogger(client *consulapi.Client,
-	logger *log.Logger) error {
+func (p *Plan) RunWithClientAndLogger(client *consulapi.Client, logger hclog.Logger) error {
+	var watchLogger hclog.Logger
+	if logger == nil {
+		watchLogger = newWatchLogger(nil)
+	} else {
+		watchLogger = logger.Named(watchLoggerName)
+	}
 
 	p.client = client
 
@@ -84,8 +89,7 @@ OUTER:
 			if retry > maxBackoffTime {
 				retry = maxBackoffTime
 			}
-			logger.Printf("[ERR] consul.watch: Watch (type: %s) errored: %v, retry in %v",
-				p.Type, err, retry)
+			watchLogger.Error("Watch errored", "type", p.Type, "error", err, "retry", retry)
 			select {
 			case <-time.After(retry):
 				continue OUTER
@@ -117,7 +121,7 @@ OUTER:
 		} else if p.Handler != nil {
 			idx, ok := blockParamVal.(WaitIndexVal)
 			if !ok {
-				logger.Printf("[ERR] consul.watch: Handler only supports index-based " +
+				watchLogger.Error("Handler only supports index-based " +
 					" watches but non index-based watch run. Skipping Handler.")
 			}
 			p.Handler(uint64(idx), result)
@@ -164,4 +168,11 @@ func (p *Plan) IsStopped() bool {
 	p.stopLock.Lock()
 	defer p.stopLock.Unlock()
 	return p.stop
+}
+
+func newWatchLogger(output io.Writer) hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Name:   watchLoggerName,
+		Output: output,
+	})
 }

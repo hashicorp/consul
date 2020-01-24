@@ -480,7 +480,7 @@ func (c *cmd) captureDynamic() error {
 
 			go func() {
 				endLogChn := make(chan struct{})
-				logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
+				logCh, err := c.client.Agent().Monitor("DEBUG", false, endLogChn, nil)
 				if err != nil {
 					errCh <- err
 				}

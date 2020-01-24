@@ -250,7 +250,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if rule.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
-		a.logger.Printf("[DEBUG] agent: dropping node %q from result due to ACLs", node)
+		a.logger.Debug("dropping node from result due to ACLs", "node", node)
 		m = append(m[:i], m[i+1:]...)
 		i--
 	}
@@ -280,7 +280,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map
 		if authz.ServiceRead(service.Service, &authzContext) == acl.Allow {
 			continue
 		}
-		a.logger.Printf("[DEBUG] agent: dropping service %q from result due to ACLs", id.String())
+		a.logger.Debug("dropping service from result due to ACLs", "service", id.String())
 		delete(*services, id)
 	}
 	return nil
@@ -316,7 +316,7 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		}
-		a.logger.Printf("[DEBUG] agent: dropping check %q from result due to ACLs", id.String())
+		a.logger.Debug("dropping check from result due to ACLs", "check", id.String())
 		delete(*checks, id)
 	}
 	return nil

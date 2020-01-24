@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
@@ -45,6 +47,10 @@ var (
 	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 )
 
+func (s *Server) rpcLogger() hclog.Logger {
+	return s.loggers.Named(logging.RPC)
+}
+
 // listen is used to listen for incoming RPC connections
 func (s *Server) listen(listener net.Listener) {
 	for {
@@ -54,7 +60,7 @@ func (s *Server) listen(listener net.Listener) {
 			if s.shutdown {
 				return
 			}
-			s.logger.Printf("[ERR] consul.rpc: failed to accept RPC conn: %v", err)
+			s.rpcLogger().Error("failed to accept RPC conn", "error", err)
 			continue
 		}
 
@@ -76,7 +82,10 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	buf := make([]byte, 1)
 	if _, err := conn.Read(buf); err != nil {
 		if err != io.EOF {
-			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v %s", err, logConn(conn))
+			s.rpcLogger().Error("failed to read byte",
+				"conn", logConn(conn),
+				"error", err,
+			)
 		}
 		conn.Close()
 		return
@@ -85,7 +94,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	// Enforce TLS if VerifyIncoming is set
 	if s.tlsConfigurator.VerifyIncomingRPC() && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSInsecure {
-		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
+		s.rpcLogger().Warn("Non-TLS connection attempted with VerifyIncoming set", "conn", logConn(conn))
 		conn.Close()
 		return
 	}
@@ -115,7 +124,10 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
-			s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", typ, logConn(conn))
+			s.rpcLogger().Error("unrecognized RPC byte",
+				"byte", typ,
+				"conn", logConn(conn),
+			)
 			conn.Close()
 		}
 	}
@@ -132,7 +144,10 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 		sub, err := server.Accept()
 		if err != nil {
 			if err != io.EOF {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
+				s.rpcLogger().Error("multiplex conn accept failed",
+					"conn", logConn(conn),
+					"error", err,
+				)
 			}
 			return
 		}
@@ -153,7 +168,10 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
+				s.rpcLogger().Error("RPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
 				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
 			return
@@ -175,7 +193,10 @@ func (s *Server) handleInsecureConn(conn net.Conn) {
 
 		if err := s.insecureRPCServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: INSECURERPC error: %v %s", err, logConn(conn))
+				s.rpcLogger().Error("INSECURERPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
 				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
 			return
@@ -190,7 +211,10 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 	go func() {
 		defer conn.Close()
 		if err := s.handleSnapshotRequest(conn); err != nil {
-			s.logger.Printf("[ERR] consul.rpc: Snapshot RPC error: %v %s", err, logConn(conn))
+			s.rpcLogger().Error("Snapshot RPC error",
+				"conn", logConn(conn),
+				"error", err,
+			)
 		}
 	}()
 }
@@ -309,10 +333,13 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	manager, server, ok := s.router.FindRoute(dc)
 	if !ok {
 		if s.router.HasDatacenter(dc) {
-			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
+			s.rpcLogger().Warn("RPC request to DC is currently failing as no server can be reached", "datacenter", dc)
 			return structs.ErrDCNotAvailable
 		}
-		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found (method: %s)", dc, method)
+		s.rpcLogger().Warn("RPC request for DC is currently failing as no path was found",
+			"datacenter", dc,
+			"method", method,
+		)
 		return structs.ErrNoDCPath
 	}
 
@@ -320,7 +347,12 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
-		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v (method: %s)", server.Addr, dc, err, method)
+		s.rpcLogger().Error("RPC failed to server in DC",
+			"server", server.Addr,
+			"datacenter", dc,
+			"method", method,
+			"error", err,
+		)
 		return err
 	}
 
@@ -397,7 +429,7 @@ func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, en
 
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
-		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
+		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)
 	}
 
 	var chunked bool

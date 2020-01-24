@@ -3,12 +3,12 @@ package ae
 
 import (
 	"fmt"
-	"log"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"math"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/consul/lib"
 )
 
 // scaleThreshold is the number of nodes after which regular sync runs are
@@ -60,7 +60,7 @@ type StateSyncer struct {
 	ShutdownCh chan struct{}
 
 	// Logger is the logger.
-	Logger *log.Logger
+	Logger hclog.Logger
 
 	// ClusterSize returns the number of members in the cluster to
 	// allow staggering the sync runs based on cluster size.
@@ -107,12 +107,16 @@ const (
 	retryFailIntv = 15 * time.Second
 )
 
-func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger *log.Logger) *StateSyncer {
+func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{}, logger hclog.Logger) *StateSyncer {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	s := &StateSyncer{
 		State:             state,
 		Interval:          intv,
 		ShutdownCh:        shutdownCh,
-		Logger:            logger,
+		Logger:            logger.Named(logging.AntiEntropy),
 		SyncFull:          NewTrigger(),
 		SyncChanges:       NewTrigger(),
 		serverUpInterval:  serverUpIntv,
@@ -166,7 +170,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 
 		err := s.State.SyncFull()
 		if err != nil {
-			s.Logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
+			s.Logger.Error("failed to sync remote state", "error", err)
 			return retryFullSyncState
 		}
 
@@ -196,7 +200,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 
 			err := s.State.SyncChanges()
 			if err != nil {
-				s.Logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+				s.Logger.Error("failed to sync changes", "error", err)
 			}
 			return partialSyncState
 

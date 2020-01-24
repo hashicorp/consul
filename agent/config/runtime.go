@@ -839,6 +839,12 @@ type RuntimeConfig struct {
 	// hcl: log_level = string
 	LogLevel string
 
+	// LogJSON controls whether to output logs as structured JSON. Defaults to false.
+	//
+	// hcl: log_json = (true|false)
+	// flag: -log-json
+	LogJSON bool
+
 	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
 	//
 	// hcl: log_file = string
