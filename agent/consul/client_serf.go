@@ -60,8 +60,6 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		return nil, err
 	}
 
-	c.addEnterpriseSerfTags(conf.Tags)
-
 	return serf.Create(conf)
 }
 

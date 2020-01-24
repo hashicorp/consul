@@ -118,8 +118,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
-	s.addEnterpriseSerfTags(conf.Tags)
-
 	return serf.Create(conf)
 }
 
