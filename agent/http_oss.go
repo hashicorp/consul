@@ -47,7 +47,7 @@ func (s *HTTPServer) addEnterpriseHTMLTemplateVars(vars map[string]interface{}) 
 
 func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMethodEnterpriseMeta) error {
 	if methodNS := req.URL.Query().Get("authmethod-ns"); methodNS != "" {
-		return BadRequestError{Reason: "Invalid query paramter: \"authmethod-ns\" - Namespaces is a Consul Enterprise feature"}
+		return BadRequestError{Reason: "Invalid query parameter: \"authmethod-ns\" - Namespaces is a Consul Enterprise feature"}
 	}
 
 	return nil

@@ -339,12 +339,12 @@ type RuntimeConfig struct {
 	// flag: -recursor string [-recursor string]
 	DNSRecursors []string
 
-	// DNSUseCache wether or not to use cache for dns queries
+	// DNSUseCache whether or not to use cache for dns queries
 	//
 	// hcl: dns_config { use_cache = (true|false) }
 	DNSUseCache bool
 
-	// DNSUseCache wether or not to use cache for dns queries
+	// DNSUseCache whether or not to use cache for dns queries
 	//
 	// hcl: dns_config { cache_max_age = "duration" }
 	DNSCacheMaxAge time.Duration
