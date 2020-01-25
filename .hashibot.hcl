@@ -10,8 +10,8 @@ behavior "remove_labels_on_reply" "remove_stale" {
 poll "closed_issue_locker" "locker" {
   schedule             = "0 50 1 * * *"
   closed_for           = "720h" # 30 days
-  max_issues           = 500
-  sleep_between_issues = "5s"
+  max_issues           = 250
+  sleep_between_issues = "1m"
 
   message = <<-EOF
     Hey there,
@@ -25,8 +25,8 @@ poll "closed_issue_locker" "locker" {
 poll "stale_issue_closer" "stale_closer" {
     schedule = "0 22 23 * * *"
     no_reply_in_last = "480h" # 20 days
-    max_issues = 500
-    sleep_between_issues = "5s"
+    max_issues = 250
+    sleep_between_issues = "1m"
     labels = ["waiting-reply"]
     message = <<-EOF
     Hey there,
@@ -40,8 +40,8 @@ poll "stale_issue_closer" "stale_closer" {
 poll "stale_issue_closer" "close_closer" {
     schedule = "0 50 2 * * *"
     no_reply_in_last = "1m" # hack to close issue with that label immediately.
-    max_issues = 500
-    sleep_between_issues = "5s"
+    max_issues = 250
+    sleep_between_issues = "1m"
     labels = ["close-issue"]
     message = <<-EOF
     Hey there,
