@@ -1,4 +1,4 @@
-## Unreleased
+## 1.7.0-beta3 (January 24, 2020)
 
 BREAKING CHANGES:
 
