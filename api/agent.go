@@ -554,8 +554,19 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 // ServiceRegister is used to register a new service with
 // the local agent
 func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
+	return a.serviceRegister(service, false)
+}
+
+func (a *Agent) ServiceRegisterAndReplaceChecks(service *AgentServiceRegistration) error {
+	return a.serviceRegister(service, true)
+}
+
+func (a *Agent) serviceRegister(service *AgentServiceRegistration, replaceChecks bool) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/register")
 	r.obj = service
+	if replaceChecks {
+		r.params.Set("replace-existing-checks", "true")
+	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
