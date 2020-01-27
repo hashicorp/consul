@@ -24,7 +24,6 @@ require (
 	github.com/gogo/googleapis v1.1.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.2
-	github.com/golang/snappy v0.0.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/hashicorp/consul/api v1.2.0
 	github.com/hashicorp/consul/sdk v0.2.0
@@ -64,7 +63,6 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/pascaldekloe/goe v0.1.0
-	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.2
 	github.com/ryanuber/columnize v2.1.0+incompatible
@@ -73,7 +71,6 @@ require (
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.3.0
-	github.com/tinylib/msgp v1.1.1
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
