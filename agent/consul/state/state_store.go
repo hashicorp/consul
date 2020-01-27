@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -329,8 +330,8 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 	return nil
 }
 
-func (s *Store) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
-	return s.publisher.Subscribe(req)
+func (s *Store) Subscribe(ctx context.Context, req *stream.SubscribeRequest) (*stream.Subscription, error) {
+	return s.publisher.Subscribe(ctx, req)
 }
 
 func (s *Store) Unsubscribe(req *stream.SubscribeRequest) {

@@ -48,7 +48,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 	state := h.srv.fsm.State()
 
 	// Register a subscription on this topic/key with the FSM.
-	sub, err := state.Subscribe(req)
+	sub, err := state.Subscribe(server.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (h *ConsulGRPCAdapter) Subscribe(req *stream.SubscribeRequest, server strea
 
 	// Deliver the events
 	for {
-		events, err := sub.Next(server.Context())
+		events, err := sub.Next()
 		if err == stream.ErrSubscriptionReload {
 			event := stream.Event{
 				Payload: &stream.Event_ReloadStream{ReloadStream: true},

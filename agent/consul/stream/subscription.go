@@ -35,14 +35,21 @@ type Subscription struct {
 	// is mutated by calls to Next.
 	currentItem *BufferItem
 
+	// ctx is the Subscription context that wraps the context of the streaming RPC
+	// handler call.
+	ctx context.Context
+
 	// cancelFn stores the context cancel function that will wake up the
 	// in-progress Next call on a server-initiated state change e.g. Reload.
-	cancelFn atomic.Value
+	cancelFn func()
 }
 
 // NewSubscription return a new subscription.
-func NewSubscription(req *SubscribeRequest, item *BufferItem) *Subscription {
+func NewSubscription(ctx context.Context, req *SubscribeRequest, item *BufferItem) *Subscription {
+	subCtx, cancel := context.WithCancel(ctx)
 	return &Subscription{
+		ctx:         subCtx,
+		cancelFn:    cancel,
 		req:         req,
 		currentItem: item,
 	}
@@ -50,28 +57,14 @@ func NewSubscription(req *SubscribeRequest, item *BufferItem) *Subscription {
 
 // Next returns the next set of events to deliver. It must only be called from a
 // single goroutine concurrently as it mutates the Subscription.
-func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
+func (s *Subscription) Next() ([]Event, error) {
 	state := atomic.LoadUint32(&s.state)
 	if state == SubscriptionStateCloseReload {
 		return nil, ErrSubscriptionReload
 	}
 
-	// Create our own sub-context which gets cancelled if the stream is reloaded
-	// so we notice the state change while waiting for next event.
-	ctx, cancel := context.WithCancel(ctx)
-	defer func() {
-		// Unload the cancel function, we can't store nil so a no-op func is best. I
-		// guess this probably isn't strictly necessary since it's safe to call
-		// cancel func multiple times but it feels gross to keep that thing around
-		// after the context is gone.
-		s.cancelFn.Store(context.CancelFunc(func() {}))
-		cancel()
-	}()
-	s.cancelFn.Store(cancel)
-
-	events := make([]Event, 0, 1)
 	for {
-		next, err := s.currentItem.Next(ctx)
+		next, err := s.currentItem.Next(s.ctx)
 		if err != nil {
 			// Check we didn't return because of a state change cancelling the context
 			state := atomic.LoadUint32(&s.state)
@@ -83,12 +76,32 @@ func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
 		// Advance our cursor for next loop or next call
 		s.currentItem = next
 
-		for _, e := range next.Events {
-			// Only return it if the key matches - the buffer is for the whole topic.
-			if s.req.Key == "" || s.req.Key == e.Key {
-				events = append(events, e)
+		// Assume happy path where all events (or none) are relevant.
+		allMatch := true
+
+		// If there is a specific key, see if we need to filter any events
+		if s.req.Key != "" {
+			for _, e := range next.Events {
+				if s.req.Key != e.Key {
+					allMatch = false
+					break
+				}
 			}
 		}
+
+		// Only if we need to filter events should we bother allocating a new slice
+		// as this is a hot loop.
+		events := next.Events
+		if !allMatch {
+			events = make([]Event, 0, len(next.Events))
+			for _, e := range next.Events {
+				// Only return it if the key matches.
+				if s.req.Key == "" || s.req.Key == e.Key {
+					events = append(events, e)
+				}
+			}
+		}
+
 		if len(events) > 0 {
 			return events, nil
 		}
@@ -99,12 +112,11 @@ func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
 // CloseReload closes the stream and signals that the subscriber should reload.
 // It is safe to call from any goroutine.
 func (s *Subscription) CloseReload() {
-	atomic.CompareAndSwapUint32(&s.state, SubscriptionStateOpen,
+	swapped := atomic.CompareAndSwapUint32(&s.state, SubscriptionStateOpen,
 		SubscriptionStateCloseReload)
 
-	fn := s.cancelFn.Load()
-	if cancel, ok := fn.(context.CancelFunc); ok {
-		cancel()
+	if swapped {
+		s.cancelFn()
 	}
 }
 

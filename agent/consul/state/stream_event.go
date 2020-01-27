@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -272,7 +273,7 @@ func secretHash(token string) string {
 	return string(hash.Sum(nil))
 }
 
-func (e *EventPublisher) Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error) {
+func (e *EventPublisher) Subscribe(ctx context.Context, req *stream.SubscribeRequest) (*stream.Subscription, error) {
 	// Ensure we know how to make a snapshot for this topic
 	_, ok := topicRegistry[req.Topic]
 	if !ok {
@@ -321,13 +322,13 @@ func (e *EventPublisher) Subscribe(req *stream.SubscribeRequest) (*stream.Subscr
 		}
 		buf.AppendBuffer(follow)
 
-		sub = stream.NewSubscription(req, subHead)
+		sub = stream.NewSubscription(ctx, req, subHead)
 	} else {
 		snap, err := e.getSnapshotLocked(req, topicHead)
 		if err != nil {
 			return nil, err
 		}
-		sub = stream.NewSubscription(req, snap.Snap)
+		sub = stream.NewSubscription(ctx, req, snap.Snap)
 	}
 
 	// Add the subscription to the ACL token map.
