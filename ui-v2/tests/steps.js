@@ -122,7 +122,7 @@ export default function(assert, library) {
   click(library, pauseUntil, find, utils.click);
   form(library, find, utils.fillIn, utils.triggerKeyEvent, getCurrentPage);
   debug(library, assert, utils.currentURL);
-  assertHttp(library, assert, pauseUntil, utils.lastNthRequest);
+  assertHttp(library, assert, pauseUntil, lastNthRequest);
   assertModel(library, assert, find, getCurrentPage, pauseUntil, pluralize);
   assertPage(library, assert, find, getCurrentPage);
   assertDom(library, assert, pauseUntil, utils.find, utils.currentURL, clipboard);

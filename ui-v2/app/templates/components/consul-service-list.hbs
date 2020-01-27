@@ -1,6 +1,6 @@
 {{#if (gt items.length 0)}}
   {{#tabular-collection items=items as |item index|}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
       <th style={{remainingWidth}}>Service</th>
       <th style={{totalWidth}}>
         Health Checks
@@ -10,7 +10,7 @@
       </th>
       <th style={{remainingWidth}}>Tags</th>
     {{/block-slot}}
-    {{#block-slot 'row'}}
+    {{#block-slot name='row'}}
       <td data-test-service={{item.Name}} style={{remainingWidth}}>
         <a href={{href-to routeName item.Name}}>
           <span data-test-external-source={{service/external-source item}} style={{{concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>

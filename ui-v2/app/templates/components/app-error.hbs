@@ -1,5 +1,5 @@
 {{#app-view class="error show"}}
-  {{#block-slot 'header'}}
+  {{#block-slot name='header'}}
     <h1 data-test-error>
 {{#if error.status }}
       {{error.status}} ({{error.title}})
@@ -8,7 +8,7 @@
 {{/if}}
     </h1>
   {{/block-slot}}
-  {{#block-slot 'content'}}
+  {{#block-slot name='content'}}
     <p>
         Consul returned an error.
         You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.<br />
