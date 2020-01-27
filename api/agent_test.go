@@ -1389,6 +1389,9 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	// ensure we don't try to sign a leaf cert before connect has been initialized
+	s.WaitForActiveCARoot(t)
+
 	agent := c.Agent()
 	// Setup service
 	reg := &AgentServiceRegistration{
