@@ -456,7 +456,7 @@ func TestAgent_Service(t *testing.T) {
 			// state from config/snapshot again). If we do that naively then we don't
 			// just get a spurios wakeup on the watch if the service didn't change,
 			// but we get it wakeup and then race with the reload and probably see no
-			// services and return a 404 error which is gross. This test excercises
+			// services and return a 404 error which is gross. This test exercises
 			// that - even though the registrations were from API not config, they are
 			// persisted and cleared/reloaded from snapshot which has same effect.
 			//
