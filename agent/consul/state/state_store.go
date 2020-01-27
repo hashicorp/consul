@@ -3,6 +3,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/types"
@@ -161,7 +162,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
-	s.publisher = NewEventPublisher(s, 0, 0)
+	s.publisher = NewEventPublisher(s, 0, 10*time.Second)
 	return s, nil
 }
 
