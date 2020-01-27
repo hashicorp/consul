@@ -63,7 +63,7 @@ type BootstrapConfig struct {
 	// endpoint which allows exposing metrics on the network without the security
 	// risk of exposing the full admin server API. Any other URL requested will be
 	// a 404.
-	StatsBindAddr string `mapstructure:"envoy_stats_bind_addr"`
+	MetricsBindAddr string `mapstructure:"envoy_metrics_bind_addr"`
 
 	// OverrideJSONTpl allows replacing the base template used to render the
 	// bootstrap. This is an "escape hatch" allowing arbitrary control over the
@@ -196,7 +196,13 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs) error {
 	}
 	// Setup prometheus if needed. This MUST happen after the Static*JSON is set above
 	if c.PrometheusBindAddr != "" {
-		if err := c.generatePrometheusConfig(args); err != nil {
+		if err := c.generateMetricsListenerConfig(args, c.PrometheusBindAddr, "envoy_prometheus_metrics", "/stats/prometheus"); err != nil {
+			return err
+		}
+	}
+	// Setup /stats proxy listener if needed. This MUST happen after the Static*JSON is set above
+	if c.MetricsBindAddr != "" {
+		if err := c.generateMetricsListenerConfig(args, c.MetricsBindAddr, "envoy_metrics", "/stats"); err != nil {
 			return err
 		}
 	}
@@ -377,10 +383,10 @@ func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
 	return nil
 }
 
-func (c *BootstrapConfig) generatePrometheusConfig(args *BootstrapTplArgs) error {
-	host, port, err := net.SplitHostPort(c.PrometheusBindAddr)
+func (c *BootstrapConfig) generateMetricsListenerConfig(args *BootstrapTplArgs, bindAddr, name, prefixRewrite string) error {
+	host, port, err := net.SplitHostPort(bindAddr)
 	if err != nil {
-		return fmt.Errorf("invalid prometheus_bind_addr: %s", err)
+		return fmt.Errorf("invalid %s bind address: %s", name, err)
 	}
 
 	clusterJSON := `{
@@ -398,7 +404,7 @@ func (c *BootstrapConfig) generatePrometheusConfig(args *BootstrapTplArgs) error
 		]
 	}`
 	listenerJSON := `{
-		"name": "envoy_prometheus_metrics_listener",
+		"name": "` + name + `_listener",
 		"address": {
 			"socket_address": {
 				"address": "` + host + `",
@@ -411,7 +417,7 @@ func (c *BootstrapConfig) generatePrometheusConfig(args *BootstrapTplArgs) error
 					{
 						"name": "envoy.http_connection_manager",
 						"config": {
-							"stat_prefix": "envoy_prometheus_metrics",
+							"stat_prefix": "` + name + `",
 							"codec_type": "HTTP1",
 							"route_config": {
 								"name": "self_admin_route",
@@ -428,7 +434,7 @@ func (c *BootstrapConfig) generatePrometheusConfig(args *BootstrapTplArgs) error
 												},
 												"route": {
 													"cluster": "self_admin",
-													"prefix_rewrite": "/stats/prometheus"
+													"prefix_rewrite": "` + prefixRewrite + `"
 												}
 											},
 											{
