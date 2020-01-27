@@ -67,6 +67,9 @@ Usage: `consul connect proxy [options]`
   proxy available as Connect-capable service in the catalog. This is only
   useful with `-listen`.
 
+* `-advertise` - Address to advertise when using -register if different than
+  `-listen`. This is only useful with `-listen`.
+
 * `-register-id` - Optional ID suffix for the service when `-register` is set to
   disambiguate the service ID. By default the service ID is "<service>-proxy"
   where `<service>` is the `-service` value. In most cases it is now preferable
