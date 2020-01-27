@@ -137,6 +137,7 @@ type delegate interface {
 	RemoveFailedNode(node string, prune bool) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
 	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error)
 	RPC(method string, args interface{}, reply interface{}) error
 	ACLsEnabled() bool
 	UseLegacyACLs() bool
@@ -152,7 +153,7 @@ type notifier interface {
 	Notify(string) error
 }
 
-// The agent is the long running process that is run on every machine.
+// Agent is the long running process that is run on every machine.
 // It exposes an RPC interface that is used by the CLI to control the
 // agent. The agent runs the query interfaces like HTTP, DNS, and RPC.
 // However, it can run in either a client, or server mode. In server
@@ -309,6 +310,8 @@ type Agent struct {
 	persistedTokensLock sync.RWMutex
 }
 
+// New verifies the configuration given has a Datacenter and DataDir
+// configured, and maps the remaining config fields to fields on the Agent.
 func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
@@ -353,6 +356,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	return &a, nil
 }
 
+// LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	lc := local.Config{
 		AdvertiseAddr:       cfg.AdvertiseAddrLAN.String(),
@@ -369,6 +373,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+// Start verifies its configuration and runs an agent's various subprocesses.
 func (a *Agent) Start() error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -1877,7 +1882,7 @@ func (a *Agent) ResumeSync() {
 	}
 }
 
-// syncPausedCh returns either a channel or nil. If nil sync is not paused. If
+// SyncPausedCh returns either a channel or nil. If nil sync is not paused. If
 // non-nil, the channel will be closed when sync resumes.
 func (a *Agent) SyncPausedCh() <-chan struct{} {
 	a.syncMu.Lock()
@@ -1921,17 +1926,21 @@ OUTER:
 			}
 
 			for segment, coord := range cs {
+				agentToken := a.tokens.AgentToken()
 				req := structs.CoordinateUpdateRequest{
 					Datacenter:   a.config.Datacenter,
 					Node:         a.config.NodeName,
 					Segment:      segment,
 					Coord:        coord,
-					WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
+					WriteRequest: structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
+				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
+				// todo(kit) handle acl.ErrNotFound cases here in the future
 				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
-						a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+						accessorID := a.aclAccessorID(agentToken)
+						a.logger.Printf("[DEBUG] agent: Coordinate update blocked by ACLs, accessorID=%v", accessorID)
 					} else {
 						a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
 					}

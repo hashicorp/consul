@@ -41,6 +41,36 @@ func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.Enterpris
 	return a.delegate.ResolveTokenAndDefaultMeta(id, entMeta, authzContext)
 }
 
+// resolveIdentityFromToken is used to resolve an ACLToken's secretID to a structs.ACLIdentity
+func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error) {
+	// ACLs are disabled
+	if !a.delegate.ACLsEnabled() {
+		return false, nil, nil
+	}
+
+	// Disable ACLs if version 8 enforcement isn't enabled.
+	if !a.config.ACLEnforceVersion8 {
+		return false, nil, nil
+	}
+
+	return a.delegate.ResolveIdentityFromToken(secretID)
+}
+
+// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
+// critical purposes, such as logging. Therefore we interpret all errors as empty-string
+// so we can safely log it without handling non-critical errors at the usage site.
+func (a *Agent) aclAccessorID(secretID string) string {
+	_, ident, err := a.resolveIdentityFromToken(secretID)
+	if err != nil {
+		a.logger.Printf("[DEBUG] agent.acl: %v", err)
+		return ""
+	}
+	if ident == nil {
+		return ""
+	}
+	return ident.ID()
+}
+
 func (a *Agent) initializeACLs() error {
 	// Build a policy for the agent master token.
 	// The builtin agent master policy allows reading any node information
@@ -250,7 +280,8 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 		if rule.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
-		a.logger.Printf("[DEBUG] agent: dropping node %q from result due to ACLs", node)
+		accessorID := a.aclAccessorID(token)
+		a.logger.Printf("[DEBUG] agent: dropping node from result due to ACLs, node=%q accessorID=%q", node, accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--
 	}
@@ -280,7 +311,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map
 		if authz.ServiceRead(service.Service, &authzContext) == acl.Allow {
 			continue
 		}
-		a.logger.Printf("[DEBUG] agent: dropping service %q from result due to ACLs", id.String())
+		a.logger.Printf("[DEBUG] agent: dropping service from result due to ACLs, service=%q", id.String())
 		delete(*services, id)
 	}
 	return nil
@@ -316,7 +347,7 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		}
-		a.logger.Printf("[DEBUG] agent: dropping check %q from result due to ACLs", id.String())
+		a.logger.Printf("[DEBUG] agent: dropping check from result due to ACLs, check=%q", id.String())
 		delete(*checks, id)
 	}
 	return nil
