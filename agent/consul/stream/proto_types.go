@@ -1,46 +1,46 @@
 package stream
 
 import (
-	"bytes"
-	"encoding/gob"
-	"fmt"
-
 	proto "github.com/golang/protobuf/proto"
 )
 
-// Protobuf doesn't natively support a map[string]interface type, so we have
-// to create a stand-in here.
+//go:generate msgp
+
+// Protobuf doesn't natively support a map[string]interface type, so we have to
+// create a stand-in here. We use tinylib/msgp to generate custom message pack
+// marshalling instead of using our regular msgpack codec for a few reasons:
+//   1. One of the main reasons to switch to protobuf was for encoding
+//      performance on servers however runtime reflection in gob of other
+//      msgpack codecs makes even a nil UntypedMap (present in most service
+//      events) dominate the encoding cost on servers. Generating msgpack
+//      encoding is nicer.
+//   2. This will become a wire format we have to commit to as changing it will
+//      break compatibility between server and client versions etc. and protobuf
+//      can't help as it's all opaque encoding to it.
+//   3. Using msgpack is better and more universal/well supported than Gob, and
+//      more performant than JSON. It's also not a whole new serialization
+//      format since we already use msgpack in Serf and old RPCs etc.
 type UntypedMap map[string]interface{}
 
 func (m UntypedMap) Marshal() ([]byte, error) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	if err := enc.Encode(m); err != nil {
-		return nil, fmt.Errorf("encode: %v", err)
-	}
-	return buf.Bytes(), nil
+	return m.MarshalMsg(nil)
 }
 
 func (m UntypedMap) MarshalTo(data []byte) (n int, err error) {
-	bytes, err := m.Marshal()
+	outData, err := m.MarshalMsg(data)
 	if err != nil {
 		return 0, err
 	}
-	copy(data, bytes)
-	return len(bytes), nil
+	return len(outData) - len(data), nil
 }
 
 func (m *UntypedMap) Unmarshal(data []byte) error {
-	dec := gob.NewDecoder(bytes.NewBuffer(data))
-	if err := dec.Decode(m); err != nil {
-		return err
-	}
-	return nil
+	_, err := m.UnmarshalMsg(data)
+	return err
 }
 
 func (m UntypedMap) Size() int {
-	b, _ := m.Marshal()
-	return len(b)
+	return m.Msgsize()
 }
 
 // As with UntypedMap above, Headers exists for converting map[string][]string
