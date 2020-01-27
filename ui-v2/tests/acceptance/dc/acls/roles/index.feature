@@ -10,6 +10,7 @@ Feature: dc / acls / roles / index: ACL Roles List
     ---
     Then the url should be /dc-1/acls/roles
     Then I see 3 role models
+    And the title should be "Roles - Consul"
   Scenario: Searching the roles
     Given 1 datacenter model with the value "dc-1"
     And 3 role models from yaml

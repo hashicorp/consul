@@ -26,6 +26,7 @@ Feature: dc / services / index: List Services
       dc: dc-1
     ---
     Then the url should be /dc-1/services
+    And the title should be "Services - Consul"
     Then I see 6 service models
     And I see externalSource on the services like yaml
     ---

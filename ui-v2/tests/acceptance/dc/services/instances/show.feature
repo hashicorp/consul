@@ -81,6 +81,7 @@ Feature: dc / services / instances / show: Show Service Instance
     When I click metaData on the tabs
     And I see metaDataIsSelected on the tabs
     And I see 3 of the metaData object
+    And the title should be "service-0-with-id - Consul"
 
   Scenario: A Service instance warns when deregistered whilst blocking
     Given settings from yaml

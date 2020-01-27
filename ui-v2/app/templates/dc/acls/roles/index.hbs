@@ -1,3 +1,8 @@
+{{#if isAuthorized }}
+  {{title 'Roles'}}
+{{else}}
+  {{title 'Access Controls'}}
+{{/if}}
 {{#app-view class=(concat 'role ' (if (not isAuthorized) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
   {{#block-slot name='notification' as |status type|}}
     {{partial 'dc/acls/roles/notifications'}}
