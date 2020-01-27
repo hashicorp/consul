@@ -39,7 +39,7 @@
                         address=item.Address
                         checks=item.Checks
                     }}
-                      {{#block-slot 'icon'}}
+                      {{#block-slot name='icon'}}
                         {{#if (eq item.Address leader.Address)}}
                           <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
                         {{/if}}
