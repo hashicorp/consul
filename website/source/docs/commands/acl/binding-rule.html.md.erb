@@ -1,0 +1,91 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Binding Rule"
+sidebar_current: "docs-commands-acl-binding-rule"
+---
+
+# Consul ACL Binding Rules
+
+Command: `consul acl binding-rule`
+
+The `acl binding-rule` command is used to manage Consul's ACL binding rules.
+It exposes commands for creating, updating, reading, deleting, and listing binding rules.
+This command is available in Consul 1.5.0 and newer.
+
+ACL binding rules may also be managed via the [HTTP API](/api/acl/binding-rules.html).
+
+-> **Note:** All of the example subcommands in this document will require a valid
+Consul token with the appropriate permissions.  Either set the
+`CONSUL_HTTP_TOKEN` environment variable to the token's secret ID or pass the
+secret ID as the value of the `-token` parameter.
+
+## Usage
+
+Usage: `consul acl binding-rule <subcommand>`
+
+For the exact documentation for your Consul version, run `consul acl
+binding-rule -h` to view the complete list of subcommands.
+
+```text
+Usage: consul acl binding-rule <subcommand> [options] [args]
+
+  ...
+
+Subcommands:
+    create    Create an ACL binding rule
+    delete    Delete an ACL binding rule
+    list      Lists ACL binding rules
+    read      Read an ACL binding rule
+    update    Update an ACL binding rule
+```
+
+For more information, examples, and usage about a subcommand, click on the name
+of the subcommand in the sidebar.
+
+## Identifying Binding Rules
+
+Several of the subcommands need to operate on a specific binding rule. Those
+subcommands support specifying the binding rule by its ID using the `-id`
+parameter.
+
+When specifying the binding rule by its ID a unique binding rule ID prefix may
+be specified instead of the entire UUID. As long as it is unique it will be
+resolved to the full UUID and used.
+
+## Basic Examples
+
+Create a new binding rule:
+
+```sh
+$ consul acl binding-rule create \
+      -method=minikube \
+      -bind-type=service \
+      -bind-name='k8s-${serviceaccount.name}' \
+      -selector='serviceaccount.namespace==default and serviceaccount.name==web'
+```
+
+List all binding rules:
+
+```sh
+$ consul acl binding-rule list
+```
+
+Update a binding rule:
+
+```sh
+$ consul acl binding-rule update -id=43cb72df-9c6f-4315-ac8a-01a9d98155ef \
+      -bind-name='k8s-${serviceaccount.name}'
+```
+
+Read a binding rule:
+
+```sh
+$ consul acl binding-rule read -id fdabbcb5-9de5-4b1a-961f-77214ae88cba
+```
+
+Delete a binding rule:
+
+```sh
+$ consul acl binding-rule delete -id b6b856da-5193-4e78-845a-7d61ca8371ba
+```
+

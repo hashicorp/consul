@@ -33,6 +33,7 @@ func (s *HTTPServer) IntentionList(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	var reply structs.IndexedIntentions
+	defer setMeta(resp, &reply.QueryMeta)
 	if err := s.agent.RPC("Intention.List", &args, &reply); err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Intention, nil); err != nil {
+	if err := decodeBody(req.Body, &args.Intention); err != nil {
 		return nil, fmt.Errorf("Failed to decode request body: %s", err)
 	}
 
@@ -242,10 +243,8 @@ func (s *HTTPServer) IntentionSpecificUpdate(id string, resp http.ResponseWriter
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Intention, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+	if err := decodeBody(req.Body, &args.Intention); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Use the ID from the URL

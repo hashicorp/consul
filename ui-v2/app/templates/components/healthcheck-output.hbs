@@ -1,0 +1,8 @@
+{{! TODO: this component and its parent should be moved to a single component }}
+{{yield}}
+<div>
+  <header>
+    {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
+  </header>
+  {{#yield-slot name='content'}}{{yield}}{{/yield-slot}}
+</div>

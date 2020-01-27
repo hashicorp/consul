@@ -60,17 +60,28 @@ type ACLs []*ACL
 
 // Convert does a 1-1 mapping of the ACLCompat structure to its ACLToken
 // equivalent. This will NOT fill in the other ACLToken fields or perform any other
-// upgrade.
+// upgrade (other than correcting an older HCL syntax that is no longer
+// supported).
 func (a *ACL) Convert() *ACLToken {
+	// Ensure that we correct any old HCL in legacy tokens to prevent old
+	// syntax from leaking elsewhere into the system.
+	//
+	// DEPRECATED (ACL-Legacy-Compat)
+	correctedRules := SanitizeLegacyACLTokenRules(a.Rules)
+	if correctedRules != "" {
+		a.Rules = correctedRules
+	}
+
 	return &ACLToken{
-		AccessorID:  "",
-		SecretID:    a.ID,
-		Description: a.Name,
-		Policies:    nil,
-		Type:        a.Type,
-		Rules:       a.Rules,
-		Local:       false,
-		RaftIndex:   a.RaftIndex,
+		AccessorID:        "",
+		SecretID:          a.ID,
+		Description:       a.Name,
+		Policies:          nil,
+		ServiceIdentities: nil,
+		Type:              a.Type,
+		Rules:             a.Rules,
+		Local:             false,
+		RaftIndex:         a.RaftIndex,
 	}
 }
 

@@ -3,6 +3,7 @@ package consul
 import (
 	"encoding/base64"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -10,7 +11,9 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
@@ -159,6 +162,64 @@ func TestInternal_NodeDump(t *testing.T) {
 	}
 }
 
+func TestInternal_NodeDump_Filter(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tags:    []string{"master"},
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db connect",
+			Status:    api.HealthPassing,
+			ServiceID: "db",
+		},
+	}
+	var out struct{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	arg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tags:    []string{"slave"},
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db connect",
+			Status:    api.HealthWarning,
+			ServiceID: "db",
+		},
+	}
+
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	var out2 structs.IndexedNodeDump
+	req := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Filter: "master in Services.Tags"},
+	}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
+
+	nodes := out2.Dump
+	require.Len(t, nodes, 1)
+	require.Equal(t, "foo", nodes[0].Node)
+}
+
 func TestInternal_KeyringOperation(t *testing.T) {
 	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
@@ -227,7 +288,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 
 	// 3 responses (one from each DC LAN, one from WAN) in two-node cluster
 	if len(out2.Responses) != 3 {
-		t.Fatalf("bad: %#v", out)
+		t.Fatalf("bad: %#v", out2)
 	}
 	wanResp, lanResp = 0, 0
 	for _, resp := range out2.Responses {
@@ -239,6 +300,120 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	}
 	if lanResp != 2 || wanResp != 1 {
 		t.Fatalf("should have two lan and one wan response")
+	}
+}
+
+func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
+	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Start a second agent to test cross-dc queries
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.Datacenter = "dc2"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+
+	// --
+	// Try request with `LocalOnly` set to true
+	var out structs.KeyringResponses
+	req := structs.KeyringRequest{
+		Operation: structs.KeyringList,
+		LocalOnly: true,
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// 1 response (from this DC LAN)
+	if len(out.Responses) != 1 {
+		t.Fatalf("expected num responses to be 1, got %d; out is: %#v", len(out.Responses), out)
+	}
+	wanResp, lanResp := 0, 0
+	for _, resp := range out.Responses {
+		if resp.WAN {
+			wanResp++
+		} else {
+			lanResp++
+		}
+	}
+	if lanResp != 1 || wanResp != 0 {
+		t.Fatalf("should have 1 lan and 0 wan response, got (lan=%d) (wan=%d)", lanResp, wanResp)
+	}
+
+	// --
+	// Try same request again but with `LocalOnly` set to false
+	req.LocalOnly = false
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// 3 responses (one from each DC LAN, one from WAN)
+	if len(out.Responses) != 3 {
+		t.Fatalf("expected num responses to be 3, got %d; out is: %#v", len(out.Responses), out)
+	}
+	wanResp, lanResp = 0, 0
+	for _, resp := range out.Responses {
+		if resp.WAN {
+			wanResp++
+		} else {
+			lanResp++
+		}
+	}
+	if lanResp != 2 || wanResp != 1 {
+		t.Fatalf("should have 2 lan and 1 wan response, got (lan=%d) (wan=%d)", lanResp, wanResp)
+	}
+}
+
+func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
+	t.Parallel()
+	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
+	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = keyBytes1
+		c.SerfWANConfig.MemberlistConfig.SecretKey = keyBytes1
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Try request with `LocalOnly` set to true
+	var out structs.KeyringResponses
+	req := structs.KeyringRequest{
+		Operation: structs.KeyringRemove,
+		LocalOnly: true,
+	}
+	err = msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out)
+	if err == nil {
+		t.Fatalf("expected an error")
+	}
+	if !strings.Contains(err.Error(), "LocalOnly") {
+		t.Fatalf("expected error to contain string 'LocalOnly'. Got: %v", err)
 	}
 }
 
@@ -377,4 +552,98 @@ func TestInternal_EventFire_Token(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+}
+
+func TestInternal_ServiceDump(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	doRequest := func(t *testing.T, filter string) structs.CheckServiceNodes {
+		t.Helper()
+		args := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Filter: filter},
+		}
+
+		var out structs.IndexedCheckServiceNodes
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
+		return out.Nodes
+	}
+
+	// Run the tests against the test server
+	t.Run("No Filter", func(t *testing.T) {
+		nodes := doRequest(t, "")
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes, 9)
+	})
+
+	t.Run("Filter Node foo and service version 1", func(t *testing.T) {
+		nodes := doRequest(t, "Node.Node == foo and Service.Meta.version == 1")
+		require.Len(t, nodes, 1)
+		require.Equal(t, "redis", nodes[0].Service.Service)
+		require.Equal(t, "redisV1", nodes[0].Service.ID)
+	})
+
+	t.Run("Filter service web", func(t *testing.T) {
+		nodes := doRequest(t, "Service.Service == web")
+		require.Len(t, nodes, 3)
+	})
+}
+
+func TestInternal_ServiceDump_Kind(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+	registerTestCatalogEntriesMeshGateway(t, codec)
+
+	doRequest := func(t *testing.T, kind structs.ServiceKind) structs.CheckServiceNodes {
+		t.Helper()
+		args := structs.ServiceDumpRequest{
+			Datacenter:     "dc1",
+			ServiceKind:    kind,
+			UseServiceKind: true,
+		}
+
+		var out structs.IndexedCheckServiceNodes
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
+		return out.Nodes
+	}
+
+	// Run the tests against the test server
+	t.Run("Typical", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindTypical)
+		// redis (3), web (3), critical (1), warning (1) and consul (1)
+		require.Len(t, nodes, 9)
+	})
+
+	t.Run("Mesh Gateway", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindMeshGateway)
+		require.Len(t, nodes, 1)
+		require.Equal(t, "mg-gw", nodes[0].Service.Service)
+		require.Equal(t, "mg-gw-01", nodes[0].Service.ID)
+	})
+
+	t.Run("Connect Proxy", func(t *testing.T) {
+		nodes := doRequest(t, structs.ServiceKindConnectProxy)
+		require.Len(t, nodes, 1)
+		require.Equal(t, "web-proxy", nodes[0].Service.Service)
+		require.Equal(t, "web-proxy", nodes[0].Service.ID)
+	})
 }

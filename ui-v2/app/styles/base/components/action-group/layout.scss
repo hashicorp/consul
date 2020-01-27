@@ -1,0 +1,57 @@
+%action-group {
+  display: inline-block;
+  position: relative;
+  width: 30px;
+  height: 30px;
+}
+%action-group > div {
+  transition: min-height 150ms;
+  min-height: 0;
+  width: 192px;
+}
+%action-group .confirmation-alert {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 100%;
+}
+%action-group > label span {
+  display: none;
+}
+%action-group > label {
+  display: block;
+  height: 100%;
+}
+%action-group > label:last-of-type {
+  position: absolute;
+  width: 100%;
+  z-index: -1;
+  top: 0;
+}
+%action-group input[type='radio'],
+%action-group input[type='radio'] ~ div,
+%action-group input[type='radio'] ~ .with-confirmation > ul {
+  display: none;
+}
+%action-group input[type='radio']:checked ~ div,
+%action-group input[type='radio']:checked ~ .with-confirmation > ul {
+  display: block;
+}
+/*TODO: If anything this is %toggle-button*/
+%action-group input[type='radio']:checked ~ label[for='actions_close'] {
+  z-index: 1;
+}
+%action-group input[type='checkbox'] {
+  @extend %action-group-confirm-toggle;
+}
+%action-group-confirm-toggle {
+  display: none;
+}
+%action-group-confirm-toggle + div > ul,
+%action-group-confirm-toggle + div > ul + div {
+  transition: transform 150ms;
+}
+%action-group-confirm-toggle:checked + div > ul,
+%action-group-confirm-toggle:checked + div > ul + div {
+  transform: translateX(-100%);
+}

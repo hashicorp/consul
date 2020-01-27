@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/freeport"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -22,15 +22,27 @@ import (
 func testClientConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
+
+	ports := freeport.MustTake(2)
+
+	returnPortsFn := func() {
+		// The method of plumbing this into the client shutdown hook doesn't
+		// cover all exit points, so we insulate this against multiple
+		// invocations and then it's safe to call it a bunch of times.
+		freeport.Return(ports)
+		config.NotifyShutdown = nil // self-erasing
+	}
+	config.NotifyShutdown = returnPortsFn
+
 	config.Datacenter = "dc1"
 	config.DataDir = dir
 	config.NodeName = uniqueNodeName(t.Name())
 	config.RPCAddr = &net.TCPAddr{
 		IP:   []byte{127, 0, 0, 1},
-		Port: freeport.Get(1)[0],
+		Port: ports[0],
 	}
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfLANConfig.MemberlistConfig.BindPort = freeport.Get(1)[0]
+	config.SerfLANConfig.MemberlistConfig.BindPort = ports[1]
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
@@ -59,6 +71,7 @@ func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
 	}
 	client, err := NewClient(config)
 	if err != nil {
+		config.NotifyShutdown()
 		t.Fatalf("err: %v", err)
 	}
 	return dir, client
@@ -84,8 +97,10 @@ func TestClient_JoinLAN(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	// Try to join
 	joinLAN(t, c1, s1)
+	testrpc.WaitForTestAgent(t, c1.RPC, "dc1")
 	retry.Run(t, func(r *retry.R) {
 		if got, want := c1.routers.NumServers(), 1; got != want {
 			r.Fatalf("got %d servers want %d", got, want)
@@ -96,6 +111,47 @@ func TestClient_JoinLAN(t *testing.T) {
 		if got, want := len(c1.LANMembers()), 2; got != want {
 			r.Fatalf("got %d client LAN members want %d", got, want)
 		}
+	})
+}
+
+func TestClient_LANReap(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+
+	dir2, c1 := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.TombstoneTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 500 * time.Millisecond
+	})
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Try to join
+	joinLAN(t, c1, s1)
+	testrpc.WaitForLeader(t, c1.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.LANMembers(), 2)
+		require.Len(r, c1.LANMembers(), 2)
+	})
+
+	// Check the router has both
+	retry.Run(t, func(r *retry.R) {
+		server := c1.routers.FindServer()
+		require.NotNil(t, server)
+		require.Equal(t, s1.config.NodeName, server.Name)
+	})
+
+	// shutdown the second dc
+	s1.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, c1.LANMembers(), 1)
+		server := c1.routers.FindServer()
+		require.Nil(t, server)
 	})
 }
 
@@ -373,6 +429,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	dir2, conf2 := testClientConfig(t)
+	defer conf2.NotifyShutdown()
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)
@@ -417,6 +474,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, conf2 := testClientConfig(t)
+	defer conf2.NotifyShutdown()
 	conf2.RPCRate = 2
 	conf2.RPCMaxBurst = 2
 	c1, err := NewClient(conf2)
@@ -484,6 +542,7 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	dir2, conf1 := testClientConfig(t)
+	defer conf1.NotifyShutdown()
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
 	c1, err := NewClient(conf1)
@@ -526,6 +585,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	dir2, conf2 := testClientConfig(t)
+	defer conf2.NotifyShutdown()
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)

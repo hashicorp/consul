@@ -1,0 +1,27 @@
+%tooltip-bubble,
+%tooltip-tail {
+  color: $white;
+  background-color: $gray-500;
+}
+
+/* borders here are used to draw a triangle in CSS */
+/* the are not actual borders */
+
+%tooltip-tail {
+  background-color: transparent !important;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+
+  border-top: 18px solid $gray-500;
+}
+%tooltip-bottom::after {
+  border-top: 0;
+  border-bottom: 18px solid $gray-500;
+}
+%tooltip-bubble {
+  border-radius: $decor-radius-200;
+  /* this isn't quite like the values in structure */
+  /* but this looks closer visually */
+  /* TODO: try and get this closer to structure */
+  box-shadow: 0 2px 5px 0 rgba($black, 0.31);
+}

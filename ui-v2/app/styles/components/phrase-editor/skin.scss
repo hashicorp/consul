@@ -1,0 +1,18 @@
+@media #{$--horizontal-selects} {
+  %phrase-editor {
+    border: 1px solid $gray-300;
+    border-radius: 2px;
+  }
+  %phrase-editor input:focus {
+    outline: 0;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %phrase-editor label {
+    border: 1px solid $gray-300;
+    border-radius: 2px;
+  }
+}
+%phrase-editor input {
+  -webkit-appearance: none;
+}

@@ -39,6 +39,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -91,7 +92,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL Token"
+const synopsis = "Read an ACL token"
 const help = `
 Usage: consul acl token read [options] -id TOKENID
 

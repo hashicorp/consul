@@ -63,7 +63,7 @@ func TestCommand_id(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -95,7 +95,7 @@ func TestCommand_srcDst(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

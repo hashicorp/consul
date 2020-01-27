@@ -1,0 +1,92 @@
+---
+layout: "docs"
+page_title: "Sentinel in Consul"
+sidebar_current: "docs-agent-sentinel"
+description: |-
+  Consul Enterprise uses Sentinel to augment the built-in ACL system to provide advanced policy enforcement. Sentinel policies can currently execute on KV modify and service registration.
+---
+
+# Sentinel Overview
+[//]: # ( ~> The Sentinel functionality described here is available only in )
+[//]: # (   [Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.0.0 and later. )
+
+<%= enterprise_alert :consul %>
+
+ Consul 1.0 adds integration with [Sentinel](https://hashicorp.com/sentinel) for policy enforcement.
+ Sentinel policies help extend the ACL system in Consul beyond the static "read", "write", and "deny"
+ policies to support full conditional logic and integration with external systems.
+
+## Sentinel in Consul
+
+Sentinel policies are applied during writes to the KV Store.
+
+An optional `sentinel` field specifying code and enforcement level can be added to [ACL policy definitions](/docs/agent/acl-rules.html#sentinel-integration) for Consul KV. The following policy ensures that the value written during a KV update must end with "dc1".
+
+```text
+key "datacenter_name" {
+  policy = "write"
+  sentinel {
+      code = <<EOF
+import "strings"
+main = rule { strings.has_suffix(value, "dc1") }
+EOF
+      enforcementlevel = "soft-mandatory"
+  }
+}
+```
+
+If the `enforcementlevel` property is not set, it defaults to "hard-mandatory".
+
+## Imports
+
+Consul imports all the [standard imports](https://docs.hashicorp.com/sentinel/imports/)
+from Sentinel. All functions in these imports are available to be used in policies.
+
+## Injected Variables
+
+Consul passes some context as variables into Sentinel, which are available to use inside any policies you write.
+
+#### Variables injected during KV store writes
+
+| Variable Name |  Type    | Description |
+| ------------- | -------- | ----------- |
+| `key`         | `string` | Key being written |
+| `value`       | `string` | Value being written |
+| `flags`       | `uint64` | [Flags](/api/kv.html#flags) |
+
+
+## Sentinel Examples
+
+The following are two examples of ACL policies with Sentinel rules.
+
+### Required Key Suffix 
+
+Any values stored under the key prefix "dc1" must end with "dev"
+
+```text
+key "dc1" {
+    policy = "write"
+    sentinel {
+        code = <<EOF
+import "strings"
+main = rule { strings.has_suffix(value, "dev") }
+EOF
+    }
+}
+```
+
+### Restricted Update Time
+
+The key "haproxy_version" can only be updated during business hours.
+
+```text
+key "haproxy_version" {
+    policy = "write"
+    sentinel {
+        code = <<EOF
+import "time"
+main = rule { time.now.hour > 8 and time.now.hour < 17 }
+EOF
+    }
+}
+```

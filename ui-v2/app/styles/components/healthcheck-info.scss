@@ -1,0 +1,12 @@
+@import './healthcheck-info/index';
+%table tr .healthcheck-info {
+  @extend %healthcheck-info;
+}
+// TODO: Look at why we can't have the zeros in the healthcheck-info
+%table td span.zero {
+  @extend %with-minus-square-fill-color-icon;
+  background-position: left center;
+  display: block;
+  text-indent: 20px;
+  color: $gray-400;
+}

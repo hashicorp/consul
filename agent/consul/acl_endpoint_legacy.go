@@ -93,8 +93,9 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return fmt.Errorf("Invalid ACL Type")
 		}
 
-		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID)
-		if existing != nil && len(existing.Policies) > 0 {
+		// No need to check expiration times as those did not exist in legacy tokens.
+		_, existing, _ := srv.fsm.State().ACLTokenGetBySecret(nil, args.ACL.ID, nil)
+		if existing != nil && existing.UsesNonLegacyFields() {
 			return fmt.Errorf("Cannot use legacy endpoint to modify a non-legacy token")
 		}
 
@@ -103,8 +104,17 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return acl.PermissionDeniedError{Cause: "Cannot modify root ACL"}
 		}
 
+		// Ensure that we allow more permissive rule formats for legacy tokens,
+		// but that we correct them on the way into the system.
+		//
+		// DEPRECATED (ACL-Legacy-Compat)
+		correctedRules := structs.SanitizeLegacyACLTokenRules(args.ACL.Rules)
+		if correctedRules != "" {
+			args.ACL.Rules = correctedRules
+		}
+
 		// Validate the rules compile
-		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.sentinel)
+		_, err := acl.NewPolicyFromSource("", 0, args.ACL.Rules, acl.SyntaxLegacy, srv.aclConfig, nil)
 		if err != nil {
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}
@@ -150,9 +160,10 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	}
 
 	// Verify token is permitted to modify ACLs
+	// NOTE: We will not support enterprise authorizer contexts with legacy ACLs
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || !rule.ACLWrite() {
+	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -175,7 +186,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 
 	// Clear the cache if applicable
 	if args.ACL.ID != "" {
-		a.srv.acls.cache.RemoveIdentity(args.ACL.ID)
+		a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(args.ACL.ID))
 	}
 
 	return nil
@@ -188,6 +199,10 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 		return err
 	}
 
+	// NOTE: This has no ACL check because legacy ACLs were managed with
+	// the secrets and therefore the argument to the Get request is
+	// authorization in and of itself.
+
 	// Verify we are allowed to serve this request
 	if !a.srv.ACLsEnabled() {
 		return acl.ErrDisabled
@@ -196,13 +211,18 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL)
+			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL, nil)
 			if err != nil {
 				return err
 			}
 
-			// converting an ACLToken to an ACL will return nil and an error
+			// Converting an ACLToken to an ACL will return nil and an error
 			// (which we ignore) when it is unconvertible.
+			//
+			// This also means we won't have to check expiration times since
+			// any legacy tokens never had expiration times and no non-legacy
+			// tokens can be converted.
+
 			var acl *structs.ACL
 			if token != nil {
 				acl, _ = token.Convert()
@@ -231,22 +251,29 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	}
 
 	// Verify token is permitted to list ACLs
+	// NOTES: Previously with legacy ACL there was no read-only ACL permissions
+	// and this check for ACLWrite is basically what it did before.
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || !rule.ACLWrite() {
+	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, false, true, "")
+			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "", nil, nil)
 			if err != nil {
 				return err
 			}
 
+			now := time.Now()
+
 			var acls structs.ACLs
 			for _, token := range tokens {
+				if token.IsExpired(now) {
+					continue
+				}
 				if acl, err := token.Convert(); err == nil && acl != nil {
 					acls = append(acls, acl)
 				}

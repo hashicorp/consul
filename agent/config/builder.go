@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -21,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"golang.org/x/time/rate"
 )
@@ -98,7 +99,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 
 	b := &Builder{
 		Flags: flags,
-		Head:  []Source{DefaultSource()},
+		Head:  []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
 	if b.boolVal(b.Flags.DevMode) {
@@ -127,7 +128,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultEnterpriseSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
 	if b.boolVal(b.Flags.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
@@ -185,11 +186,13 @@ func (b *Builder) ReadPath(path string) ([]Source, error) {
 			continue
 		}
 
-		src, err := b.ReadFile(fp)
-		if err != nil {
-			return nil, err
+		if b.shouldParseFile(fp) {
+			src, err := b.ReadFile(fp)
+			if err != nil {
+				return nil, err
+			}
+			sources = append(sources, src)
 		}
-		sources = append(sources, src)
 	}
 	return sources, nil
 }
@@ -202,6 +205,18 @@ func (b *Builder) ReadFile(path string) (Source, error) {
 		return Source{}, fmt.Errorf("config: ReadFile failed on %s: %s", path, err)
 	}
 	return Source{Name: path, Data: string(data)}, nil
+}
+
+// shouldParse file determines whether the file to be read is of a supported extension
+func (b *Builder) shouldParseFile(path string) bool {
+	configFormat := b.stringVal(b.Flags.ConfigFormat)
+	srcFormat := FormatFrom(path)
+
+	// If config-format is not set, only read files with supported extensions
+	if configFormat == "" && srcFormat != "hcl" && srcFormat != "json" {
+		return false
+	}
+	return true
 }
 
 type byName []os.FileInfo
@@ -234,7 +249,6 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// merge config sources as follows
 	//
-
 	configFormat := b.stringVal(b.Flags.ConfigFormat)
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return RuntimeConfig{}, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
@@ -244,23 +258,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	var srcs []Source
 	srcs = append(srcs, b.Head...)
 	for _, src := range b.Sources {
+		// skip file if it should not be parsed
+		if !b.shouldParseFile(src.Name) {
+			continue
+		}
+
+		// if config-format is set, files of any extension will be interpreted in that format
 		src.Format = FormatFrom(src.Name)
 		if configFormat != "" {
 			src.Format = configFormat
-		} else {
-			// If they haven't forced things to a specific format,
-			// then skip anything we don't understand, which is the
-			// behavior before we added the -config-format option.
-			switch src.Format {
-			case "json", "hcl":
-				// OK
-			default:
-				// SKIP
-				continue
-			}
-		}
-		if src.Format == "" {
-			return RuntimeConfig{}, fmt.Errorf(`config: Missing or invalid file extension for %q. Please use ".json" or ".hcl".`, src.Name)
 		}
 		srcs = append(srcs, src)
 	}
@@ -363,6 +369,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	proxyMaxPort := b.portVal("ports.proxy_max_port", c.Ports.ProxyMaxPort)
 	sidecarMinPort := b.portVal("ports.sidecar_min_port", c.Ports.SidecarMinPort)
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
+	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
+	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -370,6 +378,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if sidecarMaxPort < sidecarMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"sidecar_min_port must be less than sidecar_max_port. To disable, set both to zero.")
+	}
+	if exposeMaxPort < exposeMinPort {
+		return RuntimeConfig{}, fmt.Errorf(
+			"expose_min_port must be less than expose_max_port. To disable, set both to zero.")
 	}
 
 	// determine the default bind and advertise address
@@ -403,6 +415,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
 	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
+
 	if ipaddr.IsAny(advertiseAddr) {
 
 		var addrtyp string
@@ -448,7 +461,39 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	// derive other advertise addresses from the advertise address
 	advertiseAddrLAN := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
+	advertiseAddrIsV6 := advertiseAddr.IP.To4() == nil
+	var advertiseAddrV4, advertiseAddrV6 *net.IPAddr
+	if !advertiseAddrIsV6 {
+		advertiseAddrV4 = advertiseAddr
+	} else {
+		advertiseAddrV6 = advertiseAddr
+	}
+	advertiseAddrLANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv4", c.AdvertiseAddrLANIPv4), advertiseAddrV4)
+	if advertiseAddrLANIPv4 != nil && advertiseAddrLANIPv4.IP.To4() == nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv4 must be an ipv4 address")
+	}
+	advertiseAddrLANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv6", c.AdvertiseAddrLANIPv6), advertiseAddrV6)
+	if advertiseAddrLANIPv6 != nil && advertiseAddrLANIPv6.IP.To4() != nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv6 must be an ipv6 address")
+	}
+
 	advertiseAddrWAN := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
+	advertiseAddrWANIsV6 := advertiseAddrWAN.IP.To4() == nil
+	var advertiseAddrWANv4, advertiseAddrWANv6 *net.IPAddr
+	if !advertiseAddrWANIsV6 {
+		advertiseAddrWANv4 = advertiseAddrWAN
+	} else {
+		advertiseAddrWANv6 = advertiseAddrWAN
+	}
+	advertiseAddrWANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv4", c.AdvertiseAddrWANIPv4), advertiseAddrWANv4)
+	if advertiseAddrWANIPv4 != nil && advertiseAddrWANIPv4.IP.To4() == nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv4 must be an ipv4 address")
+	}
+	advertiseAddrWANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv6", c.AdvertiseAddrWANIPv6), advertiseAddrWANv6)
+	if advertiseAddrWANIPv6 != nil && advertiseAddrWANIPv6.IP.To4() != nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv6 must be an ipv6 address")
+	}
+
 	rpcAdvertiseAddr := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serverPort}
 	serfAdvertiseAddrLAN := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serfPortLAN}
 	// Only initialize serf WAN advertise address when its enabled
@@ -490,12 +535,29 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+	altDomain := b.stringVal(c.DNSAltDomain)
+
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
 	}
-	c.TaggedAddresses["lan"] = advertiseAddrLAN.IP.String()
-	c.TaggedAddresses["wan"] = advertiseAddrWAN.IP.String()
+
+	c.TaggedAddresses[structs.TaggedAddressLAN] = advertiseAddrLAN.IP.String()
+	if advertiseAddrLANIPv4 != nil {
+		c.TaggedAddresses[structs.TaggedAddressLANIPv4] = advertiseAddrLANIPv4.IP.String()
+	}
+	if advertiseAddrLANIPv6 != nil {
+		c.TaggedAddresses[structs.TaggedAddressLANIPv6] = advertiseAddrLANIPv6.IP.String()
+	}
+
+	c.TaggedAddresses[structs.TaggedAddressWAN] = advertiseAddrWAN.IP.String()
+	if advertiseAddrWANIPv4 != nil {
+		c.TaggedAddresses[structs.TaggedAddressWANIPv4] = advertiseAddrWANIPv4.IP.String()
+	}
+	if advertiseAddrWANIPv6 != nil {
+		c.TaggedAddresses[structs.TaggedAddressWANIPv6] = advertiseAddrWANIPv6.IP.String()
+	}
 
 	// segments
 	var segments []structs.NetworkSegment
@@ -557,24 +619,58 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
 	if connectCAConfig != nil {
-		TranslateKeys(connectCAConfig, map[string]string{
+		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
-			"private_key":     "PrivateKey",
-			"root_cert":       "RootCert",
-			"rotation_period": "RotationPeriod",
+			"private_key":           "PrivateKey",
+			"root_cert":             "RootCert",
+			"rotation_period":       "RotationPeriod",
+			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
 			"address":               "Address",
 			"token":                 "Token",
 			"root_pki_path":         "RootPKIPath",
 			"intermediate_pki_path": "IntermediatePKIPath",
+			"ca_file":               "CAFile",
+			"ca_path":               "CAPath",
+			"cert_file":             "CertFile",
+			"key_file":              "KeyFile",
+			"tls_server_name":       "TLSServerName",
+			"tls_skip_verify":       "TLSSkipVerify",
+
+			// AWS CA config
+			"existing_arn":   "ExistingARN",
+			"delete_on_exit": "DeleteOnExit",
 
 			// Common CA config
-			"leaf_cert_ttl": "LeafCertTTL",
+			"leaf_cert_ttl":      "LeafCertTTL",
+			"csr_max_per_second": "CSRMaxPerSecond",
+			"csr_max_concurrent": "CSRMaxConcurrent",
+			"private_key_type":   "PrivateKeyType",
+			"private_key_bits":   "PrivateKeyBits",
 		})
 	}
 
-	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
+	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptDNSSAN := []string{}
+	for _, d := range c.AutoEncrypt.DNSSAN {
+		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
+	}
+	autoEncryptIPSAN := []net.IP{}
+	for _, i := range c.AutoEncrypt.IPSAN {
+		ip := net.ParseIP(i)
+		if ip == nil {
+			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
+			continue
+		}
+		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
+
+	}
+	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
+
+	if autoEncryptAllowTLS {
+		connectEnabled = true
+	}
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
@@ -593,9 +689,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		aclsEnabled = b.boolVal(c.ACL.Enabled)
 	}
 
-	aclDC := primaryDatacenter
-	if aclsEnabled && aclDC == "" {
-		aclDC = datacenter
+	// Set the primary DC if it wasn't set.
+	if primaryDatacenter == "" {
+		primaryDatacenter = datacenter
 	}
 
 	enableTokenReplication := false
@@ -605,13 +701,35 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
 
-	proxyDefaultExecMode := b.stringVal(c.Connect.ProxyDefaults.ExecMode)
-	proxyDefaultDaemonCommand := c.Connect.ProxyDefaults.DaemonCommand
-	proxyDefaultScriptCommand := c.Connect.ProxyDefaults.ScriptCommand
-	proxyDefaultConfig := c.Connect.ProxyDefaults.Config
-
 	enableRemoteScriptChecks := b.boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := b.boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
+
+	// VerifyServerHostname implies VerifyOutgoing
+	verifyServerName := b.boolVal(c.VerifyServerHostname)
+	verifyOutgoing := b.boolVal(c.VerifyOutgoing)
+	if verifyServerName {
+		// Setting only verify_server_hostname is documented to imply
+		// verify_outgoing. If it doesn't then we risk sending communication over TCP
+		// when we documented it as forcing TLS for RPCs. Enforce this here rather
+		// than in several different places through the code that need to reason
+		// about it. (See CVE-2018-19653)
+		verifyOutgoing = true
+	}
+
+	var configEntries []structs.ConfigEntry
+
+	if len(c.ConfigEntries.Bootstrap) > 0 {
+		for i, rawEntry := range c.ConfigEntries.Bootstrap {
+			entry, err := structs.DecodeConfigEntry(rawEntry)
+			if err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+			}
+			if err := entry.Validate(); err != nil {
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+			}
+			configEntries = append(configEntries, entry)
+		}
+	}
 
 	// ----------------------------------------------------------------
 	// build runtime config
@@ -654,26 +772,29 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
-		ACLEnforceVersion8:     b.boolValWithDefault(c.ACLEnforceVersion8, true),
-		ACLsEnabled:            aclsEnabled,
-		ACLAgentMasterToken:    b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
-		ACLAgentToken:          b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-		ACLDatacenter:          aclDC,
-		ACLDefaultPolicy:       b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
-		ACLDownPolicy:          b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
-		ACLEnableKeyListPolicy: b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         b.stringValWithDefault(c.ACL.Tokens.Master, b.stringVal(c.ACLMasterToken)),
-		ACLReplicationToken:    b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
-		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
-		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-		ACLToken:               b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
-		ACLTokenReplication:    b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLEnforceVersion8:        b.boolValWithDefault(c.ACLEnforceVersion8, true),
+		ACLsEnabled:               aclsEnabled,
+		ACLAgentMasterToken:       b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
+		ACLAgentToken:             b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
+		ACLDatacenter:             primaryDatacenter,
+		ACLDefaultPolicy:          b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
+		ACLDownPolicy:             b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
+		ACLEnableKeyListPolicy:    b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
+		ACLMasterToken:            b.stringValWithDefault(c.ACL.Tokens.Master, b.stringVal(c.ACLMasterToken)),
+		ACLReplicationToken:       b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
+		ACLTokenTTL:               b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+		ACLPolicyTTL:              b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+		ACLRoleTTL:                b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
+		ACLToken:                  b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
+		ACLTokenReplication:       b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLEnableTokenPersistence: b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),
 
 		// Autopilot
 		AutopilotCleanupDeadServers:      b.boolVal(c.Autopilot.CleanupDeadServers),
 		AutopilotDisableUpgradeMigration: b.boolVal(c.Autopilot.DisableUpgradeMigration),
 		AutopilotLastContactThreshold:    b.durationVal("autopilot.last_contact_threshold", c.Autopilot.LastContactThreshold),
 		AutopilotMaxTrailingLogs:         b.intVal(c.Autopilot.MaxTrailingLogs),
+		AutopilotMinQuorum:               b.uintVal(c.Autopilot.MinQuorum),
 		AutopilotRedundancyZoneTag:       b.stringVal(c.Autopilot.RedundancyZoneTag),
 		AutopilotServerStabilizationTime: b.durationVal("autopilot.server_stabilization_time", c.Autopilot.ServerStabilizationTime),
 		AutopilotUpgradeVersionTag:       b.stringVal(c.Autopilot.UpgradeVersionTag),
@@ -684,6 +805,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
 		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
 		DNSDomain:             b.stringVal(c.DNSDomain),
+		DNSAltDomain:          altDomain,
 		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
@@ -695,6 +817,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSSOA:                soa,
 		DNSUDPAnswerLimit:     b.intVal(c.DNS.UDPAnswerLimit),
 		DNSNodeMetaTXT:        b.boolValWithDefault(c.DNS.NodeMetaTXT, true),
+		DNSUseCache:           b.boolVal(c.DNS.UseCache),
+		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
 
 		// HTTP
 		HTTPPort:            httpPort,
@@ -703,6 +827,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPSAddrs:          httpsAddrs,
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
+		AllowWriteHTTPFrom:  b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
 
 		// Telemetry
 		Telemetry: lib.TelemetryConfig{
@@ -732,116 +857,129 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN:                        advertiseAddrLAN,
-		AdvertiseAddrWAN:                        advertiseAddrWAN,
-		BindAddr:                                bindAddr,
-		Bootstrap:                               b.boolVal(c.Bootstrap),
-		BootstrapExpect:                         b.intVal(c.BootstrapExpect),
-		CAFile:                                  b.stringVal(c.CAFile),
-		CAPath:                                  b.stringVal(c.CAPath),
-		CertFile:                                b.stringVal(c.CertFile),
-		CheckUpdateInterval:                     b.durationVal("check_update_interval", c.CheckUpdateInterval),
-		Checks:                                  checks,
-		ClientAddrs:                             clientAddrs,
-		ConnectEnabled:                          connectEnabled,
-		ConnectCAProvider:                       connectCAProvider,
-		ConnectCAConfig:                         connectCAConfig,
-		ConnectProxyAllowManagedRoot:            b.boolVal(c.Connect.Proxy.AllowManagedRoot),
-		ConnectProxyAllowManagedAPIRegistration: b.boolVal(c.Connect.Proxy.AllowManagedAPIRegistration),
-		ConnectProxyBindMinPort:                 proxyMinPort,
-		ConnectProxyBindMaxPort:                 proxyMaxPort,
-		ConnectSidecarMinPort:                   sidecarMinPort,
-		ConnectSidecarMaxPort:                   sidecarMaxPort,
-		ConnectProxyDefaultExecMode:             proxyDefaultExecMode,
-		ConnectProxyDefaultDaemonCommand:        proxyDefaultDaemonCommand,
-		ConnectProxyDefaultScriptCommand:        proxyDefaultScriptCommand,
-		ConnectProxyDefaultConfig:               proxyDefaultConfig,
-		DataDir:                                 b.stringVal(c.DataDir),
-		Datacenter:                              datacenter,
-		DevMode:                                 b.boolVal(b.Flags.DevMode),
-		DisableAnonymousSignature:               b.boolVal(c.DisableAnonymousSignature),
-		DisableCoordinates:                      b.boolVal(c.DisableCoordinates),
-		DisableHostNodeID:                       b.boolVal(c.DisableHostNodeID),
-		DisableHTTPUnprintableCharFilter:        b.boolVal(c.DisableHTTPUnprintableCharFilter),
-		DisableKeyringFile:                      b.boolVal(c.DisableKeyringFile),
-		DisableRemoteExec:                       b.boolVal(c.DisableRemoteExec),
-		DisableUpdateCheck:                      b.boolVal(c.DisableUpdateCheck),
-		DiscardCheckOutput:                      b.boolVal(c.DiscardCheckOutput),
-		DiscoveryMaxStale:                       b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
-		EnableAgentTLSForChecks:                 b.boolVal(c.EnableAgentTLSForChecks),
-		EnableDebug:                             b.boolVal(c.EnableDebug),
-		EnableRemoteScriptChecks:                enableRemoteScriptChecks,
-		EnableLocalScriptChecks:                 enableLocalScriptChecks,
-		EnableSyslog:                            b.boolVal(c.EnableSyslog),
-		EnableUI:                                b.boolVal(c.UI),
-		EncryptKey:                              b.stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:                   b.boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:                   b.boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                                grpcPort,
-		GRPCAddrs:                               grpcAddrs,
-		KeyFile:                                 b.stringVal(c.KeyFile),
-		LeaveDrainTime:                          b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
-		LeaveOnTerm:                             leaveOnTerm,
-		LogLevel:                                b.stringVal(c.LogLevel),
-		LogFile:                                 b.stringVal(c.LogFile),
-		LogRotateBytes:                          b.intVal(c.LogRotateBytes),
-		LogRotateDuration:                       b.durationVal("log_rotate_duration", c.LogRotateDuration),
-		NodeID:                                  types.NodeID(b.stringVal(c.NodeID)),
-		NodeMeta:                                c.NodeMeta,
-		NodeName:                                b.nodeName(c.NodeName),
-		NonVotingServer:                         b.boolVal(c.NonVotingServer),
-		PidFile:                                 b.stringVal(c.PidFile),
-		PrimaryDatacenter:                       primaryDatacenter,
-		RPCAdvertiseAddr:                        rpcAdvertiseAddr,
-		RPCBindAddr:                             rpcBindAddr,
-		RPCHoldTimeout:                          b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                             b.intVal(c.Limits.RPCMaxBurst),
-		RPCProtocol:                             b.intVal(c.RPCProtocol),
-		RPCRateLimit:                            rate.Limit(b.float64Val(c.Limits.RPCRate)),
-		RaftProtocol:                            b.intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:                   b.intVal(c.RaftSnapshotThreshold),
-		RaftSnapshotInterval:                    b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		ReconnectTimeoutLAN:                     b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
-		ReconnectTimeoutWAN:                     b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:                        b.boolVal(c.RejoinAfterLeave),
-		RetryJoinIntervalLAN:                    b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
-		RetryJoinIntervalWAN:                    b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
-		RetryJoinLAN:                            b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:                 b.intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:                 b.intVal(c.RetryJoinMaxAttemptsWAN),
-		RetryJoinWAN:                            b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                             b.stringVal(c.SegmentName),
-		Segments:                                segments,
-		SerfAdvertiseAddrLAN:                    serfAdvertiseAddrLAN,
-		SerfAdvertiseAddrWAN:                    serfAdvertiseAddrWAN,
-		SerfBindAddrLAN:                         serfBindAddrLAN,
-		SerfBindAddrWAN:                         serfBindAddrWAN,
-		SerfPortLAN:                             serfPortLAN,
-		SerfPortWAN:                             serfPortWAN,
-		ServerMode:                              b.boolVal(c.ServerMode),
-		ServerName:                              b.stringVal(c.ServerName),
-		ServerPort:                              serverPort,
-		Services:                                services,
-		SessionTTLMin:                           b.durationVal("session_ttl_min", c.SessionTTLMin),
-		SkipLeaveOnInt:                          skipLeaveOnInt,
-		StartJoinAddrsLAN:                       b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
-		StartJoinAddrsWAN:                       b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
-		SyslogFacility:                          b.stringVal(c.SyslogFacility),
-		TLSCipherSuites:                         b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:                           b.stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites:             b.boolVal(c.TLSPreferServerCipherSuites),
-		TaggedAddresses:                         c.TaggedAddresses,
-		TranslateWANAddrs:                       b.boolVal(c.TranslateWANAddrs),
-		UIDir:                                   b.stringVal(c.UIDir),
-		UnixSocketGroup:                         b.stringVal(c.UnixSocket.Group),
-		UnixSocketMode:                          b.stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:                          b.stringVal(c.UnixSocket.User),
-		VerifyIncoming:                          b.boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:                     b.boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:                       b.boolVal(c.VerifyIncomingRPC),
-		VerifyOutgoing:                          b.boolVal(c.VerifyOutgoing),
-		VerifyServerHostname:                    b.boolVal(c.VerifyServerHostname),
-		Watches:                                 c.Watches,
+		AdvertiseAddrLAN:                 advertiseAddrLAN,
+		AdvertiseAddrWAN:                 advertiseAddrWAN,
+		BindAddr:                         bindAddr,
+		Bootstrap:                        b.boolVal(c.Bootstrap),
+		BootstrapExpect:                  b.intVal(c.BootstrapExpect),
+		CAFile:                           b.stringVal(c.CAFile),
+		CAPath:                           b.stringVal(c.CAPath),
+		CertFile:                         b.stringVal(c.CertFile),
+		CheckUpdateInterval:              b.durationVal("check_update_interval", c.CheckUpdateInterval),
+		CheckOutputMaxSize:               b.intValWithDefault(c.CheckOutputMaxSize, 4096),
+		Checks:                           checks,
+		ClientAddrs:                      clientAddrs,
+		ConfigEntryBootstrap:             configEntries,
+		AutoEncryptTLS:                   autoEncryptTLS,
+		AutoEncryptDNSSAN:                autoEncryptDNSSAN,
+		AutoEncryptIPSAN:                 autoEncryptIPSAN,
+		AutoEncryptAllowTLS:              autoEncryptAllowTLS,
+		ConnectEnabled:                   connectEnabled,
+		ConnectCAProvider:                connectCAProvider,
+		ConnectCAConfig:                  connectCAConfig,
+		ConnectSidecarMinPort:            sidecarMinPort,
+		ConnectSidecarMaxPort:            sidecarMaxPort,
+		ExposeMinPort:                    exposeMinPort,
+		ExposeMaxPort:                    exposeMaxPort,
+		DataDir:                          b.stringVal(c.DataDir),
+		Datacenter:                       datacenter,
+		DefaultQueryTime:                 b.durationVal("default_query_time", c.DefaultQueryTime),
+		DevMode:                          b.boolVal(b.Flags.DevMode),
+		DisableAnonymousSignature:        b.boolVal(c.DisableAnonymousSignature),
+		DisableCoordinates:               b.boolVal(c.DisableCoordinates),
+		DisableHostNodeID:                b.boolVal(c.DisableHostNodeID),
+		DisableHTTPUnprintableCharFilter: b.boolVal(c.DisableHTTPUnprintableCharFilter),
+		DisableKeyringFile:               b.boolVal(c.DisableKeyringFile),
+		DisableRemoteExec:                b.boolVal(c.DisableRemoteExec),
+		DisableUpdateCheck:               b.boolVal(c.DisableUpdateCheck),
+		DiscardCheckOutput:               b.boolVal(c.DiscardCheckOutput),
+		DiscoveryMaxStale:                b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
+		EnableAgentTLSForChecks:          b.boolVal(c.EnableAgentTLSForChecks),
+		EnableCentralServiceConfig:       b.boolVal(c.EnableCentralServiceConfig),
+		EnableDebug:                      b.boolVal(c.EnableDebug),
+		EnableRemoteScriptChecks:         enableRemoteScriptChecks,
+		EnableLocalScriptChecks:          enableLocalScriptChecks,
+		EnableSyslog:                     b.boolVal(c.EnableSyslog),
+		EnableUI:                         b.boolVal(c.UI),
+		EncryptKey:                       b.stringVal(c.EncryptKey),
+		EncryptVerifyIncoming:            b.boolVal(c.EncryptVerifyIncoming),
+		EncryptVerifyOutgoing:            b.boolVal(c.EncryptVerifyOutgoing),
+		GRPCPort:                         grpcPort,
+		GRPCAddrs:                        grpcAddrs,
+		KeyFile:                          b.stringVal(c.KeyFile),
+		KVMaxValueSize:                   b.uint64Val(c.Limits.KVMaxValueSize),
+		LeaveDrainTime:                   b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
+		LeaveOnTerm:                      leaveOnTerm,
+		LogLevel:                         b.stringVal(c.LogLevel),
+		LogFile:                          b.stringVal(c.LogFile),
+		LogRotateBytes:                   b.intVal(c.LogRotateBytes),
+		LogRotateDuration:                b.durationVal("log_rotate_duration", c.LogRotateDuration),
+		LogRotateMaxFiles:                b.intVal(c.LogRotateMaxFiles),
+		MaxQueryTime:                     b.durationVal("max_query_time", c.MaxQueryTime),
+		NodeID:                           types.NodeID(b.stringVal(c.NodeID)),
+		NodeMeta:                         c.NodeMeta,
+		NodeName:                         b.nodeName(c.NodeName),
+		NonVotingServer:                  b.boolVal(c.NonVotingServer),
+		PidFile:                          b.stringVal(c.PidFile),
+		PrimaryDatacenter:                primaryDatacenter,
+		RPCAdvertiseAddr:                 rpcAdvertiseAddr,
+		RPCBindAddr:                      rpcBindAddr,
+		RPCHoldTimeout:                   b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
+		RPCMaxBurst:                      b.intVal(c.Limits.RPCMaxBurst),
+		RPCProtocol:                      b.intVal(c.RPCProtocol),
+		RPCRateLimit:                     rate.Limit(b.float64Val(c.Limits.RPCRate)),
+		RaftProtocol:                     b.intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:            b.intVal(c.RaftSnapshotThreshold),
+		RaftSnapshotInterval:             b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
+		RaftTrailingLogs:                 b.intVal(c.RaftTrailingLogs),
+		ReconnectTimeoutLAN:              b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
+		ReconnectTimeoutWAN:              b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
+		RejoinAfterLeave:                 b.boolVal(c.RejoinAfterLeave),
+		RetryJoinIntervalLAN:             b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
+		RetryJoinIntervalWAN:             b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
+		RetryJoinLAN:                     b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
+		RetryJoinMaxAttemptsLAN:          b.intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:          b.intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinWAN:                     b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
+		SegmentName:                      b.stringVal(c.SegmentName),
+		Segments:                         segments,
+		SerfAdvertiseAddrLAN:             serfAdvertiseAddrLAN,
+		SerfAdvertiseAddrWAN:             serfAdvertiseAddrWAN,
+		SerfBindAddrLAN:                  serfBindAddrLAN,
+		SerfBindAddrWAN:                  serfBindAddrWAN,
+		SerfPortLAN:                      serfPortLAN,
+		SerfPortWAN:                      serfPortWAN,
+		ServerMode:                       b.boolVal(c.ServerMode),
+		ServerName:                       b.stringVal(c.ServerName),
+		ServerPort:                       serverPort,
+		Services:                         services,
+		SessionTTLMin:                    b.durationVal("session_ttl_min", c.SessionTTLMin),
+		SkipLeaveOnInt:                   skipLeaveOnInt,
+		StartJoinAddrsLAN:                b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
+		StartJoinAddrsWAN:                b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
+		SyslogFacility:                   b.stringVal(c.SyslogFacility),
+		TLSCipherSuites:                  b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
+		TLSMinVersion:                    b.stringVal(c.TLSMinVersion),
+		TLSPreferServerCipherSuites:      b.boolVal(c.TLSPreferServerCipherSuites),
+		TaggedAddresses:                  c.TaggedAddresses,
+		TranslateWANAddrs:                b.boolVal(c.TranslateWANAddrs),
+		UIDir:                            b.stringVal(c.UIDir),
+		UIContentPath:                    UIPathBuilder(b.stringVal(c.UIContentPath)),
+		UnixSocketGroup:                  b.stringVal(c.UnixSocket.Group),
+		UnixSocketMode:                   b.stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:                   b.stringVal(c.UnixSocket.User),
+		VerifyIncoming:                   b.boolVal(c.VerifyIncoming),
+		VerifyIncomingHTTPS:              b.boolVal(c.VerifyIncomingHTTPS),
+		VerifyIncomingRPC:                b.boolVal(c.VerifyIncomingRPC),
+		VerifyOutgoing:                   verifyOutgoing,
+		VerifyServerHostname:             verifyServerName,
+		Watches:                          c.Watches,
+	}
+
+	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
+		return RuntimeConfig{}, err
+	} else {
+		rt.EnterpriseRuntimeConfig = entCfg
 	}
 
 	if rt.BootstrapExpect == 1 {
@@ -858,6 +996,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// reDatacenter defines a regexp for a valid datacenter name
 	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
+	// validContentPath defines a regexp for a valid content path name.
+	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
+	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -866,11 +1007,20 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("datacenter cannot be empty")
 	}
 	if !reDatacenter.MatchString(rt.Datacenter) {
-		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_].", rt.Datacenter)
+		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_]", rt.Datacenter)
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
+
+	if !validContentPath.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, or /. received: %s", rt.UIContentPath)
+	}
+
+	if hasVersion.MatchString(rt.UIContentPath) {
+		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %s", rt.UIContentPath)
+	}
+
 	if !rt.DevMode {
 		fi, err := os.Stat(rt.DataDir)
 		switch {
@@ -902,6 +1052,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
 		}
 	}
+	if !isValidAltDomain(rt.DNSAltDomain, rt.Datacenter) {
+		return fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", rt.Datacenter)
+	}
 	if rt.Bootstrap && !rt.ServerMode {
 		return fmt.Errorf("'bootstrap = true' requires 'server = true'")
 	}
@@ -917,6 +1070,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.BootstrapExpect > 0 && rt.Bootstrap {
 		return fmt.Errorf("'bootstrap_expect > 0' and 'bootstrap = true' are mutually exclusive")
 	}
+	if rt.CheckOutputMaxSize < 1 {
+		return fmt.Errorf("check_output_max_size must be positive, to discard check output use the discard_check_output flag")
+	}
 	if rt.AEInterval <= 0 {
 		return fmt.Errorf("ae_interval cannot be %s. Must be positive", rt.AEInterval)
 	}
@@ -924,7 +1080,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
 	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
-		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_].", rt.ACLDatacenter)
+		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_]", rt.ACLDatacenter)
 	}
 	if rt.EnableUI && rt.UIDir != "" {
 		return fmt.Errorf(
@@ -1015,6 +1171,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		"":                       true,
 		structs.ConsulCAProvider: true,
 		structs.VaultCAProvider:  true,
+		structs.AWSCAProvider:    true,
 	}
 	if _, ok := validCAProviders[rt.ConnectCAProvider]; !ok {
 		return fmt.Errorf("%s is not a valid CA provider", rt.ConnectCAProvider)
@@ -1028,6 +1185,16 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
+		case structs.AWSCAProvider:
+			if _, err := ca.ParseAWSCAConfig(rt.ConnectCAConfig); err != nil {
+				return err
+			}
+		}
+	}
+
+	if rt.AutoEncryptAllowTLS {
+		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
+			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 		}
 	}
 
@@ -1126,8 +1293,32 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		AliasService:                   b.stringVal(v.AliasService),
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
+		SuccessBeforePassing:           b.intVal(v.SuccessBeforePassing),
+		FailuresBeforeCritical:         b.intVal(v.FailuresBeforeCritical),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
+		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
+		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
 	}
+}
+
+func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]structs.ServiceAddress {
+	if len(v) <= 0 {
+		return nil
+	}
+
+	svcAddrs := make(map[string]structs.ServiceAddress)
+	for addrName, addrConf := range v {
+		addr := structs.ServiceAddress{}
+		if addrConf.Address != nil {
+			addr.Address = *addrConf.Address
+		}
+		if addrConf.Port != nil {
+			addr.Port = *addrConf.Port
+		}
+
+		svcAddrs[addrName] = addr
+	}
+	return svcAddrs
 }
 
 func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
@@ -1168,16 +1359,16 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,
 		Address:           b.stringVal(v.Address),
+		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              b.intVal(v.Port),
 		Token:             b.stringVal(v.Token),
 		EnableTagOverride: b.boolVal(v.EnableTagOverride),
 		Weights:           serviceWeights,
 		Checks:            checks,
-		// DEPRECATED (ProxyDestination) - don't populate deprecated field, just use
-		// it as a default below on read. Remove that when remofing ProxyDestination
-		Proxy:   b.serviceProxyVal(v.Proxy, v.ProxyDestination),
-		Connect: b.serviceConnectVal(v.Connect),
+		Proxy:             b.serviceProxyVal(v.Proxy),
+		Connect:           b.serviceConnectVal(v.Connect),
+		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
 	}
 }
 
@@ -1188,18 +1379,15 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	switch *v {
 	case string(structs.ServiceKindConnectProxy):
 		return structs.ServiceKindConnectProxy
+	case string(structs.ServiceKindMeshGateway):
+		return structs.ServiceKindMeshGateway
 	default:
 		return structs.ServiceKindTypical
 	}
 }
 
-func (b *Builder) serviceProxyVal(v *ServiceProxy, deprecatedDest *string) *structs.ConnectProxyConfig {
+func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 	if v == nil {
-		if deprecatedDest != nil {
-			return &structs.ConnectProxyConfig{
-				DestinationServiceName: b.stringVal(deprecatedDest),
-			}
-		}
 		return nil
 	}
 
@@ -1210,6 +1398,8 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy, deprecatedDest *string) *stru
 		LocalServicePort:       b.intVal(v.LocalServicePort),
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
+		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
+		Expose:                 b.exposeConfVal(v.Expose),
 	}
 }
 
@@ -1224,6 +1414,7 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			LocalBindAddress:     b.stringVal(u.LocalBindAddress),
 			LocalBindPort:        b.intVal(u.LocalBindPort),
 			Config:               u.Config,
+			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}
 		if ups[i].DestinationType == "" {
 			ups[i].DestinationType = structs.UpstreamDestTypeService
@@ -1232,19 +1423,50 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 	return ups
 }
 
+func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGatewayConfig {
+	cfg := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeDefault}
+	if mgConf == nil || mgConf.Mode == nil {
+		// return defaults
+		return cfg
+	}
+
+	mode, err := structs.ValidateMeshGatewayMode(*mgConf.Mode)
+	if err != nil {
+		b.err = multierror.Append(b.err, err)
+		return cfg
+	}
+
+	cfg.Mode = mode
+	return cfg
+}
+
+func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
+	var out structs.ExposeConfig
+	if v == nil {
+		return out
+	}
+
+	out.Checks = b.boolVal(v.Checks)
+	out.Paths = b.pathsVal(v.Paths)
+	return out
+}
+
+func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
+	paths := make([]structs.ExposePath, len(v))
+	for i, p := range v {
+		paths[i] = structs.ExposePath{
+			ListenerPort:  b.intVal(p.ListenerPort),
+			Path:          b.stringVal(p.Path),
+			LocalPathPort: b.intVal(p.LocalPathPort),
+			Protocol:      b.stringVal(p.Protocol),
+		}
+	}
+	return paths
+}
+
 func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	if v == nil {
 		return nil
-	}
-
-	var proxy *structs.ServiceDefinitionConnectProxy
-	if v.Proxy != nil {
-		proxy = &structs.ServiceDefinitionConnectProxy{
-			ExecMode:  b.stringVal(v.Proxy.ExecMode),
-			Command:   v.Proxy.Command,
-			Config:    v.Proxy.Config,
-			Upstreams: b.upstreamsVal(v.Proxy.Upstreams),
-		}
 	}
 
 	sidecar := b.serviceVal(v.SidecarService)
@@ -1259,16 +1481,11 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 				b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a nested sidecar_service"))
 				sidecar.Connect.SidecarService = nil
 			}
-			if sidecar.Connect.Proxy != nil {
-				b.err = multierror.Append(b.err, fmt.Errorf("sidecar_service can't have a managed proxy"))
-				sidecar.Connect.Proxy = nil
-			}
 		}
 	}
 
 	return &structs.ServiceConnect{
 		Native:         b.boolVal(v.Native),
-		Proxy:          proxy,
 		SidecarService: sidecar,
 	}
 }
@@ -1300,11 +1517,37 @@ func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
 	return b.durationValWithDefault(name, v, 0)
 }
 
-func (b *Builder) intVal(v *int) int {
+func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
 	if v == nil {
-		return 0
+		return defaultVal
 	}
 	return *v
+}
+
+func (b *Builder) intVal(v *int) int {
+	return b.intValWithDefault(v, 0)
+}
+
+func (b *Builder) uintVal(v *uint) uint {
+	return b.uintValWithDefault(v, 0)
+}
+
+func (b *Builder) uintValWithDefault(v *uint, defaultVal uint) uint {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
+}
+
+func (b *Builder) uint64ValWithDefault(v *uint64, defaultVal uint64) uint64 {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
+}
+
+func (b *Builder) uint64Val(v *uint64) uint64 {
+	return b.uint64ValWithDefault(v, 0)
 }
 
 func (b *Builder) portVal(name string, v *int) int {
@@ -1334,6 +1577,22 @@ func (b *Builder) float64Val(v *float64) float64 {
 	}
 
 	return *v
+}
+
+func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
+	if v == nil {
+		return
+	}
+
+	for _, p := range v {
+		_, net, err := net.ParseCIDR(strings.TrimSpace(p))
+		if err != nil {
+			b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid cidr: %s", name, p))
+		}
+		nets = append(nets, net)
+	}
+
+	return
 }
 
 func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
@@ -1598,4 +1857,29 @@ func isIPAddr(a net.Addr) bool {
 func isUnixAddr(a net.Addr) bool {
 	_, ok := a.(*net.UnixAddr)
 	return ok
+}
+
+// isValidAltDomain returns true if the given domain is not prefixed
+// by keywords used when dispatching DNS requests
+func isValidAltDomain(domain, datacenter string) bool {
+	reAltDomain := regexp.MustCompile(
+		fmt.Sprintf(
+			"^(service|connect|node|query|addr|%s)\\.(%s\\.)?",
+			datacenter, datacenter,
+		),
+	)
+	return !reAltDomain.MatchString(domain)
+}
+
+// UIPathBuilder checks to see if there was a path set
+// If so, adds beginning and trailing slashes to UI path
+func UIPathBuilder(UIContentString string) string {
+	if UIContentString != "" {
+		var fmtedPath string
+		fmtedPath = strings.Trim(UIContentString, "/")
+		fmtedPath = "/" + fmtedPath + "/"
+		return fmtedPath
+
+	}
+	return "/ui/"
 }

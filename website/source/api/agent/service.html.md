@@ -29,14 +29,19 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/services`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
+
+### Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
 
 ### Sample Request
 
@@ -53,6 +58,16 @@ $ curl \
       "ID": "redis",
       "Service": "redis",
       "Tags": [],
+      "TaggedAddresses": {
+        "lan": {
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.0.53",
+          "port": 80
+        }
+      },
       "Meta": {
           "redis_version": "4.0"
       },
@@ -66,6 +81,43 @@ $ curl \
   }
 }
 ```
+
+### Filtering
+
+The filter is executed against each value in the service mapping with the
+following selectors and filter operations being supported:
+
+| Selector                               | Supported Operations                               |
+| -------------------------------------- | -------------------------------------------------  |
+| `Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                       | Equal, Not Equal                                   |
+| `EnableTagOverride`                    | Equal, Not Equal                                   |
+| `ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                 | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`               | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
+| `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                      | Equal, Not Equal                                   |
+| `Weights.Warning`                      | Equal, Not Equal                                   |
+
 
 ## Get Service Configuration
 
@@ -85,17 +137,17 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/service/:service_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `YES`<sup>1</sup>| `none`            | `none`        | `service:read` |
 
 <sup>1</sup> Supports [hash-based
-blocking](/api/index.html#hash-based-blocking-queries) only.
+blocking](/api/features/blocking.html#hash-based-blocking-queries) only.
 
 ### Parameters
 
@@ -120,6 +172,16 @@ $ curl \
     "Meta": null,
     "Port": 18080,
     "Address": "",
+    "TaggedAddresses": {
+        "lan": {
+          "address": "127.0.0.1",
+          "port": 8000
+        },
+        "wan": {
+          "address": "198.18.0.53",
+          "port": 80
+        }
+      },
     "Weights": {
         "Passing": 1,
         "Warning": 1
@@ -148,12 +210,258 @@ $ curl \
 The response has the same structure as the [service
 definition](/docs/agent/services.html) with one extra field `ContentHash` which
 contains the [hash-based blocking
-query](/api/index.html#hash-based-blocking-queries) hash for the result. The
+query](/api/features/blocking.html#hash-based-blocking-queries) hash for the result. The
 same hash is also present in `X-Consul-ContentHash`.
+
+## Get local service health
+
+Retrieve an aggregated state of service(s) on the local agent by name.
+
+This endpoints support JSON format and text/plain formats, JSON being the
+default. In order to get the text format, you can append `?format=text` to
+the URL or use Mime Content negotiation by specifying a HTTP Header
+`Accept` starting with `text/plain`.
+
+| Method | Path                                                   | Produces           |
+| ------ | ------------------------------------------------------ | ------------------ |
+| `GET`  | `/agent/health/service/name/:service_name`             | `application/json` |
+| `GET`  | `/agent/health/service/name/:service_name?format=text` | `text/plain`       |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `none`            | `none`        | `service:read` |
+
+Those endpoints return the aggregated values of all healthchecks for the
+service instance(s) and will return the corresponding HTTP codes:
+
+| Result | Meaning                                                         |
+| ------ | ----------------------------------------------------------------|
+| `200`  | All healthchecks of every matching service instance are passing |
+| `400`  | Bad parameter (missing service name of id)                      |
+| `404`  | No such service id or name                                      |
+| `429`  | Some healthchecks are passing, at least one is warning          |
+| `503`  | At least one of the healthchecks is critical                    |
+
+Those endpoints might be useful for the following use-cases:
+
+* a load-balancer wants to check IP connectivity with an agent and retrieve
+  the aggregated status of given service
+* create aliases for a given service (thus, the healthcheck of alias uses
+  http://localhost:8500/v1/agent/service/id/aliased_service_id healthcheck)
+
+
+##### Note
+If you know the ID of service you want to target, it is recommended to use
+[`/v1/agent/health/service/id/:service_id`](/api/agent/service.html#get-local-service-health-by-id)
+so you have the result for the service only. When requesting
+`/v1/agent/health/service/name/:service_name`, the caller will receive the
+worst state of all services having the given name.
+
+### Sample Requests
+
+Given 2 services with name `web`, with web2 critical and web1 passing:
+
+#### List worst statuses of all instances of web-demo services (HTTP 503)
+
+##### By Name, Text
+
+```shell
+curl http://localhost:8500/v1/agent/health/service/name/web?format=text
+critical
+```
+
+##### By Name, JSON
+
+In JSON, the detail of passing/warning/critical services is present in output,
+in a array.
+
+```shell
+curl localhost:8500/v1/agent/health/service/name/web
+```
+
+```json
+{
+    "critical": [
+        {
+            "ID": "web2",
+            "Service": "web",
+            "Tags": [
+                "rails"
+            ],
+            "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
+            "Meta": null,
+            "Port": 80,
+            "EnableTagOverride": false,
+            "Connect": {
+                "Native": false,
+                "Proxy": null
+            },
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
+    ],
+    "passing": [
+        {
+            "ID": "web1",
+            "Service": "web",
+            "Tags": [
+                "rails"
+            ],
+            "Address": "",
+            "TaggedAddresses": {
+              "lan": {
+                "address": "127.0.0.1",
+                "port": 8000
+              },
+              "wan": {
+                "address": "198.18.0.53",
+                "port": 80
+              }
+            },
+            "Meta": null,
+            "Port": 80,
+            "EnableTagOverride": false,
+            "Connect": {
+                "Native": false,
+                "Proxy": null
+            },
+            "CreateIndex": 0,
+            "ModifyIndex": 0
+        }
+    ]
+}
+```
+
+#### List status of web2 (HTTP 503)
+
+##### Failure By ID, Text
+
+```shell
+curl http://localhost:8500/v1/agent/health/service/id/web2?format=text
+critical
+```
+
+##### Failure By ID, JSON
+
+In JSON, the output per ID is not an array, but only contains the value
+of service.
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web2
+```
+
+```json
+{
+    "critical": {
+        "ID": "web2",
+        "Service": "web",
+        "Tags": [
+            "rails"
+        ],
+        "Address": "",
+        "TaggedAddresses": {
+          "lan": {
+            "address": "127.0.0.1",
+            "port": 8000
+          },
+          "wan": {
+            "address": "198.18.0.53",
+            "port": 80
+          }
+        },
+        "Meta": null,
+        "Port": 80,
+        "EnableTagOverride": false,
+        "Connect": {
+            "Native": false,
+            "Proxy": null
+        },
+        "CreateIndex": 0,
+        "ModifyIndex": 0
+    }
+}
+```
+
+#### List status of web2 (HTTP 200)
+
+##### Success By ID, Text
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web1?format=text
+passing
+```
+
+#### Success By ID, JSON
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web1
+```
+
+```json
+{
+    "passing": {
+        "ID": "web1",
+        "Service": "web",
+        "Tags": [
+            "rails"
+        ],
+        "Address": "",
+        "TaggedAddresses": {
+          "lan": {
+            "address": "127.0.0.1",
+            "port": 8000
+          },
+          "wan": {
+            "address": "198.18.0.53",
+            "port": 80
+          }
+        },
+        "Meta": null,
+        "Port": 80,
+        "EnableTagOverride": false,
+        "Connect": {
+            "Native": false,
+            "Proxy": null
+        },
+        "CreateIndex": 0,
+        "ModifyIndex": 0
+    }
+}
+```
+
+## Get local service health by its ID
+
+Retrieve an aggregated state of service(s) on the local agent by ID.
+
+See:
+
+| Method | Path                                               | Produces           |
+| ------ | -------------------------------------------------- | ------------------ |
+| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
+| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
+
+Parameters and response format are the same as
+[`/v1/agent/health/service/name/:service_name`](/api/agent/service.html#get-local-service-health).
 
 ## Register Service
 
-This endpoint adds a new service, with an optional health check, to the local
+This endpoint adds a new service, with optional health checks, to the local
 agent.
 
 The agent is responsible for managing the status of its local services, and for
@@ -168,14 +476,18 @@ For "connect-proxy" kind services, the `service:write` ACL for the
 | `PUT`  | `/agent/service/register`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `service:write` |
+
+### Query string parameters
+
+- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
 
 ### Parameters
 
@@ -183,18 +495,25 @@ Note that this endpoint, unlike most also [supports `snake_case`](/docs/agent/se
 service definition keys for compatibility with the config file format.
 
 - `Name` `(string: <required>)` - Specifies the logical name of the service.
-  Many service instances may share the same logical service name.
+  Many service instances may share the same logical service name. We recommend using
+  [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+  for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns).
 
 - `ID` `(string: "")` - Specifies a unique ID for this service. This must be
   unique per _agent_. This defaults to the `Name` parameter if not provided.
 
 - `Tags` `(array<string>: nil)` - Specifies a list of tags to assign to the
-  service. These tags can be used for later filtering and are exposed via the
-  APIs.
+  service. These tags can be used for later filtering and are exposed via the APIs.
+  We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+  for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns)
 
 - `Address` `(string: "")` - Specifies the address of the service. If not
   provided, the agent's address is used as the address for the service during
   DNS queries.
+
+- `TaggedAddresses` `(map<string|object>: nil)` - Specifies a map of explicit LAN
+  and WAN addresses for the service instance. Both the address and port can be
+  specified within the map values.
 
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.
@@ -204,20 +523,16 @@ service definition keys for compatibility with the config file format.
 - `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
   typical Consul service. This value may also be "connect-proxy" for
   services that are [Connect-capable](/docs/connect/index.html)
-  proxies representing another service.
-
-- `ProxyDestination` `(string: "")` - **Deprecated** From 1.2.0 to 1.2.3 this
-  was used for "connect-proxy" `Kind` services however the equivalent field is
-  now in `Proxy.DestinationServiceName`. Registrations using this field will
-  continue to work until some later major version where this will be removed
-  entirely. It's strongly recommended to switch to using the new field.
+  proxies representing another service or "mesh-gateway" for instances of
+  a [mesh gateway](/docs/connect/mesh_gateway.html)
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
-  Connect proxy instance. This is only valid if `Kind == "connect-proxy"`. See
-  the [Proxy documentation](/docs/connect/proxies.html) for full details.
+  Connect proxy instance. This is only valid if `Kind == "connect-proxy"` or
+  `Kind == "mesh-gateway"`. See the [Proxy documentation](/docs/connect/registration/service-registration.html)
+  for full details.
 
-- `Connect` `(Connect: nil)` - Specifies the 
-  [configuration for Connect](/docs/connect/configuration.html). See the 
+- `Connect` `(Connect: nil)` - Specifies the
+  [configuration for Connect](/docs/connect/configuration.html). See the
   [Connect Structure](#connect-structure) section below for supported fields.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
@@ -277,7 +592,7 @@ For the `Connect` field, the parameters are:
   in [Managed Proxy Deprecation](/docs/connect/proxies/managed-deprecated.html).
 - `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
   service definition to register. For more information see
-  [Sidecar Service Registration](/docs/connect/proxies/sidecar-service.html).
+  [Sidecar Service Registration](/docs/connect/registration/sidecar-service.html).
 
 ### Sample Payload
 
@@ -298,9 +613,8 @@ For the `Connect` field, the parameters are:
   "Check": {
     "DeregisterCriticalServiceAfter": "90m",
     "Args": ["/usr/local/bin/check_redis.py"],
-    "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
-    "TTL": "15s"
+    "Timeout": "5s"
   },
   "Weights": {
     "Passing": 10,
@@ -315,7 +629,7 @@ For the `Connect` field, the parameters are:
 $ curl \
     --request PUT \
     --data @payload.json \
-    http://127.0.0.1:8500/v1/agent/service/register
+    http://127.0.0.1:8500/v1/agent/service/register?replace-existing-checks=true
 ```
 
 ## Deregister Service
@@ -331,10 +645,10 @@ is an associated check, that is also deregistered.
 | `PUT`  | `/agent/service/deregister/:service_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -365,10 +679,10 @@ will be automatically restored on agent restart.
 | `PUT`  | `/agent/service/maintenance/:service_id` | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |

@@ -16,7 +16,8 @@ more details on the gossip protocol and its use.
 ## List Gossip Encryption Keys
 
 This endpoint lists the gossip encryption keys installed on both the WAN and LAN
-rings of every known datacenter.
+rings of every known datacenter, unless otherwise specified with the `local-only` 
+query parameter (see below).
 
 If ACLs are enabled, the client will need to supply an ACL Token with `keyring`
 read privileges.
@@ -26,10 +27,10 @@ read privileges.
 | `GET`  | `/operator/keyring`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -41,6 +42,9 @@ The table below shows this endpoint's support for
   non-zero value will cause nodes to relay their responses through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is `5`.
   This is specified as part of the URL as a query parameter.
+- `local-only` `(bool: false)` - Setting `local-only` to true will force keyring 
+  list queries to only hit local servers (no WAN traffic). This flag can only be set
+  for list queries. It is specified as part of the URL as a query parameter.
 
 ### Sample Request
 
@@ -58,9 +62,9 @@ $ curl \
     "Datacenter": "dc1",
     "Segment": "",
     "Keys": {
-      "0eK8RjnsGC/+I1fJErQsBA==": 1,
-      "G/3/L4yOw3e5T7NTvuRi9g==": 1,
-      "z90lFx3sZZLtTOkutXcwYg==": 1
+      "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=": 1,
+      "ZWTL+bgjHyQPhJRKcFe3ccirc2SFHmc/Nw67l8NQfdk=": 1,
+      "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4=": 1
     },
     "NumNodes": 1
   },
@@ -69,9 +73,9 @@ $ curl \
     "Datacenter": "dc1",
     "Segment": "",
     "Keys": {
-      "0eK8RjnsGC/+I1fJErQsBA==": 1,
-      "G/3/L4yOw3e5T7NTvuRi9g==": 1,
-      "z90lFx3sZZLtTOkutXcwYg==": 1
+      "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=": 1,
+      "ZWTL+bgjHyQPhJRKcFe3ccirc2SFHmc/Nw67l8NQfdk=": 1,
+      "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4=": 1
     },
     "NumNodes": 1
   }
@@ -99,10 +103,10 @@ This endpoint installs a new gossip encryption key into the cluster.
 | `POST` | `/operator/keyring`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -122,7 +126,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
-  "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+  "Key": "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s="
 }
 ```
 
@@ -145,10 +149,10 @@ installed before this operation can succeed.
 | `PUT`  | `/operator/keyring`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -168,7 +172,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
- "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+ "Key": "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4="
 }
 ```
 
@@ -191,10 +195,10 @@ may only be performed on keys which are not currently the primary key.
 | `DELETE`| `/operator/keyring`          | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -213,7 +217,7 @@ The table below shows this endpoint's support for
 
 ```json
 {
- "Key": "3lg9DxVfKNzI8O+IQ5Ek+Q=="
+ "Key": "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4="
 }
 ```
 

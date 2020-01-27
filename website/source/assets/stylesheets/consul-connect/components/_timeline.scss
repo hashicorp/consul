@@ -103,17 +103,15 @@
       }
     }
 
-    h3 {
+    h2 {
       margin: 0 0 8px;
     }
 
     .sub-heading {
       display: block;
-      font-size: 1.6rem;
       margin-bottom: 24px;
 
       @media (min-width: 992px) {
-        font-size: 1.8rem;
         margin-bottom: 40px;
       }
     }
@@ -144,7 +142,6 @@
     }
 
     p {
-      font-size: 1.6rem;
       margin-top: 40px;
     }
   }

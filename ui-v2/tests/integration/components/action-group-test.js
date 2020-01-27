@@ -1,43 +1,39 @@
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render, find } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('action-group', 'Integration | Component | action group', {
-  integration: true,
-});
+module('Integration | Component | action group', function(hooks) {
+  setupRenderingTest(hooks);
 
-test("it doesn't render anything when used inline", function(assert) {
-  this.render(hbs`{{action-group}}`);
+  test("it doesn't render anything when used inline", async function(assert) {
+    await render(hbs`{{action-group}}`);
 
-  assert.equal(
-    this.$()
-      .text()
-      .trim(),
-    ''
-  );
-});
-test('it renders', function(assert) {
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });
+    assert.dom('*').hasText('');
+  });
+  test('it renders', async function(assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });
 
-  // this.render(hbs`{{action-group}}`);
+    // this.render(hbs`{{action-group}}`);
 
-  // assert.equal(
-  //   this.$()
-  //     .text()
-  //     .trim(),
-  //   ''
-  // );
+    // assert.equal(
+    //   this.$()
+    //     .text()
+    //     .trim(),
+    //   ''
+    // );
 
-  // Template block usage:
-  this.render(hbs`
-    {{#action-group}}{{/action-group}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#action-group}}{{/action-group}}
+    `);
 
-  assert.notEqual(
-    this.$()
-      .text()
-      .trim()
-      .indexOf('Open'),
-    -1
-  );
+    assert.notEqual(
+      find('*')
+        .textContent.trim()
+        .indexOf('Open'),
+      -1
+    );
+  });
 });

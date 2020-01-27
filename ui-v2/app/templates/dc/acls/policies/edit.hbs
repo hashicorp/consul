@@ -1,25 +1,25 @@
 {{#app-view class=(concat 'policy ' (if (or isAuthorized isEnabled) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/acls/policies/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'disabled'}}
+    {{#block-slot name='disabled'}}
       {{partial 'dc/acls/disabled'}}
     {{/block-slot}}
-    {{#block-slot 'authorization'}}
+    {{#block-slot name='authorization'}}
       {{partial 'dc/acls/authorization'}}
     {{/block-slot}}
-    {{#block-slot 'breadcrumbs'}}
+    {{#block-slot name='breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
         </ol>
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
 {{#if isAuthorized }}
   {{#if create }}
           New Policy
   {{else}}
-    {{#if (policy/is-management item)}}
+    {{#if (eq (policy/typeof item) 'policy-management')}}
           View Policy
     {{else}}
           Edit Policy
@@ -30,8 +30,8 @@
 {{/if}}
         </h1>
     {{/block-slot}}
-    {{#block-slot 'content'}}
-{{#if (policy/is-management item)}}
+    {{#block-slot name='content'}}
+{{#if (eq (policy/typeof item) 'policy-management')}}
       {{ partial 'dc/acls/policies/view'}}
 {{else}}
       {{ partial 'dc/acls/policies/form'}}

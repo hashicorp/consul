@@ -10,15 +10,13 @@ module.exports = function(environment) {
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
-        // e.g. 'with-controller': true
-        'ds-improved-ajax': true,
+        // e.g. EMBER_NATIVE_DECORATOR_SUPPORT: true
       },
       EXTEND_PROTOTYPES: {
         // Prevent Ember Data from overriding Date.parse.
         Date: false,
       },
     },
-
     APP: {
       // Here you can pass flags/options to your application instance
       // when it is created
@@ -27,20 +25,35 @@ module.exports = function(environment) {
       injectionFactories: ['view', 'controller', 'component'],
     },
   };
+  // TODO: These should probably go onto APP
   ENV = Object.assign({}, ENV, {
-    CONSUL_GIT_SHA: (function() {
-      if (process.env.CONSUL_GIT_SHA) {
-        return process.env.CONSUL_GIT_SHA;
+    CONSUL_UI_DISABLE_REALTIME: typeof process.env.CONSUL_UI_DISABLE_REALTIME !== 'undefined',
+    CONSUL_UI_DISABLE_ANCHOR_SELECTION:
+      typeof process.env.CONSUL_UI_DISABLE_ANCHOR_SELECTION !== 'undefined',
+    CONSUL_COPYRIGHT_YEAR: (function(val) {
+      if (val) {
+        return val;
+      }
+      return require('child_process')
+        .execSync('git show -s --format=%ci HEAD')
+        .toString()
+        .trim()
+        .split('-')
+        .shift();
+    })(process.env.CONSUL_COPYRIGHT_YEAR),
+    CONSUL_GIT_SHA: (function(val) {
+      if (val) {
+        return val;
       }
 
       return require('child_process')
         .execSync('git rev-parse --short HEAD')
         .toString()
         .trim();
-    })(),
-    CONSUL_VERSION: (function() {
-      if (process.env.CONSUL_VERSION) {
-        return process.env.CONSUL_VERSION;
+    })(process.env.CONSUL_GIT_SHA),
+    CONSUL_VERSION: (function(val) {
+      if (val) {
+        return val;
       }
       // see /scripts/dist.sh:8
       const version_go = `${path.dirname(path.dirname(__dirname))}/version/version.go`;
@@ -52,48 +65,71 @@ module.exports = function(environment) {
         })
         .trim()
         .split('"')[1];
-    })(),
-    CONSUL_BINARY_TYPE: (function() {
-      if (process.env.CONSUL_BINARY_TYPE) {
-        return process.env.CONSUL_BINARY_TYPE;
-      }
-      return 'oss';
-    })(),
-    CONSUL_DOCUMENTATION_URL: 'https://www.consul.io/docs',
+    })(process.env.CONSUL_VERSION),
+    CONSUL_BINARY_TYPE: process.env.CONSUL_BINARY_TYPE ? process.env.CONSUL_BINARY_TYPE : 'oss',
+    CONSUL_ACLS_ENABLED: false,
+    CONSUL_NSPACES_ENABLED: false,
+
+    CONSUL_HOME_URL: 'https://www.consul.io',
+    CONSUL_DOCS_URL: 'https://www.consul.io/docs',
+    CONSUL_DOCS_LEARN_URL: 'https://learn.hashicorp.com/consul',
+    CONSUL_DOCS_API_URL: 'https://www.consul.io/api',
     CONSUL_COPYRIGHT_URL: 'https://www.hashicorp.com',
-    CONSUL_COPYRIGHT_YEAR: '2018',
   });
+  const isDevLike = ['development', 'staging', 'test'].indexOf(environment) > -1;
+  const isProdLike = ['production', 'staging'].indexOf(environment) > -1;
+  switch (true) {
+    case environment === 'test':
+      ENV = Object.assign({}, ENV, {
+        locationType: 'none',
+        CONSUL_NSPACES_TEST: true,
+        CONSUL_ACLS_ENABLED: true,
+        '@hashicorp/ember-cli-api-double': {
+          'auto-import': false,
+          enabled: true,
+          endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+        },
+        APP: Object.assign({}, ENV.APP, {
+          LOG_ACTIVE_GENERATION: false,
+          LOG_VIEW_LOOKUPS: false,
 
-  if (environment === 'development') {
-    // ENV.APP.LOG_RESOLVER = true;
-    // ENV.APP.LOG_ACTIVE_GENERATION = true;
-    // ENV.APP.LOG_TRANSITIONS = true;
-    // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    // ENV.APP.LOG_VIEW_LOOKUPS = true;
-    // ENV['ember-cli-mirage'] = {
-    //   enabled: false,
-    // };
+          rootElement: '#ember-testing',
+          autoboot: false,
+        }),
+      });
+      break;
+    case environment === 'staging':
+      ENV = Object.assign({}, ENV, {
+        '@hashicorp/ember-cli-api-double': {
+          enabled: true,
+          endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+        },
+      });
+      break;
+    case environment === 'production':
+      ENV = Object.assign({}, ENV, {
+        CONSUL_ACLS_ENABLED: '{{.ACLsEnabled}}',
+        CONSUL_NSPACES_ENABLED:
+          '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
+      });
+      break;
   }
-
-  if (environment === 'test') {
-    // Testem prefers this...
-    ENV.locationType = 'none';
-
-    // keep test console output quieter
-    ENV.APP.LOG_ACTIVE_GENERATION = false;
-    ENV.APP.LOG_VIEW_LOOKUPS = false;
-
-    ENV.APP.rootElement = '#ember-testing';
-    ENV.APP.autoboot = false;
-    ENV['ember-cli-api-double'] = {
-      reader: 'html',
-      endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
-    };
+  switch (true) {
+    case isDevLike:
+      ENV = Object.assign({}, ENV, {
+        CONSUL_NSPACES_ENABLED: true,
+        CONSUL_ACLS_ENABLED: true,
+        // 'APP': Object.assign({}, ENV.APP, {
+        //   'LOG_RESOLVER': true,
+        //   'LOG_ACTIVE_GENERATION': true,
+        //   'LOG_TRANSITIONS': true,
+        //   'LOG_TRANSITIONS_INTERNAL': true,
+        //   'LOG_VIEW_LOOKUPS': true,
+        // })
+      });
+      break;
+    case isProdLike:
+      break;
   }
-
-  if (environment === 'production') {
-    // here you can enable a production-specific feature
-  }
-
   return ENV;
 };

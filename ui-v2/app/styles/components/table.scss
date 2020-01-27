@@ -1,38 +1,96 @@
-@import './icons/index';
-@import './table/index';
-td.folder {
-  @extend %with-folder;
+@import '../base/components/table/index';
+@import '../base/components/popover-menu/index';
+table {
+  @extend %table, %table-flex;
 }
-td dt.passing {
-  @extend %with-passing;
+
+%table-actions > [type='checkbox'] {
+  @extend %more-popover-menu;
 }
-td dt.warning {
-  @extend %with-warning;
+%table-actions .confirmation-alert {
+  @extend %confirmation-alert;
 }
-td dt.critical {
-  @extend %with-critical;
+%table-actions > [type='checkbox'] + label {
+  position: absolute;
+  top: 8px;
+  right: 15px;
 }
-td span.zero {
-  @extend %with-no-healthchecks;
-  display: block;
-  text-indent: 20px;
-  color: $ui-gray-400;
+
+html.template-service.template-list td:first-child a span,
+html.template-node.template-show #services td:first-child a span,
+html.template-service.template-show #instances td:first-child a span {
+  @extend %with-external-source-icon;
+  float: left;
+  margin-right: 10px;
+  margin-top: 2px;
 }
-table:not(.sessions) tr {
+/* This nudges the th in for the external source icons */
+html.template-node.template-show #services th:first-child,
+html.template-service.template-show #instances th:first-child,
+html.template-service.template-list main th:first-child {
+  text-indent: 28px;
+}
+
+td.folder::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
+  background-color: $gray-300;
+  margin-top: 1px;
+  margin-right: 5px;
+}
+table:not(.sessions) tbody tr {
   cursor: pointer;
 }
 table:not(.sessions) td:first-child {
   padding: 0;
 }
-td dt.passing,
-td dt.passing + dd {
-  color: $ui-color-success;
+/* Header Tooltips/Icon*/
+th {
+  overflow: visible;
 }
-td dt.warning,
-td dt.warning + dd {
-  color: $ui-color-alert;
+th span::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  opacity: 0.6;
 }
-td dt.critical,
-td dt.critical + dd {
-  color: $ui-color-failure;
+th span {
+  @extend %with-tooltip;
+  margin-left: 2px;
+}
+th span em {
+  width: 250px;
+  font-style: normal;
+  white-space: normal !important;
+}
+/**/
+
+/* ideally these would be in route css files, but left here as they */
+/* accomplish the same thing (hide non-essential columns for tables) */
+@media #{$--lt-medium-table} {
+  /* Policy > Datacenters */
+  html.template-policy.template-list tr > :nth-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :nth-child(2) {
+    display: none;
+  }
+}
+@media #{$--lt-wide-table} {
+  /* hide actions on narrow screens, you can always click in do everything from there */
+  tr > .actions {
+    display: none;
+  }
+  html.template-intention.template-list tr > :nth-last-child(2) {
+    display: none;
+  }
+  html.template-service.template-list tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #services tr > :last-child {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
+    display: none;
+  }
+  html.template-node.template-show #lock-sessions td:last-child {
+    padding: 0;
+  }
 }

@@ -1,0 +1,121 @@
+{{#modal-dialog data-test-role-form onclose=(action (mut state) 'role') name="new-role-toggle"}}
+  {{#block-slot name='header'}}
+{{#if (eq state 'role')}}
+    <h2>New Role</h2>
+{{else}}
+    <h2>New Policy</h2>
+{{/if}}
+  {{/block-slot}}
+  {{#block-slot name='body'}}
+
+  <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
+    {{#role-form form=form dc=dc nspace=nspace}}
+      {{#block-slot name='policy'}}
+
+        {{#policy-selector source=source dc=dc nspace=nspace items=item.Policies}}
+          {{#block-slot name='trigger'}}
+            <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
+              <span>Create new policy</span>
+            </label>
+          {{/block-slot}}
+        {{/policy-selector}}
+
+      {{/block-slot}}
+    {{/role-form}}
+
+    <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
+    {{policy-form data-test-policy-form name="role[policy]" form=policyForm dc=dc}}
+
+  {{/block-slot}}
+  {{#block-slot name='actions' as |close|}}
+
+{{#if (eq state 'role')}}
+    <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
+      {{#if item.isSaving }}
+        <div class="progress indeterminate"></div>
+      {{/if}}
+      <span>Create and apply</span>
+    </button>
+    <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
+{{else}}
+    <button type="submit" {{action 'dispatch' 'save' (array policy item.Policies (action (mut state) 'role'))}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
+      {{#if policy.isSaving }}
+        <div class="progress indeterminate"></div>
+      {{/if}}
+      <span>Create and apply</span>
+    </button>
+    <button type="reset" disabled={{if policy.isSaving 'disabled'}} {{action (mut state) 'role'}}>Cancel</button>
+{{/if}}
+
+  {{/block-slot}}
+{{/modal-dialog}}
+
+{{#child-selector repo=repo dc=dc nspace=nspace type="role" placeholder="Search for role" items=items}}
+  {{#block-slot name='label'}}
+    Apply an existing role
+  {{/block-slot}}
+  {{#block-slot name='create'}}
+    <label class="type-dialog" for="new-role-toggle">
+      <span>Create new role</span>
+    </label>
+
+  {{/block-slot}}
+  {{#block-slot name='option' as |option|}}
+    {{option.Name}}
+  {{/block-slot}}
+  {{#block-slot name='set'}}
+    {{#tabular-collection
+        data-test-roles
+        rows=5
+        items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
+    }}
+      {{#block-slot name='header'}}
+        <th>Name</th>
+        <th>Description</th>
+      {{/block-slot}}
+      {{#block-slot name='row'}}
+        <td>
+          <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
+        </td>
+        <td>
+          {{item.Description}}
+        </td>
+      {{/block-slot}}
+      {{#block-slot name='actions' as |index change checked|}}
+        {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
+          {{#block-slot name='trigger'}}
+            More
+          {{/block-slot}}
+          {{#block-slot name='menu' as |confirm send keypressClick|}}
+              <li role="none">
+                <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
+              </li>
+              <li role="none" class="dangerous">
+                <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Remove</label>
+                <div role="menu">
+                  <div class="confirmation-alert warning">
+                    <div>
+                      <header>
+                        Confirm Remove
+                      </header>
+                      <p>
+                        Are you sure you want to remove this role?
+                      </p>
+                    </div>
+                    <ul>
+                      <li class="dangerous">
+                        <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'remove' item items}}>Remove</button>
+                      </li>
+                      <li>
+                        <label for={{confirm}}>Cancel</label>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </li>
+          {{/block-slot}}
+        {{/popover-menu}}
+      {{/block-slot}}
+    {{/tabular-collection}}
+  {{/block-slot}}
+{{/child-selector}}

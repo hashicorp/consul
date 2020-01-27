@@ -24,10 +24,10 @@ This endpoint gets information about the current license.
 | `GET` | `/operator/license`           | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
@@ -86,10 +86,10 @@ license contents as well as any warning messages regarding its validity.
 | `PUT` | `/operator/license`           | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
@@ -111,6 +111,68 @@ The payload is the raw license blob.
 $ curl \
     --request PUT \
     --data @consul.license \
+    http://127.0.0.1:8500/v1/operator/license
+```
+
+### Sample Response
+
+```json
+{
+    "Valid": true,
+    "License": {
+        "license_id": "2afbf681-0d1a-0649-cb6c-333ec9f0989c",
+        "customer_id": "0259271d-8ffc-e85e-0830-c0822c1f5f2b",
+        "installation_id": "*",
+        "issue_time": "2018-05-21T20:03:35.911567355Z",
+        "start_time": "2018-05-21T04:00:00Z",
+        "expiration_time": "2019-05-22T03:59:59.999Z",
+        "product": "consul",
+        "flags": {
+            "package": "premium"
+        },
+        "features": [
+            "Automated Backups",
+            "Automated Upgrades",
+            "Enhanced Read Scalability",
+            "Network Segments",
+            "Redundancy Zone",
+            "Advanced Network Federation"
+        ],
+        "temporary": false
+    },
+    "Warnings": []
+}
+```
+
+## Resetting the Consul License
+
+This endpoint resets the Consul license to the license included in the Enterprise binary. If the included license is not valid, the replace will fail.
+
+| Method   | Path                         | Produces                   |
+| -------- | ---------------------------- | -------------------------- |
+| `DELETE` | `/operator/license`          | `application/json`         |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `operator:write` |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter whose license should be updated.
+  This will default to the datacenter of the agent serving the HTTP request.
+  This is specified as a URL query parameter.
+
+### Sample Request
+
+```text
+$ curl \
+    --request DELETE \
     http://127.0.0.1:8500/v1/operator/license
 ```
 

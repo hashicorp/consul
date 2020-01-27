@@ -1,0 +1,12 @@
+%action-group input[type='radio']:checked + label:first-of-type {
+  /* frame-gray */
+  background-color: $gray-050;
+}
+%action-group > label {
+  cursor: pointer;
+}
+%action-group > label:first-of-type::after {
+  @extend %with-more-horizontal-icon;
+  @extend %as-pseudo;
+  opacity: 0.7;
+}

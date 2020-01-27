@@ -28,7 +28,7 @@ func TestStore_CAConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	idx, config, err := s.CAConfig()
+	idx, config, err := s.CAConfig(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestStore_CAConfigCAS(t *testing.T) {
 
 	// Check that the index is untouched and the entry
 	// has not been updated.
-	idx, config, err := s.CAConfig()
+	idx, config, err := s.CAConfig(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestStore_CAConfigCAS(t *testing.T) {
 	}
 
 	// Make sure the config was updated
-	idx, config, err = s.CAConfig()
+	idx, config, err = s.CAConfig(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 	}
 	restore.Commit()
 
-	idx, res, err := s2.CAConfig()
+	idx, res, err := s2.CAConfig(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -144,6 +144,43 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	verify.Values(t, "", before, res)
+}
+
+// Make sure we handle the case of a leftover blank CA config that
+// got stuck in a snapshot, as in https://github.com/hashicorp/consul/issues/4954
+func TestStore_CAConfig_Snapshot_Restore_BlankConfig(t *testing.T) {
+	s := testStateStore(t)
+	before := &structs.CAConfiguration{}
+	if err := s.CASetConfig(99, before); err != nil {
+		t.Fatal(err)
+	}
+
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	snapped, err := snap.CAConfig()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	verify.Values(t, "", before, snapped)
+
+	s2 := testStateStore(t)
+	restore := s2.Restore()
+	if err := restore.CAConfig(snapped); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	idx, result, err := s2.CAConfig(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if result != nil {
+		t.Fatalf("should be nil: %v", result)
+	}
 }
 
 func TestStore_CARootSetList(t *testing.T) {
@@ -386,6 +423,23 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(idx, uint64(1))
 		assert.Equal(expected, state)
+	}
+
+	{
+		// Since we've already written to the builtin provider table the serial
+		// numbers will initialize from the max index of the provider table.
+		// That's why this first serial is 2 and not 1.
+		sn, err := s.CAIncrementProviderSerialNumber()
+		assert.NoError(err)
+		assert.Equal(uint64(2), sn)
+
+		sn, err = s.CAIncrementProviderSerialNumber()
+		assert.NoError(err)
+		assert.Equal(uint64(3), sn)
+
+		sn, err = s.CAIncrementProviderSerialNumber()
+		assert.NoError(err)
+		assert.Equal(uint64(4), sn)
 	}
 }
 

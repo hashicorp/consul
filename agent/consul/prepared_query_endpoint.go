@@ -69,7 +69,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// need to make sure they have write access for whatever they are
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
-		if rule != nil && !rule.PreparedQueryWrite(prefix) {
+		if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
 			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
 			return acl.ErrPermissionDenied
 		}
@@ -89,7 +89,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		}
 
 		if prefix, ok := query.GetACLPrefix(); ok {
-			if rule != nil && !rule.PreparedQueryWrite(prefix) {
+			if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
 				return acl.ErrPermissionDenied
 			}
@@ -520,7 +520,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		f = state.CheckConnectServiceNodes
 	}
 
-	_, nodes, err := f(nil, query.Service.Service)
+	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
@@ -532,6 +532,11 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	// Apply the node metadata filters, if any.
 	if len(query.Service.NodeMeta) > 0 {
 		nodes = nodeMetaFilter(query.Service.NodeMeta, nodes)
+	}
+
+	// Apply the service metadata filters, if any.
+	if len(query.Service.ServiceMeta) > 0 {
+		nodes = serviceMetaFilter(query.Service.ServiceMeta, nodes)
 	}
 
 	// Apply the tag filters, if any.
@@ -610,6 +615,16 @@ func nodeMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) 
 	var filtered structs.CheckServiceNodes
 	for _, node := range nodes {
 		if structs.SatisfiesMetaFilters(node.Node.Meta, filters) {
+			filtered = append(filtered, node)
+		}
+	}
+	return filtered
+}
+
+func serviceMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	var filtered structs.CheckServiceNodes
+	for _, node := range nodes {
+		if structs.SatisfiesMetaFilters(node.Service.Meta, filters) {
 			filtered = append(filtered, node)
 		}
 	}

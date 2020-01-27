@@ -1,15 +1,15 @@
 import Component from '@ember/component';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
-import qsaFactory from 'consul-ui/utils/dom/qsa-factory';
-const $$ = qsaFactory();
+import { Promise } from 'rsvp';
 
-import SlotsMixin from 'ember-block-slots';
+import SlotsMixin from 'block-slots';
 const STATE_READY = 'ready';
 const STATE_SUCCESS = 'success';
 const STATE_ERROR = 'error';
 export default Component.extend(SlotsMixin, {
   wait: service('timeout'),
+  dom: service('dom'),
   classNames: ['with-feedback'],
   transition: '',
   transitionClassName: 'feedback-dialog-out',
@@ -21,8 +21,9 @@ export default Component.extend(SlotsMixin, {
     this.error = this._error.bind(this);
   },
   applyTransition: function() {
-    const wait = get(this, 'wait').execute;
-    const className = get(this, 'transitionClassName');
+    const wait = this.wait.execute;
+    const className = this.transitionClassName;
+    // TODO: Make 0 default in wait
     wait(0)
       .then(() => {
         set(this, 'transition', className);
@@ -30,7 +31,9 @@ export default Component.extend(SlotsMixin, {
       })
       .then(() => {
         return new Promise(resolve => {
-          $$(`.${className}`, this.element)[0].addEventListener('transitionend', resolve);
+          this.dom
+            .element(`.${className}`, this.element)
+            .addEventListener('transitionend', resolve);
         });
       })
       .then(() => {

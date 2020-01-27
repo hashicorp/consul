@@ -20,7 +20,9 @@ are installed on the cluster. You can review the installed keys using the
 `-list` argument, and remove unneeded keys with `-remove`.
 
 All operations performed by this command can only be run against server nodes,
-and affect both the LAN and WAN keyrings in lock-step.
+and affect both the LAN and WAN keyrings in lock-step. The only exception to this
+is for the `-list` operation, you may set the `-local-only` flag to only query 
+against local server nodes. 
 
 All variations of the `keyring` command return 0 if all nodes reply and there
 are no errors. If any node fails to reply or reports failure, the exit code
@@ -53,6 +55,10 @@ Only one actionable argument may be specified per run, including `-list`,
 * `-relay-factor` - Added in Consul 0.7.4, setting this to a non-zero value will
   cause nodes to relay their response to the operation through this many
   randomly-chosen other nodes in the cluster. The maximum allowed value is 5.
+
+* `-local-only` - Setting this to true will force a keyring list query to only hit
+  local servers (no WAN traffic). Setting `local-only` is only allowed for list
+  queries.
 
 ## Output
 

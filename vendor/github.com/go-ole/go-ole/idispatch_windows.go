@@ -63,6 +63,10 @@ func invoke(disp *IDispatch, dispid int32, dispatch int16, params ...interface{}
 		dispnames := [1]int32{DISPID_PROPERTYPUT}
 		dispparams.rgdispidNamedArgs = uintptr(unsafe.Pointer(&dispnames[0]))
 		dispparams.cNamedArgs = 1
+	} else if dispatch&DISPATCH_PROPERTYPUTREF != 0 {
+		dispnames := [1]int32{DISPID_PROPERTYPUT}
+		dispparams.rgdispidNamedArgs = uintptr(unsafe.Pointer(&dispnames[0]))
+		dispparams.cNamedArgs = 1
 	}
 	var vargs []VARIANT
 	if len(params) > 0 {

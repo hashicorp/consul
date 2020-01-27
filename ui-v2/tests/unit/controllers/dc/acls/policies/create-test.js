@@ -1,12 +1,12 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupTest } from 'ember-qunit';
 
-moduleFor('controller:dc/acls/policies/create', 'Unit | Controller | dc/acls/policies/create', {
-  // Specify the other units that are required for this test.
-  needs: ['service:dom', 'service:form'],
-});
+module('Unit | Controller | dc/acls/policies/create', function(hooks) {
+  setupTest(hooks);
 
-// Replace this with your real tests.
-test('it exists', function(assert) {
-  let controller = this.subject();
-  assert.ok(controller);
+  // Replace this with your real tests.
+  test('it exists', function(assert) {
+    let controller = this.owner.lookup('controller:dc/acls/policies/create');
+    assert.ok(controller);
+  });
 });

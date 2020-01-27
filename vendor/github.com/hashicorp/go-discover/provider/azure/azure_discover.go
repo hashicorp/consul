@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2015-06-15/network"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/azure/auth"
 )
 
 type Provider struct {
@@ -29,6 +29,19 @@ func (p *Provider) Help() string {
    client_id:         The id of the client
    subscription_id:   The id of the subscription
    secret_access_key: The authentication credential
+    **NOTE** The secret_access_key value often may have an equals sign in it's value,
+    especially if generated from the Azure Portal. So is important to wrap in single quotes
+    eg. secret_acccess_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='
+
+   Variables can also be provided by environmental variables:
+    export ARM_SUBSCRIPTION_ID for subscription
+    export ARM_TENANT_ID for tenant
+    export ARM_CLIENT_ID for client
+    export ARM_CLIENT_SECRET for secret access key
+
+   If none of those options are given, the Azure SDK is using the default  environment based authentication outlined
+   here https://docs.microsoft.com/en-us/go/azure/azure-sdk-go-authorization#use-environment-based-authentication
+   This will fallback to MSI if nothing is explicitly specified.
 
    Use these configuration parameters when using tags:
 
@@ -40,15 +53,25 @@ func (p *Provider) Help() string {
    resource_group:    The name of the resource group to filter on
    vm_scale_set:      The name of the virtual machine scale set to filter on
 
-   When using tags the only permission needed is the 'ListAll' method for
-   'NetworkInterfaces'. When using Virtual Machine Scale Sets the only Role
-   Action needed is 'Microsoft.Compute/virtualMachineScaleSets/*/read'.
+   When using tags the only permission needed is Microsoft.Network/networkInterfaces/*
+
+   When using Virtual Machine Scale Sets the only role action needed is Microsoft.Compute/virtualMachineScaleSets/*/read.
 
    It is recommended you make a dedicated key used only for auto-joining.
 `
 }
 
+// argsOrEnv allows you to pick an environmental variable for a setting if the arg is not set
+func argsOrEnv(args map[string]string, key, env string) string {
+	if value, ok := args[key]; ok {
+		return value
+	}
+	return os.Getenv(env)
+}
+
 func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error) {
+	var authorizer autorest.Authorizer
+
 	if args["provider"] != "azure" {
 		return nil, fmt.Errorf("discover-azure: invalid provider " + args["provider"])
 	}
@@ -57,10 +80,27 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 		l = log.New(ioutil.Discard, "", 0)
 	}
 
-	tenantID := args["tenant_id"]
-	clientID := args["client_id"]
-	subscriptionID := args["subscription_id"]
-	secretKey := args["secret_access_key"]
+	// check for environmental variables, and use if the argument hasn't been set in config
+	tenantID := argsOrEnv(args, "tenant_id", "ARM_TENANT_ID")
+	clientID := argsOrEnv(args, "client_id", "ARM_CLIENT_ID")
+	subscriptionID := argsOrEnv(args, "subscription_id", "ARM_SUBSCRIPTION_ID")
+	secretKey := argsOrEnv(args, "secret_access_key", "ARM_CLIENT_SECRET")
+
+	// Try to use the argument and environment provided arguments first, if this fails fall back to the Azure
+	// SDK provided methods
+	if tenantID != "" && clientID != "" && secretKey != "" {
+		var err error
+		authorizer, err = auth.NewClientCredentialsConfig(clientID, secretKey, tenantID).Authorizer()
+		if err != nil {
+			return nil, fmt.Errorf("discover-azure (ClientCredentials): %s", err)
+		}
+	} else {
+		var err error
+		authorizer, err = auth.NewAuthorizerFromEnvironment()
+		if err != nil {
+			return nil, fmt.Errorf("discover-azure (EnvironmentCredentials): %s", err)
+		}
+	}
 
 	// Use tags if using network interfaces
 	tagName := args["tag_name"]
@@ -70,22 +110,10 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	resourceGroup := args["resource_group"]
 	vmScaleSet := args["vm_scale_set"]
 
-	// Only works for the Azure PublicCLoud for now; no ability to test other Environment
-	oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("discover-azure: %s", err)
-	}
-
-	// Get the ServicePrincipalToken for use searching the NetworkInterfaces
-	sbt, err := adal.NewServicePrincipalToken(*oauthConfig, clientID, secretKey, azure.PublicCloud.ResourceManagerEndpoint)
-	if err != nil {
-		return nil, fmt.Errorf("discover-azure: %s", err)
-	}
-
 	// Setup the client using autorest; followed the structure from Terraform
 	vmnet := network.NewInterfacesClient(subscriptionID)
 	vmnet.Sender = autorest.CreateSender(autorest.WithLogging(l))
-	vmnet.Authorizer = autorest.NewBearerAuthorizer(sbt)
+	vmnet.Authorizer = authorizer
 
 	if p.userAgent != "" {
 		vmnet.Client.UserAgent = p.userAgent

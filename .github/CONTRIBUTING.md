@@ -22,7 +22,7 @@ work on an issue, comment on it first and tell us the approach you want to take.
 * Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/enhancement).
 * Improve our guides and documentation. Consul's [Guides](https://www.consul.io/docs/guides/index.html), [Docs](https://www.consul.io/docs/index.html), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
 are deployed from this repo.
-* Respond to questions about usage on the issue tracker or mailing list.
+* Respond to questions about usage on the issue tracker or the Consul section of the [HashiCorp forum]: (https://discuss.hashicorp.com/c/consul)
 
 ### Reporting an Issue:
 >Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 
@@ -60,7 +60,7 @@ issue. Stale issues will be closed.
 ## Building Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.10+ is _required_). Make sure you have Go properly installed,
+installed (version 1.12 is _required_, and [version 1.13 is not yet supported](https://github.com/hashicorp/consul/issues/6879)). Make sure you have Go properly installed,
 including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
 
 Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and 
@@ -131,16 +131,15 @@ it does not fail after 30 iterations, it should be sufficiently stable.
 
 ## Vendoring
 
-Consul currently uses [govendor](https://github.com/kardianos/govendor) for
-vendoring and [vendorfmt](https://github.com/magiconair/vendorfmt) for formatting
-`vendor.json` to a more merge-friendly "one line per package" format.
-
-If you are submitting a change that requires new or updated dependencies, 
-please include them in `vendor/vendor.json` and in the `vendor/` folder. 
-This helps everything get tested properly in CI.
-
-Use `govendor fetch <project>` to add a project as a dependency. See govendor's [Quick Start](https://github.com/kardianos/govendor#quick-start-also-see-the-faq) for examples.
+Consul currently uses Go Modules for vendoring.
 
 Please only apply the minimal vendor changes to get your PR to work. 
 Consul does not attempt to track the latest version for each dependency.
 
+## Checklists
+
+Some common changes that many PRs require such as adding config fields, are
+documented through checklists.
+
+Please check in `contributing/` for any `checklist-*.md` files that might help
+with your change.

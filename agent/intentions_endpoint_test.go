@@ -15,7 +15,7 @@ func TestIntentionsList_empty(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
@@ -33,7 +33,7 @@ func TestIntentionsList_values(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Create some intentions, note we create the lowest precedence first to test
@@ -72,7 +72,7 @@ func TestIntentionsMatch_basic(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Create some intentions
@@ -137,7 +137,7 @@ func TestIntentionsMatch_noBy(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Request
@@ -154,7 +154,7 @@ func TestIntentionsMatch_byInvalid(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Request
@@ -171,7 +171,7 @@ func TestIntentionsMatch_noName(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Request
@@ -188,7 +188,7 @@ func TestIntentionsCheck_basic(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Create some intentions
@@ -244,7 +244,7 @@ func TestIntentionsCheck_noSource(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Request
@@ -261,7 +261,7 @@ func TestIntentionsCheck_noDestination(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Request
@@ -278,7 +278,7 @@ func TestIntentionsCreate_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Make sure an empty list is non-nil.
@@ -309,7 +309,7 @@ func TestIntentionsCreate_good(t *testing.T) {
 func TestIntentionsCreate_noBody(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Create with no body
@@ -323,7 +323,7 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// The intention
@@ -359,7 +359,7 @@ func TestIntentionsSpecificGet_invalidId(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// Read intention with bad ID
@@ -376,7 +376,7 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// The intention
@@ -422,7 +422,7 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	// The intention

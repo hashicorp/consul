@@ -8,13 +8,14 @@ description: |-
 
 # Connect-Native App Integration
 
-Applications can natively integrate with the Connect API to support
-accepting and establishing connections to other Connect services without
-the overhead of a [proxy sidecar](/docs/connect/proxies.html). This option 
-is especially useful for applications that may be experiencing performance issues 
-with the proxy sidecar deployment. This page will cover the high-level overview 
-of integration, registering the service, etc. For language-specific examples, 
-see the sidebar navigation to the left.
+Applications can natively integrate with the Connect API to support accepting
+and establishing connections to other Connect services without the overhead of a
+[proxy sidecar](/docs/connect/proxies.html). This option  is especially useful
+for applications that may be experiencing performance issues  with the proxy
+sidecar deployment. This page will cover the high-level overview  of
+integration, registering the service, etc. For language-specific examples,  see
+the sidebar navigation to the left. It is also required if your service uses
+relies on a dynamic set of upstream services.
 
 Connect is just basic mutual TLS. This means that almost any application
 can easily integrate with Connect. There is no custom protocol in use;
@@ -86,7 +87,7 @@ The API calls for
 [acquiring a leaf TLS certificate](/api/agent/connect.html#service-leaf-certificate)
 and [reading CA roots](/api/agent/connect.html#certificate-authority-ca-roots)
 both support
-[blocking queries](/api/index.html#blocking-queries). By using blocking
+[blocking queries](/api/features/blocking.html). By using blocking
 queries, an application can efficiently wait for an updated value. For example,
 the leaf certificate API will block until the certificate is near expiration
 or the signing certificates have changed and will issue and return a new
@@ -95,7 +96,7 @@ certificate.
 In some languages, using blocking queries may not be simple. In that case,
 we still recommend using the blocking query parameters but with a very short
 `timeout` value set. Doing this is documented with
-[blocking queries](/api/index.html#blocking-queries). The low timeout will
+[blocking queries](/api/features/blocking.html). The low timeout will
 ensure the API responds quickly. We recommend that applications poll the
 certificate endpoints frequently, such as multiple times per minute.
 

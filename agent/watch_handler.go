@@ -14,7 +14,7 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/agent/exec"
-	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/go-cleanhttp"
 	"golang.org/x/net/context"
 )

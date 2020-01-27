@@ -23,17 +23,17 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Manage Consul's ACL Policies"
+const synopsis = "Manage Consul's ACL policies"
 const help = `
 Usage: consul acl policy <subcommand> [options] [args]
 
-  This command has subcommands for managing Consul's ACL Policies.
+  This command has subcommands for managing Consul's ACL policies.
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  Create a new ACL Policy:
+  Create a new ACL policy:
 
-      $ consul acl policy create "new-policy" \
+      $ consul acl policy create -name "new-policy" \
                                  -description "This is an example policy" \
                                  -datacenter "dc1" \
                                  -datacenter "dc2" \
@@ -44,15 +44,15 @@ Usage: consul acl policy <subcommand> [options] [args]
 
   Update a policy:
 
-      $ consul acl policy update "other-policy" -datacenter "dc1"
+      $ consul acl policy update -name "other-policy" -datacenter "dc1"
 
   Read a policy:
 
-    $ consul acl policy read 0479e93e-091c-4475-9b06-79a004765c24
+    $ consul acl policy read -id 0479e93e-091c-4475-9b06-79a004765c24
 
   Delete a policy
 
-    $ consul acl policy delete "my-policy"
+    $ consul acl policy delete -name "my-policy"
 
   For more examples, ask for subcommand help or view the documentation.
 `

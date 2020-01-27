@@ -20,7 +20,7 @@ is allowed by testing the intentions. If authorize returns false the
 connection must be terminated.
 
 The default intention behavior is defined by the default
-[ACL policy](/docs/guides/acl.html). If the default ACL policy is "allow all",
+[ACL policy](https://learn.hashicorp.com/consul/security-networking/production-acls). If the default ACL policy is "allow all",
 then all Connect connections are allowed by default. If the default ACL policy
 is "deny all", then all Connect connections are denied by default.
 
@@ -104,7 +104,7 @@ Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.
 
 In the case the two precedence values match, Consul will evaluate
-intentions based on lexographical ordering of the destination then
+intentions based on lexicographical ordering of the destination then
 source name. In practice, this is a moot point since authorizing a connection
 has an exact source and destination value so its impossible for two
 valid non-wildcard intentions to match.
@@ -117,7 +117,7 @@ Consul supporting namespaces.
 
 ## Intention Management Permissions
 
-Intention management can be protected by [ACLs](/docs/guides/acl.html).
+Intention management can be protected by [ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
 Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.

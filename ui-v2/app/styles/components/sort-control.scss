@@ -1,0 +1,4 @@
+@import '../base/components/sort-control/index';
+.sort-control {
+  @extend %sort-control;
+}

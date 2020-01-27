@@ -10,13 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/connect"
+
 	metrics "github.com/armon/go-metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	agConnect "github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/connect"
-	"github.com/hashicorp/consul/lib/freeport"
+	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/sdk/freeport"
 )
 
 func testSetupMetrics(t *testing.T) *metrics.InmemSink {
@@ -109,7 +111,8 @@ func TestPublicListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.GetT(t, 1)
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
 
 	testApp := NewTestTCPServer(t)
 	defer testApp.Close()
@@ -161,7 +164,8 @@ func TestUpstreamListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.GetT(t, 1)
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
 
 	// Run a test server that we can dial.
 	testSvr := connect.NewTestServer(t, "db", ca)
@@ -204,7 +208,7 @@ func TestUpstreamListener(t *testing.T) {
 	// Proxy and fake remote service are running, play the part of the app
 	// connecting to a remote connect service over TCP.
 	conn, err := net.Dial("tcp",
-		fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort))
+		ipaddr.FormatAddressPort(cfg.LocalBindAddress, cfg.LocalBindPort))
 	require.NoError(t, err)
 
 	TestEchoConn(t, conn, "")

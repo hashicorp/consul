@@ -1,0 +1,686 @@
+---
+version: 2
+
+references:
+  images:
+    go: &GOLANG_IMAGE circleci/golang:1.12.13
+    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
+    ember: &EMBER_IMAGE circleci/node:8-browsers
+
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
+
+  cache:
+    yarn: &YARN_CACHE_KEY consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+    rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
+
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    GOTESTSUM_RELEASE: 0.3.3
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts
+    BASH_ENV: .circleci/bash_env.sh
+    VAULT_BINARY_VERSION: 1.2.2
+
+jobs:
+  # lint consul tests
+  lint-consul-retry:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
+
+  # Runs go fmt and go vet
+  go-fmt-and-vet:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run:
+          command: go mod download
+      - save_cache:
+          key: consul-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+            - /go/pkg/mod
+      - run:
+          name: check go fmt
+          command: |
+            files="$(go fmt ./... ; (cd api && go fmt ./... | sed 's@^@api/@') ; (cd sdk && go fmt ./... | sed 's@^@sdk/@'))"
+            if [ -n "$files" ]; then
+                echo "The following file(s) do not conform to go fmt:"
+                echo "$files"
+                exit 1
+            fi
+      - run:
+          command: |
+            go vet ./... && \
+              (cd api && go vet ./...) && \
+              (cd sdk && go vet ./...)
+    environment:
+      <<: *ENVIRONMENT
+
+  # checks vendor directory is correct
+  check-vendor:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run:
+          command: make update-vendor
+      - save_cache:
+          key: consul-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+            - /go/pkg/mod
+      - run: |
+          if ! git diff --exit-code; then
+            echo "Git directory has vendor changes"
+            exit 1
+          fi
+
+  go-test:
+    docker:
+      - image: *GOLANG_IMAGE
+    parallelism: 8
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 2 # medium (default) boxes are 2 vCPUs, 4GB RAM https://circleci.com/docs/2.0/configuration-reference/#docker-executor
+    steps:
+      - checkout
+      - restore_cache: # restore cache from earlier job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - attach_workspace:
+          at: /go/bin
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run: sudo apt-get update && sudo apt-get install -y rsyslog
+      - run: sudo service rsyslog start
+      - run: |
+          PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # split off a job for the API package since it is separate
+  go-test-api:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+    steps:
+      - checkout
+      - restore_cache: # restore cache from dev-build job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - attach_workspace:
+          at: /go/bin
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          working_directory: api
+          command: |
+            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -cover -coverprofile=cov_api.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: ./api
+          paths:
+            - cov_*.part
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # combine code coverage results from the parallel circleci executors
+  coverage-merge:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: merge coverage reports
+          command: |
+            echo "mode: set" > coverage.out
+            grep -h -v "mode: set" cov_*.part >> coverage.out
+            go tool cover -html=coverage.out -o $TEST_RESULTS_DIR/coverage.html
+      - run:
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # build all distros
+  build-distros: &build-distros
+    docker:
+      - image: *GOLANG_IMAGE
+    environment: &build-env
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - restore_cache: # restore cache from dev-build job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run: ./build-support/scripts/build-local.sh
+
+      # save dev build to CircleCI
+      - store_artifacts:
+          path: ./pkg/bin
+
+  # build all 386 architecture supported OS binaries
+  build-386:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "darwin freebsd linux windows"
+      XC_ARCH: "386"
+
+  # build all amd64 architecture supported OS binaries
+  build-amd64:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "darwin freebsd linux solaris windows"
+      XC_ARCH: "amd64"
+
+  # build all arm/arm64 architecture supported OS binaries
+  build-arm:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      CGO_ENABLED: 1
+      GOOS: linux
+    steps:
+      - checkout
+      - run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+      - run:
+          environment:
+            GOARM: 5
+            CC: arm-linux-gnueabi-gcc
+            GOARCH: arm
+          command: go build -o ./pkg/bin/linux_armel/consul  -ldflags="${GOLDFLAGS}"
+      - run:
+          environment:
+            GOARM: 6
+            CC: arm-linux-gnueabihf-gcc
+            GOARCH: arm
+          command: go build -o ./pkg/bin/linux_armhf/consul  -ldflags="${GOLDFLAGS}"
+      - run:
+          environment:
+            CC: aarch64-linux-gnu-gcc
+            GOARCH: arm64
+          command: go build -o ./pkg/bin/linux_aarch64/consul  -ldflags="${GOLDFLAGS}"
+      - store_artifacts:
+          path: ./pkg/bin
+
+  # create a development build
+  dev-build:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - run:
+          command: make dev
+      - save_cache:
+          key: consul-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+            - /go/pkg/mod
+
+      # save dev build to pass to downstream jobs
+      - persist_to_workspace:
+          root: /go/bin
+          paths:
+            - consul
+
+  # upload development build to s3
+  dev-upload-s3:
+    docker:
+      - image: circleci/python:stretch
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      # get consul binary
+      - attach_workspace:
+          at: bin/
+      - run:
+          name: package binary
+          command: tar -czf consul.tar.gz -C bin/ .
+      - run:
+          name: Upload to s3
+          command: |
+            if [ -n "${S3_ARTIFACT_PATH}" ]; then
+              aws s3 cp \
+              --metadata "CIRCLECI=${CIRCLECI},CIRCLE_BUILD_URL=${CIRCLE_BUILD_URL},CIRCLE_BRANCH=${CIRCLE_BRANCH}" \
+              "consul.tar.gz" "s3://${S3_ARTIFACT_BUCKET}/${S3_ARTIFACT_PATH}/${CIRCLE_SHA1}.tar.gz"
+            else
+              echo "CircleCI - S3_ARTIFACT_PATH was not set"
+              exit 1
+            fi
+
+  # upload dev docker image
+  dev-upload-docker:
+    docker:
+      - image: circleci/golang:latest # use a circleci image so the attach_workspace step works (has ca-certs installed)
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      # get consul binary
+      - attach_workspace:
+          at: bin/
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: make ci.dev-docker
+
+  # Nomad 0.8 builds on go0.10
+  # Run integration tests on nomad/v0.8.7
+  nomad-integration-0_8:
+    docker:
+      - image: circleci/golang:1.10
+    environment:
+      <<: *ENVIRONMENT
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: v0.8.7
+    steps: &NOMAD_INTEGRATION_TEST_STEPS
+      - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
+
+      # get consul binary
+      - attach_workspace:
+          at: /go/bin
+
+      # make test result directory
+      - run: mkdir -p $TEST_RESULTS_DIR
+
+      # make dev build of nomad
+      - run:
+          command: make pkg/linux_amd64/nomad
+          working_directory: *NOMAD_WORKING_DIR
+
+      # update gotestsum
+      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | sudo tar --overwrite -xz -C /usr/local/bin gotestsum
+
+      # run integration tests
+      - run:
+          command: gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/results.xml -- ./command/agent/consul -run TestConsul
+          working_directory: *NOMAD_WORKING_DIR
+
+      # store test results for CircleCI
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # run integration tests on nomad/master
+  nomad-integration-master:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: master
+    steps: *NOMAD_INTEGRATION_TEST_STEPS
+
+  build-website:
+    # setting the working_directory along with the checkout path allows us to not have
+    # to cd into the website/ directory for commands
+    working_directory: ~/project/website
+    docker:
+      - image: *MIDDLEMAN_IMAGE
+    steps:
+      - checkout:
+          path: ~/project
+
+      # restores gem cache
+      - restore_cache:
+          key: *RUBYGEM_CACHE_KEY
+
+      - run:
+          name: install gems
+          command: bundle check || bundle install --path vendor/bundle --retry=3
+
+      # saves gem cache if we have changed the Gemfile
+      - save_cache:
+          key: *RUBYGEM_CACHE_KEY
+          paths:
+            - ~/project/website/vendor/bundle
+
+      # exclude guides directory since they moved to learn.hashicorp.com
+      # keep index.html which points to learn
+      - run:
+          name: exclude guides
+          command: find ./source/docs/guides -type f -not -name 'index.html.md' -delete
+
+      - run:
+          name: middleman build
+          command: bundle exec middleman build
+
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
+
+      # saves website build directory
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+
+  deploy-website:
+    # setting the working_directory along with the checkout path allows us to not have
+    # to cd into the website/ directory for commands
+    working_directory: ~/project/website
+    docker:
+      - image: *MIDDLEMAN_IMAGE
+    steps:
+      - checkout:
+          path: ~/project
+
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
+
+      # attach website build directory
+      - attach_workspace:
+          at: ~/project/website
+
+      # restores gem cache
+      - restore_cache:
+          key: *RUBYGEM_CACHE_KEY
+      # rerun build with 'ENV=production' to add analytics
+      - run:
+          name: install gems
+          command: bundle check || bundle install --path vendor/bundle --retry=3
+
+      # exclude guides directory since they moved to learn.hashicorp.com
+      # keep index.html which points to learn
+      - run:
+          name: exclude guides
+          command: find ./source/docs/guides -type f -not -name 'index.html.md' -delete
+
+      # rerun build with 'ENV=production' to add analytics
+      - run:
+          name: middleman build
+          command: bundle exec middleman build
+
+      - run:
+          name: website deploy
+          command: ./scripts/deploy.sh
+
+  # Link check on a temporary netlify deployed site
+  docs-link-checker:
+    docker:
+      - image: circleci/node:lts
+    steps:
+      - checkout
+      # attach website build directory
+      - attach_workspace:
+          at: ~/project/website
+      - run: ./website/scripts/link-check.sh
+
+  # build frontend yarn cache
+  frontend-cache:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+
+      # cache yarn deps
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+
+      - run:
+          name: install yarn packages
+          command: cd ui-v2 && yarn install
+
+      - save_cache:
+          key: *YARN_CACHE_KEY
+          paths:
+            - ui-v2/node_modules
+
+  # build ember so frontend tests run faster
+  ember-build:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - run: cd ui-v2 && make build-ci
+
+      # saves the build to a workspace to be passed to a downstream job
+      - persist_to_workspace:
+          root: ui-v2
+          paths:
+            - dist
+
+  # run ember frontend tests
+  ember-test:
+    docker:
+      - image: *EMBER_IMAGE
+    environment:
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
+    parallelism: 4
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
+      - store_test_results:
+          path: ui-v2/test-results
+
+  # Envoy integration tests. Require docker dev binary to be built already
+  envoy-integration-test-1.8.0:
+    docker:
+      # We only really need bash and docker-compose which is installed on all
+      # Circle images but pick Go since we have to pick one of them.
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.8.0"
+    steps: &ENVOY_INTEGRATION_TEST_STEPS
+      - checkout
+      # Get go binary from workspace
+      - attach_workspace:
+          at: .
+      - setup_remote_docker:
+          docker_layer_caching: true
+      # Build the consul-dev image from the already built binary
+      - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
+      - run:
+          name: Envoy Integration Tests
+          command: make test-envoy-integ SKIP_DOCKER_BUILD=1
+          environment:
+            # tput complains if this isn't set to something.
+            TERM: ansi
+      - store_artifacts:
+          path: ./test/integration/connect/envoy/workdir/logs
+          destination: container-logs
+
+  envoy-integration-test-1.9.1:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.9.1"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
+  envoy-integration-test-1.10.0:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.10.0"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
+  envoy-integration-test-1.11.1:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      ENVOY_VERSIONS: "1.11.1"
+    steps: *ENVOY_INTEGRATION_TEST_STEPS
+
+  # run tests on vault ca provider integration tests
+  vault-ca-provider:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      # Install vault
+      - run: |
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
+          sudo unzip -d /usr/local/bin /tmp/vault.zip
+          rm -rf /tmp/vault*
+      # Create directory to store test results
+      - run: mkdir -p $TEST_RESULTS_DIR
+      # Gather deps to run go tests
+      - checkout
+      - restore_cache:
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      # Run go tests
+      - run: make test-vault-ca-provider
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+
+workflows:
+  version: 2
+  go-tests:
+    jobs:
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+      - lint-consul-retry
+      - go-fmt-and-vet:
+          requires:
+            - check-vendor
+      - dev-build:
+          requires:
+            - go-fmt-and-vet
+      - go-test: &go-test
+          requires:
+            - dev-build
+      - go-test-api: *go-test
+      - coverage-merge:
+          requires:
+            - go-test
+            - go-test-api
+  build-distros:
+    jobs:
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+      - build-386: &require-check-vendor
+          requires:
+            - check-vendor
+      - build-amd64: *require-check-vendor
+      - build-arm: *require-check-vendor
+  test-integrations:
+    jobs:
+      - dev-build:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+      - dev-upload-s3: &dev-upload
+          requires:
+            - dev-build
+          filters:
+            branches:
+              ignore:
+                - /^pull\/.*$/ # only push dev builds from non forks
+      - dev-upload-docker:
+          <<: *dev-upload
+          context: consul-ci
+      - nomad-integration-master:
+          requires:
+            - dev-build
+      - nomad-integration-0_8:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.8.0:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.9.1:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.10.0:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.11.1:
+          requires:
+            - dev-build
+      - vault-ca-provider:
+          requires:
+            - dev-build
+  website:
+    jobs:
+      - build-website
+      - docs-link-checker:
+          requires:
+            - build-website
+          filters:
+            branches:
+              ignore:
+                - /^pull\/.*$/ # only run link checker on non forks
+      - deploy-website:
+          requires:
+            - docs-link-checker
+          context: static-sites
+          filters:
+            branches:
+              only: stable-website
+  frontend:
+    jobs:
+      - frontend-cache:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+      - ember-build:
+          requires:
+            - frontend-cache
+      - ember-test:
+          requires:
+            - ember-build

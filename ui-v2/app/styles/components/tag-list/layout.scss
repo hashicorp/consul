@@ -1,0 +1,21 @@
+%tag-list dt {
+  display: none;
+}
+// TODO: Currently this is here to overwrite
+// the default definition list layout used in edit pages
+// ideally we'd be more specific with those to say
+// only add padding to dl's in edit pages
+%tag-list dd {
+  display: inline-flex;
+  padding-left: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+%tag-list dd:after {
+  content: '';
+  flex: auto;
+}
+%tag-list dd > * {
+  margin-right: 3px;
+  margin-bottom: 10px;
+}

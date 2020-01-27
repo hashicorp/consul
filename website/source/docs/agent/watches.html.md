@@ -165,7 +165,7 @@ Here is an example configuration:
 {
   "type": "keyprefix",
   "prefix": "foo/",
-  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+  "args": ["/usr/bin/my-prefix-handler.sh", "-redis"]
 }
 ```
 
@@ -266,26 +266,45 @@ An example of the output of this command:
 
 The "service" watch type is used to monitor the providers
 of a single service. It requires the "service" parameter
-and optionally takes the parameters "tag" and "passingonly".
-The "tag" parameter will filter by tag, and "passingonly" is
-a boolean that will filter to only the instances passing all
-health checks.
+and optionally takes the parameters "tag" and 
+"passingonly". The "tag" parameter will filter by one or more tags.
+It may be either a single string value or a slice of strings.
+The "passingonly" is a boolean that will filter to only the 
+instances passing all health checks.
 
 This maps to the `/v1/health/service` API internally.
 
-Here is an example configuration:
+Here is an example configuration with a single tag:
 
 ```javascript
 {
   "type": "service",
   "service": "redis",
-  "args": ["/usr/bin/my-service-handler.sh", "-redis"]
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"],
+  "tag": "bar"
+}
+```
+
+Here is an example configuration with multiple tags:
+
+```javascript
+{
+  "type": "service",
+  "service": "redis",
+  "args": ["/usr/bin/my-service-handler.sh", "-redis"],
+  "tag": ["bar", "foo"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=service -service=redis /usr/bin/my-service-handler.sh
+Single tag:
+
+    $ consul watch -type=service -service=redis -tag=bar /usr/bin/my-service-handler.sh
+
+Multiple tag:
+
+    $ consul watch -type=service -service=redis -tag=bar -tag=foo /usr/bin/my-service-handler.sh
 
 An example of the output of this command:
 
@@ -299,7 +318,10 @@ An example of the output of this command:
     "Service": {
       "ID": "redis",
       "Service": "redis",
-      "Tags": null,
+      "Tags": [
+        "bar", 
+        "foo"
+      ],
       "Port": 8000
     },
     "Checks": [
@@ -338,9 +360,39 @@ filter to a specific state. By default, it will watch all checks.
 This maps to the `/v1/health/state/` API if monitoring by state
 or `/v1/health/checks/` if monitoring by service.
 
+Here is an example configuration for monitoring by state:
+
+```json
+{
+  "type": "checks",
+  "state": "passing",
+  "args": ["/usr/bin/my-check-handler.sh", "-passing"]
+}
+```
+
+Here is an example configuration for monitoring by service:
+
+```json
+{
+  "type": "checks",
+  "service": "redis",
+  "args": ["/usr/bin/my-check-handler.sh", "-redis"]
+}
+```
+
+Or, using the watch command:
+
+State:
+
+    $ consul watch -type=checks -state=passing /usr/bin/my-check-handler.sh -passing
+
+Service:
+
+    $ consul watch -type=checks -service=redis /usr/bin/my-check-handler.sh -redis
+
 An example of the output of this command:
 
-```javascript
+```json
 [
   {
     "Node": "foobar",
@@ -362,7 +414,7 @@ events. These are fired using the [consul event](/docs/commands/event.html) comm
 It takes only a single optional "name" parameter which restricts
 the watch to only events with the given name.
 
-This maps to the `v1/event/list` API internally.
+This maps to the `/v1/event/list` API internally.
 
 Here is an example configuration:
 
@@ -370,13 +422,13 @@ Here is an example configuration:
 {
   "type": "event",
   "name": "web-deploy",
-  "args": ["/usr/bin/my-service-handler.sh", "-web-deploy"]
+  "args": ["/usr/bin/my-event-handler.sh", "-web-deploy"]
 }
 ```
 
 Or, using the watch command:
 
-    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh -web-deploy
+    $ consul watch -type=event -name=web-deploy /usr/bin/my-event-handler.sh -web-deploy
 
 An example of the output of this command:
 

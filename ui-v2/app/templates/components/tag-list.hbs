@@ -1,0 +1,8 @@
+{{#if (gt items.length 0)}}
+    <dt class="tags">Tags</dt>
+    <dd data-test-tags class="tags">
+      {{#each items as |item|}}
+        <span>{{item}}</span>
+      {{/each}}
+    </dd>
+{{/if}}

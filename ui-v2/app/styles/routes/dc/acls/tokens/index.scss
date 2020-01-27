@@ -1,20 +1,16 @@
-.template-token.template-edit [for='new-policy-toggle'] {
+// TODO: Move this out of here and into probably modal
+.type-dialog {
   @extend %anchor;
   cursor: pointer;
   float: right;
 }
-%pill.policy-management {
-  @extend %with-star;
-}
 %token-yours {
-  text-indent: 20px;
-  color: $ui-blue-500;
-  padding-left: 15px;
+  color: $blue-500;
 }
-%token-yours::after {
-  @extend %with-tick;
-  border-radius: 100%;
-  background-color: $ui-blue-500;
+%token-yours::before {
+  @extend %with-check-circle-fill-mask, %as-pseudo;
+  background-color: $blue-500;
+  margin-right: 5px;
 }
 .me ~ :nth-last-child(2) {
   @extend %token-yours;
@@ -27,7 +23,4 @@
 }
 .template-token.template-edit dl {
   @extend %form-row;
-}
-.template-token.template-edit dd .with-feedback {
-  top: -5px;
 }

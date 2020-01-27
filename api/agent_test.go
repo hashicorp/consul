@@ -1,15 +1,20 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 )
@@ -38,6 +43,8 @@ func TestAPI_AgentMetrics(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
 	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
 	retry.RunWith(timer, t, func(r *retry.R) {
 		metrics, err := agent.Metrics()
@@ -167,10 +174,18 @@ func TestAPI_AgentServices(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
+		ID:   "foo",
 		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
 		Port: 8000,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
@@ -185,7 +200,7 @@ func TestAPI_AgentServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if _, ok := services["foo"]; !ok {
-		t.Fatalf("missing service: %v", services)
+		t.Fatalf("missing service: %#v", services)
 	}
 	checks, err := agent.Checks()
 	if err != nil {
@@ -201,12 +216,29 @@ func TestAPI_AgentServices(t *testing.T) {
 		t.Fatalf("Bad: %#v", chk)
 	}
 
+	state, out, err := agent.AgentHealthServiceByID("foo2")
+	require.Nil(t, err)
+	require.Nil(t, out)
+	require.Equal(t, HealthCritical, state)
+
+	state, out, err = agent.AgentHealthServiceByID("foo")
+	require.Nil(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, HealthCritical, state)
+	require.Equal(t, 8000, out.Service.Port)
+
+	state, outs, err := agent.AgentHealthServiceByName("foo")
+	require.Nil(t, err)
+	require.NotNil(t, outs)
+	require.Equal(t, HealthCritical, state)
+	require.Equal(t, 8000, out.Service.Port)
+
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
 
-func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
+func TestAPI_AgentServicesWithFilter(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -215,132 +247,31 @@ func TestAPI_AgentServices_ManagedConnectProxy(t *testing.T) {
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
+		ID:   "foo",
 		Tags: []string{"bar", "baz"},
 		Port: 8000,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
-		Connect: &AgentServiceConnect{
-			Proxy: &AgentServiceConnectProxy{
-				ExecMode: ProxyExecModeScript,
-				Command:  []string{"foo.rb"},
-				Config: map[string]interface{}{
-					"foo": "bar",
-				},
-				Upstreams: []Upstream{{
-					DestinationType: "prepared_query",
-					DestinationName: "bar",
-					LocalBindPort:   9191,
-				}},
-			},
-		},
 	}
-	if err := agent.ServiceRegister(reg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, agent.ServiceRegister(reg))
 
-	services, err := agent.Services()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, ok := services["foo"]; !ok {
-		t.Fatalf("missing service: %v", services)
-	}
-	checks, err := agent.Checks()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	chk, ok := checks["service:foo"]
-	if !ok {
-		t.Fatalf("missing check: %v", checks)
-	}
-
-	// Checks should default to critical
-	if chk.Status != HealthCritical {
-		t.Fatalf("Bad: %#v", chk)
-	}
-
-	// Proxy config should be correct
-	require.Equal(t, reg.Connect, services["foo"].Connect)
-
-	if err := agent.ServiceDeregister("foo"); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-}
-
-func TestAPI_AgentServices_ManagedConnectProxyDeprecatedUpstreams(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	agent := c.Agent()
-
-	reg := &AgentServiceRegistration{
+	reg = &AgentServiceRegistration{
 		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
+		ID:   "foo2",
+		Tags: []string{"foo", "baz"},
+		Port: 8001,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
-		Connect: &AgentServiceConnect{
-			Proxy: &AgentServiceConnectProxy{
-				ExecMode: ProxyExecModeScript,
-				Command:  []string{"foo.rb"},
-				Config: map[string]interface{}{
-					"foo": "bar",
-					"upstreams": []interface{}{
-						map[string]interface{}{
-							"destination_type":   "prepared_query",
-							"destination_name":   "bar",
-							"local_bind_port":    9191,
-							"connect_timeout_ms": 1000,
-						},
-					},
-				},
-			},
-		},
 	}
-	if err := agent.ServiceRegister(reg); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, agent.ServiceRegister(reg))
 
-	services, err := agent.Services()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, ok := services["foo"]; !ok {
-		t.Fatalf("missing service: %v", services)
-	}
-	checks, err := agent.Checks()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	chk, ok := checks["service:foo"]
-	if !ok {
-		t.Fatalf("missing check: %v", checks)
-	}
-
-	// Checks should default to critical
-	if chk.Status != HealthCritical {
-		t.Fatalf("Bad: %#v", chk)
-	}
-
-	// Proxy config should be present in response, minus the upstreams
-	delete(reg.Connect.Proxy.Config, "upstreams")
-	// Upstreams should be translated into proper field
-	reg.Connect.Proxy.Upstreams = []Upstream{{
-		DestinationType: "prepared_query",
-		DestinationName: "bar",
-		LocalBindPort:   9191,
-		Config: map[string]interface{}{
-			"connect_timeout_ms": float64(1000),
-		},
-	}}
-	require.Equal(t, reg.Connect, services["foo"].Connect)
-
-	if err := agent.ServiceDeregister("foo"); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	services, err := agent.ServicesWithFilter("foo in Tags")
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+	_, ok := services["foo2"]
+	require.True(t, ok)
 }
 
 func TestAPI_AgentServices_SidecarService(t *testing.T) {
@@ -543,6 +474,16 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	reg2 := &AgentServiceRegistration{
 		Name: "foo2",
 		Port: 8000,
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "192.168.0.43",
+				Port:    8000,
+			},
+			"wan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
 	}
 	if err := agent.ServiceRegister(reg1); err != nil {
 		t.Fatalf("err: %v", err)
@@ -569,6 +510,13 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	if services["foo2"].Address != "" {
 		t.Fatalf("missing Address field in service foo2: %v", services)
 	}
+	require.NotNil(t, services["foo2"].TaggedAddresses)
+	require.Contains(t, services["foo2"].TaggedAddresses, "lan")
+	require.Contains(t, services["foo2"].TaggedAddresses, "wan")
+	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Address, "192.168.0.43")
+	require.Equal(t, services["foo2"].TaggedAddresses["lan"].Port, 8000)
+	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
+	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -693,17 +641,23 @@ func TestAPI_AgentService(t *testing.T) {
 		ID:          "foo",
 		Service:     "foo",
 		Tags:        []string{"bar", "baz"},
-		ContentHash: "5d286f5494330b04",
+		ContentHash: "6b13684bfe179e67",
 		Port:        8000,
+		Weights: AgentWeights{
+			Passing: 1,
+			Warning: 1,
+		},
+		Meta:      map[string]string{},
+		Namespace: defaultNamespace,
 	}
 	require.Equal(expect, got)
 	require.Equal(expect.ContentHash, qm.LastContentHash)
 
-	// Sanity check blocking behaviour - this is more thoroughly tested in the
+	// Sanity check blocking behavior - this is more thoroughly tested in the
 	// agent endpoint tests but this ensures that the API package is at least
 	// passing the hash param properly.
 	opts := QueryOptions{
-		WaitHash: "5d286f5494330b04",
+		WaitHash: qm.LastContentHash,
 		WaitTime: 100 * time.Millisecond, // Just long enough to be reliably measurable
 	}
 	start := time.Now()
@@ -719,6 +673,7 @@ func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	reg := &AgentServiceRegistration{
 		Name: "foo",
@@ -823,10 +778,38 @@ func TestAPI_AgentChecks(t *testing.T) {
 	if chk.Status != HealthCritical {
 		t.Fatalf("check not critical: %v", chk)
 	}
+	if chk.Type != "ttl" {
+		t.Fatalf("expected type ttl, got %s", chk.Type)
+	}
 
 	if err := agent.CheckDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAPI_AgentChecksWithFilter(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := &AgentCheckRegistration{
+		Name: "foo",
+	}
+	reg.TTL = "15s"
+	require.NoError(t, agent.CheckRegister(reg))
+	reg = &AgentCheckRegistration{
+		Name: "bar",
+	}
+	reg.TTL = "15s"
+	require.NoError(t, agent.CheckRegister(reg))
+
+	checks, err := agent.ChecksWithFilter("Name == foo")
+	require.NoError(t, err)
+	require.Len(t, checks, 1)
+	_, ok := checks["foo"]
+	require.True(t, ok)
 }
 
 func TestAPI_AgentScriptCheck(t *testing.T) {
@@ -933,6 +916,7 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	// First register a service
 	serviceReg := &AgentServiceRegistration{
@@ -970,6 +954,9 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	}
 	if check.ServiceID != "redis" {
 		t.Fatalf("missing service association for check: %v", check)
+	}
+	if check.Type != "ttl" {
+		t.Fatalf("expected type ttl, got %s", check.Type)
 	}
 }
 
@@ -1016,6 +1003,9 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 	}
 	if check.ServiceID != "redis" {
 		t.Fatalf("missing service association for check: %v", check)
+	}
+	if check.Type != "docker" {
+		t.Fatalf("expected type docker, got %s", check.Type)
 	}
 }
 
@@ -1084,7 +1074,21 @@ func TestAPI_AgentForceLeave(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeave("foo")
+	err := agent.ForceLeave(s.Config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentForceLeavePrune(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody
+	err := agent.ForceLeavePrune(s.Config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1165,6 +1169,9 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
 		}
+		if check.Type != "maintenance" {
+			t.Fatalf("expected type 'maintenance', got %s", check.Type)
+		}
 	}
 }
 
@@ -1174,6 +1181,7 @@ func TestAPI_NodeMaintenance(t *testing.T) {
 	defer s.Stop()
 
 	agent := c.Agent()
+	s.WaitForSerfCheck(t)
 
 	// Enable maintenance mode
 	if err := agent.EnableNodeMaintenance("broken"); err != nil {
@@ -1212,6 +1220,9 @@ func TestAPI_NodeMaintenance(t *testing.T) {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
 		}
+		if check.Type != "maintenance" {
+			t.Fatalf("expected type 'maintenance', got %s", check.Type)
+		}
 	}
 }
 
@@ -1220,23 +1231,125 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 	c, s := makeACLClient(t)
 	defer s.Stop()
 
-	agent := c.Agent()
+	t.Run("deprecated", func(t *testing.T) {
+		agent := c.Agent()
+		if _, err := agent.UpdateACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLAgentToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if _, err := agent.UpdateACLAgentMasterToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 
-	if _, err := agent.UpdateACLReplicationToken("root", nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	t.Run("new with no fallback", func(t *testing.T) {
+		agent := c.Agent()
+		if _, err := agent.UpdateDefaultACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if _, err := agent.UpdateAgentACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if _, err := agent.UpdateAgentMasterACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if _, err := agent.UpdateReplicationACLToken("root", nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
+	t.Run("new with fallback", func(t *testing.T) {
+		// Respond with 404 for the new paths to trigger fallback.
+		failer := func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(404)
+		}
+		notfound := httptest.NewServer(http.HandlerFunc(failer))
+		defer notfound.Close()
+
+		raw := c // real consul client
+
+		// Set up a reverse proxy that will send some requests to the
+		// 404 server and pass everything else through to the real Consul
+		// server.
+		director := func(req *http.Request) {
+			req.URL.Scheme = "http"
+
+			switch req.URL.Path {
+			case "/v1/agent/token/default",
+				"/v1/agent/token/agent",
+				"/v1/agent/token/agent_master",
+				"/v1/agent/token/replication":
+				req.URL.Host = notfound.URL[7:] // Strip off "http://".
+			default:
+				req.URL.Host = raw.config.Address
+			}
+		}
+		proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
+		defer proxy.Close()
+
+		// Make another client that points at the proxy instead of the real
+		// Consul server.
+		config := raw.config
+		config.Address = proxy.URL[7:] // Strip off "http://".
+		c, err := NewClient(&config)
+		require.NoError(t, err)
+
+		agent := c.Agent()
+
+		_, err = agent.UpdateDefaultACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.NoError(t, err)
+
+		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("new with 403s", func(t *testing.T) {
+		failer := func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(403)
+		}
+		authdeny := httptest.NewServer(http.HandlerFunc(failer))
+		defer authdeny.Close()
+
+		raw := c // real consul client
+
+		// Make another client that points at the proxy instead of the real
+		// Consul server.
+		config := raw.config
+		config.Address = authdeny.URL[7:] // Strip off "http://".
+		c, err := NewClient(&config)
+		require.NoError(t, err)
+
+		agent := c.Agent()
+
+		_, err = agent.UpdateDefaultACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateAgentACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateAgentMasterACLToken("root", nil)
+		require.Error(t, err)
+
+		_, err = agent.UpdateReplicationACLToken("root", nil)
+		require.Error(t, err)
+	})
 }
 
 func TestAPI_AgentConnectCARoots_empty(t *testing.T) {
@@ -1320,51 +1433,209 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
 }
 
-func TestAPI_AgentConnectProxyConfig(t *testing.T) {
+func TestAPI_AgentHealthService(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
-		// Force auto port range to 1 port so we have deterministic response.
-		c.Ports.ProxyMinPort = 20000
-		c.Ports.ProxyMaxPort = 20000
-	})
+	c, s := makeClient(t)
 	defer s.Stop()
 
 	agent := c.Agent()
+
+	requireServiceHealthID := func(t *testing.T, serviceID, expected string, shouldExist bool) {
+		msg := fmt.Sprintf("service id:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceID, shouldExist, expected)
+
+		state, out, err := agent.AgentHealthServiceByID(serviceID)
+		require.Nil(t, err, msg, "err")
+		require.Equal(t, expected, state, msg, "state")
+		if !shouldExist {
+			require.Nil(t, out, msg, "shouldExist")
+		} else {
+			require.NotNil(t, out, msg, "output")
+			require.Equal(t, serviceID, out.Service.ID, msg, "output")
+		}
+	}
+	requireServiceHealthName := func(t *testing.T, serviceName, expected string, shouldExist bool) {
+		msg := fmt.Sprintf("service name:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceName, shouldExist, expected)
+
+		state, outs, err := agent.AgentHealthServiceByName(serviceName)
+		require.Nil(t, err, msg, "err")
+		require.Equal(t, expected, state, msg, "state")
+		if !shouldExist {
+			require.Equal(t, 0, len(outs), msg, "output")
+		} else {
+			require.True(t, len(outs) > 0, msg, "output")
+			for _, o := range outs {
+				require.Equal(t, serviceName, o.Service.Service, msg, "output")
+			}
+		}
+	}
+
+	requireServiceHealthID(t, "_i_do_not_exist_", HealthCritical, false)
+	requireServiceHealthName(t, "_i_do_not_exist_", HealthCritical, false)
+
+	testServiceID1 := "foo"
+	testServiceID2 := "foofoo"
+	testServiceName := "bar"
+
+	// register service
 	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
+		Name: testServiceName,
+		ID:   testServiceID1,
 		Port: 8000,
-		Connect: &AgentServiceConnect{
-			Proxy: &AgentServiceConnectProxy{
-				Command: []string{"consul", "connect", "proxy"},
-				Config: map[string]interface{}{
-					"foo": "bar",
-				},
-				Upstreams: testUpstreams(t),
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	err := agent.ServiceRegister(reg)
+	require.Nil(t, err)
+	requireServiceHealthID(t, testServiceID1, HealthCritical, true)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+
+	err = agent.WarnTTL(fmt.Sprintf("service:%s", testServiceID1), "I am warn")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthWarning, true)
+	requireServiceHealthID(t, testServiceID1, HealthWarning, true)
+
+	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID1), "I am good :)")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthPassing, true)
+	requireServiceHealthID(t, testServiceID1, HealthPassing, true)
+
+	err = agent.FailTTL(fmt.Sprintf("service:%s", testServiceID1), "I am dead.")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+	requireServiceHealthID(t, testServiceID1, HealthCritical, true)
+
+	// register another service
+	reg = &AgentServiceRegistration{
+		Name: testServiceName,
+		ID:   testServiceID2,
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	err = agent.ServiceRegister(reg)
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+
+	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID1), "I am good :)")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthCritical, true)
+
+	err = agent.WarnTTL(fmt.Sprintf("service:%s", testServiceID2), "I am warn")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthWarning, true)
+
+	err = agent.PassTTL(fmt.Sprintf("service:%s", testServiceID2), "I am good :)")
+	require.Nil(t, err)
+	requireServiceHealthName(t, testServiceName, HealthPassing, true)
+}
+
+func TestAgentService_JSON_OmitTaggedAdddresses(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		as   AgentService
+	}{
+		{
+			"nil",
+			AgentService{
+				TaggedAddresses: nil,
+			},
+		},
+		{
+			"empty",
+			AgentService{
+				TaggedAddresses: make(map[string]ServiceAddress),
 			},
 		},
 	}
-	if err := agent.ServiceRegister(reg); err != nil {
-		t.Fatalf("err: %v", err)
+
+	for _, tc := range cases {
+		name := tc.name
+		as := tc.as
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			data, err := json.Marshal(as)
+			require.NoError(t, err)
+			var raw map[string]interface{}
+			err = json.Unmarshal(data, &raw)
+			require.NoError(t, err)
+			require.NotContains(t, raw, "TaggedAddresses")
+			require.NotContains(t, raw, "tagged_addresses")
+		})
+	}
+}
+
+func TestAgentService_Register_MeshGateway(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg := AgentServiceRegistration{
+		Kind:    ServiceKindMeshGateway,
+		Name:    "mesh-gateway",
+		Address: "10.1.2.3",
+		Port:    8443,
+		Proxy: &AgentServiceConnectProxyConfig{
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
 	}
 
-	config, qm, err := agent.ConnectProxyConfig("foo-proxy", nil)
+	err := agent.ServiceRegister(&reg)
 	require.NoError(t, err)
-	expectConfig := &ConnectProxyConfig{
-		ProxyServiceID:    "foo-proxy",
-		TargetServiceID:   "foo",
-		TargetServiceName: "foo",
-		ContentHash:       "acdf5eb6f5794a14",
-		ExecMode:          "daemon",
-		Command:           []string{"consul", "connect", "proxy"},
-		Config: map[string]interface{}{
-			"bind_address":          "127.0.0.1",
-			"bind_port":             float64(20000),
-			"foo":                   "bar",
-			"local_service_address": "127.0.0.1:8000",
-		},
-		Upstreams: testExpectUpstreamsWithDefaults(t, reg.Connect.Proxy.Upstreams),
+
+	svc, _, err := agent.Service("mesh-gateway", nil)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, ServiceKindMeshGateway, svc.Kind)
+	require.NotNil(t, svc.Proxy)
+	require.Contains(t, svc.Proxy.Config, "foo")
+	require.Equal(t, "bar", svc.Proxy.Config["foo"])
+}
+
+func TestAgentService_ExposeChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	path := ExposePath{
+		LocalPathPort: 8080,
+		ListenerPort:  21500,
+		Path:          "/metrics",
+		Protocol:      "http2",
 	}
-	require.Equal(t, expectConfig, config)
-	require.Equal(t, expectConfig.ContentHash, qm.LastContentHash)
+	reg := AgentServiceRegistration{
+		Kind:    ServiceKindConnectProxy,
+		Name:    "expose-proxy",
+		Address: "10.1.2.3",
+		Port:    8443,
+		Proxy: &AgentServiceConnectProxyConfig{
+			DestinationServiceName: "expose",
+			Expose: ExposeConfig{
+				Checks: true,
+				Paths: []ExposePath{
+					path,
+				},
+			},
+		},
+	}
+
+	err := agent.ServiceRegister(&reg)
+	require.NoError(t, err)
+
+	svc, _, err := agent.Service("expose-proxy", nil)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, ServiceKindConnectProxy, svc.Kind)
+	require.NotNil(t, svc.Proxy)
+	require.Len(t, svc.Proxy.Expose.Paths, 1)
+	require.True(t, svc.Proxy.Expose.Checks)
+	require.Equal(t, path, svc.Proxy.Expose.Paths[0])
 }

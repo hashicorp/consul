@@ -1,10 +1,11 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 
 export default Route.extend({
   repo: service('repository/service'),
+  chainRepo: service('repository/discovery-chain'),
+  settings: service('settings'),
   queryParams: {
     s: {
       as: 'filter',
@@ -12,20 +13,16 @@ export default Route.extend({
     },
   },
   model: function(params) {
-    const repo = get(this, 'repo');
+    const dc = this.modelFor('dc').dc.Name;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
-      item: repo.findBySlug(params.name, this.modelFor('dc').dc.Name),
-    }).then(function(model) {
-      return {
-        ...model,
-        ...{
-          items: model.item.Nodes,
-        },
-      };
+      item: this.repo.findBySlug(params.name, dc, nspace),
+      chain: this.chainRepo.findBySlug(params.name, dc, nspace),
+      urls: this.settings.findBySlug('urls'),
+      dc: dc,
     });
   },
   setupController: function(controller, model) {
-    this._super(...arguments);
     controller.setProperties(model);
   },
 });

@@ -81,6 +81,67 @@ func TestCacheGet_initError(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test a cached error is replaced by a successful result. See
+// https://github.com/hashicorp/consul/issues/4480
+func TestCacheGet_cachedErrorsDontStick(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := TestType(t)
+	defer typ.AssertExpectations(t)
+	c := TestCache(t)
+	c.RegisterType("t", typ, nil)
+
+	// Configure the type
+	fetcherr := fmt.Errorf("initial error")
+	// First fetch errors, subsequent fetches are successful and then block
+	typ.Static(FetchResult{}, fetcherr).Times(1)
+	typ.Static(FetchResult{Value: 42, Index: 123}, nil).Times(1)
+	// We trigger this to return same value to simulate a timeout.
+	triggerCh := make(chan time.Time)
+	typ.Static(FetchResult{Value: 42, Index: 123}, nil).WaitUntil(triggerCh)
+
+	// Get, should fetch and get error
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err := c.Get("t", req)
+	require.Error(err)
+	require.Nil(result)
+	require.False(meta.Hit)
+
+	// Get, should fetch again since our last fetch was an error, but get success
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+
+	// Now get should block until timeout and then get the same response NOT the
+	// cached error.
+	getCh1 := TestCacheGetCh(t, c, "t", TestRequest(t, RequestInfo{
+		Key:      "hello",
+		MinIndex: 123,
+		// We _don't_ set a timeout here since that doesn't trigger the bug - the
+		// bug occurs when the Fetch call times out and returns the same value when
+		// an error is set. If it returns a new value the blocking loop works too.
+	}))
+	time.AfterFunc(50*time.Millisecond, func() {
+		// "Timeout" the Fetch after a short time.
+		close(triggerCh)
+	})
+	select {
+	case result := <-getCh1:
+		t.Fatalf("result or error returned before an update happened. "+
+			"If this is nil look above for the error log: %v", result)
+	case <-time.After(100 * time.Millisecond):
+		// It _should_ keep blocking for a new value here
+	}
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify the calls.
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
 // Test a Get with a request that returns a blank cache key. This should
 // force a backend request and skip the cache entirely.
 func TestCacheGet_blankCacheKey(t *testing.T) {
@@ -318,9 +379,17 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	c := TestCache(t)
 	c.RegisterType("t", typ, nil)
 
+	stateCh := make(chan int, 1)
+
 	// Configure the type
-	typ.Static(FetchResult{Value: 42, Index: 1}, nil).Times(1)
-	typ.Static(FetchResult{Value: nil}, nil)
+	typ.Static(FetchResult{Value: 42, State: 31, Index: 1}, nil).Times(1)
+	// Return different State, it should NOT be ignored
+	typ.Static(FetchResult{Value: nil, State: 32}, nil).Run(func(args mock.Arguments) {
+		// We should get back the original state
+		opts := args.Get(0).(FetchOptions)
+		require.NotNil(opts.LastResult)
+		stateCh <- opts.LastResult.State.(int)
+	})
 
 	// Get, should fetch
 	req := TestRequest(t, RequestInfo{Key: "hello"})
@@ -336,6 +405,29 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	require.NoError(err)
 	require.Equal(42, result)
 	require.False(meta.Hit)
+
+	// State delivered to second call should be the result from first call.
+	select {
+	case state := <-stateCh:
+		require.Equal(31, state)
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("timed out")
+	}
+
+	// Next request should get the SECOND returned state even though the fetch
+	// returns nil and so the previous result is used.
+	req = TestRequest(t, RequestInfo{
+		Key: "hello", MinIndex: 1, Timeout: 100 * time.Millisecond})
+	result, meta, err = c.Get("t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+	select {
+	case state := <-stateCh:
+		require.Equal(32, state)
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("timed out")
+	}
 
 	// Sleep a tiny bit just to let maybe some background calls happen
 	// then verify that we still only got the one call
@@ -1031,7 +1123,6 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 	t.Parallel()
 
 	typ := TestTypeNonBlocking(t)
-	defer typ.AssertExpectations(t)
 	c := TestCache(t)
 	c.RegisterType("t", typ, nil)
 

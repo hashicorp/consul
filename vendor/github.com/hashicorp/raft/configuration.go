@@ -32,6 +32,26 @@ func (s ServerSuffrage) String() string {
 	return "ServerSuffrage"
 }
 
+// ConfigurationStore provides an interface that can optionally be implemented by FSMs
+// to store configuration updates made in the replicated log. In general this is only
+// necessary for FSMs that mutate durable state directly instead of applying changes
+// in memory and snapshotting periodically. By storing configuration changes, the
+// persistent FSM state can behave as a complete snapshot, and be able to recover
+// without an external snapshot just for persisting the raft configuration.
+type ConfigurationStore interface {
+	// ConfigurationStore is a superset of the FSM functionality
+	FSM
+
+	// StoreConfiguration is invoked once a log entry containing a configuration
+	// change is committed. It takes the index at which the configuration was
+	// written and the configuration value.
+	StoreConfiguration(index uint64, configuration Configuration)
+}
+
+type nopConfigurationStore struct{}
+
+func (s nopConfigurationStore) StoreConfiguration(_ uint64, _ Configuration) {}
+
 // ServerID is a unique string identifying a server for all time.
 type ServerID string
 
@@ -115,7 +135,7 @@ type configurationChangeRequest struct {
 // prior one has been committed).
 //
 // One downside to storing just two configurations is that if you try to take a
-// snahpsot when your state machine hasn't yet applied the committedIndex, we
+// snapshot when your state machine hasn't yet applied the committedIndex, we
 // have no record of the configuration that would logically fit into that
 // snapshot. We disallow snapshots in that case now. An alternative approach,
 // which LogCabin uses, is to track every configuration change in the
@@ -198,7 +218,7 @@ func nextConfiguration(current Configuration, currentIndex uint64, change config
 		// TODO: barf on new address?
 		newServer := Server{
 			// TODO: This should add the server as Staging, to be automatically
-			// promoted to Voter later. However, the promoton to Voter is not yet
+			// promoted to Voter later. However, the promotion to Voter is not yet
 			// implemented, and doing so is not trivial with the way the leader loop
 			// coordinates with the replication goroutines today. So, for now, the
 			// server will have a vote right away, and the Promote case below is
@@ -322,9 +342,9 @@ func decodePeers(buf []byte, trans Transport) Configuration {
 	}
 }
 
-// encodeConfiguration serializes a Configuration using MsgPack, or panics on
+// EncodeConfiguration serializes a Configuration using MsgPack, or panics on
 // errors.
-func encodeConfiguration(configuration Configuration) []byte {
+func EncodeConfiguration(configuration Configuration) []byte {
 	buf, err := encodeMsgPack(configuration)
 	if err != nil {
 		panic(fmt.Errorf("failed to encode configuration: %v", err))
@@ -332,9 +352,9 @@ func encodeConfiguration(configuration Configuration) []byte {
 	return buf.Bytes()
 }
 
-// decodeConfiguration deserializes a Configuration using MsgPack, or panics on
+// DecodeConfiguration deserializes a Configuration using MsgPack, or panics on
 // errors.
-func decodeConfiguration(buf []byte) Configuration {
+func DecodeConfiguration(buf []byte) Configuration {
 	var configuration Configuration
 	if err := decodeMsgPack(buf, &configuration); err != nil {
 		panic(fmt.Errorf("failed to decode configuration: %v", err))

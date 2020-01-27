@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -16,14 +15,14 @@ import (
 // HTTP API authz endpoint and in the gRPX xDS/ext_authz API for envoy.
 //
 // The ACL token and the auth request are provided and the auth decision (true
-// means authorised) and reason string are returned.
+// means authorized) and reason string are returned.
 //
 // If the request input is invalid the error returned will be a BadRequestError,
 // if the token doesn't grant necessary access then an acl.ErrPermissionDenied
 // error is returned, otherwise error indicates an unexpected server failure. If
 // access is denied, no error is returned but the first return value is false.
 func (a *Agent) ConnectAuthorize(token string,
-	req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error) {
+	req *structs.ConnectAuthorizeRequest) (allowed bool, reason string, m *cache.ResultMeta, err error) {
 
 	// Helper to make the error cases read better without resorting to named
 	// returns which get messy and prone to mistakes in a method this long.
@@ -54,34 +53,18 @@ func (a *Agent) ConnectAuthorize(token string,
 	// We need to verify service:write permissions for the given token.
 	// We do this manually here since the RPC request below only verifies
 	// service:read.
-	rule, err := a.resolveToken(token)
+	var authzContext acl.AuthorizerContext
+	authz, err := a.resolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return returnErr(err)
 	}
-	if rule != nil && !rule.ServiceWrite(req.Target, nil) {
+
+	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
-	// Validate the trust domain matches ours. Later we will support explicit
-	// external federation but not built yet.
-	rootArgs := &structs.DCSpecificRequest{Datacenter: a.config.Datacenter}
-	raw, _, err := a.cache.Get(cachetype.ConnectCARootName, rootArgs)
-	if err != nil {
-		return returnErr(err)
-	}
-
-	roots, ok := raw.(*structs.IndexedCARoots)
-	if !ok {
-		return returnErr(fmt.Errorf("internal error: roots response type not correct"))
-	}
-	if roots.TrustDomain == "" {
-		return returnErr(fmt.Errorf("Connect CA not bootstrapped yet"))
-	}
-	if roots.TrustDomain != strings.ToLower(uriService.Host) {
-		reason = fmt.Sprintf("Identity from an external trust domain: %s",
-			uriService.Host)
-		return false, reason, nil, nil
-	}
+	// Note that we DON'T explicitly validate the trust-domain matches ours. See
+	// the PR for this change for details.
 
 	// TODO(banks): Implement revocation list checking here.
 
@@ -92,7 +75,7 @@ func (a *Agent) ConnectAuthorize(token string,
 			Type: structs.IntentionMatchDestination,
 			Entries: []structs.IntentionMatchEntry{
 				{
-					Namespace: structs.IntentionDefaultNamespace,
+					Namespace: req.TargetNamespace(),
 					Name:      req.Target,
 				},
 			},
@@ -125,14 +108,14 @@ func (a *Agent) ConnectAuthorize(token string,
 	// specifying the anonymous token, which will get the default behavior. The
 	// default behavior if ACLs are disabled is to allow connections to mimic the
 	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	rule, err = a.resolveToken("")
+	authz, err = a.resolveToken("")
 	if err != nil {
 		return returnErr(err)
 	}
-	if rule == nil {
+	if authz == nil {
 		// ACLs not enabled at all, the default is allow all.
 		return true, "ACLs disabled, access is allowed by default", &meta, nil
 	}
 	reason = "Default behavior configured by ACLs"
-	return rule.IntentionDefaultAllow(), reason, &meta, nil
+	return authz.IntentionDefaultAllow(nil) == acl.Allow, reason, &meta, nil
 }

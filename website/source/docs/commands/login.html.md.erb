@@ -1,0 +1,50 @@
+---
+layout: "docs"
+page_title: "Commands: Login"
+sidebar_current: "docs-commands-login"
+description: >
+  The `login` command will exchange the provided third party credentials with the requested auth method for a newly minted Consul ACL token.
+---
+
+# Consul Login
+
+Command: `consul login`
+
+The `login` command will exchange the provided third party credentials with the
+requested auth method for a newly minted Consul ACL token. The companion
+command `consul logout` should be used to destroy any tokens created this way
+to avoid a resource leak.
+
+## Usage
+
+Usage: `consul login [options]`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Command Options
+
+* `-bearer-token-file=<string>` - Path to a file containing a secret bearer
+  token to use with this auth method.
+
+* `-meta=<value>` - Metadata to set on the token, formatted as `key=value`. This
+  flag may be specified multiple times to set multiple meta fields.
+
+* `-method=<string>` - Name of the auth method to login to.
+
+* `-token-sink-file=<string>` - The most recent token's SecretID is kept up to
+  date in this file.
+
+### Examples
+
+Login to an auth method.
+
+```sh
+$ consul login -method 'minikube' \
+    -bearer-token-file '/run/secrets/kubernetes.io/serviceaccount/token' \
+    -token-sink-file 'consul.token'
+
+$ cat consul.token
+36103ae4-6731-e719-f53a-d35188cfa41d
+```

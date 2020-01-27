@@ -1,0 +1,70 @@
+---
+layout: "docs"
+page_title: "Commands: TLS Cert Create"
+sidebar_current: "docs-commands-tls-cert"
+---
+
+# Consul TLS Cert Create
+
+Command: `consul tls cert create`
+
+The `tls cert create` command is used to create certificates for your Consul TLS
+setup.
+
+## Examples
+
+Create a certificate for servers:
+
+```bash
+$ consul tls cert create -server
+==> WARNING: Server Certificates grants authority to become a
+    server and access all state in the cluster including root keys
+    and all ACL tokens. Do not distribute them to production hosts
+    that are not server nodes. Store them as securely as CA keys.
+==> Using consul-ca.pem and consul-ca-key.pem
+==> Saved consul-server-dc1-0.pem
+==> Saved consul-server-dc1-0-key.pem
+```
+
+Create a certificate for clients:
+
+```bash
+$ consul tls cert create -client
+==> Using consul-ca.pem and consul-ca-key.pem
+==> Saved consul-client-0.pem
+==> Saved consul-client-0-key.pem
+```
+
+Create a certificate for cli:
+
+```bash
+$ consul tls cert create -cli
+==> Using consul-ca.pem and consul-ca-key.pem
+==> Saved consul-cli-0.pem
+==> Saved consul-cli-0-key.pem
+```
+## Usage
+
+Usage: `consul tls cert create [filename-prefix] [options]`
+
+#### TLS Cert Create Options
+
+- `-additional-dnsname=<string>` - Provide additional dnsname for Subject Alternative Names.
+
+- `-additional-ipaddress=<string>` - Provide additional ipaddress for Subject Alternative Names.
+
+- `-ca=<string>` - Provide path to the ca
+
+- `-cli` - Generate cli certificate
+
+- `-client` - Generate client certificate
+
+- `-days=<int>` - Provide number of days the certificate is valid for from now on.
+
+- `-dc=<string>` - Provide the datacenter. Matters only for -server certificates
+
+- `-domain=<string>` - Provide the domain. Matters only for -server certificates
+
+- `-key=<string>` - Provide path to the key
+
+- `-server` - Generate server certificate

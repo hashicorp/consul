@@ -16,6 +16,7 @@ import (
 )
 
 func TestExecEnvoy(t *testing.T) {
+
 	cases := []struct {
 		Name     string
 		Args     []string
@@ -25,13 +26,11 @@ func TestExecEnvoy(t *testing.T) {
 			Name: "default",
 			Args: []string{},
 			WantArgs: []string{
-				"--v2-config-only",
 				"--config-path",
-				// Different platforms produce different file descriptors here so we use the
-				// value we got back. This is somewhat tautological but we do sanity check
-				// that value further below.
 				"{{ got.ConfigPath }}",
 				"--disable-hot-restart",
+				"--max-obj-name-len",
+				"256",
 				"--fake-envoy-arg",
 			},
 		},
@@ -39,13 +38,14 @@ func TestExecEnvoy(t *testing.T) {
 			Name: "hot-restart-epoch",
 			Args: []string{"--restart-epoch", "1"},
 			WantArgs: []string{
-				"--v2-config-only",
 				"--config-path",
 				// Different platforms produce different file descriptors here so we use the
 				// value we got back. This is somewhat tautological but we do sanity check
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
+				"--max-obj-name-len",
+				"256",
 				"--fake-envoy-arg",
 				"--restart-epoch",
 				"1",
@@ -55,13 +55,14 @@ func TestExecEnvoy(t *testing.T) {
 			Name: "hot-restart-version",
 			Args: []string{"--drain-time-s", "10"},
 			WantArgs: []string{
-				"--v2-config-only",
 				"--config-path",
 				// Different platforms produce different file descriptors here so we use the
 				// value we got back. This is somewhat tautological but we do sanity check
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
+				"--max-obj-name-len",
+				"256",
 				"--fake-envoy-arg",
 				// Restart epoch defaults to 0 if not given and not disabled.
 				"--drain-time-s",
@@ -72,13 +73,14 @@ func TestExecEnvoy(t *testing.T) {
 			Name: "hot-restart-version",
 			Args: []string{"--parent-shutdown-time-s", "20"},
 			WantArgs: []string{
-				"--v2-config-only",
 				"--config-path",
 				// Different platforms produce different file descriptors here so we use the
 				// value we got back. This is somewhat tautological but we do sanity check
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
+				"--max-obj-name-len",
+				"256",
 				"--fake-envoy-arg",
 				// Restart epoch defaults to 0 if not given and not disabled.
 				"--parent-shutdown-time-s",
@@ -89,13 +91,14 @@ func TestExecEnvoy(t *testing.T) {
 			Name: "hot-restart-version",
 			Args: []string{"--hot-restart-version", "foobar1"},
 			WantArgs: []string{
-				"--v2-config-only",
 				"--config-path",
 				// Different platforms produce different file descriptors here so we use the
 				// value we got back. This is somewhat tautological but we do sanity check
 				// that value further below.
 				"{{ got.ConfigPath }}",
 				// No --disable-hot-restart
+				"--max-obj-name-len",
+				"256",
 				"--fake-envoy-arg",
 				// Restart epoch defaults to 0 if not given and not disabled.
 				"--hot-restart-version",
@@ -131,7 +134,7 @@ func TestExecEnvoy(t *testing.T) {
 			require.Equal(expectConfigData, got.ConfigData)
 			// Sanity check the config path in a non-brittle way since we used it to
 			// generate expectation for the args.
-			require.Regexp(`^/dev/fd/\d+$`, got.ConfigPath)
+			require.Regexp(`-bootstrap.json$`, got.ConfigPath)
 		})
 	}
 }
@@ -192,6 +195,11 @@ func TestHelperProcess(t *testing.T) {
 		// this will just exec the "fake-envoy" flavor below
 
 		limitProcessLifetime(2 * time.Minute)
+
+		// This is another level of gross - we are relying on `consul` being on path
+		// and being the correct version but in general that is true under `make
+		// test`. We already make the same assumption for API package tests.
+		testSelfExecOverride = "consul"
 
 		err := execEnvoy(
 			os.Args[0],

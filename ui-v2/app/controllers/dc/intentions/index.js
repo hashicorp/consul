@@ -1,6 +1,7 @@
 import Controller from '@ember/controller';
 import { computed, get } from '@ember/object';
 import WithFiltering from 'consul-ui/mixins/with-filtering';
+import WithSearching from 'consul-ui/mixins/with-searching';
 import ucfirst from 'consul-ui/utils/ucfirst';
 // TODO: DRY out in acls at least
 const createCounter = function(prop) {
@@ -9,7 +10,7 @@ const createCounter = function(prop) {
   };
 };
 const countAction = createCounter('Action');
-export default Controller.extend(WithFiltering, {
+export default Controller.extend(WithSearching, WithFiltering, {
   queryParams: {
     action: {
       as: 'action',
@@ -19,6 +20,17 @@ export default Controller.extend(WithFiltering, {
       replace: true,
     },
   },
+  init: function() {
+    this.searchParams = {
+      intention: 's',
+    };
+    this._super(...arguments);
+  },
+  searchable: computed('filtered', function() {
+    return get(this, 'searchables.intention')
+      .add(get(this, 'filtered'))
+      .search(get(this, this.searchParams.intention));
+  }),
   actionFilters: computed('items', function() {
     const items = get(this, 'items');
     return ['', 'allow', 'deny'].map(function(item) {
@@ -32,16 +44,6 @@ export default Controller.extend(WithFiltering, {
     });
   }),
   filter: function(item, { s = '', action = '' }) {
-    const source = get(item, 'SourceName').toLowerCase();
-    const destination = get(item, 'DestinationName').toLowerCase();
-    const sLower = s.toLowerCase();
-    const allLabel = 'All Services (*)'.toLowerCase();
-    return (
-      (source.indexOf(sLower) !== -1 ||
-        destination.indexOf(sLower) !== -1 ||
-        (source === '*' && allLabel.indexOf(sLower) !== -1) ||
-        (destination === '*' && allLabel.indexOf(sLower) !== -1)) &&
-      (action === '' || get(item, 'Action') === action)
-    );
+    return action === '' || get(item, 'Action') === action;
   },
 });

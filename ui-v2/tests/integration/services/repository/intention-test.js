@@ -2,18 +2,12 @@ import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 const NAME = 'intention';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
-  // Specify the other units that are required for this test.
-  needs: [
-    'service:settings',
-    'service:store',
-    `adapter:${NAME}`,
-    `serializer:${NAME}`,
-    `model:${NAME}`,
-  ],
+  integration: true,
 });
 
 const dc = 'dc-1';
 const id = 'token-name';
+const nspace = 'default';
 test('findAllByDatacenter returns the correct data for list endpoint', function(assert) {
   return repo(
     'Intention',
@@ -36,7 +30,9 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
               CreatedAt: new Date(item.CreatedAt),
               UpdatedAt: new Date(item.UpdatedAt),
               Datacenter: dc,
-              uid: `["${dc}","${item.ID}"]`,
+              // TODO: nspace isn't required here, once we've
+              // refactored out our Serializer this can go
+              uid: `["${nspace}","${dc}","${item.ID}"]`,
             })
           );
         })
@@ -64,7 +60,9 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
             CreatedAt: new Date(item.CreatedAt),
             UpdatedAt: new Date(item.UpdatedAt),
             Datacenter: dc,
-            uid: `["${dc}","${item.ID}"]`,
+            // TODO: nspace isn't required here, once we've
+            // refactored out our Serializer this can go
+            uid: `["${nspace}","${dc}","${item.ID}"]`,
           });
         })
       );

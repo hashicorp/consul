@@ -20,11 +20,6 @@ Serf's network tomography is based on ["Vivaldi: A Decentralized Network Coordin
 with some enhancements based on other research. There are more details about
 [Serf's network coordinates here](https://www.serf.io/docs/internals/coordinates.html).
 
-~> **Advanced Topic!** This page covers the technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Network Coordinates in Consul
 
 Network coordinates manifest in several ways inside Consul:
@@ -38,7 +33,7 @@ Network coordinates manifest in several ways inside Consul:
 
 * [Prepared queries](/api/query.html) can automatically fail over services 
   to other Consul datacenters based on network round trip times. See the
-  [Geo Failover](/docs/guides/geo-failover.html) for some examples.
+  [Geo Failover](https://learn.hashicorp.com/consul/developer-discovery/geo-failover) for some examples.
 
 * The [Coordinate endpoint](/api/coordinate.html) exposes raw network
   coordinates for use in other applications.

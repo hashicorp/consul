@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
@@ -83,15 +84,23 @@ type Client struct {
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseClient
+
+	tlsConfigurator *tlsutil.Configurator
 }
 
-// NewClient is used to construct a new Consul client from the
-// configuration, potentially returning an error
+// NewClient is used to construct a new Consul client from the configuration,
+// potentially returning an error.
+// NewClient only used to help setting up a client for testing. Normal code
+// exercises NewClientLogger.
 func NewClient(config *Config) (*Client, error) {
-	return NewClientLogger(config, nil)
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return NewClientLogger(config, nil, c)
 }
 
-func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
+func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -112,33 +121,28 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tls Wrapper
-	tlsWrap, err := config.tlsConfig().OutgoingTLSWrapper()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create a logger
 	if logger == nil {
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
 	}
 
 	connPool := &pool.ConnPool{
-		SrcAddr:    config.RPCSrcAddr,
-		LogOutput:  config.LogOutput,
-		MaxTime:    clientRPCConnMaxIdle,
-		MaxStreams: clientMaxStreams,
-		TLSWrapper: tlsWrap,
-		ForceTLS:   config.VerifyOutgoing,
+		SrcAddr:         config.RPCSrcAddr,
+		LogOutput:       config.LogOutput,
+		MaxTime:         clientRPCConnMaxIdle,
+		MaxStreams:      clientMaxStreams,
+		TLSConfigurator: tlsConfigurator,
+		ForceTLS:        config.VerifyOutgoing,
 	}
 
 	// Create client
 	c := &Client{
-		config:     config,
-		connPool:   connPool,
-		eventCh:    make(chan serf.Event, serfEventBacklog),
-		logger:     logger,
-		shutdownCh: make(chan struct{}),
+		config:          config,
+		connPool:        connPool,
+		eventCh:         make(chan serf.Event, serfEventBacklog),
+		logger:          logger,
+		shutdownCh:      make(chan struct{}),
+		tlsConfigurator: tlsConfigurator,
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
@@ -155,8 +159,9 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		Logger:      logger,
 		AutoDisable: true,
 		CacheConfig: clientACLCacheConfig,
-		Sentinel:    nil,
+		ACLConfig:   newACLConfig(logger),
 	}
+	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
@@ -209,6 +214,9 @@ func (c *Client) Shutdown() error {
 
 	// Close the connection pool
 	c.connPool.Shutdown()
+
+	c.acls.Close()
+
 	return nil
 }
 
@@ -258,7 +266,10 @@ func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
 }
 
 // RemoveFailedNode is used to remove a failed node from the cluster
-func (c *Client) RemoveFailedNode(node string) error {
+func (c *Client) RemoveFailedNode(node string, prune bool) error {
+	if prune {
+		return c.serf.RemoveFailedNodePrune(node)
+	}
 	return c.serf.RemoveFailedNode(node)
 }
 

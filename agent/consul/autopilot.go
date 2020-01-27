@@ -77,6 +77,10 @@ func (d *AutopilotDelegate) Raft() *raft.Raft {
 	return d.server.raft
 }
 
-func (d *AutopilotDelegate) Serf() *serf.Serf {
+func (d *AutopilotDelegate) SerfLAN() *serf.Serf {
 	return d.server.serfLAN
+}
+
+func (d *AutopilotDelegate) SerfWAN() *serf.Serf {
+	return d.server.serfWAN
 }

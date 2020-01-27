@@ -25,7 +25,7 @@ const (
 // RegisterMonitor registers the proxy with the local Consul agent with a TTL
 // health check that is kept alive.
 //
-// This struct should be intialized with NewRegisterMonitor instead of being
+// This struct should be initialized with NewRegisterMonitor instead of being
 // allocated directly. Using this struct without calling NewRegisterMonitor
 // will result in panics.
 type RegisterMonitor struct {

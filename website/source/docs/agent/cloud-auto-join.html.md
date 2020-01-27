@@ -18,7 +18,7 @@ In Consul 0.9.1-0.9.3 the values need to be URL encoded but for most
 practical purposes you need to replace spaces with `+` signs.
 
 As of Consul 1.0 the values are taken literally and must not be URL
-encoded. If the values contain spaces, backslashes or double quotes then
+encoded. If the values contain spaces, equals, backslashes or double quotes then
 they need to be double quoted and the usual escaping rules apply.
 
 ```sh
@@ -100,18 +100,30 @@ $ consul agent -retry-join "provider=azure tag_name=... tag_value=... tenant_id=
 - `provider` (required) - the name of the provider ("azure" in this case).
 - `tenant_id` (required) - the tenant to join machines in.
 - `client_id` (required) - the client to authenticate with.
-- `secret_access_key` (required) - the secret client key.
+- `secret_access_key` (required) - the secret client key. **NOTE** This value often may have an equals sign in it's value, especially if generated from the Azure Portal, so is important to wrap in single quotes eg. `secret_access_key='fpOfcHQJAQBczjAxiVpeyLmX1M0M0KPBST+GU2GvEN4='`
+
+Variables can also be provided by environmental variables:
+
+* `ARM_SUBSCRIPTION_ID` for subscription
+* `ARM_TENANT_ID` for tenant
+* `ARM_CLIENT_ID` for client
+* `ARM_CLIENT_SECRET` for secret access key
 
 Use these configuration parameters when using tags:
+
 - `tag_name` - the name of the tag to auto-join on.
 - `tag_value` - the value of the tag to auto-join on.
 
-Use these configuration parameters when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
+Use these configuration parameters (instead of `tag_name` and `tag_value`) when using Virtual Machine Scale Sets (Consul 1.0.3 and later):
+
 - `resource_group` - the name of the resource group to filter on.
 - `vm_scale_set` - the name of the virtual machine scale set to filter on.
 
-When using tags the only permission needed is the `ListAll` method for `NetworkInterfaces`. When using
-Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
+When using tags the only permission needed is `Microsoft.Network/networkInterfaces`.
+
+When using Virtual Machine Scale Sets the only role action needed is `Microsoft.Compute/virtualMachineScaleSets/*/read`.
+
+~> **Note:** If the Consul cluster is hosted on Azure, Consul can use Managed Service Identities (MSI) to access Azure instead of an environment variable and shared client id and secret. MSI must be enabled on the VMs hosting Consul, and it is the preferred configuration since MSI prevents your Azure credentials from being stored in Consul configuration. This feature is supported from Consul 1.7 and above.
 
 ### Google Compute Engine
 
@@ -132,9 +144,13 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
 - `tag_value` (required) - the value of the tag to auto-join on.
 - `project_name` (optional) - the name of the project to auto-join on. Discovered if not set.
 - `zone_pattern` (optional) - the list of zones can be restricted through an RE2 compatible regular expression. If omitted, servers in all zones are returned.
-- `credentials_file` (optional) - the credentials file for authentication. See below for more information.
+- `credentials_file` (optional) - the credentials file for authentication. Note, if you set `-config-dir` do not store the credentials.json file in the configuration directory as it will be parsed as a config file and Consul will fail to start. See below for more information.
 
 #### Authentication & Precedence
+
+Discovery requires a [GCE Service
+Account](https://cloud.google.com/compute/docs/access/service-accounts).
+Credentials are searched using the following paths, in order of precedence.
 
 - Use credentials from `credentials_file`, if provided.
 - Use JSON file from `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
@@ -143,10 +159,6 @@ $ consul agent -retry-join "provider=gce project_name=... tag_value=..."
     - On other systems, `$HOME/.config/gcloud/application_default_credentials.json`.
 - On Google Compute Engine, use credentials from the metadata
     server. In this final case any provided scopes are ignored.
-
-Discovery requires a [GCE Service
-Account](https://cloud.google.com/compute/docs/access/service-accounts).
-Credentials are searched using the following paths, in order of precedence.
 
 ### IBM SoftLayer
 
@@ -262,6 +274,33 @@ $ consul agent -retry-join "provider=scaleway organization=my-org tag_name=consu
 - `organization` (required) - the organization access key to use for auth (equal to access key).
 - `token` (required) - the token to use for auth.
 
+
+### TencentCloud
+
+This returns the first IP address of all servers for the given `region` with the given `tag_key` and `tag_value`.
+
+```sh
+$ consul agent -retry-join "provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."
+```
+
+```json
+{
+    "retry_join": ["provider=tencentcloud region=... tag_key=consul tag_value=... access_key_id=... access_key_secret=..."]
+}
+```
+
+- `provider` (required) - the name of the provider ("tencentcloud" in this case).
+- `region` (required) - The TencentCloud region.
+- `tag_key` (required) - The tag key to auto-join on.
+- `tag_value` (required) - The tag value to auto-join on.
+- `address_type` (optional) - "private_v4" or "public_v4", default is "private_v4".
+- `access_key_id` (required) - The secret id of TencentCloud.
+- `access_key_secret` (required) - The secret key of TencentCloud.
+
+This required permission to 'cvm:DescribeInstances'.
+It is recommended you make a dedicated key used only for auto-joining.
+
+
 ### Joyent Triton
 
 This returns the first PrimaryIP addresses for all servers with the given `tag_key` and `tag_value`.
@@ -309,7 +348,7 @@ $ consul agent -retry-join "provider=vsphere category_name=consul-role tag_name=
 
 ### Packet
 
-This returns the first private IP address (or the IP addresso of `address type`) of all servers with the given `project` and `auth_token`.
+This returns the first private IP address (or the IP address of `address type`) of all servers with the given `project` and `auth_token`.
 
 ```sh
 $ consul agent -retry-join "provider=packet auth_token=token project=uuid url=... address_type=..."
@@ -363,3 +402,6 @@ $ consul agent -retry-join "provider=k8s label_selector=\"app=consul,component=s
   set, it defaults to all namespaces.
 - `label_selector` (optional) - the label selector for matching pods.
 - `field_selector` (optional) - the field selector for matching pods.
+
+The Kubernetes token used by the provider needs to have permissions to list pods
+in the desired namespace.

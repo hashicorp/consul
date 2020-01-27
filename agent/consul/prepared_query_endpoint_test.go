@@ -14,9 +14,10 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
@@ -77,7 +78,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	query.Query.Service.Failover.NearestN = 0
 	query.Query.Session = "nope"
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
-	if err == nil || !strings.Contains(err.Error(), "failed session lookup") {
+	if err == nil || !strings.Contains(err.Error(), "invalid session") {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -852,7 +853,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1105,7 +1106,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create an ACL with write permissions for redis queries.
 	var token string
@@ -1461,16 +1462,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	codec2 := rpcClient(t, s2)
 	defer codec2.Close()
 
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-
-	// Try to WAN join.
 	joinWAN(t, s2, s1)
+	// Try to WAN join.
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Create an ACL with read permission to the service.
 	var execToken string
@@ -1512,11 +1513,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 						Service: "foo",
 						Port:    8000,
 						Tags:    []string{dc, fmt.Sprintf("tag%d", i+1)},
+						Meta: map[string]string{
+							"svc-group": fmt.Sprintf("%d", i%2),
+							"foo":       "true",
+						},
 					},
 					WriteRequest: structs.WriteRequest{Token: "root"},
 				}
 				if i == 0 {
 					req.NodeMeta["unique"] = "true"
+					req.Service.Meta["unique"] = "true"
 				}
 
 				var codec rpc.ClientCodec
@@ -1617,7 +1623,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	}
 
 	// Run various service queries with node metadata filters.
-	if false {
+	{
 		cases := []struct {
 			filters  map[string]string
 			numNodes int
@@ -1678,6 +1684,67 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				if !structs.SatisfiesMetaFilters(node.Node.Meta, tc.filters) {
 					t.Fatalf("bad: %v", node.Node.Meta)
 				}
+			}
+		}
+	}
+
+	// Run various service queries with service metadata filters
+	{
+		cases := []struct {
+			filters  map[string]string
+			numNodes int
+		}{
+			{
+				filters:  map[string]string{},
+				numNodes: 10,
+			},
+			{
+				filters:  map[string]string{"foo": "true"},
+				numNodes: 10,
+			},
+			{
+				filters:  map[string]string{"svc-group": "0"},
+				numNodes: 5,
+			},
+			{
+				filters:  map[string]string{"svc-group": "1"},
+				numNodes: 5,
+			},
+			{
+				filters:  map[string]string{"svc-group": "0", "unique": "true"},
+				numNodes: 1,
+			},
+		}
+
+		for _, tc := range cases {
+			svcMetaQuery := structs.PreparedQueryRequest{
+				Datacenter: "dc1",
+				Op:         structs.PreparedQueryCreate,
+				Query: &structs.PreparedQuery{
+					Service: structs.ServiceQuery{
+						Service:     "foo",
+						ServiceMeta: tc.filters,
+					},
+					DNS: structs.QueryDNSOptions{
+						TTL: "10s",
+					},
+				},
+				WriteRequest: structs.WriteRequest{Token: "root"},
+			}
+
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &svcMetaQuery, &svcMetaQuery.Query.ID))
+
+			req := structs.PreparedQueryExecuteRequest{
+				Datacenter:    "dc1",
+				QueryIDOrName: svcMetaQuery.Query.ID,
+				QueryOptions:  structs.QueryOptions{Token: execToken},
+			}
+
+			var reply structs.PreparedQueryExecuteResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply))
+			require.Len(t, reply.Nodes, tc.numNodes)
+			for _, node := range reply.Nodes {
+				require.True(t, structs.SatisfiesMetaFilters(node.Service.Meta, tc.filters))
 			}
 		}
 	}
@@ -2891,11 +2958,11 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-
 	// Try to WAN join.
 	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}

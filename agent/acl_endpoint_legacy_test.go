@@ -16,7 +16,7 @@ import (
 
 func TestACL_Legacy_Disabled_Response(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	tests := []func(resp http.ResponseWriter, req *http.Request) (interface{}, error){
@@ -71,7 +71,7 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 
 func TestACL_Legacy_Update(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -101,7 +101,7 @@ func TestACL_Legacy_Update(t *testing.T) {
 
 func TestACL_Legacy_UpdateUpsert(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	body := bytes.NewBuffer(nil)
@@ -130,7 +130,7 @@ func TestACL_Legacy_UpdateUpsert(t *testing.T) {
 
 func TestACL_Legacy_Destroy(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -162,7 +162,7 @@ func TestACL_Legacy_Destroy(t *testing.T) {
 
 func TestACL_Legacy_Clone(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -207,7 +207,7 @@ func TestACL_Legacy_Clone(t *testing.T) {
 func TestACL_Legacy_Get(t *testing.T) {
 	t.Parallel()
 	t.Run("wrong id", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), TestACLConfig())
+		a := NewTestAgent(t, t.Name(), TestACLConfig())
 		defer a.Shutdown()
 
 		req, _ := http.NewRequest("GET", "/v1/acl/info/nope", nil)
@@ -227,7 +227,7 @@ func TestACL_Legacy_Get(t *testing.T) {
 	})
 
 	t.Run("right id", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), TestACLConfig())
+		a := NewTestAgent(t, t.Name(), TestACLConfig())
 		defer a.Shutdown()
 
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -251,7 +251,7 @@ func TestACL_Legacy_Get(t *testing.T) {
 
 func TestACL_Legacy_List(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -280,7 +280,7 @@ func TestACL_Legacy_List(t *testing.T) {
 
 func TestACLReplicationStatus(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 
 	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)

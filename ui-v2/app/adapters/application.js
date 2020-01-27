@@ -1,116 +1,56 @@
-import Adapter from 'ember-data/adapters/rest';
+import Adapter from './http';
 import { inject as service } from '@ember/service';
-
-import URL from 'url';
-import createURL from 'consul-ui/utils/createURL';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-
-export const REQUEST_CREATE = 'createRecord';
-export const REQUEST_READ = 'queryRecord';
-export const REQUEST_UPDATE = 'updateRecord';
-export const REQUEST_DELETE = 'deleteRecord';
-// export const REQUEST_READ_MULTIPLE = 'query';
+import config from 'consul-ui/config/environment';
 
 export const DATACENTER_QUERY_PARAM = 'dc';
-
+export const NSPACE_QUERY_PARAM = 'ns';
 export default Adapter.extend({
-  namespace: 'v1',
   repo: service('settings'),
-  headersForRequest: function(params) {
+  client: service('client/http'),
+  formatNspace: function(nspace) {
+    if (config.CONSUL_NSPACES_ENABLED) {
+      return nspace !== '' ? { [NSPACE_QUERY_PARAM]: nspace } : undefined;
+    }
+  },
+  formatDatacenter: function(dc) {
     return {
-      ...this.get('repo').findHeaders(),
-      ...this._super(...arguments),
+      [DATACENTER_QUERY_PARAM]: dc,
     };
   },
-  handleBooleanResponse: function(url, response, primary, slug) {
-    return {
-      // consider a check for a boolean, also for future me,
-      // response[slug] // this will forever be null, response should be boolean
-      [primary]: this.uidForURL(url /* response[slug]*/),
-    };
-  },
-  // could always consider an extra 'dc' arg on the end here?
-  handleSingleResponse: function(url, response, primary, slug, _dc) {
-    const dc =
-      typeof _dc !== 'undefined' ? _dc : url.searchParams.get(DATACENTER_QUERY_PARAM) || '';
-    return {
-      ...response,
-      ...{
-        [DATACENTER_KEY]: dc,
-        [primary]: this.uidForURL(url, response[slug]),
-      },
-    };
-  },
-  handleBatchResponse: function(url, response, primary, slug) {
-    const dc = url.searchParams.get(DATACENTER_QUERY_PARAM) || '';
-    return response.map((item, i, arr) => {
-      return this.handleSingleResponse(url, item, primary, slug, dc);
-    });
-  },
-  cleanQuery: function(_query) {
-    if (typeof _query.id !== 'undefined') {
-      delete _query.id;
-    }
-    const query = { ..._query };
-    delete _query[DATACENTER_QUERY_PARAM];
-    return query;
-  },
-  isUpdateRecord: function(url, method) {
-    return false;
-  },
-  isCreateRecord: function(url, method) {
-    return false;
-  },
-  isQueryRecord: function(url, method) {
-    // this is ONLY if ALL api's using it
-    // follow the 'last part of the url is the id' rule
-    const pathname = url.pathname
-      .split('/') // unslashify
-      // remove the last
-      .slice(0, -1)
-      // add and empty to ensure a trailing slash
-      .concat([''])
-      // slashify
-      .join('/');
-    // compare with empty id against empty id
-    return pathname === this.parseURL(this.urlForQueryRecord({ id: '' })).pathname;
-  },
-  getHost: function() {
-    return this.host || `${location.protocol}//${location.host}`;
-  },
-  slugFromURL: function(url, decode = decodeURIComponent) {
-    // follow the 'last part of the url is the id' rule
-    return decode(url.pathname.split('/').pop());
-  },
-  parseURL: function(str) {
-    return new URL(str, this.getHost());
-  },
-  uidForURL: function(url, _slug = '', hash = JSON.stringify) {
-    const dc = url.searchParams.get(DATACENTER_QUERY_PARAM) || '';
-    const slug = _slug === '' ? this.slugFromURL(url) : _slug;
-    if (dc.length < 1) {
-      throw new Error('Unable to create unique id, missing datacenter');
-    }
-    if (slug.length < 1) {
-      throw new Error('Unable to create unique id, missing slug');
-    }
-    // TODO: we could use a URL here? They are unique AND useful
-    // but probably slower to create?
-    return hash([dc, slug]);
-  },
+  // TODO: kinda protected for the moment
+  // decide where this should go either read/write from http
+  // should somehow use this or vice versa
+  request: function(req, resp, obj, modelName) {
+    const client = this.client;
+    const store = this.store;
+    const adapter = this;
 
-  // appendURL in turn calls createURL
-  // createURL ensures that all `parts` are URL encoded
-  // and all `query` values are URL encoded
+    let unserialized, serialized;
+    const serializer = store.serializerFor(modelName);
+    // workable way to decide whether this is a snapshot
+    // Snapshot is private so we can't do instanceof here
+    if (obj.constructor.name === 'Snapshot') {
+      unserialized = obj.attributes();
+      serialized = serializer.serialize(obj, {});
+    } else {
+      unserialized = obj;
+      serialized = unserialized;
+    }
 
-  // `this.buildURL()` with no arguments will give us `${host}/${namespace}`
-  // `path` is the user configurable 'urlsafe' string to append on `buildURL`
-  // `parts` is an array of possibly non 'urlsafe parts' to be encoded and
-  // appended onto the url
-  // `query` will populate the query string. Again the values of which will be
-  // url encoded
-
-  appendURL: function(path, parts = [], query = {}) {
-    return createURL([this.buildURL(), path], parts, query);
+    return client
+      .request(function(request) {
+        return req(adapter, request, serialized, unserialized);
+      })
+      .catch(function(e) {
+        return adapter.error(e);
+      })
+      .then(function(respond) {
+        // TODO: When HTTPAdapter:responder changes, this will also need to change
+        return resp(serializer, respond, serialized, unserialized);
+      });
+    // TODO: Potentially add specific serializer errors here
+    // .catch(function(e) {
+    //   return Promise.reject(e);
+    // });
   },
 });

@@ -26,9 +26,11 @@ $ consul
 Usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
+    acl            Interact with Consul's ACLs
     agent          Runs a Consul agent
     catalog        Interact with the catalog
     connect        Interact with Consul Connect
+    debug          Records a debugging archive for operators
     event          Fire a new event
     exec           Executes a command on Consul nodes
     force-leave    Forces a member of the cluster to enter the "left" state
@@ -40,6 +42,8 @@ Available commands are:
     kv             Interact with the key-value store
     leave          Gracefully leaves the Consul cluster and shuts down
     lock           Execute a command holding a lock
+    login          Login to Consul using an auth method
+    logout         Destroy a Consul token created with login
     maint          Controls node or service maintenance mode
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
@@ -48,6 +52,7 @@ Available commands are:
     rtt            Estimates network round trip time between nodes
     services       Interact with services
     snapshot       Saves, restores and inspects snapshots of Consul server state
+    tls            Builtin helpers for creating CAs and certificates
     validate       Validate config files/directories
     version        Prints the Consul version
     watch          Watch for changes in Consul
@@ -112,7 +117,7 @@ particularly with configuration management and init systems.
 
 These environment variables and their purpose are described below:
 
-## `CONSUL_HTTP_ADDR`
+### `CONSUL_HTTP_ADDR`
 
 This is the HTTP API address to the *local* Consul agent
 (not the remote server) specified as a URI with optional scheme:
@@ -124,7 +129,7 @@ CONSUL_HTTP_ADDR=127.0.0.1:8500
 or as a Unix socket path:
 
 ```
-CONSUL_HTTP_ADDR=unix://var/run/consul_http.sock
+CONSUL_HTTP_ADDR=unix:///var/run/consul_http.sock
 ```
 
 If the `https://` scheme is used, `CONSUL_HTTP_SSL` is implied to be true.
@@ -136,6 +141,15 @@ are enabled, for example:
 
 ```
 CONSUL_HTTP_TOKEN=aba7cbe5-879b-999a-07cc-2efd9ac0ffe
+```
+
+### `CONSUL_HTTP_TOKEN_FILE`
+
+This is a path to a file containing the API access token required when access
+control lists (ACLs) are enabled, for example:
+
+```
+CONSUL_HTTP_TOKEN_FILE=/path/to/consul.token
 ```
 
 ### `CONSUL_HTTP_AUTH`

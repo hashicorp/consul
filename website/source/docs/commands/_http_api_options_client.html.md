@@ -29,3 +29,8 @@
 * `-token=<value>` - ACL token to use in the request. This can also be specified
   via the `CONSUL_HTTP_TOKEN` environment variable. If unspecified, the query
   will default to the token of the Consul agent at the HTTP address.
+
+* `-token-file=<value>` - File containing the ACL token to use in the request
+  instead of one specified via the `-token` argument or `CONSUL_HTTP_TOKEN`
+  environment variable. This can also be specified via the
+  `CONSUL_HTTP_TOKEN_FILE` environment variable.

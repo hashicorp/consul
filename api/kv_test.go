@@ -15,6 +15,7 @@ func TestAPI_ClientPutGetDelete(t *testing.T) {
 
 	kv := c.KV()
 
+	s.WaitForSerfCheck(t)
 	// Get a get without a key
 	key := testKey()
 	pair, _, err := kv.Get(key, nil)
@@ -229,6 +230,7 @@ func TestAPI_ClientWatchGet(t *testing.T) {
 
 	kv := c.KV()
 
+	s.WaitForSerfCheck(t)
 	// Get a get without a key
 	key := testKey()
 	pair, meta, err := kv.Get(key, nil)
@@ -392,6 +394,8 @@ func TestAPI_ClientAcquireRelease(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForSerfCheck(t)
+
 	session := c.Session()
 	kv := c.KV()
 
@@ -456,10 +460,12 @@ func TestAPI_ClientAcquireRelease(t *testing.T) {
 	}
 }
 
-func TestAPI_ClientTxn(t *testing.T) {
+func TestAPI_KVClientTxn(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
 
 	session := c.Session()
 	kv := c.KV()

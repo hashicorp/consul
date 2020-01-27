@@ -1,0 +1,30 @@
+%healthcheck-info dt {
+  font-size: 0;
+}
+%healthcheck-info dt::before {
+  @extend %as-pseudo;
+  position: absolute;
+  width: 18px;
+  height: 18px;
+}
+%healthcheck-info dt.passing::before {
+  @extend %with-check-circle-fill-color-icon;
+}
+%healthcheck-info dt.warning::before {
+  @extend %with-alert-triangle-color-icon;
+}
+%healthcheck-info dt.critical::before {
+  @extend %with-cancel-square-fill-color-icon;
+}
+%healthcheck-info dt.passing,
+%healthcheck-info dt.passing + dd {
+  color: $color-success;
+}
+%healthcheck-info dt.warning,
+%healthcheck-info dt.warning + dd {
+  color: $color-alert;
+}
+%healthcheck-info dt.critical,
+%healthcheck-info dt.critical + dd {
+  color: $color-failure;
+}

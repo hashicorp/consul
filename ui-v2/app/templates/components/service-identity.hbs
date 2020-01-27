@@ -1,0 +1,12 @@
+service "{{name}}" {
+	policy = "write"
+}
+service "{{name}}-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}

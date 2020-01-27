@@ -1,4 +1,23 @@
-@import './notice/index';
+@import '../base/components/notice/index';
+%notice {
+  margin-bottom: 1em;
+}
+%notice-success::before {
+  @extend %with-check-circle-fill-color-icon;
+}
+%notice-info::before {
+  @extend %with-info-circle-fill-color-icon;
+}
+%notice-highlight::before {
+  @extend %with-star-icon;
+}
+%notice-warning::before {
+  @extend %with-alert-triangle-color-icon;
+}
+%notice-error::before {
+  @extend %with-cancel-square-fill-color-icon;
+}
+/**/
 .notice.warning {
   @extend %notice-warning;
 }

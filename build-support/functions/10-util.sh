@@ -58,6 +58,12 @@ function debug {
    fi
 }
 
+function debug_run {
+   debug "$@"
+   "$@"
+   return $?
+}
+
 function sed_i {
    if test "$(uname)" == "Darwin"
    then
@@ -513,7 +519,7 @@ function update_git_env {
 
    export GIT_COMMIT=$(git rev-parse --short HEAD)
    export GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "+CHANGES")
-   export GIT_DESCRIBE=$(git describe --tags --always)
+   export GIT_DESCRIBE=$(git describe --tags --always --match "v*")
    export GIT_IMPORT=github.com/hashicorp/consul/version
    export GOLDFLAGS="-X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X ${GIT_IMPORT}.GitDescribe=${GIT_DESCRIBE}"
    return 0
@@ -673,6 +679,34 @@ function set_changelog_version {
    return $?
 }
 
+function set_website_version {
+   # Arguments:
+   #   $1 - Path to top level Consul source
+   #   $2 - Version to put into the website
+   #
+   # Returns:
+   #   0 - success
+   #   * - error
+
+   local config_rb="${1}/website/config.rb"
+   local version="$2"
+
+   if ! test -f "${config_rb}"
+   then
+      err "ERROR: File not found: '${config_rb}'"
+      return 1
+   fi
+
+   if test -z "${version}"
+   then
+      err "ERROR: Must specify a version to put into ${config_rb}"
+      return 1
+   fi
+
+   sed_i ${SED_EXT} -e "s/(h.version[[:space:]]*=[[:space:]]*)\"[^\"]*\"/\1\"${version}\"/g" "${config_rb}"
+   return $?
+}
+
 function unset_changelog_version {
    # Arguments:
    #   $1 - Path to top level Consul source
@@ -773,6 +807,17 @@ function set_release_mode {
    then
       unset_changelog_version "${sdir}"
       return 1
+   fi
+
+   # Only update the website when allowed and there is no pre-release version
+   if ! is_set "${CONSUL_NO_WEBSITE_UPDATE}" && test -z "$4"
+   then
+      status_stage "==> Updating website/config.rb"
+      if ! set_website_version "${sdir}" "${vers}"
+      then
+         unset_changelog_version "${sdir}"
+         return 1
+      fi
    fi
 
    return 0
@@ -920,7 +965,7 @@ function shasum_directory {
    return $ret
 }
 
- function ui_version {
+function ui_version {
    # Arguments:
    #   $1 - path to index.html
    #
@@ -935,11 +980,12 @@ function shasum_directory {
       return 1
    fi
 
-   local ui_version=$(sed -n ${SED_EXT} -e 's/.*CONSUL_VERSION%22%3A%22([^%]*)%22%2C%22.*/\1/p' < "$1") || return 1
+   local ui_version="$(grep '<!-- CONSUL_VERSION: .* -->' "$1" | sed 's/<!-- CONSUL_VERSION: \(.*\) -->/\1/' | xargs)" || return 1
    echo "$ui_version"
    return 0
- }
- function ui_logo_type {
+}
+
+function ui_logo_type {
    # Arguments:
    #   $1 - path to index.html
    #
@@ -965,4 +1011,29 @@ function shasum_directory {
      echo "oss"
    fi
    return 0
- }
+}
+
+function go_mod_assert {
+   # Returns:
+   #   0 - success
+   #   * - failure
+   #
+   # Notes: will ensure all the necessary go modules are cached
+   # and if the CONSUL_MOD_VERIFY env var is set will force
+   # reverification of all modules.
+   if ! go mod download >/dev/null
+   then
+      err "ERROR: Failed to populate the go module cache"
+      return 1
+   fi
+
+   if is_set "${CONSUL_MOD_VERIFY}"
+   then
+      if ! go mod verify
+      then
+         err "ERROR: Failed to verify go module checksums"
+         return 1
+      fi
+   fi
+   return 0
+}

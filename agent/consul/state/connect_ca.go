@@ -8,9 +8,11 @@ import (
 )
 
 const (
-	caBuiltinProviderTableName = "connect-ca-builtin"
-	caConfigTableName          = "connect-ca-config"
-	caRootTableName            = "connect-ca-roots"
+	caBuiltinProviderTableName    = "connect-ca-builtin"
+	caBuiltinProviderSerialNumber = "connect-ca-builtin-serial"
+	caConfigTableName             = "connect-ca-config"
+	caRootTableName               = "connect-ca-roots"
+	caLeafIndexName               = "connect-ca-leaf-certs"
 )
 
 // caBuiltinProviderTableSchema returns a new table schema used for storing
@@ -93,6 +95,12 @@ func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
 
 // CAConfig is used when restoring from a snapshot.
 func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
+	// Don't restore a blank CA config
+	// https://github.com/hashicorp/consul/issues/4954
+	if config.Provider == "" {
+		return nil
+	}
+
 	if err := s.tx.Insert(caConfigTableName, config); err != nil {
 		return fmt.Errorf("failed restoring CA config: %s", err)
 	}
@@ -101,15 +109,21 @@ func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
 }
 
 // CAConfig is used to get the current CA configuration.
-func (s *Store) CAConfig() (uint64, *structs.CAConfiguration, error) {
+func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.caConfigTxn(tx, ws)
+}
+
+func (s *Store) caConfigTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	// Get the CA config
-	c, err := tx.First(caConfigTableName, "id")
+	ch, c, err := tx.FirstWatch(caConfigTableName, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
 	}
+
+	ws.Add(ch)
 
 	config, ok := c.(*structs.CAConfiguration)
 	if !ok {
@@ -149,7 +163,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	// index arg, then we shouldn't update anything and can safely
 	// return early here.
 	e, ok := existing.(*structs.CAConfiguration)
-	if !ok || e.ModifyIndex != cidx {
+	if (ok && e.ModifyIndex != cidx) || (!ok && cidx != 0) {
 		return false, nil
 	}
 
@@ -167,12 +181,15 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *memdb.Txn, config *structs.CAConf
 	if err != nil {
 		return fmt.Errorf("failed CA config lookup: %s", err)
 	}
-
 	// Set the indexes, prevent the cluster ID from changing.
 	if prev != nil {
 		existing := prev.(*structs.CAConfiguration)
 		config.CreateIndex = existing.CreateIndex
-		config.ClusterID = existing.ClusterID
+		// Allow the ClusterID to change if it's provided by an internal operation, such
+		// as a primary datacenter being switched to secondary mode.
+		if config.ClusterID == "" {
+			config.ClusterID = existing.ClusterID
+		}
 	} else {
 		config.CreateIndex = idx
 	}
@@ -217,6 +234,10 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.caRootsTxn(tx, ws)
+}
+
+func (s *Store) caRootsTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, caRootTableName)
 
@@ -432,4 +453,61 @@ func (s *Store) CADeleteProviderState(id string) error {
 	tx.Commit()
 
 	return nil
+}
+
+func (s *Store) CALeafSetIndex(index uint64) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	return indexUpdateMaxTxn(tx, index, caLeafIndexName)
+}
+
+func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *structs.CAConfiguration, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	confIdx, config, err := s.caConfigTxn(tx, ws)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed CA config lookup: %v", err)
+	}
+
+	rootsIdx, roots, err := s.caRootsTxn(tx, ws)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed CA roots lookup: %v", err)
+	}
+
+	idx := rootsIdx
+	if confIdx > idx {
+		idx = confIdx
+	}
+
+	return idx, roots, config, nil
+}
+
+func (s *Store) CAIncrementProviderSerialNumber() (uint64, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	existing, err := tx.First("index", "id", caBuiltinProviderSerialNumber)
+	if err != nil {
+		return 0, fmt.Errorf("failed built-in CA serial number lookup: %s", err)
+	}
+
+	var last uint64
+	if existing != nil {
+		last = existing.(*IndexEntry).Value
+	} else {
+		// Serials used to be based on the raft indexes in the provider table,
+		// so bootstrap off of that.
+		last = maxIndexTxn(tx, caBuiltinProviderTableName)
+	}
+	next := last + 1
+
+	if err := tx.Insert("index", &IndexEntry{caBuiltinProviderSerialNumber, next}); err != nil {
+		return 0, fmt.Errorf("failed updating index: %s", err)
+	}
+
+	tx.Commit()
+
+	return next, nil
 }

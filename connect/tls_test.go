@@ -30,6 +30,14 @@ func Test_verifyServerCertMatchesURI(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			// Could happen during migration of secondary DC to multi-DC. Trust domain
+			// validity is enforced with x509 name constraints where needed.
+			name:     "different trust-domain allowed",
+			certs:    TestPeerCertificates(t, "web", ca1),
+			expected: connect.TestSpiffeIDServiceWithHost(t, "web", "other.consul"),
+			wantErr:  false,
+		},
+		{
 			name:     "mismatch",
 			certs:    TestPeerCertificates(t, "web", ca1),
 			expected: connect.TestSpiffeIDService(t, "db"),
@@ -143,7 +151,7 @@ func TestServerSideVerifier(t *testing.T) {
 	apiCA2 := testCertPEMBlock(t, apiCA2PEM)
 
 	// Setup a local test agent to query
-	agent := agent.NewTestAgent("test-consul", "")
+	agent := agent.NewTestAgent(t, "test-consul", "")
 	defer agent.Shutdown()
 	testrpc.WaitForTestAgent(t, agent.RPC, "dc1")
 

@@ -1,4 +1,4 @@
-// +build linux darwin freebsd openbsd solaris
+// +build linux darwin dragonfly freebsd netbsd openbsd solaris
 
 package gsyslog
 
@@ -25,6 +25,23 @@ func NewLogger(p Priority, facility, tag string) (Syslogger, error) {
 	if err != nil {
 		return nil, err
 	}
+	return &builtinLogger{l}, nil
+}
+
+// DialLogger is used to construct a new Syslogger that establishes connection to remote syslog server
+func DialLogger(network, raddr string, p Priority, facility, tag string) (Syslogger, error) {
+	fPriority, err := facilityPriority(facility)
+	if err != nil {
+		return nil, err
+	}
+
+	priority := syslog.Priority(p) | fPriority
+
+	l, err := dialBuiltin(network, raddr, priority, tag)
+	if err != nil {
+		return nil, err
+	}
+
 	return &builtinLogger{l}, nil
 }
 

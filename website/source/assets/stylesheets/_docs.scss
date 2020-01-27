@@ -9,15 +9,12 @@
     li {
       a {
         color: $sidebar-link-color;
-        font-size: $sidebar-font-size;
         padding: 10px 0 10px 15px;
 
         &:before {
           color: $sidebar-link-color-active;
           content: '\203A';
-          font-size: $font-size;
           left: 0;
-          line-height: 100%;
           opacity: 0.4;
           position: absolute;
 
@@ -70,6 +67,23 @@
           padding: 6px 15px;
         }
       }
+    }
+  }
+}
+
+#docs-tiles {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-column-gap: 2em;
+
+  .docs-tiles-tile {
+    border: 1px solid lightgray;
+    border-radius: 3px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, .05);
+    padding: 0 40px;
+
+    h3 {
+      margin-top: 25px;
     }
   }
 }

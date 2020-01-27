@@ -1,0 +1,145 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "clusterName": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.6",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.7",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.8",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "clusterName": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "198.18.1.1",
+                    "portValue": 443
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "198.18.1.2",
+                    "portValue": 443
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "clusterName": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "endpoints": [
+        {
+          "lbEndpoints": [
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.3",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.4",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.5",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            },
+            {
+              "endpoint": {
+                "address": {
+                  "socketAddress": {
+                    "address": "172.16.1.9",
+                    "portValue": 2222
+                  }
+                }
+              },
+              "healthStatus": "HEALTHY",
+              "loadBalancingWeight": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+  "nonce": "00000001"
+}

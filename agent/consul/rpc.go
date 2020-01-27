@@ -2,6 +2,7 @@ package consul
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -15,19 +16,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 )
 
 const (
-	// maxQueryTime is used to bound the limit of a blocking query
-	maxQueryTime = 600 * time.Second
-
-	// defaultQueryTime is the amount of time we block waiting for a change
-	// if no time is specified. Previously we would wait the maxQueryTime.
-	defaultQueryTime = 300 * time.Second
-
 	// jitterFraction is a the limit to the amount of jitter we apply
 	// to a user specified MaxQueryTime. We divide the specified time by
 	// the fraction. So 16 == 6.25% limit of jitter. This same fraction
@@ -43,6 +39,10 @@ const (
 	// value is ever reached. However, it prevents us from blocking
 	// the requesting goroutine forever.
 	enqueueLimit = 30 * time.Second
+)
+
+var (
+	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 )
 
 // listen is used to listen for incoming RPC connections
@@ -84,7 +84,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	typ := pool.RPCType(buf[0])
 
 	// Enforce TLS if VerifyIncoming is set
-	if s.config.VerifyIncoming && !isTLS && typ != pool.RPCTLS {
+	if s.tlsConfigurator.VerifyIncomingRPC() && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSInsecure {
 		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
 		conn.Close()
 		return
@@ -100,12 +100,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
-		if s.rpcTLS == nil {
-			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
-			conn.Close()
-			return
-		}
-		conn = tls.Server(conn, s.rpcTLS)
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingRPCConfig())
 		s.handleConn(conn, true)
 
 	case pool.RPCMultiplexV2:
@@ -113,6 +108,10 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	case pool.RPCSnapshot:
 		s.handleSnapshotConn(conn)
+
+	case pool.RPCTLSInsecure:
+		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
+		s.handleInsecureConn(conn)
 
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
@@ -163,6 +162,28 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 	}
 }
 
+// handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
+func (s *Server) handleInsecureConn(conn net.Conn) {
+	defer conn.Close()
+	rpcCodec := msgpackrpc.NewServerCodec(conn)
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+		}
+
+		if err := s.insecureRPCServer.ServeRequest(rpcCodec); err != nil {
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
+				s.logger.Printf("[ERR] consul.rpc: INSECURERPC error: %v %s", err, logConn(conn))
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
+			}
+			return
+		}
+		metrics.IncrCounter([]string{"rpc", "request"}, 1)
+	}
+}
+
 // handleSnapshotConn is used to dispatch snapshot saves and restores, which
 // stream so don't use the normal RPC mechanism.
 func (s *Server) handleSnapshotConn(conn net.Conn) {
@@ -179,6 +200,12 @@ func canRetry(args interface{}, err error) bool {
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
+		return true
+	}
+
+	// If we are chunking and it doesn't seem to have completed, try again
+	intErr, ok := args.(error)
+	if ok && strings.Contains(intErr.Error(), ErrChunkingResubmit.Error()) {
 		return true
 	}
 
@@ -281,7 +308,11 @@ func (s *Server) getLeader() (bool, *metadata.Server) {
 func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
 	manager, server, ok := s.router.FindRoute(dc)
 	if !ok {
-		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found", dc)
+		if s.router.HasDatacenter(dc) {
+			s.logger.Printf("[WARN] consul.rpc: RPC request to DC %q is currently failing as no server can be reached", dc)
+			return structs.ErrDCNotAvailable
+		}
+		s.logger.Printf("[WARN] consul.rpc: RPC request for DC %q, no path found (method: %s)", dc, method)
 		return structs.ErrNoDCPath
 	}
 
@@ -289,7 +320,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 		[]metrics.Label{{Name: "datacenter", Value: dc}})
 	if err := s.connPool.RPC(dc, server.Addr, server.Version, method, server.UseTLS, args, reply); err != nil {
 		manager.NotifyFailedServer(server)
-		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v", server.Addr, dc, err)
+		s.logger.Printf("[ERR] consul: RPC failed to server %s in DC %q: %v (method: %s)", server.Addr, dc, err, method)
 		return err
 	}
 
@@ -332,10 +363,34 @@ func (s *Server) globalRPC(method string, args interface{},
 	return nil
 }
 
+type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
+
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
-	buf, err := structs.Encode(t, msg)
+	return s.raftApplyMsgpack(t, msg)
+}
+
+// raftApplyMsgpack will msgpack encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, structs.Encode)
+}
+
+// raftApplyProtobuf will protobuf encode the request and then run it through raft,
+// then return the FSM response along with any errors.
+func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
+	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
+}
+
+// raftApplyWithEncoder is used to encode a message, run it through raft,
+// and return the FSM response along with any errors. Unlike raftApply this
+// takes the encoder to use as an argument.
+func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, encoder raftEncoder) (interface{}, error) {
+	if encoder == nil {
+		return nil, fmt.Errorf("Failed to encode request: nil encoder")
+	}
+	buf, err := encoder(t, msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
@@ -345,12 +400,43 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
 	}
 
-	future := s.raft.Apply(buf, enqueueLimit)
+	var chunked bool
+	var future raft.ApplyFuture
+	switch {
+	case len(buf) <= raft.SuggestedMaxDataSize || t != structs.KVSRequestType:
+		future = s.raft.Apply(buf, enqueueLimit)
+	default:
+		chunked = true
+		future = raftchunking.ChunkingApply(buf, nil, enqueueLimit, s.raft.ApplyLog)
+	}
+
 	if err := future.Error(); err != nil {
 		return nil, err
 	}
 
-	return future.Response(), nil
+	resp := future.Response()
+
+	if chunked {
+		// In this case we didn't apply all chunks successfully, possibly due
+		// to a term change; resubmit
+		if resp == nil {
+			// This returns the error in the interface because the raft library
+			// returns errors from the FSM via the future, not via err from the
+			// apply function. Downstream client code expects to see any error
+			// from the FSM (as opposed to the apply itself) and decide whether
+			// it can retry in the future's response.
+			return ErrChunkingResubmit, nil
+		}
+		// We expect that this conversion should always work
+		chunkedSuccess, ok := resp.(raftchunking.ChunkingSuccess)
+		if !ok {
+			return nil, errors.New("unknown type of response back from chunking FSM")
+		}
+		// Return the inner wrapped response
+		return chunkedSuccess.Response, nil
+	}
+
+	return resp, nil
 }
 
 // queryFn is used to perform a query operation. If a re-query is needed, the
@@ -361,27 +447,29 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 type queryFn func(memdb.WatchSet, *state.Store) error
 
 // blockingQuery is used to process a potentially blocking query operation.
-func (s *Server) blockingQuery(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	fn queryFn) error {
+func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
 	var timeout *time.Timer
+	var queryTimeout time.Duration
 
+	minQueryIndex := queryOpts.GetMinQueryIndex()
 	// Fast path right to the non-blocking query.
-	if queryOpts.MinQueryIndex == 0 {
+	if minQueryIndex == 0 {
 		goto RUN_QUERY
 	}
 
+	queryTimeout = queryOpts.GetMaxQueryTime()
 	// Restrict the max query time, and ensure there is always one.
-	if queryOpts.MaxQueryTime > maxQueryTime {
-		queryOpts.MaxQueryTime = maxQueryTime
-	} else if queryOpts.MaxQueryTime <= 0 {
-		queryOpts.MaxQueryTime = defaultQueryTime
+	if queryTimeout > s.config.MaxQueryTime {
+		queryTimeout = s.config.MaxQueryTime
+	} else if queryTimeout <= 0 {
+		queryTimeout = s.config.DefaultQueryTime
 	}
 
 	// Apply a small amount of jitter to the request.
-	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
+	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
 
 	// Setup a query timeout.
-	timeout = time.NewTimer(queryOpts.MaxQueryTime)
+	timeout = time.NewTimer(queryTimeout)
 	defer timeout.Stop()
 
 RUN_QUERY:
@@ -389,7 +477,7 @@ RUN_QUERY:
 	s.setQueryMeta(queryMeta)
 
 	// If the read must be consistent we verify that we are still the leader.
-	if queryOpts.RequireConsistent {
+	if queryOpts.GetRequireConsistent() {
 		if err := s.consistentRead(); err != nil {
 			return err
 		}
@@ -405,7 +493,7 @@ RUN_QUERY:
 
 	// We can skip all watch tracking if this isn't a blocking query.
 	var ws memdb.WatchSet
-	if queryOpts.MinQueryIndex > 0 {
+	if minQueryIndex > 0 {
 		ws = memdb.NewWatchSet()
 
 		// This channel will be closed if a snapshot is restored and the
@@ -417,16 +505,16 @@ RUN_QUERY:
 	err := fn(ws, state)
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
-	// might return zero if something is not initialised and care wasn't taken to
+	// might return zero if something is not initialized and care wasn't taken to
 	// handle that special case (in practice this happened a lot so fixing it
 	// systematically here beats trying to remember to add zero checks in every
 	// state method). We also need to ensure that unless there is an error, we
 	// return an index > 0 otherwise the client will never block and burn CPU and
 	// requests.
-	if err == nil && queryMeta.Index < 1 {
-		queryMeta.Index = 1
+	if err == nil && queryMeta.GetIndex() < 1 {
+		queryMeta.SetIndex(1)
 	}
-	if err == nil && queryOpts.MinQueryIndex > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
+	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since
@@ -444,13 +532,13 @@ RUN_QUERY:
 }
 
 // setQueryMeta is used to populate the QueryMeta data for an RPC call
-func (s *Server) setQueryMeta(m *structs.QueryMeta) {
+func (s *Server) setQueryMeta(m structs.QueryMetaCompat) {
 	if s.IsLeader() {
-		m.LastContact = 0
-		m.KnownLeader = true
+		m.SetLastContact(0)
+		m.SetKnownLeader(true)
 	} else {
-		m.LastContact = time.Since(s.raft.LastContact())
-		m.KnownLeader = (s.raft.Leader() != "")
+		m.SetLastContact(time.Since(s.raft.LastContact()))
+		m.SetKnownLeader(s.raft.Leader() != "")
 	}
 }
 

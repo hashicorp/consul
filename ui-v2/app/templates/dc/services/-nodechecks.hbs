@@ -1,0 +1,8 @@
+{{#if (gt item.NodeChecks.length 0) }}
+  {{healthcheck-list items=item.NodeChecks}}
+{{else}}
+  <p>
+    This instance has no node health checks.
+  </p>
+{{/if}}
+

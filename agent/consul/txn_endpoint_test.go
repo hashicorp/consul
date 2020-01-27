@@ -12,8 +12,47 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul/types"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
 )
+
+var testTxnRules = `
+key "" {
+	policy = "deny"
+}
+key "foo" {
+	policy = "read"
+}
+key "test" {
+	policy = "write"
+}
+key "test/priv" {
+	policy = "read"
+}
+
+service "" {
+	policy = "deny"
+}
+service "foo-svc" {
+	policy = "read"
+}
+service "test-svc" {
+	policy = "write"
+}
+
+node "" {
+	policy = "deny"
+}
+node "foo-node" {
+	policy = "read"
+}
+node "test-node" {
+	policy = "write"
+}
+`
+
+var testNodeID = "9749a7df-fac5-46b4-8078-32a3d96c59f3"
 
 func TestTxn_CheckNotExists(t *testing.T) {
 	t.Parallel()
@@ -101,16 +140,80 @@ func TestTxn_Apply(t *testing.T) {
 					},
 				},
 			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeSet,
+					Node: structs.Node{
+						ID:      types.NodeID(testNodeID),
+						Node:    "foo",
+						Address: "127.0.0.1",
+					},
+				},
+			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeGet,
+					Node: structs.Node{
+						ID:   types.NodeID(testNodeID),
+						Node: "foo",
+					},
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb: api.ServiceSet,
+					Node: "foo",
+					Service: structs.NodeService{
+						ID:      "svc-foo",
+						Service: "svc-foo",
+						Address: "1.1.1.1",
+					},
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb: api.ServiceGet,
+					Node: "foo",
+					Service: structs.NodeService{
+						ID:      "svc-foo",
+						Service: "svc-foo",
+					},
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb: api.CheckSet,
+					Check: structs.HealthCheck{
+						Node:    "foo",
+						CheckID: types.CheckID("check-foo"),
+						Name:    "test",
+						Status:  "passing",
+					},
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb: api.CheckGet,
+					Check: structs.HealthCheck{
+						Node:    "foo",
+						CheckID: types.CheckID("check-foo"),
+						Name:    "test",
+					},
+				},
+			},
 		},
 	}
 	var out structs.TxnResponse
 	if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if len(out.Errors) != 0 {
+		t.Fatalf("errs: %v", out.Errors)
+	}
 
 	// Verify the state store directly.
 	state := s1.fsm.State()
-	_, d, err := state.KVSGet(nil, "test")
+	_, d, err := state.KVSGet(nil, "test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -120,6 +223,30 @@ func TestTxn_Apply(t *testing.T) {
 	if d.Flags != 42 ||
 		!bytes.Equal(d.Value, []byte("test")) {
 		t.Fatalf("bad: %v", d)
+	}
+
+	_, n, err := state.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if n.Node != "foo" || n.Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", err)
+	}
+
+	_, s, err := state.NodeService("foo", "svc-foo", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s.ID != "svc-foo" || s.Address != "1.1.1.1" {
+		t.Fatalf("bad: %v", err)
+	}
+
+	_, c, err := state.NodeCheck("foo", types.CheckID("check-foo"), nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if c.CheckID != "check-foo" || c.Status != "passing" || c.Name != "test" {
+		t.Fatalf("bad: %v", err)
 	}
 
 	// Verify the transaction's return value.
@@ -134,6 +261,7 @@ func TestTxn_Apply(t *testing.T) {
 						CreateIndex: d.CreateIndex,
 						ModifyIndex: d.ModifyIndex,
 					},
+					EnterpriseMeta: d.EnterpriseMeta,
 				},
 			},
 			&structs.TxnResult{
@@ -145,17 +273,37 @@ func TestTxn_Apply(t *testing.T) {
 						CreateIndex: d.CreateIndex,
 						ModifyIndex: d.ModifyIndex,
 					},
+					EnterpriseMeta: d.EnterpriseMeta,
 				},
+			},
+			&structs.TxnResult{
+				Node: n,
+			},
+			&structs.TxnResult{
+				Node: n,
+			},
+			&structs.TxnResult{
+				Service: s,
+			},
+			&structs.TxnResult{
+				Service: s,
+			},
+			&structs.TxnResult{
+				Check: c,
+			},
+			&structs.TxnResult{
+				Check: c,
 			},
 		},
 	}
-	if !reflect.DeepEqual(out, expected) {
-		t.Fatalf("bad %v", out)
-	}
+	require.Equal(t, expected, out)
 }
 
 func TestTxn_Apply_ACLDeny(t *testing.T) {
 	t.Parallel()
+
+	require := require.New(t)
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -167,15 +315,25 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Put in a key to read back.
+	// Set up some state to read back.
 	state := s1.fsm.State()
 	d := &structs.DirEntry{
 		Key:   "nope",
 		Value: []byte("hello"),
 	}
-	if err := state.KVSSet(1, d); err != nil {
-		t.Fatalf("err: %v", err)
+	require.NoError(state.KVSSet(1, d))
+
+	node := &structs.Node{
+		ID:   types.NodeID(testNodeID),
+		Node: "nope",
 	}
+	require.NoError(state.EnsureNode(2, node))
+
+	svc := structs.NodeService{ID: "nope", Service: "nope", Address: "127.0.0.1"}
+	require.NoError(state.EnsureService(3, "nope", &svc))
+
+	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
+	state.EnsureCheck(4, &check)
 
 	// Create the ACL.
 	var id string
@@ -186,7 +344,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 			ACL: structs.ACL{
 				Name:  "User token",
 				Type:  structs.ACLTokenTypeClient,
-				Rules: testListRules,
+				Rules: testTxnRules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -296,6 +454,101 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 					},
 				},
 			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeGet,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeSet,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeCAS,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeDelete,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeDeleteCAS,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceGet,
+					Node:    "foo-node",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceSet,
+					Node:    "foo-node",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceCAS,
+					Node:    "foo-node",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceDelete,
+					Node:    "foo-node",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceDeleteCAS,
+					Node:    "foo-node",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckGet,
+					Check: check,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckSet,
+					Check: check,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckCAS,
+					Check: check,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckDelete,
+					Check: check,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckDeleteCAS,
+					Check: check,
+				},
+			},
 		},
 		WriteRequest: structs.WriteRequest{
 			Token: id,
@@ -309,20 +562,55 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	// Verify the transaction's return value.
 	var expected structs.TxnResponse
 	for i, op := range arg.Ops {
-		switch op.KV.Verb {
-		case api.KVGet, api.KVGetTree:
-			// These get filtered but won't result in an error.
+		switch {
+		case op.KV != nil:
+			switch op.KV.Verb {
+			case api.KVGet, api.KVGetTree:
+				// These get filtered but won't result in an error.
 
-		default:
-			expected.Errors = append(expected.Errors, &structs.TxnError{
-				OpIndex: i,
-				What:    acl.ErrPermissionDenied.Error(),
-			})
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
+		case op.Node != nil:
+			switch op.Node.Verb {
+			case api.NodeGet:
+				// These get filtered but won't result in an error.
+
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
+		case op.Service != nil:
+			switch op.Service.Verb {
+			case api.ServiceGet:
+				// These get filtered but won't result in an error.
+
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
+		case op.Check != nil:
+			switch op.Check.Verb {
+			case api.CheckGet:
+				// These get filtered but won't result in an error.
+
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
 		}
 	}
-	if !reflect.DeepEqual(out, expected) {
-		t.Fatalf("bad %v", out)
-	}
+
+	require.Equal(expected, out)
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
@@ -333,7 +621,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock.
 	state := s1.fsm.State()
@@ -356,7 +644,8 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	if ok, err := state.KVSLock(3, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
-	if err := state.SessionDestroy(4, id); err != nil {
+
+	if err := state.SessionDestroy(4, id, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -413,6 +702,9 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 
 func TestTxn_Read(t *testing.T) {
 	t.Parallel()
+
+	require := require.New(t)
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -431,6 +723,28 @@ func TestTxn_Read(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Put in a node/check/service to read back.
+	node := &structs.Node{
+		ID:   types.NodeID(testNodeID),
+		Node: "foo",
+	}
+	require.NoError(state.EnsureNode(2, node))
+
+	svc := structs.NodeService{
+		ID:             "svc-foo",
+		Service:        "svc-foo",
+		Address:        "127.0.0.1",
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	require.NoError(state.EnsureService(3, "foo", &svc))
+
+	check := structs.HealthCheck{
+		Node:           "foo",
+		CheckID:        types.CheckID("check-foo"),
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	state.EnsureCheck(4, &check)
+
 	// Do a super basic request. The state store test covers the details so
 	// we just need to be sure that the transaction is sent correctly and
 	// the results are converted appropriately.
@@ -445,6 +759,25 @@ func TestTxn_Read(t *testing.T) {
 					},
 				},
 			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeGet,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceGet,
+					Node:    "foo",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckGet,
+					Check: check,
+				},
+			},
 		},
 	}
 	var out structs.TxnReadResponse
@@ -453,6 +786,10 @@ func TestTxn_Read(t *testing.T) {
 	}
 
 	// Verify the transaction's return value.
+	svc.Weights = &structs.Weights{Passing: 1, Warning: 1}
+	svc.RaftIndex = structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3}
+
+	entMeta := out.Results[0].KV.EnterpriseMeta
 	expected := structs.TxnReadResponse{
 		TxnResponse: structs.TxnResponse{
 			Results: structs.TxnResults{
@@ -464,7 +801,17 @@ func TestTxn_Read(t *testing.T) {
 							CreateIndex: 1,
 							ModifyIndex: 1,
 						},
+						EnterpriseMeta: entMeta,
 					},
+				},
+				&structs.TxnResult{
+					Node: node,
+				},
+				&structs.TxnResult{
+					Service: &svc,
+				},
+				&structs.TxnResult{
+					Check: &check,
 				},
 			},
 		},
@@ -472,13 +819,14 @@ func TestTxn_Read(t *testing.T) {
 			KnownLeader: true,
 		},
 	}
-	if !reflect.DeepEqual(out, expected) {
-		t.Fatalf("bad %v", out)
-	}
+	require.Equal(expected, out)
 }
 
 func TestTxn_Read_ACLDeny(t *testing.T) {
 	t.Parallel()
+
+	require := require.New(t)
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -502,6 +850,19 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Put in a node/check/service to read back.
+	node := &structs.Node{
+		ID:   types.NodeID(testNodeID),
+		Node: "nope",
+	}
+	require.NoError(state.EnsureNode(2, node))
+
+	svc := structs.NodeService{ID: "nope", Service: "nope", Address: "127.0.0.1"}
+	require.NoError(state.EnsureService(3, "nope", &svc))
+
+	check := structs.HealthCheck{Node: "nope", CheckID: types.CheckID("nope")}
+	state.EnsureCheck(4, &check)
+
 	// Create the ACL.
 	var id string
 	{
@@ -511,7 +872,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 			ACL: structs.ACL{
 				Name:  "User token",
 				Type:  structs.ACLTokenTypeClient,
-				Rules: testListRules,
+				Rules: testTxnRules,
 			},
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
@@ -557,6 +918,25 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 					},
 				},
 			},
+			&structs.TxnOp{
+				Node: &structs.TxnNodeOp{
+					Verb: api.NodeGet,
+					Node: structs.Node{ID: node.ID, Node: node.Node},
+				},
+			},
+			&structs.TxnOp{
+				Service: &structs.TxnServiceOp{
+					Verb:    api.ServiceGet,
+					Node:    "foo",
+					Service: svc,
+				},
+			},
+			&structs.TxnOp{
+				Check: &structs.TxnCheckOp{
+					Verb:  api.CheckGet,
+					Check: check,
+				},
+			},
 		},
 		QueryOptions: structs.QueryOptions{
 			Token: id,
@@ -574,15 +954,51 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 		},
 	}
 	for i, op := range arg.Ops {
-		switch op.KV.Verb {
-		case api.KVGet, api.KVGetTree:
-			// These get filtered but won't result in an error.
+		switch {
+		case op.KV != nil:
+			switch op.KV.Verb {
+			case api.KVGet, api.KVGetTree:
+				// These get filtered but won't result in an error.
 
-		default:
-			expected.Errors = append(expected.Errors, &structs.TxnError{
-				OpIndex: i,
-				What:    acl.ErrPermissionDenied.Error(),
-			})
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
+		case op.Node != nil:
+			switch op.Node.Verb {
+			case api.NodeGet:
+				// These get filtered but won't result in an error.
+
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
+		case op.Service != nil:
+			switch op.Service.Verb {
+			case api.ServiceGet:
+				// These get filtered but won't result in an error.
+
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
+		case op.Check != nil:
+			switch op.Check.Verb {
+			case api.CheckGet:
+				// These get filtered but won't result in an error.
+
+			default:
+				expected.Errors = append(expected.Errors, &structs.TxnError{
+					OpIndex: i,
+					What:    acl.ErrPermissionDenied.Error(),
+				})
+			}
 		}
 	}
 	if !reflect.DeepEqual(out, expected) {

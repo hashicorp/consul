@@ -1,55 +1,44 @@
-import Adapter, {
-  REQUEST_DELETE,
-  DATACENTER_QUERY_PARAM as API_DATACENTER_KEY,
-} from './application';
+import Adapter from './application';
 
+import { SLUG_KEY } from 'consul-ui/models/session';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/session';
-import { PUT as HTTP_PUT } from 'consul-ui/utils/http/method';
-import { OK as HTTP_OK } from 'consul-ui/utils/http/status';
+import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
+// TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
-  urlForQuery: function(query, modelName) {
-    if (typeof query.id === 'undefined') {
+  requestForQuery: function(request, { dc, ns, index, id }) {
+    if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return this.appendURL('session/node', [query.id], this.cleanQuery(query));
+    return request`
+      GET /v1/session/node/${id}?${{ dc }}
+
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
+    `;
   },
-  urlForQueryRecord: function(query, modelName) {
-    if (typeof query.id === 'undefined') {
+  requestForQueryRecord: function(request, { dc, ns, index, id }) {
+    if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return this.appendURL('session/info', [query.id], this.cleanQuery(query));
+    return request`
+      GET /v1/session/info/${id}?${{ dc }}
+
+      ${{
+        ...this.formatNspace(ns),
+        index,
+      }}
+    `;
   },
-  urlForDeleteRecord: function(id, modelName, snapshot) {
-    const query = {
-      [API_DATACENTER_KEY]: snapshot.attr(DATACENTER_KEY),
+  requestForDeleteRecord: function(request, serialized, data) {
+    const params = {
+      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatNspace(data[NSPACE_KEY]),
     };
-    return this.appendURL('session/destroy', [snapshot.attr(SLUG_KEY)], query);
-  },
-  methodForRequest: function(params) {
-    switch (params.requestType) {
-      case REQUEST_DELETE:
-        return HTTP_PUT;
-    }
-    return this._super(...arguments);
-  },
-  handleResponse: function(status, headers, payload, requestData) {
-    let response = payload;
-    const method = requestData.method;
-    if (status === HTTP_OK) {
-      const url = this.parseURL(requestData.url);
-      switch (true) {
-        case response === true:
-          response = this.handleBooleanResponse(url, response, PRIMARY_KEY, SLUG_KEY);
-          break;
-        case this.isQueryRecord(url, method):
-          response = this.handleSingleResponse(url, response[0], PRIMARY_KEY, SLUG_KEY);
-          break;
-        default:
-          response = this.handleBatchResponse(url, response, PRIMARY_KEY, SLUG_KEY);
-      }
-    }
-    return this._super(status, headers, response, requestData);
+    return request`
+      PUT /v1/session/destroy/${data[SLUG_KEY]}?${params}
+    `;
   },
 });

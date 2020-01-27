@@ -53,6 +53,15 @@ root certificates from the
 ## Configuration Discovery
 
 Any proxy can discover proxy configuration registered with a local service
-instance using the [agent/service/:service_id
-endpoint](/api/agent/service.html#get-service-configuration).
+instance using the
+[`/v1/agent/service/:service_id`](/api/agent/service.html#get-service-configuration)
+API endpoint.
 
+The [discovery chain](/docs/internals/discovery-chain.html) for each upstream
+service should be fetched from the
+[`/v1/discovery-chain/:service_id`](/api/discovery-chain.html) API endpoint.
+
+For each [target](/docs/internals/discovery-chain.html#targets) in the
+resulting discovery chain, a list of healthy endpoints can be fetched from the
+[`/v1/health/connect/:service_id`](/api/health.html#list-nodes-for-connect-capable-service)
+API endpoint.

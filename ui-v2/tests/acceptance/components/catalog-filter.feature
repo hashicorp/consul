@@ -1,3 +1,6 @@
+# TODO: If we keep separate types of catalog filters then
+# these tests need splitting out, if we are moving nodes
+# to use the name filter UI also, then they can stay together
 @setupApplicationTest
 Feature: components / catalog-filter
   Scenario: Filtering [Model]
@@ -60,7 +63,6 @@ Feature: components / catalog-filter
   Where:
     -------------------------------------------------
     | Model   | Page     | Url                       |
-    | service | services | /dc-1/services            |
     | node    | nodes    | /dc-1/nodes               |
     -------------------------------------------------
   Scenario: Filtering [Model] in [Page]
@@ -123,38 +125,22 @@ Feature: components / catalog-filter
     | Model   | Page     | Url                       |
     | service | node     | /dc-1/nodes/node-0        |
     -------------------------------------------------
-  Scenario: Filtering [Model] in [Page]
-    Given 1 datacenter model with the value "dc1"
-    And 2 [Model] models from yaml
-    ---
-    - ID: node-0
-    ---
-    When I visit the [Page] page for yaml
-    ---
-      dc: dc1
-      service: service-0
-    ---
-    Then I fill in with yaml
-    ---
-    s: service-0-with-id
-    ---
-    And I see 1 [Model] model
-    Then I see id on the unhealthy like yaml
-    ---
-      - service-0-with-id
-    ---
-  Where:
-    -------------------------------------------------
-    | Model   | Page     | Url                       |
-    | nodes   | service  | /dc-1/services/service-0  |
-    -------------------------------------------------
-  Scenario:
+  Scenario: Freetext filtering the service listing
     Given 1 datacenter model with the value "dc-1"
     And 3 service models from yaml
     ---
       - Tags: ['one', 'two', 'three']
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 1
       - Tags: ['two', 'three']
+        ChecksPassing: 0
+        ChecksWarning: 1
+        ChecksCritical: 0
       - Tags: ['three']
+        ChecksPassing: 1
+        ChecksWarning: 0
+        ChecksCritical: 0
     ---
     When I visit the services page for yaml
     ---
@@ -164,21 +150,16 @@ Feature: components / catalog-filter
     Then I see 3 service models
     Then I fill in with yaml
     ---
-    s: one
-    ---
-    And I see 1 service model with the name "service-0"
-    Then I fill in with yaml
-    ---
-    s: two
-    ---
-    And I see 2 service models
-    Then I fill in with yaml
-    ---
     s: three
     ---
     And I see 3 service models
     Then I fill in with yaml
     ---
-    s: wothre
+    s: 'tag:two'
     ---
-    And I see 0 service models
+    And I see 2 service models
+    Then I fill in with yaml
+    ---
+    s: 'status:critical'
+    ---
+    And I see 1 service model

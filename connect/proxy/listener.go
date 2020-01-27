@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/ipaddr"
 )
 
 const (
@@ -48,7 +48,7 @@ type Listener struct {
 	logger *log.Logger
 
 	// Gauge to track current open connections
-	activeConns  int64
+	activeConns  int32
 	connWG       sync.WaitGroup
 	metricPrefix string
 	metricLabels []metrics.Label
@@ -58,7 +58,7 @@ type Listener struct {
 // connections and proxy them to the configured local application over TCP.
 func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 	logger *log.Logger) *Listener {
-	bindAddr := fmt.Sprintf("%s:%d", cfg.BindAddress, cfg.BindPort)
+	bindAddr := ipaddr.FormatAddressPort(cfg.BindAddress, cfg.BindPort)
 	return &Listener{
 		Service: svc,
 		listenFunc: func() (net.Listener, error) {
@@ -96,7 +96,7 @@ func NewUpstreamListener(svc *connect.Service, client *api.Client,
 func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 	resolverFunc func(UpstreamConfig) (connect.Resolver, error),
 	logger *log.Logger) *Listener {
-	bindAddr := fmt.Sprintf("%s:%d", cfg.LocalBindAddress, cfg.LocalBindPort)
+	bindAddr := ipaddr.FormatAddressPort(cfg.LocalBindAddress, cfg.LocalBindPort)
 	return &Listener{
 		Service: svc,
 		listenFunc: func() (net.Listener, error) {
@@ -228,12 +228,12 @@ func (l *Listener) handleConn(src net.Conn) {
 // trackConn increments the count of active conns and returns a func() that can
 // be deferred on to decrement the counter again on connection close.
 func (l *Listener) trackConn() func() {
-	c := atomic.AddInt64(&l.activeConns, 1)
+	c := atomic.AddInt32(&l.activeConns, 1)
 	metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 		l.metricLabels)
 
 	return func() {
-		c := atomic.AddInt64(&l.activeConns, -1)
+		c := atomic.AddInt32(&l.activeConns, -1)
 		metrics.SetGaugeWithLabels([]string{l.metricPrefix, "conns"}, float32(c),
 			l.metricLabels)
 	}

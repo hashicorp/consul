@@ -1,0 +1,17 @@
+%toggle-button {
+  border-radius: $decor-radius-100;
+  cursor: pointer;
+}
+%toggle-button-intent {
+  background-color: $gray-050;
+}
+%toggle-button-active {
+  background-color: $gray-100;
+}
+%toggle-button:hover,
+%toggle-button:focus {
+  @extend %toggle-button-intent;
+}
+%toggle-button:active {
+  @extend %toggle-button-active;
+}

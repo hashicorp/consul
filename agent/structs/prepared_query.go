@@ -64,6 +64,11 @@ type ServiceQuery struct {
 	// service entry to be returned.
 	NodeMeta map[string]string
 
+	// ServiceMeta is a map of required service metadata fields. If a key/value
+	// pair is in this map it must be present on the node in order for the
+	// service entry to be returned.
+	ServiceMeta map[string]string
+
 	// Connect if true will filter the prepared query results to only
 	// include Connect-capable services. These include both native services
 	// and proxies for matching services. Note that if a proxy matches,
@@ -71,6 +76,9 @@ type ServiceQuery struct {
 	// to the _proxy_ and not the service being proxied. In practice, proxies
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
+
+	// EnterpriseMeta is the embedded enterprise metadata
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 const (

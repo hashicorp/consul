@@ -1,34 +1,37 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 import { next } from '@ember/runloop';
-const $html = document.documentElement;
-const removeLoading = function() {
-  return $html.classList.remove('ember-loading');
+import { Promise } from 'rsvp';
+
+import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
+
+const removeLoading = function($from) {
+  return $from.classList.remove('ember-loading');
 };
-export default Route.extend({
-  init: function() {
-    this._super(...arguments);
-  },
+export default Route.extend(WithBlockingActions, {
+  dom: service('dom'),
+  nspacesRepo: service('repository/nspace/disabled'),
   repo: service('repository/dc'),
   settings: service('settings'),
   actions: {
     loading: function(transition, originRoute) {
+      const $root = this.dom.root();
       let dc = null;
       if (originRoute.routeName !== 'dc') {
         const model = this.modelFor('dc') || { dcs: null, dc: { Name: null } };
-        dc = get(this, 'repo').getActive(model.dc.Name, model.dcs);
+        dc = this.repo.getActive(model.dc.Name, model.dcs);
       }
       hash({
-        loading: !$html.classList.contains('ember-loading'),
+        loading: !$root.classList.contains('ember-loading'),
         dc: dc,
+        nspace: this.nspacesRepo.getActive(),
       }).then(model => {
         next(() => {
           const controller = this.controllerFor('application');
           controller.setProperties(model);
           transition.promise.finally(function() {
-            removeLoading();
+            removeLoading($root);
             controller.setProperties({
               loading: false,
               dc: model.dc,
@@ -61,33 +64,38 @@ export default Route.extend({
       // if a token has not been sent at all, it just gives you a 200 with an empty dataset
       const model = this.modelFor('dc');
       if (error.status === '403') {
-        return get(this, 'settings')
-          .delete('token')
-          .then(() => {
-            return this.transitionTo('dc.acls.tokens', model.dc.Name);
+        return this.feedback.execute(() => {
+          return this.settings.delete('token').then(() => {
+            return Promise.reject(this.transitionTo('dc.acls.tokens', model.dc.Name));
           });
+        }, 'authorize');
       }
       if (error.status === '') {
         error.message = 'Error';
       }
+      const $root = this.dom.root();
       hash({
         error: error,
+        nspace: this.nspacesRepo.getActive(),
         dc:
           error.status.toString().indexOf('5') !== 0
-            ? get(this, 'repo').getActive()
+            ? this.repo.getActive()
             : model && model.dc
-              ? model.dc
-              : { Name: 'Error' },
+            ? model.dc
+            : { Name: 'Error' },
         dcs: model && model.dcs ? model.dcs : [],
       })
         .then(model => {
-          removeLoading();
+          removeLoading($root);
+          model.nspaces = [model.nspace];
+          // we can't use setupController as we received an error
+          // so we do it manually instead
           next(() => {
             this.controllerFor('error').setProperties(model);
           });
         })
         .catch(e => {
-          removeLoading();
+          removeLoading($root);
           next(() => {
             this.controllerFor('error').setProperties({ error: error });
           });

@@ -10,9 +10,11 @@ import { get } from '@ember/object';
  */
 export default Mixin.create({
   beforeModel: function() {
-    get(this, 'repo').invalidate();
+    this._super(...arguments);
+    this.repo.invalidate();
   },
   deactivate: function() {
+    this._super(...arguments);
     // TODO: This is dependent on ember-changeset
     // Change changeset to support ember-data props
     const item = get(this.controller, 'item.data');

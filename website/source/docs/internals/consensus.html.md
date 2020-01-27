@@ -11,13 +11,8 @@ description: |-
 Consul uses a [consensus protocol](https://en.wikipedia.org/wiki/Consensus_(computer_science))
 to provide [Consistency (as defined by CAP)](https://en.wikipedia.org/wiki/CAP_theorem).
 The consensus protocol is based on
-["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
+["Raft: In search of an Understandable Consensus Algorithm"](https://raft.github.io/raft.pdf).
 For a visual explanation of Raft, see [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
-
-~> **Advanced Topic!** This page covers technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
 
 ## Raft Protocol Overview
 
@@ -30,8 +25,8 @@ There are a few key terms to know when discussing Raft:
 
 * Log - The primary unit of work in a Raft system is a log entry. The problem
 of consistency can be decomposed into a *replicated log*. A log is an ordered
-sequence of entries. We consider the log consistent if all members agree on
-the entries and their order.
+sequence of entries. Entries includes any cluster change: adding nodes, adding services, new key-value pairs, etc. We consider the log consistent
+if all members agree on the entries and their order.
 
 * FSM - [Finite State Machine](https://en.wikipedia.org/wiki/Finite-state_machine).
 An FSM is a collection of finite states with transitions between them. As new logs
@@ -56,7 +51,7 @@ and managing when an entry is considered committed.
 
 Raft is a complex protocol and will not be covered here in detail (for those who
 desire a more comprehensive treatment, the full specification is available in this
-[paper](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf)).
+[paper](https://raft.github.io/raft.pdf)).
 We will, however, attempt to provide a high level description which may be useful
 for building a mental model.
 
@@ -77,7 +72,7 @@ attempts to replicate to a quorum of followers. Once the log entry is considered
 is application specific; in Consul's case, we use
 [MemDB](https://github.com/hashicorp/go-memdb) to maintain cluster state. Consul's writes
 block until it is both _committed_ and _applied_. This achieves read after write semantics
-when used with the [consistent](/api/index.html#consistent) mode for queries.
+when used with the [consistent](/api/features/consistency.html#consistent) mode for queries.
 
 Obviously, it would be undesirable to allow a replicated log to grow in an unbounded
 fashion. Raft provides a mechanism by which the current state is snapshotted and the
@@ -123,7 +118,7 @@ When getting started, a single Consul server is put into "bootstrap" mode. This 
 allows it to self-elect as a leader. Once a leader is elected, other servers can be
 added to the peer set in a way that preserves consistency and safety. Eventually,
 once the first few servers are added, bootstrap mode can be disabled. See [this
-guide](/docs/guides/bootstrapping.html) for more details.
+document](/docs/install/bootstrapping.html) for more details.
 
 Since all servers participate as part of the peer set, they all know the current
 leader. When an RPC request arrives at a non-leader server, the request is
@@ -172,7 +167,7 @@ The three read modes are:
   a cluster that is unavailable will still be able to respond.
 
 For more documentation about using these various modes, see the
-[HTTP API](/api/index.html).
+[HTTP API](/api/features/consistency.html).
 
 ## <a name="deployment_table"></a>Deployment Table
 

@@ -15,6 +15,8 @@ a health check. A health check is considered to be application level if it is
 associated with a service. A service is defined in a configuration file
 or added at runtime over the HTTP interface.
 
+Use the [Getting Started guides](https://learn.hashicorp.com/consul/getting-started/services?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
+
 ## Service Definition
 
 To configure a service, either provide the service definition as a
@@ -37,6 +39,16 @@ example shows all possible fields, but note that only a few are required.
     "meta": {
       "meta": "for my service"
     },
+    "tagged_addresses": {
+      "lan": {
+        "address": "192.168.0.55",
+        "port": 8000,
+      },
+      "wan": {
+        "address": "198.18.0.23",
+        "port": 80
+      }
+    },
     "port": 8000,
     "enable_tag_override": false,
     "checks": [
@@ -50,10 +62,24 @@ example shows all possible fields, but note that only a few are required.
     "proxy": {
       "destination_service_name": "redis",
       "destination_service_id": "redis1",
-      "local_service_name": "127.0.0.1",
+      "local_service_address": "127.0.0.1",
       "local_service_port": 9090,
       "config": {},
-      "upstreams": []
+      "upstreams": [],
+      "mesh_gateway": {
+        "mode": "local"
+      },
+      "expose": {
+        "checks": true,
+        "paths": [
+          {
+            "path": "/healthz",
+            "local_path_port": 8080,
+            "listener_port": 21500,
+            "protocol": "http2"
+          }
+       ]
+      }
     },
     "connect": {
       "native": false,
@@ -66,7 +92,9 @@ example shows all possible fields, but note that only a few are required.
     "weights": {
       "passing": 5,
       "warning": 1
-    }
+    },
+    "token": "233b604b-b92e-48c8-a253-5f11514e4b50",
+    "namespace": "foo"
   }
 }
 ```
@@ -80,6 +108,9 @@ unique IDs should be provided.
 The `tags` property is a list of values that are opaque to Consul but
 can be used to distinguish between `primary` or `secondary` nodes,
 different versions, or any other service level labels.
+
+We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
+for service definition names and tags for [compatibility with external DNS](/docs/agent/services.html#service-and-tag-names-with-dns)
 
 The `address` field can be used to specify a service-specific IP address. By
 default, the IP address of the agent is used, and this does not need to be provided.
@@ -126,35 +157,6 @@ For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
 
-### Connect
-
-The `kind` field is used to optionally identify the service as a [Connect
-proxy](/docs/connect/proxies.html) instance with the value `connect-proxy`. For
-typical non-proxy instances the `kind` field must be omitted. The `proxy` field
-is also required for Connect proxy registrations and is only valid if `kind` is
-`connect-proxy`. The only required `proxy` field is `destination_service_name`.
-For more detail please see [complete proxy configuration
-example](/docs/connect/proxies.html#complete-configuration-example)
-
--> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
-specified using `proxy_destination` at the top level. This will continue to work
-until at least 1.5.0 but it's highly recommended to switch to using
-`proxy.destination_service_name`.
-
-The `connect` field can be specified to configure
-[Connect](/docs/connect/index.html) for a service. This field is available in
-Consul 1.2.0 and later. The `native` value can be set to true to advertise the
-service as [Connect-native](/docs/connect/native.html). The `sidecar_service`
-field is an optional nested service definition its behavior and defaults are
-described in [Sidecar Service
-Registration](/docs/connect/proxies/sidecar-service.html). If `native` is true,
-it is an error to also specify a sidecar service registration.
-
--> **Deprecation Notice:** From version 1.2.0 to 1.3.0 during beta, Connect
-supported "Managed" proxies which are specified with the `connect.proxy` field.
-[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated.html)
-and the `connect.proxy` field will be removed in a future major release.
-
 ### Checks
 
 A service can have an associated health check. This is a powerful feature as
@@ -171,6 +173,43 @@ registered, the ID will be generated as `service:<service-id>:<num>` where
 `<num>` is an incrementing number starting from `1`.
 
 -> **Note:** There is more information about [checks here](/docs/agent/checks.html).
+
+### Proxy
+
+Service definitions allow for an optional proxy registration. Proxies used with Connect
+are registered as services in Consul's catalog. 
+See the [Proxy Service Registration](/docs/connect/registration/service-registration.html) reference 
+for the available configuration options. 
+
+### Connect
+
+The `kind` field is used to optionally identify the service as a [Connect
+proxy](/docs/connect/proxies.html) instance with the value `connect-proxy` or
+a [Mesh Gateway](/docs/connect/mesh_gateway.html) instance with the value `mesh-gateway`. For
+typical non-proxy instances the `kind` field must be omitted. The `proxy` field
+is also required for Connect proxy registrations and is only valid if `kind` is
+`connect-proxy`. The only required `proxy` field is `destination_service_name`.
+For more detail please see [complete proxy configuration
+example](/docs/connect/registration/service-registration.html#complete-configuration-example)
+
+-> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
+specified using `proxy_destination` at the top level. This will continue to work
+until at least 1.5.0 but it's highly recommended to switch to using
+`proxy.destination_service_name`.
+
+The `connect` field can be specified to configure
+[Connect](/docs/connect/index.html) for a service. This field is available in
+Consul 1.2.0 and later. The `native` value can be set to true to advertise the
+service as [Connect-native](/docs/connect/native.html). The `sidecar_service`
+field is an optional nested service definition its behavior and defaults are
+described in [Sidecar Service
+Registration](/docs/connect/registration/sidecar-service.html). If `native` is true,
+it is an error to also specify a sidecar service registration.
+
+-> **Deprecation Notice:** From version 1.2.0 to 1.3.0 during beta, Connect
+supported "Managed" proxies which are specified with the `connect.proxy` field.
+[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated.html)
+and the `connect.proxy` field will be removed in a future major release.
 
 ### DNS SRV Weights
 
@@ -234,7 +273,7 @@ Multiple services definitions can be provided at once using the plural
         {
           "args": ["/bin/check_redis", "-p", "6000"],
           "interval": "5s",
-          "ttl": "20s"
+          "timeout": "20s"
         }
       ]
     },
@@ -251,11 +290,49 @@ Multiple services definitions can be provided at once using the plural
         {
           "args": ["/bin/check_redis", "-p", "7000"],
           "interval": "30s",
-          "ttl": "60s"
+          "timeout": "60s"
         }
       ]
     },
     ...
+  ]
+}
+```
+
+In HCL you can specify the plural `services` key (although not `service`) multiple times:
+
+```hcl
+services {
+  id = "red0"
+  name = "redis"
+  tags = [
+    "primary"
+  ]
+  address = ""
+  port = 6000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "6000"]
+      interval = "5s"
+      timeout = "20s"
+    }
+  ]
+}
+services {
+  id = "red1"
+  name = "redis"
+  tags = [
+    "delayed",
+    "secondary"
+  ]
+  address = ""
+  port = 7000
+  checks = [
+    {
+      args = ["/bin/check_redis", "-p", "7000"]
+      interval = "30s"
+      timeout = "60s"
+    }
   ]
 }
 ```
@@ -279,7 +356,7 @@ For historical reasons Consul's API uses `CamelCased` parameter names in
 responses, however it's configuration file uses `snake_case` for both HCL and
 JSON representations. For this reason the registration _HTTP APIs_ accept both
 name styles for service definition parameters although APIs will return the
-listings using `CamelCase`. 
+listings using `CamelCase`.
 
 Note though that **all config file formats require
 `snake_case` fields**. We always document service definition examples using

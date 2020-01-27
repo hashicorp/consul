@@ -104,7 +104,7 @@ func main() {
   defer svc.Close()
 
   // Creating an HTTP server that serves via Connect
-  listener, _ := tls.Listen("tcp", ":8080", svc.ServeTLSConfig())
+  listener, _ := tls.Listen("tcp", ":8080", svc.ServerTLSConfig())
   defer listener.Close()
 
   // Accept

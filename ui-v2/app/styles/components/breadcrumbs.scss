@@ -1,4 +1,8 @@
-@import './breadcrumbs/index';
+@import '../base/components/breadcrumbs/index';
 main header nav:first-child {
+  position: absolute;
+  top: -38px;
+}
+main header nav:first-child ol {
   @extend %breadcrumbs;
 }

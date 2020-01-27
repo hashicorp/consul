@@ -1,0 +1,75 @@
+---
+layout: "docs"
+page_title: "Commands: Namespace Write"
+sidebar_current: "docs-commands-namespace-write"
+---
+
+<%= enterprise_alert :consul %>
+
+# Consul Namespace Write
+
+Command: `consul namespace write`
+
+This `namespace write` command creates or updates a namespaces configuration. This was added in Consul Enterprise 1.7.0.
+
+## Usage
+
+Usage: `consul namespace write <namespace definition>`
+
+The `<namespace definition>` must either be a file path or `-` to indicate that
+the definition should be read from stdin. The definition can be in either JSON
+or HCL format. See [here](/docs/enterprise/namespaces/index.html#namespace-definition) for a description of the namespace definition.
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
+
+#### Command Options
+
+* `-format=<string>` - How to output the results. The choices are: pretty or json
+
+* `-meta` - Indicates that namespace metadata such as the raft indices should be
+  shown for the namespace
+  
+  
+## Examples
+
+Create a new Namespace:
+
+```sh
+$ consul namespace write - <<< 'Name = "team-1"'
+Name: team-1
+Description:
+```
+
+Showing Raft Metadata:
+
+```sh
+$ consul namespace write -meta - <<< 'Name = "team-1"'
+Name: team-1
+Description:
+Create Index: 339
+Modify Index: 344
+```
+
+JSON Format:
+
+```sh
+$ cat ns.hcl
+Name = "foo"
+Description = "Example Namespace"
+Meta {
+   team-id = "574407f3-8b26-4c84-8e51-028bb8cbdd37"
+}
+$ consul namespace write -format=json ns.hcl
+{
+   "Name": "foo",
+   "Description": "Example Namespace",
+   "Meta": {
+      "team-id": "574407f3-8b26-4c84-8e51-028bb8cbdd37"
+   },
+   "CreateIndex": 352,
+   "ModifyIndex": 352
+}
+```

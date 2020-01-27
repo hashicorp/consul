@@ -24,14 +24,20 @@ running.
 | `GET`  | `/status/leader`             | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 
@@ -56,14 +62,20 @@ determining when a given server has successfully joined the cluster.
 | `GET`  | `/status/peers`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
+
+### Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried. This is specified as part of the
+  URL as a query parameter.
 
 ### Sample Request
 

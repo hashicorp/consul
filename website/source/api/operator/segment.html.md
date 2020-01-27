@@ -20,7 +20,7 @@ The network area functionality described here is available only in
 later. Network segments are operator-defined sections of agents on the LAN, typically
 isolated from other segments by network configuration.
 
-Please see the [Network Segments Guide](/docs/guides/segments.html) for more details.
+Please see the [Network Segments Guide](https://learn.hashicorp.com/consul/day-2-operations/network-segments) for more details.
 
 ## List Network Segments
 
@@ -31,10 +31,10 @@ This endpoint lists all network areas.
 | `GET`  | `/operator/segment`     | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |

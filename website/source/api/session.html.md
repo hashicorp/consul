@@ -20,10 +20,10 @@ node and may be associated with any number of checks.
 | `PUT`  | `/session/create`            | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -31,11 +31,17 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
+
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
 
-- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay.
+- `LockDelay` `(string: "15s")` - Specifies the duration for the lock delay. This
+  must be greater than `0`.
 
 - `Node` `(string: "<agent>")` - Specifies the name of the node. This must refer
   to a node that is already registered.
@@ -43,8 +49,8 @@ The table below shows this endpoint's support for
 - `Name` `(string: "")` - Specifies a human-readable name for the session.
 
 - `Checks` `(array<string>: nil)` - specifies a list of associated health
-  checks. It is highly recommended that, if you override this list, you include
-  the default `serfHealth`.
+  check IDs (commonly `CheckID` in API responses). It is highly recommended that,
+  if you override this list, you include the default `serfHealth`.
 
 - `Behavior` `(string: "release")` - Controls the behavior to take when a
   session is invalidated. Valid values are:
@@ -55,8 +61,9 @@ The table below shows this endpoint's support for
 - `TTL` `(string: "")` - Specifies the number of seconds (between 10s and
   86400s). If provided, the session is invalidated if it is not renewed before
   the TTL expires. The lowest practical TTL should be used to keep the number of
-  managed sessions low. When locks are forcibly expired, such as during a leader
-  election, sessions may not be reaped for up to double this TTL, so long TTL
+  managed sessions low. When locks are forcibly expired, such as when following
+  the [leader election pattern](https://learn.hashicorp.com/consul/developer-configuration/elections) in an application,
+  sessions may not be reaped for up to double this TTL, so long TTL
   values (> 1 hour) should be avoided.
 
 ### Sample Payload
@@ -106,10 +113,10 @@ either a literal `true` or `false`, indicating of whether the destroy was
 successful.
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -123,12 +130,17 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
 ```text
 $ curl \
-    --request PUT
+    --request PUT \
     http://127.0.0.1:8500/v1/session/destroy/adf4238a-882b-9ddc-4a9d-5b6758e4159e
 ```
 
@@ -147,10 +159,10 @@ This endpoint returns the requested session information.
 | `GET`  | `/session/info/:uuid`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -164,6 +176,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -203,10 +220,10 @@ This endpoint returns the active sessions for a given node.
 | `GET`  | `/session/node/:node`        | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -220,6 +237,13 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter
+  The namespace may be specified as '*' and then results will be returned for all namespaces.
+  Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -257,10 +281,10 @@ This endpoint returns the list of active sessions.
 | `GET`  | `/session/list`              | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
@@ -271,6 +295,12 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace.   This is specified as part of the URL as a query parameter. 
+  The namespace may be specified as '*' and then results will be returned for all namespaces.
+  Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -309,10 +339,10 @@ TTL, and it extends the expiration by the TTL.
 | `PUT`  | `/session/renew/:uuid`       | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -326,6 +356,11 @@ The table below shows this endpoint's support for
 - `dc` `(string: "")` - Specifies the datacenter to query. This will default to
   the datacenter of the agent being queried. This is specified as part of the
   URL as a query parameter. Using this across datacenters is not recommended.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to query.
+  If not provided, the namespace will be inferred from the request's ACL token,
+  or will default to the `default` namespace. This is specified as part of the
+  URL as a query parameter. Added in Consul 1.7.0.
 
 ### Sample Request
 

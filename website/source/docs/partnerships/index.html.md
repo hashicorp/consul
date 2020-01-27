@@ -1,0 +1,137 @@
+---
+layout: "docs"
+page_title: "Consul Integration Program"
+sidebar_current: "docs-consul-program"
+description: |-
+  Guide to partnership integrations for Consul.
+---
+
+# Consul Integration Program
+
+The HashiCorp Consul Integration Program enables vendors to build integrations with HashiCorp Consul that are tested and approved by HashiCorp. The program is intended to be largely self-service with links to resources, code samples, documentation, and clear integration steps.
+
+## Types of Consul Integrations
+
+By leveraging Consul’s RESTful HTTP API system, vendors are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed with the OSS (open source) version of Consul. Integrations with advanced network segmentation, advanced federation, and advanced read scalability need to be tested against Consul Enterprise, since these features are only supported by Consul Enterprise.
+
+<div class="center">
+[![Consul Architecture](/assets/images/consul_ecosystem_diagram.png)](/assets/images/consul_ecosystem_diagram.png)
+</div>
+
+**Data Plane**: These integrations automate IP updates of load balancers by leveraging Consul service discovery,  automate firewall security policy updates by leveraging Consul intentions within a centralized management tool, extend sidecar proxies to support Consul connect, and extend API gateways to allow Consul to route incoming traffic to the proxies for Connect-enabled services.
+
+**Control Plane**: Consul has a client-server architecture and is the control plane for the service mesh. No integrations at this layer.
+
+**Platform**: These integrations leverage automation of Consul agent deployment, configuration, and management through cloud and PaaS provisioning and orchestration tools such as Kubernetes and Pivotal Cloud Foundry (PCF). They include the Consul agent running in both client and server mode.
+
+**Infrastructure**: These integrations extend Consul’s certificate management, secure ACL configuration, observability metrics and logging, and service discovery that allows for dynamic service mapping with ITSM tools.
+
+## Development Process
+
+The Consul integration development process is described in the steps below. By following these steps, Consul integrations can be developed alongside HashiCorp to ensure new integrations are reviewed, approved and released as quickly as possible.
+
+1.  Engage: Initial contact between vendor and HashiCorp
+2.  Enable: Documentation, code samples and best practices for developing the integration
+3.  Develop and Test: Integration development and testing by vendor
+4.  Review/Certification: HashiCorp code review and certification of integration
+5.  Release: Consul integration released
+6.  Support: Ongoing maintenance and support of the integration by the vendor.
+
+### 1. Engage
+
+Please begin by completing [Consul Integration Program webform](https://docs.google.com/forms/d/e/1FAIpQLSf-RyVR9F0lmosao8Nnur0TTDjnl99gttnK3QP1OkfRefVKSw/viewform) to tell us about your company and the Consul integration you are developing.
+
+### 2. Enable
+
+Here are links to resources, documentation, examples and best practices to guide you through the Consul integration development and testing process:
+
+#### Data Plane:
+
+**Load Balancer**
+
+* [Load Balancing with NGINX and Consul Template](https://learn.hashicorp.com/consul/integrations/nginx-consul-template)
+* [Load Balancing with HAProxy Service Discovery](https://learn.hashicorp.com/consul/integrations/haproxy-consul)
+
+**Proxy**
+
+* [How to Integrate a Sidecar Proxy Documentation](https://www.consul.io/docs/connect/proxies/integrate.html)
+* [Example of Envoy Integration](https://www.consul.io/docs/connect/proxies/envoy.html)
+* [Consul’s source code](https://github.com/hashicorp/consul)
+
+**Firewall**
+
+* [Consul Connect Intentions](https://www.consul.io/docs/connect/intentions.html)
+* [Consul Connect Intentions Command Line](https://www.consul.io/docs/commands/intention.html)
+* [Consul Connect Intentions API](https://www.consul.io/api/connect/intentions.html)
+
+**API Gateway**
+
+* [Ambassador Integration documentation](https://www.consul.io/docs/platform/k8s/ambassador.html)
+
+#### Platform:
+
+* [Consul-AWS for AWS Cloud Map](https://learn.hashicorp.com/consul/integrations/consul-aws)
+* [Consul Agent Cloud Auto-joining](https://www.consul.io/docs/agent/cloud-auto-join.html)
+
+#### Infrastructure:
+
+**Certificate Authority (CA)**
+
+* [Consul Certificate Management Documentation](https://www.consul.io/docs/connect/ca.html)
+* [Securing RPC Communication with TLS Encryption](https://learn.hashicorp.com/consul/security-networking/certificates)
+* [Consul Connect CA API](https://www.consul.io/api/connect/ca.html)
+
+**Identity and Access Management (IAM)**
+
+* [ACL Documentation and Guides](https://www.consul.io/docs/acl/index.html)
+* [ACL API Documentation](https://www.consul.io/api/acl/acl.html)
+* [Securing Consul with ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls)
+
+**Application Performance Monitoring (APM)**
+
+* [Consul Telemetry Documentation](https://www.consul.io/docs/agent/telemetry.html)
+* [Consul Cluster Monitoring and Metrics](https://learn.hashicorp.com/consul/day-2-operations/monitoring)
+* [Monitoring Consul with Telegraf](https://learn.hashicorp.com/consul/integrations/telegraf)
+
+**Logging**
+
+* [Consul Monitor Command Line](https://www.consul.io/docs/commands/monitor.html)
+* [Enable syslog via CLI](https://www.consul.io/docs/agent/options.html#enable_syslog)
+* [Enable syslog via config file](https://www.consul.io/docs/agent/options.html#_syslog)
+
+**Information Technology Service Management (ITSM)**
+
+* [Consul Service Registry](https://learn.hashicorp.com/consul/getting-started/services)
+* [DNS Query Interface](https://learn.hashicorp.com/consul/getting-started/services#querying-services)
+* [HTTP API with Edge Triggers](https://learn.hashicorp.com/consul/getting-started/services#http-api)
+
+### 3. Develop and Test
+
+The only knowledge necessary to write a plugin is basic command-line skills and knowledge of the [Go programming language](http://www.golang.org). Use the plugin interface to develop your integration. All integrations should contain unit and acceptance testing.
+
+### 4. Review and Approval
+
+HashiCorp will review and approve your Consul integration. Please send an email to [consul-integration-dev@hashicorp.com](mailto:consul-integration-dev@hashicorp.com) with any relevant documentation, demos or other resources and let us know your integration is ready for review.
+
+### 5. Release
+
+At this stage, the Consul integration is fully developed, documented, reviewed and approved. Once released, HashiCorp will officially list the Consul integration.
+
+### 6. Support
+
+Many vendors view the release step to be the end of the journey, while at HashiCorp we view it to be the start. Getting the Consul integration built is just the first step in enabling users. Once this is done, ongoing effort is required to maintain the integration and address any issues in a timely manner.
+
+The expectation for vendors is to respond to all critical issues within 48 hours and all other issues within 5 business days. HashiCorp Consul has an extremely wide community of users and we encourage everyone to report issues, however small, as well as help resolve them when possible. 
+
+## Checklist
+
+Below is a checklist of steps that should be followed during the Consul integration development process. This reiterates the steps described above.
+
+* Complete the [Consul Integration Program webform](https://docs.google.com/forms/d/e/1FAIpQLSf-RyVR9F0lmosao8Nnur0TTDjnl99gttnK3QP1OkfRefVKSw/viewform)
+* Develop and test your Consul integration following examples, documentation and best practices
+* When the integration is completed and ready for HashiCorp review, send us the documentation, demos and any other resources for review at: [consul-integration-dev@hashicorp.com](mailto:consul-integration-dev@hashicorp.com)
+* Plan to continue to support the integration with additional functionality and responding to customer issues.
+
+## Contact Us
+
+For any questions or feedback, please contact us at: [consul-integration-dev@hashicorp.com](mailto:consul-integration-dev@hashicorp.com)

@@ -356,6 +356,14 @@ func (r *Router) GetDatacenters() []string {
 	return dcs
 }
 
+// HasDatacenter checks whether dc is defined in WAN
+func (r *Router) HasDatacenter(dc string) bool {
+	r.RLock()
+	defer r.RUnlock()
+	_, ok := r.managers[dc]
+	return ok
+}
+
 // datacenterSorter takes a list of DC names and a parallel vector of distances
 // and implements sort.Interface, keeping both structures coherent and sorting
 // by distance.
@@ -402,6 +410,12 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
 				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
+					m.Name, areaID)
+				continue
+			}
+
+			if m.Status == serf.StatusLeft {
+				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
 					m.Name, areaID)
 				continue
 			}
@@ -463,6 +477,12 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
 				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
+					m.Name, areaID)
+				continue
+			}
+
+			if m.Status == serf.StatusLeft {
+				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
 					m.Name, areaID)
 				continue
 			}

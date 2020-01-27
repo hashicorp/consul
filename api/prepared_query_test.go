@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_PreparedQuery(t *testing.T) {
@@ -25,6 +25,7 @@ func TestAPI_PreparedQuery(t *testing.T) {
 			ID:      "redis1",
 			Service: "redis",
 			Tags:    []string{"master", "v1"},
+			Meta:    map[string]string{"redis-version": "4.0"},
 			Port:    8000,
 		},
 	}
@@ -43,8 +44,9 @@ func TestAPI_PreparedQuery(t *testing.T) {
 	def := &PreparedQueryDefinition{
 		Name: "test",
 		Service: ServiceQuery{
-			Service:  "redis",
-			NodeMeta: map[string]string{"somekey": "somevalue"},
+			Service:     "redis",
+			NodeMeta:    map[string]string{"somekey": "somevalue"},
+			ServiceMeta: map[string]string{"redis-version": "4.0"},
 		},
 	}
 

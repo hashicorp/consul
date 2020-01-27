@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAPI_DebugHeap(t *testing.T) {

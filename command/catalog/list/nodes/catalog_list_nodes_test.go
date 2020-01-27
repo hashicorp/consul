@@ -32,7 +32,7 @@ func TestCatalogListNodesCommand_Validation(t *testing.T) {
 
 func TestCatalogListNodesCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -84,6 +84,23 @@ func TestCatalogListNodesCommand(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-node-meta", "foo=bar",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+		output := ui.ErrorWriter.String()
+		if expected := "No nodes match the given query"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
+	t.Run("filter", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-filter", "Meta.foo == bar",
 		}
 		code := c.Run(args)
 		if code != 0 {

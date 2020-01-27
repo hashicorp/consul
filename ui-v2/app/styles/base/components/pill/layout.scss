@@ -1,0 +1,13 @@
+%pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  position: relative;
+}
+%pill button {
+  padding: 0;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  font-size: 0;
+}

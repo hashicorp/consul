@@ -1,17 +1,11 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupTest } from 'ember-qunit';
 
-moduleFor('route:dc/acls/edit', 'Unit | Route | dc/acls/edit', {
-  // Specify the other units that are required for this test.
-  needs: [
-    'service:repository/acl',
-    'service:settings',
-    'service:logger',
-    'service:feedback',
-    'service:flashMessages',
-  ],
-});
+module('Unit | Route | dc/acls/edit', function(hooks) {
+  setupTest(hooks);
 
-test('it exists', function(assert) {
-  let route = this.subject();
-  assert.ok(route);
+  test('it exists', function(assert) {
+    let route = this.owner.lookup('route:dc/acls/edit');
+    assert.ok(route);
+  });
 });

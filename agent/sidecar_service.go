@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/ipaddr"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -26,7 +28,7 @@ func (a *Agent) sidecarServiceID(serviceID string) string {
 //
 // The third return argument is the effective Token to use for the sidecar
 // registration. This will be the same as the token parameter passed unless the
-// SidecarService definition contains a distint one.
+// SidecarService definition contains a distinct one.
 func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
 	if ns.Connect.SidecarService == nil {
 		return nil, nil, "", nil
@@ -39,6 +41,9 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	// ID. We rely on this for lifecycle management of the nested definition.
 	sidecar.ID = a.sidecarServiceID(ns.ID)
 
+	// for now at least these must be identical
+	sidecar.EnterpriseMeta = ns.EnterpriseMeta
+
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
 	if sidecar.Meta != nil {
@@ -47,6 +52,21 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		if err := structs.ValidateMetadata(sidecar.Meta, false); err != nil {
 			return nil, nil, "", err
 		}
+	}
+
+	// Copy the service metadata from the original service if no other meta was provided
+	if len(sidecar.Meta) == 0 && len(ns.Meta) > 0 {
+		if sidecar.Meta == nil {
+			sidecar.Meta = make(map[string]string)
+		}
+		for k, v := range ns.Meta {
+			sidecar.Meta[k] = v
+		}
+	}
+
+	// Copy the tags from the original service if no other tags were specified
+	if len(sidecar.Tags) == 0 && len(ns.Tags) > 0 {
+		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
 	}
 
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
@@ -96,11 +116,11 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		// it doesn't seem to be necessary - even with thousands of services this is
 		// not expensive to compute.
 		usedPorts := make(map[int]struct{})
-		for _, otherNS := range a.State.Services() {
+		for _, otherNS := range a.State.Services(structs.WildcardEnterpriseMeta()) {
 			// Check if other port is in auto-assign range
 			if otherNS.Port >= a.config.ConnectSidecarMinPort &&
 				otherNS.Port <= a.config.ConnectSidecarMaxPort {
-				if otherNS.ID == sidecar.ID {
+				if otherNS.CompoundServiceID() == sidecar.CompoundServiceID() {
 					// This sidecar is already registered with an auto-port and is just
 					// being updated so pick the same port as before rather than allocate
 					// a new one.
@@ -156,7 +176,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 				Name: "Connect Sidecar Listening",
 				// Default to localhost rather than agent/service public IP. The checks
 				// can always be overridden if a non-loopback IP is needed.
-				TCP:      fmt.Sprintf("127.0.0.1:%d", sidecar.Port),
+				TCP:      ipaddr.FormatAddressPort(sidecar.Proxy.LocalServiceAddress, sidecar.Port),
 				Interval: 10 * time.Second,
 			},
 			&structs.CheckType{

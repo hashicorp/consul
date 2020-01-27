@@ -19,7 +19,7 @@ Feature: dc / intentions / update: Intention Update
     ---
     And I click "[value=[Action]]"
     And I submit
-    Then a PUT request is made to "/v1/connect/intentions/intention-id?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/connect/intentions/intention-id?dc=datacenter" with the body from yaml
     ---
       Description: [Description]
       Action: [Action]

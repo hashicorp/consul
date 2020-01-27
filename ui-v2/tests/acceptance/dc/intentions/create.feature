@@ -1,10 +1,19 @@
 @setupApplicationTest
-Feature: dc / intentions / update: Intention Create
+Feature: dc / intentions / create: Intention Create
   In order to define intentions
   As a user
   I want to visit the intention create page, fill in the form and hit the create button and see a success notification
   Scenario:
     Given 1 datacenter model with the value "datacenter"
+    And 3 service models from yaml
+    ---
+    - Name: web
+      Kind: ~
+    - Name: db
+      Kind: ~
+    - Name: cache
+      Kind: ~
+    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
@@ -23,7 +32,7 @@ Feature: dc / intentions / update: Intention Create
     # Specifically set deny
     And I click "[value=deny]"
     And I submit
-    Then a POST request is made to "/v1/connect/intentions?dc=datacenter" with the body from yaml
+    Then a POST request was made to "/v1/connect/intentions?dc=datacenter" with the body from yaml
     ---
       SourceName: web
       DestinationName: db

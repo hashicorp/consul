@@ -4,8 +4,6 @@ package verify
 import (
 	"bytes"
 	"fmt"
-	"path"
-	"runtime"
 	"strings"
 )
 
@@ -49,9 +47,6 @@ func (t *travel) report(name string) string {
 
 	buf.WriteString("verification for ")
 	buf.WriteString(name)
-	if _, file, lineno, ok := runtime.Caller(2); ok {
-		fmt.Fprintf(&buf, " at %s:%d", path.Base(file), lineno)
-	}
 	buf.WriteByte(':')
 
 	for _, d := range t.diffs {

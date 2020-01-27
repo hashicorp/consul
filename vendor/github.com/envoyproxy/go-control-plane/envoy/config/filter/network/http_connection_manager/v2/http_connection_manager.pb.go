@@ -3,22 +3,23 @@
 
 package v2
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-import core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-import v21 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-import _type "github.com/envoyproxy/go-control-plane/envoy/type"
-import _ "github.com/gogo/protobuf/gogoproto"
-import types "github.com/gogo/protobuf/types"
-import _ "github.com/lyft/protoc-gen-validate/validate"
+import (
+	fmt "fmt"
+	io "io"
+	math "math"
+	time "time"
 
-import time "time"
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
+	types "github.com/gogo/protobuf/types"
 
-import github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
-
-import io "io"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	v21 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	_type "github.com/envoyproxy/go-control-plane/envoy/type"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -54,6 +55,7 @@ var HttpConnectionManager_CodecType_name = map[int32]string{
 	1: "HTTP1",
 	2: "HTTP2",
 }
+
 var HttpConnectionManager_CodecType_value = map[string]int32{
 	"AUTO":  0,
 	"HTTP1": 1,
@@ -63,8 +65,9 @@ var HttpConnectionManager_CodecType_value = map[string]int32{
 func (x HttpConnectionManager_CodecType) String() string {
 	return proto.EnumName(HttpConnectionManager_CodecType_name, int32(x))
 }
+
 func (HttpConnectionManager_CodecType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0, 0}
+	return fileDescriptor_8fe65268985a88f7, []int{0, 0}
 }
 
 // How to handle the :ref:`config_http_conn_man_headers_x-forwarded-client-cert` (XFCC) HTTP
@@ -95,6 +98,7 @@ var HttpConnectionManager_ForwardClientCertDetails_name = map[int32]string{
 	3: "SANITIZE_SET",
 	4: "ALWAYS_FORWARD_ONLY",
 }
+
 var HttpConnectionManager_ForwardClientCertDetails_value = map[string]int32{
 	"SANITIZE":            0,
 	"FORWARD_ONLY":        1,
@@ -106,8 +110,9 @@ var HttpConnectionManager_ForwardClientCertDetails_value = map[string]int32{
 func (x HttpConnectionManager_ForwardClientCertDetails) String() string {
 	return proto.EnumName(HttpConnectionManager_ForwardClientCertDetails_name, int32(x))
 }
+
 func (HttpConnectionManager_ForwardClientCertDetails) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0, 1}
+	return fileDescriptor_8fe65268985a88f7, []int{0, 1}
 }
 
 type HttpConnectionManager_Tracing_OperationName int32
@@ -123,6 +128,7 @@ var HttpConnectionManager_Tracing_OperationName_name = map[int32]string{
 	0: "INGRESS",
 	1: "EGRESS",
 }
+
 var HttpConnectionManager_Tracing_OperationName_value = map[string]int32{
 	"INGRESS": 0,
 	"EGRESS":  1,
@@ -131,11 +137,12 @@ var HttpConnectionManager_Tracing_OperationName_value = map[string]int32{
 func (x HttpConnectionManager_Tracing_OperationName) String() string {
 	return proto.EnumName(HttpConnectionManager_Tracing_OperationName_name, int32(x))
 }
+
 func (HttpConnectionManager_Tracing_OperationName) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0, 0, 0}
+	return fileDescriptor_8fe65268985a88f7, []int{0, 0, 0}
 }
 
-// [#comment:next free field: 25]
+// [#comment:next free field: 31]
 type HttpConnectionManager struct {
 	// Supplies the type of codec that the connection manager should use.
 	CodecType HttpConnectionManager_CodecType `protobuf:"varint,1,opt,name=codec_type,json=codecType,proto3,enum=envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_CodecType" json:"codec_type,omitempty"`
@@ -150,22 +157,28 @@ type HttpConnectionManager struct {
 	// A list of individual HTTP filters that make up the filter chain for
 	// requests made to the connection manager. Order matters as the filters are
 	// processed sequentially as request events happen.
-	HttpFilters []*HttpFilter `protobuf:"bytes,5,rep,name=http_filters,json=httpFilters" json:"http_filters,omitempty"`
+	HttpFilters []*HttpFilter `protobuf:"bytes,5,rep,name=http_filters,json=httpFilters,proto3" json:"http_filters,omitempty"`
 	// Whether the connection manager manipulates the :ref:`config_http_conn_man_headers_user-agent`
 	// and :ref:`config_http_conn_man_headers_downstream-service-cluster` headers. See the linked
 	// documentation for more information. Defaults to false.
-	AddUserAgent *types.BoolValue `protobuf:"bytes,6,opt,name=add_user_agent,json=addUserAgent" json:"add_user_agent,omitempty"`
+	AddUserAgent *types.BoolValue `protobuf:"bytes,6,opt,name=add_user_agent,json=addUserAgent,proto3" json:"add_user_agent,omitempty"`
 	// Presence of the object defines whether the connection manager
 	// emits :ref:`tracing <arch_overview_tracing>` data to the :ref:`configured tracing provider
 	// <envoy_api_msg_config.trace.v2.Tracing>`.
-	Tracing *HttpConnectionManager_Tracing `protobuf:"bytes,7,opt,name=tracing" json:"tracing,omitempty"`
+	Tracing *HttpConnectionManager_Tracing `protobuf:"bytes,7,opt,name=tracing,proto3" json:"tracing,omitempty"`
 	// Additional HTTP/1 settings that are passed to the HTTP/1 codec.
-	HttpProtocolOptions *core.Http1ProtocolOptions `protobuf:"bytes,8,opt,name=http_protocol_options,json=httpProtocolOptions" json:"http_protocol_options,omitempty"`
+	HttpProtocolOptions *core.Http1ProtocolOptions `protobuf:"bytes,8,opt,name=http_protocol_options,json=httpProtocolOptions,proto3" json:"http_protocol_options,omitempty"`
 	// Additional HTTP/2 settings that are passed directly to the HTTP/2 codec.
-	Http2ProtocolOptions *core.Http2ProtocolOptions `protobuf:"bytes,9,opt,name=http2_protocol_options,json=http2ProtocolOptions" json:"http2_protocol_options,omitempty"`
+	Http2ProtocolOptions *core.Http2ProtocolOptions `protobuf:"bytes,9,opt,name=http2_protocol_options,json=http2ProtocolOptions,proto3" json:"http2_protocol_options,omitempty"`
 	// An optional override that the connection manager will write to the server
 	// header in responses. If not set, the default is *envoy*.
 	ServerName string `protobuf:"bytes,10,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
+	// The maximum request headers size for incoming connections.
+	// If unconfigured, the default max request headers allowed is 60 KiB.
+	// Requests that exceed this limit will receive a 431 response.
+	// The max configurable limit is 96 KiB, based on current implementation
+	// constraints.
+	MaxRequestHeadersKb *types.UInt32Value `protobuf:"bytes,29,opt,name=max_request_headers_kb,json=maxRequestHeadersKb,proto3" json:"max_request_headers_kb,omitempty"`
 	// The idle timeout for connections managed by the connection manager. The
 	// idle timeout is defined as the period in which there are no active
 	// requests. If not set, there is no idle timeout. When the idle timeout is
@@ -173,7 +186,7 @@ type HttpConnectionManager struct {
 	// connection a drain sequence will occur prior to closing the connection. See
 	// :ref:`drain_timeout
 	// <envoy_api_field_config.filter.network.http_connection_manager.v2.HttpConnectionManager.drain_timeout>`.
-	IdleTimeout *time.Duration `protobuf:"bytes,11,opt,name=idle_timeout,json=idleTimeout,stdduration" json:"idle_timeout,omitempty"`
+	IdleTimeout *time.Duration `protobuf:"bytes,11,opt,name=idle_timeout,json=idleTimeout,proto3,stdduration" json:"idle_timeout,omitempty"`
 	// The stream idle timeout for connections managed by the connection manager.
 	// If not specified, this defaults to 5 minutes. The default value was selected
 	// so as not to interfere with any smaller configured timeouts that may have
@@ -199,7 +212,12 @@ type HttpConnectionManager struct {
 	//
 	// A value of 0 will completely disable the connection manager stream idle
 	// timeout, although per-route idle timeout overrides will continue to apply.
-	StreamIdleTimeout *time.Duration `protobuf:"bytes,24,opt,name=stream_idle_timeout,json=streamIdleTimeout,stdduration" json:"stream_idle_timeout,omitempty"`
+	StreamIdleTimeout *time.Duration `protobuf:"bytes,24,opt,name=stream_idle_timeout,json=streamIdleTimeout,proto3,stdduration" json:"stream_idle_timeout,omitempty"`
+	// A timeout for idle requests managed by the connection manager.
+	// The timer is activated when the request is initiated, and is disarmed when the last byte of the
+	// request is sent upstream (i.e. all decoding filters have processed the request), OR when the
+	// response is initiated. If not specified or set to 0, this timeout is disabled.
+	RequestTimeout *time.Duration `protobuf:"bytes,28,opt,name=request_timeout,json=requestTimeout,proto3,stdduration" json:"request_timeout,omitempty"`
 	// The time that Envoy will wait between sending an HTTP/2 “shutdown
 	// notification” (GOAWAY frame with max stream ID) and a final GOAWAY frame.
 	// This is used so that Envoy provides a grace period for new streams that
@@ -209,10 +227,41 @@ type HttpConnectionManager struct {
 	// both when a connection hits the idle timeout or during general server
 	// draining. The default grace period is 5000 milliseconds (5 seconds) if this
 	// option is not specified.
-	DrainTimeout *time.Duration `protobuf:"bytes,12,opt,name=drain_timeout,json=drainTimeout,stdduration" json:"drain_timeout,omitempty"`
+	DrainTimeout *time.Duration `protobuf:"bytes,12,opt,name=drain_timeout,json=drainTimeout,proto3,stdduration" json:"drain_timeout,omitempty"`
+	// The delayed close timeout is for downstream connections managed by the HTTP connection manager.
+	// It is defined as a grace period after connection close processing has been locally initiated
+	// during which Envoy will wait for the peer to close (i.e., a TCP FIN/RST is received by Envoy
+	// from the downstream connection) prior to Envoy closing the socket associated with that
+	// connection.
+	// NOTE: This timeout is enforced even when the socket associated with the downstream connection
+	// is pending a flush of the write buffer. However, any progress made writing data to the socket
+	// will restart the timer associated with this timeout. This means that the total grace period for
+	// a socket in this state will be
+	// <total_time_waiting_for_write_buffer_flushes>+<delayed_close_timeout>.
+	//
+	// Delaying Envoy's connection close and giving the peer the opportunity to initiate the close
+	// sequence mitigates a race condition that exists when downstream clients do not drain/process
+	// data in a connection's receive buffer after a remote close has been detected via a socket
+	// write(). This race leads to such clients failing to process the response code sent by Envoy,
+	// which could result in erroneous downstream processing.
+	//
+	// If the timeout triggers, Envoy will close the connection's socket.
+	//
+	// The default timeout is 1000 ms if this option is not specified.
+	//
+	// .. NOTE::
+	//    To be useful in avoiding the race condition described above, this timeout must be set
+	//    to *at least* <max round trip time expected between clients and Envoy>+<100ms to account for
+	//    a reasonsable "worst" case processing time for a full iteration of Envoy's event loop>.
+	//
+	// .. WARNING::
+	//    A value of 0 will completely disable delayed close processing. When disabled, the downstream
+	//    connection's socket will be closed immediately after the write flush is completed or will
+	//    never close if the write flush does not complete.
+	DelayedCloseTimeout *time.Duration `protobuf:"bytes,26,opt,name=delayed_close_timeout,json=delayedCloseTimeout,proto3,stdduration" json:"delayed_close_timeout,omitempty"`
 	// Configuration for :ref:`HTTP access logs <arch_overview_access_logs>`
 	// emitted by the connection manager.
-	AccessLog []*v21.AccessLog `protobuf:"bytes,13,rep,name=access_log,json=accessLog" json:"access_log,omitempty"`
+	AccessLog []*v21.AccessLog `protobuf:"bytes,13,rep,name=access_log,json=accessLog,proto3" json:"access_log,omitempty"`
 	// If set to true, the connection manager will use the real remote address
 	// of the client connection when determining internal versus external origin and manipulating
 	// various headers. If set to false or absent, the connection manager will use the
@@ -220,19 +269,25 @@ type HttpConnectionManager struct {
 	// :ref:`config_http_conn_man_headers_x-forwarded-for`,
 	// :ref:`config_http_conn_man_headers_x-envoy-internal`, and
 	// :ref:`config_http_conn_man_headers_x-envoy-external-address` for more information.
-	UseRemoteAddress *types.BoolValue `protobuf:"bytes,14,opt,name=use_remote_address,json=useRemoteAddress" json:"use_remote_address,omitempty"`
+	UseRemoteAddress *types.BoolValue `protobuf:"bytes,14,opt,name=use_remote_address,json=useRemoteAddress,proto3" json:"use_remote_address,omitempty"`
 	// The number of additional ingress proxy hops from the right side of the
 	// :ref:`config_http_conn_man_headers_x-forwarded-for` HTTP header to trust when
 	// determining the origin client's IP address. The default is zero if this option
 	// is not specified. See the documentation for
 	// :ref:`config_http_conn_man_headers_x-forwarded-for` for more information.
 	XffNumTrustedHops uint32 `protobuf:"varint,19,opt,name=xff_num_trusted_hops,json=xffNumTrustedHops,proto3" json:"xff_num_trusted_hops,omitempty"`
+	// Configures what network addresses are considered internal for stats and header sanitation
+	// purposes. If unspecified, only RFC1918 IP addresses will be considered internal.
+	// See the documentation for :ref:`config_http_conn_man_headers_x-envoy-internal` for more
+	// information about internal/external addresses.
+	InternalAddressConfig *HttpConnectionManager_InternalAddressConfig `protobuf:"bytes,25,opt,name=internal_address_config,json=internalAddressConfig,proto3" json:"internal_address_config,omitempty"`
 	// If set, Envoy will not append the remote address to the
 	// :ref:`config_http_conn_man_headers_x-forwarded-for` HTTP header. This may be used in
 	// conjunction with HTTP filters that explicitly manipulate XFF after the HTTP connection manager
 	// has mutated the request headers. While :ref:`use_remote_address
-	// <config_http_conn_man_use_remote_address>` will also suppress XFF addition, it has consequences
-	// for logging and other Envoy uses of the remote address, so *skip_xff_append* should be used
+	// <envoy_api_field_config.filter.network.http_connection_manager.v2.HttpConnectionManager.use_remote_address>`
+	// will also suppress XFF addition, it has consequences for logging and other
+	// Envoy uses of the remote address, so *skip_xff_append* should be used
 	// when only an elision of XFF addition is intended.
 	SkipXffAppend bool `protobuf:"varint,21,opt,name=skip_xff_append,json=skipXffAppend,proto3" json:"skip_xff_append,omitempty"`
 	// Via header value to append to request and response headers. If this is
@@ -242,7 +297,7 @@ type HttpConnectionManager struct {
 	// <config_http_conn_man_headers_x-request-id>` header if it does not exist. This defaults to
 	// true. Generating a random UUID4 is expensive so in high throughput scenarios where this feature
 	// is not desired it can be disabled.
-	GenerateRequestId *types.BoolValue `protobuf:"bytes,15,opt,name=generate_request_id,json=generateRequestId" json:"generate_request_id,omitempty"`
+	GenerateRequestId *types.BoolValue `protobuf:"bytes,15,opt,name=generate_request_id,json=generateRequestId,proto3" json:"generate_request_id,omitempty"`
 	// How to handle the :ref:`config_http_conn_man_headers_x-forwarded-client-cert` (XFCC) HTTP
 	// header.
 	ForwardClientCertDetails HttpConnectionManager_ForwardClientCertDetails `protobuf:"varint,16,opt,name=forward_client_cert_details,json=forwardClientCertDetails,proto3,enum=envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_ForwardClientCertDetails" json:"forward_client_cert_details,omitempty"`
@@ -253,7 +308,7 @@ type HttpConnectionManager struct {
 	// :ref:`config_http_conn_man_headers_x-forwarded-client-cert` header, *Hash* is always set, and
 	// *By* is always set when the client certificate presents the URI type Subject Alternative Name
 	// value.
-	SetCurrentClientCertDetails *HttpConnectionManager_SetCurrentClientCertDetails `protobuf:"bytes,17,opt,name=set_current_client_cert_details,json=setCurrentClientCertDetails" json:"set_current_client_cert_details,omitempty"`
+	SetCurrentClientCertDetails *HttpConnectionManager_SetCurrentClientCertDetails `protobuf:"bytes,17,opt,name=set_current_client_cert_details,json=setCurrentClientCertDetails,proto3" json:"set_current_client_cert_details,omitempty"`
 	// If proxy_100_continue is true, Envoy will proxy incoming "Expect:
 	// 100-continue" headers upstream, and forward "100 Continue" responses
 	// downstream. If this is false or not set, Envoy will instead strip the
@@ -271,18 +326,31 @@ type HttpConnectionManager struct {
 	// :ref:`http_connection_manager.represent_ipv4_remote_address_as_ipv4_mapped_ipv6
 	// <config_http_conn_man_runtime_represent_ipv4_remote_address_as_ipv4_mapped_ipv6>` for runtime
 	// control.
+	// [#not-implemented-hide:]
 	RepresentIpv4RemoteAddressAsIpv4MappedIpv6 bool                                   `protobuf:"varint,20,opt,name=represent_ipv4_remote_address_as_ipv4_mapped_ipv6,json=representIpv4RemoteAddressAsIpv4MappedIpv6,proto3" json:"represent_ipv4_remote_address_as_ipv4_mapped_ipv6,omitempty"`
-	UpgradeConfigs                             []*HttpConnectionManager_UpgradeConfig `protobuf:"bytes,23,rep,name=upgrade_configs,json=upgradeConfigs" json:"upgrade_configs,omitempty"`
-	XXX_NoUnkeyedLiteral                       struct{}                               `json:"-"`
-	XXX_unrecognized                           []byte                                 `json:"-"`
-	XXX_sizecache                              int32                                  `json:"-"`
+	UpgradeConfigs                             []*HttpConnectionManager_UpgradeConfig `protobuf:"bytes,23,rep,name=upgrade_configs,json=upgradeConfigs,proto3" json:"upgrade_configs,omitempty"`
+	// Should paths be normalized according to RFC 3986 before any processing of
+	// requests by HTTP filters or routing? This affects the upstream *:path* header
+	// as well. For paths that fail this check, Envoy will respond with 400 to
+	// paths that are malformed. This defaults to false currently but will default
+	// true in the future. When not specified, this value may be overridden by the
+	// runtime variable
+	// :ref:`http_connection_manager.normalize_path<config_http_conn_man_runtime_normalize_path>`.
+	// See `Normalization and Comparison <https://tools.ietf.org/html/rfc3986#section-6>`
+	// for details of normalization.
+	// Note that Envoy does not perform
+	// `case normalization <https://tools.ietf.org/html/rfc3986#section-6.2.2.1>`
+	NormalizePath        *types.BoolValue `protobuf:"bytes,30,opt,name=normalize_path,json=normalizePath,proto3" json:"normalize_path,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
 func (m *HttpConnectionManager) Reset()         { *m = HttpConnectionManager{} }
 func (m *HttpConnectionManager) String() string { return proto.CompactTextString(m) }
 func (*HttpConnectionManager) ProtoMessage()    {}
 func (*HttpConnectionManager) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0}
+	return fileDescriptor_8fe65268985a88f7, []int{0}
 }
 func (m *HttpConnectionManager) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -299,8 +367,8 @@ func (m *HttpConnectionManager) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return b[:n], nil
 	}
 }
-func (dst *HttpConnectionManager) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpConnectionManager.Merge(dst, src)
+func (m *HttpConnectionManager) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HttpConnectionManager.Merge(m, src)
 }
 func (m *HttpConnectionManager) XXX_Size() int {
 	return m.Size()
@@ -318,10 +386,10 @@ type isHttpConnectionManager_RouteSpecifier interface {
 }
 
 type HttpConnectionManager_Rds struct {
-	Rds *Rds `protobuf:"bytes,3,opt,name=rds,oneof"`
+	Rds *Rds `protobuf:"bytes,3,opt,name=rds,proto3,oneof"`
 }
 type HttpConnectionManager_RouteConfig struct {
-	RouteConfig *v2.RouteConfiguration `protobuf:"bytes,4,opt,name=route_config,json=routeConfig,oneof"`
+	RouteConfig *v2.RouteConfiguration `protobuf:"bytes,4,opt,name=route_config,json=routeConfig,proto3,oneof"`
 }
 
 func (*HttpConnectionManager_Rds) isHttpConnectionManager_RouteSpecifier()         {}
@@ -404,6 +472,13 @@ func (m *HttpConnectionManager) GetServerName() string {
 	return ""
 }
 
+func (m *HttpConnectionManager) GetMaxRequestHeadersKb() *types.UInt32Value {
+	if m != nil {
+		return m.MaxRequestHeadersKb
+	}
+	return nil
+}
+
 func (m *HttpConnectionManager) GetIdleTimeout() *time.Duration {
 	if m != nil {
 		return m.IdleTimeout
@@ -418,9 +493,23 @@ func (m *HttpConnectionManager) GetStreamIdleTimeout() *time.Duration {
 	return nil
 }
 
+func (m *HttpConnectionManager) GetRequestTimeout() *time.Duration {
+	if m != nil {
+		return m.RequestTimeout
+	}
+	return nil
+}
+
 func (m *HttpConnectionManager) GetDrainTimeout() *time.Duration {
 	if m != nil {
 		return m.DrainTimeout
+	}
+	return nil
+}
+
+func (m *HttpConnectionManager) GetDelayedCloseTimeout() *time.Duration {
+	if m != nil {
+		return m.DelayedCloseTimeout
 	}
 	return nil
 }
@@ -444,6 +533,13 @@ func (m *HttpConnectionManager) GetXffNumTrustedHops() uint32 {
 		return m.XffNumTrustedHops
 	}
 	return 0
+}
+
+func (m *HttpConnectionManager) GetInternalAddressConfig() *HttpConnectionManager_InternalAddressConfig {
+	if m != nil {
+		return m.InternalAddressConfig
+	}
+	return nil
 }
 
 func (m *HttpConnectionManager) GetSkipXffAppend() bool {
@@ -498,6 +594,13 @@ func (m *HttpConnectionManager) GetRepresentIpv4RemoteAddressAsIpv4MappedIpv6() 
 func (m *HttpConnectionManager) GetUpgradeConfigs() []*HttpConnectionManager_UpgradeConfig {
 	if m != nil {
 		return m.UpgradeConfigs
+	}
+	return nil
+}
+
+func (m *HttpConnectionManager) GetNormalizePath() *types.BoolValue {
+	if m != nil {
+		return m.NormalizePath
 	}
 	return nil
 }
@@ -582,20 +685,20 @@ type HttpConnectionManager_Tracing struct {
 	// A list of header names used to create tags for the active span. The header name is used to
 	// populate the tag name, and the header value is used to populate the tag value. The tag is
 	// created if the specified header name is present in the request's headers.
-	RequestHeadersForTags []string `protobuf:"bytes,2,rep,name=request_headers_for_tags,json=requestHeadersForTags" json:"request_headers_for_tags,omitempty"`
+	RequestHeadersForTags []string `protobuf:"bytes,2,rep,name=request_headers_for_tags,json=requestHeadersForTags,proto3" json:"request_headers_for_tags,omitempty"`
 	// Target percentage of requests managed by this HTTP connection manager that will be force
 	// traced if the :ref:`x-client-trace-id <config_http_conn_man_headers_x-client-trace-id>`
 	// header is set. This field is a direct analog for the runtime variable
 	// 'tracing.client_sampling' in the :ref:`HTTP Connection Manager
 	// <config_http_conn_man_runtime>`.
 	// Default: 100%
-	ClientSampling *_type.Percent `protobuf:"bytes,3,opt,name=client_sampling,json=clientSampling" json:"client_sampling,omitempty"`
+	ClientSampling *_type.Percent `protobuf:"bytes,3,opt,name=client_sampling,json=clientSampling,proto3" json:"client_sampling,omitempty"`
 	// Target percentage of requests managed by this HTTP connection manager that will be randomly
 	// selected for trace generation, if not requested by the client or not forced. This field is
 	// a direct analog for the runtime variable 'tracing.random_sampling' in the
 	// :ref:`HTTP Connection Manager <config_http_conn_man_runtime>`.
 	// Default: 100%
-	RandomSampling *_type.Percent `protobuf:"bytes,4,opt,name=random_sampling,json=randomSampling" json:"random_sampling,omitempty"`
+	RandomSampling *_type.Percent `protobuf:"bytes,4,opt,name=random_sampling,json=randomSampling,proto3" json:"random_sampling,omitempty"`
 	// Target percentage of requests managed by this HTTP connection manager that will be traced
 	// after all other sampling checks have been applied (client-directed, force tracing, random
 	// sampling). This field functions as an upper limit on the total configured sampling rate. For
@@ -604,17 +707,20 @@ type HttpConnectionManager_Tracing struct {
 	// analog for the runtime variable 'tracing.global_enabled' in the
 	// :ref:`HTTP Connection Manager <config_http_conn_man_runtime>`.
 	// Default: 100%
-	OverallSampling      *_type.Percent `protobuf:"bytes,5,opt,name=overall_sampling,json=overallSampling" json:"overall_sampling,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	OverallSampling *_type.Percent `protobuf:"bytes,5,opt,name=overall_sampling,json=overallSampling,proto3" json:"overall_sampling,omitempty"`
+	// Whether to annotate spans with additional data. If true, spans will include logs for stream
+	// events.
+	Verbose              bool     `protobuf:"varint,6,opt,name=verbose,proto3" json:"verbose,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *HttpConnectionManager_Tracing) Reset()         { *m = HttpConnectionManager_Tracing{} }
 func (m *HttpConnectionManager_Tracing) String() string { return proto.CompactTextString(m) }
 func (*HttpConnectionManager_Tracing) ProtoMessage()    {}
 func (*HttpConnectionManager_Tracing) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0, 0}
+	return fileDescriptor_8fe65268985a88f7, []int{0, 0}
 }
 func (m *HttpConnectionManager_Tracing) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -631,8 +737,8 @@ func (m *HttpConnectionManager_Tracing) XXX_Marshal(b []byte, deterministic bool
 		return b[:n], nil
 	}
 }
-func (dst *HttpConnectionManager_Tracing) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpConnectionManager_Tracing.Merge(dst, src)
+func (m *HttpConnectionManager_Tracing) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HttpConnectionManager_Tracing.Merge(m, src)
 }
 func (m *HttpConnectionManager_Tracing) XXX_Size() int {
 	return m.Size()
@@ -678,9 +784,68 @@ func (m *HttpConnectionManager_Tracing) GetOverallSampling() *_type.Percent {
 	return nil
 }
 
+func (m *HttpConnectionManager_Tracing) GetVerbose() bool {
+	if m != nil {
+		return m.Verbose
+	}
+	return false
+}
+
+type HttpConnectionManager_InternalAddressConfig struct {
+	// Whether unix socket addresses should be considered internal.
+	UnixSockets          bool     `protobuf:"varint,1,opt,name=unix_sockets,json=unixSockets,proto3" json:"unix_sockets,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HttpConnectionManager_InternalAddressConfig) Reset() {
+	*m = HttpConnectionManager_InternalAddressConfig{}
+}
+func (m *HttpConnectionManager_InternalAddressConfig) String() string {
+	return proto.CompactTextString(m)
+}
+func (*HttpConnectionManager_InternalAddressConfig) ProtoMessage() {}
+func (*HttpConnectionManager_InternalAddressConfig) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8fe65268985a88f7, []int{0, 1}
+}
+func (m *HttpConnectionManager_InternalAddressConfig) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *HttpConnectionManager_InternalAddressConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_HttpConnectionManager_InternalAddressConfig.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *HttpConnectionManager_InternalAddressConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HttpConnectionManager_InternalAddressConfig.Merge(m, src)
+}
+func (m *HttpConnectionManager_InternalAddressConfig) XXX_Size() int {
+	return m.Size()
+}
+func (m *HttpConnectionManager_InternalAddressConfig) XXX_DiscardUnknown() {
+	xxx_messageInfo_HttpConnectionManager_InternalAddressConfig.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HttpConnectionManager_InternalAddressConfig proto.InternalMessageInfo
+
+func (m *HttpConnectionManager_InternalAddressConfig) GetUnixSockets() bool {
+	if m != nil {
+		return m.UnixSockets
+	}
+	return false
+}
+
 type HttpConnectionManager_SetCurrentClientCertDetails struct {
 	// Whether to forward the subject of the client cert. Defaults to false.
-	Subject *types.BoolValue `protobuf:"bytes,1,opt,name=subject" json:"subject,omitempty"`
+	Subject *types.BoolValue `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
 	// Whether to forward the entire client cert in URL encoded PEM format. This will appear in the
 	// XFCC header comma separated from other values with the value Cert="PEM".
 	// Defaults to false.
@@ -704,7 +869,7 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) String() string {
 }
 func (*HttpConnectionManager_SetCurrentClientCertDetails) ProtoMessage() {}
 func (*HttpConnectionManager_SetCurrentClientCertDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0, 1}
+	return fileDescriptor_8fe65268985a88f7, []int{0, 2}
 }
 func (m *HttpConnectionManager_SetCurrentClientCertDetails) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -721,8 +886,8 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) XXX_Marshal(b []byte
 		return b[:n], nil
 	}
 }
-func (dst *HttpConnectionManager_SetCurrentClientCertDetails) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpConnectionManager_SetCurrentClientCertDetails.Merge(dst, src)
+func (m *HttpConnectionManager_SetCurrentClientCertDetails) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HttpConnectionManager_SetCurrentClientCertDetails.Merge(m, src)
 }
 func (m *HttpConnectionManager_SetCurrentClientCertDetails) XXX_Size() int {
 	return m.Size()
@@ -782,17 +947,22 @@ type HttpConnectionManager_UpgradeConfig struct {
 	// If present, this represents the filter chain which will be created for
 	// this type of upgrade. If no filters are present, the filter chain for
 	// HTTP connections will be used for this upgrade type.
-	Filters              []*HttpFilter `protobuf:"bytes,2,rep,name=filters" json:"filters,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
+	Filters []*HttpFilter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	// Determines if upgrades are enabled or disabled by default. Defaults to true.
+	// This can be overridden on a per-route basis with :ref:`cluster
+	// <envoy_api_field_route.RouteAction.upgrade_configs>` as documented in the
+	// :ref:`upgrade documentation <arch_overview_websocket>`.
+	Enabled              *types.BoolValue `protobuf:"bytes,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
 func (m *HttpConnectionManager_UpgradeConfig) Reset()         { *m = HttpConnectionManager_UpgradeConfig{} }
 func (m *HttpConnectionManager_UpgradeConfig) String() string { return proto.CompactTextString(m) }
 func (*HttpConnectionManager_UpgradeConfig) ProtoMessage()    {}
 func (*HttpConnectionManager_UpgradeConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{0, 2}
+	return fileDescriptor_8fe65268985a88f7, []int{0, 3}
 }
 func (m *HttpConnectionManager_UpgradeConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -809,8 +979,8 @@ func (m *HttpConnectionManager_UpgradeConfig) XXX_Marshal(b []byte, deterministi
 		return b[:n], nil
 	}
 }
-func (dst *HttpConnectionManager_UpgradeConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpConnectionManager_UpgradeConfig.Merge(dst, src)
+func (m *HttpConnectionManager_UpgradeConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HttpConnectionManager_UpgradeConfig.Merge(m, src)
 }
 func (m *HttpConnectionManager_UpgradeConfig) XXX_Size() int {
 	return m.Size()
@@ -835,9 +1005,16 @@ func (m *HttpConnectionManager_UpgradeConfig) GetFilters() []*HttpFilter {
 	return nil
 }
 
+func (m *HttpConnectionManager_UpgradeConfig) GetEnabled() *types.BoolValue {
+	if m != nil {
+		return m.Enabled
+	}
+	return nil
+}
+
 type Rds struct {
 	// Configuration source specifier for RDS.
-	ConfigSource core.ConfigSource `protobuf:"bytes,1,opt,name=config_source,json=configSource" json:"config_source"`
+	ConfigSource core.ConfigSource `protobuf:"bytes,1,opt,name=config_source,json=configSource,proto3" json:"config_source"`
 	// The name of the route configuration. This name will be passed to the RDS
 	// API. This allows an Envoy configuration with multiple HTTP listeners (and
 	// associated HTTP connection manager filters) to use different route
@@ -852,7 +1029,7 @@ func (m *Rds) Reset()         { *m = Rds{} }
 func (m *Rds) String() string { return proto.CompactTextString(m) }
 func (*Rds) ProtoMessage()    {}
 func (*Rds) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{1}
+	return fileDescriptor_8fe65268985a88f7, []int{1}
 }
 func (m *Rds) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -869,8 +1046,8 @@ func (m *Rds) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *Rds) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Rds.Merge(dst, src)
+func (m *Rds) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Rds.Merge(m, src)
 }
 func (m *Rds) XXX_Size() int {
 	return m.Size()
@@ -902,36 +1079,44 @@ type HttpFilter struct {
 	// [#comment:TODO(mattklein123): Auto generate the following list]
 	// * :ref:`envoy.buffer <config_http_filters_buffer>`
 	// * :ref:`envoy.cors <config_http_filters_cors>`
+	// * :ref:`envoy.ext_authz <config_http_filters_ext_authz>`
 	// * :ref:`envoy.fault <config_http_filters_fault_injection>`
+	// * :ref:`envoy.filters.http.csrf <config_http_filters_csrf>`
+	// * :ref:`envoy.filters.http.header_to_metadata <config_http_filters_header_to_metadata>`
+	// * :ref:`envoy.filters.http.grpc_http1_reverse_bridge \
+	//   <config_http_filters_grpc_http1_reverse_bridge>`
+	// * :ref:`envoy.filters.http.jwt_authn <config_http_filters_jwt_authn>`
+	// * :ref:`envoy.filters.http.rbac <config_http_filters_rbac>`
+	// * :ref:`envoy.filters.http.tap <config_http_filters_tap>`
 	// * :ref:`envoy.gzip <config_http_filters_gzip>`
 	// * :ref:`envoy.http_dynamo_filter <config_http_filters_dynamo>`
 	// * :ref:`envoy.grpc_http1_bridge <config_http_filters_grpc_bridge>`
 	// * :ref:`envoy.grpc_json_transcoder <config_http_filters_grpc_json_transcoder>`
 	// * :ref:`envoy.grpc_web <config_http_filters_grpc_web>`
 	// * :ref:`envoy.health_check <config_http_filters_health_check>`
-	// * :ref:`envoy.header_to_metadata <config_http_filters_header_to_metadata>`
 	// * :ref:`envoy.ip_tagging <config_http_filters_ip_tagging>`
 	// * :ref:`envoy.lua <config_http_filters_lua>`
 	// * :ref:`envoy.rate_limit <config_http_filters_rate_limit>`
 	// * :ref:`envoy.router <config_http_filters_router>`
 	// * :ref:`envoy.squash <config_http_filters_squash>`
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Filter specific configuration which depends on the filter being
-	// instantiated. See the supported filters for further documentation.
-	Config *types.Struct `protobuf:"bytes,2,opt,name=config" json:"config,omitempty"`
-	// [#not-implemented-hide:]
-	// This is hidden as type has been deprecated and is no longer required.
-	DeprecatedV1         *HttpFilter_DeprecatedV1 `protobuf:"bytes,3,opt,name=deprecated_v1,json=deprecatedV1" json:"deprecated_v1,omitempty"` // Deprecated: Do not use.
-	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
-	XXX_unrecognized     []byte                   `json:"-"`
-	XXX_sizecache        int32                    `json:"-"`
+	// Filter specific configuration which depends on the filter being instantiated. See the supported
+	// filters for further documentation.
+	//
+	// Types that are valid to be assigned to ConfigType:
+	//	*HttpFilter_Config
+	//	*HttpFilter_TypedConfig
+	ConfigType           isHttpFilter_ConfigType `protobuf_oneof:"config_type"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
 func (m *HttpFilter) Reset()         { *m = HttpFilter{} }
 func (m *HttpFilter) String() string { return proto.CompactTextString(m) }
 func (*HttpFilter) ProtoMessage()    {}
 func (*HttpFilter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{2}
+	return fileDescriptor_8fe65268985a88f7, []int{2}
 }
 func (m *HttpFilter) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -948,8 +1133,8 @@ func (m *HttpFilter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *HttpFilter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpFilter.Merge(dst, src)
+func (m *HttpFilter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HttpFilter.Merge(m, src)
 }
 func (m *HttpFilter) XXX_Size() int {
 	return m.Size()
@@ -960,6 +1145,29 @@ func (m *HttpFilter) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_HttpFilter proto.InternalMessageInfo
 
+type isHttpFilter_ConfigType interface {
+	isHttpFilter_ConfigType()
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type HttpFilter_Config struct {
+	Config *types.Struct `protobuf:"bytes,2,opt,name=config,proto3,oneof"`
+}
+type HttpFilter_TypedConfig struct {
+	TypedConfig *types.Any `protobuf:"bytes,4,opt,name=typed_config,json=typedConfig,proto3,oneof"`
+}
+
+func (*HttpFilter_Config) isHttpFilter_ConfigType()      {}
+func (*HttpFilter_TypedConfig) isHttpFilter_ConfigType() {}
+
+func (m *HttpFilter) GetConfigType() isHttpFilter_ConfigType {
+	if m != nil {
+		return m.ConfigType
+	}
+	return nil
+}
+
 func (m *HttpFilter) GetName() string {
 	if m != nil {
 		return m.Name
@@ -968,81 +1176,224 @@ func (m *HttpFilter) GetName() string {
 }
 
 func (m *HttpFilter) GetConfig() *types.Struct {
-	if m != nil {
-		return m.Config
+	if x, ok := m.GetConfigType().(*HttpFilter_Config); ok {
+		return x.Config
 	}
 	return nil
 }
 
-// Deprecated: Do not use.
-func (m *HttpFilter) GetDeprecatedV1() *HttpFilter_DeprecatedV1 {
-	if m != nil {
-		return m.DeprecatedV1
+func (m *HttpFilter) GetTypedConfig() *types.Any {
+	if x, ok := m.GetConfigType().(*HttpFilter_TypedConfig); ok {
+		return x.TypedConfig
 	}
 	return nil
 }
 
-// [#not-implemented-hide:]
-// This is hidden as type has been deprecated and is no longer required.
-type HttpFilter_DeprecatedV1 struct {
-	Type                 string   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*HttpFilter) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _HttpFilter_OneofMarshaler, _HttpFilter_OneofUnmarshaler, _HttpFilter_OneofSizer, []interface{}{
+		(*HttpFilter_Config)(nil),
+		(*HttpFilter_TypedConfig)(nil),
+	}
 }
 
-func (m *HttpFilter_DeprecatedV1) Reset()         { *m = HttpFilter_DeprecatedV1{} }
-func (m *HttpFilter_DeprecatedV1) String() string { return proto.CompactTextString(m) }
-func (*HttpFilter_DeprecatedV1) ProtoMessage()    {}
-func (*HttpFilter_DeprecatedV1) Descriptor() ([]byte, []int) {
-	return fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7, []int{2, 0}
-}
-func (m *HttpFilter_DeprecatedV1) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *HttpFilter_DeprecatedV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_HttpFilter_DeprecatedV1.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
+func _HttpFilter_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*HttpFilter)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *HttpFilter_Config:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Config); err != nil {
+			return err
 		}
-		return b[:n], nil
+	case *HttpFilter_TypedConfig:
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.TypedConfig); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("HttpFilter.ConfigType has unexpected type %T", x)
 	}
-}
-func (dst *HttpFilter_DeprecatedV1) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpFilter_DeprecatedV1.Merge(dst, src)
-}
-func (m *HttpFilter_DeprecatedV1) XXX_Size() int {
-	return m.Size()
-}
-func (m *HttpFilter_DeprecatedV1) XXX_DiscardUnknown() {
-	xxx_messageInfo_HttpFilter_DeprecatedV1.DiscardUnknown(m)
+	return nil
 }
 
-var xxx_messageInfo_HttpFilter_DeprecatedV1 proto.InternalMessageInfo
-
-func (m *HttpFilter_DeprecatedV1) GetType() string {
-	if m != nil {
-		return m.Type
+func _HttpFilter_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*HttpFilter)
+	switch tag {
+	case 2: // config_type.config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Struct)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &HttpFilter_Config{msg}
+		return true, err
+	case 4: // config_type.typed_config
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(types.Any)
+		err := b.DecodeMessage(msg)
+		m.ConfigType = &HttpFilter_TypedConfig{msg}
+		return true, err
+	default:
+		return false, nil
 	}
-	return ""
+}
+
+func _HttpFilter_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*HttpFilter)
+	// config_type
+	switch x := m.ConfigType.(type) {
+	case *HttpFilter_Config:
+		s := proto.Size(x.Config)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *HttpFilter_TypedConfig:
+		s := proto.Size(x.TypedConfig)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
 }
 
 func init() {
+	proto.RegisterEnum("envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_CodecType", HttpConnectionManager_CodecType_name, HttpConnectionManager_CodecType_value)
+	proto.RegisterEnum("envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_ForwardClientCertDetails", HttpConnectionManager_ForwardClientCertDetails_name, HttpConnectionManager_ForwardClientCertDetails_value)
+	proto.RegisterEnum("envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_Tracing_OperationName", HttpConnectionManager_Tracing_OperationName_name, HttpConnectionManager_Tracing_OperationName_value)
 	proto.RegisterType((*HttpConnectionManager)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager")
 	proto.RegisterType((*HttpConnectionManager_Tracing)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing")
+	proto.RegisterType((*HttpConnectionManager_InternalAddressConfig)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.InternalAddressConfig")
 	proto.RegisterType((*HttpConnectionManager_SetCurrentClientCertDetails)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.SetCurrentClientCertDetails")
 	proto.RegisterType((*HttpConnectionManager_UpgradeConfig)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.UpgradeConfig")
 	proto.RegisterType((*Rds)(nil), "envoy.config.filter.network.http_connection_manager.v2.Rds")
 	proto.RegisterType((*HttpFilter)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpFilter")
-	proto.RegisterType((*HttpFilter_DeprecatedV1)(nil), "envoy.config.filter.network.http_connection_manager.v2.HttpFilter.DeprecatedV1")
-	proto.RegisterEnum("envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_CodecType", HttpConnectionManager_CodecType_name, HttpConnectionManager_CodecType_value)
-	proto.RegisterEnum("envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_ForwardClientCertDetails", HttpConnectionManager_ForwardClientCertDetails_name, HttpConnectionManager_ForwardClientCertDetails_value)
-	proto.RegisterEnum("envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager_Tracing_OperationName", HttpConnectionManager_Tracing_OperationName_name, HttpConnectionManager_Tracing_OperationName_value)
 }
+
+func init() {
+	proto.RegisterFile("envoy/config/filter/network/http_connection_manager/v2/http_connection_manager.proto", fileDescriptor_8fe65268985a88f7)
+}
+
+var fileDescriptor_8fe65268985a88f7 = []byte{
+	// 1758 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0xcd, 0x6f, 0x23, 0x49,
+	0x15, 0x4f, 0xdb, 0xce, 0xc4, 0x79, 0xfe, 0x88, 0x53, 0x49, 0x26, 0x3d, 0x9e, 0x6c, 0x62, 0x22,
+	0x01, 0xd1, 0x80, 0xec, 0xc4, 0x3b, 0x0c, 0xe2, 0x43, 0x08, 0x3b, 0xc9, 0x90, 0x84, 0xd9, 0x24,
+	0x6a, 0x3b, 0x0c, 0xbb, 0x0b, 0x6a, 0x2a, 0xdd, 0x65, 0xa7, 0x99, 0x76, 0x57, 0x53, 0x55, 0xed,
+	0x49, 0xb8, 0x20, 0xad, 0x38, 0x20, 0x6e, 0x70, 0x40, 0x48, 0x1c, 0xb9, 0x83, 0xb8, 0x01, 0xa7,
+	0x3d, 0xa1, 0x3d, 0xf2, 0x17, 0xf0, 0x31, 0xb7, 0xf9, 0x2f, 0x50, 0x7d, 0xb4, 0x13, 0xe7, 0x6b,
+	0x46, 0x43, 0xf6, 0x56, 0xf5, 0xde, 0xfb, 0xfd, 0xde, 0xab, 0x57, 0xef, 0xd5, 0x07, 0x74, 0x49,
+	0x34, 0xa4, 0x67, 0x0d, 0x8f, 0x46, 0xbd, 0xa0, 0xdf, 0xe8, 0x05, 0xa1, 0x20, 0xac, 0x11, 0x11,
+	0xf1, 0x92, 0xb2, 0x17, 0x8d, 0x13, 0x21, 0x62, 0xd7, 0xa3, 0x51, 0x44, 0x3c, 0x11, 0xd0, 0xc8,
+	0x1d, 0xe0, 0x08, 0xf7, 0x09, 0x6b, 0x0c, 0x9b, 0x37, 0xa9, 0xea, 0x31, 0xa3, 0x82, 0xa2, 0x27,
+	0x8a, 0xb5, 0xae, 0x59, 0xeb, 0x9a, 0xb5, 0x6e, 0x58, 0xeb, 0x37, 0x41, 0x87, 0xcd, 0xea, 0x17,
+	0x75, 0x34, 0x38, 0x0e, 0xa4, 0x0f, 0x8f, 0x32, 0x62, 0x22, 0x73, 0x39, 0x4d, 0x98, 0x47, 0x34,
+	0x7d, 0xb5, 0x76, 0xd5, 0x4c, 0x29, 0x3c, 0x1a, 0x1a, 0x8b, 0xfb, 0x63, 0x16, 0xcc, 0xe7, 0x46,
+	0xbe, 0x7e, 0xdd, 0x72, 0xb1, 0xe7, 0x11, 0xce, 0x43, 0xda, 0x97, 0xb6, 0xa3, 0x89, 0x41, 0xd8,
+	0x1a, 0x21, 0xce, 0x62, 0xd2, 0x88, 0x09, 0xf3, 0x48, 0x24, 0x8c, 0xe6, 0x41, 0x9f, 0xd2, 0x7e,
+	0x68, 0x5c, 0x1f, 0x27, 0xbd, 0x06, 0x8e, 0xce, 0x8c, 0x6a, 0xf9, 0xb2, 0xca, 0x4f, 0x18, 0x96,
+	0x8b, 0x35, 0xfa, 0xa5, 0xcb, 0x7a, 0x2e, 0x58, 0xe2, 0x89, 0x9b, 0xd0, 0x2f, 0x19, 0x8e, 0x63,
+	0xc2, 0xd2, 0x45, 0x2c, 0x0e, 0x71, 0x18, 0xf8, 0x58, 0x90, 0x46, 0x3a, 0x30, 0x8a, 0xf9, 0x3e,
+	0xed, 0x53, 0x35, 0x6c, 0xc8, 0x91, 0x96, 0xae, 0xfe, 0x6d, 0x09, 0x16, 0x76, 0x84, 0x88, 0x37,
+	0x47, 0x29, 0xff, 0x40, 0x67, 0x1c, 0x7d, 0x62, 0x01, 0x78, 0xd4, 0x27, 0x9e, 0x2b, 0x97, 0x67,
+	0x5b, 0x35, 0x6b, 0xad, 0xdc, 0x7c, 0x5e, 0x7f, 0xb7, 0xcd, 0xab, 0x5f, 0xeb, 0xa3, 0xbe, 0x29,
+	0xf9, 0xbb, 0x67, 0x31, 0x69, 0xc3, 0xdf, 0x5f, 0x7f, 0x9a, 0x9d, 0xfc, 0xc4, 0xca, 0x54, 0x2c,
+	0x67, 0xda, 0x4b, 0xc5, 0xe8, 0x11, 0x14, 0xb8, 0xc0, 0xc2, 0x8d, 0x19, 0xe9, 0x05, 0xa7, 0x76,
+	0xa6, 0x66, 0xad, 0x4d, 0xb7, 0xa7, 0xa5, 0x6d, 0x8e, 0x65, 0x6a, 0x96, 0x03, 0x52, 0x7b, 0xa8,
+	0x94, 0xe8, 0x00, 0xb2, 0xcc, 0xe7, 0x76, 0xb6, 0x66, 0xad, 0x15, 0x9a, 0xdf, 0x7a, 0xd7, 0x40,
+	0x1d, 0x9f, 0xef, 0x4c, 0x38, 0x92, 0x09, 0x6d, 0x43, 0x91, 0xd1, 0x44, 0x10, 0x57, 0x93, 0xd8,
+	0x39, 0xc5, 0x5c, 0x33, 0xcc, 0x38, 0x0e, 0x94, 0xbd, 0xb4, 0xd8, 0x54, 0x06, 0x66, 0x1b, 0x77,
+	0x26, 0x9c, 0x02, 0x3b, 0x97, 0x22, 0x02, 0x45, 0xe5, 0x4f, 0xc7, 0xc0, 0xed, 0xc9, 0x5a, 0x76,
+	0xad, 0xd0, 0x6c, 0xff, 0x3f, 0x99, 0x7c, 0xaa, 0xac, 0x9d, 0xc2, 0xc9, 0x68, 0xcc, 0xd1, 0x77,
+	0xa1, 0x8c, 0x7d, 0xdf, 0x4d, 0x38, 0x61, 0x2e, 0xee, 0x93, 0x48, 0xd8, 0xf7, 0x54, 0xbc, 0xd5,
+	0xba, 0xae, 0x98, 0x7a, 0x5a, 0x31, 0xf5, 0x36, 0xa5, 0xe1, 0x0f, 0x70, 0x98, 0x10, 0xa7, 0x88,
+	0x7d, 0xff, 0x88, 0x13, 0xd6, 0x92, 0xf6, 0x88, 0xc2, 0x94, 0x60, 0xd8, 0x0b, 0xa2, 0xbe, 0x3d,
+	0xa5, 0xa0, 0x47, 0x77, 0xbb, 0xdb, 0x5d, 0x4d, 0xee, 0xa4, 0x5e, 0xd0, 0xc7, 0xb0, 0xa0, 0x48,
+	0xd2, 0xfe, 0x74, 0x69, 0x2c, 0xed, 0xb9, 0x9d, 0x57, 0xee, 0xbf, 0x3c, 0x9e, 0x69, 0xd9, 0xca,
+	0x8a, 0x79, 0xe3, 0xd0, 0xd8, 0x1f, 0x68, 0x73, 0x67, 0x4e, 0xb2, 0x5c, 0x12, 0xa2, 0x1f, 0xc3,
+	0x7d, 0x29, 0x6e, 0x5e, 0x65, 0x9f, 0xbe, 0x95, 0xbd, 0x79, 0x99, 0x7d, 0xfe, 0xe4, 0x1a, 0x29,
+	0x5a, 0x81, 0x02, 0x27, 0x6c, 0x48, 0x98, 0x1b, 0xe1, 0x01, 0xb1, 0x41, 0x56, 0xa6, 0x03, 0x5a,
+	0xb4, 0x8f, 0x07, 0x04, 0x11, 0xb8, 0x3f, 0xc0, 0xa7, 0x2e, 0x23, 0x3f, 0x4b, 0x08, 0x17, 0xee,
+	0x09, 0xc1, 0x3e, 0x61, 0xdc, 0x7d, 0x71, 0x6c, 0xbf, 0xa7, 0xfc, 0x2f, 0x5d, 0xd9, 0x97, 0xa3,
+	0xdd, 0x48, 0xbc, 0xdf, 0x54, 0x3b, 0xd3, 0x46, 0xaa, 0xc6, 0x1f, 0x65, 0x6a, 0x13, 0x66, 0x60,
+	0xff, 0xc4, 0x99, 0x1b, 0xe0, 0x53, 0x47, 0xd3, 0xed, 0x68, 0xb6, 0xef, 0x1f, 0xa3, 0x36, 0x14,
+	0x03, 0x3f, 0x24, 0xae, 0x08, 0x06, 0x84, 0x26, 0xc2, 0x2e, 0x28, 0xf2, 0x07, 0x57, 0xc8, 0xb7,
+	0x4c, 0x75, 0xb6, 0x73, 0xbf, 0xff, 0xf7, 0x8a, 0xe5, 0x14, 0x24, 0xa8, 0xab, 0x31, 0xe8, 0x00,
+	0xe6, 0xb8, 0x60, 0x04, 0x0f, 0xdc, 0x31, 0x2a, 0xfb, 0xed, 0xa8, 0x66, 0x35, 0x76, 0xf7, 0x02,
+	0xe1, 0x0e, 0xcc, 0xa4, 0xeb, 0x4e, 0xc9, 0x96, 0xde, 0x8e, 0xac, 0x6c, 0x70, 0x29, 0xd3, 0x16,
+	0x94, 0x7c, 0x86, 0x83, 0x68, 0xc4, 0x53, 0x7c, 0x3b, 0x9e, 0xa2, 0x42, 0xa5, 0x2c, 0x1d, 0x58,
+	0xf0, 0x49, 0x88, 0xcf, 0x88, 0xef, 0x7a, 0x21, 0xe5, 0xe7, 0x4b, 0xac, 0xbe, 0x1d, 0xdb, 0x9c,
+	0x41, 0x6f, 0x4a, 0x70, 0x4a, 0xba, 0x07, 0xa0, 0xef, 0x03, 0x37, 0xa4, 0x7d, 0xbb, 0xa4, 0xba,
+	0xfa, 0x2b, 0xd7, 0x76, 0xcc, 0xf9, 0xb5, 0x31, 0x6c, 0xd6, 0x5b, 0x6a, 0xf2, 0x8c, 0xf6, 0x9d,
+	0x69, 0x9c, 0x0e, 0xd1, 0x0e, 0xa0, 0x84, 0x13, 0x97, 0x91, 0x01, 0x15, 0xc4, 0xc5, 0xbe, 0xcf,
+	0x08, 0xe7, 0x76, 0xf9, 0x8d, 0x0d, 0x5c, 0x49, 0x38, 0x71, 0x14, 0xa8, 0xa5, 0x31, 0xa8, 0x01,
+	0xf3, 0xa7, 0xbd, 0x9e, 0x1b, 0x25, 0x03, 0x57, 0xb0, 0x84, 0x0b, 0xe2, 0xbb, 0x27, 0x34, 0xe6,
+	0xf6, 0x5c, 0xcd, 0x5a, 0x2b, 0x39, 0xb3, 0xa7, 0xbd, 0xde, 0x7e, 0x32, 0xe8, 0x6a, 0xcd, 0x0e,
+	0x8d, 0x39, 0xfa, 0x83, 0x05, 0x8b, 0x41, 0x24, 0x08, 0x8b, 0x70, 0x98, 0x7a, 0x4e, 0x4f, 0xbc,
+	0x07, 0x2a, 0x00, 0xef, 0x6e, 0x8f, 0x81, 0x5d, 0xe3, 0xcc, 0x44, 0xac, 0x4f, 0x49, 0x67, 0x21,
+	0xb8, 0x4e, 0x8c, 0xbe, 0x04, 0x33, 0xfc, 0x45, 0x10, 0xbb, 0x72, 0x4d, 0xf2, 0x9e, 0x8b, 0x7c,
+	0x7b, 0xa1, 0x66, 0xad, 0xe5, 0x9d, 0x92, 0x14, 0xff, 0xb0, 0xd7, 0x6b, 0x29, 0x21, 0xaa, 0x40,
+	0x76, 0x18, 0x60, 0xfb, 0xbe, 0x6a, 0x43, 0x39, 0x44, 0x7b, 0x30, 0xd7, 0x27, 0x11, 0x61, 0x58,
+	0x90, 0x51, 0x13, 0x06, 0xbe, 0x3d, 0xf3, 0xc6, 0x9c, 0xce, 0xa6, 0x30, 0xd3, 0x6b, 0xbb, 0x3e,
+	0xfa, 0x8b, 0x05, 0x0f, 0x7b, 0x94, 0xbd, 0xc4, 0x4c, 0x16, 0x50, 0x40, 0x22, 0xe1, 0x7a, 0x84,
+	0x09, 0xd7, 0x27, 0x02, 0x07, 0x21, 0xb7, 0x2b, 0xea, 0x72, 0xec, 0xdd, 0x6d, 0x9e, 0x9e, 0x6a,
+	0x87, 0x9b, 0xca, 0xdf, 0x26, 0x61, 0x62, 0x4b, 0x7b, 0x1b, 0xbb, 0x2b, 0xed, 0xde, 0x0d, 0x56,
+	0xe8, 0xcf, 0x16, 0xac, 0x70, 0x22, 0x5c, 0x2f, 0x61, 0x4c, 0x05, 0x7c, 0x4d, 0xdc, 0xb3, 0x2a,
+	0x19, 0xc1, 0xdd, 0xc6, 0xdd, 0x21, 0x62, 0x53, 0xfb, 0xbc, 0x12, 0x94, 0xf3, 0x90, 0xdf, 0xac,
+	0x44, 0x5f, 0x05, 0x14, 0x33, 0x7a, 0x7a, 0xe6, 0x6e, 0xac, 0xaf, 0x4b, 0x8f, 0x22, 0x88, 0x12,
+	0x62, 0x23, 0xb5, 0xdd, 0x15, 0xa5, 0xd9, 0x58, 0x5f, 0xdf, 0x34, 0x72, 0x44, 0x60, 0x83, 0x91,
+	0x98, 0x11, 0x2e, 0x57, 0x15, 0xc4, 0xc3, 0xc7, 0x97, 0xba, 0xc7, 0xc5, 0x5c, 0x8b, 0x07, 0xb2,
+	0x6e, 0x7c, 0x39, 0x7e, 0x62, 0xcf, 0x2b, 0xb2, 0x47, 0x23, 0xe0, 0x6e, 0x3c, 0x7c, 0x3c, 0xd6,
+	0x3f, 0x2d, 0x2e, 0x45, 0x1f, 0x28, 0xc8, 0x6e, 0x3c, 0x7c, 0x82, 0x7e, 0x69, 0xc1, 0x4c, 0x12,
+	0xf7, 0x19, 0xf6, 0xd3, 0x77, 0x00, 0xb7, 0x17, 0x55, 0xaf, 0x7f, 0x7c, 0xb7, 0x69, 0x3b, 0xd2,
+	0x4e, 0x4c, 0x3b, 0x94, 0x93, 0x8b, 0x53, 0x8e, 0x5a, 0x50, 0x8e, 0x28, 0x1b, 0xe0, 0x30, 0xf8,
+	0x39, 0x71, 0x63, 0x2c, 0x4e, 0xec, 0xe5, 0x37, 0x16, 0x72, 0x69, 0x84, 0x38, 0xc4, 0xe2, 0xa4,
+	0xfa, 0xdf, 0x2c, 0x4c, 0x99, 0x2b, 0x18, 0xfd, 0xce, 0x82, 0x32, 0x8d, 0x89, 0x3e, 0xe4, 0xf4,
+	0x0d, 0xa6, 0x1f, 0x78, 0xde, 0xe7, 0x72, 0xe5, 0xd7, 0x0f, 0x52, 0x5f, 0xf2, 0x6a, 0x1c, 0x2b,
+	0xe0, 0x12, 0xbd, 0xa8, 0x42, 0x5f, 0x07, 0xfb, 0xf2, 0x8d, 0xd9, 0xa3, 0xcc, 0x15, 0xb8, 0xcf,
+	0xed, 0x4c, 0x2d, 0xbb, 0x36, 0xed, 0x2c, 0xb0, 0xb1, 0x2b, 0xf0, 0x29, 0x65, 0x5d, 0xdc, 0xe7,
+	0xe8, 0xdb, 0x30, 0x63, 0x2a, 0x9c, 0xe3, 0x41, 0x1c, 0xca, 0x47, 0x8c, 0x7e, 0x09, 0xce, 0x99,
+	0x15, 0xc9, 0x57, 0x6c, 0xfd, 0x50, 0x3f, 0xd2, 0x9d, 0xb2, 0xb6, 0xed, 0x18, 0x53, 0x89, 0x66,
+	0x38, 0xf2, 0xe9, 0xe0, 0x1c, 0x9d, 0xbb, 0x05, 0xad, 0x6d, 0x47, 0xe8, 0xef, 0x40, 0x85, 0x0e,
+	0x09, 0xc3, 0x61, 0x78, 0x0e, 0x9f, 0xbc, 0x19, 0x3e, 0x63, 0x8c, 0x47, 0x78, 0x1b, 0xa6, 0x86,
+	0x84, 0x1d, 0x53, 0x4e, 0xd4, 0x9b, 0x2d, 0xef, 0xa4, 0xd3, 0xd5, 0x3a, 0x94, 0xc6, 0x52, 0x87,
+	0x0a, 0x30, 0xb5, 0xbb, 0xff, 0x3d, 0x67, 0xbb, 0xd3, 0xa9, 0x4c, 0x20, 0x80, 0x7b, 0xdb, 0x7a,
+	0x6c, 0x55, 0x73, 0xbf, 0xfa, 0xe3, 0xf2, 0x44, 0xf5, 0x9b, 0xb0, 0x70, 0xed, 0xf1, 0x8a, 0xbe,
+	0x00, 0xc5, 0x24, 0x0a, 0x4e, 0x5d, 0x4e, 0xbd, 0x17, 0x44, 0x70, 0xb5, 0xdb, 0x79, 0xa7, 0x20,
+	0x65, 0x1d, 0x2d, 0xaa, 0xfe, 0xc6, 0x82, 0x87, 0xb7, 0xf4, 0x2e, 0x7a, 0x0c, 0x53, 0x3c, 0x39,
+	0xfe, 0x29, 0xf1, 0x84, 0x42, 0xdf, 0x5e, 0x7b, 0xa9, 0x29, 0x42, 0x90, 0x93, 0x47, 0x8e, 0xda,
+	0x8c, 0xbc, 0xa3, 0xc6, 0xf2, 0xb0, 0xf6, 0x23, 0xae, 0x32, 0x9c, 0x77, 0xe4, 0x50, 0x4a, 0x12,
+	0x16, 0xa8, 0xa4, 0xe5, 0x1d, 0x39, 0xdc, 0xcb, 0xe5, 0x33, 0x95, 0x6c, 0xf5, 0x1f, 0x16, 0x94,
+	0xc6, 0x1a, 0x43, 0x2d, 0xc4, 0xb4, 0xe3, 0xe8, 0x5f, 0x32, 0xed, 0x14, 0x8c, 0x4c, 0x7d, 0x1a,
+	0x7e, 0x04, 0x53, 0xe9, 0x5b, 0x3b, 0x73, 0x67, 0x6f, 0xed, 0x94, 0x52, 0xa6, 0x81, 0x44, 0xf8,
+	0x38, 0x24, 0xbe, 0x29, 0xb0, 0x5b, 0xd3, 0x60, 0x4c, 0x57, 0x37, 0x60, 0x7a, 0xf4, 0xd9, 0x41,
+	0x79, 0xc8, 0xb5, 0x8e, 0xba, 0x07, 0x95, 0x09, 0x34, 0x0d, 0x93, 0x3b, 0xdd, 0xee, 0xe1, 0x46,
+	0xc5, 0x4a, 0x87, 0xcd, 0x4a, 0x46, 0xef, 0xe5, 0xea, 0x2f, 0xc0, 0xbe, 0xe9, 0x0a, 0x40, 0x45,
+	0xc8, 0x77, 0x5a, 0xfb, 0xbb, 0xdd, 0xdd, 0x8f, 0xb6, 0x2b, 0x13, 0xa8, 0x02, 0xc5, 0xa7, 0x07,
+	0xce, 0xf3, 0x96, 0xb3, 0xe5, 0x1e, 0xec, 0x3f, 0xfb, 0xb0, 0x62, 0x21, 0x04, 0xe5, 0xd6, 0xe1,
+	0xe1, 0xf6, 0xfe, 0x96, 0x6b, 0x14, 0x95, 0x8c, 0xb4, 0x4a, 0x31, 0x6e, 0x67, 0xbb, 0x5b, 0xc9,
+	0xa2, 0x45, 0x98, 0x6b, 0x3d, 0x7b, 0xde, 0xfa, 0xb0, 0xe3, 0x8e, 0xc1, 0x73, 0x3a, 0x80, 0xb6,
+	0x0d, 0x33, 0xfa, 0xff, 0xc3, 0x63, 0xe2, 0x05, 0xbd, 0x80, 0x30, 0x34, 0xf9, 0xd7, 0xd7, 0x9f,
+	0x66, 0xad, 0xbd, 0x5c, 0xfe, 0x61, 0x65, 0x69, 0xf5, 0xb7, 0x16, 0x64, 0x1d, 0x9f, 0xa3, 0x2e,
+	0x94, 0xc6, 0x3e, 0xe2, 0xa6, 0x3c, 0x56, 0xae, 0x79, 0x60, 0xeb, 0x4d, 0xec, 0x28, 0xb3, 0x76,
+	0xf9, 0xb3, 0x7f, 0xad, 0xa8, 0xe7, 0xed, 0xe4, 0xaf, 0xd5, 0x51, 0x50, 0xf4, 0x2e, 0x68, 0xd1,
+	0xd7, 0x60, 0xf6, 0xe2, 0xef, 0x4b, 0x1f, 0x52, 0x57, 0x3e, 0x80, 0x33, 0x17, 0x7e, 0x5a, 0xb2,
+	0x41, 0x56, 0xff, 0x64, 0x01, 0x9c, 0x6f, 0x1b, 0x7a, 0x0f, 0x72, 0xa3, 0xd3, 0x6d, 0x0c, 0xa8,
+	0xc4, 0x68, 0x03, 0xee, 0x99, 0xa7, 0x4e, 0x46, 0xc5, 0xbc, 0x78, 0x65, 0x2f, 0x3b, 0xea, 0xf3,
+	0xbd, 0x33, 0xe1, 0x18, 0x43, 0xf4, 0x0d, 0x28, 0xca, 0xc2, 0xf3, 0xc7, 0x7f, 0x85, 0xf3, 0x57,
+	0x80, 0xad, 0xe8, 0x4c, 0xfe, 0x04, 0x95, 0xad, 0x8e, 0xaf, 0x5d, 0x82, 0x82, 0x59, 0x8c, 0x94,
+	0xee, 0xe5, 0xf2, 0xd9, 0x4a, 0xae, 0x2d, 0x3e, 0x7b, 0xb5, 0x6c, 0xfd, 0xf3, 0xd5, 0xb2, 0xf5,
+	0x9f, 0x57, 0xcb, 0x16, 0x6c, 0x05, 0x54, 0xa7, 0x4d, 0xdd, 0x77, 0xef, 0x58, 0xb7, 0xed, 0xea,
+	0xb5, 0xa7, 0xb1, 0xfa, 0xc2, 0x1c, 0x5a, 0x1f, 0x65, 0x86, 0xcd, 0xe3, 0x7b, 0x2a, 0xce, 0xf7,
+	0xff, 0x17, 0x00, 0x00, 0xff, 0xff, 0xb9, 0xb4, 0x5b, 0xb5, 0xe3, 0x11, 0x00, 0x00,
+}
+
 func (m *HttpConnectionManager) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1282,6 +1633,66 @@ func (m *HttpConnectionManager) MarshalTo(dAtA []byte) (int, error) {
 		}
 		i += n11
 	}
+	if m.InternalAddressConfig != nil {
+		dAtA[i] = 0xca
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.InternalAddressConfig.Size()))
+		n12, err := m.InternalAddressConfig.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n12
+	}
+	if m.DelayedCloseTimeout != nil {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(*m.DelayedCloseTimeout)))
+		n13, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(*m.DelayedCloseTimeout, dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n13
+	}
+	if m.RequestTimeout != nil {
+		dAtA[i] = 0xe2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(*m.RequestTimeout)))
+		n14, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(*m.RequestTimeout, dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
+	}
+	if m.MaxRequestHeadersKb != nil {
+		dAtA[i] = 0xea
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.MaxRequestHeadersKb.Size()))
+		n15, err := m.MaxRequestHeadersKb.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n15
+	}
+	if m.NormalizePath != nil {
+		dAtA[i] = 0xf2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.NormalizePath.Size()))
+		n16, err := m.NormalizePath.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n16
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
@@ -1294,11 +1705,11 @@ func (m *HttpConnectionManager_Rds) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.Rds.Size()))
-		n12, err := m.Rds.MarshalTo(dAtA[i:])
+		n17, err := m.Rds.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n12
+		i += n17
 	}
 	return i, nil
 }
@@ -1308,11 +1719,11 @@ func (m *HttpConnectionManager_RouteConfig) MarshalTo(dAtA []byte) (int, error) 
 		dAtA[i] = 0x22
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.RouteConfig.Size()))
-		n13, err := m.RouteConfig.MarshalTo(dAtA[i:])
+		n18, err := m.RouteConfig.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n13
+		i += n18
 	}
 	return i, nil
 }
@@ -1355,31 +1766,72 @@ func (m *HttpConnectionManager_Tracing) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.ClientSampling.Size()))
-		n14, err := m.ClientSampling.MarshalTo(dAtA[i:])
+		n19, err := m.ClientSampling.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n14
+		i += n19
 	}
 	if m.RandomSampling != nil {
 		dAtA[i] = 0x22
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.RandomSampling.Size()))
-		n15, err := m.RandomSampling.MarshalTo(dAtA[i:])
+		n20, err := m.RandomSampling.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n15
+		i += n20
 	}
 	if m.OverallSampling != nil {
 		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.OverallSampling.Size()))
-		n16, err := m.OverallSampling.MarshalTo(dAtA[i:])
+		n21, err := m.OverallSampling.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n16
+		i += n21
+	}
+	if m.Verbose {
+		dAtA[i] = 0x30
+		i++
+		if m.Verbose {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *HttpConnectionManager_InternalAddressConfig) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HttpConnectionManager_InternalAddressConfig) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.UnixSockets {
+		dAtA[i] = 0x8
+		i++
+		if m.UnixSockets {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -1406,11 +1858,11 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) MarshalTo(dAtA []byt
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.Subject.Size()))
-		n17, err := m.Subject.MarshalTo(dAtA[i:])
+		n22, err := m.Subject.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n17
+		i += n22
 	}
 	if m.Cert {
 		dAtA[i] = 0x18
@@ -1481,6 +1933,16 @@ func (m *HttpConnectionManager_UpgradeConfig) MarshalTo(dAtA []byte) (int, error
 			i += n
 		}
 	}
+	if m.Enabled != nil {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.Enabled.Size()))
+		n23, err := m.Enabled.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n23
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
@@ -1505,11 +1967,11 @@ func (m *Rds) MarshalTo(dAtA []byte) (int, error) {
 	dAtA[i] = 0xa
 	i++
 	i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.ConfigSource.Size()))
-	n18, err := m.ConfigSource.MarshalTo(dAtA[i:])
+	n24, err := m.ConfigSource.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n18
+	i += n24
 	if len(m.RouteConfigName) > 0 {
 		dAtA[i] = 0x12
 		i++
@@ -1543,59 +2005,47 @@ func (m *HttpFilter) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(len(m.Name)))
 		i += copy(dAtA[i:], m.Name)
 	}
+	if m.ConfigType != nil {
+		nn25, err := m.ConfigType.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn25
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *HttpFilter_Config) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
 	if m.Config != nil {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.Config.Size()))
-		n19, err := m.Config.MarshalTo(dAtA[i:])
+		n26, err := m.Config.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n19
+		i += n26
 	}
-	if m.DeprecatedV1 != nil {
-		dAtA[i] = 0x1a
+	return i, nil
+}
+func (m *HttpFilter_TypedConfig) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.TypedConfig != nil {
+		dAtA[i] = 0x22
 		i++
-		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.DeprecatedV1.Size()))
-		n20, err := m.DeprecatedV1.MarshalTo(dAtA[i:])
+		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(m.TypedConfig.Size()))
+		n27, err := m.TypedConfig.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n20
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
+		i += n27
 	}
 	return i, nil
 }
-
-func (m *HttpFilter_DeprecatedV1) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *HttpFilter_DeprecatedV1) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Type) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintHttpConnectionManager(dAtA, i, uint64(len(m.Type)))
-		i += copy(dAtA[i:], m.Type)
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
 func encodeVarintHttpConnectionManager(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -1606,6 +2056,9 @@ func encodeVarintHttpConnectionManager(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *HttpConnectionManager) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.CodecType != 0 {
@@ -1699,6 +2152,26 @@ func (m *HttpConnectionManager) Size() (n int) {
 		l = github_com_gogo_protobuf_types.SizeOfStdDuration(*m.StreamIdleTimeout)
 		n += 2 + l + sovHttpConnectionManager(uint64(l))
 	}
+	if m.InternalAddressConfig != nil {
+		l = m.InternalAddressConfig.Size()
+		n += 2 + l + sovHttpConnectionManager(uint64(l))
+	}
+	if m.DelayedCloseTimeout != nil {
+		l = github_com_gogo_protobuf_types.SizeOfStdDuration(*m.DelayedCloseTimeout)
+		n += 2 + l + sovHttpConnectionManager(uint64(l))
+	}
+	if m.RequestTimeout != nil {
+		l = github_com_gogo_protobuf_types.SizeOfStdDuration(*m.RequestTimeout)
+		n += 2 + l + sovHttpConnectionManager(uint64(l))
+	}
+	if m.MaxRequestHeadersKb != nil {
+		l = m.MaxRequestHeadersKb.Size()
+		n += 2 + l + sovHttpConnectionManager(uint64(l))
+	}
+	if m.NormalizePath != nil {
+		l = m.NormalizePath.Size()
+		n += 2 + l + sovHttpConnectionManager(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -1706,6 +2179,9 @@ func (m *HttpConnectionManager) Size() (n int) {
 }
 
 func (m *HttpConnectionManager_Rds) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Rds != nil {
@@ -1715,6 +2191,9 @@ func (m *HttpConnectionManager_Rds) Size() (n int) {
 	return n
 }
 func (m *HttpConnectionManager_RouteConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.RouteConfig != nil {
@@ -1724,6 +2203,9 @@ func (m *HttpConnectionManager_RouteConfig) Size() (n int) {
 	return n
 }
 func (m *HttpConnectionManager_Tracing) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.OperationName != 0 {
@@ -1747,6 +2229,24 @@ func (m *HttpConnectionManager_Tracing) Size() (n int) {
 		l = m.OverallSampling.Size()
 		n += 1 + l + sovHttpConnectionManager(uint64(l))
 	}
+	if m.Verbose {
+		n += 2
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *HttpConnectionManager_InternalAddressConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.UnixSockets {
+		n += 2
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -1754,6 +2254,9 @@ func (m *HttpConnectionManager_Tracing) Size() (n int) {
 }
 
 func (m *HttpConnectionManager_SetCurrentClientCertDetails) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.Subject != nil {
@@ -1776,6 +2279,9 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Size() (n int) {
 }
 
 func (m *HttpConnectionManager_UpgradeConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.UpgradeType)
@@ -1788,6 +2294,10 @@ func (m *HttpConnectionManager_UpgradeConfig) Size() (n int) {
 			n += 1 + l + sovHttpConnectionManager(uint64(l))
 		}
 	}
+	if m.Enabled != nil {
+		l = m.Enabled.Size()
+		n += 1 + l + sovHttpConnectionManager(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -1795,6 +2305,9 @@ func (m *HttpConnectionManager_UpgradeConfig) Size() (n int) {
 }
 
 func (m *Rds) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = m.ConfigSource.Size()
@@ -1810,19 +2323,17 @@ func (m *Rds) Size() (n int) {
 }
 
 func (m *HttpFilter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovHttpConnectionManager(uint64(l))
 	}
-	if m.Config != nil {
-		l = m.Config.Size()
-		n += 1 + l + sovHttpConnectionManager(uint64(l))
-	}
-	if m.DeprecatedV1 != nil {
-		l = m.DeprecatedV1.Size()
-		n += 1 + l + sovHttpConnectionManager(uint64(l))
+	if m.ConfigType != nil {
+		n += m.ConfigType.Size()
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -1830,15 +2341,27 @@ func (m *HttpFilter) Size() (n int) {
 	return n
 }
 
-func (m *HttpFilter_DeprecatedV1) Size() (n int) {
+func (m *HttpFilter_Config) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
-	l = len(m.Type)
-	if l > 0 {
+	if m.Config != nil {
+		l = m.Config.Size()
 		n += 1 + l + sovHttpConnectionManager(uint64(l))
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
+	return n
+}
+func (m *HttpFilter_TypedConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.TypedConfig != nil {
+		l = m.TypedConfig.Size()
+		n += 1 + l + sovHttpConnectionManager(uint64(l))
 	}
 	return n
 }
@@ -1871,7 +2394,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1899,7 +2422,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CodecType |= (HttpConnectionManager_CodecType(b) & 0x7F) << shift
+				m.CodecType |= HttpConnectionManager_CodecType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1918,7 +2441,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1928,6 +2451,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1947,7 +2473,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1956,6 +2482,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1979,7 +2508,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1988,6 +2517,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2011,7 +2543,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2020,6 +2552,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2042,7 +2577,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2051,6 +2586,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2075,7 +2613,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2084,6 +2622,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2108,7 +2649,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2117,6 +2658,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2141,7 +2685,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2150,6 +2694,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2174,7 +2721,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2184,6 +2731,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2203,7 +2753,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2212,6 +2762,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2236,7 +2789,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2245,6 +2798,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2269,7 +2825,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2278,6 +2834,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2300,7 +2859,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2309,6 +2868,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2333,7 +2895,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2342,6 +2904,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2366,7 +2931,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ForwardClientCertDetails |= (HttpConnectionManager_ForwardClientCertDetails(b) & 0x7F) << shift
+				m.ForwardClientCertDetails |= HttpConnectionManager_ForwardClientCertDetails(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2385,7 +2950,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2394,6 +2959,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2418,7 +2986,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2438,7 +3006,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.XffNumTrustedHops |= (uint32(b) & 0x7F) << shift
+				m.XffNumTrustedHops |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2457,7 +3025,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2477,7 +3045,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2497,7 +3065,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2507,6 +3075,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2526,7 +3097,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2535,6 +3106,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2557,7 +3131,7 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2566,6 +3140,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2576,6 +3153,186 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 25:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InternalAddressConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.InternalAddressConfig == nil {
+				m.InternalAddressConfig = &HttpConnectionManager_InternalAddressConfig{}
+			}
+			if err := m.InternalAddressConfig.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 26:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelayedCloseTimeout", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DelayedCloseTimeout == nil {
+				m.DelayedCloseTimeout = new(time.Duration)
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(m.DelayedCloseTimeout, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 28:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RequestTimeout", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.RequestTimeout == nil {
+				m.RequestTimeout = new(time.Duration)
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(m.RequestTimeout, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 29:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxRequestHeadersKb", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MaxRequestHeadersKb == nil {
+				m.MaxRequestHeadersKb = &types.UInt32Value{}
+			}
+			if err := m.MaxRequestHeadersKb.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 30:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NormalizePath", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.NormalizePath == nil {
+				m.NormalizePath = &types.BoolValue{}
+			}
+			if err := m.NormalizePath.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHttpConnectionManager(dAtA[iNdEx:])
@@ -2583,6 +3340,9 @@ func (m *HttpConnectionManager) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			if (iNdEx + skippy) > l {
@@ -2613,7 +3373,7 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2641,7 +3401,7 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.OperationName |= (HttpConnectionManager_Tracing_OperationName(b) & 0x7F) << shift
+				m.OperationName |= HttpConnectionManager_Tracing_OperationName(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2660,7 +3420,7 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2670,6 +3430,9 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2689,7 +3452,7 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2698,6 +3461,9 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2722,7 +3488,7 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2731,6 +3497,9 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2755,7 +3524,7 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2764,6 +3533,9 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2774,6 +3546,26 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Verbose", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Verbose = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHttpConnectionManager(dAtA[iNdEx:])
@@ -2781,6 +3573,83 @@ func (m *HttpConnectionManager_Tracing) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HttpConnectionManager_InternalAddressConfig) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowHttpConnectionManager
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InternalAddressConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InternalAddressConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnixSockets", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UnixSockets = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipHttpConnectionManager(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			if (iNdEx + skippy) > l {
@@ -2811,7 +3680,7 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2839,7 +3708,7 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2848,6 +3717,9 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2872,7 +3744,7 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2892,7 +3764,7 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2912,7 +3784,7 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2925,6 +3797,9 @@ func (m *HttpConnectionManager_SetCurrentClientCertDetails) Unmarshal(dAtA []byt
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			if (iNdEx + skippy) > l {
@@ -2955,7 +3830,7 @@ func (m *HttpConnectionManager_UpgradeConfig) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2983,7 +3858,7 @@ func (m *HttpConnectionManager_UpgradeConfig) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2993,6 +3868,9 @@ func (m *HttpConnectionManager_UpgradeConfig) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3012,7 +3890,7 @@ func (m *HttpConnectionManager_UpgradeConfig) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3021,11 +3899,50 @@ func (m *HttpConnectionManager_UpgradeConfig) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Filters = append(m.Filters, &HttpFilter{})
 			if err := m.Filters[len(m.Filters)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHttpConnectionManager
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Enabled == nil {
+				m.Enabled = &types.BoolValue{}
+			}
+			if err := m.Enabled.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3036,6 +3953,9 @@ func (m *HttpConnectionManager_UpgradeConfig) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			if (iNdEx + skippy) > l {
@@ -3066,7 +3986,7 @@ func (m *Rds) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3094,7 +4014,7 @@ func (m *Rds) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3103,6 +4023,9 @@ func (m *Rds) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3124,7 +4047,7 @@ func (m *Rds) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3134,6 +4057,9 @@ func (m *Rds) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3146,6 +4072,9 @@ func (m *Rds) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			if (iNdEx + skippy) > l {
@@ -3176,7 +4105,7 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3204,7 +4133,7 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3214,6 +4143,9 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3233,7 +4165,7 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3242,19 +4174,21 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Config == nil {
-				m.Config = &types.Struct{}
-			}
-			if err := m.Config.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &types.Struct{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.ConfigType = &HttpFilter_Config{v}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DeprecatedV1", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TypedConfig", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3266,7 +4200,7 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3275,15 +4209,17 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthHttpConnectionManager
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.DeprecatedV1 == nil {
-				m.DeprecatedV1 = &HttpFilter_DeprecatedV1{}
-			}
-			if err := m.DeprecatedV1.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			v := &types.Any{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			m.ConfigType = &HttpFilter_TypedConfig{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3294,84 +4230,7 @@ func (m *HttpFilter) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *HttpFilter_DeprecatedV1) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowHttpConnectionManager
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: DeprecatedV1: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeprecatedV1: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowHttpConnectionManager
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthHttpConnectionManager
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Type = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipHttpConnectionManager(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthHttpConnectionManager
 			}
 			if (iNdEx + skippy) > l {
@@ -3441,8 +4300,11 @@ func skipHttpConnectionManager(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthHttpConnectionManager
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthHttpConnectionManager
 			}
 			return iNdEx, nil
@@ -3473,6 +4335,9 @@ func skipHttpConnectionManager(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthHttpConnectionManager
+				}
 			}
 			return iNdEx, nil
 		case 4:
@@ -3491,108 +4356,3 @@ var (
 	ErrInvalidLengthHttpConnectionManager = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowHttpConnectionManager   = fmt.Errorf("proto: integer overflow")
 )
-
-func init() {
-	proto.RegisterFile("envoy/config/filter/network/http_connection_manager/v2/http_connection_manager.proto", fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7)
-}
-
-var fileDescriptor_http_connection_manager_5c85b4f0eeee8fe7 = []byte{
-	// 1537 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0x4f, 0x6f, 0x23, 0x49,
-	0x15, 0x4f, 0xdb, 0xce, 0xc4, 0x7e, 0xfe, 0x93, 0x4e, 0x65, 0x66, 0xd2, 0x78, 0x20, 0x31, 0x91,
-	0x80, 0x68, 0x41, 0xed, 0xd8, 0x0c, 0xc3, 0x01, 0x84, 0xb0, 0x93, 0x0c, 0xc9, 0x68, 0x36, 0x8e,
-	0xda, 0x9e, 0x1d, 0x76, 0x17, 0x54, 0xaa, 0xe9, 0x2e, 0x3b, 0xcd, 0xda, 0x5d, 0x4d, 0x55, 0xb5,
-	0x27, 0x39, 0x21, 0xad, 0x38, 0x20, 0x4e, 0xc0, 0x01, 0x71, 0xe7, 0x03, 0x20, 0x6e, 0x88, 0xd3,
-	0xdc, 0xd8, 0x23, 0x9f, 0x00, 0xd0, 0xdc, 0xf6, 0x2b, 0x70, 0x42, 0x55, 0xd5, 0xed, 0xd8, 0xf9,
-	0xb7, 0xab, 0xdd, 0x70, 0x7b, 0x7e, 0xef, 0xfd, 0x7e, 0xef, 0x75, 0xd5, 0x7b, 0xaf, 0x9e, 0x61,
-	0x40, 0xa3, 0x29, 0x3b, 0x6f, 0xfa, 0x2c, 0x1a, 0x86, 0xa3, 0xe6, 0x30, 0x1c, 0x4b, 0xca, 0x9b,
-	0x11, 0x95, 0xaf, 0x19, 0xff, 0xa8, 0x79, 0x2a, 0x65, 0x8c, 0x7d, 0x16, 0x45, 0xd4, 0x97, 0x21,
-	0x8b, 0xf0, 0x84, 0x44, 0x64, 0x44, 0x79, 0x73, 0xda, 0xbe, 0xc9, 0xe4, 0xc6, 0x9c, 0x49, 0x86,
-	0x9e, 0x68, 0x56, 0xd7, 0xb0, 0xba, 0x86, 0xd5, 0x4d, 0x59, 0xdd, 0x9b, 0xa0, 0xd3, 0x76, 0xfd,
-	0x1b, 0x26, 0x1b, 0x12, 0x87, 0x2a, 0x86, 0xcf, 0x38, 0x4d, 0x33, 0xc3, 0x82, 0x25, 0xdc, 0xa7,
-	0x86, 0xbe, 0xde, 0xb8, 0xea, 0xa6, 0x0d, 0x3e, 0x1b, 0xa7, 0x1e, 0x0f, 0x17, 0x3c, 0x78, 0x20,
-	0x52, 0xfd, 0xee, 0x75, 0x9f, 0x4b, 0x7c, 0x9f, 0x0a, 0x31, 0x66, 0x23, 0xe5, 0x3b, 0xfb, 0x91,
-	0x22, 0x1c, 0x83, 0x90, 0xe7, 0x31, 0x6d, 0xc6, 0x94, 0xfb, 0x34, 0x92, 0xa9, 0x65, 0x73, 0xc4,
-	0xd8, 0x68, 0x9c, 0x86, 0x7e, 0x95, 0x0c, 0x9b, 0x41, 0xc2, 0x89, 0xfa, 0xa2, 0xd4, 0xfe, 0xd5,
-	0xcb, 0x76, 0x21, 0x79, 0xe2, 0xdf, 0x88, 0x7e, 0xcd, 0x49, 0x1c, 0x53, 0x9e, 0x65, 0xba, 0x31,
-	0x25, 0xe3, 0x30, 0x20, 0x92, 0x36, 0x33, 0x21, 0x35, 0xdc, 0x1f, 0xb1, 0x11, 0xd3, 0x62, 0x53,
-	0x49, 0x46, 0xbb, 0xfd, 0x66, 0x03, 0x1e, 0x1c, 0x4a, 0x19, 0xef, 0xcd, 0xce, 0xf5, 0x5d, 0x73,
-	0xac, 0xe8, 0x63, 0x0b, 0xc0, 0x67, 0x01, 0xf5, 0xb1, 0xfa, 0x06, 0xc7, 0x6a, 0x58, 0x3b, 0xb5,
-	0xf6, 0x4b, 0xf7, 0x8b, 0xdd, 0x90, 0x7b, 0x6d, 0x0c, 0x77, 0x4f, 0xf1, 0x0f, 0xce, 0x63, 0xda,
-	0x85, 0xbf, 0x7f, 0xfa, 0x26, 0xbf, 0xfc, 0xb1, 0x95, 0xb3, 0x2d, 0xaf, 0xe4, 0x67, 0x6a, 0xf4,
-	0x0e, 0x94, 0x85, 0x24, 0x12, 0xc7, 0x9c, 0x0e, 0xc3, 0x33, 0x27, 0xd7, 0xb0, 0x76, 0x4a, 0xdd,
-	0x92, 0xf2, 0x2d, 0xf0, 0x5c, 0xc3, 0xf2, 0x40, 0x59, 0x4f, 0xb4, 0x11, 0xf5, 0x20, 0xcf, 0x03,
-	0xe1, 0xe4, 0x1b, 0xd6, 0x4e, 0xb9, 0xfd, 0x83, 0x2f, 0x9a, 0xa8, 0x17, 0x88, 0xc3, 0x25, 0x4f,
-	0x31, 0xa1, 0x03, 0xa8, 0x70, 0x96, 0x48, 0x8a, 0x0d, 0x89, 0x53, 0xd0, 0xcc, 0x8d, 0x94, 0x99,
-	0xc4, 0xa1, 0xf6, 0x57, 0x1e, 0x7b, 0xda, 0x21, 0xbd, 0xc6, 0xc3, 0x25, 0xaf, 0xcc, 0x2f, 0xb4,
-	0x88, 0x42, 0x45, 0xc7, 0x33, 0x39, 0x08, 0x67, 0xb9, 0x91, 0xdf, 0x29, 0xb7, 0xbb, 0x5f, 0xe6,
-	0x24, 0x9f, 0x6a, 0x6f, 0xaf, 0x7c, 0x3a, 0x93, 0x05, 0xfa, 0x31, 0xd4, 0x48, 0x10, 0xe0, 0x44,
-	0x50, 0x8e, 0xc9, 0x88, 0x46, 0xd2, 0xb9, 0xa7, 0xf3, 0xad, 0xbb, 0xa6, 0x62, 0xdc, 0xac, 0x62,
-	0xdc, 0x2e, 0x63, 0xe3, 0xf7, 0xc8, 0x38, 0xa1, 0x5e, 0x85, 0x04, 0xc1, 0x0b, 0x41, 0x79, 0x47,
-	0xf9, 0x23, 0x06, 0x2b, 0x92, 0x13, 0x3f, 0x8c, 0x46, 0xce, 0x8a, 0x86, 0xbe, 0xb8, 0xdb, 0xdb,
-	0x1e, 0x18, 0x72, 0x2f, 0x8b, 0x82, 0x3e, 0x84, 0x07, 0x9a, 0x24, 0x6b, 0x42, 0xcc, 0x62, 0xe5,
-	0x2f, 0x9c, 0xa2, 0x0e, 0xff, 0xad, 0xc5, 0x93, 0x56, 0xfd, 0xaa, 0x99, 0x5b, 0x27, 0xa9, 0x7f,
-	0xcf, 0xb8, 0x7b, 0xeb, 0x8a, 0xe5, 0x92, 0x12, 0xfd, 0x1c, 0x1e, 0x2a, 0x75, 0xfb, 0x2a, 0x7b,
-	0xe9, 0x56, 0xf6, 0xf6, 0x65, 0xf6, 0xfb, 0xa7, 0xd7, 0x68, 0xd1, 0x16, 0x94, 0x05, 0xe5, 0x53,
-	0xca, 0x71, 0x44, 0x26, 0xd4, 0x01, 0x55, 0x99, 0x1e, 0x18, 0xd5, 0x31, 0x99, 0x50, 0xd4, 0x85,
-	0x4a, 0x18, 0x8c, 0x29, 0x96, 0xe1, 0x84, 0xb2, 0x44, 0x3a, 0x65, 0x1d, 0xf5, 0x2b, 0x57, 0x6e,
-	0x63, 0x3f, 0x2d, 0x9b, 0x6e, 0xe1, 0x4f, 0xff, 0xde, 0xb2, 0xbc, 0xb2, 0x02, 0x0d, 0x0c, 0x06,
-	0xed, 0x43, 0x35, 0xe0, 0x24, 0x8c, 0x66, 0x24, 0x95, 0xcf, 0x47, 0x52, 0xd1, 0xa8, 0x8c, 0xe5,
-	0x19, 0x80, 0x99, 0x4e, 0x78, 0xcc, 0x46, 0x4e, 0x55, 0x97, 0xdf, 0xb7, 0xaf, 0xbd, 0xda, 0x8b,
-	0x21, 0x36, 0x6d, 0xbb, 0x1d, 0xfd, 0xe3, 0x39, 0x1b, 0x79, 0x25, 0x92, 0x89, 0xe8, 0x10, 0x50,
-	0x22, 0x28, 0xe6, 0x74, 0xc2, 0x24, 0xc5, 0x24, 0x08, 0x38, 0x15, 0xc2, 0xa9, 0x7d, 0x66, 0xa5,
-	0xd9, 0x89, 0xa0, 0x9e, 0x06, 0x75, 0x0c, 0x06, 0x3d, 0x83, 0xf5, 0x11, 0x8d, 0x28, 0x27, 0x52,
-	0xd1, 0xfd, 0x32, 0xa1, 0x42, 0xe2, 0x30, 0x70, 0x56, 0x3f, 0x93, 0x6a, 0x2d, 0x83, 0x79, 0x06,
-	0x75, 0x14, 0xa0, 0xbf, 0x5a, 0xf0, 0x68, 0xc8, 0xf8, 0x6b, 0xc2, 0x03, 0xec, 0x8f, 0x43, 0x1a,
-	0x49, 0xec, 0x53, 0x2e, 0x71, 0x40, 0x25, 0x09, 0xc7, 0xc2, 0xb1, 0xf5, 0xf0, 0x1a, 0xde, 0x6d,
-	0x39, 0x3f, 0x35, 0x01, 0xf7, 0x74, 0xbc, 0x3d, 0xca, 0xe5, 0xbe, 0x89, 0xb6, 0x30, 0xcb, 0x9c,
-	0xe1, 0x0d, 0x5e, 0xe8, 0x2f, 0x16, 0x6c, 0x09, 0x2a, 0xb1, 0x9f, 0x70, 0xae, 0x13, 0xbe, 0x26,
-	0xef, 0x35, 0x7d, 0x18, 0xe1, 0xdd, 0xe6, 0xdd, 0xa7, 0x72, 0xcf, 0xc4, 0xbc, 0x92, 0x94, 0xf7,
-	0x48, 0xdc, 0x6c, 0x44, 0xdf, 0x01, 0x14, 0x73, 0x76, 0x76, 0x8e, 0x5b, 0xbb, 0xbb, 0x2a, 0xa2,
-	0x0c, 0xa3, 0x84, 0x3a, 0xa8, 0x61, 0xed, 0x14, 0x3d, 0x5b, 0x5b, 0x5a, 0xbb, 0xbb, 0x7b, 0xa9,
-	0x1e, 0x35, 0xe1, 0xfe, 0xd9, 0x70, 0x88, 0xa3, 0x64, 0x82, 0x25, 0x4f, 0x84, 0xa4, 0x01, 0x3e,
-	0x65, 0xb1, 0x70, 0xd6, 0x1b, 0xd6, 0x4e, 0xd5, 0x5b, 0x3b, 0x1b, 0x0e, 0x8f, 0x93, 0xc9, 0xc0,
-	0x58, 0x0e, 0x59, 0x2c, 0x10, 0x85, 0x16, 0xa7, 0x31, 0xa7, 0x42, 0x1d, 0x43, 0x18, 0x4f, 0x1f,
-	0x5f, 0xaa, 0x32, 0x4c, 0x84, 0x51, 0x4f, 0xd4, 0x83, 0x17, 0x28, 0xf9, 0x89, 0x73, 0x5f, 0x47,
-	0x7f, 0x67, 0x06, 0x3c, 0x8a, 0xa7, 0x8f, 0x17, 0xea, 0xac, 0x23, 0x94, 0xea, 0x5d, 0x0d, 0x39,
-	0x8a, 0xa7, 0x4f, 0xd0, 0x37, 0x61, 0x55, 0x7c, 0x14, 0xc6, 0x58, 0x25, 0xa7, 0xb4, 0x51, 0xe0,
-	0x3c, 0xd0, 0x24, 0x55, 0xa5, 0xfe, 0xe9, 0x70, 0xd8, 0xd1, 0x4a, 0x64, 0x43, 0x7e, 0x1a, 0x12,
-	0xe7, 0xa1, 0x6e, 0x6c, 0x25, 0xa2, 0x5f, 0x5b, 0xb0, 0x9a, 0xc4, 0x23, 0x4e, 0x82, 0xec, 0x49,
-	0x10, 0xce, 0x86, 0xee, 0xa6, 0x0f, 0xef, 0xf6, 0x86, 0x5e, 0x98, 0x20, 0xe6, 0xfd, 0xf0, 0x6a,
-	0xc9, 0xfc, 0x4f, 0x81, 0x7a, 0xb0, 0x2e, 0x24, 0xa7, 0x64, 0x82, 0x17, 0xe6, 0x8b, 0xf3, 0xf9,
-	0x46, 0xc3, 0x9a, 0xc1, 0x1e, 0x5d, 0x4c, 0x99, 0xfa, 0x3f, 0xf2, 0xb0, 0x92, 0xce, 0x66, 0xf4,
-	0x47, 0x0b, 0x6a, 0x2c, 0xa6, 0x06, 0x62, 0x46, 0x9b, 0x79, 0xf9, 0xfd, 0xff, 0xcb, 0x5b, 0xe0,
-	0xf6, 0xb2, 0x58, 0x6a, 0x66, 0x2e, 0x74, 0x4e, 0x95, 0xcd, 0x9b, 0xd0, 0xf7, 0xc1, 0xc9, 0xa6,
-	0xc4, 0x29, 0x25, 0x01, 0xe5, 0x02, 0x0f, 0x19, 0xc7, 0x92, 0x8c, 0x84, 0x93, 0x6b, 0xe4, 0x77,
-	0x4a, 0xde, 0x83, 0xd4, 0x7e, 0x68, 0xcc, 0x4f, 0x19, 0x1f, 0x90, 0x91, 0x40, 0x3f, 0x84, 0xd5,
-	0xb4, 0xb5, 0x04, 0x99, 0xc4, 0x63, 0xf5, 0xba, 0x99, 0x15, 0x61, 0x3d, 0xfd, 0x22, 0xb5, 0xde,
-	0xb8, 0x27, 0x66, 0x45, 0xf3, 0x6a, 0xc6, 0xb7, 0x9f, 0xba, 0x2a, 0x34, 0x27, 0x51, 0xc0, 0x26,
-	0x17, 0xe8, 0xc2, 0x2d, 0x68, 0xe3, 0x3b, 0x43, 0xff, 0x08, 0x6c, 0x36, 0xa5, 0x9c, 0x8c, 0xc7,
-	0x17, 0xf0, 0xe5, 0x9b, 0xe1, 0xab, 0xa9, 0x73, 0x86, 0xdf, 0x76, 0xa1, 0xba, 0x70, 0x40, 0xa8,
-	0x0c, 0x2b, 0x47, 0xc7, 0x3f, 0xf1, 0x0e, 0xfa, 0x7d, 0x7b, 0x09, 0x01, 0xdc, 0x3b, 0x30, 0xb2,
-	0x55, 0x2f, 0xfc, 0xe6, 0xcf, 0x9b, 0x4b, 0xf5, 0xdf, 0x5b, 0xf0, 0xe8, 0x96, 0xf6, 0x46, 0x8f,
-	0x61, 0x45, 0x24, 0xaf, 0x7e, 0x41, 0x7d, 0xa9, 0x6f, 0xf5, 0xf6, 0x39, 0x9b, 0xb9, 0x22, 0x04,
-	0x05, 0x35, 0x95, 0xf4, 0xb1, 0x15, 0x3d, 0x2d, 0xab, 0xee, 0x08, 0x22, 0xa1, 0xcf, 0xa2, 0xe8,
-	0x29, 0x51, 0x69, 0x12, 0x1e, 0xea, 0xcf, 0x2b, 0x7a, 0x4a, 0x7c, 0x56, 0x28, 0xe6, 0xec, 0x7c,
-	0xfd, 0x77, 0x16, 0x54, 0x17, 0x0a, 0x1a, 0x7d, 0x1d, 0x2a, 0x59, 0x1b, 0xcd, 0x56, 0xcb, 0x92,
-	0x57, 0x4e, 0x75, 0x7a, 0xef, 0xfb, 0x19, 0xac, 0x64, 0xeb, 0x52, 0xee, 0xce, 0xd6, 0xa5, 0x8c,
-	0x72, 0xbb, 0x05, 0xa5, 0xd9, 0xe6, 0x89, 0x8a, 0x50, 0xe8, 0xbc, 0x18, 0xf4, 0xec, 0x25, 0x54,
-	0x82, 0xe5, 0xc3, 0xc1, 0xe0, 0xa4, 0x65, 0x5b, 0x99, 0xd8, 0xb6, 0x73, 0xe6, 0x64, 0xb7, 0x7f,
-	0x05, 0xce, 0x4d, 0xf3, 0x1e, 0x55, 0xa0, 0xd8, 0xef, 0x1c, 0x1f, 0x0d, 0x8e, 0x3e, 0x38, 0xb0,
-	0x97, 0x90, 0x0d, 0x95, 0xa7, 0x3d, 0xef, 0x65, 0xc7, 0xdb, 0xc7, 0xbd, 0xe3, 0xe7, 0xef, 0xdb,
-	0x16, 0x42, 0x50, 0xeb, 0x9c, 0x9c, 0x1c, 0x1c, 0xef, 0xe3, 0xd4, 0x60, 0xe7, 0x94, 0x57, 0x86,
-	0xc1, 0xfd, 0x83, 0x81, 0x9d, 0x47, 0x1b, 0xb0, 0xde, 0x79, 0xfe, 0xb2, 0xf3, 0x7e, 0x1f, 0x2f,
-	0xc0, 0x0b, 0x26, 0x81, 0xae, 0x03, 0xab, 0x66, 0x19, 0x15, 0x31, 0xf5, 0xc3, 0x61, 0x48, 0x39,
-	0x5a, 0xfe, 0xdb, 0xa7, 0x6f, 0xf2, 0xd6, 0xf6, 0x1f, 0x2c, 0xc8, 0x7b, 0x81, 0x40, 0x03, 0xa8,
-	0x2e, 0xfc, 0xe9, 0x49, 0xaf, 0x78, 0xeb, 0x9a, 0x3d, 0xc7, 0x5c, 0x44, 0x5f, 0xbb, 0x75, 0x6b,
-	0x9f, 0xfc, 0x6b, 0x6b, 0x49, 0x37, 0xde, 0x6f, 0x75, 0xe3, 0x55, 0xfc, 0x39, 0x2b, 0xfa, 0x1e,
-	0xac, 0xcd, 0x2f, 0xc1, 0x66, 0x24, 0x5c, 0xd9, 0xc3, 0x57, 0xe7, 0x16, 0x5e, 0x55, 0xa8, 0xdb,
-	0xff, 0xb5, 0x00, 0x2e, 0x8e, 0x1e, 0x7d, 0x0d, 0x0a, 0xb3, 0x59, 0xb2, 0x00, 0xd4, 0x6a, 0xd4,
-	0x84, 0x7b, 0xe9, 0x8e, 0x9d, 0xd3, 0x39, 0x6f, 0x5c, 0x29, 0xcb, 0xbe, 0xfe, 0x0f, 0xe4, 0xa5,
-	0x6e, 0xe8, 0x0c, 0xaa, 0x81, 0x1a, 0xf9, 0x3e, 0x51, 0xef, 0xca, 0xb4, 0x95, 0xb6, 0x74, 0xef,
-	0xcb, 0x57, 0x89, 0xbb, 0x3f, 0xe3, 0x7d, 0xaf, 0xd5, 0xcd, 0x39, 0x6a, 0x99, 0x9a, 0xd3, 0xd4,
-	0xb7, 0xa1, 0x32, 0xef, 0xa1, 0x9a, 0x63, 0xae, 0x88, 0xb5, 0xdc, 0xb5, 0x3f, 0x79, 0xbb, 0x69,
-	0xfd, 0xf3, 0xed, 0xa6, 0xf5, 0x9f, 0xb7, 0x9b, 0xd6, 0x07, 0xb9, 0x69, 0xfb, 0xd5, 0x3d, 0xfd,
-	0x21, 0xdf, 0xfd, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf4, 0xbc, 0xe5, 0x71, 0x37, 0x0f, 0x00,
-	0x00,
-}

@@ -17,7 +17,7 @@ func TestReloadCommand_noTabs(t *testing.T) {
 
 func TestReloadCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	// Setup a dummy response to errCh to simulate a successful reload

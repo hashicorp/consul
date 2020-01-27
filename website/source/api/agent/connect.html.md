@@ -35,10 +35,10 @@ connection attempt.
 | `POST`  | `/agent/connect/authorize`  | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
 | ---------------- | ----------------- | -------------------- | --------------- |
@@ -56,6 +56,12 @@ The table below shows this endpoint's support for
 - `ClientCertSerial` `(string: <required>)` - The colon-hex-encoded serial
   number for the requesting client cert. This is used to check against
   revocation lists.
+  
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
+  the target service. If not provided in the JSON body, the value of
+  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
 
@@ -102,10 +108,10 @@ unavailable. This endpoint should be used by proxies and native integrations.
 | `GET`  | `/agent/connect/ca/roots`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required |
 | ---------------- | ----------------- | -------------------- | ------------ |
@@ -115,7 +121,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/ca/roots
+   http://127.0.0.1:8500/v1/agent/connect/ca/roots
 ```
 
 ### Sample Response
@@ -128,12 +134,15 @@ $ curl \
       "ID": "15:bf:3a:7d:ff:ea:c1:8c:46:67:6c:db:b8:81:18:36:ad:e5:d0:c7",
       "Name": "Consul CA Root Cert",
       "SerialNumber": 7,
-      "SigningKeyID": "31:66:3a:39:31:3a:63:61:3a:34:31:3a:38:66:3a:61:63:3a:36:37:3a:62:66:3a:35:39:3a:63:32:3a:66:61:3a:34:65:3a:37:35:3a:35:63:3a:64:38:3a:66:30:3a:35:35:3a:64:65:3a:62:65:3a:37:35:3a:62:38:3a:33:33:3a:33:31:3a:64:35:3a:32:34:3a:62:30:3a:30:34:3a:62:33:3a:65:38:3a:39:37:3a:35:62:3a:37:65",
+      "SigningKeyID": "1f:91:ca:41:8f:ac:67:bf:59:c2:fa:4e:75:5c:d8:f0:55:de:be:75:b8:33:31:d5:24:b0:04:b3:e8:97:5b:7e",
+      "ExternalTrustDomain": "a1499528-fbf6-df7b-05e5-ae81e1873fc4",
       "NotBefore": "2018-05-21T16:33:28Z",
       "NotAfter": "2028-05-18T16:33:28Z",
       "RootCert": "-----BEGIN CERTIFICATE-----\nMIICmDCCAj6gAwIBAgIBBzAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg\nQ0EgNzAeFw0xODA1MjExNjMzMjhaFw0yODA1MTgxNjMzMjhaMBYxFDASBgNVBAMT\nC0NvbnN1bCBDQSA3MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAER0qlxjnRcMEr\niSGlH7G7dYU7lzBEmLUSMZkyBbClmyV8+e8WANemjn+PLnCr40If9cmpr7RnC9Qk\nGTaLnLiF16OCAXswggF3MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/\nMGgGA1UdDgRhBF8xZjo5MTpjYTo0MTo4ZjphYzo2NzpiZjo1OTpjMjpmYTo0ZTo3\nNTo1YzpkODpmMDo1NTpkZTpiZTo3NTpiODozMzozMTpkNToyNDpiMDowNDpiMzpl\nODo5Nzo1Yjo3ZTBqBgNVHSMEYzBhgF8xZjo5MTpjYTo0MTo4ZjphYzo2NzpiZjo1\nOTpjMjpmYTo0ZTo3NTo1YzpkODpmMDo1NTpkZTpiZTo3NTpiODozMzozMTpkNToy\nNDpiMDowNDpiMzplODo5Nzo1Yjo3ZTA/BgNVHREEODA2hjRzcGlmZmU6Ly8xMjRk\nZjVhMC05ODIwLTc2YzMtOWFhOS02ZjYyMTY0YmExYzIuY29uc3VsMD0GA1UdHgEB\n/wQzMDGgLzAtgisxMjRkZjVhMC05ODIwLTc2YzMtOWFhOS02ZjYyMTY0YmExYzIu\nY29uc3VsMAoGCCqGSM49BAMCA0gAMEUCIQDzkkI7R+0U12a+zq2EQhP/n2mHmta+\nfs2hBxWIELGwTAIgLdO7RRw+z9nnxCIA6kNl//mIQb+PGItespiHZKAz74Q=\n-----END CERTIFICATE-----\n",
       "IntermediateCerts": null,
       "Active": true,
+      "PrivateKeyType": "ec",
+      "PrivateKeyBits": 256,
       "CreateIndex": 8,
       "ModifyIndex": 8
     }
@@ -163,10 +172,10 @@ clients to efficiently wait for certificate rotations.
 | `GET`  | `/agent/connect/ca/leaf/:service`    | `application/json`         |
 
 The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
+[blocking queries](/api/features/blocking.html),
+[consistency modes](/api/features/consistency.html),
+[agent caching](/api/features/caching.html), and
+[required ACLs](/api/index.html#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required    |
 | ---------------- | ----------------- | -------------------- | --------------- |
@@ -182,7 +191,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-   http://127.0.0.1:8500/v1/connect/ca/leaf/web
+   http://127.0.0.1:8500/v1/agent/connect/ca/leaf/web
 ```
 
 ### Sample Response
@@ -217,105 +226,3 @@ $ curl \
 
 - `ValidBefore` `(string)` - The time before which the certificate is valid.
   Used with `ValidAfter` this can determine the validity period of the certificate.
-
-## Managed Proxy Configuration ([Deprecated](/docs/connect/proxies/managed-deprecated.html))
-
-This endpoint returns the configuration for a [managed
-proxy](/docs/connect/proxies.html). Ths endpoint is only useful for _managed
-proxies_ and not relevant for unmanaged proxies. This endpoint will be removed
-in a future major release as part of [managed proxy
-deprecation].(/docs/connect/proxies/managed-deprecated.html). The equivalent API
-for use will all future proxies is the more generic `
-
-Managed proxy configuration is set in the service definition. When Consul
-starts the managed proxy, it provides the service ID and ACL token. The proxy
-is expected to call this endpoint to retrieve its configuration. It may use
-a blocking query to detect any configuration changes.
-
-| Method | Path                         | Produces                   |
-| ------ | ---------------------------- | -------------------------- |
-| `GET`  | `/agent/connect/proxy/:id`    | `application/json`        |
-
-The table below shows this endpoint's support for
-[blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes),
-[agent caching](/api/index.html#agent-caching), and
-[required ACLs](/api/index.html#acls).
-
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                 |
-| ---------------- | ----------------- | ------------- | ---------------------------- |
-| `YES`<sup>1</sup>| `all`             | `none`        | `service:write, proxy token` |
-
-<sup>1</sup> Supports [hash-based
-blocking](/api/index.html#hash-based-blocking-queries) only.
-
-### Parameters
-
-- `ID` `(string: <required>)` - The ID (not the name) of the proxy service
-  in the local agent catalog. For managed proxies, this is provided in the
-  `CONSUL_PROXY_ID` environment variable by Consul.
-
-### Sample Request
-
-```text
-$ curl \
-   http://127.0.0.1:8500/v1/connect/proxy/web-proxy
-```
-
-### Sample Response
-
-```json
-{
-  "ProxyServiceID": "web-proxy",
-  "TargetServiceID": "web",
-  "TargetServiceName": "web",
-  "ContentHash": "cffa5f4635b134b9",
-  "ExecMode": "daemon",
-  "Command": [
-    "/usr/local/bin/consul",
-    "connect",
-    "proxy"
-  ],
-  "Config": {
-    "bind_address": "127.0.0.1",
-    "bind_port": 20199,
-    "local_service_address": "127.0.0.1:8181"
-  },
-  "Upstreams": [
-    {
-        "DestinationType": "service",
-        "DestinationName": "db",
-        "LocalBindPort": 1234,
-        "Config": {
-            "connect_timeout_ms": 1000
-        }
-    },
-    {
-        "DestinationType": "prepared_query",
-        "DestinationName": "geo-cache",
-        "LocalBindPort": 1235
-    }
-  ]
-}
-```
-
-- `ProxyServiceID` `string` - The ID of the proxy service.
-
-- `TargetServiceID` `(string)` - The ID of the target service the proxy represents.
-
-- `TargetServiceName` `(string)` - The name of the target service the proxy represents.
-
-- `ContentHash` `(string)` - The content hash of the response used for hash-based
-  blocking queries.
-
-- `ExecMode` `(string)` - The execution mode of the managed proxy.
-
-- `Command` `(array<string>)` - The command for the managed proxy.
-
-- `Config` `(map<string|any>)` - The configuration for the managed proxy. This
-  is a map of primitive values (including arrays and maps) that is set by the
-  user.
-
-- `Upstreams` `(array<Upstream>)` - The configured upstreams for the proxy. See 
-[Upstream Configuration Reference](/docs/connect/proxies.html#upstream-configuration-reference)
-for more details on the format.

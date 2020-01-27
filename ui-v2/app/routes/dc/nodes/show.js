@@ -1,17 +1,13 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
 
-import distance from 'consul-ui/utils/distance';
-import tomographyFactory from 'consul-ui/utils/tomography';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
-
-const tomography = tomographyFactory(distance);
 
 export default Route.extend(WithBlockingActions, {
   repo: service('repository/node'),
   sessionRepo: service('repository/session'),
+  coordinateRepo: service('repository/coordinate'),
   queryParams: {
     s: {
       as: 'filter',
@@ -20,40 +16,28 @@ export default Route.extend(WithBlockingActions, {
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const repo = get(this, 'repo');
-    const sessionRepo = get(this, 'sessionRepo');
+    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const name = params.name;
     return hash({
-      item: repo.findBySlug(params.name, dc),
-    }).then(function(model) {
-      // TODO: Consider loading this after initial page load
-      const coordinates = get(model.item, 'Coordinates');
-      return hash({
-        ...model,
-        ...{
-          tomography:
-            get(coordinates, 'length') > 1
-              ? tomography(params.name, coordinates.map(item => get(item, 'data')))
-              : null,
-          items: get(model.item, 'Services'),
-          sessions: sessionRepo.findByNode(get(model.item, 'Node'), dc),
-        },
-      });
+      item: this.repo.findBySlug(name, dc, nspace),
+      sessions: this.sessionRepo.findByNode(name, dc, nspace),
+      tomography: this.coordinateRepo.findAllByNode(name, dc),
     });
   },
   setupController: function(controller, model) {
-    this._super(...arguments);
     controller.setProperties(model);
   },
   actions: {
     invalidateSession: function(item) {
       const dc = this.modelFor('dc').dc.Name;
+      const nspace = this.modelFor('nspace').nspace.substr(1);
       const controller = this.controller;
-      const repo = get(this, 'sessionRepo');
-      return get(this, 'feedback').execute(() => {
-        const node = get(item, 'Node');
-        return repo.remove(item).then(() => {
-          return repo.findByNode(node, dc).then(function(sessions) {
-            set(controller, 'sessions', sessions);
+      return this.feedback.execute(() => {
+        return this.sessionRepo.remove(item).then(() => {
+          return this.sessionRepo.findByNode(item.Node, dc, nspace).then(function(sessions) {
+            controller.setProperties({
+              sessions: sessions,
+            });
           });
         });
       }, 'delete');

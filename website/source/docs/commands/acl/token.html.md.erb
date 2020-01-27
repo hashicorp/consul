@@ -1,0 +1,93 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Token"
+sidebar_current: "docs-commands-acl-token"
+---
+
+# Consul ACL Tokens
+
+Command: `consul acl token`
+
+The `acl token` command is used to manage Consul's ACL tokens.
+It exposes commands for creating, updating, reading, deleting, and listing tokens.
+This command is available in Consul 1.4.0 and newer.
+
+ACL tokens may also be managed via the [HTTP API](/api/acl/tokens.html).
+
+-> **Note:** All of the example subcommands in this document will require a valid
+Consul token with the appropriate permissions.  Either set the
+`CONSUL_HTTP_TOKEN` environment variable to the token's secret ID or pass the
+secret ID as the value of the `-token` parameter.
+
+## Usage
+
+Usage: `consul acl token <subcommand>`
+
+For the exact documentation for your Consul version, run `consul acl
+token -h` to view the complete list of subcommands.
+
+```text
+Usage: consul acl token <subcommand> [options] [args]
+
+  ...
+
+Subcommands:
+    clone     Clone an ACL token
+    create    Create an ACL token
+    delete    Delete an ACL token
+    list      List ACL tokens
+    read      Read an ACL token
+    update    Update an ACL token
+```
+
+For more information, examples, and usage about a subcommand, click on the name
+of the subcommand in the sidebar.
+
+## Identifying Tokens
+
+Several of the subcommands need to operate on a specific token. Those
+subcommands support specifying the token by its ID using the `-id` parameter.
+
+The ID may be specified as a unique UUID prefix instead of the entire UUID. As
+long as it is unique it will be resolved to the full UUID and used. Additionally
+builtin token names will be accepted as the value of the `-id`.
+
+Builtin Tokens:
+
+| Token UUID                           | Token Name        |
+| ------------------------------------ | ----------------- |
+| 00000000-0000-0000-0000-000000000002 | anonymous         |
+
+## Basic Examples
+
+Create a new ACL token:
+
+```sh
+$ consul acl token create \
+             -description "This is an example token" \
+             -policy-id 06acc965
+```
+
+List all tokens:
+
+```sh
+$ consul acl token list
+```
+
+Update a token:
+
+```sh
+$ consul acl token update -id 986193 -description "WonderToken"
+```
+
+Read a token with an accessor ID:
+
+```sh
+$ consul acl token read -id 986193
+```
+
+Delete a token
+
+```sh
+$ consul acl token delete -id 986193
+```

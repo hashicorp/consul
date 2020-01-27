@@ -15,11 +15,6 @@ used by Serf is based on
 ["SWIM: Scalable Weakly-consistent Infection-style Process Group Membership Protocol"](http://www.cs.cornell.edu/info/projects/spinglass/public_pdfs/swim.pdf),
 with a few minor adaptations. There are more details about [Serf's protocol here](https://www.serf.io/docs/internals/gossip.html).
 
-~> **Advanced Topic!** This page covers technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ## Gossip in Consul
 
 Consul makes use of two different gossip pools. We refer to each pool as the
@@ -29,7 +24,7 @@ used for a few purposes. Membership information allows clients to automatically 
 servers, reducing the amount of configuration needed. The distributed failure detection
 allows the work of failure detection to be shared by the entire cluster instead of
 concentrated on a few servers. Lastly, the gossip pool allows for reliable and fast
-event broadcasts for events like leader election.
+event broadcasts.
 
 The WAN pool is globally unique, as all servers should participate in the WAN pool
 regardless of datacenter. Membership information provided by the WAN pool allows

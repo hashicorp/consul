@@ -25,6 +25,8 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	ParsedPolicies: 128,
 	// Authorizers - number of compiled multi-policy effective policies that can be cached
 	Authorizers: 256,
+	// Roles - number of ACL roles that can be cached
+	Roles: 128,
 }
 
 func (c *Client) UseLegacyACLs() bool {
@@ -96,6 +98,35 @@ func (c *Client) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	return false, nil, nil
 }
 
+func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+	// clients do no local role resolution at the moment
+	return false, nil, nil
+}
+
 func (c *Client) ResolveToken(token string) (acl.Authorizer, error) {
 	return c.acls.ResolveToken(token)
+}
+
+func (c *Client) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	return c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+}
+
+func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
 }

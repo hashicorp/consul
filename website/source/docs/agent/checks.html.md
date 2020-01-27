@@ -11,6 +11,7 @@ description: |-
 One of the primary roles of the agent is management of system-level and application-level health
 checks. A health check is considered to be application-level if it is associated with a
 service. If not associated with a service, the check monitors the health of the entire node.
+Review the [health checks guide](https://learn.hashicorp.com/consul/developer-discovery/health-checks) to get a more complete example on how to leverage health check capabilities in Consul.
 
 A check is defined in a configuration file or added at runtime over the HTTP interface. Checks
 created via the HTTP interface persist with that node.
@@ -31,30 +32,38 @@ There are several different kinds of checks:
   In Consul 0.9.0 and later, script checks are not enabled by default. To use them you
   can either use :
   * [`enable_local_script_checks`](/docs/agent/options.html#_enable_local_script_checks):
-    enable script checks defile in local config files. Script checks defined via the HTTP
+    enable script checks defined in local config files. Script checks defined via the HTTP
     API will not be allowed.
   * [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks): enable
     script checks regardless of how they are defined.
 
-* HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
-  every 30 seconds) to the specified URL. The status of the service depends on
-  the HTTP response code: any `2xx` code is considered passing, a `429 Too Many
-  Requests` is a warning, and anything else is a failure. This type of check
+  ~> **Security Warning:** Enabling script checks in some configurations may
+  introduce a remote execution vulnerability which is known to be targeted by
+  malware. We strongly recommend `enable_local_script_checks` instead. See [this
+  blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  for more details.
+
+* HTTP + Interval - These checks make an HTTP `GET` request to the specified URL,
+  waiting the specified `interval` amount of time between requests (eg. 30 seconds).
+  The status of the service depends on the HTTP response code: any `2xx` code is 
+  considered passing, a `429 Too ManyRequests` is a warning, and anything else is
+  a failure. This type of check
   should be preferred over a script that uses `curl` or another external process
   to check a simple HTTP operation. By default, HTTP checks are `GET` requests
   unless the `method` field specifies a different method. Additional header
   fields can be set through the `header` field which is a map of lists of
   strings, e.g. `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks will be
-  configured with a request timeout equal to the check interval, with a max of
-  10 seconds. It is possible to configure a custom HTTP check timeout value by
+  configured with a request timeout equal to 10 seconds.
+  It is possible to configure a custom HTTP check timeout value by
   specifying the `timeout` field in the check definition. The output of the
   check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support TLS. By default, a valid TLS certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition.
 
-* TCP + Interval - These checks make an TCP connection attempt every Interval
-  (e.g. every 30 seconds) to the specified IP/hostname and port. If no hostname
+* TCP + Interval - These checks make a TCP connection attempt to the specified 
+  IP/hostname and port, waiting `interval` amount of time between attempts 
+  (e.g. 30 seconds). If no hostname
   is specified, it defaults to "localhost". The status of the service depends on
   whether the connection attempt is successful (ie - the port is currently
   accepting connections). If the connection is accepted, the status is
@@ -63,10 +72,9 @@ There are several different kinds of checks:
   addresses, and the first successful connection attempt will result in a
   successful check. This type of check should be preferred over a script that
   uses `netcat` or another external process to check a simple socket operation.
-  By default, TCP checks will be configured with a request timeout equal to the
-  check interval, with a max of 10 seconds. It is possible to configure a custom
-  TCP check timeout value by specifying the `timeout` field in the check
-  definition.
+  By default, TCP checks will be configured with a request timeout of 10 seconds. 
+  It is possible to configure a custom TCP check timeout value by specifying the 
+  `timeout` field in the check definition.
 
 * <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known
   state for a given TTL.  The state of the check must be updated periodically
@@ -101,8 +109,9 @@ There are several different kinds of checks:
 
 * gRPC + Interval - These checks are intended for applications that support the standard
   [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-  The state of the check will be updated at the given interval by probing the configured
-  endpoint. By default, gRPC checks will be configured with a default timeout of 10 seconds.
+  The state of the check will be updated by probing the configured endpoint, waiting `interval`
+  amount of time between probes (eg. 30 seconds). By default, gRPC checks will be configured 
+  with a default timeout of 10 seconds.
   It is possible to configure a custom timeout value by specifying the `timeout` field in
   the check definition. gRPC checks will default to not using TLS, but TLS can be enabled by
   setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid
@@ -228,9 +237,8 @@ generated. Otherwise, `id` will be set to `name`. If names might conflict,
 unique IDs should be provided.
 
 The `notes` field is opaque to Consul but can be used to provide a human-readable
-description of the current state of the check. With a script check, the field is
-set to any output generated by the script. Similarly, an external process updating
-a TTL check via the HTTP interface can set the `notes` value.
+description of the current state of the check. Similarly, an external process
+updating a TTL check via the HTTP interface can set the `notes` value.
 
 Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
@@ -272,8 +280,7 @@ this convention:
  * Any other code - Check is failing
 
 This is the only convention that Consul depends on. Any output of the script
-will be captured and stored in the `notes` field so that it can be viewed
-by human operators.
+will be captured and stored in the `output` field.
 
 In Consul 0.9.0 and later, the agent must be configured with
 [`enable_script_checks`](/docs/agent/options.html#_enable_script_checks) set to `true`
@@ -324,6 +331,12 @@ In the above configuration, if the web-app health check begins failing, it will
 only affect the availability of the web-app service. All other services
 provided by the node will remain unchanged.
 
+## Agent Certificates for TLS Checks
+
+The [enable_agent_tls_for_checks](/docs/agent/options.html#enable_agent_tls_for_checks)
+agent configuration option can be utilized to have HTTP or gRPC health checks
+to use the agent's credentials when configured for TLS.
+
 ## Multiple Check Definitions
 
 Multiple check definitions can be defined using the `checks` (plural)
@@ -352,5 +365,23 @@ key in your configuration file.
     },
     ...
   ]
+}
+```
+
+## Success/Failures before passing/critical
+
+A check may be set to become passing/critical only if a specified number of consecutive
+checks return passing/critical. Status will stay identical as before until
+the threshold is reached.
+This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
+By default, both passing and critical thresholds will be set to 0 so the check status will always reflect the last check result.
+
+```javascript
+{
+  "checks": {
+    ...
+    "success_before_passing" : 3
+    "failures_before_critical" : 3
+  },
 }
 ```

@@ -14,7 +14,7 @@ The Vault CA provider uses the
 [Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki/index.html)
 to generate and sign certificates.
 
--> This page documents the specifics of the built-in CA provider.
+-> This page documents the specifics of the Vault CA provider.
 Please read the [certificate management overview](/docs/connect/ca.html)
 page first to understand how Consul manages certificates with configurable
 CA providers.
@@ -47,9 +47,9 @@ connect {
 }
 ```
 
-The set of configuration options is listed below. The
-first key is the value used in API calls while the second key (after the `/`)
-is used if configuring in an agent configuration file.
+The configuration options are listed below. Note, the
+first key is the value used in API calls and the second key (after the `/`)
+is used if you're adding configuring to the agent's configuration file.
 
   * `Address` / `address` (`string: <required>`) - The address of the Vault
     server.
@@ -67,6 +67,29 @@ is used if configuring in an agent configuration file.
     This certificate will be signed by the configured root PKI path. If this
     path doesn't exist, Consul will attempt to mount and configure this
     automatically.
+
+  * `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
+    certificate used for Vault communication. If unspecified, this will fallback
+    to the default system CA bundle, which varies by OS and version.
+
+  * `CAPath` / `ca_path` (`string: ""`) - Specifies an optional path to a folder
+    containing CA certificates to be used for Vault communication. If
+    unspecified, this will fallback to the default system CA bundle, which
+    varies by OS and version.
+
+  * `CertFile` / `cert_file` (`string: ""`) - Specifies the path to the
+    certificate used for Vault communication. If this is set then you need to
+    also set tls_key_file.
+
+  * `KeyFile` / `key_file` (`string: ""`) - Specifies the path to the private
+    key used for Vault communication. If this is set then you need to also set
+    cert_file.
+
+  * `TLSServerName` / `tls_server_name` (`string: ""`) - Specifies an optional
+    string used to set the SNI host when connecting to Vault via TLS.
+
+  * `TLSSkipVerify` / `tls_skip_verify` (`bool: false`) - Specifies if SSL peer
+    validation should be enforced.
 
 ## Root and Intermediate PKI Paths
 

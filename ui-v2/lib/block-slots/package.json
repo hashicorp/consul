@@ -1,0 +1,10 @@
+{
+  "name": "block-slots",
+  "dependencies": {
+    "ember-cli-htmlbars": "*",
+    "ember-cli-babel": "*"
+  },
+  "keywords": [
+    "ember-addon"
+  ]
+}

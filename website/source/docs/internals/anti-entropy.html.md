@@ -12,11 +12,6 @@ Consul uses an advanced method of maintaining service and health information.
 This page details how services and checks are registered, how the catalog is
 populated, and how health status information is updated as it changes.
 
-~> **Advanced Topic!** This page covers technical details of
-the internals of Consul. You don't need to know these details to effectively
-operate and use Consul. These details are documented here for those who wish
-to learn about them without having to go spelunking through the source code.
-
 ### Components
 
 It is important to first understand the moving pieces involved in services and

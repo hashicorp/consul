@@ -14,7 +14,7 @@ main .with-feedback {
   .actions .with-feedback p::after {
     bottom: auto;
     top: -13px !important;
-    border-bottom: 18px solid $ui-gray-800;
+    border-bottom: 18px solid $gray-800;
     border-top: 0;
   }
 }

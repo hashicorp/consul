@@ -34,6 +34,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -81,7 +82,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL Policy"
+const synopsis = "Delete an ACL policy"
 const help = `
 Usage: consul acl policy delete [options] -id POLICY
 

@@ -10,6 +10,6 @@ export default RepositoryService.extend({
     return PRIMARY_KEY;
   },
   clone: function(item) {
-    return get(this, 'store').clone(this.getModelName(), get(item, this.getPrimaryKey()));
+    return this.store.clone(this.getModelName(), get(item, this.getPrimaryKey()));
   },
 });

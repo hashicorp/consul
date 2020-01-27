@@ -17,7 +17,7 @@ func TestKVImportCommand_noTabs(t *testing.T) {
 
 func TestKVImportCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 	client := a.Client()
 

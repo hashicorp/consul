@@ -53,7 +53,7 @@ func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, s
 			case serf.EventMemberJoin:
 				handleMemberEvent(logger, router.AddServer, areaID, e)
 
-			case serf.EventMemberLeave:
+			case serf.EventMemberLeave, serf.EventMemberReap:
 				handleMemberEvent(logger, router.RemoveServer, areaID, e)
 
 			case serf.EventMemberFailed:
@@ -61,7 +61,6 @@ func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, s
 
 			// All of these event types are ignored.
 			case serf.EventMemberUpdate:
-			case serf.EventMemberReap:
 			case serf.EventUser:
 			case serf.EventQuery:
 

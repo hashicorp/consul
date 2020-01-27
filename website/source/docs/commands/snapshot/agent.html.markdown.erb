@@ -51,8 +51,14 @@ Snapshots can be restored using the
 [`consul snapshot restore`](/docs/commands/snapshot/restore.html) command, or
 the [HTTP API](/api/snapshot.html).
 
-If ACLs are enabled, a management token must be supplied in order to perform
-snapshot operations.
+If ACLs are enabled the following privileges are required:
+
+| Resource  | Segment          | Permission | Explanation |
+| --------- | ---------------- | ---------- | ----------- |
+| `acl`     | N/A              | `write`    | All snapshotting operations require this privilege due to snapshots containing ACL tokens including unredacted secrets. |
+| `key`     | `<lock key>`     | `write`    | The lock key (which defaults to `consul-snapshot/lock`) is used during snapshot agent leader election. |
+| `session` | `<agent name>`   | `write`    | The session used for locking during leader election is created against the agent name of the Consul agent that the Snapshot agent is registering itself with. |
+| `service` | `<service name>` | `write`    | The Snapshot agent registers itself with the local Consul agent and must have write privileges on its service name which is configured with `-service`. |
 
 ## Usage
 
@@ -111,6 +117,14 @@ Usage: `consul snapshot agent [options]`
         "s3_key_prefix": "consul-snapshot",
         "s3_server_side_encryption":false,
         "s3_static_snapshot_name":""
+      }
+      "azure_blob_storage": {
+        "account_name": "",
+        "account_key": "",
+        "container_name": ""
+      },
+      "google_storage": {
+        "bucket": ""
       }
     }
   }
@@ -207,6 +221,10 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 * `-aws-s3-kms-key` -  Optional Amazon KMS key to use, if this is not set the default KMS master key will be used. Set this if you want to manage key rotation yourself.
 
+   -> When using a S3-compatible storage exposing a self-signed certificate the agent will not be able to perform 
+   the snapshot operations unless the CA used to sign the storage certificate is trusted by the node running 
+   the agent. You can add the CA root certificate to the OS trust store to have Consul trust the storage endpoint.
+   
 #### S3 Required Permissions
 
 Different S3 permissions are required depending on the configuration of the snapshot agent. In particular extra permissions are required when
@@ -249,6 +267,32 @@ The following example IAM policy document assumes that the `aws-s3-bucket` is `c
   ]
 }
 ```
+
+#### Azure Blob Storage options
+
+** Note: This currently only works on non-Solaris platforms due to library limitations **
+
+From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure Blob storage.
+
+* `-azure-blob-account-name` and `-azure-blob-account-key` - These arguments supply
+  authentication information for connecting to Azure Blob storage.
+
+* `-azure-blob-container-name` - Container to use. Required for Azure blob storage, and setting this
+  disables local storage.
+
+#### Google Cloud Storage options
+
+From Consul Enterprise version `1.6.1` onwards, you can store snapshots in Google Cloud Storage. Authentication relies on automatic discovery through the sdk as described [here](https://cloud.google.com/docs/authentication/production):
+
+* First, ADC checks to see if the environment variable GOOGLE_APPLICATION_CREDENTIALS is set. If the variable is set, ADC uses the service account file that the variable points to. The next section describes how to set the environment variable.
+
+* If the environment variable isn't set, ADC uses the default service account that Compute Engine, Kubernetes Engine, App Engine, and Cloud Functions provide, for applications that run on those services.
+
+* If ADC can't use either of the above credentials, an error occurs.
+
+This integration needs the following information:
+
+* `-gcs-bucket` supplies the bucket to use.
 
 ## Examples
 

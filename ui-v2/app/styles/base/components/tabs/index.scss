@@ -1,0 +1,26 @@
+@import './skin';
+@import './layout';
+%tab-nav li a {
+  @extend %tab-button;
+}
+%tab-nav li:not(.selected) a:hover,
+%tab-nav li:not(.selected) a:focus {
+  @extend %tab-button-intent;
+}
+%tab-nav li:not(.selected) a:active {
+  @extend %tab-button-active;
+}
+/* TODO: need to add an empty class here */
+%tab-nav .selected a {
+  @extend %tab-button-selected;
+}
+%display-state,
+%display-state + * {
+  display: none;
+}
+%display-state:checked + * {
+  display: block;
+}
+%tab-section > input[type='radio'] {
+  @extend %display-state;
+}

@@ -1,0 +1,89 @@
+---
+layout: "docs"
+page_title: "Commands: Config Write"
+sidebar_current: "docs-commands-config-write"
+---
+
+# Consul Config Write
+
+Command: `consul config write`
+
+The `config write` command creates or updates a centralized config entry.
+See the [configuration entries docs](/docs/agent/config_entries.html) for more
+details about configuration entries.
+
+## Usage
+
+Usage: `consul config write [options] FILE`
+
+#### API Options
+
+<%= partial "docs/commands/http_api_options_client" %>
+
+#### Config Write Options
+
+* `-cas` - Specifies to use a Check-And-Set operation. If the index is
+  0, Consul will only store the entry if it does not already exist. If the index is
+  non-zero, the entry is only set if the current index matches the `ModifyIndex`
+  of that entry.
+
+## Examples
+
+From file:
+
+    $ consul config write web-defaults.json
+
+From stdin:
+
+    $ consul config write -
+
+
+### Config Entry examples
+
+All config entries must have a `Kind` when registered. Currently, the only
+supported types are `service-defaults` and `proxy-defaults`.
+
+#### Service defaults
+
+Service defaults control default global values for a service, such as the
+protocol and Connect fields.
+
+```json
+{
+    "Kind": "service-defaults",
+    "Name": "web",
+    "Protocol": "http",
+}
+```
+
+* `Name` - Sets the name of the config entry. For service defaults, this must be
+  the name of the service being configured.
+
+* `Protocol` - Sets the protocol of the service. This is used by Connect proxies
+  for things like observability features.
+
+* `Connect` - This block contains Connect-related fields for the service.
+
+  * `SidecarProxy` - Sets whether or not instances of this service should get a
+    sidecar proxy by default.
+
+#### Proxy defaults
+
+Proxy defaults allow for configuring global config defaults across all services
+for Connect proxy config. Currently, only one global entry is supported.
+
+```json
+{
+    "Kind": "proxy-defaults",
+    "Name": "global",
+    "Config": {
+        "foo": 1
+    }
+}
+```
+
+* `Name` - Sets the name of the config entry. Currently, only a single `proxy-defaults`
+  entry with the name `global` is supported.
+
+
+* `Config` - An arbitrary map of configuration values used by Connect proxies.

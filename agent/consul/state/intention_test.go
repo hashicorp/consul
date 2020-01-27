@@ -360,7 +360,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 			[][][]string{
 				{
 					// Note the first two have the same precedence so we rely on arbitrary
-					// lexicographical tie-break behaviour.
+					// lexicographical tie-break behavior.
 					{"foo", "bar", "bar", "*"},
 					{"foo", "bar", "foo", "*"},
 					{"*", "*", "*", "*"},

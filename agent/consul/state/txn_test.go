@@ -1,12 +1,13 @@
 package state
 
 import (
-	"reflect"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/types"
 	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
@@ -116,15 +117,405 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	verify.Values(t, "", actual, intentions)
 }
 
+func TestStateStore_Txn_Node(t *testing.T) {
+	require := require.New(t)
+	s := testStateStore(t)
+
+	// Create some nodes.
+	var nodes [5]structs.Node
+	for i := 0; i < len(nodes); i++ {
+		nodes[i] = structs.Node{
+			Node: fmt.Sprintf("node%d", i+1),
+			ID:   types.NodeID(testUUID()),
+		}
+
+		// Leave node5 to be created by an operation.
+		if i < 5 {
+			s.EnsureNode(uint64(i+1), &nodes[i])
+		}
+	}
+
+	// Set up a transaction that hits every operation.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			Node: &structs.TxnNodeOp{
+				Verb: api.NodeGet,
+				Node: nodes[0],
+			},
+		},
+		&structs.TxnOp{
+			Node: &structs.TxnNodeOp{
+				Verb: api.NodeSet,
+				Node: nodes[4],
+			},
+		},
+		&structs.TxnOp{
+			Node: &structs.TxnNodeOp{
+				Verb: api.NodeCAS,
+				Node: structs.Node{
+					Node:       "node2",
+					ID:         nodes[1].ID,
+					Datacenter: "dc2",
+					RaftIndex:  structs.RaftIndex{ModifyIndex: 2},
+				},
+			},
+		},
+		&structs.TxnOp{
+			Node: &structs.TxnNodeOp{
+				Verb: api.NodeDelete,
+				Node: structs.Node{Node: "node3"},
+			},
+		},
+		&structs.TxnOp{
+			Node: &structs.TxnNodeOp{
+				Verb: api.NodeDeleteCAS,
+				Node: structs.Node{
+					Node:      "node4",
+					RaftIndex: structs.RaftIndex{ModifyIndex: 4},
+				},
+			},
+		},
+	}
+	results, errors := s.TxnRW(8, ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+
+	// Make sure the response looks as expected.
+	nodes[1].Datacenter = "dc2"
+	nodes[1].ModifyIndex = 8
+	expected := structs.TxnResults{
+		&structs.TxnResult{
+			Node: &nodes[0],
+		},
+		&structs.TxnResult{
+			Node: &nodes[4],
+		},
+		&structs.TxnResult{
+			Node: &nodes[1],
+		},
+	}
+	verify.Values(t, "", results, expected)
+
+	// Pull the resulting state store contents.
+	idx, actual, err := s.Nodes(nil)
+	require.NoError(err)
+	if idx != 8 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure it looks as expected.
+	expectedNodes := structs.Nodes{&nodes[0], &nodes[1], &nodes[4]}
+	verify.Values(t, "", actual, expectedNodes)
+}
+
+func TestStateStore_Txn_Service(t *testing.T) {
+	require := require.New(t)
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 1, "node1")
+
+	// Create some services.
+	for i := 1; i <= 4; i++ {
+		testRegisterService(t, s, uint64(i+1), "node1", fmt.Sprintf("svc%d", i))
+	}
+
+	// Set up a transaction that hits every operation.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb:    api.ServiceGet,
+				Node:    "node1",
+				Service: structs.NodeService{ID: "svc1"},
+			},
+		},
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb:    api.ServiceSet,
+				Node:    "node1",
+				Service: structs.NodeService{ID: "svc5"},
+			},
+		},
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb: api.ServiceCAS,
+				Node: "node1",
+				Service: structs.NodeService{
+					ID:        "svc2",
+					Tags:      []string{"modified"},
+					RaftIndex: structs.RaftIndex{ModifyIndex: 3},
+				},
+			},
+		},
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb:    api.ServiceDelete,
+				Node:    "node1",
+				Service: structs.NodeService{ID: "svc3"},
+			},
+		},
+		&structs.TxnOp{
+			Service: &structs.TxnServiceOp{
+				Verb: api.ServiceDeleteCAS,
+				Node: "node1",
+				Service: structs.NodeService{
+					ID:        "svc4",
+					RaftIndex: structs.RaftIndex{ModifyIndex: 5},
+				},
+			},
+		},
+	}
+	results, errors := s.TxnRW(6, ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+
+	// Make sure the response looks as expected.
+	expected := structs.TxnResults{
+		&structs.TxnResult{
+			Service: &structs.NodeService{
+				ID:      "svc1",
+				Service: "svc1",
+				Address: "1.1.1.1",
+				Port:    1111,
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+		&structs.TxnResult{
+			Service: &structs.NodeService{
+				ID:      "svc5",
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 6,
+					ModifyIndex: 6,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+		&structs.TxnResult{
+			Service: &structs.NodeService{
+				ID:      "svc2",
+				Tags:    []string{"modified"},
+				Weights: &structs.Weights{Passing: 1, Warning: 1},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 3,
+					ModifyIndex: 6,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+	}
+	verify.Values(t, "", results, expected)
+
+	// Pull the resulting state store contents.
+	idx, actual, err := s.NodeServices(nil, "node1", nil)
+	require.NoError(err)
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure it looks as expected.
+	expectedServices := &structs.NodeServices{
+		Node: &structs.Node{
+			Node: "node1",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		Services: map[string]*structs.NodeService{
+			"svc1": &structs.NodeService{
+				ID:      "svc1",
+				Service: "svc1",
+				Address: "1.1.1.1",
+				Port:    1111,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+			"svc5": &structs.NodeService{
+				ID: "svc5",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 6,
+					ModifyIndex: 6,
+				},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+			"svc2": &structs.NodeService{
+				ID:   "svc2",
+				Tags: []string{"modified"},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 3,
+					ModifyIndex: 6,
+				},
+				Weights:        &structs.Weights{Passing: 1, Warning: 1},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+	}
+	verify.Values(t, "", actual, expectedServices)
+}
+
+func TestStateStore_Txn_Checks(t *testing.T) {
+	require := require.New(t)
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 1, "node1")
+
+	// Create some checks.
+	for i := 1; i <= 4; i++ {
+		testRegisterCheck(t, s, uint64(i+1), "node1", "", types.CheckID(fmt.Sprintf("check%d", i)), "failing")
+	}
+
+	// Set up a transaction that hits every operation.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			Check: &structs.TxnCheckOp{
+				Verb:  api.CheckGet,
+				Check: structs.HealthCheck{Node: "node1", CheckID: "check1"},
+			},
+		},
+		&structs.TxnOp{
+			Check: &structs.TxnCheckOp{
+				Verb:  api.CheckSet,
+				Check: structs.HealthCheck{Node: "node1", CheckID: "check5", Status: "passing"},
+			},
+		},
+		&structs.TxnOp{
+			Check: &structs.TxnCheckOp{
+				Verb: api.CheckCAS,
+				Check: structs.HealthCheck{
+					Node:      "node1",
+					CheckID:   "check2",
+					Status:    "warning",
+					RaftIndex: structs.RaftIndex{ModifyIndex: 3},
+				},
+			},
+		},
+		&structs.TxnOp{
+			Check: &structs.TxnCheckOp{
+				Verb:  api.CheckDelete,
+				Check: structs.HealthCheck{Node: "node1", CheckID: "check3"},
+			},
+		},
+		&structs.TxnOp{
+			Check: &structs.TxnCheckOp{
+				Verb: api.CheckDeleteCAS,
+				Check: structs.HealthCheck{
+					Node:      "node1",
+					CheckID:   "check4",
+					RaftIndex: structs.RaftIndex{ModifyIndex: 5},
+				},
+			},
+		},
+	}
+	results, errors := s.TxnRW(6, ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+
+	// Make sure the response looks as expected.
+	expected := structs.TxnResults{
+		&structs.TxnResult{
+			Check: &structs.HealthCheck{
+				Node:    "node1",
+				CheckID: "check1",
+				Status:  "failing",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+		&structs.TxnResult{
+			Check: &structs.HealthCheck{
+				Node:    "node1",
+				CheckID: "check5",
+				Status:  "passing",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 6,
+					ModifyIndex: 6,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+		&structs.TxnResult{
+			Check: &structs.HealthCheck{
+				Node:    "node1",
+				CheckID: "check2",
+				Status:  "warning",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 3,
+					ModifyIndex: 6,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+	}
+	verify.Values(t, "", results, expected)
+
+	// Pull the resulting state store contents.
+	idx, actual, err := s.NodeChecks(nil, "node1", nil)
+	require.NoError(err)
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure it looks as expected.
+	expectedChecks := structs.HealthChecks{
+		&structs.HealthCheck{
+			Node:    "node1",
+			CheckID: "check1",
+			Status:  "failing",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 2,
+				ModifyIndex: 2,
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		},
+		&structs.HealthCheck{
+			Node:    "node1",
+			CheckID: "check2",
+			Status:  "warning",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 3,
+				ModifyIndex: 6,
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		},
+		&structs.HealthCheck{
+			Node:    "node1",
+			CheckID: "check5",
+			Status:  "passing",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 6,
+				ModifyIndex: 6,
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		},
+	}
+	verify.Values(t, "", actual, expectedChecks)
+}
+
 func TestStateStore_Txn_KVS(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo/delete", "bar")
-	testSetKey(t, s, 2, "foo/bar/baz", "baz")
-	testSetKey(t, s, 3, "foo/bar/zip", "zip")
-	testSetKey(t, s, 4, "foo/zorp", "zorp")
-	testSetKey(t, s, 5, "foo/update", "stale")
+	testSetKey(t, s, 1, "foo/delete", "bar", nil)
+	testSetKey(t, s, 2, "foo/bar/baz", "baz", nil)
+	testSetKey(t, s, 3, "foo/bar/zip", "zip", nil)
+	testSetKey(t, s, 4, "foo/zorp", "zorp", nil)
+	testSetKey(t, s, 5, "foo/update", "stale", nil)
 
 	// Make a real session.
 	testRegisterNode(t, s, 6, "node1")
@@ -396,14 +787,23 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	if len(results) != len(expected) {
 		t.Fatalf("bad: %v", results)
 	}
-	for i := range results {
-		if !reflect.DeepEqual(results[i], expected[i]) {
-			t.Fatalf("bad %d", i)
+	for i, e := range expected {
+		if e.KV.Key != results[i].KV.Key {
+			t.Fatalf("expected key %s, got %s", e.KV.Key, results[i].KV.Key)
+		}
+		if e.KV.LockIndex != results[i].KV.LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.KV.LockIndex, results[i].KV.LockIndex)
+		}
+		if e.KV.CreateIndex != results[i].KV.CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.KV.CreateIndex, results[i].KV.CreateIndex)
+		}
+		if e.KV.ModifyIndex != results[i].KV.ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.KV.ModifyIndex, results[i].KV.ModifyIndex)
 		}
 	}
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.KVSList(nil, "")
+	idx, actual, err := s.KVSList(nil, "", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -441,9 +841,21 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	if len(actual) != len(entries) {
 		t.Fatalf("bad len: %d != %d", len(actual), len(entries))
 	}
-	for i := range actual {
-		if !reflect.DeepEqual(actual[i], entries[i]) {
-			t.Fatalf("bad %d", i)
+	for i, e := range entries {
+		if e.Key != actual[i].Key {
+			t.Fatalf("expected key %s, got %s", e.Key, actual[i].Key)
+		}
+		if string(e.Value) != string(actual[i].Value) {
+			t.Fatalf("expected value %s, got %s", e.Value, actual[i].Value)
+		}
+		if e.LockIndex != actual[i].LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.LockIndex, actual[i].LockIndex)
+		}
+		if e.CreateIndex != actual[i].CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.CreateIndex, actual[i].CreateIndex)
+		}
+		if e.ModifyIndex != actual[i].ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.ModifyIndex, actual[i].ModifyIndex)
 		}
 	}
 }
@@ -452,8 +864,8 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo/delete", "bar")
-	testSetKey(t, s, 2, "foo/update", "stale")
+	testSetKey(t, s, 1, "foo/delete", "bar", nil)
+	testSetKey(t, s, 2, "foo/update", "stale", nil)
 
 	testRegisterNode(t, s, 3, "node1")
 	session := testUUID()
@@ -472,7 +884,7 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 
 	// This function verifies that the state store wasn't changed.
 	verifyStateStore := func(desc string) {
-		idx, actual, err := s.KVSList(nil, "")
+		idx, actual, err := s.KVSList(nil, "", nil)
 		if err != nil {
 			t.Fatalf("err (%s): %s", desc, err)
 		}
@@ -512,9 +924,21 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 		if len(actual) != len(entries) {
 			t.Fatalf("bad len (%s): %d != %d", desc, len(actual), len(entries))
 		}
-		for i := range actual {
-			if !reflect.DeepEqual(actual[i], entries[i]) {
-				t.Fatalf("bad (%s): op %d: %v != %v", desc, i, *(actual[i]), *(entries[i]))
+		for i, e := range entries {
+			if e.Key != actual[i].Key {
+				t.Fatalf("expected key %s, got %s", e.Key, actual[i].Key)
+			}
+			if string(e.Value) != string(actual[i].Value) {
+				t.Fatalf("expected value %s, got %s", e.Value, actual[i].Value)
+			}
+			if e.LockIndex != actual[i].LockIndex {
+				t.Fatalf("expected lock index %d, got %d", e.LockIndex, actual[i].LockIndex)
+			}
+			if e.CreateIndex != actual[i].CreateIndex {
+				t.Fatalf("expected create index %d, got %d", e.CreateIndex, actual[i].CreateIndex)
+			}
+			if e.ModifyIndex != actual[i].ModifyIndex {
+				t.Fatalf("expected modify index %d, got %d", e.ModifyIndex, actual[i].ModifyIndex)
 			}
 		}
 	}
@@ -647,9 +1071,9 @@ func TestStateStore_Txn_KVS_RO(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo", "bar")
-	testSetKey(t, s, 2, "foo/bar/baz", "baz")
-	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 1, "foo", "bar", nil)
+	testSetKey(t, s, 2, "foo/bar/baz", "baz", nil)
+	testSetKey(t, s, 3, "foo/bar/zip", "zip", nil)
 
 	// Set up a transaction that hits all the read-only operations.
 	ops := structs.TxnOps{
@@ -749,9 +1173,18 @@ func TestStateStore_Txn_KVS_RO(t *testing.T) {
 	if len(results) != len(expected) {
 		t.Fatalf("bad: %v", results)
 	}
-	for i := range results {
-		if !reflect.DeepEqual(results[i], expected[i]) {
-			t.Fatalf("bad %d", i)
+	for i, e := range expected {
+		if e.KV.Key != results[i].KV.Key {
+			t.Fatalf("expected key %s, got %s", e.KV.Key, results[i].KV.Key)
+		}
+		if e.KV.LockIndex != results[i].KV.LockIndex {
+			t.Fatalf("expected lock index %d, got %d", e.KV.LockIndex, results[i].KV.LockIndex)
+		}
+		if e.KV.CreateIndex != results[i].KV.CreateIndex {
+			t.Fatalf("expected create index %d, got %d", e.KV.CreateIndex, results[i].KV.CreateIndex)
+		}
+		if e.KV.ModifyIndex != results[i].KV.ModifyIndex {
+			t.Fatalf("expected modify index %d, got %d", e.KV.ModifyIndex, results[i].KV.ModifyIndex)
 		}
 	}
 }
@@ -760,9 +1193,9 @@ func TestStateStore_Txn_KVS_RO_Safety(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create KV entries in the state store.
-	testSetKey(t, s, 1, "foo", "bar")
-	testSetKey(t, s, 2, "foo/bar/baz", "baz")
-	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 1, "foo", "bar", nil)
+	testSetKey(t, s, 2, "foo/bar/baz", "baz", nil)
+	testSetKey(t, s, 3, "foo/bar/zip", "zip", nil)
 
 	// Set up a transaction that hits all the read-only operations.
 	ops := structs.TxnOps{

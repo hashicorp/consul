@@ -3,17 +3,19 @@
 
 package auth
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-import _ "github.com/gogo/protobuf/gogoproto"
-import types "github.com/gogo/protobuf/types"
-import _ "github.com/lyft/protoc-gen-validate/validate"
+import (
+	bytes "bytes"
+	fmt "fmt"
+	io "io"
+	math "math"
 
-import bytes "bytes"
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	types "github.com/gogo/protobuf/types"
 
-import io "io"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -48,6 +50,7 @@ var TlsParameters_TlsProtocol_name = map[int32]string{
 	3: "TLSv1_2",
 	4: "TLSv1_3",
 }
+
 var TlsParameters_TlsProtocol_value = map[string]int32{
 	"TLS_AUTO": 0,
 	"TLSv1_0":  1,
@@ -59,18 +62,23 @@ var TlsParameters_TlsProtocol_value = map[string]int32{
 func (x TlsParameters_TlsProtocol) String() string {
 	return proto.EnumName(TlsParameters_TlsProtocol_name, int32(x))
 }
+
 func (TlsParameters_TlsProtocol) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{0, 0}
+	return fileDescriptor_0c3851c0865b2745, []int{0, 0}
 }
 
 type TlsParameters struct {
-	// Minimum TLS protocol version.
+	// Minimum TLS protocol version. By default, it's ``TLSv1_0``.
 	TlsMinimumProtocolVersion TlsParameters_TlsProtocol `protobuf:"varint,1,opt,name=tls_minimum_protocol_version,json=tlsMinimumProtocolVersion,proto3,enum=envoy.api.v2.auth.TlsParameters_TlsProtocol" json:"tls_minimum_protocol_version,omitempty"`
-	// Maximum TLS protocol version.
+	// Maximum TLS protocol version. By default, it's ``TLSv1_3`` for servers in non-FIPS builds, and
+	// ``TLSv1_2`` for clients and for servers using :ref:`BoringSSL FIPS <arch_overview_ssl_fips>`.
 	TlsMaximumProtocolVersion TlsParameters_TlsProtocol `protobuf:"varint,2,opt,name=tls_maximum_protocol_version,json=tlsMaximumProtocolVersion,proto3,enum=envoy.api.v2.auth.TlsParameters_TlsProtocol" json:"tls_maximum_protocol_version,omitempty"`
 	// If specified, the TLS listener will only support the specified `cipher list
-	// <https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#Cipher-suite-configuration>`_.
-	// If not specified, the default list:
+	// <https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#Cipher-suite-configuration>`_
+	// when negotiating TLS 1.0-1.2 (this setting has no effect when negotiating TLS 1.3). If not
+	// specified, the default list will be used.
+	//
+	// In non-FIPS builds, the default cipher list is:
 	//
 	// .. code-block:: none
 	//
@@ -87,11 +95,39 @@ type TlsParameters struct {
 	//   AES256-GCM-SHA384
 	//   AES256-SHA
 	//
-	// will be used.
-	CipherSuites []string `protobuf:"bytes,3,rep,name=cipher_suites,json=cipherSuites" json:"cipher_suites,omitempty"`
+	// In builds using :ref:`BoringSSL FIPS <arch_overview_ssl_fips>`, the default cipher list is:
+	//
+	// .. code-block:: none
+	//
+	//   ECDHE-ECDSA-AES128-GCM-SHA256
+	//   ECDHE-RSA-AES128-GCM-SHA256
+	//   ECDHE-ECDSA-AES128-SHA
+	//   ECDHE-RSA-AES128-SHA
+	//   AES128-GCM-SHA256
+	//   AES128-SHA
+	//   ECDHE-ECDSA-AES256-GCM-SHA384
+	//   ECDHE-RSA-AES256-GCM-SHA384
+	//   ECDHE-ECDSA-AES256-SHA
+	//   ECDHE-RSA-AES256-SHA
+	//   AES256-GCM-SHA384
+	//   AES256-SHA
+	CipherSuites []string `protobuf:"bytes,3,rep,name=cipher_suites,json=cipherSuites,proto3" json:"cipher_suites,omitempty"`
 	// If specified, the TLS connection will only support the specified ECDH
-	// curves. If not specified, the default curves (X25519, P-256) will be used.
-	EcdhCurves           []string `protobuf:"bytes,4,rep,name=ecdh_curves,json=ecdhCurves" json:"ecdh_curves,omitempty"`
+	// curves. If not specified, the default curves will be used.
+	//
+	// In non-FIPS builds, the default curves are:
+	//
+	// .. code-block:: none
+	//
+	//   X25519
+	//   P-256
+	//
+	// In builds using :ref:`BoringSSL FIPS <arch_overview_ssl_fips>`, the default curve is:
+	//
+	// .. code-block:: none
+	//
+	//   P-256
+	EcdhCurves           []string `protobuf:"bytes,4,rep,name=ecdh_curves,json=ecdhCurves,proto3" json:"ecdh_curves,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -101,7 +137,7 @@ func (m *TlsParameters) Reset()         { *m = TlsParameters{} }
 func (m *TlsParameters) String() string { return proto.CompactTextString(m) }
 func (*TlsParameters) ProtoMessage()    {}
 func (*TlsParameters) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{0}
+	return fileDescriptor_0c3851c0865b2745, []int{0}
 }
 func (m *TlsParameters) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -118,8 +154,8 @@ func (m *TlsParameters) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return b[:n], nil
 	}
 }
-func (dst *TlsParameters) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TlsParameters.Merge(dst, src)
+func (m *TlsParameters) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TlsParameters.Merge(m, src)
 }
 func (m *TlsParameters) XXX_Size() int {
 	return m.Size()
@@ -160,15 +196,16 @@ func (m *TlsParameters) GetEcdhCurves() []string {
 
 type TlsCertificate struct {
 	// The TLS certificate chain.
-	CertificateChain *core.DataSource `protobuf:"bytes,1,opt,name=certificate_chain,json=certificateChain" json:"certificate_chain,omitempty"`
+	CertificateChain *core.DataSource `protobuf:"bytes,1,opt,name=certificate_chain,json=certificateChain,proto3" json:"certificate_chain,omitempty"`
 	// The TLS private key.
-	PrivateKey *core.DataSource `protobuf:"bytes,2,opt,name=private_key,json=privateKey" json:"private_key,omitempty"`
+	PrivateKey *core.DataSource `protobuf:"bytes,2,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	// The password to decrypt the TLS private key. If this field is not set, it is assumed that the
+	// TLS private key is not password encrypted.
+	Password *core.DataSource `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	// [#not-implemented-hide:]
-	Password *core.DataSource `protobuf:"bytes,3,opt,name=password" json:"password,omitempty"`
+	OcspStaple *core.DataSource `protobuf:"bytes,4,opt,name=ocsp_staple,json=ocspStaple,proto3" json:"ocsp_staple,omitempty"`
 	// [#not-implemented-hide:]
-	OcspStaple *core.DataSource `protobuf:"bytes,4,opt,name=ocsp_staple,json=ocspStaple" json:"ocsp_staple,omitempty"`
-	// [#not-implemented-hide:]
-	SignedCertificateTimestamp []*core.DataSource `protobuf:"bytes,5,rep,name=signed_certificate_timestamp,json=signedCertificateTimestamp" json:"signed_certificate_timestamp,omitempty"`
+	SignedCertificateTimestamp []*core.DataSource `protobuf:"bytes,5,rep,name=signed_certificate_timestamp,json=signedCertificateTimestamp,proto3" json:"signed_certificate_timestamp,omitempty"`
 	XXX_NoUnkeyedLiteral       struct{}           `json:"-"`
 	XXX_unrecognized           []byte             `json:"-"`
 	XXX_sizecache              int32              `json:"-"`
@@ -178,7 +215,7 @@ func (m *TlsCertificate) Reset()         { *m = TlsCertificate{} }
 func (m *TlsCertificate) String() string { return proto.CompactTextString(m) }
 func (*TlsCertificate) ProtoMessage()    {}
 func (*TlsCertificate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{1}
+	return fileDescriptor_0c3851c0865b2745, []int{1}
 }
 func (m *TlsCertificate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -195,8 +232,8 @@ func (m *TlsCertificate) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return b[:n], nil
 	}
 }
-func (dst *TlsCertificate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TlsCertificate.Merge(dst, src)
+func (m *TlsCertificate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TlsCertificate.Merge(m, src)
 }
 func (m *TlsCertificate) XXX_Size() int {
 	return m.Size()
@@ -266,7 +303,7 @@ type TlsSessionTicketKeys struct {
 	//   * Keep the session ticket keys at least as secure as your TLS certificate private keys
 	//   * Rotate session ticket keys at least daily, and preferably hourly
 	//   * Always generate keys using a cryptographically-secure random data source
-	Keys                 []*core.DataSource `protobuf:"bytes,1,rep,name=keys" json:"keys,omitempty"`
+	Keys                 []*core.DataSource `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -276,7 +313,7 @@ func (m *TlsSessionTicketKeys) Reset()         { *m = TlsSessionTicketKeys{} }
 func (m *TlsSessionTicketKeys) String() string { return proto.CompactTextString(m) }
 func (*TlsSessionTicketKeys) ProtoMessage()    {}
 func (*TlsSessionTicketKeys) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{2}
+	return fileDescriptor_0c3851c0865b2745, []int{2}
 }
 func (m *TlsSessionTicketKeys) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -293,8 +330,8 @@ func (m *TlsSessionTicketKeys) XXX_Marshal(b []byte, deterministic bool) ([]byte
 		return b[:n], nil
 	}
 }
-func (dst *TlsSessionTicketKeys) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TlsSessionTicketKeys.Merge(dst, src)
+func (m *TlsSessionTicketKeys) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TlsSessionTicketKeys.Merge(m, src)
 }
 func (m *TlsSessionTicketKeys) XXX_Size() int {
 	return m.Size()
@@ -327,9 +364,12 @@ type CertificateValidationContext struct {
 	// <envoy_api_field_auth.CertificateValidationContext.verify_subject_alt_name>`) is also
 	// specified.
 	//
+	// It can optionally contain certificate revocation lists, in which case Envoy will verify
+	// that the presented peer certificate has not been revoked by one of the included CRLs.
+	//
 	// See :ref:`the TLS overview <arch_overview_ssl_enabling_verification>` for a list of common
 	// system CA locations.
-	TrustedCa *core.DataSource `protobuf:"bytes,1,opt,name=trusted_ca,json=trustedCa" json:"trusted_ca,omitempty"`
+	TrustedCa *core.DataSource `protobuf:"bytes,1,opt,name=trusted_ca,json=trustedCa,proto3" json:"trusted_ca,omitempty"`
 	// An optional list of base64-encoded SHA-256 hashes. If specified, Envoy will verify that the
 	// SHA-256 of the DER-encoded Subject Public Key Information (SPKI) of the presented certificate
 	// matches one of the specified values.
@@ -360,7 +400,7 @@ type CertificateValidationContext struct {
 	//   <envoy_api_field_auth.CertificateValidationContext.verify_certificate_hash>`,
 	//   because SPKI is tied to a private key, so it doesn't change when the certificate
 	//   is renewed using the same private key.
-	VerifyCertificateSpki []string `protobuf:"bytes,3,rep,name=verify_certificate_spki,json=verifyCertificateSpki" json:"verify_certificate_spki,omitempty"`
+	VerifyCertificateSpki []string `protobuf:"bytes,3,rep,name=verify_certificate_spki,json=verifyCertificateSpki,proto3" json:"verify_certificate_spki,omitempty"`
 	// An optional list of hex-encoded SHA-256 hashes. If specified, Envoy will verify that
 	// the SHA-256 of the DER-encoded presented certificate matches one of the specified values.
 	//
@@ -387,7 +427,7 @@ type CertificateValidationContext struct {
 	// :ref:`verify_certificate_spki
 	// <envoy_api_field_auth.CertificateValidationContext.verify_certificate_spki>` are specified,
 	// a hash matching value from either of the lists will result in the certificate being accepted.
-	VerifyCertificateHash []string `protobuf:"bytes,2,rep,name=verify_certificate_hash,json=verifyCertificateHash" json:"verify_certificate_hash,omitempty"`
+	VerifyCertificateHash []string `protobuf:"bytes,2,rep,name=verify_certificate_hash,json=verifyCertificateHash,proto3" json:"verify_certificate_hash,omitempty"`
 	// An optional list of Subject Alternative Names. If specified, Envoy will verify that the
 	// Subject Alternative Name of the presented certificate matches one of the specified values.
 	//
@@ -396,17 +436,17 @@ type CertificateValidationContext struct {
 	//   Subject Alternative Names are easily spoofable and verifying only them is insecure,
 	//   therefore this option must be used together with :ref:`trusted_ca
 	//   <envoy_api_field_auth.CertificateValidationContext.trusted_ca>`.
-	VerifySubjectAltName []string `protobuf:"bytes,4,rep,name=verify_subject_alt_name,json=verifySubjectAltName" json:"verify_subject_alt_name,omitempty"`
+	VerifySubjectAltName []string `protobuf:"bytes,4,rep,name=verify_subject_alt_name,json=verifySubjectAltName,proto3" json:"verify_subject_alt_name,omitempty"`
 	// [#not-implemented-hide:] Must present a signed time-stamped OCSP response.
-	RequireOcspStaple *types.BoolValue `protobuf:"bytes,5,opt,name=require_ocsp_staple,json=requireOcspStaple" json:"require_ocsp_staple,omitempty"`
+	RequireOcspStaple *types.BoolValue `protobuf:"bytes,5,opt,name=require_ocsp_staple,json=requireOcspStaple,proto3" json:"require_ocsp_staple,omitempty"`
 	// [#not-implemented-hide:] Must present signed certificate time-stamp.
-	RequireSignedCertificateTimestamp *types.BoolValue `protobuf:"bytes,6,opt,name=require_signed_certificate_timestamp,json=requireSignedCertificateTimestamp" json:"require_signed_certificate_timestamp,omitempty"`
+	RequireSignedCertificateTimestamp *types.BoolValue `protobuf:"bytes,6,opt,name=require_signed_certificate_timestamp,json=requireSignedCertificateTimestamp,proto3" json:"require_signed_certificate_timestamp,omitempty"`
 	// An optional `certificate revocation list
-	// <http://https://en.wikipedia.org/wiki/Certificate_revocation_list>`_
+	// <https://en.wikipedia.org/wiki/Certificate_revocation_list>`_
 	// (in PEM format). If specified, Envoy will verify that the presented peer
 	// certificate has not been revoked by this CRL. If this DataSource contains
 	// multiple CRLs, all of them will be used.
-	Crl *core.DataSource `protobuf:"bytes,7,opt,name=crl" json:"crl,omitempty"`
+	Crl *core.DataSource `protobuf:"bytes,7,opt,name=crl,proto3" json:"crl,omitempty"`
 	// If specified, Envoy will not reject expired certificates.
 	AllowExpiredCertificate bool     `protobuf:"varint,8,opt,name=allow_expired_certificate,json=allowExpiredCertificate,proto3" json:"allow_expired_certificate,omitempty"`
 	XXX_NoUnkeyedLiteral    struct{} `json:"-"`
@@ -418,7 +458,7 @@ func (m *CertificateValidationContext) Reset()         { *m = CertificateValidat
 func (m *CertificateValidationContext) String() string { return proto.CompactTextString(m) }
 func (*CertificateValidationContext) ProtoMessage()    {}
 func (*CertificateValidationContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{3}
+	return fileDescriptor_0c3851c0865b2745, []int{3}
 }
 func (m *CertificateValidationContext) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -435,8 +475,8 @@ func (m *CertificateValidationContext) XXX_Marshal(b []byte, deterministic bool)
 		return b[:n], nil
 	}
 }
-func (dst *CertificateValidationContext) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CertificateValidationContext.Merge(dst, src)
+func (m *CertificateValidationContext) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CertificateValidationContext.Merge(m, src)
 }
 func (m *CertificateValidationContext) XXX_Size() int {
 	return m.Size()
@@ -506,43 +546,42 @@ func (m *CertificateValidationContext) GetAllowExpiredCertificate() bool {
 // TLS context shared by both client and server TLS contexts.
 type CommonTlsContext struct {
 	// TLS protocol versions, cipher suites etc.
-	TlsParams *TlsParameters `protobuf:"bytes,1,opt,name=tls_params,json=tlsParams" json:"tls_params,omitempty"`
-	// Multiple TLS certificates can be associated with the same context.
-	// E.g. to allow both RSA and ECDSA certificates, two TLS certificates can be configured.
+	TlsParams *TlsParameters `protobuf:"bytes,1,opt,name=tls_params,json=tlsParams,proto3" json:"tls_params,omitempty"`
+	// :ref:`Multiple TLS certificates <arch_overview_ssl_cert_select>` can be associated with the
+	// same context to allow both RSA and ECDSA certificates.
 	//
-	// .. attention::
-	//
-	//   Although this is a list, currently only a single certificate is supported. This will be
-	//   relaxed in the future.
-	TlsCertificates []*TlsCertificate `protobuf:"bytes,2,rep,name=tls_certificates,json=tlsCertificates" json:"tls_certificates,omitempty"`
+	// Only a single TLS certificate is supported in client contexts. In server contexts, the first
+	// RSA certificate is used for clients that only support RSA and the first ECDSA certificate is
+	// used for clients that support ECDSA.
+	TlsCertificates []*TlsCertificate `protobuf:"bytes,2,rep,name=tls_certificates,json=tlsCertificates,proto3" json:"tls_certificates,omitempty"`
 	// Configs for fetching TLS certificates via SDS API.
-	TlsCertificateSdsSecretConfigs []*SdsSecretConfig `protobuf:"bytes,6,rep,name=tls_certificate_sds_secret_configs,json=tlsCertificateSdsSecretConfigs" json:"tls_certificate_sds_secret_configs,omitempty"`
+	TlsCertificateSdsSecretConfigs []*SdsSecretConfig `protobuf:"bytes,6,rep,name=tls_certificate_sds_secret_configs,json=tlsCertificateSdsSecretConfigs,proto3" json:"tls_certificate_sds_secret_configs,omitempty"`
 	// Types that are valid to be assigned to ValidationContextType:
 	//	*CommonTlsContext_ValidationContext
 	//	*CommonTlsContext_ValidationContextSdsSecretConfig
+	//	*CommonTlsContext_CombinedValidationContext
 	ValidationContextType isCommonTlsContext_ValidationContextType `protobuf_oneof:"validation_context_type"`
 	// Supplies the list of ALPN protocols that the listener should expose. In
 	// practice this is likely to be set to one of two values (see the
-	// :ref:`codec_type <config_http_conn_man_codec_type>` parameter in the HTTP connection
-	// manager for more information):
+	// :ref:`codec_type
+	// <envoy_api_field_config.filter.network.http_connection_manager.v2.HttpConnectionManager.codec_type>`
+	// parameter in the HTTP connection manager for more information):
 	//
 	// * "h2,http/1.1" If the listener is going to support both HTTP/2 and HTTP/1.1.
 	// * "http/1.1" If the listener is only going to support HTTP/1.1.
 	//
 	// There is no default for this parameter. If empty, Envoy will not expose ALPN.
-	AlpnProtocols []string `protobuf:"bytes,4,rep,name=alpn_protocols,json=alpnProtocols" json:"alpn_protocols,omitempty"`
-	// [#not-implemented-hide:]
-	DeprecatedV1         *CommonTlsContext_DeprecatedV1 `protobuf:"bytes,5,opt,name=deprecated_v1,json=deprecatedV1" json:"deprecated_v1,omitempty"` // Deprecated: Do not use.
-	XXX_NoUnkeyedLiteral struct{}                       `json:"-"`
-	XXX_unrecognized     []byte                         `json:"-"`
-	XXX_sizecache        int32                          `json:"-"`
+	AlpnProtocols        []string `protobuf:"bytes,4,rep,name=alpn_protocols,json=alpnProtocols,proto3" json:"alpn_protocols,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *CommonTlsContext) Reset()         { *m = CommonTlsContext{} }
 func (m *CommonTlsContext) String() string { return proto.CompactTextString(m) }
 func (*CommonTlsContext) ProtoMessage()    {}
 func (*CommonTlsContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{4}
+	return fileDescriptor_0c3851c0865b2745, []int{4}
 }
 func (m *CommonTlsContext) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -559,8 +598,8 @@ func (m *CommonTlsContext) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return b[:n], nil
 	}
 }
-func (dst *CommonTlsContext) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommonTlsContext.Merge(dst, src)
+func (m *CommonTlsContext) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommonTlsContext.Merge(m, src)
 }
 func (m *CommonTlsContext) XXX_Size() int {
 	return m.Size()
@@ -579,14 +618,18 @@ type isCommonTlsContext_ValidationContextType interface {
 }
 
 type CommonTlsContext_ValidationContext struct {
-	ValidationContext *CertificateValidationContext `protobuf:"bytes,3,opt,name=validation_context,json=validationContext,oneof"`
+	ValidationContext *CertificateValidationContext `protobuf:"bytes,3,opt,name=validation_context,json=validationContext,proto3,oneof"`
 }
 type CommonTlsContext_ValidationContextSdsSecretConfig struct {
-	ValidationContextSdsSecretConfig *SdsSecretConfig `protobuf:"bytes,7,opt,name=validation_context_sds_secret_config,json=validationContextSdsSecretConfig,oneof"`
+	ValidationContextSdsSecretConfig *SdsSecretConfig `protobuf:"bytes,7,opt,name=validation_context_sds_secret_config,json=validationContextSdsSecretConfig,proto3,oneof"`
+}
+type CommonTlsContext_CombinedValidationContext struct {
+	CombinedValidationContext *CommonTlsContext_CombinedCertificateValidationContext `protobuf:"bytes,8,opt,name=combined_validation_context,json=combinedValidationContext,proto3,oneof"`
 }
 
 func (*CommonTlsContext_ValidationContext) isCommonTlsContext_ValidationContextType()                {}
 func (*CommonTlsContext_ValidationContextSdsSecretConfig) isCommonTlsContext_ValidationContextType() {}
+func (*CommonTlsContext_CombinedValidationContext) isCommonTlsContext_ValidationContextType()        {}
 
 func (m *CommonTlsContext) GetValidationContextType() isCommonTlsContext_ValidationContextType {
 	if m != nil {
@@ -630,17 +673,16 @@ func (m *CommonTlsContext) GetValidationContextSdsSecretConfig() *SdsSecretConfi
 	return nil
 }
 
-func (m *CommonTlsContext) GetAlpnProtocols() []string {
-	if m != nil {
-		return m.AlpnProtocols
+func (m *CommonTlsContext) GetCombinedValidationContext() *CommonTlsContext_CombinedCertificateValidationContext {
+	if x, ok := m.GetValidationContextType().(*CommonTlsContext_CombinedValidationContext); ok {
+		return x.CombinedValidationContext
 	}
 	return nil
 }
 
-// Deprecated: Do not use.
-func (m *CommonTlsContext) GetDeprecatedV1() *CommonTlsContext_DeprecatedV1 {
+func (m *CommonTlsContext) GetAlpnProtocols() []string {
 	if m != nil {
-		return m.DeprecatedV1
+		return m.AlpnProtocols
 	}
 	return nil
 }
@@ -650,6 +692,7 @@ func (*CommonTlsContext) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buff
 	return _CommonTlsContext_OneofMarshaler, _CommonTlsContext_OneofUnmarshaler, _CommonTlsContext_OneofSizer, []interface{}{
 		(*CommonTlsContext_ValidationContext)(nil),
 		(*CommonTlsContext_ValidationContextSdsSecretConfig)(nil),
+		(*CommonTlsContext_CombinedValidationContext)(nil),
 	}
 }
 
@@ -665,6 +708,11 @@ func _CommonTlsContext_OneofMarshaler(msg proto.Message, b *proto.Buffer) error 
 	case *CommonTlsContext_ValidationContextSdsSecretConfig:
 		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.ValidationContextSdsSecretConfig); err != nil {
+			return err
+		}
+	case *CommonTlsContext_CombinedValidationContext:
+		_ = b.EncodeVarint(8<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CombinedValidationContext); err != nil {
 			return err
 		}
 	case nil:
@@ -693,6 +741,14 @@ func _CommonTlsContext_OneofUnmarshaler(msg proto.Message, tag, wire int, b *pro
 		err := b.DecodeMessage(msg)
 		m.ValidationContextType = &CommonTlsContext_ValidationContextSdsSecretConfig{msg}
 		return true, err
+	case 8: // validation_context_type.combined_validation_context
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CommonTlsContext_CombinedCertificateValidationContext)
+		err := b.DecodeMessage(msg)
+		m.ValidationContextType = &CommonTlsContext_CombinedValidationContext{msg}
+		return true, err
 	default:
 		return false, nil
 	}
@@ -712,6 +768,11 @@ func _CommonTlsContext_OneofSizer(msg proto.Message) (n int) {
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
+	case *CommonTlsContext_CombinedValidationContext:
+		s := proto.Size(x.CombinedValidationContext)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -719,28 +780,32 @@ func _CommonTlsContext_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-// These fields are deprecated and only are used during the interim v1 -> v2
-// transition period for internal purposes. They should not be used outside of
-// the Envoy binary. [#not-implemented-hide:]
-type CommonTlsContext_DeprecatedV1 struct {
-	AltAlpnProtocols     string   `protobuf:"bytes,1,opt,name=alt_alpn_protocols,json=altAlpnProtocols,proto3" json:"alt_alpn_protocols,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type CommonTlsContext_CombinedCertificateValidationContext struct {
+	// How to validate peer certificates.
+	DefaultValidationContext *CertificateValidationContext `protobuf:"bytes,1,opt,name=default_validation_context,json=defaultValidationContext,proto3" json:"default_validation_context,omitempty"`
+	// Config for fetching validation context via SDS API.
+	ValidationContextSdsSecretConfig *SdsSecretConfig `protobuf:"bytes,2,opt,name=validation_context_sds_secret_config,json=validationContextSdsSecretConfig,proto3" json:"validation_context_sds_secret_config,omitempty"`
+	XXX_NoUnkeyedLiteral             struct{}         `json:"-"`
+	XXX_unrecognized                 []byte           `json:"-"`
+	XXX_sizecache                    int32            `json:"-"`
 }
 
-func (m *CommonTlsContext_DeprecatedV1) Reset()         { *m = CommonTlsContext_DeprecatedV1{} }
-func (m *CommonTlsContext_DeprecatedV1) String() string { return proto.CompactTextString(m) }
-func (*CommonTlsContext_DeprecatedV1) ProtoMessage()    {}
-func (*CommonTlsContext_DeprecatedV1) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{4, 0}
+func (m *CommonTlsContext_CombinedCertificateValidationContext) Reset() {
+	*m = CommonTlsContext_CombinedCertificateValidationContext{}
 }
-func (m *CommonTlsContext_DeprecatedV1) XXX_Unmarshal(b []byte) error {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) String() string {
+	return proto.CompactTextString(m)
+}
+func (*CommonTlsContext_CombinedCertificateValidationContext) ProtoMessage() {}
+func (*CommonTlsContext_CombinedCertificateValidationContext) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0c3851c0865b2745, []int{4, 0}
+}
+func (m *CommonTlsContext_CombinedCertificateValidationContext) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *CommonTlsContext_DeprecatedV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_CommonTlsContext_DeprecatedV1.Marshal(b, m, deterministic)
+		return xxx_messageInfo_CommonTlsContext_CombinedCertificateValidationContext.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -750,28 +815,35 @@ func (m *CommonTlsContext_DeprecatedV1) XXX_Marshal(b []byte, deterministic bool
 		return b[:n], nil
 	}
 }
-func (dst *CommonTlsContext_DeprecatedV1) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommonTlsContext_DeprecatedV1.Merge(dst, src)
+func (m *CommonTlsContext_CombinedCertificateValidationContext) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommonTlsContext_CombinedCertificateValidationContext.Merge(m, src)
 }
-func (m *CommonTlsContext_DeprecatedV1) XXX_Size() int {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) XXX_Size() int {
 	return m.Size()
 }
-func (m *CommonTlsContext_DeprecatedV1) XXX_DiscardUnknown() {
-	xxx_messageInfo_CommonTlsContext_DeprecatedV1.DiscardUnknown(m)
+func (m *CommonTlsContext_CombinedCertificateValidationContext) XXX_DiscardUnknown() {
+	xxx_messageInfo_CommonTlsContext_CombinedCertificateValidationContext.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CommonTlsContext_DeprecatedV1 proto.InternalMessageInfo
+var xxx_messageInfo_CommonTlsContext_CombinedCertificateValidationContext proto.InternalMessageInfo
 
-func (m *CommonTlsContext_DeprecatedV1) GetAltAlpnProtocols() string {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) GetDefaultValidationContext() *CertificateValidationContext {
 	if m != nil {
-		return m.AltAlpnProtocols
+		return m.DefaultValidationContext
 	}
-	return ""
+	return nil
+}
+
+func (m *CommonTlsContext_CombinedCertificateValidationContext) GetValidationContextSdsSecretConfig() *SdsSecretConfig {
+	if m != nil {
+		return m.ValidationContextSdsSecretConfig
+	}
+	return nil
 }
 
 type UpstreamTlsContext struct {
 	// Common TLS context settings.
-	CommonTlsContext *CommonTlsContext `protobuf:"bytes,1,opt,name=common_tls_context,json=commonTlsContext" json:"common_tls_context,omitempty"`
+	CommonTlsContext *CommonTlsContext `protobuf:"bytes,1,opt,name=common_tls_context,json=commonTlsContext,proto3" json:"common_tls_context,omitempty"`
 	// SNI string to use when creating TLS backend connections.
 	Sni string `protobuf:"bytes,2,opt,name=sni,proto3" json:"sni,omitempty"`
 	// If true, server-initiated TLS renegotiation will be allowed.
@@ -779,17 +851,22 @@ type UpstreamTlsContext struct {
 	// .. attention::
 	//
 	//   TLS renegotiation is considered insecure and shouldn't be used unless absolutely necessary.
-	AllowRenegotiation   bool     `protobuf:"varint,3,opt,name=allow_renegotiation,json=allowRenegotiation,proto3" json:"allow_renegotiation,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	AllowRenegotiation bool `protobuf:"varint,3,opt,name=allow_renegotiation,json=allowRenegotiation,proto3" json:"allow_renegotiation,omitempty"`
+	// Maximum number of session keys (Pre-Shared Keys for TLSv1.3+, Session IDs and Session Tickets
+	// for TLSv1.2 and older) to store for the purpose of session resumption.
+	//
+	// Defaults to 1, setting this to 0 disables session resumption.
+	MaxSessionKeys       *types.UInt32Value `protobuf:"bytes,4,opt,name=max_session_keys,json=maxSessionKeys,proto3" json:"max_session_keys,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
 func (m *UpstreamTlsContext) Reset()         { *m = UpstreamTlsContext{} }
 func (m *UpstreamTlsContext) String() string { return proto.CompactTextString(m) }
 func (*UpstreamTlsContext) ProtoMessage()    {}
 func (*UpstreamTlsContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{5}
+	return fileDescriptor_0c3851c0865b2745, []int{5}
 }
 func (m *UpstreamTlsContext) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -806,8 +883,8 @@ func (m *UpstreamTlsContext) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return b[:n], nil
 	}
 }
-func (dst *UpstreamTlsContext) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_UpstreamTlsContext.Merge(dst, src)
+func (m *UpstreamTlsContext) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpstreamTlsContext.Merge(m, src)
 }
 func (m *UpstreamTlsContext) XXX_Size() int {
 	return m.Size()
@@ -839,15 +916,22 @@ func (m *UpstreamTlsContext) GetAllowRenegotiation() bool {
 	return false
 }
 
+func (m *UpstreamTlsContext) GetMaxSessionKeys() *types.UInt32Value {
+	if m != nil {
+		return m.MaxSessionKeys
+	}
+	return nil
+}
+
 type DownstreamTlsContext struct {
 	// Common TLS context settings.
-	CommonTlsContext *CommonTlsContext `protobuf:"bytes,1,opt,name=common_tls_context,json=commonTlsContext" json:"common_tls_context,omitempty"`
+	CommonTlsContext *CommonTlsContext `protobuf:"bytes,1,opt,name=common_tls_context,json=commonTlsContext,proto3" json:"common_tls_context,omitempty"`
 	// If specified, Envoy will reject connections without a valid client
 	// certificate.
-	RequireClientCertificate *types.BoolValue `protobuf:"bytes,2,opt,name=require_client_certificate,json=requireClientCertificate" json:"require_client_certificate,omitempty"`
+	RequireClientCertificate *types.BoolValue `protobuf:"bytes,2,opt,name=require_client_certificate,json=requireClientCertificate,proto3" json:"require_client_certificate,omitempty"`
 	// If specified, Envoy will reject connections without a valid and matching SNI.
 	// [#not-implemented-hide:]
-	RequireSni *types.BoolValue `protobuf:"bytes,3,opt,name=require_sni,json=requireSni" json:"require_sni,omitempty"`
+	RequireSni *types.BoolValue `protobuf:"bytes,3,opt,name=require_sni,json=requireSni,proto3" json:"require_sni,omitempty"`
 	// Types that are valid to be assigned to SessionTicketKeysType:
 	//	*DownstreamTlsContext_SessionTicketKeys
 	//	*DownstreamTlsContext_SessionTicketKeysSdsSecretConfig
@@ -861,7 +945,7 @@ func (m *DownstreamTlsContext) Reset()         { *m = DownstreamTlsContext{} }
 func (m *DownstreamTlsContext) String() string { return proto.CompactTextString(m) }
 func (*DownstreamTlsContext) ProtoMessage()    {}
 func (*DownstreamTlsContext) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{6}
+	return fileDescriptor_0c3851c0865b2745, []int{6}
 }
 func (m *DownstreamTlsContext) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -878,8 +962,8 @@ func (m *DownstreamTlsContext) XXX_Marshal(b []byte, deterministic bool) ([]byte
 		return b[:n], nil
 	}
 }
-func (dst *DownstreamTlsContext) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DownstreamTlsContext.Merge(dst, src)
+func (m *DownstreamTlsContext) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DownstreamTlsContext.Merge(m, src)
 }
 func (m *DownstreamTlsContext) XXX_Size() int {
 	return m.Size()
@@ -898,10 +982,10 @@ type isDownstreamTlsContext_SessionTicketKeysType interface {
 }
 
 type DownstreamTlsContext_SessionTicketKeys struct {
-	SessionTicketKeys *TlsSessionTicketKeys `protobuf:"bytes,4,opt,name=session_ticket_keys,json=sessionTicketKeys,oneof"`
+	SessionTicketKeys *TlsSessionTicketKeys `protobuf:"bytes,4,opt,name=session_ticket_keys,json=sessionTicketKeys,proto3,oneof"`
 }
 type DownstreamTlsContext_SessionTicketKeysSdsSecretConfig struct {
-	SessionTicketKeysSdsSecretConfig *SdsSecretConfig `protobuf:"bytes,5,opt,name=session_ticket_keys_sds_secret_config,json=sessionTicketKeysSdsSecretConfig,oneof"`
+	SessionTicketKeysSdsSecretConfig *SdsSecretConfig `protobuf:"bytes,5,opt,name=session_ticket_keys_sds_secret_config,json=sessionTicketKeysSdsSecretConfig,proto3,oneof"`
 }
 
 func (*DownstreamTlsContext_SessionTicketKeys) isDownstreamTlsContext_SessionTicketKeysType() {}
@@ -1030,7 +1114,7 @@ type SdsSecretConfig struct {
 	// When both name and config are specified, then secret can be fetched and/or reloaded via SDS.
 	// When only name is specified, then secret will be loaded from static resources [V2-API-DIFF].
 	Name                 string             `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	SdsConfig            *core.ConfigSource `protobuf:"bytes,2,opt,name=sds_config,json=sdsConfig" json:"sds_config,omitempty"`
+	SdsConfig            *core.ConfigSource `protobuf:"bytes,2,opt,name=sds_config,json=sdsConfig,proto3" json:"sds_config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1040,7 +1124,7 @@ func (m *SdsSecretConfig) Reset()         { *m = SdsSecretConfig{} }
 func (m *SdsSecretConfig) String() string { return proto.CompactTextString(m) }
 func (*SdsSecretConfig) ProtoMessage()    {}
 func (*SdsSecretConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{7}
+	return fileDescriptor_0c3851c0865b2745, []int{7}
 }
 func (m *SdsSecretConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1057,8 +1141,8 @@ func (m *SdsSecretConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return b[:n], nil
 	}
 }
-func (dst *SdsSecretConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SdsSecretConfig.Merge(dst, src)
+func (m *SdsSecretConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SdsSecretConfig.Merge(m, src)
 }
 func (m *SdsSecretConfig) XXX_Size() int {
 	return m.Size()
@@ -1101,7 +1185,7 @@ func (m *Secret) Reset()         { *m = Secret{} }
 func (m *Secret) String() string { return proto.CompactTextString(m) }
 func (*Secret) ProtoMessage()    {}
 func (*Secret) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cert_d136c0593daa7c3c, []int{8}
+	return fileDescriptor_0c3851c0865b2745, []int{8}
 }
 func (m *Secret) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1118,8 +1202,8 @@ func (m *Secret) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *Secret) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Secret.Merge(dst, src)
+func (m *Secret) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Secret.Merge(m, src)
 }
 func (m *Secret) XXX_Size() int {
 	return m.Size()
@@ -1138,13 +1222,13 @@ type isSecret_Type interface {
 }
 
 type Secret_TlsCertificate struct {
-	TlsCertificate *TlsCertificate `protobuf:"bytes,2,opt,name=tls_certificate,json=tlsCertificate,oneof"`
+	TlsCertificate *TlsCertificate `protobuf:"bytes,2,opt,name=tls_certificate,json=tlsCertificate,proto3,oneof"`
 }
 type Secret_SessionTicketKeys struct {
-	SessionTicketKeys *TlsSessionTicketKeys `protobuf:"bytes,3,opt,name=session_ticket_keys,json=sessionTicketKeys,oneof"`
+	SessionTicketKeys *TlsSessionTicketKeys `protobuf:"bytes,3,opt,name=session_ticket_keys,json=sessionTicketKeys,proto3,oneof"`
 }
 type Secret_ValidationContext struct {
-	ValidationContext *CertificateValidationContext `protobuf:"bytes,4,opt,name=validation_context,json=validationContext,oneof"`
+	ValidationContext *CertificateValidationContext `protobuf:"bytes,4,opt,name=validation_context,json=validationContext,proto3,oneof"`
 }
 
 func (*Secret_TlsCertificate) isSecret_Type()    {}
@@ -1280,18 +1364,108 @@ func _Secret_OneofSizer(msg proto.Message) (n int) {
 }
 
 func init() {
+	proto.RegisterEnum("envoy.api.v2.auth.TlsParameters_TlsProtocol", TlsParameters_TlsProtocol_name, TlsParameters_TlsProtocol_value)
 	proto.RegisterType((*TlsParameters)(nil), "envoy.api.v2.auth.TlsParameters")
 	proto.RegisterType((*TlsCertificate)(nil), "envoy.api.v2.auth.TlsCertificate")
 	proto.RegisterType((*TlsSessionTicketKeys)(nil), "envoy.api.v2.auth.TlsSessionTicketKeys")
 	proto.RegisterType((*CertificateValidationContext)(nil), "envoy.api.v2.auth.CertificateValidationContext")
 	proto.RegisterType((*CommonTlsContext)(nil), "envoy.api.v2.auth.CommonTlsContext")
-	proto.RegisterType((*CommonTlsContext_DeprecatedV1)(nil), "envoy.api.v2.auth.CommonTlsContext.DeprecatedV1")
+	proto.RegisterType((*CommonTlsContext_CombinedCertificateValidationContext)(nil), "envoy.api.v2.auth.CommonTlsContext.CombinedCertificateValidationContext")
 	proto.RegisterType((*UpstreamTlsContext)(nil), "envoy.api.v2.auth.UpstreamTlsContext")
 	proto.RegisterType((*DownstreamTlsContext)(nil), "envoy.api.v2.auth.DownstreamTlsContext")
 	proto.RegisterType((*SdsSecretConfig)(nil), "envoy.api.v2.auth.SdsSecretConfig")
 	proto.RegisterType((*Secret)(nil), "envoy.api.v2.auth.Secret")
-	proto.RegisterEnum("envoy.api.v2.auth.TlsParameters_TlsProtocol", TlsParameters_TlsProtocol_name, TlsParameters_TlsProtocol_value)
 }
+
+func init() { proto.RegisterFile("envoy/api/v2/auth/cert.proto", fileDescriptor_0c3851c0865b2745) }
+
+var fileDescriptor_0c3851c0865b2745 = []byte{
+	// 1325 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0xbf, 0x73, 0x1b, 0x45,
+	0x14, 0xf6, 0x49, 0xb2, 0x23, 0x3f, 0x25, 0xce, 0x79, 0x63, 0xc6, 0x67, 0x61, 0x1c, 0x45, 0x49,
+	0x06, 0x17, 0x19, 0x89, 0x28, 0x43, 0xc1, 0xaf, 0x40, 0xa4, 0xc0, 0x98, 0xc4, 0x90, 0x70, 0x92,
+	0x33, 0x40, 0x73, 0xac, 0x4f, 0x6b, 0x69, 0xf1, 0xdd, 0xed, 0xb1, 0xbb, 0x92, 0x2d, 0x0a, 0x0a,
+	0xca, 0x94, 0xa9, 0x69, 0xe8, 0xe8, 0xe8, 0xa9, 0x28, 0x69, 0x98, 0xe1, 0x4f, 0x60, 0xdc, 0xd1,
+	0xa4, 0xa6, 0x02, 0x66, 0xf7, 0x4e, 0xf6, 0x49, 0x77, 0x89, 0x04, 0x93, 0xa1, 0xbb, 0xdd, 0xb7,
+	0xef, 0xfb, 0x76, 0xdf, 0xfb, 0xde, 0x7b, 0x07, 0x9b, 0x24, 0x18, 0xb2, 0x51, 0x1d, 0x87, 0xb4,
+	0x3e, 0x6c, 0xd4, 0xf1, 0x40, 0xf6, 0xeb, 0x2e, 0xe1, 0xb2, 0x16, 0x72, 0x26, 0x19, 0x5a, 0xd5,
+	0xd6, 0x1a, 0x0e, 0x69, 0x6d, 0xd8, 0xa8, 0x29, 0x6b, 0x79, 0xd2, 0xc1, 0x65, 0x9c, 0xd4, 0xf7,
+	0xb1, 0x20, 0x91, 0x43, 0xf9, 0x7a, 0xda, 0xea, 0xb2, 0xe0, 0x80, 0xf6, 0x1c, 0xc1, 0x06, 0xdc,
+	0x1d, 0x1f, 0xdb, 0xea, 0x31, 0xd6, 0xf3, 0x48, 0x5d, 0xaf, 0xf6, 0x07, 0x07, 0xf5, 0x23, 0x8e,
+	0xc3, 0x90, 0x70, 0x11, 0xdb, 0xd7, 0x87, 0xd8, 0xa3, 0x5d, 0x2c, 0x49, 0x7d, 0xfc, 0x11, 0x1b,
+	0xd6, 0x7a, 0xac, 0xc7, 0xf4, 0x67, 0x5d, 0x7d, 0x45, 0xbb, 0xd5, 0xef, 0xf2, 0x70, 0xa1, 0xe3,
+	0x89, 0x87, 0x98, 0x63, 0x9f, 0x48, 0xc2, 0x05, 0x1a, 0xc1, 0xa6, 0xf4, 0x84, 0xe3, 0xd3, 0x80,
+	0xfa, 0x03, 0xdf, 0xd1, 0xc7, 0x5c, 0xe6, 0x39, 0x43, 0xc2, 0x05, 0x65, 0x81, 0x65, 0x54, 0x8c,
+	0xed, 0x95, 0xc6, 0x8d, 0x5a, 0xea, 0x7d, 0xb5, 0x09, 0x1c, 0xbd, 0x8a, 0x7d, 0x9b, 0xf0, 0xd3,
+	0x1f, 0x3f, 0xe7, 0x17, 0xbf, 0x35, 0x72, 0xa6, 0x61, 0x6f, 0x48, 0x4f, 0x7c, 0x14, 0x81, 0x8f,
+	0xed, 0x8f, 0x22, 0xe8, 0x53, 0x6a, 0x7c, 0x9c, 0x4d, 0x9d, 0x7b, 0x11, 0xd4, 0x11, 0xf8, 0x34,
+	0xf5, 0x55, 0xb8, 0xe0, 0xd2, 0xb0, 0x4f, 0xb8, 0x23, 0x06, 0x54, 0x12, 0x61, 0xe5, 0x2b, 0xf9,
+	0xed, 0x65, 0xfb, 0x7c, 0xb4, 0xd9, 0xd6, 0x7b, 0xe8, 0x32, 0x94, 0x88, 0xdb, 0xed, 0x3b, 0xee,
+	0x80, 0x0f, 0x89, 0xb0, 0x0a, 0xfa, 0x08, 0xa8, 0xad, 0x96, 0xde, 0xa9, 0x3e, 0x80, 0x52, 0x82,
+	0x1b, 0x9d, 0x87, 0x62, 0x67, 0xb7, 0xed, 0xdc, 0xd9, 0xeb, 0x3c, 0x30, 0x17, 0x50, 0x09, 0xce,
+	0x75, 0x76, 0xdb, 0xc3, 0x9b, 0xce, 0x6b, 0xa6, 0x71, 0xb6, 0xb8, 0x69, 0xe6, 0xce, 0x16, 0x0d,
+	0x33, 0x7f, 0xb6, 0xb8, 0x65, 0x16, 0xaa, 0x7f, 0xe6, 0x60, 0xa5, 0xe3, 0x89, 0x16, 0xe1, 0x92,
+	0x1e, 0x50, 0x17, 0x4b, 0x82, 0xee, 0xc1, 0xaa, 0x7b, 0xb6, 0x74, 0xdc, 0x3e, 0xa6, 0x51, 0x52,
+	0x4a, 0x8d, 0x57, 0x26, 0x23, 0xa3, 0x34, 0x54, 0xbb, 0x8b, 0x25, 0x6e, 0x6b, 0x01, 0xd9, 0x66,
+	0xc2, 0xaf, 0xa5, 0xdc, 0xd0, 0x6d, 0x28, 0x85, 0x9c, 0x0e, 0x15, 0xce, 0x21, 0x19, 0xe9, 0xf8,
+	0xce, 0x44, 0x81, 0xd8, 0xe3, 0x3e, 0x19, 0xa1, 0x37, 0xa0, 0x18, 0x62, 0x21, 0x8e, 0x18, 0xef,
+	0x5a, 0xf9, 0x79, 0x9c, 0x4f, 0x8f, 0x2b, 0x6a, 0xe6, 0x8a, 0xd0, 0x11, 0x12, 0x87, 0x1e, 0xb1,
+	0x0a, 0x73, 0x51, 0x2b, 0x8f, 0xb6, 0x76, 0x40, 0x0e, 0x6c, 0x0a, 0xda, 0x0b, 0x48, 0xd7, 0x49,
+	0x46, 0x43, 0x52, 0x9f, 0x08, 0x89, 0xfd, 0xd0, 0x5a, 0xac, 0xe4, 0x67, 0x03, 0x96, 0x23, 0x88,
+	0x44, 0x78, 0x3b, 0x63, 0x80, 0xea, 0x1e, 0xac, 0x75, 0x3c, 0xd1, 0x26, 0x42, 0xe9, 0xa3, 0x43,
+	0xdd, 0x43, 0x22, 0xef, 0x93, 0x91, 0x40, 0xef, 0x40, 0xe1, 0x90, 0x8c, 0x84, 0x65, 0xcc, 0x41,
+	0x10, 0xab, 0xef, 0x89, 0x91, 0x2b, 0x1a, 0xb6, 0x76, 0xab, 0xfe, 0x5a, 0x80, 0xcd, 0x04, 0xdf,
+	0xa3, 0xa8, 0x48, 0x29, 0x0b, 0x5a, 0x2c, 0x90, 0xe4, 0x58, 0xa2, 0xb7, 0x01, 0x24, 0x1f, 0x08,
+	0xa9, 0x5e, 0x86, 0xe7, 0x4b, 0xec, 0x72, 0xec, 0xd0, 0xc2, 0x68, 0x07, 0xd6, 0x87, 0x84, 0xd3,
+	0x83, 0xd1, 0x44, 0x58, 0x44, 0x78, 0x48, 0x23, 0x45, 0x37, 0x4d, 0x75, 0xa3, 0xd2, 0x13, 0xa3,
+	0x58, 0x5d, 0xe2, 0x85, 0xca, 0x8d, 0xed, 0x1b, 0xf6, 0x4b, 0x91, 0x43, 0xe2, 0x52, 0xed, 0xf0,
+	0x90, 0x3e, 0x03, 0xa9, 0x8f, 0x45, 0xdf, 0xca, 0x65, 0x20, 0xbd, 0xb7, 0xed, 0x64, 0x20, 0xed,
+	0x60, 0xd1, 0x47, 0xaf, 0x9f, 0x22, 0x89, 0xc1, 0xfe, 0x97, 0xc4, 0x95, 0x0e, 0xf6, 0xa4, 0x13,
+	0x60, 0x9f, 0xc4, 0x25, 0xb4, 0x16, 0x99, 0xdb, 0x91, 0xf5, 0x8e, 0x27, 0x3f, 0xc6, 0xbe, 0x12,
+	0xfa, 0x25, 0x4e, 0xbe, 0x1a, 0x50, 0x4e, 0x9c, 0xa4, 0x52, 0x16, 0x75, 0x44, 0xca, 0xb5, 0xa8,
+	0x0f, 0xd6, 0xc6, 0x7d, 0xb0, 0xd6, 0x64, 0xcc, 0x7b, 0x84, 0xbd, 0x01, 0xb1, 0x57, 0x63, 0xb7,
+	0x07, 0x67, 0x6a, 0x39, 0x84, 0x6b, 0x63, 0xac, 0xe7, 0xaa, 0x66, 0x69, 0x26, 0xf8, 0x95, 0x18,
+	0xa7, 0xfd, 0x4c, 0xe5, 0xa0, 0x3a, 0xe4, 0x5d, 0xee, 0x59, 0xe7, 0xe6, 0x49, 0x9d, 0x3a, 0x89,
+	0xde, 0x84, 0x0d, 0xec, 0x79, 0xec, 0xc8, 0x21, 0xc7, 0x21, 0xe5, 0x93, 0x97, 0xb3, 0x8a, 0x15,
+	0x63, 0xbb, 0x68, 0xaf, 0xeb, 0x03, 0xef, 0x47, 0xf6, 0x04, 0x6b, 0xf5, 0xe9, 0x39, 0x30, 0x5b,
+	0xcc, 0xf7, 0x59, 0xa0, 0xfa, 0x44, 0xac, 0xa1, 0x77, 0x01, 0x54, 0x23, 0x0d, 0x55, 0x4b, 0x14,
+	0xb1, 0x86, 0x2a, 0xb3, 0xda, 0xa6, 0xbd, 0x2c, 0xe3, 0xa5, 0x40, 0xbb, 0x60, 0x2a, 0x80, 0xc4,
+	0x3d, 0x84, 0xce, 0x7a, 0xa9, 0x71, 0x25, 0x1b, 0x26, 0x71, 0x25, 0xfb, 0xa2, 0x9c, 0x58, 0x0b,
+	0xf4, 0x35, 0x54, 0xa7, 0xd0, 0x1c, 0xd1, 0x15, 0x8e, 0x20, 0x2e, 0x27, 0xd2, 0x89, 0xa6, 0x9c,
+	0xb0, 0x96, 0x34, 0x7e, 0x35, 0x03, 0xbf, 0xdd, 0x15, 0x6d, 0x7d, 0xb6, 0xa5, 0x8f, 0x9e, 0x55,
+	0x95, 0x69, 0xd8, 0x5b, 0x93, 0x64, 0x53, 0x47, 0x05, 0xfa, 0x02, 0xd0, 0xf0, 0xb4, 0xc6, 0x14,
+	0x97, 0x0a, 0x50, 0xdc, 0xac, 0xea, 0x19, 0x5c, 0xcf, 0xab, 0xcd, 0x9d, 0x05, 0x7b, 0x75, 0x98,
+	0x2a, 0x58, 0x09, 0xd7, 0xd2, 0x0c, 0xe9, 0x07, 0xc6, 0x7a, 0x98, 0xe3, 0x7d, 0x3b, 0x0b, 0x76,
+	0x25, 0x45, 0x33, 0x75, 0x06, 0x3d, 0x36, 0xe0, 0x65, 0x97, 0xf9, 0xfb, 0x54, 0x89, 0x39, 0xe3,
+	0x85, 0x45, 0xcd, 0xb6, 0x93, 0xf5, 0xc2, 0x29, 0xb5, 0xa8, 0x0d, 0x0d, 0x33, 0xe3, 0xe9, 0x1b,
+	0x63, 0xba, 0x74, 0xcf, 0xba, 0x0e, 0x2b, 0xd8, 0x0b, 0x83, 0xd3, 0x89, 0x3d, 0x9e, 0x8d, 0x17,
+	0xd4, 0xee, 0x78, 0x1c, 0x8a, 0xf2, 0xf7, 0x39, 0xb8, 0x36, 0x0f, 0x19, 0x1a, 0x41, 0xb9, 0x4b,
+	0x0e, 0xf0, 0xc0, 0x93, 0x59, 0x4f, 0x33, 0xfe, 0x53, 0xf2, 0x62, 0xd5, 0x3c, 0xd6, 0xaa, 0xb1,
+	0x62, 0xf8, 0x34, 0xf5, 0x37, 0x73, 0x66, 0x33, 0x37, 0x6f, 0x36, 0x27, 0x78, 0x67, 0xe6, 0xb5,
+	0xb9, 0x01, 0xeb, 0x19, 0xfc, 0x72, 0x14, 0x92, 0x7b, 0x85, 0xe2, 0xa2, 0xb9, 0x54, 0xfd, 0xcb,
+	0x00, 0xb4, 0x17, 0x0a, 0xc9, 0x09, 0xf6, 0x13, 0x25, 0xff, 0x09, 0x20, 0x57, 0x27, 0xd6, 0xd1,
+	0xa5, 0x36, 0x11, 0xaa, 0xab, 0x73, 0xa8, 0xc0, 0x36, 0xdd, 0xe9, 0x2e, 0xb2, 0x09, 0x79, 0x11,
+	0x50, 0xfd, 0xd2, 0xe5, 0xf8, 0x15, 0x3c, 0xbf, 0xfd, 0xb7, 0x61, 0xab, 0x6d, 0x54, 0x87, 0x4b,
+	0x51, 0xd3, 0xe2, 0x24, 0x20, 0x3d, 0x26, 0xa9, 0xbe, 0xb1, 0xae, 0xac, 0xa2, 0x8d, 0xb4, 0xc9,
+	0x4e, 0x5a, 0xd0, 0x07, 0x60, 0xfa, 0xf8, 0xd8, 0x11, 0xd1, 0x44, 0x75, 0xf4, 0x10, 0x8d, 0xc6,
+	0xfe, 0x66, 0xaa, 0xdf, 0xee, 0x7d, 0x18, 0xc8, 0x5b, 0x8d, 0xa8, 0xe3, 0xae, 0xf8, 0xf8, 0x38,
+	0x1e, 0xc3, 0x6a, 0x00, 0x57, 0x9f, 0xe6, 0x61, 0xed, 0x2e, 0x3b, 0x0a, 0xfe, 0x8f, 0x10, 0x7c,
+	0x0a, 0xe5, 0xf1, 0xdc, 0x70, 0x3d, 0x4a, 0x02, 0x39, 0xd1, 0x9a, 0x73, 0x33, 0xa7, 0x85, 0x15,
+	0x7b, 0xb7, 0xb4, 0x73, 0xf2, 0x37, 0xee, 0x2d, 0x28, 0x9d, 0x4e, 0xa4, 0x80, 0xc6, 0x0d, 0xe9,
+	0x79, 0x50, 0x30, 0x1e, 0x3c, 0x01, 0x45, 0x9f, 0xc1, 0xa5, 0x71, 0x18, 0xa5, 0xfe, 0x33, 0x49,
+	0x46, 0xf3, 0xd5, 0xec, 0x0e, 0x9d, 0xfa, 0x93, 0x51, 0xdd, 0x4c, 0xa4, 0x7e, 0x6f, 0x06, 0x70,
+	0x3d, 0x03, 0x3a, 0xa3, 0x00, 0x16, 0xff, 0x4d, 0x3b, 0x4b, 0xf1, 0x4c, 0xcb, 0xbe, 0x0c, 0x56,
+	0x16, 0xad, 0xd2, 0x7d, 0x95, 0xc0, 0xc5, 0xe9, 0xee, 0x87, 0xa0, 0xa0, 0xff, 0x1f, 0x54, 0x72,
+	0x97, 0x6d, 0xfd, 0x8d, 0x6e, 0x03, 0xa8, 0x5b, 0x4e, 0xd4, 0xe7, 0xe5, 0x8c, 0xe9, 0x1b, 0x41,
+	0x8c, 0x7f, 0x9d, 0x44, 0x57, 0x44, 0x1b, 0xd5, 0x1f, 0x73, 0xb0, 0x14, 0x91, 0x64, 0xc2, 0xef,
+	0xc2, 0xc5, 0xa9, 0x21, 0x16, 0x73, 0xcc, 0x9e, 0x88, 0x3b, 0x0b, 0xf6, 0xca, 0xe4, 0x98, 0x7a,
+	0x56, 0x06, 0xf3, 0x2f, 0x20, 0x83, 0xd9, 0x13, 0xaf, 0xf0, 0xe2, 0x26, 0x5e, 0x73, 0x09, 0x0a,
+	0x2a, 0x31, 0xcd, 0xbb, 0x3f, 0x9c, 0x6c, 0x19, 0xbf, 0x9c, 0x6c, 0x19, 0xbf, 0x9d, 0x6c, 0x19,
+	0xbf, 0x9f, 0x6c, 0x19, 0x70, 0x99, 0xb2, 0x88, 0x21, 0xe4, 0xec, 0x78, 0x94, 0x26, 0x6b, 0x2e,
+	0x2b, 0x36, 0x3d, 0x11, 0x1e, 0x1a, 0x9f, 0x17, 0xd4, 0xd6, 0xfe, 0x92, 0x16, 0xfb, 0xad, 0x7f,
+	0x02, 0x00, 0x00, 0xff, 0xff, 0xa2, 0xd6, 0xa7, 0x9e, 0x50, 0x0f, 0x00, 0x00,
+}
+
 func (this *TlsParameters) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -1532,9 +1706,6 @@ func (this *CommonTlsContext) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !this.DeprecatedV1.Equal(that1.DeprecatedV1) {
-		return false
-	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
 		return false
 	}
@@ -1588,14 +1759,14 @@ func (this *CommonTlsContext_ValidationContextSdsSecretConfig) Equal(that interf
 	}
 	return true
 }
-func (this *CommonTlsContext_DeprecatedV1) Equal(that interface{}) bool {
+func (this *CommonTlsContext_CombinedValidationContext) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*CommonTlsContext_DeprecatedV1)
+	that1, ok := that.(*CommonTlsContext_CombinedValidationContext)
 	if !ok {
-		that2, ok := that.(CommonTlsContext_DeprecatedV1)
+		that2, ok := that.(CommonTlsContext_CombinedValidationContext)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1607,7 +1778,34 @@ func (this *CommonTlsContext_DeprecatedV1) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.AltAlpnProtocols != that1.AltAlpnProtocols {
+	if !this.CombinedValidationContext.Equal(that1.CombinedValidationContext) {
+		return false
+	}
+	return true
+}
+func (this *CommonTlsContext_CombinedCertificateValidationContext) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*CommonTlsContext_CombinedCertificateValidationContext)
+	if !ok {
+		that2, ok := that.(CommonTlsContext_CombinedCertificateValidationContext)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.DefaultValidationContext.Equal(that1.DefaultValidationContext) {
+		return false
+	}
+	if !this.ValidationContextSdsSecretConfig.Equal(that1.ValidationContextSdsSecretConfig) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -1641,6 +1839,9 @@ func (this *UpstreamTlsContext) Equal(that interface{}) bool {
 		return false
 	}
 	if this.AllowRenegotiation != that1.AllowRenegotiation {
+		return false
+	}
+	if !this.MaxSessionKeys.Equal(that1.MaxSessionKeys) {
 		return false
 	}
 	if !bytes.Equal(this.XXX_unrecognized, that1.XXX_unrecognized) {
@@ -2218,16 +2419,6 @@ func (m *CommonTlsContext) MarshalTo(dAtA []byte) (int, error) {
 			i += copy(dAtA[i:], s)
 		}
 	}
-	if m.DeprecatedV1 != nil {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintCert(dAtA, i, uint64(m.DeprecatedV1.Size()))
-		n11, err := m.DeprecatedV1.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n11
-	}
 	if len(m.TlsCertificateSdsSecretConfigs) > 0 {
 		for _, msg := range m.TlsCertificateSdsSecretConfigs {
 			dAtA[i] = 0x32
@@ -2252,11 +2443,11 @@ func (m *CommonTlsContext_ValidationContext) MarshalTo(dAtA []byte) (int, error)
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.ValidationContext.Size()))
-		n12, err := m.ValidationContext.MarshalTo(dAtA[i:])
+		n11, err := m.ValidationContext.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n12
+		i += n11
 	}
 	return i, nil
 }
@@ -2266,7 +2457,21 @@ func (m *CommonTlsContext_ValidationContextSdsSecretConfig) MarshalTo(dAtA []byt
 		dAtA[i] = 0x3a
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.ValidationContextSdsSecretConfig.Size()))
-		n13, err := m.ValidationContextSdsSecretConfig.MarshalTo(dAtA[i:])
+		n12, err := m.ValidationContextSdsSecretConfig.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n12
+	}
+	return i, nil
+}
+func (m *CommonTlsContext_CombinedValidationContext) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.CombinedValidationContext != nil {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintCert(dAtA, i, uint64(m.CombinedValidationContext.Size()))
+		n13, err := m.CombinedValidationContext.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -2274,7 +2479,7 @@ func (m *CommonTlsContext_ValidationContextSdsSecretConfig) MarshalTo(dAtA []byt
 	}
 	return i, nil
 }
-func (m *CommonTlsContext_DeprecatedV1) Marshal() (dAtA []byte, err error) {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -2284,16 +2489,30 @@ func (m *CommonTlsContext_DeprecatedV1) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *CommonTlsContext_DeprecatedV1) MarshalTo(dAtA []byte) (int, error) {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.AltAlpnProtocols) > 0 {
+	if m.DefaultValidationContext != nil {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintCert(dAtA, i, uint64(len(m.AltAlpnProtocols)))
-		i += copy(dAtA[i:], m.AltAlpnProtocols)
+		i = encodeVarintCert(dAtA, i, uint64(m.DefaultValidationContext.Size()))
+		n14, err := m.DefaultValidationContext.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
+	}
+	if m.ValidationContextSdsSecretConfig != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintCert(dAtA, i, uint64(m.ValidationContextSdsSecretConfig.Size()))
+		n15, err := m.ValidationContextSdsSecretConfig.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n15
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -2320,11 +2539,11 @@ func (m *UpstreamTlsContext) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.CommonTlsContext.Size()))
-		n14, err := m.CommonTlsContext.MarshalTo(dAtA[i:])
+		n16, err := m.CommonTlsContext.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n14
+		i += n16
 	}
 	if len(m.Sni) > 0 {
 		dAtA[i] = 0x12
@@ -2341,6 +2560,16 @@ func (m *UpstreamTlsContext) MarshalTo(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i++
+	}
+	if m.MaxSessionKeys != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintCert(dAtA, i, uint64(m.MaxSessionKeys.Size()))
+		n17, err := m.MaxSessionKeys.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n17
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -2367,38 +2596,38 @@ func (m *DownstreamTlsContext) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.CommonTlsContext.Size()))
-		n15, err := m.CommonTlsContext.MarshalTo(dAtA[i:])
+		n18, err := m.CommonTlsContext.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n15
+		i += n18
 	}
 	if m.RequireClientCertificate != nil {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.RequireClientCertificate.Size()))
-		n16, err := m.RequireClientCertificate.MarshalTo(dAtA[i:])
+		n19, err := m.RequireClientCertificate.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n16
+		i += n19
 	}
 	if m.RequireSni != nil {
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.RequireSni.Size()))
-		n17, err := m.RequireSni.MarshalTo(dAtA[i:])
+		n20, err := m.RequireSni.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n17
+		i += n20
 	}
 	if m.SessionTicketKeysType != nil {
-		nn18, err := m.SessionTicketKeysType.MarshalTo(dAtA[i:])
+		nn21, err := m.SessionTicketKeysType.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn18
+		i += nn21
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -2412,11 +2641,11 @@ func (m *DownstreamTlsContext_SessionTicketKeys) MarshalTo(dAtA []byte) (int, er
 		dAtA[i] = 0x22
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.SessionTicketKeys.Size()))
-		n19, err := m.SessionTicketKeys.MarshalTo(dAtA[i:])
+		n22, err := m.SessionTicketKeys.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n19
+		i += n22
 	}
 	return i, nil
 }
@@ -2426,11 +2655,11 @@ func (m *DownstreamTlsContext_SessionTicketKeysSdsSecretConfig) MarshalTo(dAtA [
 		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.SessionTicketKeysSdsSecretConfig.Size()))
-		n20, err := m.SessionTicketKeysSdsSecretConfig.MarshalTo(dAtA[i:])
+		n23, err := m.SessionTicketKeysSdsSecretConfig.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n20
+		i += n23
 	}
 	return i, nil
 }
@@ -2459,11 +2688,11 @@ func (m *SdsSecretConfig) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.SdsConfig.Size()))
-		n21, err := m.SdsConfig.MarshalTo(dAtA[i:])
+		n24, err := m.SdsConfig.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n21
+		i += n24
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -2493,11 +2722,11 @@ func (m *Secret) MarshalTo(dAtA []byte) (int, error) {
 		i += copy(dAtA[i:], m.Name)
 	}
 	if m.Type != nil {
-		nn22, err := m.Type.MarshalTo(dAtA[i:])
+		nn25, err := m.Type.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn22
+		i += nn25
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -2511,11 +2740,11 @@ func (m *Secret_TlsCertificate) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.TlsCertificate.Size()))
-		n23, err := m.TlsCertificate.MarshalTo(dAtA[i:])
+		n26, err := m.TlsCertificate.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n23
+		i += n26
 	}
 	return i, nil
 }
@@ -2525,11 +2754,11 @@ func (m *Secret_SessionTicketKeys) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.SessionTicketKeys.Size()))
-		n24, err := m.SessionTicketKeys.MarshalTo(dAtA[i:])
+		n27, err := m.SessionTicketKeys.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n24
+		i += n27
 	}
 	return i, nil
 }
@@ -2539,11 +2768,11 @@ func (m *Secret_ValidationContext) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x22
 		i++
 		i = encodeVarintCert(dAtA, i, uint64(m.ValidationContext.Size()))
-		n25, err := m.ValidationContext.MarshalTo(dAtA[i:])
+		n28, err := m.ValidationContext.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n25
+		i += n28
 	}
 	return i, nil
 }
@@ -2557,6 +2786,9 @@ func encodeVarintCert(dAtA []byte, offset int, v uint64) int {
 	return offset + 1
 }
 func (m *TlsParameters) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.TlsMinimumProtocolVersion != 0 {
@@ -2584,6 +2816,9 @@ func (m *TlsParameters) Size() (n int) {
 }
 
 func (m *TlsCertificate) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.CertificateChain != nil {
@@ -2615,6 +2850,9 @@ func (m *TlsCertificate) Size() (n int) {
 }
 
 func (m *TlsSessionTicketKeys) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if len(m.Keys) > 0 {
@@ -2630,6 +2868,9 @@ func (m *TlsSessionTicketKeys) Size() (n int) {
 }
 
 func (m *CertificateValidationContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.TrustedCa != nil {
@@ -2676,6 +2917,9 @@ func (m *CertificateValidationContext) Size() (n int) {
 }
 
 func (m *CommonTlsContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.TlsParams != nil {
@@ -2697,10 +2941,6 @@ func (m *CommonTlsContext) Size() (n int) {
 			n += 1 + l + sovCert(uint64(l))
 		}
 	}
-	if m.DeprecatedV1 != nil {
-		l = m.DeprecatedV1.Size()
-		n += 1 + l + sovCert(uint64(l))
-	}
 	if len(m.TlsCertificateSdsSecretConfigs) > 0 {
 		for _, e := range m.TlsCertificateSdsSecretConfigs {
 			l = e.Size()
@@ -2714,6 +2954,9 @@ func (m *CommonTlsContext) Size() (n int) {
 }
 
 func (m *CommonTlsContext_ValidationContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ValidationContext != nil {
@@ -2723,6 +2966,9 @@ func (m *CommonTlsContext_ValidationContext) Size() (n int) {
 	return n
 }
 func (m *CommonTlsContext_ValidationContextSdsSecretConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ValidationContextSdsSecretConfig != nil {
@@ -2731,11 +2977,30 @@ func (m *CommonTlsContext_ValidationContextSdsSecretConfig) Size() (n int) {
 	}
 	return n
 }
-func (m *CommonTlsContext_DeprecatedV1) Size() (n int) {
+func (m *CommonTlsContext_CombinedValidationContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
-	l = len(m.AltAlpnProtocols)
-	if l > 0 {
+	if m.CombinedValidationContext != nil {
+		l = m.CombinedValidationContext.Size()
+		n += 1 + l + sovCert(uint64(l))
+	}
+	return n
+}
+func (m *CommonTlsContext_CombinedCertificateValidationContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.DefaultValidationContext != nil {
+		l = m.DefaultValidationContext.Size()
+		n += 1 + l + sovCert(uint64(l))
+	}
+	if m.ValidationContextSdsSecretConfig != nil {
+		l = m.ValidationContextSdsSecretConfig.Size()
 		n += 1 + l + sovCert(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
@@ -2745,6 +3010,9 @@ func (m *CommonTlsContext_DeprecatedV1) Size() (n int) {
 }
 
 func (m *UpstreamTlsContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.CommonTlsContext != nil {
@@ -2758,6 +3026,10 @@ func (m *UpstreamTlsContext) Size() (n int) {
 	if m.AllowRenegotiation {
 		n += 2
 	}
+	if m.MaxSessionKeys != nil {
+		l = m.MaxSessionKeys.Size()
+		n += 1 + l + sovCert(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -2765,6 +3037,9 @@ func (m *UpstreamTlsContext) Size() (n int) {
 }
 
 func (m *DownstreamTlsContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.CommonTlsContext != nil {
@@ -2789,6 +3064,9 @@ func (m *DownstreamTlsContext) Size() (n int) {
 }
 
 func (m *DownstreamTlsContext_SessionTicketKeys) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.SessionTicketKeys != nil {
@@ -2798,6 +3076,9 @@ func (m *DownstreamTlsContext_SessionTicketKeys) Size() (n int) {
 	return n
 }
 func (m *DownstreamTlsContext_SessionTicketKeysSdsSecretConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.SessionTicketKeysSdsSecretConfig != nil {
@@ -2807,6 +3088,9 @@ func (m *DownstreamTlsContext_SessionTicketKeysSdsSecretConfig) Size() (n int) {
 	return n
 }
 func (m *SdsSecretConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Name)
@@ -2824,6 +3108,9 @@ func (m *SdsSecretConfig) Size() (n int) {
 }
 
 func (m *Secret) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	l = len(m.Name)
@@ -2840,6 +3127,9 @@ func (m *Secret) Size() (n int) {
 }
 
 func (m *Secret_TlsCertificate) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.TlsCertificate != nil {
@@ -2849,6 +3139,9 @@ func (m *Secret_TlsCertificate) Size() (n int) {
 	return n
 }
 func (m *Secret_SessionTicketKeys) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.SessionTicketKeys != nil {
@@ -2858,6 +3151,9 @@ func (m *Secret_SessionTicketKeys) Size() (n int) {
 	return n
 }
 func (m *Secret_ValidationContext) Size() (n int) {
+	if m == nil {
+		return 0
+	}
 	var l int
 	_ = l
 	if m.ValidationContext != nil {
@@ -2895,7 +3191,7 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2923,7 +3219,7 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.TlsMinimumProtocolVersion |= (TlsParameters_TlsProtocol(b) & 0x7F) << shift
+				m.TlsMinimumProtocolVersion |= TlsParameters_TlsProtocol(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2942,7 +3238,7 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.TlsMaximumProtocolVersion |= (TlsParameters_TlsProtocol(b) & 0x7F) << shift
+				m.TlsMaximumProtocolVersion |= TlsParameters_TlsProtocol(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2961,7 +3257,7 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2971,6 +3267,9 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2990,7 +3289,7 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3000,6 +3299,9 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3012,6 +3314,9 @@ func (m *TlsParameters) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -3042,7 +3347,7 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3070,7 +3375,7 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3079,6 +3384,9 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3103,7 +3411,7 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3112,6 +3420,9 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3136,7 +3447,7 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3145,6 +3456,9 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3169,7 +3483,7 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3178,6 +3492,9 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3202,7 +3519,7 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3211,6 +3528,9 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3226,6 +3546,9 @@ func (m *TlsCertificate) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -3256,7 +3579,7 @@ func (m *TlsSessionTicketKeys) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3284,7 +3607,7 @@ func (m *TlsSessionTicketKeys) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3293,6 +3616,9 @@ func (m *TlsSessionTicketKeys) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3308,6 +3634,9 @@ func (m *TlsSessionTicketKeys) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -3338,7 +3667,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3366,7 +3695,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3375,6 +3704,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3399,7 +3731,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3409,6 +3741,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3428,7 +3763,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3438,6 +3773,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3457,7 +3795,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3467,6 +3805,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3486,7 +3827,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3495,6 +3836,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3519,7 +3863,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3528,6 +3872,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3552,7 +3899,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3561,6 +3908,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3585,7 +3935,7 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3598,6 +3948,9 @@ func (m *CertificateValidationContext) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -3628,7 +3981,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3656,7 +4009,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3665,6 +4018,9 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3689,7 +4045,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3698,6 +4054,9 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3720,7 +4079,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3729,6 +4088,9 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3752,7 +4114,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3762,43 +4124,13 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.AlpnProtocols = append(m.AlpnProtocols, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DeprecatedV1", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCert
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCert
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.DeprecatedV1 == nil {
-				m.DeprecatedV1 = &CommonTlsContext_DeprecatedV1{}
-			}
-			if err := m.DeprecatedV1.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -3814,7 +4146,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3823,6 +4155,9 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3845,7 +4180,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3854,6 +4189,9 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3863,6 +4201,41 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 			}
 			m.ValidationContextType = &CommonTlsContext_ValidationContextSdsSecretConfig{v}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CombinedValidationContext", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCert
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCert
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &CommonTlsContext_CombinedCertificateValidationContext{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.ValidationContextType = &CommonTlsContext_CombinedValidationContext{v}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCert(dAtA[iNdEx:])
@@ -3870,6 +4243,9 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -3885,7 +4261,7 @@ func (m *CommonTlsContext) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *CommonTlsContext_DeprecatedV1) Unmarshal(dAtA []byte) error {
+func (m *CommonTlsContext_CombinedCertificateValidationContext) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3900,7 +4276,7 @@ func (m *CommonTlsContext_DeprecatedV1) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3908,17 +4284,17 @@ func (m *CommonTlsContext_DeprecatedV1) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DeprecatedV1: wiretype end group for non-group")
+			return fmt.Errorf("proto: CombinedCertificateValidationContext: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeprecatedV1: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: CombinedCertificateValidationContext: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AltAlpnProtocols", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DefaultValidationContext", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowCert
@@ -3928,20 +4304,63 @@ func (m *CommonTlsContext_DeprecatedV1) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthCert
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.AltAlpnProtocols = string(dAtA[iNdEx:postIndex])
+			if m.DefaultValidationContext == nil {
+				m.DefaultValidationContext = &CertificateValidationContext{}
+			}
+			if err := m.DefaultValidationContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidationContextSdsSecretConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCert
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCert
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ValidationContextSdsSecretConfig == nil {
+				m.ValidationContextSdsSecretConfig = &SdsSecretConfig{}
+			}
+			if err := m.ValidationContextSdsSecretConfig.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3950,6 +4369,9 @@ func (m *CommonTlsContext_DeprecatedV1) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -3980,7 +4402,7 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -4008,7 +4430,7 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4017,6 +4439,9 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4041,7 +4466,7 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4051,6 +4476,9 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4070,12 +4498,48 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 			m.AllowRenegotiation = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxSessionKeys", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCert
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthCert
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MaxSessionKeys == nil {
+				m.MaxSessionKeys = &types.UInt32Value{}
+			}
+			if err := m.MaxSessionKeys.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCert(dAtA[iNdEx:])
@@ -4083,6 +4547,9 @@ func (m *UpstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -4113,7 +4580,7 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -4141,7 +4608,7 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4150,6 +4617,9 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4174,7 +4644,7 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4183,6 +4653,9 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4207,7 +4680,7 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4216,6 +4689,9 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4240,7 +4716,7 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4249,6 +4725,9 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4272,7 +4751,7 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4281,6 +4760,9 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4297,6 +4779,9 @@ func (m *DownstreamTlsContext) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -4327,7 +4812,7 @@ func (m *SdsSecretConfig) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -4355,7 +4840,7 @@ func (m *SdsSecretConfig) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4365,6 +4850,9 @@ func (m *SdsSecretConfig) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4384,7 +4872,7 @@ func (m *SdsSecretConfig) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4393,6 +4881,9 @@ func (m *SdsSecretConfig) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4410,6 +4901,9 @@ func (m *SdsSecretConfig) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -4440,7 +4934,7 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -4468,7 +4962,7 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4478,6 +4972,9 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4497,7 +4994,7 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4506,6 +5003,9 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4529,7 +5029,7 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4538,6 +5038,9 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4561,7 +5064,7 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4570,6 +5073,9 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthCert
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthCert
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4586,6 +5092,9 @@ func (m *Secret) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthCert
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthCert
 			}
 			if (iNdEx + skippy) > l {
@@ -4655,8 +5164,11 @@ func skipCert(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthCert
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthCert
 			}
 			return iNdEx, nil
@@ -4687,6 +5199,9 @@ func skipCert(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthCert
+				}
 			}
 			return iNdEx, nil
 		case 4:
@@ -4705,88 +5220,3 @@ var (
 	ErrInvalidLengthCert = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowCert   = fmt.Errorf("proto: integer overflow")
 )
-
-func init() { proto.RegisterFile("envoy/api/v2/auth/cert.proto", fileDescriptor_cert_d136c0593daa7c3c) }
-
-var fileDescriptor_cert_d136c0593daa7c3c = []byte{
-	// 1252 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0x31, 0x73, 0x1b, 0x45,
-	0x14, 0xf6, 0x49, 0xb2, 0x23, 0x3f, 0xd9, 0xce, 0x79, 0x63, 0xf0, 0x45, 0x63, 0x1c, 0x45, 0x49,
-	0x06, 0x17, 0x1e, 0x29, 0x76, 0x86, 0x02, 0x08, 0x81, 0x48, 0x61, 0xc6, 0x43, 0x02, 0x81, 0x93,
-	0xe2, 0x49, 0x68, 0x96, 0xf5, 0x69, 0x2d, 0x2d, 0x3e, 0xdd, 0x1d, 0xbb, 0xab, 0x73, 0xd4, 0xf2,
-	0x13, 0x52, 0xf3, 0x03, 0xe8, 0xe8, 0x28, 0xa8, 0x28, 0x69, 0x98, 0xc9, 0x4f, 0x60, 0xdc, 0xd1,
-	0x50, 0xd3, 0xc1, 0xec, 0xee, 0x49, 0x3e, 0x49, 0x97, 0x58, 0xcc, 0x64, 0xe8, 0x6e, 0xf7, 0xbd,
-	0xf7, 0xbd, 0xa7, 0xb7, 0xdf, 0xfb, 0x9e, 0x60, 0x8b, 0x06, 0x71, 0x38, 0xac, 0x93, 0x88, 0xd5,
-	0xe3, 0xfd, 0x3a, 0x19, 0xc8, 0x5e, 0xdd, 0xa3, 0x5c, 0xd6, 0x22, 0x1e, 0xca, 0x10, 0xad, 0x6b,
-	0x6b, 0x8d, 0x44, 0xac, 0x16, 0xef, 0xd7, 0x94, 0xb5, 0x3c, 0x19, 0xe0, 0x85, 0x9c, 0xd6, 0x8f,
-	0x88, 0xa0, 0x26, 0xa0, 0x7c, 0x6b, 0xd6, 0xea, 0x85, 0xc1, 0x31, 0xeb, 0x62, 0x11, 0x0e, 0xb8,
-	0x37, 0x72, 0xdb, 0xee, 0x86, 0x61, 0xd7, 0xa7, 0x75, 0x7d, 0x3a, 0x1a, 0x1c, 0xd7, 0x4f, 0x39,
-	0x89, 0x22, 0xca, 0x45, 0x62, 0xdf, 0x8c, 0x89, 0xcf, 0x3a, 0x44, 0xd2, 0xfa, 0xe8, 0x23, 0x31,
-	0x6c, 0x74, 0xc3, 0x6e, 0xa8, 0x3f, 0xeb, 0xea, 0xcb, 0xdc, 0x56, 0x7f, 0xc8, 0xc3, 0x6a, 0xdb,
-	0x17, 0x5f, 0x12, 0x4e, 0xfa, 0x54, 0x52, 0x2e, 0xd0, 0x10, 0xb6, 0xa4, 0x2f, 0x70, 0x9f, 0x05,
-	0xac, 0x3f, 0xe8, 0x63, 0xed, 0xe6, 0x85, 0x3e, 0x8e, 0x29, 0x17, 0x2c, 0x0c, 0x1c, 0xab, 0x62,
-	0xed, 0xac, 0xed, 0xef, 0xd6, 0x66, 0x7e, 0x5f, 0x6d, 0x02, 0x47, 0x9f, 0x92, 0xd8, 0x06, 0xfc,
-	0xf2, 0xe7, 0xaf, 0xf9, 0xc5, 0xef, 0xad, 0x9c, 0x6d, 0xb9, 0x57, 0xa5, 0x2f, 0x3e, 0x37, 0xe0,
-	0x23, 0xfb, 0xa1, 0x81, 0x1e, 0xa7, 0x26, 0xcf, 0xb3, 0x53, 0xe7, 0xde, 0x44, 0x6a, 0x03, 0x3e,
-	0x9d, 0xfa, 0x06, 0xac, 0x7a, 0x2c, 0xea, 0x51, 0x8e, 0xc5, 0x80, 0x49, 0x2a, 0x9c, 0x7c, 0x25,
-	0xbf, 0xb3, 0xec, 0xae, 0x98, 0xcb, 0x96, 0xbe, 0x43, 0xd7, 0xa0, 0x44, 0xbd, 0x4e, 0x0f, 0x7b,
-	0x03, 0x1e, 0x53, 0xe1, 0x14, 0xb4, 0x0b, 0xa8, 0xab, 0xa6, 0xbe, 0xa9, 0x3e, 0x86, 0x52, 0x2a,
-	0x37, 0x5a, 0x81, 0x62, 0xfb, 0x51, 0x0b, 0xdf, 0x7f, 0xd2, 0x7e, 0x6c, 0x2f, 0xa0, 0x12, 0x5c,
-	0x6a, 0x3f, 0x6a, 0xc5, 0x7b, 0xf8, 0xb6, 0x6d, 0x9d, 0x1f, 0xf6, 0xec, 0xdc, 0xf9, 0x61, 0xdf,
-	0xce, 0x9f, 0x1f, 0xee, 0xd8, 0x85, 0xea, 0xdf, 0x39, 0x58, 0x6b, 0xfb, 0xa2, 0x49, 0xb9, 0x64,
-	0xc7, 0xcc, 0x23, 0x92, 0xa2, 0xcf, 0x60, 0xdd, 0x3b, 0x3f, 0x62, 0xaf, 0x47, 0x98, 0x79, 0x94,
-	0xd2, 0xfe, 0x3b, 0x93, 0x9d, 0x51, 0x1c, 0xaa, 0x3d, 0x20, 0x92, 0xb4, 0x34, 0x81, 0x5c, 0x3b,
-	0x15, 0xd7, 0x54, 0x61, 0xe8, 0x1e, 0x94, 0x22, 0xce, 0x62, 0x85, 0x73, 0x42, 0x87, 0xba, 0xbf,
-	0x17, 0xa2, 0x40, 0x12, 0xf1, 0x90, 0x0e, 0xd1, 0xfb, 0x50, 0x8c, 0x88, 0x10, 0xa7, 0x21, 0xef,
-	0x38, 0xf9, 0x79, 0x82, 0xc7, 0xee, 0x2a, 0x75, 0xe8, 0x89, 0x08, 0x0b, 0x49, 0x22, 0x9f, 0x3a,
-	0x85, 0xb9, 0x52, 0xab, 0x88, 0x96, 0x0e, 0x40, 0x18, 0xb6, 0x04, 0xeb, 0x06, 0xb4, 0x83, 0xd3,
-	0xdd, 0x90, 0xac, 0x4f, 0x85, 0x24, 0xfd, 0xc8, 0x59, 0xac, 0xe4, 0x2f, 0x06, 0x2c, 0x1b, 0x88,
-	0x54, 0x7b, 0xdb, 0x23, 0x80, 0xea, 0x13, 0xd8, 0x68, 0xfb, 0xa2, 0x45, 0x85, 0xe2, 0x47, 0x9b,
-	0x79, 0x27, 0x54, 0x3e, 0xa4, 0x43, 0x81, 0x3e, 0x82, 0xc2, 0x09, 0x1d, 0x0a, 0xc7, 0x9a, 0x23,
-	0x41, 0xc2, 0xbe, 0x17, 0x56, 0xae, 0x68, 0xb9, 0x3a, 0xac, 0xfa, 0x7b, 0x01, 0xb6, 0x52, 0xf9,
-	0x0e, 0xcd, 0x90, 0xb2, 0x30, 0x68, 0x86, 0x81, 0xa4, 0xcf, 0x25, 0xba, 0x0b, 0x20, 0xf9, 0x40,
-	0x48, 0xf5, 0xcb, 0xc8, 0x7c, 0x0f, 0xbb, 0x9c, 0x04, 0x34, 0x09, 0x3a, 0x80, 0xcd, 0x98, 0x72,
-	0x76, 0x3c, 0x9c, 0x68, 0x4b, 0x8f, 0x88, 0x9e, 0x93, 0x53, 0x74, 0x6d, 0xd8, 0xaa, 0xa2, 0xd2,
-	0x0b, 0xab, 0x58, 0x5d, 0xe2, 0x85, 0xca, 0x27, 0x3b, 0xd8, 0x7d, 0xcb, 0x04, 0xa4, 0x8a, 0x3a,
-	0x20, 0xa2, 0xf7, 0x0a, 0x24, 0x11, 0x9d, 0x30, 0x33, 0x1b, 0x53, 0x48, 0xbb, 0x3b, 0xbb, 0x19,
-	0x48, 0xad, 0xe8, 0x84, 0xa1, 0xf7, 0xc6, 0x48, 0x62, 0x70, 0xf4, 0x2d, 0xf5, 0x24, 0x26, 0xbe,
-	0xc4, 0x01, 0xe9, 0xd3, 0x64, 0x84, 0x36, 0x8c, 0xb9, 0x65, 0xac, 0xf7, 0x7d, 0xf9, 0x05, 0xe9,
-	0x2b, 0xa2, 0x5f, 0xe1, 0xf4, 0xbb, 0x01, 0xe3, 0x14, 0xa7, 0x99, 0xb2, 0xa8, 0x3b, 0x52, 0xae,
-	0x19, 0x1d, 0xac, 0x8d, 0x74, 0xb0, 0xd6, 0x08, 0x43, 0xff, 0x90, 0xf8, 0x03, 0xea, 0xae, 0x27,
-	0x61, 0x8f, 0xcf, 0xd9, 0x72, 0x02, 0x37, 0x47, 0x58, 0xaf, 0x65, 0xcd, 0xd2, 0x85, 0xe0, 0xd7,
-	0x13, 0x9c, 0xd6, 0x2b, 0x99, 0x83, 0xea, 0x90, 0xf7, 0xb8, 0xef, 0x5c, 0x9a, 0xe7, 0xe9, 0x94,
-	0x27, 0xfa, 0x00, 0xae, 0x12, 0xdf, 0x0f, 0x4f, 0x31, 0x7d, 0x1e, 0x31, 0x3e, 0x59, 0x9c, 0x53,
-	0xac, 0x58, 0x3b, 0x45, 0x77, 0x53, 0x3b, 0x7c, 0x6a, 0xec, 0xa9, 0xac, 0xd5, 0x97, 0x8b, 0x60,
-	0x37, 0xc3, 0x7e, 0x3f, 0x0c, 0x94, 0x4e, 0x24, 0x1c, 0xfa, 0x18, 0x40, 0x09, 0x69, 0xa4, 0x24,
-	0x51, 0x24, 0x1c, 0xaa, 0x5c, 0x24, 0x9b, 0xee, 0xb2, 0x4c, 0x8e, 0x02, 0x3d, 0x05, 0x5b, 0x01,
-	0xa4, 0xea, 0x10, 0x9a, 0x3f, 0xa5, 0xfd, 0xeb, 0xd9, 0x30, 0xa9, 0x92, 0xce, 0x49, 0x6f, 0x5b,
-	0xee, 0x65, 0x39, 0x61, 0x13, 0xe8, 0x1b, 0x40, 0xf1, 0x98, 0xf3, 0xd8, 0x33, 0x05, 0x27, 0xe2,
-	0x51, 0xcf, 0xc0, 0x7e, 0xdd, 0xac, 0x1c, 0x2c, 0xb8, 0xeb, 0xf1, 0xcc, 0x00, 0xdd, 0x82, 0x35,
-	0xe2, 0x47, 0xc1, 0x78, 0x7d, 0x8c, 0x84, 0x7a, 0x55, 0xdd, 0x8e, 0xb4, 0x59, 0xa0, 0x67, 0xb0,
-	0xda, 0xa1, 0x11, 0xa7, 0x0a, 0xb9, 0x83, 0xe3, 0xbd, 0x84, 0x58, 0xb7, 0xb3, 0x6a, 0x98, 0xea,
-	0x6f, 0xed, 0xc1, 0x38, 0xf0, 0x70, 0xaf, 0x91, 0x73, 0x2c, 0x77, 0xa5, 0x93, 0xba, 0x41, 0x01,
-	0x54, 0xa7, 0xba, 0x87, 0x45, 0x47, 0x60, 0x41, 0x3d, 0x4e, 0x25, 0x36, 0x5b, 0x5d, 0x38, 0x4b,
-	0xba, 0x9f, 0xd5, 0x8c, 0x7c, 0xad, 0x8e, 0x68, 0x69, 0xdf, 0xa6, 0x76, 0x75, 0xb7, 0x27, 0x9b,
-	0x38, 0x65, 0x16, 0x48, 0xc2, 0xcd, 0xd9, 0x9e, 0xce, 0xa6, 0x4c, 0x18, 0x39, 0x47, 0xc6, 0x83,
-	0x05, 0xb7, 0x32, 0xd3, 0xd8, 0x29, 0x9f, 0xf2, 0x5d, 0x58, 0x49, 0xf7, 0x01, 0xed, 0x02, 0x52,
-	0x73, 0x3d, 0xd5, 0x7b, 0x45, 0xbe, 0x65, 0xd7, 0x26, 0xbe, 0xbc, 0x9f, 0x6e, 0x7f, 0xe3, 0x2a,
-	0x6c, 0x66, 0xd4, 0x2c, 0x87, 0x11, 0xad, 0xfe, 0x6c, 0x01, 0x7a, 0x12, 0x09, 0xc9, 0x29, 0xe9,
-	0xa7, 0x48, 0xfd, 0x15, 0x20, 0x4f, 0x3f, 0x04, 0xd6, 0xcd, 0x4d, 0x98, 0x63, 0xc8, 0x7d, 0x63,
-	0x8e, 0x57, 0x73, 0x6d, 0x6f, 0x7a, 0x4e, 0xb6, 0x20, 0x2f, 0x02, 0xa6, 0xf7, 0xde, 0x72, 0x42,
-	0x5b, 0x9e, 0xdf, 0xf9, 0xc7, 0x72, 0xd5, 0x35, 0xaa, 0xc3, 0x15, 0x33, 0x96, 0x9c, 0x06, 0xb4,
-	0x1b, 0x4a, 0xa6, 0x6b, 0xd5, 0x5c, 0x2d, 0xba, 0x48, 0x9b, 0xdc, 0xb4, 0xa5, 0xfa, 0x57, 0x1e,
-	0x36, 0x1e, 0x84, 0xa7, 0xc1, 0xff, 0x51, 0xfa, 0x53, 0x28, 0x8f, 0x14, 0xcd, 0xf3, 0x19, 0x0d,
-	0xe4, 0x84, 0x68, 0xe4, 0x2e, 0xd4, 0x31, 0x27, 0x89, 0x6e, 0xea, 0xe0, 0xf4, 0x1f, 0x8c, 0x0f,
-	0xa1, 0x34, 0xd6, 0xca, 0x80, 0x25, 0xa3, 0xf9, 0x3a, 0x28, 0x18, 0x49, 0x62, 0xc0, 0xd0, 0x33,
-	0xb8, 0x22, 0xcc, 0xca, 0xc4, 0x52, 0xef, 0x4c, 0xac, 0x97, 0xa5, 0x59, 0xef, 0xef, 0x66, 0x6b,
-	0xc7, 0xcc, 0x8e, 0x55, 0x73, 0x2d, 0x66, 0x16, 0xef, 0x00, 0x6e, 0x65, 0x40, 0x67, 0xd0, 0x7c,
-	0xf1, 0xbf, 0xd0, 0x7c, 0x26, 0xcf, 0x94, 0x4f, 0xa3, 0x0c, 0x4e, 0x56, 0x5a, 0xcd, 0x54, 0x0a,
-	0x97, 0xa7, 0xdc, 0x11, 0x82, 0x82, 0xde, 0x6c, 0x86, 0xf7, 0xfa, 0x1b, 0xdd, 0x03, 0x50, 0x55,
-	0x26, 0xe5, 0x99, 0xb7, 0xb9, 0x96, 0xb1, 0x17, 0x0c, 0xc4, 0x68, 0xa9, 0x8b, 0x8e, 0x30, 0x17,
-	0xd5, 0x9f, 0x72, 0xb0, 0x64, 0x92, 0x64, 0xc2, 0x3f, 0x82, 0xcb, 0x53, 0x72, 0x93, 0xe4, 0xb8,
-	0x58, 0xab, 0x0f, 0x16, 0xdc, 0xb5, 0x49, 0x71, 0x79, 0xd5, 0x0b, 0xe6, 0xdf, 0xc0, 0x0b, 0x66,
-	0x6b, 0x7f, 0xe1, 0xcd, 0x69, 0x7f, 0x63, 0x09, 0x0a, 0xea, 0x61, 0x1a, 0x6f, 0xff, 0x78, 0xb6,
-	0x6d, 0xfd, 0x76, 0xb6, 0x6d, 0xbd, 0x3c, 0xdb, 0xb6, 0xfe, 0x38, 0xdb, 0xb6, 0xbe, 0x2e, 0x28,
-	0xc4, 0xa3, 0x25, 0x4d, 0xdf, 0x3b, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0xab, 0x88, 0xc4, 0x71,
-	0xbc, 0x0d, 0x00, 0x00,
-}

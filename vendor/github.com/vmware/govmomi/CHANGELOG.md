@@ -1,9 +1,5 @@
 # changelog
 
-### unreleased
-
-* SetRootCAs on the soap.Client returns an error for invalid certificates
-
 ### 0.18.0 (2018-05-24)
 
 * Add VirtualDiskManager wrapper to set UUID

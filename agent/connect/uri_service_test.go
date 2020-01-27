@@ -74,7 +74,7 @@ func TestSpiffeIDServiceAuthorize(t *testing.T) {
 			serviceWeb,
 			&structs.Intention{
 				SourceNS:   serviceWeb.Namespace,
-				SourceName: structs.IntentionWildcard,
+				SourceName: structs.WildcardSpecifier,
 				Action:     structs.IntentionActionDeny,
 			},
 			false,
@@ -86,7 +86,7 @@ func TestSpiffeIDServiceAuthorize(t *testing.T) {
 			serviceWeb,
 			&structs.Intention{
 				SourceNS:   serviceWeb.Namespace,
-				SourceName: structs.IntentionWildcard,
+				SourceName: structs.WildcardSpecifier,
 				Action:     structs.IntentionActionAllow,
 			},
 			true,

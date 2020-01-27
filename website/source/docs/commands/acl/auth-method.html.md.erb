@@ -1,0 +1,84 @@
+---
+layout: "docs"
+page_title: "Commands: ACL Auth Methods"
+sidebar_current: "docs-commands-acl-auth-method"
+---
+
+# Consul ACL Auth Methods
+
+Command: `consul acl auth-method`
+
+The `acl auth-method` command is used to manage Consul's ACL auth methods.
+It exposes commands for creating, updating, reading, deleting, and listing auth methods.
+This command is available in Consul 1.5.0 and newer.
+
+ACL auth methods may also be managed via the [HTTP API](/api/acl/auth-methods.html).
+
+-> **Note:** All of the example subcommands in this document will require a valid
+Consul token with the appropriate permissions.  Either set the
+`CONSUL_HTTP_TOKEN` environment variable to the token's secret ID or pass the
+secret ID as the value of the `-token` parameter.
+
+## Usage
+
+Usage: `consul acl auth-method <subcommand>`
+
+For the exact documentation for your Consul version, run `consul acl
+auth-method -h` to view the complete list of subcommands.
+
+```text
+Usage: consul acl auth-method <subcommand> [options] [args]
+
+  ...
+
+Subcommands:
+    create    Create an ACL auth method
+    delete    Delete an ACL auth method
+    list      Lists ACL auth methods
+    read      Read an ACL auth method
+    update    Update an ACL auth method
+```
+
+For more information, examples, and usage about a subcommand, click on the name
+of the subcommand in the sidebar.
+
+## Basic Examples
+
+Create a new auth method:
+
+```sh
+$ consul acl auth-method create -type "kubernetes" \
+                        -name "my-k8s" \
+                        -description "This is an example kube auth method" \
+                        -kubernetes-host "https://apiserver.example.com:8443" \
+                        -kubernetes-ca-file /path/to/kube.ca.crt \
+                        -kubernetes-service-account-jwt "JWT_CONTENTS"
+```
+
+List all auth methods:
+
+```sh
+$ consul acl auth-method list
+```
+
+Update all editable fields of the auth method:
+
+```sh
+$ consul acl auth-method update -name "my-k8s" \
+                        -description "new description" \
+                        -kubernetes-host "https://new-apiserver.example.com:8443" \
+                        -kubernetes-ca-file /path/to/new-kube.ca.crt \
+                        -kubernetes-service-account-jwt "NEW_JWT_CONTENTS"
+```
+
+Read an auth method:
+
+```sh
+$ consul acl auth-method read -name my-k8s
+```
+
+Delete an auth method:
+
+```sh
+$ consul acl auth-method delete -name my-k8s
+```

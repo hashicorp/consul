@@ -1,0 +1,16 @@
+{
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  "node": {
+    "cluster": "test-proxy",
+    "id": "test-proxy"
+  },
+  "custom_field": "foo"
+}
