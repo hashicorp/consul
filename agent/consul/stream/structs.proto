@@ -3,6 +3,7 @@ syntax = "proto3";
 package stream;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 import "gogoproto/gogo.proto";
 
 option (gogoproto.goproto_unkeyed_all) = false;
@@ -81,7 +82,7 @@ message HealthCheck {
   string ServiceName = 8;           // optional service name
   repeated string ServiceTags = 9;  // optional service tags
 
-  HealthCheckDefinition Definition = 10 
+  HealthCheckDefinition Definition = 10
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
 
   RaftIndex RaftIndex = 11
@@ -218,8 +219,8 @@ message ConnectProxyConfig {
 
   // Config is the arbitrary configuration data provided with the proxy
   // registration.
-  bytes Config = 5
-      [(gogoproto.customtype) = "UntypedMap", (gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
+  google.protobuf.Struct Config = 5
+      [(gogoproto.nullable) = true, (gogoproto.moretags) = "bexpr:\"-\""];
 
   // Upstreams describes any upstream dependencies the proxy instance should
   // setup.
@@ -262,8 +263,8 @@ message Upstream {
   // Config is an opaque config that is specific to the proxy process being run.
   // It can be used to pass arbitrary configuration for this specific upstream
   // to the proxy.
-  bytes Config = 7
-      [(gogoproto.customtype) = "UntypedMap", (gogoproto.nullable) = false, (gogoproto.moretags) = "bexpr:\"-\""];
+  google.protobuf.Struct Config = 7
+      [(gogoproto.nullable) = true, (gogoproto.moretags) = "bexpr:\"-\""];
 
   // MeshGateway is the configuration for mesh gateway usage of this upstream
   MeshGatewayConfig MeshGateway = 8;
@@ -296,8 +297,8 @@ message ServiceConnect {
 message ServiceDefinitionConnectProxy {
   repeated string Command = 1;
   string ExecMode = 2;
-  bytes Config = 3
-      [(gogoproto.customtype) = "UntypedMap", (gogoproto.nullable) = false];
+  google.protobuf.Struct Config = 3
+      [(gogoproto.nullable) = false];
   repeated Upstream Upstreams = 4 [(gogoproto.nullable) = false];
 }
 

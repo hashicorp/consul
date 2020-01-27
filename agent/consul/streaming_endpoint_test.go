@@ -159,12 +159,6 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Address: "3.4.5.6",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
-							// A trip through protobuf converts these zero-value strcuts in
-							// ServiceNode into zero-value protobuf versions including
-							// zero-value (not nil) map type...
-							Proxy: stream.ConnectProxyConfig{
-								Config: stream.UntypedMap{},
-							},
 						},
 					},
 				},
@@ -188,9 +182,6 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Address: "1.1.1.1",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
-							Proxy: stream.ConnectProxyConfig{
-								Config: stream.UntypedMap{},
-							},
 						},
 					},
 				},
@@ -250,9 +241,6 @@ func TestStreaming_Subscribe(t *testing.T) {
 							Port:      8080,
 							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
 							Weights:   &stream.Weights{Passing: 1, Warning: 1},
-							Proxy: stream.ConnectProxyConfig{
-								Config: stream.UntypedMap{},
-							},
 						},
 						Checks: []*stream.HealthCheck{
 							{
@@ -425,9 +413,6 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 							Address: "3.4.5.6",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
-							Proxy: stream.ConnectProxyConfig{
-								Config: stream.UntypedMap{},
-							},
 						},
 					},
 				},
@@ -451,9 +436,6 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 							Address: "1.1.1.1",
 							Port:    8080,
 							Weights: &stream.Weights{Passing: 1, Warning: 1},
-							Proxy: stream.ConnectProxyConfig{
-								Config: stream.UntypedMap{},
-							},
 						},
 					},
 				},
@@ -511,9 +493,6 @@ func TestStreaming_Subscribe_MultiDC(t *testing.T) {
 							Port:      8080,
 							RaftIndex: stream.RaftIndex{CreateIndex: 13, ModifyIndex: 13},
 							Weights:   &stream.Weights{Passing: 1, Warning: 1},
-							Proxy: stream.ConnectProxyConfig{
-								Config: stream.UntypedMap{},
-							},
 						},
 						Checks: []*stream.HealthCheck{
 							{

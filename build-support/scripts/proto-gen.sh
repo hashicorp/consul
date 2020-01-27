@@ -72,6 +72,7 @@ function main {
    local gogo_proto_mod_path=$(sed -e 's,\(.*\)github.com.*,\1,' <<< "${gogo_proto_path}")
 
    local gogo_proto_imp_replace="Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types"
+   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api"

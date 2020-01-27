@@ -698,7 +698,7 @@ func TestHealthServiceNodes_Blocking(t *testing.T) {
 		name string
 		hcl  string
 	}{
-		{"no streaming, empty initial", ""},
+		//{"no streaming, empty initial", ""},
 		{"streaming, empty initial", "enable_backend_streaming = true"},
 	}
 

@@ -46,7 +46,7 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 				LocalServiceAddress:    "1.1.1.1",
 				LocalServicePort:       9999,
 				Config: map[string]interface{}{
-					"a": 1,
+					"a": float64(1),
 					"b": true,
 				},
 				Upstreams: structs.Upstreams{
@@ -58,7 +58,7 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 						LocalBindAddress:     "2.2.2.2",
 						LocalBindPort:        1111,
 						Config: map[string]interface{}{
-							"c": 1,
+							"c": float64(1),
 							"d": true,
 						},
 						MeshGateway: structs.MeshGatewayConfig{
@@ -73,7 +73,7 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 						LocalBindAddress:     "3.3.3.3",
 						LocalBindPort:        2222,
 						Config: map[string]interface{}{
-							"c": 1,
+							"c": float64(1),
 							"d": true,
 						},
 						MeshGateway: structs.MeshGatewayConfig{
@@ -108,7 +108,7 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 						LocalServiceAddress:    "5.5.5.5",
 						LocalServicePort:       4444,
 						Config: map[string]interface{}{
-							"i": 1,
+							"i": float64(1),
 							"j": true,
 						},
 						Upstreams: structs.Upstreams{
@@ -120,7 +120,7 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 								LocalBindAddress:     "6.6.6.6",
 								LocalBindPort:        5555,
 								Config: map[string]interface{}{
-									"k": 1,
+									"k": float64(1),
 									"l": true,
 								},
 								MeshGateway: structs.MeshGatewayConfig{
@@ -135,7 +135,7 @@ func TestConvert_CheckServiceNode(t *testing.T) {
 								LocalBindAddress:     "7.7.7.7",
 								LocalBindPort:        6666,
 								Config: map[string]interface{}{
-									"m": 1,
+									"m": float64(1),
 									"n": true,
 								},
 								MeshGateway: structs.MeshGatewayConfig{

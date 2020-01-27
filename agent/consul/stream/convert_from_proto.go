@@ -1,6 +1,7 @@
 package stream
 
 import (
+	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -79,7 +80,7 @@ func FromConnectProxyConfig(c *ConnectProxyConfig) *structs.ConnectProxyConfig {
 		DestinationServiceID:   c.DestinationServiceID,
 		LocalServiceAddress:    c.LocalServiceAddress,
 		LocalServicePort:       c.LocalServicePort,
-		Config:                 c.Config,
+		Config:                 MapFromPBStruct(c.Config),
 		Upstreams:              FromUpstreams(c.Upstreams),
 		MeshGateway:            FromMeshGatewayConfig(c.MeshGateway),
 	}
@@ -95,7 +96,7 @@ func FromUpstreams(other []Upstream) structs.Upstreams {
 			Datacenter:           u.Datacenter,
 			LocalBindAddress:     u.LocalBindAddress,
 			LocalBindPort:        u.LocalBindPort,
-			Config:               u.Config,
+			Config:               MapFromPBStruct(u.Config),
 			MeshGateway:          FromMeshGatewayConfig(u.MeshGateway),
 		})
 	}
@@ -221,4 +222,39 @@ func FromMeshGatewayConfig(c *MeshGatewayConfig) structs.MeshGatewayConfig {
 	}
 
 	return structs.MeshGatewayConfig{Mode: c.Mode}
+}
+
+// MapFromPBStruct converts a protobuf Struct back into a map[string]interface{}
+func MapFromPBStruct(s *types.Struct) map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+	m := make(map[string]interface{}, len(s.Fields))
+	for k, v := range s.Fields {
+		m[k] = interfaceFromPBValue(v)
+	}
+	return m
+}
+
+func interfaceFromPBValue(v *types.Value) interface{} {
+	switch k := v.Kind.(type) {
+	case *types.Value_NullValue:
+		return nil
+	case *types.Value_NumberValue:
+		return k.NumberValue
+	case *types.Value_StringValue:
+		return k.StringValue
+	case *types.Value_BoolValue:
+		return k.BoolValue
+	case *types.Value_StructValue:
+		return MapFromPBStruct(k.StructValue)
+	case *types.Value_ListValue:
+		s := make([]interface{}, len(k.ListValue.Values))
+		for i, e := range k.ListValue.Values {
+			s[i] = interfaceFromPBValue(e)
+		}
+		return s
+	default:
+		panic("unknown kind")
+	}
 }
