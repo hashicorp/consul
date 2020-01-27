@@ -308,6 +308,8 @@ github.com/packethost/packngo
 github.com/pascaldekloe/goe/verify
 # github.com/peterbourgon/diskv v2.0.1+incompatible
 github.com/peterbourgon/diskv
+# github.com/philhofer/fwd v1.0.0
+github.com/philhofer/fwd
 # github.com/pierrec/lz4 v2.0.5+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
@@ -370,6 +372,8 @@ github.com/stretchr/objx
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
 github.com/stretchr/testify/assert
+# github.com/tinylib/msgp v1.1.1
+github.com/tinylib/msgp/msgp
 # github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926
 github.com/tv42/httpunix
 # github.com/vmware/govmomi v0.18.0
