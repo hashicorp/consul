@@ -400,7 +400,6 @@ func (c *cmd) advertiseParts() (string, int, error) {
 	return splitHostPort(c.advertise)
 }
 
-
 // listenParts returns the host and port parts of the -listen flag. The
 // -listen flag must be non-empty prior to calling this.
 func (c *cmd) listenParts() (string, int, error) {
