@@ -41,7 +41,7 @@ func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.Enterpris
 	return a.delegate.ResolveTokenAndDefaultMeta(id, entMeta, authzContext)
 }
 
-// resolveTokenAndDefaultMeta is used to resolve an ACLToken's secretID to a structs.ACLIdentity
+// resolveIdentityFromToken is used to resolve an ACLToken's secretID to a structs.ACLIdentity
 func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error) {
 	// ACLs are disabled
 	if !a.delegate.ACLsEnabled() {
