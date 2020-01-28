@@ -267,7 +267,7 @@ func (m *Internal) executeKeyringOpMgr(
 func (m *Internal) aclAccessorID(secretID string) string {
 	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
 	if err != nil {
-		m.srv.logger.Printf("[DEBUG] consul.internal: %v", err)
+		m.srv.logger.Debug("error", err)
 		return ""
 	}
 	if ident == nil {

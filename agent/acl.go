@@ -62,7 +62,7 @@ func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIden
 func (a *Agent) aclAccessorID(secretID string) string {
 	_, ident, err := a.resolveIdentityFromToken(secretID)
 	if err != nil {
-		a.logger.Printf("[DEBUG] agent.acl: %v", err)
+		a.logger.Debug("error", err)
 		return ""
 	}
 	if ident == nil {

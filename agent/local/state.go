@@ -1362,7 +1362,7 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 func (l *State) aclAccessorID(secretID string) string {
 	_, ident, err := l.Delegate.ResolveIdentityFromToken(secretID)
 	if err != nil {
-		l.logger.Printf("[DEBUG] agent.local: %v", err)
+		l.logger.Debug("error", err)
 		return ""
 	}
 	if ident == nil {

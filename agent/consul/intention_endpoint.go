@@ -473,7 +473,7 @@ func (s *Intention) Check(
 func (s *Intention) aclAccessorID(secretID string) string {
 	_, ident, err := s.srv.ResolveIdentityFromToken(secretID)
 	if err != nil {
-		s.srv.logger.Printf("[DEBUG] consul.intention: %v", err)
+		s.srv.logger.Debug("error", err)
 		return ""
 	}
 	if ident == nil {
