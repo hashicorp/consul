@@ -327,13 +327,25 @@ type TLSConfig struct {
 	// Consul communication, defaults to the system bundle if not specified.
 	CAPath string
 
+	// CAPem is the optional PEM-encoded CA certificate used for Consul
+	// communication, defaults to the system bundle if not specified.
+	CAPem []byte
+
 	// CertFile is the optional path to the certificate for Consul
 	// communication. If this is set then you need to also set KeyFile.
 	CertFile string
 
+	// CertPEM is the optional PEM-encoded certificate for Consul
+	// communication. If this is set then you need to also set KeyPEM.
+	CertPEM []byte
+
 	// KeyFile is the optional path to the private key for Consul communication.
 	// If this is set then you need to also set CertFile.
 	KeyFile string
+
+	// KeyPEM is the optional PEM-encoded private key for Consul communication.
+	// If this is set then you need to also set CertPEM.
+	KeyPEM []byte
 
 	// InsecureSkipVerify if set to true will disable TLS host verification.
 	InsecureSkipVerify bool
@@ -458,18 +470,31 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 		tlsClientConfig.ServerName = server
 	}
 
+	if len(tlsConfig.CertPEM) != 0 && len(tlsConfig.KeyPEM) != 0 {
+		tlsCert, err := tls.X509KeyPair(tlsConfig.CertPEM, tlsConfig.KeyPEM)
+		if err != nil {
+			return nil, err
+		}
+		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
+	} else if len(tlsConfig.CertPEM) != 0 || len(tlsConfig.KeyPEM) != 0 {
+		return nil, fmt.Errorf("both client cert and client key must be provided")
+	}
+
 	if tlsConfig.CertFile != "" && tlsConfig.KeyFile != "" {
 		tlsCert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
 		if err != nil {
 			return nil, err
 		}
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
+	} else if tlsConfig.CertFile != "" || tlsConfig.KeyFile != "" {
+		return nil, fmt.Errorf("both client cert and client key must be provided")
 	}
 
-	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" {
+	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" || len(tlsConfig.CAPem) != 0 {
 		rootConfig := &rootcerts.Config{
-			CAFile: tlsConfig.CAFile,
-			CAPath: tlsConfig.CAPath,
+			CAFile:        tlsConfig.CAFile,
+			CAPath:        tlsConfig.CAPath,
+			CACertificate: tlsConfig.CAPem,
 		}
 		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
 			return nil, err
