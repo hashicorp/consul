@@ -65,6 +65,9 @@
   padding: 10px;
   padding-left: 36px;
 }
+%menu-panel .is-active {
+  position: relative;
+}
 %menu-panel .is-active > *::after {
   position: absolute;
   top: 50%;
