@@ -493,6 +493,13 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "err-bad-stats-addr",
+			input: BootstrapConfig{
+				StatsBindAddr: "asdasdsad",
+			},
+			wantErr: true,
+		},
+		{
 			name: "err-bad-statsd-addr",
 			input: BootstrapConfig{
 				StatsdURL: "asdasdsad",
