@@ -105,7 +105,7 @@ func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.En
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-		s.logger.Warn("Operation on intention denied due to ACLs", "intention", args.Intention.ID)
+		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID)
 		return acl.ErrPermissionDenied
 	}
 
