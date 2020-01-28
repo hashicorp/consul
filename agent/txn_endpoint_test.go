@@ -39,7 +39,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
-	testIt := func(agent *TestAgent, wantPass bool) {
+	testIt := func(t *testing.T, agent *TestAgent, wantPass bool) {
 		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
 		value = base64.StdEncoding.EncodeToString([]byte(value))
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -54,6 +54,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
  ]
  `, value)))
 		req, _ := http.NewRequest("PUT", "/v1/txn", buf)
+		req.Header.Add("Content-Length", fmt.Sprintf("%d", buf.Len()))
 		resp := httptest.NewRecorder()
 		if _, err := agent.srv.Txn(resp, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -68,13 +69,13 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 
 	t.Run("toobig", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "")
-		testIt(a, false)
+		testIt(t, a, false)
 		a.Shutdown()
 	})
 
 	t.Run("allowed", func(t *testing.T) {
 		a := NewTestAgent(t, t.Name(), "limits = { kv_max_value_size = 123456789 }")
-		testIt(a, true)
+		testIt(t, a, true)
 		a.Shutdown()
 	})
 }
