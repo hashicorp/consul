@@ -29,23 +29,19 @@ started using the [official Helm chart](/docs/platform/k8s/helm.html):
 $ consul agent -retry-join 'provider=k8s label_selector="app=consul,component=server"'
 ```
 
-By default, Consul will join the default Gossip port. Pods may set an
+By default, Consul will join the default gossip port. Pods may set an
 annotation `consul.hashicorp.com/auto-join-port` to an integer value or
 a named port to specify the port for the auto-join to return. This enables
 different pods to have different exposed ports.
 
 ## Networking
 
-Consul typically requires a fully connected network. Therefore,
+Consul typically requires a fully connected network.
+Because the Consul Helm chart currently doesn't allow exposing servers' gossip ports via a `hostPort`,
 nodes outside of Kubernetes joining a cluster running within Kubernetes must be able to communicate
-to pod IPs or Kubernetes node IPs via the network.
+to pod IPs via the network. Note that the auto-join provider discussed above will use pod IPs by default.
 
 -> **Consul Enterprise customers** may use
 [network segments](/docs/enterprise/network-segments/index.html) to
 enable non-fully-connected topologies. However, out-of-cluster nodes must still
 be able to communicate with the server pod or host IP addresses.
-
-The auto-join provider discussed above will use pod IPs by default. The
-`host_network=true` setting may be set to use host IPs, however all the ports
-Consul requires must be exposed via a `hostPort`. If no ports are exposed via
-`hostPort`, the pod will not be discovered.

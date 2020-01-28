@@ -19,8 +19,8 @@ so that each component is opt-in. This allows us to _only_ setup the client
 agents. We then opt-in to the client agents by setting `client.enabled` to
 `true`.
 
-Next, `client.exposeGossipPorts` can be set to true or false depending on if
-you want the clients to be exposed on the Kubernetes node IPs (`true`) or
+Next, `client.exposeGossipPorts` can be set to `true` or `false` depending on if
+you want the clients to be exposed on the Kubernetes internal node IPs (`true`) or
 their pod IPs (`false`).
 
 Finally, `client.join` is set to an array of valid
@@ -46,7 +46,7 @@ client:
 
 -> **Networking:** Note that for the Kubernetes nodes to join an existing
 cluster, the nodes (and specifically the agent pods) must be able to connect
-to all other server and client agents inside and _outside_ of Kubernetes.
+to all other server and client agents inside and _outside_ of Kubernetes over [LAN](https://www.consul.io/docs/glossary.html#lan-gossip).
 If this isn't possible, consider running a separate Consul cluster inside Kubernetes
 and federating it with your cluster outside Kubernetes.
 You may also consider adopting Consul Enterprise for
