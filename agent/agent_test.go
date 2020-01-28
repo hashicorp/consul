@@ -1110,7 +1110,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		t.Fatalf("err: %v", err)
 	}
 	for _, name := range before.Nodes[0].Checks {
-		a.logger.Println("[DEBUG] Checks Registered: ", name.Name)
+		a.logger.Debug("Registered node", "node", name.Name)
 	}
 	if got, want := len(before.Nodes), 1; got != want {
 		t.Fatalf("got %d want %d", got, want)
@@ -1120,7 +1120,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	}
 
 	for i := 0; i < 10; i++ {
-		a.logger.Println("[INFO] # ", i+1, "Sync in progress ")
+		a.logger.Info("Sync in progress", "iteration", i+1)
 		if err := a.sync.State.SyncFull(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1416,7 +1416,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	// We do this so that the agent logs and the informational messages from
 	// the test itself are interwoven properly.
 	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
-		a.logger.Printf("[INFO] testharness: "+format, args...)
+		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
@@ -3429,7 +3429,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.TestLogger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.ReloadConfig(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -3468,7 +3468,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.TestLogger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.ReloadConfig(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
@@ -3497,7 +3497,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		data_dir = "` + dataDir + `"
 		verify_incoming = true
 	`
-	c := TestConfig(testutil.TestLogger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.Error(t, a.ReloadConfig(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)

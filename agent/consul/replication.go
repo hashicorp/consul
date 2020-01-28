@@ -3,13 +3,13 @@ package consul
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"sync/atomic"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 )
 
@@ -22,7 +22,7 @@ const (
 )
 
 type ReplicatorDelegate interface {
-	Replicate(ctx context.Context, lastRemoteIndex uint64) (index uint64, exit bool, err error)
+	Replicate(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (index uint64, exit bool, err error)
 }
 
 type ReplicatorConfig struct {
@@ -39,16 +39,18 @@ type ReplicatorConfig struct {
 	// Maximum wait time between failing RPCs
 	MaxRetryWait time.Duration
 	// Where to send our logs
-	Logger *log.Logger
+	Logger hclog.Logger
+	// Function to use for determining if an error should be suppressed
+	SuppressErrorLog func(err error) bool
 }
 
 type Replicator struct {
-	name            string
-	limiter         *rate.Limiter
-	waiter          *lib.RetryWaiter
-	delegate        ReplicatorDelegate
-	logger          *log.Logger
-	lastRemoteIndex uint64
+	limiter          *rate.Limiter
+	waiter           *lib.RetryWaiter
+	delegate         ReplicatorDelegate
+	logger           hclog.Logger
+	lastRemoteIndex  uint64
+	suppressErrorLog func(err error) bool
 }
 
 func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
@@ -59,7 +61,8 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		return nil, fmt.Errorf("Cannot create the Replicator without a Delegate set in the config")
 	}
 	if config.Logger == nil {
-		config.Logger = log.New(os.Stderr, "", log.LstdFlags)
+		logger := hclog.New(&hclog.LoggerOptions{})
+		config.Logger = logger
 	}
 	limiter := rate.NewLimiter(rate.Limit(config.Rate), config.Burst)
 
@@ -74,16 +77,16 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 	}
 	waiter := lib.NewRetryWaiter(minFailures, 0*time.Second, maxWait, lib.NewJitterRandomStagger(10))
 	return &Replicator{
-		name:     config.Name,
-		limiter:  limiter,
-		waiter:   waiter,
-		delegate: config.Delegate,
-		logger:   config.Logger,
+		limiter:          limiter,
+		waiter:           waiter,
+		delegate:         config.Delegate,
+		logger:           config.Logger.Named(logging.Replication).Named(config.Name),
+		suppressErrorLog: config.SuppressErrorLog,
 	}, nil
 }
 
 func (r *Replicator) Run(ctx context.Context) error {
-	defer r.logger.Printf("[INFO] replication: stopped %s replication", r.name)
+	defer r.logger.Info("stopped replication")
 
 	for {
 		// This ensures we aren't doing too many successful replication rounds - mostly useful when
@@ -94,7 +97,7 @@ func (r *Replicator) Run(ctx context.Context) error {
 		}
 
 		// Perform a single round of replication
-		index, exit, err := r.delegate.Replicate(ctx, atomic.LoadUint64(&r.lastRemoteIndex))
+		index, exit, err := r.delegate.Replicate(ctx, atomic.LoadUint64(&r.lastRemoteIndex), r.logger)
 		if exit {
 			// the replication function told us to exit
 			return nil
@@ -104,10 +107,13 @@ func (r *Replicator) Run(ctx context.Context) error {
 			// reset the lastRemoteIndex when there is an RPC failure. This should cause a full sync to be done during
 			// the next round of replication
 			atomic.StoreUint64(&r.lastRemoteIndex, 0)
-			r.logger.Printf("[WARN] replication: %s replication error (will retry if still leader): %v", r.name, err)
+
+			if r.suppressErrorLog != nil && !r.suppressErrorLog(err) {
+				r.logger.Warn("replication error (will retry if still leader)", "error", err)
+			}
 		} else {
 			atomic.StoreUint64(&r.lastRemoteIndex, index)
-			r.logger.Printf("[DEBUG] replication: %s replication completed through remote index %d", r.name, index)
+			r.logger.Debug("replication completed through remote index", "index", index)
 		}
 
 		select {
@@ -124,14 +130,14 @@ func (r *Replicator) Index() uint64 {
 	return atomic.LoadUint64(&r.lastRemoteIndex)
 }
 
-type ReplicatorFunc func(ctx context.Context, lastRemoteIndex uint64) (index uint64, exit bool, err error)
+type ReplicatorFunc func(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (index uint64, exit bool, err error)
 
 type FunctionReplicator struct {
 	ReplicateFn ReplicatorFunc
 }
 
-func (r *FunctionReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
-	return r.ReplicateFn(ctx, lastRemoteIndex)
+func (r *FunctionReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
+	return r.ReplicateFn(ctx, lastRemoteIndex, logger)
 }
 
 type IndexReplicatorDiff struct {
@@ -168,10 +174,10 @@ type IndexReplicatorDelegate interface {
 
 type IndexReplicator struct {
 	Delegate IndexReplicatorDelegate
-	Logger   *log.Logger
+	Logger   hclog.Logger
 }
 
-func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64, _ hclog.Logger) (uint64, bool, error) {
 	fetchStart := time.Now()
 	lenRemote, remote, remoteIndex, err := r.Delegate.FetchRemote(lastRemoteIndex)
 	metrics.MeasureSince([]string{"leader", "replication", r.Delegate.MetricName(), "fetch"}, fetchStart)
@@ -180,7 +186,9 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64)
 		return 0, false, fmt.Errorf("failed to retrieve %s: %v", r.Delegate.PluralNoun(), err)
 	}
 
-	r.Logger.Printf("[DEBUG] replication: finished fetching %s: %d", r.Delegate.PluralNoun(), lenRemote)
+	r.Logger.Debug("finished fetching remote objects",
+		"amount", lenRemote,
+	)
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
@@ -216,11 +224,17 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64)
 	// The lastRemoteIndex is not used when the entry exists either only in the local state or
 	// only in the remote state. In those situations we need to either delete it or create it.
 	if remoteIndex < lastRemoteIndex {
-		r.Logger.Printf("[WARN] replication: %[1]s replication remote index moved backwards (%d to %d), forcing a full %[1]s sync", r.Delegate.SingularNoun(), lastRemoteIndex, remoteIndex)
+		r.Logger.Warn("replication remote index moved backwards, forcing a full sync",
+			"from", lastRemoteIndex,
+			"to", remoteIndex,
+		)
 		lastRemoteIndex = 0
 	}
 
-	r.Logger.Printf("[DEBUG] replication: %s replication - local: %d, remote: %d", r.Delegate.SingularNoun(), lenLocal, lenRemote)
+	r.Logger.Debug("diffing replication state",
+		"local_amount", lenLocal,
+		"remote_amount", lenRemote,
+	)
 
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
@@ -229,10 +243,15 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64)
 		return 0, false, fmt.Errorf("failed to diff %s local and remote states: %v", r.Delegate.SingularNoun(), err)
 	}
 
-	r.Logger.Printf("[DEBUG] replication: %s replication - deletions: %d, updates: %d", r.Delegate.SingularNoun(), diff.NumDeletions, diff.NumUpdates)
+	r.Logger.Debug("diffed replication state",
+		"deletions", diff.NumDeletions,
+		"updates", diff.NumUpdates,
+	)
 
 	if diff.NumDeletions > 0 {
-		r.Logger.Printf("[DEBUG] replication: %s replication - performing %d deletions", r.Delegate.SingularNoun(), diff.NumDeletions)
+		r.Logger.Debug("performing deletions",
+			"deletions", diff.NumDeletions,
+		)
 
 		exit, err := r.Delegate.PerformDeletions(ctx, diff.Deletions)
 		if exit {
@@ -242,11 +261,13 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64)
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to apply local %s deletions: %v", r.Delegate.SingularNoun(), err)
 		}
-		r.Logger.Printf("[DEBUG] replication: %s replication - finished deletions", r.Delegate.SingularNoun())
+		r.Logger.Debug("finished deletions")
 	}
 
 	if diff.NumUpdates > 0 {
-		r.Logger.Printf("[DEBUG] replication: %s replication - performing %d updates", r.Delegate.SingularNoun(), diff.NumUpdates)
+		r.Logger.Debug("performing updates",
+			"updates", diff.NumUpdates,
+		)
 
 		exit, err := r.Delegate.PerformUpdates(ctx, diff.Updates)
 		if exit {
@@ -256,7 +277,7 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64)
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to apply local %s updates: %v", r.Delegate.SingularNoun(), err)
 		}
-		r.Logger.Printf("[DEBUG] replication: %s replication - finished updates", r.Delegate.SingularNoun())
+		r.Logger.Debug("finished updates")
 	}
 
 	// Return the index we got back from the remote side, since we've synced

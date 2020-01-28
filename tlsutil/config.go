@@ -4,8 +4,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -160,14 +161,24 @@ type Configurator struct {
 	manual      *manual
 
 	caPool  *x509.CertPool
-	logger  *log.Logger
+	logger  hclog.Logger
 	version int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
-func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
+func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{
+			Level: hclog.Debug,
+		})
+	}
+
+	c := &Configurator{
+		logger:      logger.Named(logging.TLSUtil),
+		manual:      &manual{},
+		autoEncrypt: &autoEncrypt{},
+	}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err
@@ -688,7 +699,7 @@ func (c *Configurator) log(name string) {
 	if c.logger != nil {
 		c.RLock()
 		defer c.RUnlock()
-		c.logger.Printf("[DEBUG] tlsutil: %s with version %d", name, c.version)
+		c.logger.Debug(name, "version", c.version)
 	}
 }
 

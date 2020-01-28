@@ -911,6 +911,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		LeaveDrainTime:                   b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                      leaveOnTerm,
 		LogLevel:                         b.stringVal(c.LogLevel),
+		LogJSON:                          b.boolVal(c.LogJSON),
 		LogFile:                          b.stringVal(c.LogFile),
 		LogRotateBytes:                   b.intVal(c.LogRotateBytes),
 		LogRotateDuration:                b.durationVal("log_rotate_duration", c.LogRotateDuration),

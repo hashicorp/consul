@@ -2,9 +2,7 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -13,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -94,13 +93,13 @@ func testCluster(self string) *mockCluster {
 	return c
 }
 
-func testRouter(dc string) *Router {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+func testRouter(t testing.TB, dc string) *Router {
+	logger := testutil.Logger(t)
 	return NewRouter(logger, dc)
 }
 
 func TestRouter_Shutdown(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
@@ -136,7 +135,7 @@ func TestRouter_Shutdown(t *testing.T) {
 }
 
 func TestRouter_Routing(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
@@ -270,7 +269,7 @@ func TestRouter_Routing(t *testing.T) {
 }
 
 func TestRouter_Routing_Offline(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
@@ -350,7 +349,7 @@ func TestRouter_Routing_Offline(t *testing.T) {
 }
 
 func TestRouter_GetDatacenters(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	self := "node0.dc0"
 	wan := testCluster(self)
@@ -381,7 +380,7 @@ func TestRouter_distanceSorter(t *testing.T) {
 }
 
 func TestRouter_GetDatacentersByDistance(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Start with just the WAN area described in the diagram above.
 	self := "node0.dc0"
@@ -419,7 +418,7 @@ func TestRouter_GetDatacentersByDistance(t *testing.T) {
 }
 
 func TestRouter_GetDatacenterMaps(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	self := "node0.dc0"
 	wan := testCluster(self)

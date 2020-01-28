@@ -2,9 +2,11 @@ package consul
 
 import (
 	"context"
-	"log"
 	"os"
 	"sync"
+
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 type LeaderRoutine func(ctx context.Context) error
@@ -16,18 +18,20 @@ type leaderRoutine struct {
 
 type LeaderRoutineManager struct {
 	lock   sync.RWMutex
-	logger *log.Logger
+	logger hclog.Logger
 
 	routines map[string]*leaderRoutine
 }
 
-func NewLeaderRoutineManager(logger *log.Logger) *LeaderRoutineManager {
+func NewLeaderRoutineManager(logger hclog.Logger) *LeaderRoutineManager {
 	if logger == nil {
-		logger = log.New(os.Stderr, "", log.LstdFlags)
+		logger = hclog.New(&hclog.LoggerOptions{
+			Output: os.Stderr,
+		})
 	}
 
 	return &LeaderRoutineManager{
-		logger:   logger,
+		logger:   logger.Named(logging.Leader),
 		routines: make(map[string]*leaderRoutine),
 	}
 }
@@ -68,9 +72,12 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 	go func() {
 		err := routine(ctx)
 		if err != nil && err != context.DeadlineExceeded && err != context.Canceled {
-			m.logger.Printf("[ERROR] leader: %s routine exited with error: %v", name, err)
+			m.logger.Error("routine exited with error",
+				"routine", name,
+				"error", err,
+			)
 		} else {
-			m.logger.Printf("[DEBUG] leader: stopped %s routine", name)
+			m.logger.Debug("stopped routine", "routine", name)
 		}
 
 		m.lock.Lock()
@@ -79,7 +86,7 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 	}()
 
 	m.routines[name] = instance
-	m.logger.Printf("[INFO] leader: started %s routine", name)
+	m.logger.Info("started routine", "routine", name)
 	return nil
 }
 
@@ -97,7 +104,7 @@ func (m *LeaderRoutineManager) Stop(name string) error {
 		return nil
 	}
 
-	m.logger.Printf("[DEBUG] leader: stopping %s routine", name)
+	m.logger.Debug("stopping routine", "routine", name)
 	instance.cancel()
 	delete(m.routines, name)
 	return nil
@@ -111,7 +118,7 @@ func (m *LeaderRoutineManager) StopAll() {
 		if !routine.running {
 			continue
 		}
-		m.logger.Printf("[DEBUG] leader: stopping %s routine", name)
+		m.logger.Debug("stopping routine", "routine", name)
 		routine.cancel()
 	}
 

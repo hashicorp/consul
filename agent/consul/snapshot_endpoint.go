@@ -163,7 +163,7 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			s.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+			s.logger.Error("Failed to close snapshot", "error", err)
 		}
 	}()
 

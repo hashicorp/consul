@@ -10,18 +10,20 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
 
 // KVS endpoint is used to manipulate the Key-Value store
 type KVS struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // preApply does all the verification of a KVS update that is performed BEFORE
 // we submit as a Raft log entry. This includes enforcing the lock delay which
 // must only be done on the leader.
-func kvsPreApply(srv *Server, authz acl.Authorizer, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
+func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.KVOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
 	if dirEnt.Key == "" && op != api.KVDeleteTree {
 		return false, fmt.Errorf("Must provide key")
@@ -72,8 +74,10 @@ func kvsPreApply(srv *Server, authz acl.Authorizer, op api.KVOp, dirEnt *structs
 		state := srv.fsm.State()
 		expires := state.KVSLockDelay(dirEnt.Key, &dirEnt.EnterpriseMeta)
 		if expires.After(time.Now()) {
-			srv.logger.Printf("[WARN] consul.kvs: Rejecting lock of %s due to lock-delay until %v",
-				dirEnt.Key, expires)
+			logger.Warn("Rejecting lock of key due to lock-delay",
+				"key", dirEnt.Key,
+				"expire_time", expires.String(),
+			)
 			return false, nil
 		}
 	}
@@ -98,7 +102,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 		return err
 	}
 
-	ok, err := kvsPreApply(k.srv, authz, args.Op, &args.DirEnt)
+	ok, err := kvsPreApply(k.logger, k.srv, authz, args.Op, &args.DirEnt)
 	if err != nil {
 		return err
 	}
@@ -110,7 +114,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	// Apply the update.
 	resp, err := k.srv.raftApply(structs.KVSRequestType, args)
 	if err != nil {
-		k.srv.logger.Printf("[ERR] consul.kvs: Apply failed: %v", err)
+		k.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {

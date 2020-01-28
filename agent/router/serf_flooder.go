@@ -2,11 +2,11 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -23,7 +23,7 @@ type FloodPortFn func(*metadata.Server) (int, bool)
 // local area are of the form <node> and those in the global area are of the
 // form <node>.<dc> as is done for WAN and general network areas in Consul
 // Enterprise.
-func FloodJoins(logger *log.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
+func FloodJoins(logger hclog.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 	localDatacenter string, localSerf *serf.Serf, globalSerf *serf.Serf) {
 
 	// Names in the global Serf have the datacenter suffixed.
@@ -65,8 +65,11 @@ func FloodJoins(logger *log.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 		// get the host part.
 		addr, _, err := net.SplitHostPort(server.Addr.String())
 		if err != nil {
-			logger.Printf("[DEBUG] consul: Failed to flood-join %q (bad address %q): %v",
-				server.Name, server.Addr.String(), err)
+			logger.Debug("Failed to flood-join server (bad address)",
+				"server", server.Name,
+				"address", server.Addr.String(),
+				"error", err,
+			)
 		}
 		if addrFn != nil {
 			if a, ok := addrFn(server); ok {
@@ -86,18 +89,23 @@ func FloodJoins(logger *log.Logger, addrFn FloodAddrFn, portFn FloodPortFn,
 					addr = fmt.Sprintf("[%s]", addr)
 				}
 			} else {
-				logger.Printf("[DEBUG] consul: Failed to parse IP %s", addr)
+				logger.Debug("Failed to parse IP", "ip", addr)
 			}
 		}
 
 		// Do the join!
 		n, err := globalSerf.Join([]string{addr}, true)
 		if err != nil {
-			logger.Printf("[DEBUG] consul: Failed to flood-join %q at %s: %v",
-				server.Name, addr, err)
+			logger.Debug("Failed to flood-join server at address",
+				"server", server.Name,
+				"address", addr,
+				"error", err,
+			)
 		} else if n > 0 {
-			logger.Printf("[DEBUG] consul: Successfully performed flood-join for %q at %s",
-				server.Name, addr)
+			logger.Debug("Successfully performed flood-join for server at address",
+				"server", server.Name,
+				"address", addr,
+			)
 		}
 	}
 }

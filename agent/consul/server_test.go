@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -23,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
@@ -256,7 +256,11 @@ func newServer(c *Config) (*Server, error) {
 	if w == nil {
 		w = os.Stderr
 	}
-	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  hclog.Debug,
+		Output: w,
+	})
 	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	if err != nil {
 		return nil, err
@@ -1177,9 +1181,9 @@ func TestServer_CALogging(t *testing.T) {
 
 	// Setup dummy logger to catch output
 	var buf bytes.Buffer
-	logger := log.New(&buf, "", log.LstdFlags)
+	logger := testutil.LoggerWithOutput(t, &buf)
 
-	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
 	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
 	if err != nil {

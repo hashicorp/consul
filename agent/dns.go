@@ -3,7 +3,6 @@ package agent
 import (
 	"encoding/hex"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -21,6 +20,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 )
 
@@ -84,7 +85,7 @@ type DNSServer struct {
 	mux       *dns.ServeMux
 	domain    string
 	altDomain string
-	logger    *log.Logger
+	logger    hclog.Logger
 
 	// config stores the config as an atomic value (for hot-reloading). It is always of type *dnsConfig
 	config atomic.Value
@@ -103,7 +104,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		agent:     a,
 		domain:    domain,
 		altDomain: altDomain,
-		logger:    a.logger,
+		logger:    a.logger.Named(logging.DNS),
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {
@@ -212,13 +213,13 @@ func (d *DNSServer) toggleRecursorHandlerFromConfig(cfg *dnsConfig) {
 
 	if shouldEnable && atomic.CompareAndSwapUint32(&d.recursorEnabled, 0, 1) {
 		d.mux.HandleFunc(".", d.handleRecurse)
-		d.logger.Println("[DEBUG] dns: recursor enabled")
+		d.logger.Debug("recursor enabled")
 		return
 	}
 
 	if !shouldEnable && atomic.CompareAndSwapUint32(&d.recursorEnabled, 1, 0) {
 		d.mux.HandleRemove(".")
-		d.logger.Println("[DEBUG] dns: recursor disabled")
+		d.logger.Debug("recursor disabled")
 		return
 	}
 }
@@ -301,9 +302,12 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
-		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
-			q, time.Since(s), resp.RemoteAddr().String(),
-			resp.RemoteAddr().Network())
+		d.logger.Debug("request served from client",
+			"question", q,
+			"latency", time.Since(s).String(),
+			"client", resp.RemoteAddr().String(),
+			"client_network", resp.RemoteAddr().Network(),
+		)
 	}(time.Now())
 
 	cfg := d.config.Load().(*dnsConfig)
@@ -390,7 +394,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
-		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+		d.logger.Warn("failed to respond", "error", err)
 	}
 }
 
@@ -400,9 +404,14 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
-		d.logger.Printf("[DEBUG] dns: request for name %v type %v class %v (took %v) from client %s (%s)",
-			q.Name, dns.Type(q.Qtype), dns.Class(q.Qclass), time.Since(s), resp.RemoteAddr().String(),
-			resp.RemoteAddr().Network())
+		d.logger.Debug("request served from client",
+			"name", q.Name,
+			"type", dns.Type(q.Qtype),
+			"class", dns.Class(q.Qclass),
+			"latency", time.Since(s).String(),
+			"client", resp.RemoteAddr().String(),
+			"client_network", resp.RemoteAddr().Network(),
+		)
 	}(time.Now())
 
 	// Switch to TCP if the client is
@@ -447,7 +456,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
-		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+		d.logger.Warn("failed to respond", "error", err)
 	}
 }
 
@@ -481,12 +490,12 @@ func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
 func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int, req *dns.Msg) (ns []dns.RR, extra []dns.RR) {
 	out, err := d.lookupServiceNodes(cfg, d.agent.config.Datacenter, structs.ConsulServiceName, "", structs.DefaultEnterpriseMeta(), false, maxRecursionLevel)
 	if err != nil {
-		d.logger.Printf("[WARN] dns: Unable to get list of servers: %s", err)
+		d.logger.Warn("Unable to get list of servers", "error", err)
 		return nil, nil
 	}
 
 	if len(out.Nodes) == 0 {
-		d.logger.Printf("[WARN] dns: no servers found")
+		d.logger.Warn("no servers found")
 		return
 	}
 
@@ -497,7 +506,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, edns bool, maxRecursionLevel int
 		name, dc := o.Node.Node, o.Node.Datacenter
 
 		if InvalidDnsRe.MatchString(name) {
-			d.logger.Printf("[WARN] dns: Skipping invalid node %q for NS records", name)
+			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
 
@@ -533,7 +542,7 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 }
 
 func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
-	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
+	d.logger.Warn("QName invalid", "qname", qName)
 	d.addSOA(cfg, resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 }
@@ -717,7 +726,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 	return
 
 INVALID:
-	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
+	d.logger.Warn("QName invalid", "qname", qName)
 	d.addSOA(cfg, resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 	return
@@ -756,7 +765,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 	}
 	out, err := d.lookupNode(cfg, args)
 	if err != nil {
-		d.logger.Printf("[ERR] dns: rpc error: %v", err)
+		d.logger.Error("rpc error", "error", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
 	}
@@ -816,7 +825,7 @@ RPC:
 		if out.LastContact > cfg.MaxStale {
 			args.AllowStale = false
 			useCache = false
-			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			d.logger.Warn("Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
 			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
@@ -968,9 +977,11 @@ func (d *DNSServer) trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 		}
 	}
 	if truncated {
-		d.logger.Printf("[DEBUG] dns: TCP answer to %v too large truncated recs:=%d/%d, size:=%d/%d",
-			req.Question,
-			len(resp.Answer), originalNumRecords, resp.Len(), originalSize)
+		d.logger.Debug("TCP answer to question too large, truncated",
+			"question", req.Question,
+			"records", fmt.Sprintf("%d/%d", len(resp.Answer), originalNumRecords),
+			"size", fmt.Sprintf("%d/%d", resp.Len(), originalSize),
+		)
 	}
 	return truncated
 }
@@ -1082,7 +1093,10 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag 
 			// This should never happen, but we want to protect against panics
 			return out, fmt.Errorf("internal error: response type not correct")
 		}
-		d.logger.Printf("[TRACE] dns: cache hit: %v for service %s", m.Hit, service)
+		d.logger.Trace("cache results for service",
+			"cache_hit", m.Hit,
+			"service", service,
+		)
 
 		out = *reply
 	} else {
@@ -1098,7 +1112,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag 
 	// redo the request the response was too stale
 	if args.AllowStale && out.LastContact > cfg.MaxStale {
 		args.AllowStale = false
-		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+		d.logger.Warn("Query results too stale, re-requesting")
 
 		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 			return structs.IndexedCheckServiceNodes{}, err
@@ -1117,7 +1131,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, datacenter, service, tag 
 func (d *DNSServer) serviceLookup(cfg *dnsConfig, network, datacenter, service, tag string, entMeta *structs.EnterpriseMeta, connect bool, req, resp *dns.Msg, maxRecursionLevel int) {
 	out, err := d.lookupServiceNodes(cfg, datacenter, service, tag, entMeta, connect, maxRecursionLevel)
 	if err != nil {
-		d.logger.Printf("[ERR] dns: rpc error: %v", err)
+		d.logger.Error("rpc error", "error", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
 	}
@@ -1238,7 +1252,10 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 		var err error
 		ttl, err = time.ParseDuration(out.DNS.TTL)
 		if err != nil {
-			d.logger.Printf("[WARN] dns: Failed to parse TTL '%s' for prepared query '%s', ignoring", out.DNS.TTL, query)
+			d.logger.Warn("Failed to parse TTL for prepared query , ignoring",
+				"ttl", out.DNS.TTL,
+				"prepared_query", query,
+			)
 		}
 	} else {
 		ttl, _ = cfg.GetTTLForService(out.Service)
@@ -1283,7 +1300,10 @@ RPC:
 			return nil, err
 		}
 
-		d.logger.Printf("[TRACE] dns: cache hit: %v for prepared query %s", m.Hit, args.QueryIDOrName)
+		d.logger.Trace("cache results for prepared query",
+			"cache_hit", m.Hit,
+			"prepared_query", args.QueryIDOrName,
+		)
 
 		out = *reply
 	} else {
@@ -1296,7 +1316,7 @@ RPC:
 	if args.AllowStale {
 		if out.LastContact > cfg.MaxStale {
 			args.AllowStale = false
-			d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+			d.logger.Warn("Query results too stale, re-requesting")
 			goto RPC
 		} else if out.LastContact > staleCounterThreshold {
 			metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
@@ -1714,9 +1734,13 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	network := "udp"
 	defer func(s time.Time) {
-		d.logger.Printf("[DEBUG] dns: request for %v (%s) (%v) from client %s (%s)",
-			q, network, time.Since(s), resp.RemoteAddr().String(),
-			resp.RemoteAddr().Network())
+		d.logger.Debug("request served from client",
+			"question", q,
+			"network", network,
+			"latency", time.Since(s).String(),
+			"client", resp.RemoteAddr().String(),
+			"client_network", resp.RemoteAddr().Network(),
+		)
 	}(time.Now())
 
 	// Switch to TCP if the client is
@@ -1733,7 +1757,12 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 		r, rtt, err = c.Exchange(req, recursor)
 		// Check if the response is valid and has the desired Response code
 		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
-			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v Status returned: %v", q, rtt, recursor, dns.RcodeToString[r.Rcode])
+			d.logger.Debug("recurse failed for question",
+				"question", q,
+				"rtt", rtt,
+				"recursor", recursor,
+				"rcode", dns.RcodeToString[r.Rcode],
+			)
 			// If we still have recursors to forward the query to,
 			// we move forward onto the next one else the loop ends
 			continue
@@ -1744,18 +1773,25 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			r.Compress = !cfg.DisableCompression
 
 			// Forward the response
-			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v) Recursor queried: %v", q, rtt, recursor)
+			d.logger.Debug("recurse succeeded for question",
+				"question", q,
+				"rtt", rtt,
+				"recursor", recursor,
+			)
 			if err := resp.WriteMsg(r); err != nil {
-				d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+				d.logger.Warn("failed to respond", "error", err)
 			}
 			return
 		}
-		d.logger.Printf("[ERR] dns: recurse failed: %v", err)
+		d.logger.Error("recurse failed", "error", err)
 	}
 
 	// If all resolvers fail, return a SERVFAIL message
-	d.logger.Printf("[ERR] dns: all resolvers failed for %v from client %s (%s)",
-		q, resp.RemoteAddr().String(), resp.RemoteAddr().Network())
+	d.logger.Error("all resolvers failed for question from client",
+		"question", q,
+		"client", resp.RemoteAddr().String(),
+		"client_network", resp.RemoteAddr().Network(),
+	)
 	m := &dns.Msg{}
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
@@ -1775,7 +1811,7 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 
 	if ln := strings.ToLower(name); strings.HasSuffix(ln, "."+d.domain) || strings.HasSuffix(ln, "."+d.altDomain) {
 		if maxRecursionLevel < 1 {
-			d.logger.Printf("[ERR] dns: Infinite recursion detected for %s, won't perform any CNAME resolution.", name)
+			d.logger.Error("Infinite recursion detected for name, won't perform any CNAME resolution.", "name", name)
 			return nil
 		}
 		req := &dns.Msg{}
@@ -1804,11 +1840,17 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 	for _, recursor := range cfg.Recursors {
 		r, rtt, err = c.Exchange(m, recursor)
 		if err == nil {
-			d.logger.Printf("[DEBUG] dns: cname recurse RTT for %v (%v)", name, rtt)
+			d.logger.Debug("cname recurse RTT for name",
+				"name", name,
+				"rtt", rtt,
+			)
 			return r.Answer
 		}
-		d.logger.Printf("[ERR] dns: cname recurse failed for %v: %v", name, err)
+		d.logger.Error("cname recurse failed for name",
+			"name", name,
+			"error", err,
+		)
 	}
-	d.logger.Printf("[ERR] dns: all resolvers failed for %v", name)
+	d.logger.Error("all resolvers failed for name", "name", name)
 	return nil
 }

@@ -3,12 +3,12 @@ package local_test
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
@@ -1966,9 +1966,12 @@ func checksInSync(state *local.State, wantChecks int) error {
 
 func TestState_Notify(t *testing.T) {
 	t.Parallel()
+	logger := hclog.New(&hclog.LoggerOptions{
+		Output: os.Stderr,
+	})
 
 	state := local.NewState(local.Config{},
-		log.New(os.Stderr, "", log.LstdFlags), &token.Store{})
+		logger, &token.Store{})
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}

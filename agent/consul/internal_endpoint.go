@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
@@ -16,7 +17,8 @@ import (
 // does not necessarily fit into the other systems. It is also
 // used to hold undocumented APIs that users should not rely on.
 type Internal struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // NodeInfo is used to retrieve information about a specific node.
@@ -127,7 +129,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
 		accessorID := m.aclAccessorID(args.Token)
-		m.srv.logger.Printf("[DEBUG] consul: user event blocked by ACLs, event=%q accessorID=%q", args.Name, accessorID)
+		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -265,7 +267,7 @@ func (m *Internal) executeKeyringOpMgr(
 func (m *Internal) aclAccessorID(secretID string) string {
 	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
 	if err != nil {
-		m.srv.logger.Printf("[DEBUG] consul.internal: %v", err)
+		m.srv.logger.Debug("error", err)
 		return ""
 	}
 	if ident == nil {

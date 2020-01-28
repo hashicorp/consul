@@ -8,6 +8,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 func cmpConfigLess(first structs.ConfigEntry, second structs.ConfigEntry) bool {
@@ -116,13 +118,15 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 	return &response, nil
 }
 
-func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
+	replicationLogger := s.loggers.Named(logging.Replication).Named(logging.ConfigEntry)
+
 	remote, err := s.fetchConfigEntries(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote config entries: %v", err)
 	}
 
-	s.logger.Printf("[DEBUG] replication: finished fetching config entries: %d", len(remote.Entries))
+	replicationLogger.Debug("finished fetching config entries", "amount", len(remote.Entries))
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
@@ -158,19 +162,30 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (u
 	// The lastRemoteIndex is not used when the entry exists either only in the local state or
 	// only in the remote state. In those situations we need to either delete it or create it.
 	if remote.QueryMeta.Index < lastRemoteIndex {
-		s.logger.Printf("[WARN] replication: Config Entry replication remote index moved backwards (%d to %d), forcing a full Config Entry sync", lastRemoteIndex, remote.QueryMeta.Index)
+		replicationLogger.Warn("Config Entry replication remote index moved backwards, forcing a full Config Entry sync",
+			"from", lastRemoteIndex,
+			"to", remote.QueryMeta.Index,
+		)
 		lastRemoteIndex = 0
 	}
 
-	s.logger.Printf("[DEBUG] replication: Config Entry replication - local: %d, remote: %d", len(local), len(remote.Entries))
+	replicationLogger.Debug("Config Entry replication",
+		"local", len(local),
+		"remote", len(remote.Entries),
+	)
 	// Calculate the changes required to bring the state into sync and then
 	// apply them.
 	deletions, updates := diffConfigEntries(local, remote.Entries, lastRemoteIndex)
 
-	s.logger.Printf("[DEBUG] replication: Config Entry replication - deletions: %d, updates: %d", len(deletions), len(updates))
+	replicationLogger.Debug("Config Entry replication",
+		"deletions", len(deletions),
+		"updates", len(updates),
+	)
 
 	if len(deletions) > 0 {
-		s.logger.Printf("[DEBUG] replication: Config Entry replication - performing %d deletions", len(deletions))
+		replicationLogger.Debug("Deleting local config entries",
+			"deletions", len(deletions),
+		)
 
 		exit, err := s.reconcileLocalConfig(ctx, deletions, structs.ConfigEntryDelete)
 		if exit {
@@ -179,11 +194,13 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (u
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to delete local config entries: %v", err)
 		}
-		s.logger.Printf("[DEBUG] replication: Config Entry replication - finished deletions")
+		replicationLogger.Debug("Config Entry replication - finished deletions")
 	}
 
 	if len(updates) > 0 {
-		s.logger.Printf("[DEBUG] replication: Config Entry replication - performing %d updates", len(updates))
+		replicationLogger.Debug("Updating local config entries",
+			"updates", len(updates),
+		)
 		exit, err := s.reconcileLocalConfig(ctx, updates, structs.ConfigEntryUpsert)
 		if exit {
 			return 0, true, nil
@@ -191,7 +208,7 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (u
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to update local config entries: %v", err)
 		}
-		s.logger.Printf("[DEBUG] replication: Config Entry replication - finished updates")
+		replicationLogger.Debug("Config Entry replication - finished updates")
 	}
 
 	// Return the index we got back from the remote side, since we've synced

@@ -1101,7 +1101,7 @@ func TestAPI_AgentMonitor(t *testing.T) {
 
 	agent := c.Agent()
 
-	logCh, err := agent.Monitor("info", nil, nil)
+	logCh, err := agent.Monitor("debug", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1109,8 +1109,32 @@ func TestAPI_AgentMonitor(t *testing.T) {
 	// Wait for the first log message and validate it
 	select {
 	case log := <-logCh:
-		if !strings.Contains(log, "[INFO]") {
+		if !(strings.Contains(log, "[INFO]") || strings.Contains(log, "[DEBUG]")) {
 			t.Fatalf("bad: %q", log)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("failed to get a log message")
+	}
+}
+
+func TestAPI_AgentMonitorJSON(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	logCh, err := agent.MonitorJSON("debug", nil, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for the first log message and validate it is valid JSON
+	select {
+	case log := <-logCh:
+		var output map[string]interface{}
+		if err := json.Unmarshal([]byte(log), &output); err != nil {
+			t.Fatalf("log output was not JSON: %q", log)
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatalf("failed to get a log message")

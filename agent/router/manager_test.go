@@ -2,15 +2,14 @@ package router_test
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 type fauxAddr struct {
@@ -55,22 +54,22 @@ func (s *fauxSerf) NumNodes() int {
 	return 16384
 }
 
-func testManager() (m *router.Manager) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+func testManager(t testing.TB) (m *router.Manager) {
+	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	return m
 }
 
-func testManagerFailProb(failPct float64) (m *router.Manager) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+func testManagerFailProb(t testing.TB, failPct float64) (m *router.Manager) {
+	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
 }
 
-func testManagerFailAddr(failAddr net.Addr) (m *router.Manager) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+func testManagerFailAddr(t testing.TB, failAddr net.Addr) (m *router.Manager) {
+	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
 	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
 	return m
@@ -78,7 +77,7 @@ func testManagerFailAddr(failAddr net.Addr) (m *router.Manager) {
 
 // func (m *Manager) AddServer(server *metadata.Server) {
 func TestServers_AddServer(t *testing.T) {
-	m := testManager()
+	m := testManager(t)
 	var num int
 	num = m.NumServers()
 	if num != 0 {
@@ -108,7 +107,7 @@ func TestServers_AddServer(t *testing.T) {
 
 // func (m *Manager) IsOffline() bool {
 func TestServers_IsOffline(t *testing.T) {
-	m := testManager()
+	m := testManager(t)
 	if !m.IsOffline() {
 		t.Fatalf("bad")
 	}
@@ -129,7 +128,7 @@ func TestServers_IsOffline(t *testing.T) {
 	}
 
 	const failPct = 0.5
-	m = testManagerFailProb(failPct)
+	m = testManagerFailProb(t, failPct)
 	m.AddServer(s1)
 	var on, off int
 	for i := 0; i < 100; i++ {
@@ -147,7 +146,7 @@ func TestServers_IsOffline(t *testing.T) {
 
 // func (m *Manager) FindServer() (server *metadata.Server) {
 func TestServers_FindServer(t *testing.T) {
-	m := testManager()
+	m := testManager(t)
 
 	if m.FindServer() != nil {
 		t.Fatalf("Expected nil return")
@@ -193,9 +192,8 @@ func TestServers_FindServer(t *testing.T) {
 	}
 }
 
-// func New(logger *log.Logger, shutdownCh chan struct{}) (m *Manager) {
 func TestServers_New(t *testing.T) {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
 	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	if m == nil {
@@ -205,7 +203,7 @@ func TestServers_New(t *testing.T) {
 
 // func (m *Manager) NotifyFailedServer(server *metadata.Server) {
 func TestServers_NotifyFailedServer(t *testing.T) {
-	m := testManager()
+	m := testManager(t)
 
 	if m.NumServers() != 0 {
 		t.Fatalf("Expected zero servers to start")
@@ -258,7 +256,7 @@ func TestServers_NotifyFailedServer(t *testing.T) {
 
 // func (m *Manager) NumServers() (numServers int) {
 func TestServers_NumServers(t *testing.T) {
-	m := testManager()
+	m := testManager(t)
 	var num int
 	num = m.NumServers()
 	if num != 0 {
@@ -276,7 +274,7 @@ func TestServers_NumServers(t *testing.T) {
 // func (m *Manager) RebalanceServers() {
 func TestServers_RebalanceServers(t *testing.T) {
 	const failPct = 0.5
-	m := testManagerFailProb(failPct)
+	m := testManagerFailProb(t, failPct)
 	const maxServers = 100
 	const numShuffleTests = 100
 	const uniquePassRate = 0.5
@@ -323,7 +321,7 @@ func TestServers_RebalanceServers_AvoidFailed(t *testing.T) {
 		&metadata.Server{Name: "s3", Addr: &fauxAddr{"s3"}},
 	}
 	for i := 0; i < 100; i++ {
-		m := testManagerFailAddr(&fauxAddr{"s2"})
+		m := testManagerFailAddr(t, &fauxAddr{"s2"})
 		for _, s := range servers {
 			m.AddServer(s)
 		}
@@ -338,7 +336,7 @@ func TestServers_RebalanceServers_AvoidFailed(t *testing.T) {
 // func (m *Manager) RemoveServer(server *metadata.Server) {
 func TestManager_RemoveServer(t *testing.T) {
 	const nodeNameFmt = "s%02d"
-	m := testManager()
+	m := testManager(t)
 
 	if m.NumServers() != 0 {
 		t.Fatalf("Expected zero servers to start")

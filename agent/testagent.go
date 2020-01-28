@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http/httptest"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/config"
@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -61,9 +60,6 @@ type TestAgent struct {
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
 	LogOutput io.Writer
-
-	// LogWriter is used for streaming logs.
-	LogWriter *logger.LogWriter
 
 	// DataDir is the data directory which is used when Config.DataDir
 	// is not set. It is created automatically and removed when
@@ -160,11 +156,16 @@ func (a *TestAgent) Start() (err error) {
 	if logOutput == nil {
 		logOutput = os.Stderr
 	}
-	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   a.Name,
+		Level:  hclog.Debug,
+		Output: logOutput,
+	})
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
 	a.returnPortsFn = returnPortsFn
-	a.Config = TestConfig(agentLogger,
+	a.Config = TestConfig(logger,
 		portsConfig,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
@@ -197,14 +198,13 @@ func (a *TestAgent) Start() (err error) {
 		}
 	}
 
-	agent, err := New(a.Config, agentLogger)
+	agent, err := New(a.Config, logger)
 	if err != nil {
 		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
 	agent.LogOutput = logOutput
-	agent.LogWriter = a.LogWriter
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	id := string(a.Config.NodeID)
@@ -411,7 +411,7 @@ func NodeID() string {
 
 // TestConfig returns a unique default configuration for testing an
 // agent.
-func TestConfig(logger *log.Logger, sources ...config.Source) *config.RuntimeConfig {
+func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
 	testsrc := config.Source{
 		Name:   "test",
@@ -450,7 +450,7 @@ func TestConfig(logger *log.Logger, sources ...config.Source) *config.RuntimeCon
 	}
 
 	for _, w := range b.Warnings {
-		logger.Printf("[WARN] %s", w)
+		logger.Warn(w)
 	}
 
 	// Effectively disables the delay after root rotation before requesting CSRs

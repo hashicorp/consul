@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync/atomic"
 	"time"
 
@@ -25,7 +24,9 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
 )
 
 // ADSStream is a shorter way of referring to this thing...
@@ -125,7 +126,7 @@ type ConfigManager interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	Logger       *log.Logger
+	Logger       hclog.Logger
 	CfgMgr       ConfigManager
 	Authz        ConnectAuthz
 	ResolveToken ACLResolverFunc
@@ -143,6 +144,7 @@ func (s *Server) Initialize() {
 	if s.AuthCheckFrequency == 0 {
 		s.AuthCheckFrequency = DefaultAuthCheckFrequency
 	}
+	s.Logger = s.Logger.Named(logging.Envoy)
 }
 
 // StreamAggregatedResources implements
@@ -168,7 +170,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Printf("[DEBUG] Error handling ADS stream: %s", err)
+		s.Logger.Debug("Error handling ADS stream", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -477,8 +479,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	// Parse destination to know the target service
 	dest, err := connect.ParseCertURIFromString(r.Attributes.Destination.Principal)
 	if err != nil {
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination URI: src=%s dest=%s",
-			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+		s.Logger.Debug("Connect AuthZ DENIED: bad destination URI", "source", r.Attributes.Source.Principal, "destination",
+			r.Attributes.Destination.Principal)
 		// Treat this as an auth error since Envoy has sent something it considers
 		// valid, it's just not an identity we trust.
 		return deniedResponse("Destination Principal is not a valid Connect identity")
@@ -486,8 +488,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 	destID, ok := dest.(*connect.SpiffeIDService)
 	if !ok {
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination service ID: src=%s dest=%s",
-			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+		s.Logger.Debug("Connect AuthZ DENIED: bad destination service ID", "source", r.Attributes.Source.Principal, "destination",
+			r.Attributes.Destination.Principal)
 		return deniedResponse("Destination Principal is not a valid Service identity")
 	}
 
@@ -512,22 +514,22 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
 	if err != nil {
 		if err == acl.ErrPermissionDenied {
-			s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed ACL check: %s: src=%s dest=%s",
-				err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+			s.Logger.Debug("Connect AuthZ failed ACL check", "error", err, "source", r.Attributes.Source.Principal,
+				"dest", r.Attributes.Destination.Principal)
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed: %s: src=%s dest=%s",
-			err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+		s.Logger.Debug("Connect AuthZ failed", "error", err, "source", r.Attributes.Source.Principal,
+			"destination", r.Attributes.Destination.Principal)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if !authed {
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: src=%s dest=%s reason=%s",
-			r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
+		s.Logger.Debug("Connect AuthZ DENIED", "source", r.Attributes.Source.Principal,
+			"destination", r.Attributes.Destination.Principal, "reason", reason)
 		return deniedResponse(reason)
 	}
 
-	s.Logger.Printf("[DEBUG] grpc: Connect AuthZ ALLOWED: src=%s dest=%s reason=%s",
-		r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
+	s.Logger.Debug("Connect AuthZ ALLOWED", "source", r.Attributes.Source.Principal,
+		"destination", r.Attributes.Destination.Principal, "reason", reason)
 	return &envoyauthz.CheckResponse{
 		Status: &rpc.Status{
 			Code:    int32(rpc.OK),

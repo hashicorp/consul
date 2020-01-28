@@ -3,10 +3,13 @@ package testutil
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 var sendTestLogsToStdout bool
@@ -15,12 +18,41 @@ func init() {
 	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 }
 
+// Deprecated: use Logger(t)
 func TestLogger(t testing.TB) *log.Logger {
 	return log.New(&testWriter{t}, t.Name()+": ", log.LstdFlags)
 }
 
+func NewDiscardLogger() hclog.Logger {
+	return hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: ioutil.Discard,
+	})
+}
+
+func Logger(t testing.TB) hclog.InterceptLogger {
+	return LoggerWithOutput(t, &testWriter{t})
+}
+
+func LoggerWithOutput(t testing.TB, output io.Writer) hclog.InterceptLogger {
+	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   t.Name(),
+		Level:  hclog.Debug,
+		Output: output,
+	})
+}
+
+// Deprecated: use LoggerWithName(t)
 func TestLoggerWithName(t testing.TB, name string) *log.Logger {
 	return log.New(&testWriter{t}, "test["+name+"]: ", log.LstdFlags)
+}
+
+func LoggerWithName(t testing.TB, name string) hclog.InterceptLogger {
+	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   "test[" + name + "]",
+		Level:  hclog.Debug,
+		Output: &testWriter{t},
+	})
 }
 
 func TestWriter(t testing.TB) io.Writer {

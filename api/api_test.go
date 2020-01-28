@@ -423,7 +423,11 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 	os.Setenv(HTTPSSLVerifyEnvName, "0")
 	defer os.Setenv(HTTPSSLVerifyEnvName, "")
 
-	for i, config := range []*Config{DefaultConfig(), DefaultNonPooledConfig()} {
+	for i, config := range []*Config{
+		DefaultConfig(),
+		DefaultConfigWithLogger(testutil.Logger(t)),
+		DefaultNonPooledConfig(),
+	} {
 		if config.Address != addr {
 			t.Errorf("expected %q to be %q", config.Address, addr)
 		}
@@ -462,7 +466,7 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 		}
 
 		// Use keep alives as a check for whether pooling is on or off.
-		if pooled := i == 0; pooled {
+		if pooled := i != 2; pooled {
 			if config.Transport.DisableKeepAlives != false {
 				t.Errorf("expected keep alives to be enabled")
 			}

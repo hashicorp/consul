@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -12,6 +11,8 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -40,7 +41,7 @@ const (
 // is discarded and a new one created.
 type state struct {
 	// logger, source and cache are required to be set before calling Watch.
-	logger *log.Logger
+	logger hclog.Logger
 	source *structs.QuerySource
 	cache  CacheNotifier
 
@@ -252,8 +253,10 @@ func (s *state) initWatchesConnectProxy() error {
 			// Don't hard fail on a config typo, just warn. We'll fall back on
 			// the plain discovery chain if there is an error so it's safe to
 			// continue.
-			s.logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-				u.Identifier(), err)
+			s.logger.Warn("failed to parse upstream config",
+				"upstream", u.Identifier(),
+				"error", err,
+			)
 		}
 
 		switch u.DestinationType {
@@ -357,7 +360,8 @@ func (s *state) initWatchesMeshGateway() error {
 	}, serviceResolversWatchID, s.ch)
 
 	if err != nil {
-		s.logger.Printf("[ERR] mesh-gateway: failed to register watch for service-resolver config entries")
+		s.logger.Named(logging.MeshGateway).
+			Error("failed to register watch for service-resolver config entries", "error", err)
 		return err
 	}
 
@@ -421,7 +425,10 @@ func (s *state) run() {
 			return
 		case u := <-s.ch:
 			if err := s.handleUpdate(u, &snap); err != nil {
-				s.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+				s.logger.Error("watch error",
+					"id", u.CorrelationID,
+					"error", err,
+				)
 				continue
 			}
 
@@ -430,8 +437,10 @@ func (s *state) run() {
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
 			if err != nil {
-				s.logger.Printf("[ERR] Failed to copy config snapshot for proxy %s",
-					s.proxyID)
+				s.logger.Error("Failed to copy config snapshot for proxy",
+					"proxy", s.proxyID,
+					"error", err,
+				)
 				continue
 			}
 			s.snapCh <- *snapCopy
@@ -452,8 +461,10 @@ func (s *state) run() {
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
 			if err != nil {
-				s.logger.Printf("[ERR] Failed to copy config snapshot for proxy %s",
-					s.proxyID)
+				s.logger.Error("Failed to copy config snapshot for proxy",
+					"proxy", s.proxyID,
+					"error", err,
+				)
 				continue
 			}
 			replyCh <- snapCopy
@@ -620,7 +631,11 @@ func (s *state) resetWatchesFromChain(
 	//
 	// TODO(rb): content hash based add/remove
 	for targetID, cancelFn := range snap.ConnectProxy.WatchedUpstreams[id] {
-		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: stopping watch of target %s", id, chain.ServiceName, targetID)
+		s.logger.Trace("stopping watch of target",
+			"upstream", id,
+			"chain", chain.ServiceName,
+			"target", targetID,
+		)
 		delete(snap.ConnectProxy.WatchedUpstreams[id], targetID)
 		delete(snap.ConnectProxy.WatchedUpstreamEndpoints[id], targetID)
 		cancelFn()
@@ -628,7 +643,11 @@ func (s *state) resetWatchesFromChain(
 
 	needGateways := make(map[string]struct{})
 	for _, target := range chain.Targets {
-		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of target %s", id, chain.ServiceName, target.ID)
+		s.logger.Trace("initializing watch of target",
+			"upstream", id,
+			"chain", chain.ServiceName,
+			"target", target.ID,
+		)
 
 		// We'll get endpoints from the gateway query, but the health still has
 		// to come from the backing service query.
@@ -661,7 +680,11 @@ func (s *state) resetWatchesFromChain(
 			continue
 		}
 
-		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: initializing watch of mesh gateway in dc %s", id, chain.ServiceName, dc)
+		s.logger.Trace("initializing watch of mesh gateway in datacenter",
+			"upstream", id,
+			"chain", chain.ServiceName,
+			"datacenter", dc,
+		)
 
 		ctx, cancel := context.WithCancel(s.ctx)
 		err := s.watchMeshGateway(ctx, dc, id)
@@ -677,7 +700,11 @@ func (s *state) resetWatchesFromChain(
 		if _, ok := needGateways[dc]; ok {
 			continue
 		}
-		s.logger.Printf("[TRACE] proxycfg: upstream=%q:chain=%q: stopping watch of mesh gateway in dc %s", id, chain.ServiceName, dc)
+		s.logger.Trace("stopping watch of mesh gateway in datacenter",
+			"upstream", id,
+			"chain", chain.ServiceName,
+			"datacenter", dc,
+		)
 		delete(snap.ConnectProxy.WatchedGateways[id], dc)
 		delete(snap.ConnectProxy.WatchedGatewayEndpoints[id], dc)
 		cancelFn()
@@ -690,6 +717,8 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
+
+	meshLogger := s.logger.Named(logging.MeshGateway)
 
 	switch u.CorrelationID {
 	case rootsWatchID:
@@ -718,7 +747,10 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 				}, fmt.Sprintf("connect-service:%s", sid.String()), s.ch)
 
 				if err != nil {
-					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for connect-service:%s", sid.String())
+					meshLogger.Error("failed to register watch for connect-service",
+						"service", sid.String(),
+						"error", err,
+					)
 					cancel()
 					return err
 				}
@@ -763,7 +795,10 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 				}, fmt.Sprintf("mesh-gateway:%s", dc), s.ch)
 
 				if err != nil {
-					s.logger.Printf("[ERR] mesh-gateway: failed to register watch for mesh-gateway:%s", dc)
+					meshLogger.Error("failed to register watch for mesh-gateway",
+						"datacenter", dc,
+						"error", err,
+					)
 					cancel()
 					return err
 				}

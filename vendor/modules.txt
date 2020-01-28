@@ -117,7 +117,7 @@ github.com/envoyproxy/go-control-plane/pkg/util
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
 # github.com/envoyproxy/protoc-gen-validate v0.0.14
 github.com/envoyproxy/protoc-gen-validate/validate
-# github.com/fatih/color v1.7.0
+# github.com/fatih/color v1.9.0
 github.com/fatih/color
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
@@ -194,7 +194,7 @@ github.com/hashicorp/go-discover/provider/softlayer
 github.com/hashicorp/go-discover/provider/tencentcloud
 github.com/hashicorp/go-discover/provider/triton
 github.com/hashicorp/go-discover/provider/vsphere
-# github.com/hashicorp/go-hclog v0.9.2
+# github.com/hashicorp/go-hclog v0.12.0
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-immutable-radix v1.1.0
 github.com/hashicorp/go-immutable-radix
@@ -237,8 +237,6 @@ github.com/hashicorp/hcl/json/token
 # github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
-# github.com/hashicorp/logutils v1.0.0
-github.com/hashicorp/logutils
 # github.com/hashicorp/mdns v1.0.1
 github.com/hashicorp/mdns
 # github.com/hashicorp/memberlist v0.1.5
@@ -281,9 +279,9 @@ github.com/json-iterator/go
 github.com/kr/text
 # github.com/linode/linodego v0.7.1
 github.com/linode/linodego
-# github.com/mattn/go-colorable v0.0.9
+# github.com/mattn/go-colorable v0.1.4
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.3
+# github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -371,9 +369,9 @@ github.com/softlayer/softlayer-go/sl
 github.com/softlayer/softlayer-go/config
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
-# github.com/stretchr/objx v0.1.1
+# github.com/stretchr/objx v0.1.0
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.3.0
+# github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
 github.com/stretchr/testify/assert
@@ -442,7 +440,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/singleflight
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd
+# golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
 golang.org/x/sys/unix
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu
@@ -521,7 +519,7 @@ gopkg.in/square/go-jose.v2/jwt
 gopkg.in/square/go-jose.v2
 gopkg.in/square/go-jose.v2/json
 gopkg.in/square/go-jose.v2/cipher
-# gopkg.in/yaml.v2 v2.2.1
+# gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
 # k8s.io/api v0.0.0-20190325185214-7544f9db76f6
 k8s.io/api/authentication/v1

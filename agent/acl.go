@@ -62,7 +62,7 @@ func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIden
 func (a *Agent) aclAccessorID(secretID string) string {
 	_, ident, err := a.resolveIdentityFromToken(secretID)
 	if err != nil {
-		a.logger.Printf("[DEBUG] agent.acl: %v", err)
+		a.logger.Debug("error", err)
 		return ""
 	}
 	if ident == nil {
@@ -281,7 +281,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 			continue
 		}
 		accessorID := a.aclAccessorID(token)
-		a.logger.Printf("[DEBUG] agent: dropping node from result due to ACLs, node=%q accessorID=%q", node, accessorID)
+		a.logger.Debug("dropping node from result due to ACLs", "node", node, "accessorID", accessorID)
 		m = append(m[:i], m[i+1:]...)
 		i--
 	}
@@ -311,7 +311,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map
 		if authz.ServiceRead(service.Service, &authzContext) == acl.Allow {
 			continue
 		}
-		a.logger.Printf("[DEBUG] agent: dropping service from result due to ACLs, service=%q", id.String())
+		a.logger.Debug("dropping service from result due to ACLs", "service", id.String())
 		delete(*services, id)
 	}
 	return nil
@@ -347,7 +347,7 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		}
-		a.logger.Printf("[DEBUG] agent: dropping check from result due to ACLs, check=%q", id.String())
+		a.logger.Debug("dropping check from result due to ACLs", "check", id.String())
 		delete(*checks, id)
 	}
 	return nil

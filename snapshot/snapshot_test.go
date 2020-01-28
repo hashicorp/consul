@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -150,7 +149,7 @@ func TestSnapshot(t *testing.T) {
 	}
 
 	// Take a snapshot.
-	logger := log.New(os.Stdout, "", 0)
+	logger := testutil.Logger(t)
 	snap, err := New(logger, before)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -253,7 +252,7 @@ func TestSnapshot_BadRestore(t *testing.T) {
 	}
 
 	// Take a snapshot.
-	logger := log.New(os.Stdout, "", 0)
+	logger := testutil.Logger(t)
 	snap, err := New(logger, before)
 	if err != nil {
 		t.Fatalf("err: %v", err)

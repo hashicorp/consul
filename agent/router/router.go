@@ -2,14 +2,15 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -19,7 +20,7 @@ import (
 // healthy routes to servers by datacenter.
 type Router struct {
 	// logger is used for diagnostic output.
-	logger *log.Logger
+	logger hclog.Logger
 
 	// localDatacenter has the name of the router's home datacenter. This is
 	// used to short-circuit RTT calculations for local servers.
@@ -82,9 +83,13 @@ type areaInfo struct {
 }
 
 // NewRouter returns a new Router with the given configuration.
-func NewRouter(logger *log.Logger, localDatacenter string) *Router {
+func NewRouter(logger hclog.Logger, localDatacenter string) *Router {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	router := &Router{
-		logger:          logger,
+		logger:          logger.Named(logging.Router),
 		localDatacenter: localDatacenter,
 		areas:           make(map[types.AreaID]*areaInfo),
 		managers:        make(map[string][]*Manager),
@@ -142,8 +147,10 @@ func (r *Router) AddArea(areaID types.AreaID, cluster RouterSerfCluster, pinger 
 	for _, m := range cluster.Members() {
 		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
-			r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
-				m.Name, areaID)
+			r.logger.Warn("Non-server in server-only area",
+				"non_server", m.Name,
+				"area", areaID,
+			)
 			continue
 		}
 
@@ -409,14 +416,18 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 		for _, m := range info.cluster.Members() {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
-				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
-					m.Name, areaID)
+				r.logger.Warn("Non-server in server-only area",
+					"non_server", m.Name,
+					"area", areaID,
+				)
 				continue
 			}
 
 			if m.Status == serf.StatusLeft {
-				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
-					m.Name, areaID)
+				r.logger.Debug("server in area left, skipping",
+					"server", m.Name,
+					"area", areaID,
+				)
 				continue
 			}
 
@@ -476,14 +487,18 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 		for _, m := range info.cluster.Members() {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
-				r.logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
-					m.Name, areaID)
+				r.logger.Warn("Non-server in server-only area",
+					"non_server", m.Name,
+					"area", areaID,
+				)
 				continue
 			}
 
 			if m.Status == serf.StatusLeft {
-				r.logger.Printf("[DEBUG]: consul: server %q in area %q left, skipping",
-					m.Name, areaID)
+				r.logger.Debug("server in area left, skipping",
+					"server", m.Name,
+					"area", areaID,
+				)
 				continue
 			}
 

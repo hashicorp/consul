@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -12,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 // Config is the publicly configurable state for an entire proxy instance. It's
@@ -45,7 +45,7 @@ type Config struct {
 }
 
 // Service returns the *connect.Service structure represented by this config.
-func (c *Config) Service(client *api.Client, logger *log.Logger) (*connect.Service, error) {
+func (c *Config) Service(client *api.Client, logger hclog.Logger) (*connect.Service, error) {
 	return connect.NewServiceWithLogger(c.ProxiedServiceName, client, logger)
 }
 
@@ -178,18 +178,18 @@ func (sc *StaticConfigWatcher) Watch() <-chan *Config {
 type AgentConfigWatcher struct {
 	client  *api.Client
 	proxyID string
-	logger  *log.Logger
+	logger  hclog.Logger
 	ch      chan *Config
 	plan    *watch.Plan
 }
 
 // NewAgentConfigWatcher creates an AgentConfigWatcher.
 func NewAgentConfigWatcher(client *api.Client, proxyID string,
-	logger *log.Logger) (*AgentConfigWatcher, error) {
+	logger hclog.Logger) (*AgentConfigWatcher, error) {
 	w := &AgentConfigWatcher{
 		client:  client,
 		proxyID: proxyID,
-		logger:  logger,
+		logger:  logger.With("service_id", proxyID),
 		ch:      make(chan *Config),
 	}
 
@@ -203,7 +203,7 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 	}
 	w.plan = plan
 	w.plan.HybridHandler = w.handler
-	go w.plan.RunWithClientAndLogger(w.client, w.logger)
+	go w.plan.RunWithClientAndHclog(w.client, w.logger)
 	return w, nil
 }
 
@@ -212,13 +212,12 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 
 	resp, ok := val.(*api.AgentService)
 	if !ok {
-		w.logger.Printf("[WARN] proxy config watch returned bad response: %v", val)
+		w.logger.Warn("proxy config watch returned bad response", "response", val)
 		return
 	}
 
 	if resp.Kind != api.ServiceKindConnectProxy {
-		w.logger.Printf("[ERR] service with id %s is not a valid connect proxy",
-			w.proxyID)
+		w.logger.Error("service is not a valid connect proxy")
 		return
 	}
 
@@ -232,14 +231,14 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	if tRaw, ok := resp.Proxy.Config["telemetry"]; ok {
 		err := mapstructure.Decode(tRaw, &cfg.Telemetry)
 		if err != nil {
-			w.logger.Printf("[WARN] proxy telemetry config failed to parse: %s", err)
+			w.logger.Warn("proxy telemetry config failed to parse", "error", err)
 		}
 	}
 
 	// Unmarshal configs
 	err := mapstructure.Decode(resp.Proxy.Config, &cfg.PublicListener)
 	if err != nil {
-		w.logger.Printf("[ERR] failed to parse public listener config: %s", err)
+		w.logger.Error("failed to parse public listener config", "error", err)
 	}
 	cfg.PublicListener.BindAddress = resp.Address
 	cfg.PublicListener.BindPort = resp.Port

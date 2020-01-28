@@ -65,10 +65,10 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) err
 	default:
 		// Just log this, since it looks like the bootstrap may have
 		// completed.
-		a.srv.logger.Printf("[ERR] consul.acl: Unexpected response during bootstrap: %T", v)
+		a.logger.Error("Unexpected response during bootstrap", "type", fmt.Sprintf("%T", v))
 	}
 
-	a.srv.logger.Printf("[INFO] consul.acl: ACL bootstrap completed")
+	a.logger.Info("ACL bootstrap completed")
 	return nil
 }
 
@@ -131,7 +131,7 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 	// Apply the update
 	resp, err := srv.raftApply(structs.ACLRequestType, args)
 	if err != nil {
-		srv.logger.Printf("[ERR] consul.acl: Apply failed: %v", err)
+		srv.logger.Error("Raft apply failed", "acl_op", args.Op, "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {

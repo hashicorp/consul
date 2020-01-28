@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +16,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -73,12 +74,15 @@ type AWSProvider struct {
 	caCreated       bool
 	rootPEM         string
 	intermediatePEM string
-	logger          *log.Logger
+	logger          hclog.Logger
 }
 
 // SetLogger implements NeedsLogger
-func (a *AWSProvider) SetLogger(l *log.Logger) {
-	a.logger = l
+func (a *AWSProvider) SetLogger(logger hclog.Logger) {
+	a.logger = logger.
+		ResetNamed(logging.Connect).
+		Named(logging.CA).
+		Named(logging.AWS)
 }
 
 // Configure implements Provider
@@ -221,7 +225,7 @@ func (a *AWSProvider) ensureCA() error {
 		Certificate:             []byte(certPEM),
 	}
 
-	a.logger.Printf("[DEBUG] connect.ca.aws: uploading certificate for %s", a.arn)
+	a.logger.Debug("uploading certificate for ARN", "arn", a.arn)
 	_, err = a.client.ImportCertificateAuthorityCertificate(&input)
 	if err != nil {
 		return err
@@ -296,7 +300,7 @@ func (a *AWSProvider) createPCA() error {
 		},
 	}
 
-	a.logger.Printf("[DEBUG] creating new PCA %s", commonName)
+	a.logger.Debug("creating new PCA", "common_name", commonName)
 	createOutput, err := a.client.CreateCertificateAuthority(&createInput)
 	if err != nil {
 		return err
@@ -315,8 +319,7 @@ func (a *AWSProvider) createPCA() error {
 			}
 		}
 		if *describeOutput.CertificateAuthority.Status == acmpca.CertificateAuthorityStatusPendingCertificate {
-			a.logger.Printf("[DEBUG] connect.ca.aws: new PCA %s is ready"+
-				" to accept a certificate", newARN)
+			a.logger.Debug("new PCA is ready to accept a certificate", "pca", newARN)
 			a.arn = newARN
 			// We don't need to reload this ARN since we just created it and know what
 			// state it's in
@@ -333,7 +336,7 @@ func (a *AWSProvider) getCACSR() (string, error) {
 	input := &acmpca.GetCertificateAuthorityCsrInput{
 		CertificateAuthorityArn: aws.String(a.arn),
 	}
-	a.logger.Printf("[DEBUG] connect.ca.aws: retrieving CSR for %s", a.arn)
+	a.logger.Debug("retrieving CSR for PCA", "pca", a.arn)
 	output, err := a.client.GetCertificateAuthorityCsr(input)
 	if err != nil {
 		return "", err
@@ -413,13 +416,13 @@ func (a *AWSProvider) pollLoop(desc string, timeout time.Duration, f func() (boo
 			return "", fmt.Errorf("timeout after %s waiting for %s", elapsed, desc)
 		}
 
-		a.logger.Printf("[DEBUG] connect.ca.aws: %s pending"+
-			", waiting %s to check readiness", desc, wait)
+		a.logger.Debug(fmt.Sprintf("%s pending, waiting to check readiness", desc),
+			"wait_time", wait,
+		)
 		select {
 		case <-a.stopCh:
 			// Provider discarded
-			a.logger.Print("[WARN] connect.ca.aws: provider instance terminated"+
-				" while waiting for %s.", desc)
+			a.logger.Warn(fmt.Sprintf("provider instance terminated while waiting for %s.", desc))
 			return "", fmt.Errorf("provider terminated")
 		case <-time.After(wait):
 			// Continue looping...
@@ -533,7 +536,7 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 		Certificate:             []byte(intermediatePEM),
 		CertificateChain:        []byte(rootPEM),
 	}
-	a.logger.Printf("[DEBUG] uploading certificate for %s", a.arn)
+	a.logger.Debug("uploading certificate for PCA", "pca", a.arn)
 	_, err = a.client.ImportCertificateAuthorityCertificate(&input)
 	if err != nil {
 		return err
@@ -594,8 +597,9 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
 	}
 
-	a.logger.Printf("[DEBUG] connect.ca.aws: signing csr for %s",
-		csr.Subject.CommonName)
+	a.logger.Debug("signing csr for requester",
+		"requester", csr.Subject.CommonName,
+	)
 
 	return a.signCSRRaw(csr, LeafTemplateARN, a.config.LeafCertTTL)
 }
@@ -624,7 +628,7 @@ func (a *AWSProvider) disablePCA() error {
 		CertificateAuthorityArn: aws.String(a.arn),
 		Status:                  aws.String(acmpca.CertificateAuthorityStatusDisabled),
 	}
-	a.logger.Printf("[INFO] connect.ca.aws: disabling PCA %s", a.arn)
+	a.logger.Info("disabling PCA", "pca", a.arn)
 	_, err := a.client.UpdateCertificateAuthority(&input)
 	return err
 }
@@ -639,7 +643,7 @@ func (a *AWSProvider) deletePCA() error {
 		// possible (7 days).
 		PermanentDeletionTimeInDays: aws.Int64(7),
 	}
-	a.logger.Printf("[INFO] connect.ca.aws: deleting PCA %s", a.arn)
+	a.logger.Info("deleting PCA", "pca", a.arn)
 	_, err := a.client.DeleteCertificateAuthority(&input)
 	return err
 }
@@ -655,14 +659,18 @@ func (a *AWSProvider) Cleanup() error {
 		if err := a.disablePCA(); err != nil {
 			// Log the error but continue trying to delete as some errors may still
 			// allow that and this is best-effort delete anyway.
-			a.logger.Printf("[ERR] connect.ca.aws: failed to disable PCA %s: %s",
-				a.arn, err)
+			a.logger.Error("failed to disable PCA",
+				"pca", a.arn,
+				"error", err,
+			)
 		}
 		if err := a.deletePCA(); err != nil {
 			// Log the error but continue trying to delete as some errors may still
 			// allow that and this is best-effort delete anyway.
-			a.logger.Printf("[ERR] connect.ca.aws: failed to delete PCA %s: %s",
-				a.arn, err)
+			a.logger.Error("failed to delete PCA",
+				"pca", a.arn,
+				"error", err,
+			)
 		}
 		// Don't stall leader shutdown, non of the failures here are fatal.
 		return nil

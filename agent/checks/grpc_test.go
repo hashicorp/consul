@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-hclog"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -107,9 +108,14 @@ func TestGRPC_Proxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
-	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   uniqueID(),
+		Output: ioutil.Discard,
+	})
+
 	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckGRPC{
 		CheckID:       cid,
 		GRPC:          "",
@@ -136,9 +142,14 @@ func TestGRPC_NotProxied(t *testing.T) {
 	t.Parallel()
 
 	notif := mock.NewNotify()
-	logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   uniqueID(),
+		Output: ioutil.Discard,
+	})
+
 	statusHandler := NewStatusHandler(notif, logger, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
+
 	check := &CheckGRPC{
 		CheckID:       cid,
 		GRPC:          server,

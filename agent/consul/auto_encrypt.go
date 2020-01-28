@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 )
 
@@ -102,7 +102,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 		for _, s := range servers {
 			ips, err := resolveAddr(s, c.logger)
 			if err != nil {
-				c.logger.Printf("[WARN] agent: AutoEncrypt resolveAddr failed: %v", err)
+				c.logger.Warn("AutoEncrypt resolveAddr failed", "error", err)
 				continue
 			}
 
@@ -112,7 +112,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 				if err = c.connPool.RPC(c.config.Datacenter, &addr, 0, "AutoEncrypt.Sign", true, &args, &reply); err == nil {
 					return &reply, pkPEM, nil
 				} else {
-					c.logger.Printf("[WARN] agent: AutoEncrypt failed: %v", err)
+					c.logger.Warn("AutoEncrypt failed", "error", err)
 				}
 			}
 		}
@@ -120,7 +120,7 @@ func (c *Client) RequestAutoEncryptCerts(servers []string, port int, token strin
 
 		delay := lib.RandomStagger(retryJitterWindow)
 		interval := (time.Duration(attempts) * delay) + delay
-		c.logger.Printf("[WARN] agent: retrying AutoEncrypt in %v", interval)
+		c.logger.Warn("retrying AutoEncrypt", "retry_interval", interval)
 		select {
 		case <-time.After(interval):
 			continue
@@ -137,7 +137,7 @@ func missingPortError(host string, err error) bool {
 }
 
 // resolveAddr is used to resolve the host into IPs and error.
-func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
+func resolveAddr(rawHost string, logger hclog.Logger) ([]net.IP, error) {
 	host, _, err := net.SplitHostPort(rawHost)
 	if err != nil {
 		// In case we encounter this error, we proceed with the
@@ -158,7 +158,7 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 	// hosts to join. If this fails it's not fatal since this isn't a standard
 	// way to query DNS, and we have a fallback below.
 	if ips, err := tcpLookupIP(host, logger); err != nil {
-		logger.Printf("[DEBUG] agent: TCP-first lookup failed for '%s', falling back to UDP: %s", host, err)
+		logger.Debug("TCP-first lookup failed for host, falling back to UDP", "host", host, "error", err)
 	} else if len(ips) > 0 {
 		return ips, nil
 	}
@@ -179,7 +179,7 @@ func resolveAddr(rawHost string, logger *log.Logger) ([]net.IP, error) {
 // Consul's. By doing the TCP lookup directly, we get the best chance for the
 // largest list of hosts to join. Since joins are relatively rare events, it's ok
 // to do this rather expensive operation.
-func tcpLookupIP(host string, logger *log.Logger) ([]net.IP, error) {
+func tcpLookupIP(host string, logger hclog.Logger) ([]net.IP, error) {
 	// Don't attempt any TCP lookups against non-fully qualified domain
 	// names, since those will likely come from the resolv.conf file.
 	if !strings.Contains(host, ".") {
@@ -218,7 +218,7 @@ func tcpLookupIP(host string, logger *log.Logger) ([]net.IP, error) {
 			case (*dns.AAAA):
 				ips = append(ips, rr.AAAA)
 			case (*dns.CNAME):
-				logger.Printf("[DEBUG] agent: Ignoring CNAME RR in TCP-first answer for '%s'", host)
+				logger.Debug("Ignoring CNAME RR in TCP-first answer for host", "host", host)
 			}
 		}
 		return ips, nil

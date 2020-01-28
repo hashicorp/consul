@@ -8,12 +8,12 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"sync/atomic"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/go-hclog"
 	testing "github.com/mitchellh/go-testing-interface"
 )
 
@@ -22,8 +22,9 @@ func TestService(t testing.T, service string, ca *structs.CARoot) *Service {
 	t.Helper()
 
 	// Don't need to talk to client since we are setting TLSConfig locally
+	logger := hclog.New(&hclog.LoggerOptions{})
 	svc, err := NewDevServiceWithTLSConfig(service,
-		log.New(os.Stderr, "", log.LstdFlags), TestTLSConfig(t, service, ca))
+		logger, TestTLSConfig(t, service, ca))
 	if err != nil {
 		t.Fatal(err)
 	}

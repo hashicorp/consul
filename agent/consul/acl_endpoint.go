@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -38,7 +39,8 @@ var (
 
 // ACL endpoint is used to manipulate ACLs
 type ACL struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // fileBootstrapResetIndex retrieves the reset index specified by the administrator from
@@ -65,7 +67,10 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			a.srv.logger.Printf("[ERR] acl.bootstrap: failed to read %q: %v", path, err)
+			a.logger.Error("bootstrap: failed to read path",
+				"path", path,
+				"error", err,
+			)
 		}
 		return 0
 	}
@@ -73,18 +78,18 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	// Attempt to parse the file
 	var resetIdx uint64
 	if _, err := fmt.Sscanf(string(raw), "%d", &resetIdx); err != nil {
-		a.srv.logger.Printf("[ERR] acl.bootstrap: failed to parse %q: %v", path, err)
+		a.logger.Error("failed to parse bootstrap reset index path", "path", path, "error", err)
 		return 0
 	}
 
 	// Return the reset index
-	a.srv.logger.Printf("[DEBUG] acl.bootstrap: parsed %q: reset index %d", path, resetIdx)
+	a.logger.Debug("parsed bootstrap reset index path", "path", path, "reset_index", resetIdx)
 	return resetIdx
 }
 
 func (a *ACL) removeBootstrapResetFile() {
 	if err := os.Remove(filepath.Join(a.srv.config.DataDir, aclBootstrapReset)); err != nil {
-		a.srv.logger.Printf("[WARN] acl.bootstrap: failed to remove bootstrap file: %v", err)
+		a.logger.Warn("failed to remove bootstrap file", "error", err)
 	}
 }
 
@@ -182,7 +187,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		*reply = *token
 	}
 
-	a.srv.logger.Printf("[INFO] consul.acl: ACL bootstrap completed")
+	a.logger.Info("ACL bootstrap completed")
 	return nil
 }
 

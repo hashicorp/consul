@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-raftchunking"
 	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
@@ -47,7 +47,8 @@ func generateRandomCoordinate() *coordinate.Coordinate {
 
 func TestFSM_RegisterNode(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -91,7 +92,8 @@ func TestFSM_RegisterNode(t *testing.T) {
 
 func TestFSM_RegisterNode_Service(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -154,7 +156,8 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 
 func TestFSM_DeregisterService(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -216,7 +219,8 @@ func TestFSM_DeregisterService(t *testing.T) {
 
 func TestFSM_DeregisterCheck(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -278,7 +282,8 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 
 func TestFSM_DeregisterNode(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -355,7 +360,8 @@ func TestFSM_DeregisterNode(t *testing.T) {
 
 func TestFSM_KVSDelete(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -401,7 +407,8 @@ func TestFSM_KVSDelete(t *testing.T) {
 
 func TestFSM_KVSDeleteTree(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -448,7 +455,8 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 
 func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -504,7 +512,8 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 
 func TestFSM_KVSCheckAndSet(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -561,7 +570,8 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 
 func TestFSM_KVSLock(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -613,7 +623,8 @@ func TestFSM_KVSLock(t *testing.T) {
 
 func TestFSM_KVSUnlock(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -683,7 +694,8 @@ func TestFSM_KVSUnlock(t *testing.T) {
 
 func TestFSM_CoordinateUpdate(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -730,7 +742,8 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -817,7 +830,8 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 func TestFSM_ACL_CRUD(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -935,7 +949,8 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1040,7 +1055,8 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 
 func TestFSM_TombstoneReap(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1096,7 +1112,8 @@ func TestFSM_TombstoneReap(t *testing.T) {
 
 func TestFSM_Txn(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1138,7 +1155,8 @@ func TestFSM_Txn(t *testing.T) {
 
 func TestFSM_Autopilot(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1202,7 +1220,8 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	assert.Nil(err)
 
 	// Create a new intention.
@@ -1271,7 +1290,8 @@ func TestFSM_CAConfig(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	assert.Nil(err)
 
 	// Set the autopilot config using a request.
@@ -1342,7 +1362,8 @@ func TestFSM_CARoots(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	assert.Nil(err)
 
 	// Roots
@@ -1374,7 +1395,8 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	assert.Nil(err)
 
 	// Provider state.
@@ -1412,7 +1434,8 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	require.NoError(err)
 
 	// Create a simple config entry
@@ -1459,7 +1482,8 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	require.NoError(err)
 
 	var logOfLogs [][]*raft.Log
@@ -1537,7 +1561,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	err = snap.Persist(sink)
 	require.NoError(err)
 
-	fsm2, err := New(nil, os.Stderr)
+	fsm2, err := New(nil, logger)
 	require.NoError(err)
 	err = fsm2.Restore(sink)
 	require.NoError(err)
@@ -1592,7 +1616,8 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	require.NoError(err)
 
 	req := structs.RegisterRequest{

@@ -3,7 +3,6 @@ package consul
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -11,6 +10,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
@@ -22,7 +23,8 @@ var (
 
 // PreparedQuery manages the prepared query endpoint.
 type PreparedQuery struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // Apply is used to apply a modifying request to the data store. This should
@@ -70,7 +72,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
 		if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
-			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
+			p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -90,7 +92,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 
 		if prefix, ok := query.GetACLPrefix(); ok {
 			if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
-				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
+				p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -114,7 +116,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// Commit the query to the state store.
 	resp, err := p.srv.raftApply(structs.PreparedQueryRequestType, args)
 	if err != nil {
-		p.srv.logger.Printf("[ERR] consul.prepared_query: Apply failed %v", err)
+		p.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -249,7 +251,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			// prevented us from returning something that exists,
 			// then alert the user with a permission denied error.
 			if len(reply.Queries) == 0 {
-				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied due to ACLs", args.QueryID)
+				p.logger.Warn("Request to get prepared query denied due to ACLs", "query", args.QueryID)
 				return acl.ErrPermissionDenied
 			}
 
@@ -317,7 +319,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 
 	// If the query was filtered out, return an error.
 	if len(queries.Queries) == 0 {
-		p.srv.logger.Printf("[WARN] consul.prepared_query: Explain on prepared query '%s' denied due to ACLs", query.ID)
+		p.logger.Warn("Explain on prepared query denied due to ACLs", "query", query.ID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -404,7 +406,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 				}
 			}
 		} else {
-			p.srv.logger.Printf("[WARN] Prepared Query using near=_ip requires " +
+			p.logger.Warn("Prepared Query using near=_ip requires " +
 				"the source IP to be set but none was provided. No distance " +
 				"sorting will be done.")
 
@@ -633,7 +635,7 @@ func serviceMetaFilter(filters map[string]string, nodes structs.CheckServiceNode
 
 // queryServer is a wrapper that makes it easier to test the failover logic.
 type queryServer interface {
-	GetLogger() *log.Logger
+	GetLogger() hclog.Logger
 	GetOtherDatacentersByDistance() ([]string, error)
 	ForwardDC(method, dc string, args interface{}, reply interface{}) error
 }
@@ -644,8 +646,8 @@ type queryServerWrapper struct {
 }
 
 // GetLogger returns the server's logger.
-func (q *queryServerWrapper) GetLogger() *log.Logger {
-	return q.srv.logger
+func (q *queryServerWrapper) GetLogger() hclog.Logger {
+	return q.srv.loggers.Named(logging.PreparedQuery)
 }
 
 // GetOtherDatacentersByDistance calls into the server's fn and filters out the
@@ -711,7 +713,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// This will prevent a log of other log spammage if we do not
 		// attempt to talk to datacenters we don't know about.
 		if _, ok := known[dc]; !ok {
-			q.GetLogger().Printf("[DEBUG] consul.prepared_query: Skipping unknown datacenter '%s' in prepared query", dc)
+			q.GetLogger().Debug("Skipping unknown datacenter in prepared query", "datacenter", dc)
 			continue
 		}
 
@@ -748,7 +750,11 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 			Connect:      args.Connect,
 		}
 		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
-			q.GetLogger().Printf("[WARN] consul.prepared_query: Failed querying for service '%s' in datacenter '%s': %s", query.Service.Service, dc, err)
+			q.GetLogger().Warn("Failed querying for service in datacenter",
+				"service", query.Service.Service,
+				"datacenter", dc,
+				"error", err,
+			)
 			continue
 		}
 

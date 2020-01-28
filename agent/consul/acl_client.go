@@ -49,7 +49,7 @@ func (c *Client) monitorACLMode() {
 		}
 
 		if canUpgrade {
-			c.logger.Printf("[DEBUG] acl: transition out of legacy ACL mode")
+			c.logger.Debug("transitioned out of legacy ACL mode")
 			atomic.StoreInt32(&c.useNewACLs, 1)
 			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
 			return
