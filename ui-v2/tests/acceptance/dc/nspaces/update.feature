@@ -14,6 +14,7 @@ Feature: dc / nspaces / update: Nspace Update
       namespace: namespace
     ---
     Then the url should be /datacenter/namespaces/namespace
+    And the title should be "Edit Namespace - Consul"
   Scenario: Update to [Description]
     Then I fill in with yaml
     ---

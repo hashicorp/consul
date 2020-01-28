@@ -1,3 +1,9 @@
+{{#if item.ID }}
+    {{title 'Edit Intention'}}
+{{else}}
+    {{title 'New Intention'}}
+{{/if}}
+
 {{#app-view class="intention edit" loading=isLoading}}
     {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/intentions/notifications'}}

@@ -86,6 +86,7 @@
     "ember-load-initializers": "^2.0.0",
     "ember-math-helpers": "^2.4.0",
     "ember-maybe-import-regenerator": "^0.1.6",
+    "ember-page-title": "^5.1.0",
     "ember-power-select": "^3.0.3",
     "ember-power-select-with-create": "^0.6.0",
     "ember-qunit": "^4.4.1",

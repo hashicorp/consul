@@ -13,6 +13,7 @@ Feature: dc / acls / tokens / update: ACL Token Update
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
+    And the title should be "Edit Token - Consul"
   Scenario: Update to [Name]
     Then I fill in with yaml
     ---

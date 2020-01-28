@@ -69,5 +69,8 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
       }
       const current = currentURL() || '';
       assert.equal(current, url, `Expected the url to be ${url} was ${current}`);
+    })
+    .then(['the title should be "$title"'], function(title) {
+      assert.equal(document.title, title, `Expected the document.title to equal "${title}"`);
     });
 }
