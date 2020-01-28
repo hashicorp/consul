@@ -300,7 +300,7 @@ func (a *AWSProvider) createPCA() error {
 		},
 	}
 
-	a.logger.Debug("new PCA", "common_name", commonName)
+	a.logger.Debug("creating new PCA", "common_name", commonName)
 	createOutput, err := a.client.CreateCertificateAuthority(&createInput)
 	if err != nil {
 		return err
