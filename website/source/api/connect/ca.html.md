@@ -29,7 +29,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
-| `YES`            | `all`             | `none`        | `operator:read`  |
+| `YES`            | `all`             | `none`        | `none`           |
 
 ### Sample Request
 
