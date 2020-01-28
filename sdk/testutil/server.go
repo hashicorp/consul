@@ -433,6 +433,13 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 // WaitForActiveCARoot waits until the server can return a Connect CA meaning
 // connect has completed bootstrapping and is ready to use.
 func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
+	// don't need to fully decode the response
+	type rootsResponse struct {
+		ActiveRootID string
+		TrustDomain  string
+		Roots        []interface{}
+	}
+
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/agent/connect/ca/roots")
@@ -447,6 +454,17 @@ func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
 		// is all we really need to wait for.
 		if err := s.requireOK(resp); err != nil {
 			r.Fatal("failed OK response", err)
+		}
+
+		var roots rootsResponse
+
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&roots); err != nil {
+			r.Fatal(err)
+		}
+
+		if roots.ActiveRootID == "" || len(roots.Roots) < 1 {
+			r.Fatalf("/v1/agent/connect/ca/roots returned 200 but without roots: %+v", roots)
 		}
 	})
 }

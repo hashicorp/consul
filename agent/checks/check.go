@@ -30,7 +30,7 @@ const (
 	MinInterval = time.Second
 
 	// DefaultBufSize is the maximum size of the captured
-	// check output by defaut. Prevents an enormous buffer
+	// check output by default. Prevents an enormous buffer
 	// from being captured
 	DefaultBufSize = 4 * 1024 // 4KB
 

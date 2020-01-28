@@ -40,9 +40,14 @@ func (s *Intention) checkIntentionID(id string) (bool, error) {
 
 // prepareApplyCreate validates that the requester has permissions to create the new intention,
 // generates a new uuid for the intention and generally validates that the request is well-formed
-func (s *Intention) prepareApplyCreate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+func (s *Intention) prepareApplyCreate(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	if !args.Intention.CanWrite(authz) {
-		s.logger.Warn("Intention creation denied due to ACLs", "intention", args.Intention.ID)
+    var accessorID string
+		if ident != nil {
+			accessorID = ident.ID()
+		}
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Intention creation denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -87,9 +92,14 @@ func (s *Intention) prepareApplyCreate(authz acl.Authorizer, entMeta *structs.En
 
 // prepareApplyUpdate validates that the requester has permissions on both the updated and existing
 // intention as well as generally validating that the request is well-formed
-func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	if !args.Intention.CanWrite(authz) {
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID)
+		var accessorID string
+		if ident != nil {
+			accessorID = ident.ID()
+		}
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -105,7 +115,12 @@ func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.En
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID)
+    var accessorID string
+		if ident != nil {
+			accessorID = ident.ID()
+		}
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -136,7 +151,7 @@ func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.En
 
 // prepareApplyDelete ensures that the intention specified by the ID in the request exists
 // and that the requester is authorized to delete it
-func (s *Intention) prepareApplyDelete(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	// If this is not a create, then we have to verify the ID.
 	state := s.srv.fsm.State()
 	_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
@@ -151,7 +166,12 @@ func (s *Intention) prepareApplyDelete(authz acl.Authorizer, entMeta *structs.En
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID)
+    var accessorID string
+		if ident != nil {
+			accessorID = ident.ID()
+		}
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -181,22 +201,22 @@ func (s *Intention) Apply(
 
 	// Get the ACL token for the request for the checks below.
 	var entMeta structs.EnterpriseMeta
-	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
+	ident, authz, err := s.srv.ResolveTokenIdentityAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
 
 	switch args.Op {
 	case structs.IntentionOpCreate:
-		if err := s.prepareApplyCreate(authz, &entMeta, args); err != nil {
+		if err := s.prepareApplyCreate(ident, authz, &entMeta, args); err != nil {
 			return err
 		}
 	case structs.IntentionOpUpdate:
-		if err := s.prepareApplyUpdate(authz, &entMeta, args); err != nil {
+		if err := s.prepareApplyUpdate(ident, authz, &entMeta, args); err != nil {
 			return err
 		}
 	case structs.IntentionOpDelete:
-		if err := s.prepareApplyDelete(authz, &entMeta, args); err != nil {
+		if err := s.prepareApplyDelete(ident, authz, &entMeta, args); err != nil {
 			return err
 		}
 	default:
@@ -250,7 +270,9 @@ func (s *Intention) Get(
 
 			// If ACLs prevented any responses, error
 			if len(reply.Intentions) == 0 {
-				s.logger.Warn("Request to get intention denied due to ACLs", "intention", args.IntentionID)
+        accessorID := s.aclAccessorID(args.Token)
+        // todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+				s.logger.Warn("Request to get intention denied due to ACLs", "intention", args.IntentionID, "accessorID", accessorID)
 				return acl.ErrPermissionDenied
 			}
 
@@ -314,7 +336,9 @@ func (s *Intention) Match(
 		for _, entry := range args.Match.Entries {
 			entry.FillAuthzContext(&authzContext)
 			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, &authzContext) != acl.Allow {
-				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix)
+        accessorID := s.aclAccessorID(args.Token)
+				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
 				return acl.ErrPermissionDenied
 			}
 		}
@@ -385,7 +409,9 @@ func (s *Intention) Check(
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
 		if rule != nil && rule.ServiceRead(prefix, &authzContext) != acl.Allow {
-			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix)
+      accessorID := s.aclAccessorID(args.Token)
+			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -439,4 +465,19 @@ func (s *Intention) Check(
 	}
 
 	return nil
+}
+
+// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
+// critical purposes, such as logging. Therefore we interpret all errors as empty-string
+// so we can safely log it without handling non-critical errors at the usage site.
+func (s *Intention) aclAccessorID(secretID string) string {
+	_, ident, err := s.srv.ResolveIdentityFromToken(secretID)
+	if err != nil {
+		s.srv.logger.Printf("[DEBUG] consul.intention: %v", err)
+		return ""
+	}
+	if ident == nil {
+		return ""
+	}
+	return ident.ID()
 }

@@ -91,7 +91,7 @@ jobs:
   go-test:
     docker:
       - image: *GOLANG_IMAGE
-    parallelism: 8
+    parallelism: 4
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -109,6 +109,8 @@ jobs:
       - run: sudo service rsyslog start
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+          echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
+          echo $PACKAGE_NAMES
           gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
 
       # save coverage report parts

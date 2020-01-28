@@ -178,7 +178,7 @@ type ACLResolverConfig struct {
 //   - Resolving tokens locally via the ACLResolverDelegate
 //   - Resolving policies locally via the ACLResolverDelegate
 //   - Resolving roles locally via the ACLResolverDelegate
-//   - Resolving legacy tokens remotely via a ACL.GetPolicy RPC
+//   - Resolving legacy tokens remotely via an ACL.GetPolicy RPC
 //   - Resolving tokens remotely via an ACL.TokenRead RPC
 //   - Resolving policies remotely via an ACL.PolicyResolve RPC
 //   - Resolving roles remotely via an ACL.RoleResolve RPC
@@ -437,6 +437,9 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	return nil, err
 }
 
+// resolveIdentityFromToken takes a token secret as a string and returns an ACLIdentity.
+// We read the value from ACLResolver's cache if available, and if the read misses
+// we initiate an RPC for the value.
 func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
 	// Attempt to resolve locally first (local results are not cached)
 	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
@@ -765,6 +768,11 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 	var expired []*structs.ACLPolicy
 	expCacheMap := make(map[string]*structs.PolicyCacheEntry)
 
+	var accessorID string
+	if identity != nil {
+		accessorID = identity.ID()
+	}
+
 	for _, policyID := range policyIDs {
 		if done, policy, err := r.delegate.ResolvePolicyFromID(policyID); done {
 			if err != nil && !acl.IsErrNotFound(err) {
@@ -777,6 +785,8 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 				r.logger.Warn("policy not found for identity",
 					"policy", policyID,
 					"identity", identity.ID(),
+          "accessorID", accessorID
+                      
 				)
 			}
 
@@ -871,9 +881,14 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 			if role != nil {
 				roles = append(roles, role)
 			} else {
+        var accessorID string
+				if identity != nil {
+					accessorID = identity.ID()
+				}
 				r.logger.Warn("role not found for identity",
 					"role", roleID,
 					"identity", identity.ID(),
+          "accessorID", accessorID,
 				)
 			}
 

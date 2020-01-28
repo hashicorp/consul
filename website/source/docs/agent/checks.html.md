@@ -370,18 +370,25 @@ key in your configuration file.
 
 ## Success/Failures before passing/critical
 
-A check may be set to become passing/critical only if a specified number of consecutive
-checks return passing/critical. Status will stay identical as before until
-the threshold is reached.
-This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
-By default, both passing and critical thresholds will be set to 0 so the check status will always reflect the last check result.
+In Consul 1.7.0 and later, a check may be configured to become passing/critical
+only after a specified number of consecutive checks return passing/critical.
+The status will not transition states until the configured threshold is reached.
 
-```javascript
+This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
+By default, both passing and critical thresholds will be set to 0 so the check
+status will always reflect the last check result.
+
+```json
 {
-  "checks": {
-    ...
-    "success_before_passing" : 3
-    "failures_before_critical" : 3
-  },
+  "checks": [
+    {
+      "name": "HTTP TCP on port 80",
+      "tcp": "localhost:80",
+      "interval": "10s",
+      "timeout": "1s",
+      "success_before_passing": 3,
+      "failures_before_critical": 3
+    }
+  ]
 }
 ```
