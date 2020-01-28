@@ -1504,6 +1504,12 @@ type RuntimeConfig struct {
 	//
 	Watches []map[string]interface{}
 
+	ReadRPCRateLimit rate.Limit
+	ReadRPCMaxBurst  int
+
+	WriteRPCRateLimit rate.Limit
+	WriteRPCMaxBurst  int
+
 	EnterpriseRuntimeConfig
 }
 

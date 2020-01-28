@@ -1233,6 +1233,20 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCMaxBurst = a.config.RPCMaxBurst
 	}
 
+	if a.config.ReadRPCRateLimit > 0 {
+		base.ReadRPCRate = a.config.ReadRPCRateLimit
+	}
+	if a.config.ReadRPCMaxBurst > 0 {
+		base.ReadRPCMaxBurst = a.config.ReadRPCMaxBurst
+	}
+
+	if a.config.WriteRPCRateLimit > 0 {
+		base.WriteRPCRate = a.config.WriteRPCRateLimit
+	}
+	if a.config.WriteRPCMaxBurst > 0 {
+		base.WriteRPCMaxBurst = a.config.WriteRPCMaxBurst
+	}
+
 	// RPC-related performance configs.
 	if a.config.RPCHoldTimeout > 0 {
 		base.RPCHoldTimeout = a.config.RPCHoldTimeout

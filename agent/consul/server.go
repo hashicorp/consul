@@ -205,6 +205,9 @@ type Server struct {
 	// from an agent.
 	rpcLimiter atomic.Value
 
+	readRpcLimiter  atomic.Value
+	writeRpcLimiter atomic.Value
+
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
 	rpcServer *rpc.Server
@@ -382,6 +385,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	}
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	s.readRpcLimiter.Store(rate.NewLimiter(config.ReadRPCRate, config.ReadRPCMaxBurst))
+	s.writeRpcLimiter.Store(rate.NewLimiter(config.WriteRPCRate, config.WriteRPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
 		Name:     "Config Entry",
@@ -1113,6 +1118,14 @@ func (i *inmemCodec) Close() error {
 	return nil
 }
 
+func isReadMethod(method string) bool {
+	return method == "KVS.Get" || method == "KVS.List"
+}
+
+func isWriteMethod(method string) bool {
+	return method == "KVS.Apply"
+}
+
 // RPC is used to make a local RPC call
 func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	codec := &inmemCodec{
@@ -1133,6 +1146,17 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
 		return structs.ErrRPCRateExceeded
 	}
+
+	if isReadMethod(method) && !s.readRpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "readrpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
+	if isWriteMethod(method) && !s.writeRpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "writerpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
 	if err := s.rpcServer.ServeRequest(codec); err != nil {
 		return err
 	}
@@ -1260,6 +1284,8 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	s.readRpcLimiter.Store(rate.NewLimiter(config.ReadRPCRate, config.ReadRPCMaxBurst))
+	s.writeRpcLimiter.Store(rate.NewLimiter(config.WriteRPCRate, config.WriteRPCMaxBurst))
 
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader

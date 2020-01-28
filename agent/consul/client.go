@@ -67,6 +67,9 @@ type Client struct {
 	// from an agent.
 	rpcLimiter atomic.Value
 
+	readRpcLimiter  atomic.Value
+	writeRpcLimiter atomic.Value
+
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
 	eventCh chan serf.Event
@@ -146,6 +149,8 @@ func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsuti
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	c.readRpcLimiter.Store(rate.NewLimiter(config.ReadRPCRate, config.ReadRPCMaxBurst))
+	c.writeRpcLimiter.Store(rate.NewLimiter(config.WriteRPCRate, config.WriteRPCMaxBurst))
 
 	if err := c.initEnterprise(); err != nil {
 		c.Shutdown()
@@ -306,6 +311,16 @@ TRY:
 		return structs.ErrRPCRateExceeded
 	}
 
+	if isReadMethod(method) && !c.readRpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "readrpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
+	if isWriteMethod(method) && !c.writeRpcLimiter.Load().(*rate.Limiter).Allow() {
+		metrics.IncrCounter([]string{"client", "writerpc", "exceeded"}, 1)
+		return structs.ErrRPCRateExceeded
+	}
+
 	// Make the request.
 	rpcErr := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, server.UseTLS, args, reply)
 	if rpcErr == nil {
@@ -434,5 +449,7 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (c *Client) ReloadConfig(config *Config) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	c.readRpcLimiter.Store(rate.NewLimiter(config.ReadRPCRate, config.ReadRPCMaxBurst))
+	c.writeRpcLimiter.Store(rate.NewLimiter(config.WriteRPCRate, config.WriteRPCMaxBurst))
 	return nil
 }

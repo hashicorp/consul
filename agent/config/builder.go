@@ -974,6 +974,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                   verifyOutgoing,
 		VerifyServerHostname:             verifyServerName,
 		Watches:                          c.Watches,
+		ReadRPCRateLimit:                 rate.Limit(b.float64Val(c.Limits.ReadRPCRate)),
+		ReadRPCMaxBurst:                  b.intVal(c.Limits.ReadRPCMaxBurst),
+		WriteRPCRateLimit:                rate.Limit(b.float64Val(c.Limits.WriteRPCRate)),
+		WriteRPCMaxBurst:                 b.intVal(c.Limits.WriteRPCMaxBurst),
 	}
 
 	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {

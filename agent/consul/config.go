@@ -438,6 +438,12 @@ type Config struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
+	ReadRPCRate     rate.Limit
+	ReadRPCMaxBurst int
+
+	WriteRPCRate     rate.Limit
+	WriteRPCMaxBurst int
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -562,7 +568,14 @@ func DefaultConfig() *Config {
 		AutopilotInterval:    10 * time.Second,
 		DefaultQueryTime:     300 * time.Second,
 		MaxQueryTime:         600 * time.Second,
-		EnterpriseConfig:     DefaultEnterpriseConfig(),
+
+		ReadRPCRate:     rate.Inf,
+		ReadRPCMaxBurst: 1000,
+
+		WriteRPCRate:     rate.Inf,
+		WriteRPCMaxBurst: 1000,
+
+		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

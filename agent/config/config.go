@@ -677,6 +677,12 @@ type Limits struct {
 	RPCMaxBurst    *int     `json:"rpc_max_burst,omitempty" hcl:"rpc_max_burst" mapstructure:"rpc_max_burst"`
 	RPCRate        *float64 `json:"rpc_rate,omitempty" hcl:"rpc_rate" mapstructure:"rpc_rate"`
 	KVMaxValueSize *uint64  `json:"kv_max_value_size,omitempty" hcl:"kv_max_value_size" mapstructure:"kv_max_value_size"`
+
+	ReadRPCMaxBurst    *int     `json:"read_rpc_max_burst,omitempty" hcl:"read_rpc_max_burst" mapstructure:"read_rpc_max_burst"`
+	ReadRPCRate        *float64 `json:"read_rpc_rate,omitempty" hcl:"read_rpc_rate" mapstructure:"read_rpc_rate"`
+
+	WriteRPCMaxBurst    *int     `json:"write_rpc_max_burst,omitempty" hcl:"write_rpc_max_burst" mapstructure:"write_rpc_max_burst"`
+	WriteRPCRate        *float64 `json:"write_rpc_rate,omitempty" hcl:"write_rpc_rate" mapstructure:"write_rpc_rate"`
 }
 
 type Segment struct {
