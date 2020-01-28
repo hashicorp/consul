@@ -131,7 +131,7 @@ OUTER:
 	return nil
 }
 
-//Deprecated: Use RunwithClientAndHclogger
+//Deprecated: Use RunwithClientAndHclog
 func (p *Plan) RunWithClientAndLogger(client *consulapi.Client, logger *log.Logger) error {
 
 	p.client = client

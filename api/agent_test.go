@@ -1124,7 +1124,7 @@ func TestAPI_AgentMonitorJSON(t *testing.T) {
 
 	agent := c.Agent()
 
-	logCh, err := agent.MonitorJSON("debug", true, nil, nil)
+	logCh, err := agent.MonitorJSON("debug", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -870,68 +870,27 @@ func (a *Agent) DisableNodeMaintenance() error {
 // log stream. An empty string will be sent down the given channel when there's
 // nothing left to stream, after which the caller should close the stopCh.
 func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
-	r := a.c.newRequest("GET", "/v1/agent/monitor")
-	r.setQueryOptions(q)
-	if loglevel != "" {
-		r.params.Add("loglevel", loglevel)
-	}
-
-	_, resp, err := requireOK(a.c.doRequest(r))
-	if err != nil {
-		return nil, err
-	}
-
-	logCh := make(chan string, 64)
-	go func() {
-		defer resp.Body.Close()
-
-		scanner := bufio.NewScanner(resp.Body)
-		for {
-			select {
-			case <-stopCh:
-				close(logCh)
-				return
-			default:
-			}
-			if scanner.Scan() {
-				// An empty string signals to the caller that
-				// the scan is done, so make sure we only emit
-				// that when the scanner says it's done, not if
-				// we happen to ingest an empty line.
-				if text := scanner.Text(); text != "" {
-					logCh <- text
-				} else {
-					logCh <- " "
-				}
-			} else {
-				logCh <- ""
-			}
-		}
-	}()
-
-	return logCh, nil
+	return a.monitor(loglevel, "false", stopCh, q)
 }
 
-//MonitorJSON sets the logJSON flag to true
-func (a *Agent) MonitorJSON(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+// MonitorJSON is like Monitor except it returns logs in JSON format.
+func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+	return a.monitor(loglevel, "true", stopCh, q)
+}
+func (a *Agent) monitor(loglevel string, logJSON string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
 	if loglevel != "" {
 		r.params.Add("loglevel", loglevel)
 	}
-	if logJSON {
-		r.params.Set("logjson", "true")
-	}
-	r.params.Set("logjson", "false")
+	r.params.Set("logjson", logJSON)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
-
 	logCh := make(chan string, 64)
 	go func() {
 		defer resp.Body.Close()
-
 		scanner := bufio.NewScanner(resp.Body)
 		for {
 			select {
@@ -955,7 +914,6 @@ func (a *Agent) MonitorJSON(loglevel string, logJSON bool, stopCh <-chan struct{
 			}
 		}
 	}()
-
 	return logCh, nil
 }
 

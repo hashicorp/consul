@@ -62,7 +62,10 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	eventDoneCh := make(chan struct{})
-	logCh, err = client.Agent().MonitorJSON(c.logLevel, c.logJSON, eventDoneCh, nil)
+	if c.logJSON {
+		logCh, err = client.Agent().MonitorJSON(c.logLevel, eventDoneCh, nil)
+	}
+	logCh, err = client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1
