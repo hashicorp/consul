@@ -122,7 +122,7 @@ func NewClientLogger(config *Config, logger hclog.InterceptLogger, tlsConfigurat
 		config.LogOutput = os.Stderr
 	}
 
-	//Create a logger
+	// Create a logger
 	if logger == nil {
 		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
 			Level:  hclog.Debug,
