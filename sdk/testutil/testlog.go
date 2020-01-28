@@ -17,6 +17,11 @@ func init() {
 	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 }
 
+// Deprecated: use Logger(t)
+func TestLogger(t testing.TB) *log.Logger {
+	return log.New(&testWriter{t}, t.Name()+": ", log.LstdFlags)
+}
+
 func NewDiscardLogger() hclog.Logger {
 	return hclog.New(&hclog.LoggerOptions{
 		Level:  0,
@@ -34,6 +39,11 @@ func LoggerWithOutput(t testing.TB, output io.Writer) hclog.InterceptLogger {
 		Level:  hclog.Debug,
 		Output: output,
 	})
+}
+
+// Deprecated: use LoggerWithName(t)
+func TestLoggerWithName(t testing.TB, name string) *log.Logger {
+	return log.New(&testWriter{t}, "test["+name+"]: ", log.LstdFlags)
 }
 
 func LoggerWithName(t testing.TB, name string) hclog.InterceptLogger {
