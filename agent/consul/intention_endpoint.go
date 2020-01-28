@@ -89,7 +89,7 @@ func (s *Intention) prepareApplyCreate(authz acl.Authorizer, entMeta *structs.En
 // intention as well as generally validating that the request is well-formed
 func (s *Intention) prepareApplyUpdate(authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	if !args.Intention.CanWrite(authz) {
-		s.logger.Warn("Operation on intention denied due to ACLs", "intention", args.Intention.ID)
+		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID)
 		return acl.ErrPermissionDenied
 	}
 
