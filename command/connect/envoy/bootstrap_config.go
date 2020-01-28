@@ -58,7 +58,7 @@ type BootstrapConfig struct {
 	PrometheusBindAddr string `mapstructure:"envoy_prometheus_bind_addr"`
 
 	// StatsBindAddr configures an <ip>:<port> on which the Envoy will listen
-	// and expose a single /metrics HTTP endpoint for any agent to scrape. It
+	// and expose a single /stats HTTP endpoint for any agent to scrape. It
 	// does this by proxying that URL to the internal admin server's /stats
 	// endpoint which allows exposing metrics on the network without the security
 	// risk of exposing the full admin server API. Any other URL requested will be
