@@ -3,25 +3,20 @@ package rootcerts
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
-// Config determines where LoadCACerts will load certificates from. When CAFile,
-// CACertificate and CAPath are blank, this library's functions will either load
+// Config determines where LoadCACerts will load certificates from. When both
+// CAFile and CAPath are blank, this library's functions will either load
 // system roots explicitly and return them, or set the CertPool to nil to allow
 // Go's standard library to load system certs.
 type Config struct {
 	// CAFile is a path to a PEM-encoded certificate file or bundle. Takes
-	// precedence over CACertificate and CAPath.
+	// precedence over CAPath.
 	CAFile string
-
-	// CACertificate is a PEM-encoded certificate or bundle. Takes precedence
-	// over CAPath.
-	CACertificate []byte
 
 	// CAPath is a path to a directory populated with PEM-encoded certificates.
 	CAPath string
@@ -49,9 +44,6 @@ func LoadCACerts(c *Config) (*x509.CertPool, error) {
 	if c.CAFile != "" {
 		return LoadCAFile(c.CAFile)
 	}
-	if len(c.CACertificate) != 0 {
-		return AppendCertificate(c.CACertificate)
-	}
 	if c.CAPath != "" {
 		return LoadCAPath(c.CAPath)
 	}
@@ -71,18 +63,6 @@ func LoadCAFile(caFile string) (*x509.CertPool, error) {
 	ok := pool.AppendCertsFromPEM(pem)
 	if !ok {
 		return nil, fmt.Errorf("Error loading CA File: Couldn't parse PEM in: %s", caFile)
-	}
-
-	return pool, nil
-}
-
-// AppendCertificate appends an in-memory PEM-encoded certificate or bundle and returns a pool.
-func AppendCertificate(ca []byte) (*x509.CertPool, error) {
-	pool := x509.NewCertPool()
-
-	ok := pool.AppendCertsFromPEM(ca)
-	if !ok {
-		return nil, errors.New("Error appending CA: Couldn't parse PEM")
 	}
 
 	return pool, nil

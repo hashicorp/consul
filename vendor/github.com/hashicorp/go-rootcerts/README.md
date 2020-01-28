@@ -28,9 +28,8 @@ Here's a snippet demonstrating how this library is meant to be used:
 func httpClient() (*http.Client, error)
 	tlsConfig := &tls.Config{}
 	err := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
-		CAFile:      os.Getenv("MYAPP_CAFILE"),
-		CAPath:      os.Getenv("MYAPP_CAPATH"),
-		Certificate: os.Getenv("MYAPP_CERTIFICATE"),
+		CAFile: os.Getenv("MYAPP_CAFILE"),
+		CAPath: os.Getenv("MYAPP_CAPATH"),
 	})
 	if err != nil {
 		return nil, err
