@@ -12,6 +12,7 @@ export default ChildSelectorComponent.extend({
   datacenterRepo: service('repository/dc/component'),
   name: 'policy',
   type: 'policy',
+  allowServiceIdentity: true,
   classNames: ['policy-selector'],
   init: function() {
     this._super(...arguments);

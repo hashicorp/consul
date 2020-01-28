@@ -3,8 +3,9 @@
   {{#yield-slot name='template'}}
   {{else}}
     <header>
-      Policy or service identity?
+      Policy{{if allowServiceIdentity ' or service identity?' ''}}
     </header>
+  {{#if allowServiceIdentity}}
     <p>
       A Service Identity is default policy with a configurable service name. This saves you some time and effort you're using Consul for Connect features.
     </p>
@@ -13,10 +14,13 @@
         {{#each templates as |template|}}
             <label>
               <span>{{template.name}}</span>
-              <input data-test-radiobutton={{concat 'template_' template.template}} type="radio" name="{{name}}[template]" value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
+              <input data-test-radiobutton={{concat 'template_' template.template}} type="radio" name={{concat name '[template]'}} value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
             </label>
         {{/each}}
     </div>
+  {{else}}
+    <input type="hidden" name={{concat name '[template]'}} value="" />
+  {{/if}}
   {{/yield-slot}}
     <label class="type-text{{if (and item.error.Name (not item.isPristine)) ' has-error'}}">
         <span>Name</span>
