@@ -62,6 +62,12 @@ type StreamingCacheType interface {
 	Logger() *log.Logger
 }
 
+// temporary is a private interface as used by net and other std lib packages to
+// show error types represent temporary/recoverable errors.
+type temporary interface {
+	Temporary() bool
+}
+
 // MaterializedView is a partial view of the state on servers, maintained via
 // streaming subscriptions. It is specialized for different cache types by
 // providing a MaterializedViewState that encapsulates the logic to update the
@@ -87,6 +93,8 @@ type MaterializedView struct {
 	state        MaterializedViewState
 	snapshotDone bool
 	updateCh     chan struct{}
+	failures     int
+	err          error
 	fatalErr     error
 }
 
@@ -134,7 +142,6 @@ func (v *MaterializedView) run() {
 	}
 
 	// Loop in case stream resets and we need to start over
-	failures := 0
 	for {
 		// Run a subscribe call until it fails
 		err := v.runSubscription()
@@ -145,9 +152,22 @@ func (v *MaterializedView) run() {
 				return
 			}
 
+			v.l.Lock()
+			// If this is a temporary error and it's the first consecutive failure,
+			// retry to see if we can get a result without erroring back to clients.
+			// If it's non-temporary or a repeated failure return to clients while we
+			// retry to get back in a good state.
+			if _, ok := err.(temporary); !ok || v.failures > 0 {
+				// Report error to blocked fetchers
+				v.err = err
+				v.notifyUpdateLocked()
+			}
+			v.failures++
+			failures := v.failures
+			v.l.Unlock()
+
 			// Exponential backoff to avoid hammering servers if they are closing
 			// conns because of overload or resetting based on errors.
-			failures++
 			wait := backOffWait(failures)
 
 			v.logger.Printf("[ERR] cache.streaming: subscribe call failed: %s"+
@@ -161,11 +181,6 @@ func (v *MaterializedView) run() {
 				case <-time.After(wait):
 				}
 			}
-		} else {
-			// Not really sure this can happen since the subscription func should
-			// either run forever or fail with an error of some sort but just in case
-			// that assumption changes, we should probably reset this:
-			failures = 0
 		}
 		// Loop and keep trying to resume subscription after error
 	}
@@ -257,6 +272,9 @@ func (v *MaterializedView) runSubscription() error {
 			// update our local copy so we can read it without lock.
 			snapshotDone = true
 			v.index = event.Index
+			// We have a good result, reset the error flag
+			v.err = nil
+			v.failures = 0
 			// Notify watchers of the update to the view
 			v.notifyUpdateLocked()
 			v.l.Unlock()
@@ -297,6 +315,9 @@ func (v *MaterializedView) runSubscription() error {
 			}
 			// Notify watchers of the update to the view
 			v.index = event.Index
+			// We have a good result, reset the error flag
+			v.err = nil
+			v.failures = 0
 			v.notifyUpdateLocked()
 			v.l.Unlock()
 		} else {
@@ -330,6 +351,7 @@ func (v *MaterializedView) reset() {
 	// the servers.
 	v.index = 0
 	v.snapshotDone = false
+	v.err = nil
 }
 
 // notifyUpdateLocked closes the current update channel and recreates a new
@@ -385,8 +407,13 @@ func (v *MaterializedView) Fetch(opts cache.FetchOptions) (cache.FetchResult, er
 			// Grab the new updateCh in case we need to keep waiting for the next
 			// update.
 			updateCh = v.updateCh
+			fetchErr := v.err
 			v.l.Unlock()
 
+			// If there was a non-transient error return it
+			if fetchErr != nil {
+				return result, fetchErr
+			}
 			if err != nil {
 				return result, err
 			}

@@ -75,6 +75,18 @@ func makeReloadEvent(t *testing.T, idx uint64) *stream.Event {
 	}
 }
 
+type temporaryErr string
+
+// Temporary Implements the internal Temporary interface
+func (e temporaryErr) Temporary() bool {
+	return true
+}
+
+// Error implements error
+func (e temporaryErr) Error() string {
+	return string(e)
+}
+
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	client := NewTestStreamingClient()
 	typ := StreamingHealthServices{
@@ -161,8 +173,8 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.LastResult = &result
 	}))
 
-	require.True(t, t.Run("reconnects and resumes after stream error", func(t *testing.T) {
-		client.QueueErr(errors.New("broken pipe"))
+	require.True(t, t.Run("reconnects and resumes after transient stream error", func(t *testing.T) {
+		client.QueueErr(temporaryErr("broken pipe"))
 
 		// After the error the view should re-subscribe with same index so will get
 		// a "resume stream".
@@ -191,13 +203,57 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		result, err = typ.Fetch(opts, req)
 		require.NoError(t, err)
 		elapsed = time.Since(start)
-		require.True(t, elapsed >= 200*time.Millisecond,
-			"Fetch should have blocked until the event was delivered")
 		require.True(t, elapsed < time.Second,
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(10), result.Index, "result index should not have changed")
 		require.Len(t, result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 2,
+			"result value should contain the new registration")
+
+		opts.MinIndex = result.Index
+		opts.LastResult = &result
+	}))
+
+	require.True(t, t.Run("returns non-temporary error to watchers", func(t *testing.T) {
+		// Wait and send the error while fetcher is waiting
+		go func() {
+			time.Sleep(200 * time.Millisecond)
+			client.QueueErr(errors.New("invalid request"))
+
+			// After the error the view should re-subscribe with same index so will get
+			// a "resume stream".
+			client.QueueEvents(makeResumeEvent(t, opts.MinIndex))
+		}()
+
+		// Next fetch should return the error
+		start := time.Now()
+		opts.Timeout = time.Second
+		result, err := typ.Fetch(opts, req)
+		require.Error(t, err)
+		elapsed := time.Since(start)
+		require.True(t, elapsed >= 200*time.Millisecond,
+			"Fetch should have blocked until error was sent")
+		require.True(t, elapsed < time.Second,
+			"Fetch should have returned before the timeout")
+
+		require.Equal(t, opts.MinIndex, result.Index, "result index should not have changed")
+		require.Equal(t, opts.LastResult.Value, result.Value, "result value should not have changed")
+
+		opts.MinIndex = result.Index
+		opts.LastResult = &result
+
+		// But an update should still be noticed due to reconnection
+		client.QueueEvents(makeHealthEvent(t, opts.MinIndex+5, 10, "web", true))
+
+		opts.Timeout = time.Second
+		result, err = typ.Fetch(opts, req)
+		require.NoError(t, err)
+		elapsed = time.Since(start)
+		require.True(t, elapsed < time.Second,
+			"Fetch should have returned before the timeout")
+
+		require.Equal(t, opts.MinIndex+5, result.Index, "result index should not have changed")
+		require.Len(t, result.Value.(*structs.IndexedCheckServiceNodes).Nodes, 3,
 			"result value should contain the new registration")
 
 		opts.MinIndex = result.Index
