@@ -2434,7 +2434,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	if service.Proxy.Expose.Checks {
 		err := a.rerouteExposedChecks(psid, service.Proxy.LocalServiceAddress)
 		if err != nil {
-			a.logger.Warn("to reroute L7 checks to exposed proxy listener")
+			a.logger.Warn("failed to reroute L7 checks to exposed proxy listener")
 		}
 	} else {
 		// Reset check targets if proxy was re-registered but no longer wants to expose checks
