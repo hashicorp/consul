@@ -3747,7 +3747,7 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateUserToken(persistedTokens.Default, token.TokenSourceAPI)
 
 		if conf.ACLToken != "" {
-			a.logger.Warn("\"default\"token present in both the configuration and persisted token store, using the persisted token")
+			a.logger.Warn("\"default\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
 		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
