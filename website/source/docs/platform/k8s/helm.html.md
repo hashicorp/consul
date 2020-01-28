@@ -401,4 +401,8 @@ connectInject:
 
 Consul within Kubernetes is highly configurable and the Helm chart contains dozens
 of the most commonly used configuration options.
-If you need to extend the Helm chart with additional options, we recommend using a third-party tool, such as [kustomize](https://github.com/kubernetes-sigs/kustomize) or [ship](https://github.com/replicatedhq/ship).
+If you need to extend the Helm chart with additional options, we recommend using a third-party tool,
+such as [kustomize](https://github.com/kubernetes-sigs/kustomize) or [ship](https://github.com/replicatedhq/ship).
+Note that the Helm chart heavily relies on Helm lifecycle hooks, and so features like bootstrapping ACLs or TLS
+will not work as expected. Additionally, we can make changes to the internal implementation (e.g., renaming template files) that
+may be backward incompatible with such customizations.
