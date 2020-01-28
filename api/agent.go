@@ -869,7 +869,51 @@ func (a *Agent) DisableNodeMaintenance() error {
 // Providing a non-nil stopCh can be used to close the connection and stop the
 // log stream. An empty string will be sent down the given channel when there's
 // nothing left to stream, after which the caller should close the stopCh.
-func (a *Agent) Monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+	r := a.c.newRequest("GET", "/v1/agent/monitor")
+	r.setQueryOptions(q)
+	if loglevel != "" {
+		r.params.Add("loglevel", loglevel)
+	}
+
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+
+	logCh := make(chan string, 64)
+	go func() {
+		defer resp.Body.Close()
+
+		scanner := bufio.NewScanner(resp.Body)
+		for {
+			select {
+			case <-stopCh:
+				close(logCh)
+				return
+			default:
+			}
+			if scanner.Scan() {
+				// An empty string signals to the caller that
+				// the scan is done, so make sure we only emit
+				// that when the scanner says it's done, not if
+				// we happen to ingest an empty line.
+				if text := scanner.Text(); text != "" {
+					logCh <- text
+				} else {
+					logCh <- " "
+				}
+			} else {
+				logCh <- ""
+			}
+		}
+	}()
+
+	return logCh, nil
+}
+
+//MonitorJSON sets the logJSON flag to true
+func (a *Agent) MonitorJSON(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
 	if loglevel != "" {
@@ -878,6 +922,7 @@ func (a *Agent) Monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q
 	if logJSON {
 		r.params.Set("logjson", "true")
 	}
+	r.params.Set("logjson", "false")
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err

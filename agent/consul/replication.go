@@ -22,7 +22,7 @@ const (
 )
 
 type ReplicatorDelegate interface {
-	Replicate(ctx context.Context, lastRemoteIndex uint64) (index uint64, exit bool, err error)
+	Replicate(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (index uint64, exit bool, err error)
 }
 
 type ReplicatorConfig struct {
@@ -97,7 +97,7 @@ func (r *Replicator) Run(ctx context.Context) error {
 		}
 
 		// Perform a single round of replication
-		index, exit, err := r.delegate.Replicate(ctx, atomic.LoadUint64(&r.lastRemoteIndex))
+		index, exit, err := r.delegate.Replicate(ctx, atomic.LoadUint64(&r.lastRemoteIndex), r.logger)
 		if exit {
 			// the replication function told us to exit
 			return nil
@@ -130,14 +130,14 @@ func (r *Replicator) Index() uint64 {
 	return atomic.LoadUint64(&r.lastRemoteIndex)
 }
 
-type ReplicatorFunc func(ctx context.Context, lastRemoteIndex uint64) (index uint64, exit bool, err error)
+type ReplicatorFunc func(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (index uint64, exit bool, err error)
 
 type FunctionReplicator struct {
 	ReplicateFn ReplicatorFunc
 }
 
-func (r *FunctionReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
-	return r.ReplicateFn(ctx, lastRemoteIndex)
+func (r *FunctionReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
+	return r.ReplicateFn(ctx, lastRemoteIndex, logger)
 }
 
 type IndexReplicatorDiff struct {
@@ -177,7 +177,7 @@ type IndexReplicator struct {
 	Logger   hclog.Logger
 }
 
-func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64, _ hclog.Logger) (uint64, bool, error) {
 	fetchStart := time.Now()
 	lenRemote, remote, remoteIndex, err := r.Delegate.FetchRemote(lastRemoteIndex)
 	metrics.MeasureSince([]string{"leader", "replication", r.Delegate.MetricName(), "fetch"}, fetchStart)

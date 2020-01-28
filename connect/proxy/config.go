@@ -203,7 +203,7 @@ func NewAgentConfigWatcher(client *api.Client, proxyID string,
 	}
 	w.plan = plan
 	w.plan.HybridHandler = w.handler
-	go w.plan.RunWithClientAndLogger(w.client, w.logger)
+	go w.plan.RunWithClientAndHclog(w.client, w.logger)
 	return w, nil
 }
 

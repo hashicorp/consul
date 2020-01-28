@@ -98,8 +98,8 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	go s.rootsWatch.RunWithClientAndLogger(client, s.logger)
-	go s.leafWatch.RunWithClientAndLogger(client, s.logger)
+	go s.rootsWatch.RunWithClientAndHclog(client, s.logger)
+	go s.leafWatch.RunWithClientAndHclog(client, s.logger)
 
 	return s, nil
 }

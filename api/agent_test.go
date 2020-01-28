@@ -1101,7 +1101,7 @@ func TestAPI_AgentMonitor(t *testing.T) {
 
 	agent := c.Agent()
 
-	logCh, err := agent.Monitor("debug", false, nil, nil)
+	logCh, err := agent.Monitor("debug", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1124,7 +1124,7 @@ func TestAPI_AgentMonitorJSON(t *testing.T) {
 
 	agent := c.Agent()
 
-	logCh, err := agent.Monitor("debug", true, nil, nil)
+	logCh, err := agent.MonitorJSON("debug", true, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

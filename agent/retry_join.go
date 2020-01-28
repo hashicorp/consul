@@ -67,7 +67,6 @@ func retryJoinAddrs(disco *discover.Discover, cluster string, retryJoin []string
 				if logger != nil {
 					logger.Error("Cannot discover address",
 						"address", addr,
-						"cluster", cluster,
 						"error", err,
 					)
 				}
@@ -125,7 +124,6 @@ func (r *retryJoiner) retryJoin() error {
 	}
 
 	r.logger.Info("Retry join is supported for the following discovery methods",
-		"cluster", r.cluster,
 		"discovery_methods", strings.Join(disco.Names(), " "),
 	)
 	r.logger.Info("Joining cluster...")

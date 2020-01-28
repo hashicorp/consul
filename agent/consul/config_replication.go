@@ -9,6 +9,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 func cmpConfigLess(first structs.ConfigEntry, second structs.ConfigEntry) bool {
@@ -117,7 +118,7 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 	return &response, nil
 }
 
-func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 	replicationLogger := s.loggers.Named(logging.Replication).Named(logging.ConfigEntry)
 
 	remote, err := s.fetchConfigEntries(lastRemoteIndex)

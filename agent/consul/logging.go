@@ -7,27 +7,25 @@ import (
 )
 
 type loggerStore struct {
-	root hclog.Logger
-
-	// The key/value pairs that we store are (string, hclog.Logger) values
-	cache *sync.Map
+	root  hclog.Logger
+	l     sync.Mutex
+	cache map[string]hclog.Logger
 }
 
 func newLoggerStore(root hclog.Logger) *loggerStore {
 	return &loggerStore{
 		root:  root,
-		cache: &sync.Map{},
+		cache: make(map[string]hclog.Logger),
 	}
 }
 
 func (ls *loggerStore) Named(name string) hclog.Logger {
-	l, ok := ls.cache.Load(name)
+	ls.l.Lock()
+	defer ls.l.Unlock()
+	l, ok := ls.cache[name]
 	if !ok {
 		l = ls.root.Named(name)
-		ls.cache.Store(name, l)
+		ls.cache[name] = l
 	}
-
-	// We are safe to cast this because this function is the only one with access
-	// to the cache
 	return l.(hclog.Logger)
 }

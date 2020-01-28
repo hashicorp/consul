@@ -67,7 +67,7 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			a.logger.Error("failed to read path",
+			a.logger.Error("bootstrap: failed to read path",
 				"path", path,
 				"error", err,
 			)

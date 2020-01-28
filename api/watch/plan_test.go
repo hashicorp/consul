@@ -134,7 +134,7 @@ func TestRunWithClientAndLogger_NilLogger(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- plan.RunWithClientAndLogger(nil, nil)
+		errCh <- plan.RunWithClientAndHclog(nil, nil)
 	}()
 
 	plan.Stop()
