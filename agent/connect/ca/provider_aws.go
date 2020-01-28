@@ -536,7 +536,7 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 		Certificate:             []byte(intermediatePEM),
 		CertificateChain:        []byte(rootPEM),
 	}
-	a.logger.Debug("certificate for PCA", "pca", a.arn)
+	a.logger.Debug("uploading certificate for PCA", "pca", a.arn)
 	_, err = a.client.ImportCertificateAuthorityCertificate(&input)
 	if err != nil {
 		return err
