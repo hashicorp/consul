@@ -785,9 +785,7 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 				r.logger.Warn("policy not found for identity",
 					"policy", policyID,
 					"identity", identity.ID(),
-          "accessorID", accessorID
-                      
-				)
+					"accessorID", accessorID)
 			}
 
 			continue
@@ -881,14 +879,14 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 			if role != nil {
 				roles = append(roles, role)
 			} else {
-        var accessorID string
+				var accessorID string
 				if identity != nil {
 					accessorID = identity.ID()
 				}
 				r.logger.Warn("role not found for identity",
 					"role", roleID,
 					"identity", identity.ID(),
-          "accessorID", accessorID,
+					"accessorID", accessorID,
 				)
 			}
 

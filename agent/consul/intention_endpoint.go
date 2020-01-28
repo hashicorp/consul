@@ -42,7 +42,7 @@ func (s *Intention) checkIntentionID(id string) (bool, error) {
 // generates a new uuid for the intention and generally validates that the request is well-formed
 func (s *Intention) prepareApplyCreate(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
 	if !args.Intention.CanWrite(authz) {
-    var accessorID string
+		var accessorID string
 		if ident != nil {
 			accessorID = ident.ID()
 		}
@@ -115,7 +115,7 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-    var accessorID string
+		var accessorID string
 		if ident != nil {
 			accessorID = ident.ID()
 		}
@@ -166,7 +166,7 @@ func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Auth
 	// which must be true to perform any rename. This is the only ACL enforcement
 	// done for deletions and a secondary enforcement for updates.
 	if !ixn.CanWrite(authz) {
-    var accessorID string
+		var accessorID string
 		if ident != nil {
 			accessorID = ident.ID()
 		}
@@ -270,8 +270,8 @@ func (s *Intention) Get(
 
 			// If ACLs prevented any responses, error
 			if len(reply.Intentions) == 0 {
-        accessorID := s.aclAccessorID(args.Token)
-        // todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+				accessorID := s.aclAccessorID(args.Token)
+				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 				s.logger.Warn("Request to get intention denied due to ACLs", "intention", args.IntentionID, "accessorID", accessorID)
 				return acl.ErrPermissionDenied
 			}
@@ -336,7 +336,7 @@ func (s *Intention) Match(
 		for _, entry := range args.Match.Entries {
 			entry.FillAuthzContext(&authzContext)
 			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, &authzContext) != acl.Allow {
-        accessorID := s.aclAccessorID(args.Token)
+				accessorID := s.aclAccessorID(args.Token)
 				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
 				return acl.ErrPermissionDenied
@@ -409,7 +409,7 @@ func (s *Intention) Check(
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
 		if rule != nil && rule.ServiceRead(prefix, &authzContext) != acl.Allow {
-      accessorID := s.aclAccessorID(args.Token)
+			accessorID := s.aclAccessorID(args.Token)
 			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
 			return acl.ErrPermissionDenied
