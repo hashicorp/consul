@@ -870,20 +870,22 @@ func (a *Agent) DisableNodeMaintenance() error {
 // log stream. An empty string will be sent down the given channel when there's
 // nothing left to stream, after which the caller should close the stopCh.
 func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
-	return a.monitor(loglevel, "false", stopCh, q)
+	return a.monitor(loglevel, false, stopCh, q)
 }
 
 // MonitorJSON is like Monitor except it returns logs in JSON format.
 func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
-	return a.monitor(loglevel, "true", stopCh, q)
+	return a.monitor(loglevel, true, stopCh, q)
 }
-func (a *Agent) monitor(loglevel string, logJSON string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
 	if loglevel != "" {
 		r.params.Add("loglevel", loglevel)
 	}
-	r.params.Set("logjson", logJSON)
+	if logJSON {
+		r.params.Set("logjson", "true")
+	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
