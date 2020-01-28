@@ -241,19 +241,6 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	}
 }
 
-func (s *Server) lanNodeUpdate(me serf.MemberEvent) {
-	for _, m := range me.Members {
-		ok, serverMeta := metadata.IsConsulServer(m)
-		if !ok || serverMeta.Segment != "" {
-			continue
-		}
-		s.logger.Info("Updating LAN server", "server", serverMeta.String())
-
-		// Update server lookup
-		s.serverLookup.AddServer(serverMeta)
-	}
-}
-
 // maybeBootstrap is used to handle bootstrapping when a new consul server joins.
 func (s *Server) maybeBootstrap() {
 	// Bootstrap can only be done if there are no committed logs, remove our

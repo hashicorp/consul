@@ -104,7 +104,6 @@ func (c *cmd) readConfig() *config.RuntimeConfig {
 // checkpointResults is used to handler periodic results from our update checker
 func (c *cmd) checkpointResults(results *checkpoint.CheckResponse, err error) {
 	if err != nil {
-
 		c.logger.Error("Failed to check for updates", "error", err)
 		return
 	}
