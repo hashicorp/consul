@@ -63,7 +63,7 @@ type BootstrapConfig struct {
 	// endpoint which allows exposing metrics on the network without the security
 	// risk of exposing the full admin server API. Any other URL requested will be
 	// a 404.
-	StatsBindAddr string `mapstructure:"envoy_metrics_bind_addr"`
+	StatsBindAddr string `mapstructure:"envoy_stats_bind_addr"`
 
 	// OverrideJSONTpl allows replacing the base template used to render the
 	// bootstrap. This is an "escape hatch" allowing arbitrary control over the
