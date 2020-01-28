@@ -27,5 +27,5 @@ func (ls *loggerStore) Named(name string) hclog.Logger {
 		l = ls.root.Named(name)
 		ls.cache[name] = l
 	}
-	return l.(hclog.Logger)
+	return l
 }
