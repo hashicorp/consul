@@ -69,9 +69,11 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	sizeStr := req.Header.Get("Content-Length")
 	if sizeStr != "" {
 		if size, err := strconv.Atoi(sizeStr); err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
 			return nil, 0, false
 		} else if size > int(s.agent.config.KVMaxValueSize) {
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
 			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", s.agent.config.KVMaxValueSize)
 			return nil, 0, false
 		}
