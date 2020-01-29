@@ -39,6 +39,7 @@ const MENU_ITEMS = '[role^="menuitem"]';
 export default Component.extend({
   tagName: '',
   dom: service('dom'),
+  router: service('router'),
   guid: '',
   expanded: false,
   orientation: 'vertical',
@@ -47,6 +48,7 @@ export default Component.extend({
     this._super(...arguments);
     set(this, 'guid', this.dom.guid(this));
     this._listeners = this.dom.listeners();
+    this._routelisteners = this.dom.listeners();
   },
   didInsertElement: function() {
     // TODO: How do you detect whether the children have changed?
@@ -54,10 +56,14 @@ export default Component.extend({
     this.$menu = this.dom.element(`#${COMPONENT_ID}menu-${this.guid}`);
     const labelledBy = this.$menu.getAttribute('aria-labelledby');
     this.$trigger = this.dom.element(`#${labelledBy}`);
+    this._routelisteners.add(this.router, {
+      routeWillChange: () => this.actions.close.apply(this, [{}]),
+    });
   },
   willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
+    this._routelisteners.remove();
   },
   actions: {
     keypressClick: function(e) {
