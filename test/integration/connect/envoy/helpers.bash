@@ -452,7 +452,7 @@ function must_match_in_prometheus_response {
 }
 
 function must_match_in_stats_proxy_response {
-  run curl -f -s $1/statz
+  run curl -f -s $1/stats
   COUNT=$( echo "$output" | grep -Ec $2 )
 
   echo "OUTPUT"
