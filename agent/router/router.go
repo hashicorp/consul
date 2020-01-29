@@ -348,6 +348,28 @@ func (r *Router) findDirectRoute(datacenter string) (*Manager, *metadata.Server,
 	return nil, nil, false
 }
 
+// CheckServers returns thwo things
+// 1. bool to indicate whether any servers were processed
+// 2. error if any propagated from the fn
+//
+// The fn called should return a bool indicating whether checks should continue and an error
+// If an error is returned then checks will stop immediately
+func (r *Router) CheckServers(dc string, fn func(srv *metadata.Server) bool) {
+	r.RLock()
+	defer r.RUnlock()
+
+	managers, ok := r.managers[dc]
+	if !ok {
+		return
+	}
+
+	for _, m := range managers {
+		if !m.checkServers(fn) {
+			return
+		}
+	}
+}
+
 // GetDatacenters returns a list of datacenters known to the router, sorted by
 // name.
 func (r *Router) GetDatacenters() []string {

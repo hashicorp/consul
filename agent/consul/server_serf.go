@@ -118,6 +118,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
+	s.addEnterpriseSerfTags(conf.Tags)
+
 	return serf.Create(conf)
 }
 
@@ -238,6 +240,19 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 
 		// Kick the join flooders.
 		s.FloodNotify()
+	}
+}
+
+func (s *Server) lanNodeUpdate(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, serverMeta := metadata.IsConsulServer(m)
+		if !ok || serverMeta.Segment != "" {
+			continue
+		}
+		s.logger.Info("Updating LAN server", "server", serverMeta.String())
+
+		// Update server lookup
+		s.serverLookup.AddServer(serverMeta)
 	}
 }
 

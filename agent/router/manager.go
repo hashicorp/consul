@@ -149,6 +149,18 @@ func (m *Manager) AddServer(s *metadata.Server) {
 	m.saveServerList(l)
 }
 
+// UpdateTLS updates the TLS setting for the servers in this manager
+func (m *Manager) UpdateTLS(useTLS bool) {
+	m.listLock.Lock()
+	defer m.listLock.Unlock()
+
+	list := m.getServerList()
+	for _, server := range list.servers {
+		server.UseTLS = useTLS
+	}
+	m.saveServerList(list)
+}
+
 // cycleServers returns a new list of servers that has dequeued the first
 // server and enqueued it at the end of the list.  cycleServers assumes the
 // caller is holding the listLock.  cycleServer does not test or ping
@@ -216,6 +228,19 @@ func (m *Manager) FindServer() *metadata.Server {
 	// hypothetically - the server list was rotated right after a
 	// server was added).
 	return l.servers[0]
+}
+
+func (m *Manager) checkServers(fn func(srv *metadata.Server) bool) bool {
+	for _, srv := range m.getServerList().servers {
+		if !fn(srv) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
+	_ = m.checkServers(fn)
 }
 
 // getServerList is a convenience method which hides the locking semantics
