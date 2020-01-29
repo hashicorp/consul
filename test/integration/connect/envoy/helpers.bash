@@ -431,11 +431,11 @@ function must_match_in_prometheus_response {
 }
 
 function must_match_in_stats_proxy_response {
-  run curl -f -s $1/stats
+  run curl -f -s $1/statz
   COUNT=$( echo "$output" | grep -Ec $2 )
 
-  echo "OUTPUT head -n 500"
-  echo "$output" | head -n 500
+  echo "OUTPUT"
+  echo "$output"
   echo "COUNT of '$2' matches: $COUNT"
 
   [ "$status" == 0 ]
