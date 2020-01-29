@@ -169,6 +169,8 @@ github.com/hashicorp/go-bexpr
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
+# github.com/hashicorp/go-connlimit v0.1.0
+github.com/hashicorp/go-connlimit
 # github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
 github.com/hashicorp/go-discover
 github.com/hashicorp/go-discover/provider/k8s
@@ -366,7 +368,7 @@ github.com/softlayer/softlayer-go/config
 github.com/spf13/pflag
 # github.com/stretchr/objx v0.1.1
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.3.0
+# github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
 github.com/stretchr/testify/assert
@@ -389,7 +391,7 @@ github.com/vmware/govmomi/vim25/methods
 github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/debug
 github.com/vmware/govmomi/vim25/xml
-# golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+# golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ssh/terminal
@@ -401,7 +403,7 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/internal/subtle
-# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 golang.org/x/net/context
 golang.org/x/net/http2
 golang.org/x/net/ipv4
@@ -503,7 +505,7 @@ gopkg.in/square/go-jose.v2/jwt
 gopkg.in/square/go-jose.v2
 gopkg.in/square/go-jose.v2/json
 gopkg.in/square/go-jose.v2/cipher
-# gopkg.in/yaml.v2 v2.2.1
+# gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
 # k8s.io/api v0.0.0-20190325185214-7544f9db76f6
 k8s.io/api/authentication/v1

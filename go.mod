@@ -29,6 +29,7 @@ require (
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
+	github.com/hashicorp/go-connlimit v0.1.0
 	github.com/hashicorp/go-discover v0.0.0-20190403160810-22221edb15cd
 	github.com/hashicorp/go-hclog v0.9.2
 	github.com/hashicorp/go-memdb v0.0.0-20180223233045-1289e7fffe71
@@ -70,9 +71,9 @@ require (
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/stretchr/testify v1.3.0
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	github.com/stretchr/testify v1.4.0
+	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
+	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
