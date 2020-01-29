@@ -25,69 +25,97 @@ const isExpectedError = function(e) {
   return [notFound, cannotDestructure, cannotReadContext].some(item => e.message.startsWith(item));
 };
 
-export default function(scenario, assert, find, currentPage) {
+export default function(scenario, assert, find, currentPage, pauseUntil) {
   scenario
     .then('I see $property on the $component like yaml\n$yaml', function(
       property,
       component,
       yaml
     ) {
-      const _component = currentPage()[component];
-      const iterator = new Array(_component.length).fill(true);
-      // this will catch if we get aren't managing to select a component
-      assert.ok(iterator.length > 0);
-      iterator.forEach(function(item, i, arr) {
-        const actual =
-          typeof _component.objectAt(i)[property] === 'undefined'
-            ? null
-            : _component.objectAt(i)[property];
+      return pauseUntil(function(resolve, reject) {
+        const _component = currentPage()[component];
+        // this will catch if we get aren't managing to select a component
+        if (_component.length === 0) {
+          return Promise.resolve();
+        }
+        const iterator = new Array(_component.length).fill(true);
 
-        // anything coming from the DOM is going to be text/strings
-        // if the yaml has numbers, cast them to strings
-        // TODO: This would get problematic for deeper objects
-        // will have to look to do this recursively
-        const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
+        let pass = true;
+        iterator.forEach(function(item, i, arr) {
+          const actual =
+            typeof _component.objectAt(i)[property] === 'undefined'
+              ? null
+              : _component.objectAt(i)[property];
 
-        assert.deepEqual(
-          actual,
-          expected,
-          `Expected to see ${property} on ${component}[${i}] as ${JSON.stringify(
-            expected
-          )}, was ${JSON.stringify(actual)}`
-        );
-      });
+          // anything coming from the DOM is going to be text/strings
+          // if the yaml has numbers, cast them to strings
+          // TODO: This would get problematic for deeper objects
+          // will have to look to do this recursively
+          const expected = typeof yaml[i] === 'number' ? yaml[i].toString() : yaml[i];
+          assert.deepEqual(
+            actual,
+            expected,
+            `Expected to see ${property} on ${component}[${i}] as ${JSON.stringify(
+              expected
+            )}, was ${JSON.stringify(actual)}`
+          );
+          if (actual !== expected) {
+            pass = false;
+          }
+        });
+        if (pass) {
+          return resolve();
+        } else {
+          return reject();
+        }
+      }, `Expected to see ${property} on ${component} equal to specific data`);
     })
     .then(['I see $property on the $component'], function(property, component) {
-      // TODO: Time to work on repetition
-      // Collection
-      var obj;
-      if (typeof currentPage()[component].objectAt === 'function') {
-        obj = currentPage()[component].objectAt(0);
-      } else {
-        obj = currentPage()[component];
-      }
-      let _component;
-      if (typeof obj === 'function') {
-        const func = obj[property].bind(obj);
-        try {
-          _component = func();
-        } catch (e) {
-          console.error(e);
-          throw new Error(
-            `The '${property}' property on the '${component}' page object doesn't exist`
-          );
+      return pauseUntil(function(resolve, reject) {
+        // TODO: Time to work on repetition
+        // Collection
+        let obj;
+        if (typeof currentPage()[component].objectAt === 'function') {
+          obj = currentPage()[component].objectAt(0);
+        } else {
+          obj = currentPage()[component];
         }
-      } else {
-        _component = obj;
-      }
-      assert.ok(_component[property], `Expected to see ${property} on ${component}`);
+        let _component;
+        if (typeof obj === 'function') {
+          const func = obj[property].bind(obj);
+          try {
+            _component = func();
+          } catch (e) {
+            return Promise.resolve();
+          }
+        } else {
+          _component = obj;
+        }
+        try {
+          obj = _component[property];
+        } catch (e) {
+          return Promise.resolve();
+        }
+        if (obj) {
+          return resolve();
+        } else {
+          return reject();
+        }
+      }, `Expected to see ${property} on ${component}`);
     })
     .then(['I see $num of the $component object'], function(num, component) {
-      assert.equal(
-        currentPage()[component].length,
-        num,
-        `Expected to see ${num} items in the ${component} object`
-      );
+      return pauseUntil(function(resolve, reject) {
+        let obj;
+        try {
+          obj = currentPage()[component];
+        } catch (e) {
+          return Promise.resolve();
+        }
+        if (obj.length !== parseInt(num)) {
+          return reject();
+        }
+        return resolve();
+      }, `Expected to see ${num} items in the ${component} object`);
     })
     .then(["I don't see $property on the $component"], function(property, component) {
       const message = `Expected to not see ${property} on ${component}`;
@@ -157,24 +185,38 @@ export default function(scenario, assert, find, currentPage) {
         "I see $property on the $component like '$value'",
       ],
       function(property, component, value) {
-        let target;
-        try {
+        return pauseUntil(function(resolve, reject) {
+          let prop = property;
           if (typeof component === 'string') {
-            property = `${component}.${property}`;
+            prop = `${component}.${prop}`;
           }
-          target = find(property);
-        } catch (e) {
-          throw e;
-        }
-        assert.equal(
-          target,
-          value,
-          `Expected to see ${property} on ${component} as ${value}, was ${target}`
-        );
+          let target;
+          try {
+            target = find(prop);
+          } catch (e) {
+            return Promise.resolve();
+          }
+          if (target === value) {
+            return resolve();
+          } else {
+            return reject();
+          }
+        }, `Expected to see ${property} on ${component} as ${value}`);
       }
     )
     .then(['I see $property like "$value"'], function(property, value) {
-      const target = currentPage()[property];
-      assert.equal(target, value, `Expected to see ${property} as ${value}, was ${target}`);
+      return pauseUntil(function(resolve, reject) {
+        let target;
+        try {
+          target = currentPage()[property];
+        } catch (e) {
+          return Promise.resolve();
+        }
+        if (target === value) {
+          return resolve();
+        } else {
+          return reject();
+        }
+      }, `Expected to see ${property} as ${value}`);
     });
 }

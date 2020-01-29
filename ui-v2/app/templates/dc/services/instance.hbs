@@ -1,117 +1,158 @@
 {{title item.ID}}
-{{#app-view class="instance show"}}
-    {{#block-slot name='notification' as |status type|}}
-      {{partial 'dc/services/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
-        <ol>
-            <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-            <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
-            <li><strong>Instance</strong></li>
-        </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
-      <h1>
-        {{ item.ID }}
-{{#with (service/external-source item) as |externalSource| }}
-  {{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg| }}
-    {{#if (not-eq bg 'none') }}
-        <span data-test-external-source="{{externalSource}}" style={{{ concat 'background-image:' bg }}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
-    {{/if}}
-  {{/with}}
-{{/with}}
-{{#if (eq item.Kind 'connect-proxy')}}
-        <span class="kind-proxy">Proxy</span>
-{{else if (eq item.Kind 'mesh-gateway')}}
-        <span class="kind-proxy">Mesh Gateway</span>
+{{data-source
+  src=(concat '/' nspace '/' dc '/service-instance/' slug)
+  onchange=(action (mut item) value='data')
+  onerror=(action (mut error) value='error')
+}}
+{{#if (
+  and
+    (not (is-undefined item))
+    (not (eq item.Kind 'connect-proxy'))
+    (not (eq item.Kind 'mesh-gateway'))
+  )}}
+  {{! right now we don't mind too much about proxy errors}}
+  {{data-source
+    src=(concat '/' nspace '/' dc '/proxy/' slug)
+    onchange=(action (mut proxy) value='data')
+  }}
 {{/if}}
-      </h1>
-      <dl>
-        <dt>Service Name</dt>
-        <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>
-      </dl>
-      <dl>
-        <dt>Node Name</dt>
-        <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
-      </dl>
-{{#if proxy.ServiceName}}
-      <dl>
-{{#if proxy.ServiceProxy.DestinationServiceID}}
-        <dt data-test-proxy-type="sidecar-proxy">Sidecar Proxy</dt>
-        <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.Node proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
+
+{{#if (and (is-undefined item) (eq error.errors.firstObject.status '404'))}}
+  {{app-error error=error.errors.firstObject}}
 {{else}}
-        <dt data-test-proxy-type="proxy">Proxy</dt>
-        <dd><a href="{{href-to 'dc.services.show' proxy.ServiceName}}">{{proxy.ServiceName}}</a></dd>
-{{/if}}
-      </dl>
-{{/if}}
-{{#if (eq item.Kind 'connect-proxy')}}
-  {{#if item.Proxy.DestinationServiceID}}
-      <dl>
-        <dt data-test-proxy-destination="instance">Dest. Service Instance</dt>
-        <dd><a href="{{href-to 'dc.services.instance' item.Proxy.DestinationServiceName item.Node.Node item.Proxy.DestinationServiceID}}">{{item.Proxy.DestinationServiceID}}</a></dd>
-      </dl>
-      <dl>
-        <dt>Local Service Address</dt>
-        <dd>{{item.Proxy.LocalServiceAddress}}:{{item.Proxy.LocalServicePort}}</dd>
-      </dl>
-  {{else}}
-      <dl>
-        <dt data-test-proxy-destination="service">Dest. Service</dt>
-        <dd><a href="{{href-to 'dc.services.show' item.Proxy.DestinationServiceName}}">{{item.Proxy.DestinationServiceName}}</a></dd>
-      </dl>
+  {{#app-view class="instance show" loading=(
+    not
+      (and
+        (not (is-undefined item))
+        (or
+          (eq item.Kind 'connect-proxy')
+          (eq item.Kind 'mesh-gateway')
+          (not (is-undefined proxy))
+        )
+      )
+  )}}
+      {{#block-slot 'notification2'}}
+        {{#if (eq error.errors.firstObject.status '404')}}
+          <div class="flash-message">
+            <p data-notification class="warning notification-update">
+              <strong>
+                Warning!
+              </strong>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </div>
+        {{/if}}
+      {{/block-slot}}
+      {{#block-slot name='breadcrumbs'}}
+          <ol>
+              <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+              <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
+              <li><strong>Instance</strong></li>
+          </ol>
+      {{/block-slot}}
+      {{#block-slot name='header'}}
+        <h1>
+          {{ item.ID }}
+  {{#with (service/external-source item) as |externalSource| }}
+    {{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg| }}
+      {{#if (not-eq bg 'none') }}
+          <span data-test-external-source="{{externalSource}}" style={{{ concat 'background-image:' bg }}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
+      {{/if}}
+    {{/with}}
+  {{/with}}
+  {{#if (eq item.Kind 'connect-proxy')}}
+          <span class="kind-proxy">Proxy</span>
+  {{else if (eq item.Kind 'mesh-gateway')}}
+          <span class="kind-proxy">Mesh Gateway</span>
   {{/if}}
-{{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{tab-nav
-            items=(compact
-              (array
-                'Service Checks'
-                'Node Checks'
-(if
-  (eq item.Kind 'connect-proxy')
-                'Upstreams' ''
-)
-(if
-  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
-                'Exposed Paths' ''
-)
-(if
-  (eq item.Kind 'mesh-gateway')
-                'Addresses' ''
-)
-                'Tags'
-                'Meta Data'
-              )
-            )
-            selected=selectedTab
-        }}
-        {{#each
-            (compact
+        </h1>
+        <dl>
+          <dt>Service Name</dt>
+          <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>
+        </dl>
+        <dl>
+          <dt>Node Name</dt>
+          <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
+        </dl>
+  {{#if proxy.ServiceName}}
+        <dl>
+  {{#if proxy.ServiceProxy.DestinationServiceID}}
+          <dt data-test-proxy-type="sidecar-proxy">Sidecar Proxy</dt>
+          <dd><a href="{{href-to 'dc.services.instance' proxy.ServiceName proxy.Node proxy.ServiceID}}">{{proxy.ServiceID}}</a></dd>
+  {{else}}
+          <dt data-test-proxy-type="proxy">Proxy</dt>
+          <dd><a href="{{href-to 'dc.services.show' proxy.ServiceName}}">{{proxy.ServiceName}}</a></dd>
+  {{/if}}
+        </dl>
+  {{/if}}
+  {{#if (eq item.Kind 'connect-proxy')}}
+    {{#if item.Proxy.DestinationServiceID}}
+        <dl>
+          <dt data-test-proxy-destination="instance">Dest. Service Instance</dt>
+          <dd><a href="{{href-to 'dc.services.instance' item.Proxy.DestinationServiceName item.Node.Node item.Proxy.DestinationServiceID}}">{{item.Proxy.DestinationServiceID}}</a></dd>
+        </dl>
+        <dl>
+          <dt>Local Service Address</dt>
+          <dd>{{item.Proxy.LocalServiceAddress}}:{{item.Proxy.LocalServicePort}}</dd>
+        </dl>
+    {{else}}
+        <dl>
+          <dt data-test-proxy-destination="service">Dest. Service</dt>
+          <dd><a href="{{href-to 'dc.services.show' item.Proxy.DestinationServiceName}}">{{item.Proxy.DestinationServiceName}}</a></dd>
+        </dl>
+    {{/if}}
+  {{/if}}
+      {{/block-slot}}
+      {{#block-slot name='content'}}
+          {{tab-nav
+              items=(compact
                 (array
-                    (hash id=(slugify 'Service Checks') partial='dc/services/servicechecks')
-                    (hash id=(slugify 'Node Checks') partial='dc/services/nodechecks')
-(if
-  (eq item.Kind 'connect-proxy')
-                    (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') ''
-)
-(if
-  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
-                    (hash id=(slugify 'Exposed Paths') partial='dc/services/exposedpaths') ''
-)
-(if
-  (eq item.Kind 'mesh-gateway')
-                    (hash id=(slugify 'Addresses') partial='dc/services/addresses') ''
-)
-                    (hash id=(slugify 'Tags') partial='dc/services/tags')
-                    (hash id=(slugify 'Meta Data') partial='dc/services/metadata')
+                  'Service Checks'
+                  'Node Checks'
+  (if
+    (eq item.Kind 'connect-proxy')
+                  'Upstreams' ''
+  )
+  (if
+    (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
+                  'Exposed Paths' ''
+  )
+  (if
+    (eq item.Kind 'mesh-gateway')
+                  'Addresses' ''
+  )
+                  'Tags'
+                  'Meta Data'
                 )
-            ) as |panel|
-        }}
-            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
-                {{partial panel.partial}}
-            {{/tab-section}}
-        {{/each}}
-    {{/block-slot}}
-{{/app-view}}
+              )
+              selected=selectedTab
+          }}
+          {{#each
+              (compact
+                  (array
+                      (hash id=(slugify 'Service Checks') partial='dc/services/servicechecks')
+                      (hash id=(slugify 'Node Checks') partial='dc/services/nodechecks')
+  (if
+    (eq item.Kind 'connect-proxy')
+                      (hash id=(slugify 'Upstreams') partial='dc/services/upstreams') ''
+  )
+  (if
+    (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
+                      (hash id=(slugify 'Exposed Paths') partial='dc/services/exposedpaths') ''
+  )
+  (if
+    (eq item.Kind 'mesh-gateway')
+                      (hash id=(slugify 'Addresses') partial='dc/services/addresses') ''
+  )
+                      (hash id=(slugify 'Tags') partial='dc/services/tags')
+                      (hash id=(slugify 'Meta Data') partial='dc/services/metadata')
+                  )
+              ) as |panel|
+          }}
+              {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+                  {{partial panel.partial}}
+              {{/tab-section}}
+          {{/each}}
+      {{/block-slot}}
+  {{/app-view}}
+{{/if}}

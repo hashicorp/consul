@@ -1,59 +1,93 @@
 {{title item.Service.Service}}
-{{#app-view class="service show"}}
-  {{#block-slot name='notification' as |status type|}}
-    {{partial 'dc/services/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='breadcrumbs'}}
-    <ol>
-        <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-    </ol>
-  {{/block-slot}}
-  {{#block-slot name='header'}}
-    <h1>
-      {{item.Service.Service}}
-{{#with (service/external-source item.Service) as |externalSource|}}
-{{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg|}}
-  {{#if (not-eq bg 'none')}}
-      <span data-test-external-source={{externalSource}} style={{{concat 'background-image:' bg}}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
-  {{/if}}
-{{/with}}
-{{/with}}
-{{#if (eq item.Service.Kind 'connect-proxy')}}
-      <span class="kind-proxy">Proxy</span>
-{{else if (eq item.Service.Kind 'mesh-gateway')}}
-      <span class="kind-proxy">Mesh Gateway</span>
-{{/if}}
-    </h1>
-    <label for="toolbar-toggle"></label>
-    {{tab-nav
-      items=(compact
-        (array
-                        'Instances'
-(if (not-eq chain null) 'Routing' '')
-                        'Tags'
-        )
-      )
-      selected=selectedTab
-    }}
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
-    {{#if urls.service}}
-      {{#templated-anchor data-test-dashboard-anchor href=urls.service vars=(hash Datacenter=dc Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
+{{data-source
+  src=(concat '/' nspace '/' dc '/service/' slug)
+  onchange=(action (mut item) value='data')
+  onerror=(action (mut error) value='error')
+}}
+{{#if (and (is-undefined item) (eq error.errors.firstObject.status '404'))}}
+  {{app-error error=error.errors.firstObject}}
+{{else}}
+  {{#if (not (is-undefined item))}}
+    {{#app-view class="service show" loading=(is-undefined item)}}
+        {{#block-slot 'notification2'}}
+          {{#if (eq error.errors.firstObject.status '404')}}
+            <div class="flash-message">
+              <p data-notification class="warning notification-update">
+                <strong>
+                  Warning!
+                </strong>
+                This service has been deregistered and no longer exists in the catalog.
+              </p>
+            </div>
+          {{/if}}
+        {{/block-slot}}
+        {{#block-slot name='breadcrumbs'}}
+            <ol>
+                <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+            </ol>
+        {{/block-slot}}
+        {{#block-slot name='header'}}
+          <h1>
+            {{ item.Service.Service }}
+    {{#with (service/external-source item.Service) as |externalSource| }}
+      {{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg| }}
+        {{#if (not-eq bg 'none') }}
+            <span data-test-external-source="{{externalSource}}" style={{{ concat 'background-image:' bg }}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
+        {{/if}}
+      {{/with}}
+    {{/with}}
+    {{#if (eq item.Service.Kind 'connect-proxy')}}
+            <span class="kind-proxy">Proxy</span>
+    {{else if (eq item.Service.Kind 'mesh-gateway')}}
+            <span class="kind-proxy">Mesh Gateway</span>
     {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='content'}}
-    {{#each
-      (compact
-        (array
+          </h1>
+          <label for="toolbar-toggle"></label>
+          {{tab-nav
+              items=(compact
+                (array
+                                          'Instances'
+  (if
+    (and
+      (not-eq item.Service.Kind 'connect-proxy')
+      (not-eq item.Service.Kind 'mesh-gateway')
+    )
+                                          'Routing'
+    ''
+  )
+                                          'Tags'
+                )
+              )
+              selected=selectedTab
+          }}
+        {{/block-slot}}
+        {{#block-slot name='actions'}}
+          {{#if urls.service}}
+            {{#templated-anchor data-test-dashboard-anchor href=urls.service vars=(hash Datacenter=dc Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
+          {{/if}}
+        {{/block-slot}}
+        {{#block-slot name='content'}}
+            {{#each
+                (compact
+                    (array
                         (hash id=(slugify 'Instances') partial='dc/services/instances')
-(if (not-eq chain null) (hash id=(slugify 'Routing') partial='dc/services/routing') '')
+  (if
+    (and
+      (not-eq item.Service.Kind 'connect-proxy')
+      (not-eq item.Service.Kind 'mesh-gateway')
+    )
+                        (hash id=(slugify 'Routing') partial='dc/services/routing')
+    ''
+    )
                         (hash id=(slugify 'Tags') partial='dc/services/tags')
-        )
-      ) as |panel|
-    }}
-        {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action 'change')}}
-          {{partial panel.partial}}
-        {{/tab-section}}
-    {{/each}}
-  {{/block-slot}}
-{{/app-view}}
+                    )
+                ) as |panel|
+            }}
+                {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+                    {{partial panel.partial}}
+                {{/tab-section}}
+            {{/each}}
+        {{/block-slot}}
+    {{/app-view}}
+  {{/if}}
+{{/if}}

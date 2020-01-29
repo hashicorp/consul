@@ -1,6 +1,9 @@
 {{yield}}
 {{#if (not loading)}}
 <header>
+  {{#yield-slot 'notification2'}}
+    {{yield}}
+  {{/yield-slot}}
 {{#each flashMessages.queue as |flash|}}
     {{#flash-message flash=flash as |component flash|}}
         {{! flashes automatically ucfirst the type }}

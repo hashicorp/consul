@@ -3,7 +3,9 @@ import Service, { inject as service } from '@ember/service';
 export default Service.extend({
   // TODO: Temporary repo list here
   service: service('repository/service'),
+  ['service-instance']: service('repository/service'),
   services: service('repository/service'),
+  ['discovery-chain']: service('repository/discovery-chain'),
   node: service('repository/node'),
   nodes: service('repository/node'),
   session: service('repository/session'),

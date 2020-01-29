@@ -54,12 +54,17 @@ export default function(assert, library) {
     return new Promise(function(r, reject) {
       let count = 0;
       let resolved = false;
-      const resolve = function() {
+      const retry = function() {
+        return Promise.resolve();
+      };
+      const resolve = function(str = message) {
         resolved = true;
+        assert.ok(resolved, str);
         r();
+        return Promise.resolve();
       };
       (function tick() {
-        run(resolve, reject).then(function() {
+        run(resolve, reject, retry).then(function() {
           if (!resolved) {
             setTimeout(function() {
               if (++count >= 50) {
@@ -124,7 +129,7 @@ export default function(assert, library) {
   debug(library, assert, utils.currentURL);
   assertHttp(library, assert, pauseUntil, lastNthRequest);
   assertModel(library, assert, find, getCurrentPage, pauseUntil, pluralize);
-  assertPage(library, assert, find, getCurrentPage);
+  assertPage(library, assert, find, getCurrentPage, pauseUntil);
   assertDom(library, assert, pauseUntil, utils.find, utils.currentURL, clipboard);
   assertForm(library, assert, find, getCurrentPage);
 

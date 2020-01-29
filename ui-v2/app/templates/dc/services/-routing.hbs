@@ -1,1 +1,8 @@
-{{discovery-chain chain=chain.Chain}}
+{{data-source
+  src=(concat '/' nspace '/' dc '/discovery-chain/' slug)
+  onchange=(action (mut chain) value='data')
+  onerror=(action (mut error) value='error')
+}}
+{{#if (not (is-undefined chain))}}
+  {{discovery-chain chain=chain.Chain}}
+{{/if}}

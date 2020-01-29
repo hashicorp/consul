@@ -10,9 +10,6 @@
   {{app-error error=error.errors.firstObject}}
 {{else}}
   {{#app-view class="service list" loading=(is-undefined items)}}
-    {{#block-slot name='notification' as |status type|}}
-      {{partial 'dc/services/notifications'}}
-    {{/block-slot}}
     {{#block-slot name='header'}}
       <h1>
         Services <em>{{format-number items.length}} total</em>
