@@ -7,12 +7,13 @@ export default function(
   attribute,
   collection,
   text,
-  filter
+  filter,
+  isVisible
 ) {
   return submitable(
     creatable({
       visit: visitable('/:dc/acls/tokens'),
-      update: text('[data-test-notification-update]'),
+      update: isVisible('[data-test-notification-update]'),
       tokens: collection(
         '[data-test-tabular-row]',
         deletable({

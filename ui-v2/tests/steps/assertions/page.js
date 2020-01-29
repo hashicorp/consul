@@ -123,15 +123,20 @@ export default function(scenario, assert, find, currentPage) {
       }
     })
     .then(["I don't see $property"], function(property) {
-      assert.throws(
-        function() {
-          return currentPage()[property]();
-        },
-        function(e) {
-          return e.message.startsWith('Element not found');
-        },
-        `Expected to not see ${property}`
-      );
+      const prop = currentPage()[property].objectAt;
+      if (typeof prop === 'function') {
+        assert.throws(
+          function() {
+            return prop();
+          },
+          function(e) {
+            return e.message.startsWith('Element not found');
+          },
+          `Expected to not see ${property}`
+        );
+      } else {
+        assert.notOk(prop);
+      }
     })
     .then(['I see $property'], function(property) {
       assert.ok(currentPage()[property], `Expected to see ${property}`);
