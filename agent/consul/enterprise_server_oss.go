@@ -54,3 +54,7 @@ func (s *Server) revokeEnterpriseLeadership() error {
 func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, write bool) error {
 	return nil
 }
+
+func (_ *Server) addEnterpriseSerfTags(_ map[string]string) {
+	// do nothing
+}

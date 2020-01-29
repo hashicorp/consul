@@ -60,6 +60,8 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		return nil, err
 	}
 
+	c.addEnterpriseSerfTags(conf.Tags)
+
 	return serf.Create(conf)
 }
 
@@ -85,6 +87,7 @@ func (c *Client) lanEventHandler() {
 			case serf.EventUser:
 				c.localEvent(e.(serf.UserEvent))
 			case serf.EventMemberUpdate: // Ignore
+				c.nodeUpdate(e.(serf.MemberEvent))
 			case serf.EventQuery: // Ignore
 			default:
 				c.logger.Warn("unhandled LAN Serf Event", "event", e)
@@ -116,6 +119,25 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 		if c.config.ServerUp != nil {
 			c.config.ServerUp()
 		}
+	}
+}
+
+// nodeUpdate is used to handle update events on the serf cluster
+func (c *Client) nodeUpdate(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, parts := metadata.IsConsulServer(m)
+		if !ok {
+			continue
+		}
+		if parts.Datacenter != c.config.Datacenter {
+			c.logger.Warn("server has joined the wrong cluster: wrong datacenter",
+				"server", m.Name,
+				"datacenter", parts.Datacenter,
+			)
+			continue
+		}
+		c.logger.Info("updating server", "server", parts.String())
+		c.routers.AddServer(parts)
 	}
 }
 
