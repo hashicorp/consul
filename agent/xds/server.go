@@ -505,8 +505,9 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 	// Create an authz request
 	req := &structs.ConnectAuthorizeRequest{
-		Target:        destID.Service,
-		ClientCertURI: r.Attributes.Source.Principal,
+		Target:         destID.Service,
+		EnterpriseMeta: *destID.GetEnterpriseMeta(),
+		ClientCertURI:  r.Attributes.Source.Principal,
 		// TODO(banks): need Envoy to support sending cert serial/hash to enforce
 		// revocation later.
 	}
