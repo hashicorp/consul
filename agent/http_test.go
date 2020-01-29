@@ -22,6 +22,7 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -1251,4 +1252,140 @@ func jsonReader(v interface{}) io.Reader {
 		panic(err)
 	}
 	return b
+}
+
+func TestHTTPServer_HandshakeTimeout(t *testing.T) {
+	t.Parallel()
+
+	// Fire up an agent with TLS enabled.
+	a := NewTestAgentWithFields(t, true, TestAgent{
+		UseTLS: true,
+		HCL: `
+			key_file = "../test/client_certs/server.key"
+			cert_file = "../test/client_certs/server.crt"
+			ca_file = "../test/client_certs/rootca.crt"
+
+			limits {
+				https_handshake_timeout = "10ms"
+			}
+		`,
+	})
+	defer a.Shutdown()
+
+	// Connect to it with a plain TCP client that doesn't attempt to send HTTP or
+	// complete a TLS handshake.
+	conn, err := net.Dial("tcp", a.srv.ln.Addr().String())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Wait for more than the timeout. This is timing dependent so could fail if
+	// the CPU is super overloaded so the handler goroutine so I'm using a retry
+	// loop below to be sure but this feels like a pretty generous margin for
+	// error (10x the timeout and 100ms of scheduling time).
+	time.Sleep(100 * time.Millisecond)
+
+	// Set a read deadline on the Conn in case the timeout is not working we don't
+	// want the read below to block forever. Needs to be much longer than what we
+	// expect and the error should be different too.
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+
+	retry.Run(t, func(r *retry.R) {
+		// Sanity check the conn was closed by attempting to read from it (a write
+		// might not detect the close).
+		buf := make([]byte, 10)
+		_, err = conn.Read(buf)
+		require.Error(r, err)
+		require.Contains(r, err.Error(), "EOF")
+	})
+}
+
+func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name       string
+		tlsEnabled bool
+	}{
+		{"HTTP", false},
+		{"HTTPS", true},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+
+			hclPrefix := ""
+			if tc.tlsEnabled {
+				hclPrefix = `
+				key_file = "../test/client_certs/server.key"
+				cert_file = "../test/client_certs/server.crt"
+				ca_file = "../test/client_certs/rootca.crt"
+				`
+			}
+
+			// Fire up an agent with TLS enabled.
+			a := NewTestAgentWithFields(t, true, TestAgent{
+				UseTLS: tc.tlsEnabled,
+				HCL: hclPrefix + `
+					limits {
+						http_max_conns_per_client = 2
+					}
+				`,
+			})
+			defer a.Shutdown()
+
+			addr := a.srv.ln.Addr()
+
+			assertConn := func(conn net.Conn, wantOpen bool) {
+				retry.Run(t, func(r *retry.R) {
+					// Don't wait around as server won't be sending data but the read will fail
+					// immediately if the conn is closed.
+					conn.SetReadDeadline(time.Now().Add(1 * time.Millisecond))
+					buf := make([]byte, 10)
+					_, err := conn.Read(buf)
+					require.Error(r, err)
+					if wantOpen {
+						require.Contains(r, err.Error(), "i/o timeout",
+							"wanted an open conn (read timeout)")
+					} else {
+						require.Contains(r, err.Error(), "EOF", "wanted a closed conn")
+					}
+				})
+			}
+
+			// Connect to the server with bare TCP
+			conn1, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn1.Close()
+
+			assertConn(conn1, true)
+
+			// Two conns should succeed
+			conn2, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn2.Close()
+
+			assertConn(conn2, true)
+
+			// Third should succeed negotiating TCP handshake...
+			conn3, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn3.Close()
+
+			// But then be closed.
+			assertConn(conn3, false)
+
+			// Reload config with higher limit
+			newCfg := *a.config
+			newCfg.HTTPMaxConnsPerClient = 10
+			require.NoError(t, a.ReloadConfig(&newCfg))
+
+			// Now another conn should be allowed
+			conn4, err := net.DialTimeout("tcp", addr.String(), time.Second)
+			require.NoError(t, err)
+			defer conn4.Close()
+
+			assertConn(conn4, true)
+		})
+	}
 }

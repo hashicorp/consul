@@ -388,6 +388,12 @@ type Config struct {
 	// CheckOutputMaxSize control the max size of output of checks
 	CheckOutputMaxSize int
 
+	// RPCHandshakeTimeout limits how long we will wait for the initial magic byte
+	// on an RPC client connection. It also governs how long we will wait for a
+	// TLS handshake when TLS is configured however the timout applies separately
+	// for the initial magic byte and the TLS handshake and inner magic byte.
+	RPCHandshakeTimeout time.Duration
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -405,6 +411,10 @@ type Config struct {
 	// buckets.
 	RPCRate     rate.Limit
 	RPCMaxBurst int
+
+	// RPCMaxConnsPerClient is the limit of how many concurrent connections are
+	// allowed from a single source IP.
+	RPCMaxConnsPerClient int
 
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.

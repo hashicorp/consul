@@ -675,9 +675,13 @@ type UnixSocket struct {
 }
 
 type Limits struct {
-	RPCMaxBurst    *int     `json:"rpc_max_burst,omitempty" hcl:"rpc_max_burst" mapstructure:"rpc_max_burst"`
-	RPCRate        *float64 `json:"rpc_rate,omitempty" hcl:"rpc_rate" mapstructure:"rpc_rate"`
-	KVMaxValueSize *uint64  `json:"kv_max_value_size,omitempty" hcl:"kv_max_value_size" mapstructure:"kv_max_value_size"`
+	HTTPMaxConnsPerClient *int     `json:"http_max_conns_per_client,omitempty" hcl:"http_max_conns_per_client" mapstructure:"http_max_conns_per_client"`
+	HTTPSHandshakeTimeout *string  `json:"https_handshake_timeout,omitempty" hcl:"https_handshake_timeout" mapstructure:"https_handshake_timeout"`
+	RPCHandshakeTimeout   *string  `json:"rpc_handshake_timeout,omitempty" hcl:"rpc_handshake_timeout" mapstructure:"rpc_handshake_timeout"`
+	RPCMaxBurst           *int     `json:"rpc_max_burst,omitempty" hcl:"rpc_max_burst" mapstructure:"rpc_max_burst"`
+	RPCMaxConnsPerClient  *int     `json:"rpc_max_conns_per_client,omitempty" hcl:"rpc_max_conns_per_client" mapstructure:"rpc_max_conns_per_client"`
+	RPCRate               *float64 `json:"rpc_rate,omitempty" hcl:"rpc_rate" mapstructure:"rpc_rate"`
+	KVMaxValueSize        *uint64  `json:"kv_max_value_size,omitempty" hcl:"kv_max_value_size" mapstructure:"kv_max_value_size"`
 }
 
 type Segment struct {

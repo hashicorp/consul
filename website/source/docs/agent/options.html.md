@@ -1369,18 +1369,67 @@ default will automatically work with some tooling.
   value was unconditionally set to `false`). On agents in client-mode, this defaults to `true`
   and for agents in server-mode, this defaults to `false`.
 
-* <a name="limits"></a><a href="#limits">`limits`</a> Available in Consul 0.9.3 and later, this
-  is a nested object that configures limits that are enforced by the agent. Currently, this only
-  applies to agents in client mode, not Consul servers. The following parameters are available:
+* <a name="limits"></a><a href="#limits">`limits`</a> Available in Consul 0.9.3
+  and later, this is a nested object that configures limits that are enforced by
+  the agent. The following parameters are available:
 
-    *   <a name="rpc_rate"></a><a href="#rpc_rate">`rpc_rate`</a> - Configures the RPC rate
-        limiter by setting the maximum request rate that this agent is allowed to make for RPC
-        requests to Consul servers, in requests per second. Defaults to infinite, which disables
+    *   <a name="http_max_conns_per_client"></a><a
+        href="#http_max_conns_per_client">`http_max_conns_per_client`</a> -
+        Configures a limit of how many concurrent TCP connections a single
+        client IP address is allowed to open to the agent's HTTP(S) server. This
+        affects the HTTP(S) servers in both client and server agents. Default
+        value is `100`.
+    *   <a name="https_handshake_timeout"></a><a
+        href="#https_handshake_timeout">`https_handshake_timeout`</a> -
+        Configures the limit for how long the HTTPS server in both client and
+        server agents will wait for a client to complete a TLS handshake. This
+        should be kept conservative as it limits how many connections an
+        unauthenticated attacker can open if `verify_incoming` is being using to
+        authenticate clients (strongly recommended in production). Default value
+        is `5s`.
+    *   <a name="rpc_handshake_timeout"></a><a
+        href="#rpc_handshake_timeout">`rpc_handshake_timeout`</a> - Configures
+        the limit for how long servers will wait after a client TCP connection
+        is established before they complete the connection handshake. When TLS
+        is used, the same timeout applies to the TLS handshake separately from
+        the initial protocol negotiation. All Consul clients should perform this
+        immediately on establishing a new connection. This should be kept
+        conservative as it limits how many connections an unauthenticated
+        attacker can open if `verify_incoming` is being using to authenticate
+        clients (strongly recommended in production). When `verify_incoming` is
+        true on servers, this limits how long the connection socket and
+        associated goroutines will be held open before the client successfully
+        authenticates. Default value is `5s`.
+    *   <a name="rpc_max_conns_per_client"></a><a
+        href="#rpc_max_conns_per_client">`rpc_max_conns_per_client`</a> -
+        Configures a limit of how many concurrent TCP connections a single
+        source IP address is allowed to open to a single server. It affects both
+        clients connections and other server connections. In general Consul
+        clients multiplex many RPC calls over a single TCP connection so this
+        can typically be kept low. It needs to be more than one though since
+        servers open at least one additional connection for raft RPC, possibly
+        more for WAN federation when using network areas, and snapshot requests
+        from clients run over a separate TCP conn. A reasonably low limit
+        significantly reduces the ability of an unauthenticated attacker to
+        consume unbounded resources by holding open many connections. You may
+        need to increase this if WAN federated servers connect via proxies or
+        NAT gateways or similar causing many legitimate connections from a
+        single source IP. Default value is `100` which is designed to be
+        extremely conservative to limit issues with certain deployment patterns.
+        Most deployments can probably reduce this safely. 100 connections on
+        modern server hardware should not cause a significant impact on resource
+        usage from an unauthenticated attacker though.
+    *   <a name="rpc_rate"></a><a href="#rpc_rate">`rpc_rate`</a> - Configures
+        the RPC rate limiter on Consul _clients_ by setting the maximum request
+        rate that this agent is allowed to make for RPC requests to Consul
+        servers, in requests per second. Defaults to infinite, which disables
         rate limiting.
-    *   <a name="rpc_rate"></a><a href="#rpc_max_burst">`rpc_max_burst`</a> - The size of the token
-        bucket used to recharge the RPC rate limiter. Defaults to 1000 tokens, and each token is
-        good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket
-        for more details about how token bucket rate limiters operate.
+    *   <a name="rpc_max_burst"></a><a href="#rpc_max_burst">`rpc_max_burst`</a> -
+        The size of the token bucket used to recharge the RPC rate limiter on
+        Consul _clients_ . Defaults to 1000 tokens, and each token is good for a
+        single RPC call to a Consul server. See
+        https://en.wikipedia.org/wiki/Token_bucket for more details about how
+        token bucket rate limiters operate.
 
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).

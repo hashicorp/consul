@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-raftchunking"
@@ -64,6 +65,16 @@ func (s *Server) listen(listener net.Listener) {
 			continue
 		}
 
+		free, err := s.rpcConnLimiter.Accept(conn)
+		if err != nil {
+			s.rpcLogger().Error("rejecting RPC conn from %s"+
+				" rpc_max_conns_per_client exceeded", conn.RemoteAddr().String())
+			conn.Close()
+			continue
+		}
+		// Wrap conn so it will be auto-freed from conn limiter when it closes.
+		conn = connlimit.Wrap(conn, free)
+
 		go s.handleConn(conn, false)
 		metrics.IncrCounter([]string{"rpc", "accept_conn"}, 1)
 	}
@@ -78,8 +89,17 @@ func logConn(conn net.Conn) string {
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
 func (s *Server) handleConn(conn net.Conn, isTLS bool) {
+
 	// Read a single byte
 	buf := make([]byte, 1)
+
+	// Limit how long the client can hold the connection open before they send the
+	// magic byte (and authenticate when mTLS is enabled). If `isTLS == true` then
+	// this also enforces a timeout on how long it takes for the handshake to
+	// complete since tls.Conn.Read implicitly calls Handshake().
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Now().Add(s.config.RPCHandshakeTimeout))
+	}
 	if _, err := conn.Read(buf); err != nil {
 		if err != io.EOF {
 			s.rpcLogger().Error("failed to read byte",
@@ -91,6 +111,12 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		return
 	}
 	typ := pool.RPCType(buf[0])
+
+	// Reset the deadline as we aren't sure what is expected next - it depends on
+	// the protocol.
+	if s.config.RPCHandshakeTimeout > 0 {
+		conn.SetReadDeadline(time.Time{})
+	}
 
 	// Enforce TLS if VerifyIncoming is set
 	if s.tlsConfigurator.VerifyIncomingRPC() && !isTLS && typ != pool.RPCTLS && typ != pool.RPCTLSInsecure {
@@ -109,6 +135,12 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.raftLayer.Handoff(conn)
 
 	case pool.RPCTLS:
+		// Don't allow malicious client to create TLS-in-TLS for ever.
+		if isTLS {
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection %s", logConn(conn))
+			conn.Close()
+			return
+		}
 		conn = tls.Server(conn, s.tlsConfigurator.IncomingRPCConfig())
 		s.handleConn(conn, true)
 
@@ -119,6 +151,12 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleSnapshotConn(conn)
 
 	case pool.RPCTLSInsecure:
+		// Don't allow malicious client to create TLS-in-TLS for ever.
+		if isTLS {
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection %s", logConn(conn))
+			conn.Close()
+			return
+		}
 		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
 		s.handleInsecureConn(conn)
 

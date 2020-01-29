@@ -3455,6 +3455,28 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+
+		///////////////////////////////////
+		// Defaults sanity checks
+
+		{
+			desc: "default limits",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				// Note that in the happy case this test will pass even if you comment
+				// out all the stuff below since rt is also initialized from the
+				// defaults. But it's still valuable as it will fail as soon as the
+				// defaults are changed from these values forcing that change to be
+				// intentional.
+				rt.RPCHandshakeTimeout = 5 * time.Second
+				rt.HTTPSHandshakeTimeout = 5 * time.Second
+				rt.HTTPMaxConnsPerClient = 100
+				rt.RPCMaxConnsPerClient = 100
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -3871,8 +3893,12 @@ func TestFullConfig(t *testing.T) {
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
+				"http_max_conns_per_client": 9283,
+				"https_handshake_timeout": "2391ms",
+				"rpc_handshake_timeout": "1932ms",
 				"rpc_rate": 12029.43,
 				"rpc_max_burst": 44848,
+				"rpc_max_conns_per_client": 2954,
 				"kv_max_value_size": 1234567800000000
 			},
 			"log_level": "k1zo9Spt",
@@ -4477,8 +4503,12 @@ func TestFullConfig(t *testing.T) {
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
+				http_max_conns_per_client = 9283
+				https_handshake_timeout = "2391ms"
+				rpc_handshake_timeout = "1932ms"
 				rpc_rate = 12029.43
 				rpc_max_burst = 44848
+				rpc_max_conns_per_client = 2954
 				kv_max_value_size = 1234567800000000
 			}
 			log_level = "k1zo9Spt"
@@ -5170,6 +5200,8 @@ func TestFullConfig(t *testing.T) {
 		HTTPPort:                         7999,
 		HTTPResponseHeaders:              map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                       []net.Addr{tcpAddr("95.17.17.19:15127")},
+		HTTPMaxConnsPerClient:            9283,
+		HTTPSHandshakeTimeout:            2391 * time.Millisecond,
 		HTTPSPort:                        15127,
 		KeyFile:                          "IEkkwgIA",
 		KVMaxValueSize:                   1234567800000000,
@@ -5186,10 +5218,12 @@ func TestFullConfig(t *testing.T) {
 		PrimaryDatacenter:                "ejtmd43d",
 		RPCAdvertiseAddr:                 tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:                      tcpAddr("16.99.34.17:3757"),
+		RPCHandshakeTimeout:              1932 * time.Millisecond,
 		RPCHoldTimeout:                   15707 * time.Second,
 		RPCProtocol:                      30793,
 		RPCRateLimit:                     12029.43,
 		RPCMaxBurst:                      44848,
+		RPCMaxConnsPerClient:             2954,
 		RaftProtocol:                     19016,
 		RaftSnapshotThreshold:            16384,
 		RaftSnapshotInterval:             30 * time.Second,
@@ -6039,9 +6073,11 @@ func TestSanitize(t *testing.T) {
 			"unix:///var/run/foo"
 		],
 		"HTTPBlockEndpoints": [],
+		"HTTPMaxConnsPerClient": 0,
 		"HTTPPort": 0,
 		"HTTPResponseHeaders": {},
 		"HTTPSAddrs": [],
+		"HTTPSHandshakeTimeout": "0s",
 		"HTTPSPort": 0,
 		"KeyFile": "hidden",
 		"KVMaxValueSize": 1234567800000000,
@@ -6062,8 +6098,10 @@ func TestSanitize(t *testing.T) {
 		"PrimaryDatacenter": "",
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
+		"RPCHandshakeTimeout": "0s",
 		"RPCHoldTimeout": "0s",
 		"RPCMaxBurst": 0,
+		"RPCMaxConnsPerClient": 0,
 		"RPCProtocol": 0,
 		"RPCRateLimit": 0,
 		"RaftProtocol": 0,
