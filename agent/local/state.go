@@ -1361,8 +1361,11 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 // so we can safely log it without handling non-critical errors at the usage site.
 func (l *State) aclAccessorID(secretID string) string {
 	_, ident, err := l.Delegate.ResolveIdentityFromToken(secretID)
+	if acl.IsErrNotFound(err) {
+		return ""
+	}
 	if err != nil {
-		l.logger.Debug("error", err)
+		l.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
 	if ident == nil {

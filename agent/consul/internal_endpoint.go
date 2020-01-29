@@ -266,8 +266,11 @@ func (m *Internal) executeKeyringOpMgr(
 // so we can safely log it without handling non-critical errors at the usage site.
 func (m *Internal) aclAccessorID(secretID string) string {
 	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
+	if acl.IsErrNotFound(err) {
+		return ""
+	}
 	if err != nil {
-		m.srv.logger.Debug("error", err)
+		m.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
 	if ident == nil {

@@ -1982,7 +1982,7 @@ OUTER:
 				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
-						a.logger.Warn("Coordinate update blocked by ACLs", "accesorID", accessorID)
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
 					}

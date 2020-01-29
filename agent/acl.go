@@ -61,8 +61,11 @@ func (a *Agent) resolveIdentityFromToken(secretID string) (bool, structs.ACLIden
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
 	_, ident, err := a.resolveIdentityFromToken(secretID)
+	if acl.IsErrNotFound(err) {
+		return ""
+	}
 	if err != nil {
-		a.logger.Debug("error", err)
+		a.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
 	if ident == nil {

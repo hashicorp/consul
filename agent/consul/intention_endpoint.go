@@ -472,8 +472,11 @@ func (s *Intention) Check(
 // so we can safely log it without handling non-critical errors at the usage site.
 func (s *Intention) aclAccessorID(secretID string) string {
 	_, ident, err := s.srv.ResolveIdentityFromToken(secretID)
+	if acl.IsErrNotFound(err) {
+		return ""
+	}
 	if err != nil {
-		s.srv.logger.Debug("error", err)
+		s.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
 		return ""
 	}
 	if ident == nil {
