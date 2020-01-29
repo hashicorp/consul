@@ -396,7 +396,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig},
 		Rate:     s.config.ConfigReplicationRate,
 		Burst:    s.config.ConfigReplicationBurst,
-		Logger:   s.loggers.Named(logging.Replication).Named(logging.ConfigEntry),
+		Logger:   s.logger,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {

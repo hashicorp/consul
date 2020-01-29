@@ -8,7 +8,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -119,14 +118,12 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 }
 
 func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
-	replicationLogger := s.loggers.Named(logging.Replication).Named(logging.ConfigEntry)
-
 	remote, err := s.fetchConfigEntries(lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote config entries: %v", err)
 	}
 
-	replicationLogger.Debug("finished fetching config entries", "amount", len(remote.Entries))
+	logger.Debug("finished fetching config entries", "amount", len(remote.Entries))
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
@@ -162,14 +159,14 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 	// The lastRemoteIndex is not used when the entry exists either only in the local state or
 	// only in the remote state. In those situations we need to either delete it or create it.
 	if remote.QueryMeta.Index < lastRemoteIndex {
-		replicationLogger.Warn("Config Entry replication remote index moved backwards, forcing a full Config Entry sync",
+		logger.Warn("Config Entry replication remote index moved backwards, forcing a full Config Entry sync",
 			"from", lastRemoteIndex,
 			"to", remote.QueryMeta.Index,
 		)
 		lastRemoteIndex = 0
 	}
 
-	replicationLogger.Debug("Config Entry replication",
+	logger.Debug("Config Entry replication",
 		"local", len(local),
 		"remote", len(remote.Entries),
 	)
@@ -177,13 +174,13 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 	// apply them.
 	deletions, updates := diffConfigEntries(local, remote.Entries, lastRemoteIndex)
 
-	replicationLogger.Debug("Config Entry replication",
+	logger.Debug("Config Entry replication",
 		"deletions", len(deletions),
 		"updates", len(updates),
 	)
 
 	if len(deletions) > 0 {
-		replicationLogger.Debug("Deleting local config entries",
+		logger.Debug("Deleting local config entries",
 			"deletions", len(deletions),
 		)
 
@@ -194,11 +191,11 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to delete local config entries: %v", err)
 		}
-		replicationLogger.Debug("Config Entry replication - finished deletions")
+		logger.Debug("Config Entry replication - finished deletions")
 	}
 
 	if len(updates) > 0 {
-		replicationLogger.Debug("Updating local config entries",
+		logger.Debug("Updating local config entries",
 			"updates", len(updates),
 		)
 		exit, err := s.reconcileLocalConfig(ctx, updates, structs.ConfigEntryUpsert)
@@ -208,7 +205,7 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to update local config entries: %v", err)
 		}
-		replicationLogger.Debug("Config Entry replication - finished updates")
+		logger.Debug("Config Entry replication - finished updates")
 	}
 
 	// Return the index we got back from the remote side, since we've synced
