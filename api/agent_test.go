@@ -1666,3 +1666,704 @@ func TestAgentService_ExposeChecks(t *testing.T) {
 	require.True(t, svc.Proxy.Expose.Checks)
 	require.Equal(t, path, svc.Proxy.Expose.Paths[0])
 }
+
+var (
+	jsonSnakeCaseServiceDefinition = `{
+		"services": [
+			{
+				"kind": "connect-proxy",
+				"id": "web1",
+				"name":  "web",
+				"tags": ["linux","production"],
+				"port": 1234,
+				"address": "198.18.0.1",
+				"tagged_addresses": {
+					"wan": {
+						"address": "1.2.3.4",
+						"port": 876
+					}
+				},
+				"enable_tag_override": true,
+				"meta": {
+					"foo": "bar"
+				},
+				"weights": {
+					"passing": 1,
+					"warning": 2
+				},
+				"check": {
+					"check_id": "singleton",
+					"name": "blarg",
+					"args": ["just", "for", "testing"],
+					"docker_container_id": "25887eef-fa55-4140-a691-e48e3f46841f",
+					"shell": "/bin/bash",
+					"interval": "30s",
+					"timeout": "10s",
+					"ttl": "120s",
+					"http": "http",
+					"header": {
+						"foo": ["bar", "baz"]
+					},
+					"method": "GET",
+					"tcp": "88",
+					"status": "passing",
+					"notes": "asdf",
+					"tls_skip_verify": true,
+					"grpc": "blah",
+					"grpc_use_tls": true,
+					"alias_node": "so-many-fields",
+					"alias_service": "fuzz",
+					"deregister_critical_service_after": "90s"
+				},
+				"checks": [
+					{
+						"check_id": "singleton2",
+						"name": "blarg2",
+						"args": ["just", "for", "testing"],
+						"docker_container_id": "25887eef-fa55-4140-a691-e48e3f46841f",
+						"shell": "/bin/bash",
+						"interval": "30s",
+						"timeout": "10s",
+						"ttl": "120s",
+						"http": "http",
+						"header": {
+							"foo": ["bar", "baz"]
+						},
+						"method": "GET",
+						"tcp": "88",
+						"status": "passing",
+						"notes": "asdf",
+						"tls_skip_verify": true,
+						"grpc": "blah",
+						"grpc_use_tls": true,
+						"alias_node": "so-many-fields",
+						"alias_service": "fuzz",
+						"deregister_critical_service_after": "90s"
+					}
+				],
+				"proxy": {
+					"destination_service_name": "fake-name",
+					"destination_service_id": "fake-id",
+					"local_service_address": "127.0.0.1",
+					"local_service_port": 5432,
+					"config": {
+						"foo": "bar"
+					},
+					"upstreams": [
+						{
+							"destination_type": "prepared_query",
+							"destination_namespace": "ns2",
+							"destination_name": "dest-svc",
+							"datacenter": "secondary",
+							"local_bind_address": "127.0.0.1",
+							"local_bind_port": 6789,
+							"config": {
+								"foo": "bar"
+							},
+							"mesh_gateway": {
+								"mode": "none"
+							}
+						}
+					],
+					"mesh_gateway": {
+						"mode": "local"
+					},
+					"expose": {
+						"checks": true,
+						"paths": [
+							{
+								"listener_port": 99,
+								"path": "/foo",
+								"local_path_port": 9999,
+								"protocol": "http",
+								"parsed_from_check": true
+							}
+						]
+					}
+				},
+				"connect": {
+					"native": true,
+					"sidecar_service": {}
+				},
+				"namespace": "baz"
+			}
+		]
+	}`
+
+	x = map[string]interface{}{"services": []map[string]interface{}{map[string]interface{}{"address": "198.18.0.1", "check": map[string]interface{}{"alias_node": "so-many-fields", "alias_service": "fuzz", "args": []interface{}{"just", "for", "testing"}, "check_id": "singleton", "deregister_critical_service_after": "90s", "docker_container_id": "25887eef-fa55-4140-a691-e48e3f46841f", "grpc": "blah", "grpc_use_tls": true, "header": map[string]interface{}{"foo": []interface{}{"bar", "baz"}}, "http": "http", "interval": "30s", "method": "GET", "name": "blarg", "notes": "asdf", "shell": "/bin/bash", "status": "passing", "tcp": "88", "timeout": "10s", "tls_skip_verify": true, "ttl": "120s"}, "checks": []map[string]interface{}{map[string]interface{}{"alias_node": "so-many-fields", "alias_service": "fuzz", "args": []interface{}{"just", "for", "testing"}, "check_id": "singleton2", "deregister_critical_service_after": "90s", "docker_container_id": "25887eef-fa55-4140-a691-e48e3f46841f", "grpc": "blah", "grpc_use_tls": true, "header": map[string]interface{}{"foo": []interface{}{"bar", "baz"}}, "http": "http", "interval": "30s", "method": "GET", "name": "blarg2", "notes": "asdf", "shell": "/bin/bash", "status": "passing", "tcp": "88", "timeout": "10s", "tls_skip_verify": true, "ttl": "120s"}}, "connect": map[string]interface{}{"native": true, "sidecar_service": map[string]interface{}{}}, "enable_tag_override": true, "id": "web1", "kind": "connect-proxy", "meta": map[string]interface{}{"foo": "bar"}, "name": "web", "namespace": "baz", "port": 1234, "proxy": map[string]interface{}{"config": map[string]interface{}{"foo": "bar"}, "destination_service_id": "fake-id", "destination_service_name": "fake-name", "expose": map[string]interface{}{"checks": true, "paths": []map[string]interface{}{map[string]interface{}{"listener_port": 99, "local_path_port": 9999, "parsed_from_check": true, "path": "/foo", "protocol": "http"}}}, "local_service_address": "127.0.0.1", "local_service_port": 5432, "mesh_gateway": map[string]interface{}{"mode": "local"}, "upstreams": []map[string]interface{}{map[string]interface{}{"config": map[string]interface{}{"foo": "bar"}, "datacenter": "secondary", "destination_name": "dest-svc", "destination_namespace": "ns2", "destination_type": "prepared_query", "local_bind_address": "127.0.0.1", "local_bind_port": 6789, "mesh_gateway": map[string]interface{}{"mode": "none"}}}}, "tagged_addresses": map[string]interface{}{"wan": map[string]interface{}{"address": "1.2.3.4", "port": 876}}, "tags": []interface{}{"linux", "production"}, "weights": map[string]interface{}{"passing": 1, "warning": 2}}}}
+
+	jsonCamelCaseServiceDefinition = `{
+		"Services": [
+			{
+				"Kind": "connect-proxy",
+				"ID": "web1",
+				"Name":  "web",
+				"Tags": ["linux","production"],
+				"Port": 1234,
+				"Address": "198.18.0.1",
+				"TaggedAddresses": {
+					"wan": {
+						"Address": "1.2.3.4",
+						"Port": 876
+					}
+				},
+				"EnableTagOverride": true,
+				"Meta": {
+					"foo": "bar"
+				},
+				"Weights": {
+					"Passing": 1,
+					"Warning": 2
+				},
+				"Check": {
+					"CheckID": "singleton",
+					"Name": "blarg",
+					"Args": ["just", "for", "testing"],
+					"DockerContainerID": "25887eef-fa55-4140-a691-e48e3f46841f",
+					"Shell": "/bin/bash",
+					"Interval": "30s",
+					"Timeout": "10s",
+					"TTL": "120s",
+					"HTTP": "http",
+					"Header": {
+						"foo": ["bar", "baz"]
+					},
+					"Method": "GET",
+					"TCP": "88",
+					"Status": "passing",
+					"Notes": "asdf",
+					"TLSSkipVerify": true,
+					"GRPC": "blah",
+					"GRPCUseTLS": true,
+					"AliasNode": "so-many-fields",
+					"AliasService": "fuzz",
+					"DeregisterCriticalServiceAfter": "90s"
+				},
+				"Checks": [
+					{
+						"CheckID": "singleton2",
+						"Name": "blarg2",
+						"Args": ["just", "for", "testing"],
+						"DockerContainerID": "25887eef-fa55-4140-a691-e48e3f46841f",
+						"Shell": "/bin/bash",
+						"Interval": "30s",
+						"Timeout": "10s",
+						"TTL": "120s",
+						"HTTP": "http",
+						"Header": {
+							"foo": ["bar", "baz"]
+						},
+						"Method": "GET",
+						"TCP": "88",
+						"Status": "passing",
+						"Notes": "asdf",
+						"TLSSkipVerify": true,
+						"GRPC": "blah",
+						"GRPCUseTLS": true,
+						"AliasNode": "so-many-fields",
+						"AliasService": "fuzz",
+						"DeregisterCriticalServiceAfter": "90s"
+					}
+				],
+				"Proxy": {
+					"DestinationServiceName": "fake-name",
+					"DestinationServiceID": "fake-id",
+					"LocalServiceAddress": "127.0.0.1",
+					"LocalServicePort": 5432,
+					"Config": {
+						"foo": "bar"
+					},
+					"Upstreams": [
+						{
+							"DestinationType": "prepared_query",
+							"DestinationNamespace": "ns2",
+							"DestinationName": "dest-svc",
+							"Datacenter": "secondary",
+							"LocalBindAddress": "127.0.0.1",
+							"LocalBindPort": 6789,
+							"Config": {
+								"foo": "bar"
+							},
+							"MeshGateway": {
+								"mode": "none"
+							}
+						}
+					],
+					"MeshGateway": {
+						"Mode": "local"
+					},
+					"Expose": {
+						"Checks": true,
+						"Paths": [
+							{
+								"ListenerPort": 99,
+								"Path": "/foo",
+								"LocalPathPort": 9999,
+								"Protocol": "http",
+								"ParsedFromCheck": true
+							}
+						]
+					}
+				},
+				"Connect": {
+					"Native": true,
+					"SidecarService": {}
+				},
+				"Namespace": "baz"
+			}
+		]
+	}`
+
+	hclSnakeCaseServiceDefinition = `
+		services {
+			kind = "connect-proxy"
+			id = "web1"
+			name =  "web"
+			tags = ["linux", "production"]
+			port = 1234
+			address = "198.18.0.1"
+			tagged_addresses {
+				wan {
+					address = "1.2.3.4"
+					port = 876
+				}
+			}
+			enable_tag_override = true
+			meta {
+				foo = "bar"
+			}
+			weights {
+				passing = 1
+				warning = 2
+			}
+			check {
+				check_id = "singleton"
+				name = "blarg"
+				args = ["just", "for", "testing"]
+				docker_container_id = "25887eef-fa55-4140-a691-e48e3f46841f"
+				shell = "/bin/bash"
+				interval = "30s"
+				timeout = "10s"
+				ttl = "120s"
+				http = "http"
+				header {
+					foo = ["bar","baz"]
+				}
+				method = "GET"
+				tcp = "88"
+				status = "passing"
+				notes = "asdf"
+				tls_skip_verify = true
+				grpc = "blah"
+				grpc_use_tls = true
+				alias_node = "so-many-fields"
+				alias_service = "fuzz"
+				deregister_critical_service_after = "90s"
+			}
+			checks {
+				check_id = "singleton2"
+				name = "blarg2"
+				args = ["just","for","testing"]
+				docker_container_id = "25887eef-fa55-4140-a691-e48e3f46841f"
+				shell = "/bin/bash"
+				interval = "30s"
+				timeout = "10s"
+				ttl = "120s"
+				http = "http"
+				header {
+					foo = ["bar","baz"]
+				}
+				method = "GET"
+				tcp = "88"
+				status = "passing"
+				notes = "asdf"
+				tls_skip_verify = true
+				grpc = "blah"
+				grpc_use_tls = true
+				alias_node = "so-many-fields"
+				alias_service = "fuzz"
+				deregister_critical_service_after = "90s"
+			}
+			proxy {
+				destination_service_name = "fake-name"
+				destination_service_id = "fake-id"
+				local_service_address = "127.0.0.1"
+				local_service_port = 5432
+				config {
+					foo = "bar"
+				}
+				upstreams {
+					destination_type = "prepared_query"
+					destination_namespace = "ns2"
+					destination_name = "dest-svc"
+					datacenter = "secondary"
+					local_bind_address = "127.0.0.1"
+					local_bind_port = 6789
+					config {
+						foo = "bar"
+					}
+					mesh_gateway {
+						mode = "none"
+					}
+				}
+				mesh_gateway {
+					mode = "local"
+				}
+				expose {
+					checks = true
+					paths {
+						listener_port = 99
+						path = "/foo"
+						local_path_port = 9999
+						protocol = "http"
+						parsed_from_check = true
+					}
+				}
+			}
+			connect {
+				native = true
+				sidecar_service {}
+			}
+			namespace = "baz"
+		}
+	`
+
+	hclCamelCaseServiceDefinition = `
+		Services {
+			Kind = "connect-proxy"
+			ID = "web1"
+			Name =  "web"
+			Tags = ["linux", "production"]
+			Port = 1234
+			Address = "198.18.0.1"
+			TaggedAddresses {
+				wan {
+					Address = "1.2.3.4"
+					Port = 876
+				}
+			}
+			EnableTagOverride = true
+			Meta {
+				foo = "bar"
+			}
+			Weights {
+				Passing = 1
+				Warning = 2
+			}
+			Check {
+				CheckID = "singleton"
+				Name = "blarg"
+				Args = ["just", "for", "testing"]
+				DockerContainerID = "25887eef-fa55-4140-a691-e48e3f46841f"
+				Shell = "/bin/bash"
+				Interval = "30s"
+				Timeout = "10s"
+				TTL = "120s"
+				HTTP = "http"
+				Header {
+					foo = ["bar","baz"]
+				}
+				Method = "GET"
+				Tcp = "88"
+				Status = "passing"
+				Notes = "asdf"
+				TLSSKipVerify = true
+				GRPC = "blah"
+				GRPCUseTLS = true
+				AliasNode = "so-many-fields"
+				AliasService = "fuzz"
+				DeregisterCriticalServiceAfter = "90s"
+			}
+			Checks {
+				CheckID = "singleton2"
+				Name = "blarg2"
+				Args = ["just", "for", "testing"]
+				DockerContainerID = "25887eef-fa55-4140-a691-e48e3f46841f"
+				Shell = "/bin/bash"
+				Interval = "30s"
+				Timeout = "10s"
+				TTL = "120s"
+				HTTP = "http"
+				Header {
+					foo = ["bar","baz"]
+				}
+				Method = "GET"
+				Tcp = "88"
+				Status = "passing"
+				Notes = "asdf"
+				TLSSKipVerify = true
+				GRPC = "blah"
+				GRPCUseTLS = true
+				AliasNode = "so-many-fields"
+				AliasService = "fuzz"
+				DeregisterCriticalServiceAfter = "90s"
+			}
+			Proxy {
+				DestinationServiceName = "fake-name"
+				DestinationServiceID = "fake-id"
+				LocalServiceAddress = "127.0.0.1"
+				LocalServicePort = 5432
+				Config {
+					foo = "bar"
+				}
+				Upstreams {
+					DestinationType = "prepared_query"
+					DestinationNamespace = "ns2"
+					DestinationName = "dest-svc"
+					Datacenter = "secondary"
+					LocalBindAddress = "127.0.0.1"
+					LocalBindPort = 6789
+					Config {
+						foo = "bar"
+					}
+					MeshGateway {
+						Mode = "none"
+					}
+				}
+				MeshGateway {
+					Mode = "local"
+				}
+				Expose {
+					Checks = true
+					Paths {
+						ListenerPort = 99
+						path = "/foo"
+						LocalPathPort = 9999
+						protocol = "http"
+						ParsedFromCheck = true
+					}
+				}
+			}
+			Connect {
+				Native = true
+				SidecarService {}
+			}
+			Namespace = "baz"
+		}
+	`
+
+	expectAllFieldsSingleService = []*AgentServiceRegistration{
+		&AgentServiceRegistration{
+			Kind:    ServiceKindConnectProxy,
+			ID:      "web1",
+			Name:    "web",
+			Tags:    []string{"linux", "production"},
+			Port:    1234,
+			Address: "198.18.0.1",
+			TaggedAddresses: map[string]ServiceAddress{
+				"wan": ServiceAddress{
+					Address: "1.2.3.4",
+					Port:    876,
+				},
+			},
+			EnableTagOverride: true,
+			Meta: map[string]string{
+				"foo": "bar",
+			},
+			Weights: &AgentWeights{
+				Passing: 1,
+				Warning: 2,
+			},
+			Check: &AgentServiceCheck{
+				CheckID:           "singleton",
+				Name:              "blarg",
+				Args:              []string{"just", "for", "testing"},
+				DockerContainerID: "25887eef-fa55-4140-a691-e48e3f46841f",
+				Shell:             "/bin/bash",
+				Interval:          "30s",
+				Timeout:           "10s",
+				TTL:               "120s",
+				HTTP:              "http",
+				Header: map[string][]string{
+					"foo": []string{"bar", "baz"},
+				},
+				Method:                         "GET",
+				TCP:                            "88",
+				Status:                         "passing",
+				Notes:                          "asdf",
+				TLSSkipVerify:                  true,
+				GRPC:                           "blah",
+				GRPCUseTLS:                     true,
+				AliasNode:                      "so-many-fields",
+				AliasService:                   "fuzz",
+				DeregisterCriticalServiceAfter: "90s",
+			},
+			Checks: AgentServiceChecks{
+				&AgentServiceCheck{
+					CheckID:           "singleton2",
+					Name:              "blarg2",
+					Args:              []string{"just", "for", "testing"},
+					DockerContainerID: "25887eef-fa55-4140-a691-e48e3f46841f",
+					Shell:             "/bin/bash",
+					Interval:          "30s",
+					Timeout:           "10s",
+					TTL:               "120s",
+					HTTP:              "http",
+					Header: map[string][]string{
+						"foo": []string{"bar", "baz"},
+					},
+					Method:                         "GET",
+					TCP:                            "88",
+					Status:                         "passing",
+					Notes:                          "asdf",
+					TLSSkipVerify:                  true,
+					GRPC:                           "blah",
+					GRPCUseTLS:                     true,
+					AliasNode:                      "so-many-fields",
+					AliasService:                   "fuzz",
+					DeregisterCriticalServiceAfter: "90s",
+				},
+			},
+			Proxy: &AgentServiceConnectProxyConfig{
+				DestinationServiceName: "fake-name",
+				DestinationServiceID:   "fake-id",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       5432,
+				Config: map[string]interface{}{
+					"foo": "bar",
+				},
+				Upstreams: []Upstream{
+					{
+						DestinationType:      "prepared_query",
+						DestinationNamespace: "ns2",
+						DestinationName:      "dest-svc",
+						Datacenter:           "secondary",
+						LocalBindAddress:     "127.0.0.1",
+						LocalBindPort:        6789,
+						Config: map[string]interface{}{
+							"foo": "bar",
+						},
+						MeshGateway: MeshGatewayConfig{
+							Mode: MeshGatewayModeNone,
+						},
+					},
+				},
+				MeshGateway: MeshGatewayConfig{
+					Mode: MeshGatewayModeLocal,
+				},
+				Expose: ExposeConfig{
+					Checks: true,
+					Paths: []ExposePath{
+						ExposePath{
+							ListenerPort:    99,
+							Path:            "/foo",
+							LocalPathPort:   9999,
+							Protocol:        "http",
+							ParsedFromCheck: true,
+						},
+					},
+				},
+			},
+			Connect: &AgentServiceConnect{
+				Native:         true,
+				SidecarService: &AgentServiceRegistration{},
+			},
+			Namespace: "baz",
+		},
+	}
+)
+
+func TestAPI_ServicesFromFiles(t *testing.T) {
+	// takes in a directory where it can create files
+	// outputs a list of files to pass to ServicesFromFiles
+	type tcaseSetup func(t *testing.T, dir string) []string
+
+	type tcase struct {
+		setup    tcaseSetup
+		expected []*AgentServiceRegistration
+	}
+
+	cases := map[string]tcase{
+		"json-snake-case": {
+			setup: func(t *testing.T, dir string) []string {
+				fp := filepath.Join(dir, "test.json")
+				require.NoError(t, ioutil.WriteFile(fp, []byte(jsonSnakeCaseServiceDefinition), 0644))
+				return []string{fp}
+			},
+			expected: expectAllFieldsSingleService,
+		},
+		"json-camel-case": {
+			setup: func(t *testing.T, dir string) []string {
+				fp := filepath.Join(dir, "test.json")
+				require.NoError(t, ioutil.WriteFile(fp, []byte(jsonCamelCaseServiceDefinition), 0644))
+				return []string{fp}
+			},
+			expected: expectAllFieldsSingleService,
+		},
+		"hcl-snake-case": {
+			setup: func(t *testing.T, dir string) []string {
+				fp := filepath.Join(dir, "test.hcl")
+				require.NoError(t, ioutil.WriteFile(fp, []byte(hclSnakeCaseServiceDefinition), 0644))
+				return []string{fp}
+			},
+			expected: expectAllFieldsSingleService,
+		},
+		"hcl-camel-case": {
+			setup: func(t *testing.T, dir string) []string {
+				fp := filepath.Join(dir, "test.hcl")
+				require.NoError(t, ioutil.WriteFile(fp, []byte(hclCamelCaseServiceDefinition), 0644))
+				return []string{fp}
+			},
+			expected: expectAllFieldsSingleService,
+		},
+		"directory": {
+			setup: func(t *testing.T, dir string) []string {
+				fp1 := filepath.Join(dir, "test.hcl")
+				svc1 := `service { name = "web" port = 443 }`
+				require.NoError(t, ioutil.WriteFile(fp1, []byte(svc1), 0644))
+				fp2 := filepath.Join(dir, "test.json")
+				svc2 := `{"Service": {"Name": "api", "Port": 8443}}`
+				require.NoError(t, ioutil.WriteFile(fp2, []byte(svc2), 0644))
+				return []string{dir}
+			},
+			expected: []*AgentServiceRegistration{
+				&AgentServiceRegistration{
+					Name: "web",
+					Port: 443,
+				},
+				&AgentServiceRegistration{
+					Name: "api",
+					Port: 8443,
+				},
+			},
+		},
+		"symlinks": {
+			setup: func(t *testing.T, dir string) []string {
+				nested := filepath.Join(dir, "nested")
+				require.NoError(t, os.Mkdir(nested, 0700))
+
+				outer := filepath.Join(dir, "real.hcl")
+				require.NoError(t, ioutil.WriteFile(outer, []byte(hclCamelCaseServiceDefinition), 0666))
+
+				inner := filepath.Join(nested, "link.hcl")
+				require.NoError(t, os.Symlink(outer, inner))
+				return []string{nested}
+			},
+			expected: expectAllFieldsSingleService,
+		},
+		"wrong-extension": {
+			// expecting no results as the file should not be processed
+			setup: func(t *testing.T, dir string) []string {
+				fp := filepath.Join(dir, "test.yaml")
+
+				require.NoError(t, ioutil.WriteFile(fp, []byte("yaml: true"), 0644))
+
+				return []string{fp}
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			dir := testutil.TempDir(t, "services-from-files")
+			defer os.RemoveAll(dir)
+
+			paths := tc.setup(t, dir)
+
+			services, err := ServicesFromFiles(paths)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, services)
+		})
+	}
+
+}

@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	sdkConfig "github.com/hashicorp/consul/sdk/config"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-multierror"
@@ -619,7 +620,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
 	if connectCAConfig != nil {
-		lib.TranslateKeys(connectCAConfig, map[string]string{
+		sdkConfig.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
 			"private_key":           "PrivateKey",
 			"root_cert":             "RootCert",

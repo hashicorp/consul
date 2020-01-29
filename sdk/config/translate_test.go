@@ -1,10 +1,9 @@
-package lib
+package config
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestTranslateKeys(t *testing.T) {
@@ -75,7 +74,9 @@ func TestTranslateKeys(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			TranslateKeys(tt.in, tt.dict)
-			require.Equal(t, tt.out, tt.in)
+			if !reflect.DeepEqual(tt.out, tt.in) {
+				t.Fatalf("Key translation didn't produce desired results\nexpected: %+v\nactual:%+v\n", tt.out, tt.in)
+			}
 		})
 	}
 }

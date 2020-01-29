@@ -5,8 +5,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/hashicorp/consul/sdk/config"
 )
 
 // ServiceKind is the kind of service being registered.
@@ -1011,4 +1017,140 @@ func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMe
 	}
 
 	return wm, resp.StatusCode, nil
+}
+
+type fileData struct {
+	path   string
+	format string
+	data   string
+}
+
+// processServiceDirectory will read all directory entries and use processServiceFile
+// to process them ()
+func processServiceDirectory(path string) ([]*fileData, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory %q: %v", path, err)
+	}
+
+	var results []*fileData
+	for _, fi := range files {
+		fp := filepath.Join(path, fi.Name())
+
+		fd, err := processServiceFile(fp)
+		if err != nil {
+			return nil, err
+		}
+
+		if fd != nil {
+			results = append(results, fd)
+		}
+	}
+
+	return results, nil
+}
+
+// processServiceFile will resolve symlinks for the path, verify the extension is supported
+// and then read all the data into memory. This does not actually parse the data.
+func processServiceFile(path string) (*fileData, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file %q: %v", path, err)
+	}
+	if fi.Mode()&os.ModeSymlink > 0 {
+		var err error
+		unresolved := path
+		path, err = filepath.EvalSymlinks(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve symlinks for %q: %v", unresolved, err)
+		}
+		fi, err = os.Stat(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to stat file %q: %v", path, err)
+		}
+	}
+
+	if fi.IsDir() {
+		// not going to process subdirectories
+		return nil, nil
+	}
+
+	format := ""
+	if strings.HasSuffix(fi.Name(), ".json") {
+		format = "json"
+	} else if strings.HasSuffix(fi.Name(), ".hcl") {
+		format = "hcl"
+	} else {
+		// not going to process this file.
+		return nil, nil
+	}
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %q: %v", path, err)
+	}
+	return &fileData{path: path, format: format, data: string(data)}, nil
+
+}
+
+// processServiceFileOrDirectory figures out whether the path is a directory
+// or not and hands off processing to the approriate function.
+func processServiceFileOrDirectory(path string) ([]*fileData, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to stat %s: %v", path, err)
+	}
+
+	if fi.IsDir() {
+		return processServiceDirectory(path)
+	} else {
+		fd, err := processServiceFile(path)
+		if err != nil || fd == nil {
+			// in the case of a nil fd we don't want to pass back a slice
+			// with a single nil pointer. Returning the err here is fine
+			// as it could be nil or an actual error.
+			return nil, err
+		}
+		return []*fileData{fd}, nil
+	}
+}
+
+// ServicesFromFiles takes in a list of paths and will parse the service definitions
+// out of those files. If the paths are directories then all hcl and json files in the
+// directory will be parsed individually. However this function will not recurse into
+// subdirectories. The format of the files to parse is a subset of the Consul configuration
+// file. Mainly the "Service" and "Services" fields in the main configuration can be present
+// in these files.
+func ServicesFromFiles(paths []string) ([]*AgentServiceRegistration, error) {
+	type servicesConfig struct {
+		Services []*AgentServiceRegistration `json:"services,omitempty" hcl:"services" mapstructure:"services"`
+		Service  *AgentServiceRegistration   `json:"service,omitempty" hcl:"service" mapstructure:"service"`
+	}
+
+	var services []*AgentServiceRegistration
+	for _, path := range paths {
+		fds, err := processServiceFileOrDirectory(path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, fd := range fds {
+			var svcConf servicesConfig
+
+			err := config.ConsulServicesParser.Parse(fd.data, fd.format, &svcConf)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse %q: %v", fd.path, err)
+			}
+
+			if svcConf.Service != nil {
+				services = append(services, svcConf.Service)
+			}
+
+			for _, svc := range svcConf.Services {
+				services = append(services, svc)
+			}
+		}
+	}
+
+	return services, nil
 }

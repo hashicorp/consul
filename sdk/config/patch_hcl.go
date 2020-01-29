@@ -1,7 +1,8 @@
-package lib
+package config
 
 import (
 	"fmt"
+	"strings"
 )
 
 func PatchSliceOfMaps(m map[string]interface{}, skip []string, skipTree []string) map[string]interface{} {
@@ -71,7 +72,8 @@ func patchValue(name string, v interface{}, skip []string, skipTree []string) in
 
 func strSliceContains(s string, v []string) bool {
 	for _, vv := range v {
-		if s == vv {
+		// case insensitive comparison here - otherwise we have to add tons of strings to check
+		if strings.ToLower(vv) == strings.ToLower(s) {
 			return true
 		}
 	}

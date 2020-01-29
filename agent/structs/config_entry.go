@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	sdkConfig "github.com/hashicorp/consul/sdk/config"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -286,11 +287,11 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
+	// sdkConfig.TranslateKeys doesn't understand []map[string]interface{} so we have
 	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
+	raw = sdkConfig.PatchSliceOfMaps(raw, skipWhenPatching, nil)
 
-	lib.TranslateKeys(raw, translateKeysDict)
+	sdkConfig.TranslateKeys(raw, translateKeysDict)
 
 	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{

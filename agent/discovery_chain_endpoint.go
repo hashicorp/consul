@@ -9,6 +9,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	sdkConfig "github.com/hashicorp/consul/sdk/config"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -158,11 +159,11 @@ type discoveryChainReadResponse struct {
 }
 
 func decodeDiscoveryChainReadRequest(raw map[string]interface{}) (*discoveryChainReadRequest, error) {
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
+	// sdkConfig.TranslateKeys doesn't understand []map[string]interface{} so we have
 	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, nil, nil)
+	raw = sdkConfig.PatchSliceOfMaps(raw, nil, nil)
 
-	lib.TranslateKeys(raw, map[string]string{
+	sdkConfig.TranslateKeys(raw, map[string]string{
 		"override_mesh_gateway":    "overridemeshgateway",
 		"override_protocol":        "overrideprotocol",
 		"override_connect_timeout": "overrideconnecttimeout",

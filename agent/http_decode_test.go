@@ -18,7 +18,7 @@ package agent
 //    - time.Time
 //    - Hash []byte
 //
-// 2. translateKeyTestCase: test decoding with alias keys such as "FooBar" => "foo_bar" (see lib.TranslateKeys)
+// 2. translateKeyTestCase: test decoding with alias keys such as "FooBar" => "foo_bar" (see sdk.TranslateKeys)
 //   For these test cases, one must write an 'equalityFn' which takes an output interface{} (struct, usually)
 //   as well as 'want' interface{} value, and returns an error if the test
 //   condition failed, or nil if it passed.
@@ -270,7 +270,7 @@ type translateKeyTestCase struct {
 }
 
 // FixupCheckType's Translate Keys:
-// 	lib.TranslateKeys(rawMap, map[string]string{
+// 	sdk.TranslateKeys(rawMap, map[string]string{
 // 	"args":                              "ScriptArgs",
 // 	"script_args":                       "ScriptArgs",
 // 	"deregister_critical_service_after": "DeregisterCriticalServiceAfter",
@@ -1620,7 +1620,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 		},
 	}
 
-	// lib.TranslateKeys keys pasted here again to check against:
+	// sdk.TranslateKeys keys pasted here again to check against:
 	// ---------------------------------------
 	// "enable_tag_override": "EnableTagOverride",
 	// // Proxy Upstreams
@@ -2228,7 +2228,7 @@ func TestDecodeDiscoveryChainRead(t *testing.T) {
 		},
 	}
 
-	// lib.TranslateKeys(raw, map[string]string{
+	// sdk.TranslateKeys(raw, map[string]string{
 	// 	"override_mesh_gateway":    "overridemeshgateway",
 	// 	"override_protocol":        "overrideprotocol",
 	// 	"override_connect_timeout": "overrideconnecttimeout",

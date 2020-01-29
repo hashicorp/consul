@@ -1,4 +1,4 @@
-package lib
+package config
 
 import (
 	"strings"
@@ -92,6 +92,12 @@ func ck(v interface{}, dict map[string]string, pathPfx string) interface{} {
 		}
 		return a
 
+	case []map[string]interface{}:
+		var a []map[string]interface{}
+		for _, xv := range x {
+			a = append(a, ck(xv, dict, pathPfx).(map[string]interface{}))
+		}
+		return a
 	default:
 		return v
 	}

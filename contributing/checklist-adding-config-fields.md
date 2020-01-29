@@ -56,8 +56,10 @@ There are four specific cases covered with increasing complexity:
       - [ ] Add a test to `agent/agent_test.go` similar to others with prefix
         `TestAgent_reloadConfig*`.
  - [ ] **If** the new config field(s) include an array of structs or maps.
-      - [ ] Add the path to the call to `lib.PatchSliceOfMaps` in Parse in
-        `agent/config/config.go`.
+      - [ ] Add the path to the `sdk/config/ConsulConfigParser.SkipPatchSliceOfMaps` slice (or the
+        `sdk/config/ConsulConfigParser.SkipPatchSliceOfMapsTree` slice if the whole tree should be skipped).
+        This variable is located in sdk/config/parse.go
+        
       - [ ] If none of the tests in `agent/config/runtime_test.go` failed before you did that,
         then you didn't actually test the slice part yet, go back and add tests
         that populate that slice.
@@ -149,6 +151,10 @@ is largely the same pattern but may need different test methods etc. updating.
 
  - [ ] Do all of the steps in [Adding a Simple Config
    Field For Client Agents](#adding-a-simple-config-field-for-client-agents).
+ - [ ] **If** the new field(s) include an array of structs or maps.
+      - [ ] Add the path to the `sdk/config/ConsulServicesParser.SkipPatchSliceOfMaps` slice (or the
+        `sdk/config/ConsulConfigParser.SkipPatchSliceOfMapsTree` slice if the whole tree should be skipped).
+        This variable is located in sdk/config/parse.go
  - [ ] `agent/structs` package
       - [ ] Add the field to `ServiceDefinition` (`service_definition.go`)
       - [ ] Add the field to `NodeService` (`structs.go`)
