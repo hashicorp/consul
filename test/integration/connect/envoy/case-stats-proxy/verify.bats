@@ -38,15 +38,15 @@ load helpers
   # be present not just found in a comment (anchor the regexp).
   retry_default \
     must_match_in_stats_proxy_response localhost:1239 \
-    '^envoy_http_downstream_rq_active'
+    '^http.envoy_metrics.downstream_rq_active'
 
-  # Should be labelling with local_cluster.
+  # Response should include the the local cluster request.
   retry_default \
     must_match_in_stats_proxy_response localhost:1239 \
-    '[\{,]local_cluster="s1"[,}] '
+    'cluster.local_agent.upstream_rq_active'
 
-  # Should be labelling with http listener prefix.
+  # Response should include the http public listener.
   retry_default \
      must_match_in_stats_proxy_response localhost:1239 \
-    '[\{,]envoy_http_conn_manager_prefix="public_listener_http"[,}]'
+    'http.public_listener_http'
 }
