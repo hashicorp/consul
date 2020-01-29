@@ -351,6 +351,27 @@ function assert_service_has_healthy_instances {
   [ "$status" -eq 0 ]
 }
 
+function check_intention {
+  local SOURCE=$1
+  local DESTINATION=$2
+  
+  curl -s -f "localhost:8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
+}
+
+function assert_intention_allowed {
+  local SOURCE=$1
+  local DESTINATION=$2
+  
+  [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "true" ]
+}
+
+function assert_intention_denied {
+  local SOURCE=$1
+  local DESTINATION=$2
+  
+  [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "false" ]
+}
+
 function docker_consul {
   local DC=$1
   shift 1
@@ -504,6 +525,54 @@ function delete_config_entry {
   local KIND=$1
   local NAME=$2
   retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
+}
+
+function list_intentions {
+  curl -s -f "http://localhost:8500/v1/connect/intentions"
+}
+
+function get_intention_target_name {
+  awk -F / '{ if ( NF == 1 ) { print $0 } else { print $2 }}'
+}
+
+function get_intention_target_namespace {
+  awk -F / '{ if ( NF != 1 ) { print $1 } }'
+}
+
+function get_intention_by_targets {
+  local SOURCE=$1
+  local DESTINATION=$2
+  
+  local SOURCE_NS=$(get_intention_target_namespace <<< "${SOURCE}")
+  local SOURCE_NAME=$(get_intention_target_name <<< "${SOURCE}")
+  local DESTINATION_NS=$(get_intention_target_namespace <<< "${DESTINATION}")
+  local DESTINATION_NAME=$(get_intention_target_name <<< "${DESTINATION}")
+  
+  existing=$(list_intentions | jq ".[] | select(.SourceNS == \"$SOURCE_NS\" and .SourceName == \"$SOURCE_NAME\" and .DestinationNS == \"$DESTINATION_NS\" and .DestinationName == \"$DESTINATION_NAME\")")
+  if test -z "$existing"
+  then
+    return 1
+  fi
+  echo "$existing"
+  return 0
+}
+
+function update_intention {
+  local SOURCE=$1
+  local DESTINATION=$2
+  local ACTION=$3
+  
+  intention=$(get_intention_by_targets "${SOURCE}" "${DESTINATION}")
+  if test $? -ne 0
+  then
+    return 1
+  fi
+  
+  id=$(jq -r .ID <<< "${intention}") 
+  updated=$(jq ".Action = \"$ACTION\"" <<< "${intention}")
+  
+  curl -s -X PUT "http://localhost:8500/v1/connect/intentions/${id}" -d "${updated}"
+  return $?
 }
 
 function wait_for_agent_service_register {
