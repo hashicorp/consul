@@ -71,16 +71,20 @@ export default function(scenario, assert, find, currentPage) {
       } else {
         obj = currentPage()[component];
       }
-      assert.throws(
-        function() {
-          const func = obj[property].bind(obj);
-          func();
-        },
-        function(e) {
-          return e.message.startsWith('Element not found');
-        },
-        `Expected to not see ${property} on ${component}`
-      );
+      if (typeof obj[property] === 'function') {
+        assert.throws(
+          function() {
+            const func = obj[property].bind(obj);
+            func();
+          },
+          function(e) {
+            return e.message.startsWith('Element not found');
+          },
+          `Expected to not see ${property} on ${component}`
+        );
+      } else {
+        assert.notOk(obj[property]);
+      }
     })
     .then(["I don't see $property"], function(property) {
       assert.throws(

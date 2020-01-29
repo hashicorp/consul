@@ -12,7 +12,7 @@
 {{#if dc}}
                 <ul>
   {{#if (and (env 'CONSUL_NSPACES_ENABLED') (gt nspaces.length 0))}}
-                    <li>
+                    <li data-test-nspace-menu>
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
