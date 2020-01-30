@@ -455,6 +455,7 @@ function must_match_in_stats_proxy_response {
   run curl -f -s $1/stats
   COUNT=$( echo "$output" | grep -Ec $2 )
 
+<<<<<<< HEAD
   echo "OUTPUT head -n 10"
   echo "$output" | head -n 10
   echo "COUNT of '$2' matches: $COUNT"
