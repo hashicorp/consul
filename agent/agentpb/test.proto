@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package agentpb;
+
+// Test service is used internally for testing gRPC plumbing and is not exposed
+// on a production server.
+service Test {
+    // Test is only used internally for testing connectivity/balancing logic.
+    rpc Test(TestRequest) returns (TestResponse) {}
+} 
+
+message TestRequest {
+    string Datacenter = 1;
+}
+
+message TestResponse {
+    string ServerName = 1;
+}

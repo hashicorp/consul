@@ -389,7 +389,11 @@ func DialTimeoutWithRPCTypeDirectly(
 	}
 
 	// Check if TLS is enabled
-	if (useTLS) && wrapper != nil {
+	if useTLS {
+		if wrapper == nil {
+			return nil, nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
+		}
+
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(tlsRPCType)}); err != nil {
 			conn.Close()

@@ -18,6 +18,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/agentpb"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
@@ -40,6 +41,7 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -168,6 +170,7 @@ type Server struct {
 
 	// Connection pool to other consul servers
 	connPool *pool.ConnPool
+	grpcConn *grpc.ClientConn
 
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
@@ -225,8 +228,12 @@ type Server struct {
 	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener     net.Listener
+	GRPCListener *grpcListener
+	rpcServer    *rpc.Server
+
+	// grpcClient is used for gRPC calls to remote datacenters.
+	grpcClient *GRPCClient
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -380,6 +387,18 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 
 	serverLogger := logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
+
+	var tracker router.ServerTracker
+	var grpcResolverBuilder *ServerResolverBuilder
+
+	if config.GRPCEnabled {
+		// Register the gRPC resolver used for connection balancing.
+		grpcResolverBuilder = registerResolverBuilder(config.GRPCResolverScheme, config.Datacenter, shutdownCh)
+		tracker = grpcResolverBuilder
+	} else {
+		tracker = &router.NoOpServerTracker{}
+	}
+
 	// Create server.
 	s := &Server{
 		config:                  config,
@@ -391,7 +410,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter),
+		router:                  router.NewRouter(serverLogger, config.Datacenter, tracker),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -545,6 +564,20 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
 	go s.lanEventHandler()
+
+	if s.config.GRPCEnabled {
+		// Start the gRPC server shuffling using the LAN serf for node count.
+		go grpcResolverBuilder.periodicServerRebalance(s.serfLAN)
+
+		// Initialize the GRPC listener.
+		if err := s.setupGRPC(); err != nil {
+			s.Shutdown()
+			return nil, fmt.Errorf("Failed to start GRPC layer: %v", err)
+		}
+
+		// Start the GRPC client.
+		s.grpcClient = NewGRPCClient(s.logger, grpcResolverBuilder, tlsConfigurator, config.GRPCResolverScheme)
+	}
 
 	// Start the flooders after the LAN event handler is wired up.
 	s.floodSegments(config)
@@ -861,6 +894,44 @@ func (s *Server) setupRPC() error {
 	return nil
 }
 
+// setupGRPC initializes the built in gRPC server components
+func (s *Server) setupGRPC() error {
+	lis := &grpcListener{
+		addr:  s.Listener.Addr(),
+		conns: make(chan net.Conn),
+	}
+
+	// We don't need to pass tls.Config to the server since it's multiplexed
+	// behind the RPC listener, which already has TLS configured.
+	srv := grpc.NewServer(
+		grpc.StatsHandler(grpcStatsHandler),
+		grpc.StreamInterceptor(GRPCCountingStreamInterceptor),
+	)
+	//stream.RegisterConsulServer(srv, &ConsulGRPCAdapter{Health{s}})
+	if s.config.GRPCTestServerEnabled {
+		agentpb.RegisterTestServer(srv, &GRPCTest{srv: s})
+	}
+
+	go srv.Serve(lis)
+	s.GRPCListener = lis
+
+	// Set up a gRPC client connection to the above listener.
+	dialer := newDialer(s.serverLookup, s.tlsConfigurator.OutgoingRPCWrapper())
+	conn, err := grpc.Dial(lis.Addr().String(),
+		grpc.WithInsecure(),
+		grpc.WithContextDialer(dialer),
+		grpc.WithDisableRetry(),
+		grpc.WithStatsHandler(grpcStatsHandler),
+		grpc.WithBalancerName("pick_first"))
+	if err != nil {
+		return err
+	}
+
+	s.grpcConn = conn
+
+	return nil
+}
+
 // Shutdown is used to shutdown the server
 func (s *Server) Shutdown() error {
 	s.logger.Info("shutting down server")
@@ -905,6 +976,10 @@ func (s *Server) Shutdown() error {
 
 	if s.Listener != nil {
 		s.Listener.Close()
+	}
+
+	if s.GRPCListener != nil {
+		s.GRPCListener.Close()
 	}
 
 	// Close the connection pool
@@ -1275,6 +1350,14 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 		}
 	}
 	return nil
+}
+
+// GRPCConn returns a gRPC connection to a server.
+func (s *Server) GRPCConn() (*grpc.ClientConn, error) {
+	if !s.config.GRPCEnabled {
+		return nil, fmt.Errorf("GRPC not enabled")
+	}
+	return s.grpcConn, nil
 }
 
 // RegisterEndpoint is used to substitute an endpoint for testing.

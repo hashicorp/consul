@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
+	"google.golang.org/grpc"
 
 	"github.com/stretchr/testify/require"
 )
@@ -182,6 +183,9 @@ func (a *TestACLAgent) Stats() map[string]map[string]string {
 }
 func (a *TestACLAgent) ReloadConfig(config *consul.Config) error {
 	return fmt.Errorf("Unimplemented")
+}
+func (a *TestACLAgent) GRPCConn() (*grpc.ClientConn, error) {
+	return nil, fmt.Errorf("Unimplemented")
 }
 
 func TestACL_Version8(t *testing.T) {

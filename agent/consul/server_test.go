@@ -168,6 +168,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	}
 
 	config.NotifyShutdown = returnPortsFn
+	config.GRPCResolverScheme = fmt.Sprintf("consul-%s", config.NodeName)
 
 	return dir, config
 }

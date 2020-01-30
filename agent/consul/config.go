@@ -470,6 +470,18 @@ type Config struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
+	// GRPCEnabled controls whether servers will listen for gRPC streams or RPC
+	// calls and whether clients will start gRPC clients.
+	GRPCEnabled bool
+
+	// GRPCResolverScheme is the gRPC resolver scheme to use. This is only used for
+	// tests running in parallel to avoid overwriting each other.
+	GRPCResolverScheme string
+
+	// GRPCTestServerEnabled causes the Test grpc service to be registered and
+	// served. This is only intended for use in internal testing.
+	GRPCTestServerEnabled bool
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -598,6 +610,7 @@ func DefaultConfig() *Config {
 		DefaultQueryTime:     300 * time.Second,
 		MaxQueryTime:         600 * time.Second,
 		EnterpriseConfig:     DefaultEnterpriseConfig(),
+		GRPCResolverScheme:   "consul",
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
