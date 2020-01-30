@@ -209,7 +209,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := agent.ServiceRegisterAndReplaceChecks(regupdate); err != nil {
+	if err := agent.ServiceRegisterOpts(regupdate, ServiceRegisterOpts{ReplaceExistingChecks: true}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
