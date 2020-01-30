@@ -46,6 +46,10 @@ func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return "default"
 }
 
+func EnterpriseMetaInitializer(_ string) EnterpriseMeta {
+	return emptyEnterpriseMeta
+}
+
 // ReplicationEnterpriseMeta stub
 func ReplicationEnterpriseMeta() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
