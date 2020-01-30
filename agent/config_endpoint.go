@@ -32,16 +32,11 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 	}
 	pathArgs := strings.SplitN(strings.TrimPrefix(req.URL.Path, "/v1/config/"), "/", 2)
 
-	if len(pathArgs) == 2 {
+	switch len(pathArgs) {
+	case 2:
 		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 			return nil, err
 		}
-	} else if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
-		return nil, err
-	}
-
-	switch len(pathArgs) {
-	case 2:
 		// Both kind/name provided.
 		args.Kind = pathArgs[0]
 		args.Name = pathArgs[1]
@@ -58,6 +53,9 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 
 		return reply.Entry, nil
 	case 1:
+		if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
 		// Only kind provided, list entries.
 		args.Kind = pathArgs[0]
 
