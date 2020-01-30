@@ -17,7 +17,7 @@
           <h2>New Policy</h2>
         {{/block-slot}}
         {{#block-slot name='body'}}
-          {{policy-form form=form dc=dc}}
+          {{policy-form form=form dc=dc allowServiceIdentity=allowServiceIdentity}}
         {{/block-slot}}
         {{#block-slot name='actions' as |close|}}
           <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>

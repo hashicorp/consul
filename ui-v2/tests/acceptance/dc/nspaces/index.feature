@@ -15,6 +15,7 @@ Feature: dc / nspaces / index: Nspaces List
       dc: dc-1
     ---
     Then the url should be /dc-1/namespaces
+    And the title should be "Namespaces - Consul"
   Scenario:
     Then I see 3 nspace models
   Scenario: Searching the nspaces

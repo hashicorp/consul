@@ -92,4 +92,108 @@ module('Unit | Utility | components/discovery-chain/get-resolvers', function() {
       })
     );
   });
+  test('it finds subsets with failovers correctly', function(assert) {
+    return Promise.resolve({
+      Chain: {
+        ServiceName: 'service-name',
+        Namespace: 'default',
+        Datacenter: 'dc-1',
+        Protocol: 'http',
+        StartNode: '',
+        Nodes: {
+          'resolver:v2.dc-failover.default.dc-1': {
+            Type: 'resolver',
+            Name: 'v2.dc-failover.default.dc-1',
+            Resolver: {
+              Target: 'v2.dc-failover.defauilt.dc-1',
+              Failover: {
+                Targets: ['v2.dc-failover.default.dc-5', 'v2.dc-failover.default.dc-6'],
+              },
+            },
+          },
+        },
+        Targets: {
+          'v2.dc-failover.default.dc-1': {
+            ID: 'v2.dc-failover.default.dc-1',
+            Service: 'dc-failover',
+            Namespace: 'default',
+            Datacenter: 'dc-1',
+            Subset: {
+              Filter: '',
+            },
+          },
+          'v2.dc-failover.default.dc-6': {
+            ID: 'v2.dc-failover.default.dc-6',
+            Service: 'dc-failover',
+            Namespace: 'default',
+            Datacenter: 'dc-6',
+            Subset: {
+              Filter: '',
+            },
+          },
+        },
+      },
+    }).then(function({ Chain }) {
+      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const expected = {
+        ID: 'dc-failover.default.dc-1',
+        Name: 'dc-failover',
+        Children: [
+          {
+            Subset: true,
+            ID: 'v2.dc-failover.default.dc-1',
+            Name: 'v2',
+            Failover: {
+              Type: 'Datacenter',
+              Targets: ['dc-5', 'dc-6'],
+            },
+          },
+        ],
+      };
+      assert.deepEqual(actual[0], expected);
+    });
+  });
+  test('it finds services with failovers correctly', function(assert) {
+    return Promise.resolve({
+      Chain: {
+        ServiceName: 'service-name',
+        Namespace: 'default',
+        Datacenter: 'dc-1',
+        Protocol: 'http',
+        StartNode: '',
+        Nodes: {
+          'resolver:dc-failover.default.dc-1': {
+            Type: 'resolver',
+            Name: 'dc-failover.default.dc-1',
+            Resolver: {
+              Target: 'dc-failover.defauilt.dc-1',
+              Failover: {
+                Targets: ['dc-failover.default.dc-5', 'dc-failover.default.dc-6'],
+              },
+            },
+          },
+        },
+        Targets: {
+          'dc-failover.default.dc-1': {
+            ID: 'dc-failover.default.dc-1',
+            Service: 'dc-failover',
+            Namespace: 'default',
+            Datacenter: 'dc-1',
+          },
+        },
+      },
+    }).then(function({ Chain }) {
+      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      const expected = {
+        ID: 'dc-failover.default.dc-1',
+        Name: 'dc-failover',
+        Children: [],
+        Failover: {
+          Type: 'Datacenter',
+          Targets: ['dc-5', 'dc-6'],
+        },
+      };
+      assert.deepEqual(actual[0], expected);
+    });
+  });
 });

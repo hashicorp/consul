@@ -14,6 +14,7 @@ Feature: dc / acls / roles / update: ACL Role Update
     ---
     Then the url should be /datacenter/acls/roles/role-id
     Then I see 3 token models
+    And the title should be "Edit Role - Consul"
   Scenario: Update to [Name], [Rules], [Description]
     Then I fill in the role form with yaml
     ---

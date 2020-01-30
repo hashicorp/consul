@@ -1,3 +1,8 @@
+{{#if create }}
+  {{title 'New Namespace'}}
+{{else}}
+  {{title 'Edit Namespace'}}
+{{/if}}
 {{#app-view class="nspace edit" loading=isLoading}}
   {{#block-slot name='notification' as |status type|}}
     {{partial 'dc/nspaces/notifications'}}

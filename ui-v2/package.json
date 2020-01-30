@@ -24,6 +24,7 @@
     "test": "ember test --test-port=${EMBER_TEST_PORT:-7357}",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:node": "tape ./node-tests/**/*.js",
     "test:coverage": "COVERAGE=true ember test --test-port=${EMBER_TEST_PORT:-7357}",
     "test:view:coverage": "COVERAGE=true ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "steps:list": "node ./lib/commands/bin/list.js"
@@ -86,6 +87,7 @@
     "ember-load-initializers": "^2.0.0",
     "ember-math-helpers": "^2.4.0",
     "ember-maybe-import-regenerator": "^0.1.6",
+    "ember-page-title": "^5.1.0",
     "ember-power-select": "^3.0.3",
     "ember-power-select-with-create": "^0.6.0",
     "ember-qunit": "^4.4.1",
@@ -107,6 +109,7 @@
     "node-sass": "^4.9.3",
     "prettier": "^1.10.2",
     "qunit-dom": "^0.9.0",
+    "tape": "^4.13.0",
     "text-encoding": "^0.7.0"
   },
   "engines": {

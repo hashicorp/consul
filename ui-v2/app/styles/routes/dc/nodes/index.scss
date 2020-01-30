@@ -10,6 +10,9 @@ html.template-node.template-list .unhealthy h2 {
 html.template-node.template-show #meta-data table tr {
   cursor: default;
 }
+html.template-node.template-show #services table tbody td em {
+  display: inline-block;
+}
 .healthy > div > ul > li {
   padding-top: 16px;
 }

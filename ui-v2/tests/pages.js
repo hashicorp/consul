@@ -109,6 +109,8 @@ export default {
   nspaces: create(
     nspaces(visitable, deletable, creatable, clickable, attribute, collection, text, freetextFilter)
   ),
-  nspace: create(nspace(visitable, submitable, deletable, cancelable)),
+  nspace: create(
+    nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
+  ),
   settings: create(settings(visitable, submitable)),
 };

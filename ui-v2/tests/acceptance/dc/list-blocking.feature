@@ -5,7 +5,7 @@ Feature: dc / list-blocking
   I want to see changes if I change consul externally
   Background:
     Given 1 datacenter model with the value "dc-1"
-  Scenario: Viewing the listing pages
+  Scenario: Viewing the listing pages for [Page]
     Given 3 [Model] models
     And a network latency of 100
     When I visit the [Page] page for yaml
@@ -25,8 +25,9 @@ Feature: dc / list-blocking
     | Page       | Model       | Url               |
     | services   | service     | services          |
     | nodes      | node        | nodes             |
+    | intentions | intention   | intentions        |
     ------------------------------------------------
-  Scenario: Viewing detail pages with a listing
+  Scenario: Viewing detail pages with a listing for [Page]
     Given 3 [Model] models
     And a network latency of 100
     When I visit the [Page] page for yaml

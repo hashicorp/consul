@@ -56,7 +56,33 @@ export default Component.extend({
     return getSplitters(get(this, 'chain.Nodes'));
   }),
   routes: computed('chain.Nodes', function() {
-    return getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
+    const routes = getRoutes(get(this, 'chain.Nodes'), this.dom.guid);
+    // if we have no routes with a PathPrefix of '/' or one with no definition at all
+    // then add our own 'default catch all'
+    if (
+      !routes.find(item => get(item, 'Definition.Match.HTTP.PathPrefix') === '/') &&
+      !routes.find(item => typeof item.Definition === 'undefined')
+    ) {
+      let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
+      const splitterID = `splitter:${this.chain.ServiceName}`;
+      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
+        nextNode = splitterID;
+      }
+      routes.push({
+        Default: true,
+        ID: `route:${this.chain.ServiceName}`,
+        Name: this.chain.ServiceName,
+        Definition: {
+          Match: {
+            HTTP: {
+              PathPrefix: '/',
+            },
+          },
+        },
+        NextNode: nextNode,
+      });
+    }
+    return routes;
   }),
   resolvers: computed('chain.{Nodes,Targets}', function() {
     return getResolvers(
@@ -73,7 +99,7 @@ export default Component.extend({
       switch (item.Type) {
         case 'splitter':
           item.Splits.forEach(splitter => {
-            graph.addLink(`splitter:${item.Name}`, splitter.NextNode);
+            graph.addLink(item.ID, splitter.NextNode);
           });
           break;
         case 'router':

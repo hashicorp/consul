@@ -12,6 +12,7 @@ Feature: dc / intentions / update: Intention Update
       intention: intention-id
     ---
     Then the url should be /datacenter/intentions/intention-id
+    And the title should be "Edit Intention - Consul"
   Scenario: Update to [Description], [Action]
     Then I fill in with yaml
     ---
@@ -25,6 +26,7 @@ Feature: dc / intentions / update: Intention Update
       Action: [Action]
     ---
     Then the url should be /datacenter/intentions
+    And the title should be "Intentions - Consul"
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
     Where:

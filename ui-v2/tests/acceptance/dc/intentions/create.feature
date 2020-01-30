@@ -19,6 +19,7 @@ Feature: dc / intentions / create: Intention Create
       dc: datacenter
     ---
     Then the url should be /datacenter/intentions/create
+    And the title should be "New Intention - Consul"
     # Set source
     And I click "[data-test-source-element] .ember-power-select-trigger"
     And I type "web" into ".ember-power-select-search-input"
@@ -39,5 +40,6 @@ Feature: dc / intentions / create: Intention Create
       Action: deny
     ---
     Then the url should be /datacenter/intentions
+    And the title should be "Intentions - Consul"
     And "[data-notification]" has the "notification-create" class
     And "[data-notification]" has the "success" class

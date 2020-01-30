@@ -30,7 +30,7 @@
     <p>
       By adding policies to this namespaces, you will apply them to all tokens created within this namespace.
     </p>
-    {{policy-selector dc=dc nspace='default' items=item.ACLs.PolicyDefaults}}
+    {{policy-selector dc=dc nspace='default' allowServiceIdentity=false items=item.ACLs.PolicyDefaults}}
   </fieldset>
 {{/if}}
   <div>

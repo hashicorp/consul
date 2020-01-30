@@ -1,3 +1,8 @@
+{{#if isAuthorized }}
+  {{title 'Tokens'}}
+{{else}}
+  {{title 'Access Controls'}}
+{{/if}}
 {{#app-view class=(concat 'token ' (if (and isEnabled (not isAuthorized)) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
   {{#block-slot name='notification' as |status type subject|}}
     {{partial 'dc/acls/tokens/notifications'}}
