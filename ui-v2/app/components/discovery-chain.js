@@ -99,7 +99,7 @@ export default Component.extend({
       switch (item.Type) {
         case 'splitter':
           item.Splits.forEach(splitter => {
-            graph.addLink(`splitter:${item.Name}`, splitter.NextNode);
+            graph.addLink(item.ID, splitter.NextNode);
           });
           break;
         case 'router':
