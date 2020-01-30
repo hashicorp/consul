@@ -4767,6 +4767,7 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	// Register a service with a managed proxy
 	{
@@ -4802,6 +4803,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	// Register a service with a managed proxy
 	{
@@ -4858,6 +4860,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	// Register a service with a managed proxy
 	{
@@ -4912,6 +4915,7 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	// CA already setup by default by NewTestAgent but force a new one so we can
 	// verify it was signed easily.
@@ -5014,6 +5018,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	// CA already setup by default by NewTestAgent but force a new one so we can
 	// verify it was signed easily.
