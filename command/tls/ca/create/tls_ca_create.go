@@ -90,7 +90,7 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.UI.Output("==> Saved " + certFileName)
 
-	if err := file.WriteAtomicWithPerms(pkFileName, []byte(pk), 0600); err != nil {
+	if err := file.WriteAtomicWithPerms(pkFileName, []byte(pk), 0666); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
