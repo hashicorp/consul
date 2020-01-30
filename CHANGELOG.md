@@ -115,6 +115,23 @@ BUG FIXES
 * cli: services register command now correctly registers an unamed healthcheck [[GH-6800](https://github.com/hashicorp/consul/pull/6800)]
 * tls: fix behavior related to auto_encrypt and verify_incoming (#6899) [[GH-6811](https://github.com/hashicorp/consul/pull/6811)]
 
+## 1.6.3 (January 30, 2020)
+
+SECURITY
+
+* agent: mitigate potential DoS vector allowing unbounded server resource usage from unauthenticated connections [[GH-7159](https://github.com/hashicorp/consul/issues/7159)]
+* acl: add ACL enforcement to the `v1/agent/health/service/*` endpoints [[GH-7160](https://github.com/hashicorp/consul/issues/7160)]
+
+IMPROVEMENTS
+
+* tls: `auto_encrypt` and `verify_incoming` [[GH-6811](https://github.com/hashicorp/consul/pull/6811)]
+
+BUG FIXES
+
+* agent: output proper HTTP status codes for Txn requests that are too large [[GH-7158](https://github.com/hashicorp/consul/pull/7158)]
+* connect: derive connect certificate serial numbers from a memdb index instead of the provider table max index [[GH-7011](https://github.com/hashicorp/consul/pull/7011)]
+* connect: ensure that updates to the secondary root CA configuration use the correct signing key ID values for comparison [[GH-7012](https://github.com/hashicorp/consul/pull/7012)]
+
 ## 1.6.2 (November 13, 2019)
 
 SECURITY
