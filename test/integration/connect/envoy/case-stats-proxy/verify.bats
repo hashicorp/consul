@@ -33,20 +33,30 @@ load helpers
   [ "$output" = "hello" ]
 }
 
-@test "s1 proxy should be exposing metrics to /stats" {
+@test "s1 proxy should be exposing the /stats prefix" {
   # Should have http metrics. This is just a sample one. Require the metric to
   # be present not just found in a comment (anchor the regexp).
   retry_default \
     must_match_in_stats_proxy_response localhost:1239 \
-    '^http.envoy_metrics.downstream_rq_active'
+    'stats' '^http.envoy_metrics.downstream_rq_active'
 
   # Response should include the the local cluster request.
   retry_default \
     must_match_in_stats_proxy_response localhost:1239 \
-    'cluster.local_agent.upstream_rq_active'
+    'stats' 'cluster.local_agent.upstream_rq_active'
 
   # Response should include the http public listener.
   retry_default \
      must_match_in_stats_proxy_response localhost:1239 \
-    'http.public_listener_http'
+    'stats' 'http.public_listener_http'
+
+  # /stats/prometheus should also be reachable and labelling the local cluster.
+  retry_default \
+     must_match_in_stats_proxy_response localhost:1239 \
+    'stats/prometheus' '[\{,]local_cluster="s1"[,}]'
+
+  # /stats/prometheus should also be reachable and exposing metrics.
+  retry_default \
+     must_match_in_stats_proxy_response localhost:1239 \
+    'stats/prometheus' 'envoy_http_downstream_rq_active'
 }
