@@ -68,7 +68,7 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 			}
 
 			service := &op.Service.Service
-			// This is intentionally nil as we will authorizer the request
+			// This is intentionally nil as we will authorize the request
 			// using vetServiceTxnOp next instead of doing it in servicePreApply
 			if err := servicePreApply(service, nil); err != nil {
 				errors = append(errors, &structs.TxnError{
