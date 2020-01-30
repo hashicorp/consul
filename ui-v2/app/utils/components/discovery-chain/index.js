@@ -38,6 +38,14 @@ export const getSplitters = function(nodes) {
   return getNodesByType(nodes, 'splitter').map(function(item) {
     // Splitters need IDs adding so we can find them in the DOM later
     item.ID = `splitter:${item.Name}`;
+    // splitters have a service.nspace as a name
+    // do the reverse dance to ensure we don't mess up any
+    // serivice names with dots in them
+    const temp = item.Name.split('.');
+    temp.reverse();
+    temp.shift();
+    temp.reverse();
+    item.Name = temp.join('.');
     return item;
   });
 };
