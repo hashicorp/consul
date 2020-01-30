@@ -107,7 +107,7 @@ const (
 										"routes": [
 											{
 												"match": {
-													"path": "/stats"
+													"prefix": "/stats"
 												},
 												"route": {
 													"cluster": "self_admin",

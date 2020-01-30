@@ -196,13 +196,13 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs) error {
 	}
 	// Setup prometheus if needed. This MUST happen after the Static*JSON is set above
 	if c.PrometheusBindAddr != "" {
-		if err := c.generateMetricsListenerConfig(args, c.PrometheusBindAddr, "envoy_prometheus_metrics", "/metrics", "/stats/prometheus"); err != nil {
+		if err := c.generateMetricsListenerConfig(args, c.PrometheusBindAddr, "envoy_prometheus_metrics", "path", "/metrics", "/stats/prometheus"); err != nil {
 			return err
 		}
 	}
 	// Setup /stats proxy listener if needed. This MUST happen after the Static*JSON is set above
 	if c.StatsBindAddr != "" {
-		if err := c.generateMetricsListenerConfig(args, c.StatsBindAddr, "envoy_metrics", "/stats", "/stats"); err != nil {
+		if err := c.generateMetricsListenerConfig(args, c.StatsBindAddr, "envoy_metrics", "prefix", "/stats", "/stats"); err != nil {
 			return err
 		}
 	}
@@ -383,7 +383,7 @@ func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
 	return nil
 }
 
-func (c *BootstrapConfig) generateMetricsListenerConfig(args *BootstrapTplArgs, bindAddr, name, prefix, prefixRewrite string) error {
+func (c *BootstrapConfig) generateMetricsListenerConfig(args *BootstrapTplArgs, bindAddr, name, matchType, matchValue, prefixRewrite string) error {
 	host, port, err := net.SplitHostPort(bindAddr)
 	if err != nil {
 		return fmt.Errorf("invalid %s bind address: %s", name, err)
@@ -430,7 +430,7 @@ func (c *BootstrapConfig) generateMetricsListenerConfig(args *BootstrapTplArgs, 
 										"routes": [
 											{
 												"match": {
-													"prefix": "` + prefix + `"
+													"` + matchType + `": "` + matchValue + `"
 												},
 												"route": {
 													"cluster": "self_admin",
