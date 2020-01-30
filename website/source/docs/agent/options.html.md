@@ -315,8 +315,10 @@ The options below are all specified on the command-line.
 
 <a name="_retry_join"></a>
 
-* `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
-  first attempt fails. This is useful for cases where you know the address will
+* `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join until
+  it is successful. Once it joins successfully to a member in a list of members
+  it will never attempt to join again. Agents will then solely maintain their
+  membership via gossip. This is useful for cases where you know the address will
   eventually be available. This option can be specified multiple times to
   specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
   addresses. In Consul 1.1.0 and later this can be set to a
