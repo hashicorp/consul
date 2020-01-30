@@ -64,26 +64,38 @@ export default function(scenario, assert, find, currentPage) {
       );
     })
     .then(["I don't see $property on the $component"], function(property, component) {
-      // Collection
-      var obj;
+      const message = `Expected to not see ${property} on ${component}`;
+      const notFound = 'Element not found';
+      const cannotDestructure = 'Cannot destructure property';
+      // Cope with collections
+      let obj;
       if (typeof currentPage()[component].objectAt === 'function') {
         obj = currentPage()[component].objectAt(0);
       } else {
         obj = currentPage()[component];
       }
-      if (typeof obj[property] === 'function') {
+      let prop;
+      try {
+        prop = obj[property];
+      } catch (e) {
+        if ([notFound, cannotDestructure].some(item => e.message.startsWith(item))) {
+          assert.ok(true, message);
+        } else {
+          throw e;
+        }
+      }
+      if (typeof prop === 'function') {
         assert.throws(
           function() {
-            const func = obj[property].bind(obj);
-            func();
+            prop();
           },
           function(e) {
-            return e.message.startsWith('Element not found');
+            return [notFound, cannotDestructure].some(item => e.message.startsWith(item));
           },
-          `Expected to not see ${property} on ${component}`
+          message
         );
       } else {
-        assert.notOk(obj[property]);
+        assert.notOk(prop);
       }
     })
     .then(["I don't see $property"], function(property) {
