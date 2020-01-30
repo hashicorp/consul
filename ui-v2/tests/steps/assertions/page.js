@@ -123,16 +123,28 @@ export default function(scenario, assert, find, currentPage) {
       }
     })
     .then(["I don't see $property"], function(property) {
-      const prop = currentPage()[property].objectAt;
+      const message = `Expected to not see ${property}`;
+      const notFound = 'Element not found';
+      const cannotDestructure = 'Cannot destructure property';
+      let prop;
+      try {
+        prop = currentPage()[property];
+      } catch (e) {
+        if ([notFound, cannotDestructure].some(item => e.message.startsWith(item))) {
+          assert.ok(true, message);
+        } else {
+          throw e;
+        }
+      }
       if (typeof prop === 'function') {
         assert.throws(
           function() {
-            return prop();
+            prop();
           },
           function(e) {
-            return e.message.startsWith('Element not found');
+            return [notFound, cannotDestructure].some(item => e.message.startsWith(item));
           },
-          `Expected to not see ${property}`
+          message
         );
       } else {
         assert.notOk(prop);
