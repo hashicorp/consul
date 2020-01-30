@@ -23,7 +23,29 @@
   {{#each item.Children as |child|}}
       <li onclick={{onclick}} id={{concat 'resolver:' child.ID}}>
         <a name="">
-    {{#if child.Failover}}
+    {{#if child.Redirect}}
+          <dl class="redirect">
+            <dt data-tooltip="Redirect">Redirect</dt>
+            <dd>
+              {{child.Name}}
+            </dd>
+          </dl>
+          {{#if child.Failover}}
+            <dl class="failover">
+              <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
+              <dd>
+                <ol>
+        {{#each child.Failover.Targets as |target|}}
+                  <li>
+                    <span>{{target}}</span>
+                  </li>
+        {{/each}}
+                </ol>
+              </dd>
+            </dl>
+          {{/if}}
+    {{else if child.Failover}}
+          {{child.Name}}
           <dl class="failover">
             <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
             <dd>
@@ -34,13 +56,6 @@
                 </li>
       {{/each}}
               </ol>
-            </dd>
-          </dl>
-    {{else if child.Redirect}}
-          <dl class="redirect">
-            <dt data-tooltip="Redirect">Redirect</dt>
-            <dd>
-              {{child.Name}}
             </dd>
           </dl>
     {{else}}
