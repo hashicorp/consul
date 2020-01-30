@@ -1235,6 +1235,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to
   be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
+* <a name="enable_backend_streaming"></a><a href="#enable_backend_streaming">`enable_backend_streaming`</a>
+  When set, the Consul agent will use the backend streaming interface to service client requests. Currently this
+  only applies to the `/v1/health/service/<service>` endpoint, with support for more coming in the future. Defaults
+  to false.
+
 * <a name="enable_central_service_config"></a><a href="#enable_central_service_config">`enable_central_service_config`</a>
   When set, the Consul agent will look for any centralized service configurations that match a registering service instance.
   If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for
