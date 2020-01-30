@@ -40,20 +40,24 @@ func (t *txnResultsFilter) Len() int {
 }
 
 func (t *txnResultsFilter) Filter(i int) bool {
-	// TODO (namespaces) use a real ent authz context for most of these checks
 	result := t.results[i]
+	var authzContext acl.AuthorizerContext
 	switch {
 	case result.KV != nil:
-		return t.authorizer.KeyRead(result.KV.Key, nil) != acl.Allow
+		result.KV.EnterpriseMeta.FillAuthzContext(&authzContext)
+		return t.authorizer.KeyRead(result.KV.Key, &authzContext) != acl.Allow
 	case result.Node != nil:
-		return t.authorizer.NodeRead(result.Node.Node, nil) != acl.Allow
+		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		return t.authorizer.NodeRead(result.Node.Node, &authzContext) != acl.Allow
 	case result.Service != nil:
-		return t.authorizer.ServiceRead(result.Service.Service, nil) != acl.Allow
+		result.Service.EnterpriseMeta.FillAuthzContext(&authzContext)
+		return t.authorizer.ServiceRead(result.Service.Service, &authzContext) != acl.Allow
 	case result.Check != nil:
+		result.Check.EnterpriseMeta.FillAuthzContext(&authzContext)
 		if result.Check.ServiceName != "" {
-			return t.authorizer.ServiceRead(result.Check.ServiceName, nil) != acl.Allow
+			return t.authorizer.ServiceRead(result.Check.ServiceName, &authzContext) != acl.Allow
 		}
-		return t.authorizer.NodeRead(result.Check.Node, nil) != acl.Allow
+		return t.authorizer.NodeRead(result.Check.Node, &authzContext) != acl.Allow
 	}
 	return false
 }
