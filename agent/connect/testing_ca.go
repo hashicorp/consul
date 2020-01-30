@@ -168,7 +168,7 @@ func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits 
 	return testCA(t, xc, keyType, keyBits)
 }
 
-func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
+func testLeaf(t testing.T, service string, namespace string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
 	// Parse the CA cert and signing key from the root
 	cert := root.SigningCert
 	if cert == "" {
@@ -186,7 +186,7 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 	// Build the SPIFFE ID
 	spiffeId := &SpiffeIDService{
 		Host:       fmt.Sprintf("%s.consul", TestClusterID),
-		Namespace:  "default",
+		Namespace:  namespace,
 		Datacenter: "dc1",
 		Service:    service,
 	}
@@ -247,12 +247,16 @@ func testLeaf(t testing.T, service string, root *structs.CARoot, keyType string,
 // TestLeaf returns a valid leaf certificate and it's private key for the named
 // service with the given CA Root.
 func TestLeaf(t testing.T, service string, root *structs.CARoot) (string, string) {
+	return TestLeafWithNamespace(t, service, "default", root)
+}
+
+func TestLeafWithNamespace(t testing.T, service, namespace string, root *structs.CARoot) (string, string) {
 	// Currently we only support EC leaf keys and certs even if the CA is using
 	// RSA. We might allow Leafs to follow the signing CA key type later if we
 	// need to for compatibility sake but this is allowed by TLS 1.2 and works with
 	// both openssl verify (which we use as a sanity check in our tests of this
 	// package) and Go's TLS verification.
-	certPEM, keyPEM, err := testLeaf(t, service, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+	certPEM, keyPEM, err := testLeaf(t, service, namespace, root, DefaultPrivateKeyType, DefaultPrivateKeyBits)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

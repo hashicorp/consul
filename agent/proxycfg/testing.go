@@ -1033,7 +1033,9 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 		Address: "1.2.3.4",
 		Port:    8080,
 		Proxy: structs.ConnectProxyConfig{
-			LocalServicePort: 8080,
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServicePort:       8080,
 			Expose: structs.ExposeConfig{
 				Checks: false,
 				Paths: []structs.ExposePath{

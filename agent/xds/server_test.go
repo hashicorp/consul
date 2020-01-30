@@ -32,10 +32,11 @@ type testManager struct {
 }
 
 type connectAuthzResult struct {
-	authz  bool
-	reason string
-	m      *cache.ResultMeta
-	err    error
+	authz    bool
+	reason   string
+	m        *cache.ResultMeta
+	err      error
+	validate func(req *structs.ConnectAuthorizeRequest) error
 }
 
 func newTestManager(t *testing.T) *testManager {
@@ -95,6 +96,11 @@ func (m *testManager) ConnectAuthorize(token string, req *structs.ConnectAuthori
 	m.Lock()
 	defer m.Unlock()
 	if res, ok := m.authz[token]; ok {
+		if res.validate != nil {
+			if err := res.validate(req); err != nil {
+				return false, "", nil, err
+			}
+		}
 		return res.authz, res.reason, res.m, res.err
 	}
 	// Default allow but with reason that won't match by accident in a test case
@@ -717,7 +723,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "auth allowed",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{true, "default allow", nil, nil},
+			authzResult: connectAuthzResult{true, "default allow", nil, nil, nil},
 			wantDenied:  false,
 			wantReason:  "default allow",
 		},
@@ -725,7 +731,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "auth denied",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{false, "default deny", nil, nil},
+			authzResult: connectAuthzResult{false, "default deny", nil, nil, nil},
 			wantDenied:  true,
 			wantReason:  "default deny",
 		},
@@ -765,7 +771,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "ACL not got permission for authz call",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{false, "", nil, acl.ErrPermissionDenied},
+			authzResult: connectAuthzResult{false, "", nil, acl.ErrPermissionDenied, nil},
 			wantErr:     true,
 			wantErrCode: codes.PermissionDenied,
 		},
@@ -773,7 +779,7 @@ func TestServer_Check(t *testing.T) {
 			name:        "Random error running authz",
 			source:      "web",
 			dest:        "db",
-			authzResult: connectAuthzResult{false, "", nil, errors.New("gremlin attack")},
+			authzResult: connectAuthzResult{false, "", nil, errors.New("gremlin attack"), nil},
 			wantErr:     true,
 			wantErrCode: codes.Internal,
 		},

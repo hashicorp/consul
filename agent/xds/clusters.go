@@ -260,7 +260,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy.Cluster, error) {
 	if chain == nil {
-		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain")
+		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", upstream.Identifier())
 	}
 
 	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
