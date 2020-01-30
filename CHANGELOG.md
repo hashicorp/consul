@@ -1,3 +1,11 @@
+## UNRELEASED
+
+BUGFIXES:
+
+* acl: **(Consul Enterprise only)** `intention:write` privileges are now granted by the `namespace-management` policy that is injected into each new namespace.
+* connect: **(Consul Enterprise only)** Fixed a bug that caused Envoy intention authorization to improperly request authorization in the `default` namespace.
+* connect: **(Consul Enterprise only)** Fixed bugs that caused the intention CLI interface to not properly handle namespaces in the strings passed as its arguments.
+
 ## 1.7.0-beta3 (January 24, 2020)
 
 BREAKING CHANGES:
