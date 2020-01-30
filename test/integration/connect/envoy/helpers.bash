@@ -324,7 +324,7 @@ function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
   local NS=$3
-  
+
   run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
@@ -443,6 +443,19 @@ function must_match_in_prometheus_response {
   run curl -f -s $1/metrics
   COUNT=$( echo "$output" | grep -Ec $2 )
 
+  echo "OUTPUT head -n 10"
+  echo "$output" | head -n 10
+  echo "COUNT of '$2' matches: $COUNT"
+
+  [ "$status" == 0 ]
+  [ "$COUNT" -gt "0" ]
+}
+
+function must_match_in_stats_proxy_response {
+  run curl -f -s $1/stats
+  COUNT=$( echo "$output" | grep -Ec $2 )
+
+<<<<<<< HEAD
   echo "OUTPUT head -n 10"
   echo "$output" | head -n 10
   echo "COUNT of '$2' matches: $COUNT"
