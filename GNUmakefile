@@ -219,6 +219,12 @@ test: other-consul dev-build vet test-install-deps test-internal
 test-install-deps:
 	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 
+go-mod-tidy:
+	@echo "--> Running go mod tidy"
+	@cd sdk && go mod tidy
+	@cd api && go mod tidy
+	@go mod tidy
+
 update-vendor:
 	@echo "--> Running go mod vendor"
 	@go mod vendor
