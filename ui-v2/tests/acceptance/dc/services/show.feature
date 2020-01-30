@@ -15,7 +15,7 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
-    Then I see externalSource
+    Then I see externalSource like "consul"
     And the title should be "service-0 - Consul"
 
   Scenario: Given a service with an 'unsupported' external source, there is no logo

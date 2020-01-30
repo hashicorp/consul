@@ -13,7 +13,7 @@ export default function(
   return submitable(
     creatable({
       visit: visitable('/:dc/acls/tokens'),
-      update: isVisible('[data-test-notification-update]'),
+      update: text('[data-test-notification-update]'),
       tokens: collection(
         '[data-test-tabular-row]',
         deletable({
