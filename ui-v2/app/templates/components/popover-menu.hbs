@@ -1,6 +1,6 @@
 {{yield (concat 'popover-menu-' guid)}}
 {{#aria-menu keyboardAccess=keyboardAccess as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|}}
-  {{#toggle-button checked=expanded onchange=(queue change (action 'change')) as |click|}}
+  {{#toggle-button checked=ariaExpanded onchange=(queue change (action 'change')) as |click|}}
     <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
       {{#yield-slot name='trigger'}}
         {{yield}}
