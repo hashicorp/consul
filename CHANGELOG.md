@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.0-beta4 (January 31, 2020)
 
 SECURITY
 
