@@ -504,7 +504,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test
+          command: make test-ci
       - store_test_results:
           path: ui-v2/test-results
 
