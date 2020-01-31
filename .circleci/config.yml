@@ -497,7 +497,6 @@ jobs:
     environment:
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
       EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
-    parallelism: 4
     steps:
       - checkout
       - restore_cache:
