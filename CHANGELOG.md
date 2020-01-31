@@ -1,8 +1,14 @@
 ## UNRELEASED
 
+SECURITY
+
+* agent: mitigate potential DoS vector allowing unbounded server resource usage from unauthenticated connections [[GH-7159](https://github.com/hashicorp/consul/issues/7159)]
+* acl: add ACL enforcement to the `v1/agent/health/service/*` endpoints [[GH-7160](https://github.com/hashicorp/consul/issues/7160)]
+
 BUGFIXES:
 
 * acl: **(Consul Enterprise only)** `intention:write` privileges are now granted by the `namespace-management` policy that is injected into each new namespace.
+* config: Fixed a bug that caused some config parsing to be case-sensitive: [[GH-7191](https://github.com/hashicorp/consul/pull/7191)]
 * connect: **(Consul Enterprise only)** Fixed a bug that caused Envoy intention authorization to improperly request authorization in the `default` namespace.
 * connect: **(Consul Enterprise only)** Fixed bugs that caused the intention CLI interface to not properly handle namespaces in the strings passed as its arguments.
 * ui: Remove the Policy/Service Identity selector from namespace policy form [[GH-7124](https://github.com/hashicorp/consul/pull/7124)]
