@@ -1,4 +1,12 @@
-import { create, clickable, is, attribute, collection, text } from 'ember-cli-page-object';
+import {
+  create,
+  clickable,
+  is,
+  attribute,
+  collection,
+  text,
+  isPresent,
+} from 'ember-cli-page-object';
 import { alias } from 'ember-cli-page-object/macros';
 import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
 import createDeletable from 'consul-ui/tests/lib/page-object/createDeletable';
@@ -112,5 +120,5 @@ export default {
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
-  settings: create(settings(visitable, submitable)),
+  settings: create(settings(visitable, submitable, isPresent)),
 };

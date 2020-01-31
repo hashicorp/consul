@@ -26,7 +26,7 @@
           </label>
         </fieldset>
       {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
-        <fieldset>
+        <fieldset data-test-blocking-queries>
           <h2>Blocking Queries</h2>
           <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
           <div class="type-toggle">
