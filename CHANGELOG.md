@@ -11,6 +11,7 @@ BUGFIXES:
 
 IMPROVEMENTS:
 
+* cli: improve the file safety of 'consul tls' subcommands [[GH-7186](https://github.com/hashicorp/consul/issues/7186)]
 * ui: Added unique browser titles to each page [[GH-7118](https://github.com/hashicorp/consul/pull/7118)]
 * ui: Add live updates/blocking queries to the Intention listing page [[GH-7161](https://github.com/hashicorp/consul/pull/7161)]
 
