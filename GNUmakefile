@@ -225,7 +225,7 @@ go-mod-tidy:
 	@cd api && go mod tidy
 	@go mod tidy
 
-update-vendor:
+update-vendor: go-mod-tidy
 	@echo "--> Running go mod vendor"
 	@go mod vendor
 	@echo "--> Removing vendoring of our own nested modules"
