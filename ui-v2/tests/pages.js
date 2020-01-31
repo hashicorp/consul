@@ -5,7 +5,7 @@ import {
   attribute,
   collection,
   text,
-  isVisible,
+  isPresent,
 } from 'ember-cli-page-object';
 import { alias } from 'ember-cli-page-object/macros';
 import { visitable } from 'consul-ui/tests/lib/page-object/visitable';
@@ -67,10 +67,8 @@ const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias
 export default {
   index: create(index(visitable, collection)),
   dcs: create(dcs(visitable, clickable, attribute, collection)),
-  services: create(
-    services(visitable, clickable, attribute, collection, page, catalogFilter, isVisible)
-  ),
-  service: create(service(visitable, attribute, collection, text, catalogFilter, isVisible)),
+  services: create(services(visitable, clickable, attribute, collection, page, catalogFilter)),
+  service: create(service(visitable, attribute, collection, text, catalogFilter)),
   instance: create(instance(visitable, attribute, collection, text, radiogroup)),
   nodes: create(nodes(visitable, clickable, attribute, collection, catalogFilter)),
   node: create(node(visitable, deletable, clickable, attribute, collection, radiogroup)),
@@ -106,8 +104,7 @@ export default {
       attribute,
       collection,
       text,
-      freetextFilter,
-      isVisible
+      freetextFilter
     )
   ),
   token: create(
@@ -123,5 +120,5 @@ export default {
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
-  settings: create(settings(visitable, submitable, isVisible)),
+  settings: create(settings(visitable, submitable, isPresent)),
 };

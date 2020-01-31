@@ -7,8 +7,7 @@ export default function(
   attribute,
   collection,
   text,
-  filter,
-  isVisible
+  filter
 ) {
   return submitable(
     creatable({

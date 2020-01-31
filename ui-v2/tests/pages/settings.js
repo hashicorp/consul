@@ -1,6 +1,6 @@
-export default function(visitable, submitable, isVisible) {
+export default function(visitable, submitable, isPresent) {
   return submitable({
     visit: visitable('/setting'),
-    blockingQueries: isVisible('[data-test-blocking-queries]'),
+    blockingQueries: isPresent('[data-test-blocking-queries]'),
   });
 }
