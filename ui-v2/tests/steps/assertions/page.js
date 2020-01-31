@@ -79,13 +79,11 @@ export default function(scenario, assert, find, currentPage) {
       try {
         prop = obj[property];
       } catch (e) {
-        console.log('Line 82');
         if (
           [notFound, cannotDestructure, cannotReadContext].some(item => e.message.startsWith(item))
         ) {
           assert.ok(true, message);
         } else {
-          console.log('Line 86');
           throw e;
         }
       }
@@ -95,7 +93,7 @@ export default function(scenario, assert, find, currentPage) {
             prop();
           },
           function(e) {
-            console.log('Line 96');
+            console.log(e);
             return [notFound, cannotDestructure, cannotReadContext].some(item =>
               e.message.startsWith(item)
             );
