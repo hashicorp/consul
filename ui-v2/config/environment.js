@@ -82,7 +82,7 @@ module.exports = function(environment) {
     case environment === 'test':
       ENV = Object.assign({}, ENV, {
         locationType: 'none',
-        CONSUL_NSPACES_TEST: true,
+        CONSUL_NSPACES_TEST: false,
         CONSUL_ACLS_ENABLED: true,
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
