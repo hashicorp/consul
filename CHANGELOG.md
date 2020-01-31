@@ -5,6 +5,14 @@ BUGFIXES:
 * acl: **(Consul Enterprise only)** `intention:write` privileges are now granted by the `namespace-management` policy that is injected into each new namespace.
 * connect: **(Consul Enterprise only)** Fixed a bug that caused Envoy intention authorization to improperly request authorization in the `default` namespace.
 * connect: **(Consul Enterprise only)** Fixed bugs that caused the intention CLI interface to not properly handle namespaces in the strings passed as its arguments.
+* ui: Remove the Policy/Service Identity selector from namespace policy form [[GH-7124](https://github.com/hashicorp/consul/pull/7124)]
+* ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
+* ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
+
+IMPROVEMENTS:
+
+* ui: Added unique browser titles to each page [[GH-7118](https://github.com/hashicorp/consul/pull/7118)]
+* ui: Add live updates/blocking queries to the Intention listing page [[GH-7161](https://github.com/hashicorp/consul/pull/7161)]
 
 ## 1.7.0-beta3 (January 24, 2020)
 
