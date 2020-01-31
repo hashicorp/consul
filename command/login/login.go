@@ -126,7 +126,7 @@ func (c *cmd) Run(args []string) int {
 
 func (c *cmd) writeToSink(tok *api.ACLToken) error {
 	payload := []byte(tok.SecretID)
-	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0600)
+	return file.WriteAtomicWithPerms(c.tokenSinkFile, payload, 0755, 0600)
 }
 
 func (c *cmd) Synopsis() string {
