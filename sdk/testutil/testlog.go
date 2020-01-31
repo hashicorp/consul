@@ -37,7 +37,7 @@ func Logger(t testing.TB) hclog.InterceptLogger {
 func LoggerWithOutput(t testing.TB, output io.Writer) hclog.InterceptLogger {
 	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   t.Name(),
-		Level:  hclog.Debug,
+		Level:  hclog.Trace,
 		Output: output,
 	})
 }

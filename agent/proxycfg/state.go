@@ -607,6 +607,7 @@ func (s *state) resetWatchesFromChain(
 	chain *structs.CompiledDiscoveryChain,
 	snap *ConfigSnapshot,
 ) error {
+	s.logger.Trace("resetting watches for discovery chain", "id", id)
 	if chain == nil {
 		return fmt.Errorf("not possible to arrive here with no discovery chain")
 	}
@@ -647,6 +648,7 @@ func (s *state) resetWatchesFromChain(
 			"upstream", id,
 			"chain", chain.ServiceName,
 			"target", target.ID,
+			"mesh-gateway-mode", target.MeshGateway.Mode,
 		)
 
 		// We'll get endpoints from the gateway query, but the health still has
