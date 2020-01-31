@@ -803,6 +803,18 @@ type RuntimeConfig struct {
 	// hcl: client_addr = string addresses { https = string } ports { https = int }
 	HTTPSAddrs []net.Addr
 
+	// HTTPMaxConnsPerClient limits the number of concurrent TCP connections the
+	// HTTP(S) server will accept from any single source IP address.
+	//
+	// hcl: limits{ http_max_conns_per_client = 100 }
+	HTTPMaxConnsPerClient int
+
+	// HTTPSHandshakeTimeout is the time allowed for HTTPS client to complete the
+	// TLS handshake and send first bytes of the request.
+	//
+	// hcl: limits{ https_handshake_timeout = "5s" }
+	HTTPSHandshakeTimeout time.Duration
+
 	// HTTPSPort is the port the HTTP server listens on. The default is -1.
 	// Setting this to a value <= 0 disables the endpoint.
 	//
@@ -927,6 +939,15 @@ type RuntimeConfig struct {
 	// hcl: bind_addr = string ports { server = int }
 	RPCBindAddr *net.TCPAddr
 
+	// RPCHandshakeTimeout is the timeout for reading the initial magic byte on a
+	// new RPC connection. If this is set high it may allow unauthenticated users
+	// to hold connections open arbitrarily long, even when mutual TLS is being
+	// enforced. It may be set to 0 explicitly to disable the timeout but this
+	// should never be used in production. Default is 5 seconds.
+	//
+	// hcl: limits { rpc_handshake_timeout = "duration" }
+	RPCHandshakeTimeout time.Duration
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -948,6 +969,12 @@ type RuntimeConfig struct {
 	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
+
+	// RPCMaxConnsPerClient limits the number of concurrent TCP connections the
+	// RPC server will accept from any single source IP address.
+	//
+	// hcl: limits{ rpc_max_conns_per_client = 100 }
+	RPCMaxConnsPerClient int
 
 	// RPCProtocol is the Consul protocol version to use.
 	//

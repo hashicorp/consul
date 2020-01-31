@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
@@ -305,6 +306,10 @@ type Agent struct {
 	// store within the data directory. This will prevent loading while writing as
 	// well as multiple concurrent writes.
 	persistedTokensLock sync.RWMutex
+
+	// httpConnLimiter is used to limit connections to the HTTP server by client
+	// IP.
+	httpConnLimiter connlimit.Limiter
 }
 
 // New verifies the configuration given has a Datacenter and DataDir
@@ -523,6 +528,11 @@ func (a *Agent) Start() error {
 	if err := a.listenAndServeDNS(); err != nil {
 		return err
 	}
+
+	// Configure the http connection limiter.
+	a.httpConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: a.config.HTTPMaxConnsPerClient,
+	})
 
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
@@ -866,6 +876,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
+
 			srv := &HTTPServer{
 				Server: &http.Server{
 					Addr:      l.Addr().String(),
@@ -878,13 +889,37 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 			}
 			srv.Server.Handler = srv.handler(a.config.EnableDebug)
 
-			// This will enable upgrading connections to HTTP/2 as
-			// part of TLS negotiation.
+			// Load the connlimit helper into the server
+			connLimitFn := a.httpConnLimiter.HTTPConnStateFunc()
+
 			if proto == "https" {
+				// Enforce TLS handshake timeout
+				srv.Server.ConnState = func(conn net.Conn, state http.ConnState) {
+					switch state {
+					case http.StateNew:
+						// Set deadline to prevent slow send before TLS handshake or first
+						// byte of request.
+						conn.SetReadDeadline(time.Now().Add(a.config.HTTPSHandshakeTimeout))
+					case http.StateActive:
+						// Clear read deadline. We should maybe set read timeouts more
+						// generally but that's a bigger task as some HTTP endpoints may
+						// stream large requests and responses (e.g. snapshot) so we can't
+						// set sensible blanket timeouts here.
+						conn.SetReadDeadline(time.Time{})
+					}
+					// Pass through to conn limit. This is OK because we didn't change
+					// state (i.e. Close conn).
+					connLimitFn(conn, state)
+				}
+
+				// This will enable upgrading connections to HTTP/2 as
+				// part of TLS negotiation.
 				err = http2.ConfigureServer(srv.Server, nil)
 				if err != nil {
 					return err
 				}
+			} else {
+				srv.Server.ConnState = connLimitFn
 			}
 
 			ln = append(ln, l)
@@ -1252,10 +1287,18 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCMaxBurst = a.config.RPCMaxBurst
 	}
 
-	// RPC-related performance configs.
-	if a.config.RPCHoldTimeout > 0 {
-		base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	// RPC timeouts/limits.
+	if a.config.RPCHandshakeTimeout > 0 {
+		base.RPCHandshakeTimeout = a.config.RPCHandshakeTimeout
 	}
+	if a.config.RPCMaxConnsPerClient > 0 {
+		base.RPCMaxConnsPerClient = a.config.RPCMaxConnsPerClient
+	}
+
+	// RPC-related performance configs. We allow explicit zero value to disable so
+	// copy it whatever the value.
+	base.RPCHoldTimeout = a.config.RPCHoldTimeout
+
 	if a.config.LeaveDrainTime > 0 {
 		base.LeaveDrainTime = a.config.LeaveDrainTime
 	}
@@ -3970,6 +4013,10 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	a.loadLimits(newCfg)
 
+	a.httpConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
+	})
+
 	for _, s := range a.dnsServers {
 		if err := s.ReloadConfig(newCfg); err != nil {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
@@ -3979,7 +4026,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// this only gets used by the consulConfig function and since
 	// that is only ever done during init and reload here then
 	// an in place modification is safe as reloads cannot be
-	// concurrent due to both gaing a full lock on the stateLock
+	// concurrent due to both gaining a full lock on the stateLock
 	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
 
 	// create the config for the rpc server/client

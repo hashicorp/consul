@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
@@ -205,6 +206,9 @@ type Server struct {
 	// rpcLimiter is used to rate limit the total number of RPCs initiated
 	// from an agent.
 	rpcLimiter atomic.Value
+
+	// rpcConnLimiter limits the number of RPC connections from a single source IP
+	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
@@ -749,6 +753,10 @@ func registerEndpoint(fn factory) {
 
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC() error {
+	s.rpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: s.config.RPCMaxConnsPerClient,
+	})
+
 	for _, fn := range endpoints {
 		s.rpcServer.Register(fn(s))
 	}
@@ -1258,6 +1266,9 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	s.rpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
+	})
 
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader

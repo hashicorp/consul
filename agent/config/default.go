@@ -103,8 +103,12 @@ func DefaultSource() Source {
 			recursor_timeout = "2s"
 		}
 		limits = {
+			http_max_conns_per_client = 100
+			https_handshake_timeout = "5s"
+			rpc_handshake_timeout = "5s"
 			rpc_rate = -1
 			rpc_max_burst = 1000
+			rpc_max_conns_per_client = 100
 			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}
 		performance = {
