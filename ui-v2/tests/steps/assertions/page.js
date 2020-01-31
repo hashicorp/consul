@@ -124,13 +124,11 @@ export default function(scenario, assert, find, currentPage) {
     })
     .then(["I don't see $property"], function(property) {
       const message = `Expected to not see ${property}`;
-      const notFound = 'Element not found';
-      const cannotDestructure = 'Cannot destructure property';
       let prop;
       try {
         prop = currentPage()[property];
       } catch (e) {
-        if ([notFound, cannotDestructure].some(item => e.message.startsWith(item))) {
+        if (isExpectedError(e)) {
           assert.ok(true, message);
         } else {
           throw e;
@@ -142,7 +140,7 @@ export default function(scenario, assert, find, currentPage) {
             prop();
           },
           function(e) {
-            return [notFound, cannotDestructure].some(item => e.message.startsWith(item));
+            return isExpectedError(e);
           },
           message
         );
