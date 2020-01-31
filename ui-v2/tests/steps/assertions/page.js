@@ -93,7 +93,7 @@ export default function(scenario, assert, find, currentPage) {
             prop();
           },
           function(e) {
-            console.log(e);
+            console.log(JSON.stringify(e));
             return [notFound, cannotDestructure, cannotReadContext].some(item =>
               e.message.startsWith(item)
             );
