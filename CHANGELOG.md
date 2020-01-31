@@ -5,6 +5,10 @@ SECURITY
 * agent: mitigate potential DoS vector allowing unbounded server resource usage from unauthenticated connections [[GH-7159](https://github.com/hashicorp/consul/issues/7159)]
 * acl: add ACL enforcement to the `v1/agent/health/service/*` endpoints [[GH-7160](https://github.com/hashicorp/consul/issues/7160)]
 
+IMPROVEMENTS:
+
+* logging: Switch over to using go-hclog and allow emitting either structured or unstructured logs. [[GH-7130](https://github.com/hashicorp/consul/pull/7130)]
+
 BUGFIXES:
 
 * acl: **(Consul Enterprise only)** `intention:write` privileges are now granted by the `namespace-management` policy that is injected into each new namespace.
