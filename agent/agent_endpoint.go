@@ -737,10 +737,23 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
+	var token string
+	s.parseToken(req, &token)
+
+	// need to resolve to default the meta
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
 	var sid structs.ServiceID
 	sid.Init(serviceID, &entMeta)
 
 	if service := s.agent.State.Service(sid); service != nil {
+		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
+			return nil, acl.ErrPermissionDenied
+		}
 		code, status, healthChecks := agentHealthService(sid, s)
 		if returnTextPlain(req) {
 			return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
@@ -775,6 +788,20 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
+	}
+
+	var token string
+	s.parseToken(req, &token)
+
+	// need to resolve to default the meta
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	if err != nil {
+		return nil, err
+	}
+
+	if authz != nil && authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	code := http.StatusNotFound

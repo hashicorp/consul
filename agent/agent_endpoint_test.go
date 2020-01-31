@@ -1081,6 +1081,59 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 	})
 }
 
+func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), TestACLConfigWithParams(nil))
+	defer a.Shutdown()
+
+	service := &structs.NodeService{
+		ID:      "mysql1",
+		Service: "mysql",
+	}
+	require.NoError(t, a.AddService(service, nil, false, "", ConfigSourceLocal))
+
+	service = &structs.NodeService{
+		ID:      "foo1",
+		Service: "foo",
+	}
+	require.NoError(t, a.AddService(service, nil, false, "", ConfigSourceLocal))
+
+	// no token
+	t.Run("no-token-health-by-id", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/health/service/id/mysql1", nil)
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		_, err = a.srv.AgentHealthServiceByID(resp, req)
+		require.Equal(t, acl.ErrPermissionDenied, err)
+	})
+
+	t.Run("no-token-health-by-name", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/health/service/name/mysql", nil)
+		require.NoError(t, err)
+		resp := httptest.NewRecorder()
+		_, err = a.srv.AgentHealthServiceByName(resp, req)
+		require.Equal(t, acl.ErrPermissionDenied, err)
+	})
+
+	t.Run("root-token-health-by-id", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/health/service/id/foo1", nil)
+		require.NoError(t, err)
+		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+		resp := httptest.NewRecorder()
+		_, err = a.srv.AgentHealthServiceByID(resp, req)
+		require.NotEqual(t, acl.ErrPermissionDenied, err)
+	})
+
+	t.Run("root-token-health-by-name", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/health/service/name/foo", nil)
+		require.NoError(t, err)
+		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+		resp := httptest.NewRecorder()
+		_, err = a.srv.AgentHealthServiceByName(resp, req)
+		require.NotEqual(t, acl.ErrPermissionDenied, err)
+	})
+}
+
 func TestAgent_Checks_ACLFilter(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), TestACLConfig())
