@@ -29,7 +29,7 @@
           items=(compact
             (array
               'Instances'
-              'Routing'
+    (if chain 'Routing' '')
               'Tags'
             )
           )
@@ -45,9 +45,9 @@
         {{#each
             (compact
                 (array
-                    (hash id=(slugify 'Instances') partial='dc/services/instances')
-                    (hash id=(slugify 'Routing') partial='dc/services/routing')
-                    (hash id=(slugify 'Tags') partial='dc/services/tags')
+                  (hash id=(slugify 'Instances') partial='dc/services/instances')
+        (if chain (hash id=(slugify 'Routing') partial='dc/services/routing') '')
+                  (hash id=(slugify 'Tags') partial='dc/services/tags')
                 )
             ) as |panel|
         }}
