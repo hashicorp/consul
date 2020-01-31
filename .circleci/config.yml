@@ -506,7 +506,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
+          command: make test-ci
       - store_test_results:
           path: ui-v2/test-results
 

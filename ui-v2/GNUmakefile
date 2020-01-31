@@ -38,6 +38,9 @@ start-api: deps
 test: deps test-node
 	yarn run test
 
+test-ci: deps test-node
+	yarn run test:ci
+
 test-view: deps test-node
 	yarn run test:view
 
