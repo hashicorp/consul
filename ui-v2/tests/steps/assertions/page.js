@@ -67,6 +67,7 @@ export default function(scenario, assert, find, currentPage) {
       const message = `Expected to not see ${property} on ${component}`;
       const notFound = 'Element not found';
       const cannotDestructure = 'Cannot destructure property';
+      const cannotReadContext = "Cannot read property 'context' of undefined";
       // Cope with collections
       let obj;
       if (typeof currentPage()[component].objectAt === 'function') {
@@ -78,9 +79,13 @@ export default function(scenario, assert, find, currentPage) {
       try {
         prop = obj[property];
       } catch (e) {
-        if ([notFound, cannotDestructure].some(item => e.message.startsWith(item))) {
+        console.log('Line 82');
+        if (
+          [notFound, cannotDestructure, cannotReadContext].some(item => e.message.startsWith(item))
+        ) {
           assert.ok(true, message);
         } else {
+          console.log('Line 86');
           throw e;
         }
       }
@@ -90,7 +95,10 @@ export default function(scenario, assert, find, currentPage) {
             prop();
           },
           function(e) {
-            return [notFound, cannotDestructure].some(item => e.message.startsWith(item));
+            console.log('Line 96');
+            return [notFound, cannotDestructure, cannotReadContext].some(item =>
+              e.message.startsWith(item)
+            );
           },
           message
         );
