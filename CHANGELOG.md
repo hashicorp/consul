@@ -7,7 +7,7 @@ SECURITY
 
 IMPROVEMENTS:
 
-* logging: Switch over to using go-hclog and allow emitting either structured or unstructured logs. [[GH-7130](https://github.com/hashicorp/consul/pull/7130)]
+* logging: Switch over to using go-hclog and allow emitting either structured or unstructured logs. [[GH-1249](https://github.com/hashicorp/consul/issues/1249)][[GH-7130](https://github.com/hashicorp/consul/pull/7130)]
 
 BUGFIXES:
 
