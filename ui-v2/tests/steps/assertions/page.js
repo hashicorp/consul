@@ -1,4 +1,30 @@
 /* eslint no-console: "off" */
+const notFound = 'Element not found';
+const cannotDestructure = "Cannot destructure property 'context'";
+const cannotReadContext = "Cannot read property 'context' of undefined";
+// checking for existence of pageObjects is pretty difficult
+// errors are thrown but we should check to make sure its the error that we
+// want and not another real error
+// to make things more difficult depending on how you reference the pageObject
+// an error with a different message is thrown for example:
+
+// pageObject[thing]() will give you a Element not found error
+
+// whereas:
+
+// const obj = pageObject[thing]; obj() will give you a 'cannot destructure error'
+// and in CI it will give you a 'cannot read property' error
+
+// the difference in CI could be a difference due to headless vs headed browser
+// or difference in Chrome/browser versions
+
+// ideally we wouldn't be checking on error messages at all, but we want to make sure
+// that real errors are picked up by the tests, so if this gets unmanageable at any point
+// look at checking for the instance of e being TypeError or similar
+const isExpectedError = function(e) {
+  return [notFound, cannotDestructure, cannotReadContext].some(item => e.message.startsWith(item));
+};
+
 export default function(scenario, assert, find, currentPage) {
   scenario
     .then('I see $property on the $component like yaml\n$yaml', function(
@@ -65,8 +91,6 @@ export default function(scenario, assert, find, currentPage) {
     })
     .then(["I don't see $property on the $component"], function(property, component) {
       const message = `Expected to not see ${property} on ${component}`;
-      const notFound = 'Element not found';
-      const cannotDestructure = 'Cannot destructure property';
       // Cope with collections
       let obj;
       if (typeof currentPage()[component].objectAt === 'function') {
@@ -78,7 +102,7 @@ export default function(scenario, assert, find, currentPage) {
       try {
         prop = obj[property];
       } catch (e) {
-        if ([notFound, cannotDestructure].some(item => e.message.startsWith(item))) {
+        if (isExpectedError(e)) {
           assert.ok(true, message);
         } else {
           throw e;
@@ -90,7 +114,7 @@ export default function(scenario, assert, find, currentPage) {
             prop();
           },
           function(e) {
-            return [notFound, cannotDestructure].some(item => e.message.startsWith(item));
+            return isExpectedError(e);
           },
           message
         );
