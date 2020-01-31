@@ -42,7 +42,7 @@ func (c *cmd) init() {
 		"Controls the maximum number of log entries that a server can trail the "+
 			"leader by before being considered unhealthy.")
 	c.flags.Var(&c.minQuorum, "min-quorum",
-		"Sets the minimum number of of servers required in a cluster before autopilot "+
+		"Sets the minimum number of servers required in a cluster before autopilot "+
 			"is allowed to prune dead servers.")
 	c.flags.Var(&c.lastContactThreshold, "last-contact-threshold",
 		"Controls the maximum amount of time a server can go without contact "+
