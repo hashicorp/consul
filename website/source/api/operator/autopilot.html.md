@@ -108,7 +108,7 @@ The table below shows this endpoint's support for
 - `MaxTrailingLogs` `(int: 250)` specifies the maximum number of log entries
   that a server can trail the leader by before being considered unhealthy.
 
-- `MinQuorum` `int: 0` - specifies the minimum number of servers needed before
+- `MinQuorum` `(int: 0)` - specifies the minimum number of servers needed before
   Autopilot can prune dead servers.
 
 - `ServerStabilizationTime` `(string: "10s")` - Specifies the minimum amount of
