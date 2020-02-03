@@ -168,6 +168,86 @@ func TestAPI_AgentMembers(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+
+	regupdate := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		Port: 9000,
+	}
+
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := agent.ServiceRegisterOpts(regupdate, ServiceRegisterOpts{ReplaceExistingChecks: true}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %#v", services)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(checks) != 0 {
+		t.Fatalf("checks are not removed: %v", checks)
+	}
+
+	state, out, err := agent.AgentHealthServiceByID("foo")
+	require.Nil(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, HealthPassing, state)
+	require.Equal(t, 9000, out.Service.Port)
+
+	state, outs, err := agent.AgentHealthServiceByName("foo")
+	require.Nil(t, err)
+	require.NotNil(t, outs)
+	require.Equal(t, HealthPassing, state)
+	require.Equal(t, 9000, outs[0].Service.Port)
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -231,7 +311,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthCritical, state)
-	require.Equal(t, 8000, out.Service.Port)
+	require.Equal(t, 8000, outs[0].Service.Port)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)

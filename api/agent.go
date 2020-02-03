@@ -159,6 +159,14 @@ type AgentServiceRegistration struct {
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
+//ServiceRegisterOpts is used to pass extra options to the service register.
+type ServiceRegisterOpts struct {
+	//Missing healthchecks will be deleted from the agent.
+	//Using this parameter allows to idempotently register a service and its checks without
+	//having to manually deregister checks.
+	ReplaceExistingChecks bool
+}
+
 // AgentCheckRegistration is used to register a new check
 type AgentCheckRegistration struct {
 	ID        string `json:",omitempty"`
@@ -554,8 +562,25 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 // ServiceRegister is used to register a new service with
 // the local agent
 func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
+	opts := ServiceRegisterOpts{
+		ReplaceExistingChecks: false,
+	}
+
+	return a.serviceRegister(service, opts)
+}
+
+// ServiceRegister is used to register a new service with
+// the local agent and can be passed additional options.
+func (a *Agent) ServiceRegisterOpts(service *AgentServiceRegistration, opts ServiceRegisterOpts) error {
+	return a.serviceRegister(service, opts)
+}
+
+func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceRegisterOpts) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/register")
 	r.obj = service
+	if opts.ReplaceExistingChecks {
+		r.params.Set("replace-existing-checks", "true")
+	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
