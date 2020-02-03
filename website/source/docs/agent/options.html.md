@@ -38,7 +38,7 @@ documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
-You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent. 
+You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent.
 
 ## Environment Variables
 Environment variables **cannot** be used to configure the Consul client. They
@@ -100,12 +100,12 @@ The options below are all specified on the command-line.
   the local machine and will [advertise](/docs/agent/options.html#_advertise)
   the private IPv4 address to the rest of the cluster. If there
   are multiple private IPv4 addresses available, Consul will exit with an error
-  at startup. If you specify "[::]", Consul will [advertise](/docs/agent/options.html#_advertise) 
-  the public IPv6 address. 
+  at startup. If you specify "[::]", Consul will [advertise](/docs/agent/options.html#_advertise)
+  the public IPv6 address.
   If there are multiple public IPv6 addresses available, Consul will exit with an error at startup.
-  Consul uses both TCP and UDP and the same port for both. If you have any firewalls, 
-  be sure to allow both protocols. In Consul 1.0 and later this can be set to a 
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) 
+  Consul uses both TCP and UDP and the same port for both. If you have any firewalls,
+  be sure to allow both protocols. In Consul 1.0 and later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template that needs to resolve to a single address. Some example templates:
 
     ```sh
@@ -996,14 +996,14 @@ default will automatically work with some tooling.
           generating a new key. If `private_key` is set for the Consul provider,
           or existing root or intermediate PKI paths given for Vault then this
           will be ignored. Currently supported options are `ec` or `rsa`.
-          Default is `ec`. 
-          
+          Default is `ec`.
+
             It is required that all servers in a Datacenter have
           the same config for the CA. It is recommended that servers in
           different Datacenters have the same CA config for key type and size
           although the built-in CA and Vault provider will both allow mixed CA
           key types.
-          
+
             Some CA providers (currently Vault) will not allow cross-signing a
             new CA certificate with a different key type. This means that if you
             migrate from an RSA-keyed Vault CA to an EC-keyed CA from any
@@ -1187,8 +1187,8 @@ default will automatically work with some tooling.
     set to true, in a DNS query for a service, the label between the domain and the `service` label will be treated as a
     namespace name instead of a datacenter. When set to false, the default, the behavior will be the same as non-Enterprise
     versions and will assume the label is the datacenter. See: [this section](/docs/agent/dns.html#namespaced-services-enterprise) for more details.
-    
-    
+
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 
@@ -1371,7 +1371,8 @@ default will automatically work with some tooling.
 
 * <a name="limits"></a><a href="#limits">`limits`</a> Available in Consul 0.9.3
   and later, this is a nested object that configures limits that are enforced by
-  the agent. The following parameters are available:
+  the agent. Prior to Consul 1.5.2, this only applied to agents in client mode,
+  not Consul servers. The following parameters are available:
 
     *   <a name="http_max_conns_per_client"></a><a
         href="#http_max_conns_per_client">`http_max_conns_per_client`</a> -
@@ -1536,13 +1537,13 @@ default will automatically work with some tooling.
       Set to `0` to disable automatic port assignment.
     * <a name="expose_min_port"></a><a
       href="#expose_min_port">`expose_min_port`</a> - Inclusive minimum port
-      number to use for automatically assigned 
-      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference). 
+      number to use for automatically assigned
+      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
       Default 21500. Set to `0` to disable automatic port assignment.
     * <a name="expose_max_port"></a><a
       href="#expose_max_port">`expose_max_port`</a> - Inclusive maximum port
-      number to use for automatically assigned 
-      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference). 
+      number to use for automatically assigned
+      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
       Default 21755. Set to `0` to disable automatic port assignment.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
@@ -1558,8 +1559,8 @@ default will automatically work with some tooling.
   [`-raft-protocol` command-line flag](#_raft_protocol).
 
 <!-- Note the extra _ anchors are here because we used to erroneously list these as
-command line flags even though they are not actually defined as valid flags and can 
-only be set in config file. Duplicating the anchor preserves any existing external links 
+command line flags even though they are not actually defined as valid flags and can
+only be set in config file. Duplicating the anchor preserves any existing external links
 to the old fragment -->
 * <a name="raft_snapshot_threshold"></a><a name="_raft_snapshot_threshold"></a>
   <a href="#raft_snapshot_threshold">`raft_snapshot_threshold`</a> This controls
@@ -1868,7 +1869,7 @@ to the old fragment -->
       currently only supports numeric IDs.
     - `mode` - The permission bits to set on the file.
 
-* <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> 
+* <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a>
   - If set to true, Consul requires that all incoming connections make use of TLS
   and that the client provides a certificate signed by a Certificate Authority
   from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path).  This applies to
