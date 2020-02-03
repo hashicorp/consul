@@ -80,14 +80,23 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
 
+	var subLoggerName string
+	if wan {
+		subLoggerName = "wan"
+	} else {
+		subLoggerName = "lan"
+	}
+
 	// Wrap hclog in a standard logger wrapper for serf and memberlist
 	// We use the Intercept variant here to ensure that serf and memberlist logs
 	// can be streamed via the monitor endpoint
 	serfLogger := s.logger.
 		NamedIntercept(logging.Serf).
+		NamedIntercept(subLoggerName).
 		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := s.logger.
 		NamedIntercept(logging.Memberlist).
+		NamedIntercept(subLoggerName).
 		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger

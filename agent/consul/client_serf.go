@@ -34,13 +34,17 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
 
+	const subLoggerName = "lan"
+
 	// We use the Intercept variant here to ensure that serf and memberlist logs
 	// can be streamed via the monitor endpoint
 	serfLogger := c.logger.
 		NamedIntercept(logging.Serf).
+		NamedIntercept(subLoggerName).
 		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := c.logger.
 		NamedIntercept(logging.Memberlist).
+		NamedIntercept(subLoggerName).
 		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger
