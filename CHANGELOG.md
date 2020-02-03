@@ -1,3 +1,9 @@
+## Upcoming
+
+IMPROVEMENTS:
+
+* connect: Envoy's whole stats endpoint can now be exposed to allow integrations like DataDog agent [[GH-7070](https://github.com/hashicorp/consul/pull/7070)]
+
 ## 1.7.0-beta4 (January 31, 2020)
 
 SECURITY
