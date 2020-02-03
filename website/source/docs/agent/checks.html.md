@@ -117,6 +117,7 @@ There are several different kinds of checks:
   setting `grpc_use_tls` in the check definition. If TLS is enabled, then by default, a valid
   TLS certificate is expected. Certificate verification can be turned off by setting the
   `tls_skip_verify` field to `true` in the check definition.
+  To check on a specific service instead of the whole gRPC server, add the service identifier after the `gRPC` check's endpoint in the following format `/:service_identifier`.
 
 * <a name="alias"></a>Alias - These checks alias the health state of another registered
   node or service. The state of the check will be updated asynchronously,
@@ -204,7 +205,7 @@ A Docker check:
 }
 ```
 
-A gRPC check:
+A gRPC check for the whole application:
 
 ```javascript
 {
@@ -212,6 +213,20 @@ A gRPC check:
     "id": "mem-util",
     "name": "Service health status",
     "grpc": "127.0.0.1:12345",
+    "grpc_use_tls": true,
+    "interval": "10s"
+  }
+}
+```
+
+A gRPC check for the specific `my_service` service:
+
+```javascript
+{
+  "check": {
+    "id": "mem-util",
+    "name": "Service health status",
+    "grpc": "127.0.0.1:12345/my_service",
     "grpc_use_tls": true,
     "interval": "10s"
   }
