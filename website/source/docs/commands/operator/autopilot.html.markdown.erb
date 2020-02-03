@@ -71,6 +71,9 @@ from the leader before being considered unhealthy. Must be a duration value such
 * `-max-trailing-logs` - Controls the maximum number of log entries that a server can trail
 the leader by before being considered unhealthy.
 
+* `-min-quorum` - Sets the minimum number of servers required in a cluster
+before autopilot is allowed to prune dead servers.
+
 * `-server-stabilization-time` - Controls the minimum amount of time a server must be stable in
 the 'healthy' state before being added to the cluster. Only takes effect if all servers are
 running Raft protocol version 3 or higher. Must be a duration value such as `10s`.
