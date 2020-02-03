@@ -252,6 +252,7 @@ func genVerifyGatewayWatch(expectedDatacenter string) verifyWatchRequest {
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.True(t, reqReal.UseServiceKind)
 		require.Equal(t, structs.ServiceKindMeshGateway, reqReal.ServiceKind)
+		require.Equal(t, structs.DefaultEnterpriseMeta(), &reqReal.EnterpriseMeta)
 	}
 }
 

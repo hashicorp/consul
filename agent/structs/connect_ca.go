@@ -165,6 +165,9 @@ type IssuedCert struct {
 	ValidAfter  time.Time
 	ValidBefore time.Time
 
+	// EnterpriseMeta is the Consul Enterprise specific metadata
+	EnterpriseMeta
+
 	RaftIndex
 }
 
