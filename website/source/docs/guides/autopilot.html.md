@@ -52,7 +52,7 @@ following are the defaults.
 ```
 
 All Consul servers should have Autopilot and its features either enabled
-or disabled to ensure consistency accross servers in case of a failure. Additionally,
+or disabled to ensure consistency across servers in case of a failure. Additionally,
 Autopilot must be enabled to use any of the features, but the features themselves
 can be configured independently. Meaning you can enable or disable any of the features
 separately, at any time.
