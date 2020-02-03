@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"math"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -76,8 +76,7 @@ type StateSyncer struct {
 	SyncChanges *Trigger
 
 	// paused stores whether sync runs are temporarily disabled.
-	pauseLock sync.Mutex
-	paused    int
+	paused    int32
 
 	// serverUpInterval is the max time after which a full sync is
 	// performed when a server has been added to the cluster.
@@ -298,28 +297,23 @@ func (s *StateSyncer) staggerFn(d time.Duration) time.Duration {
 
 // Pause temporarily disables sync runs.
 func (s *StateSyncer) Pause() {
-	s.pauseLock.Lock()
-	s.paused++
-	s.pauseLock.Unlock()
+	atomic.AddInt32(&s.paused, 1)
 }
 
 // Paused returns whether sync runs are temporarily disabled.
 func (s *StateSyncer) Paused() bool {
-	s.pauseLock.Lock()
-	defer s.pauseLock.Unlock()
-	return s.paused != 0
+	return atomic.LoadInt32(&s.paused) != 0
 }
 
 // Resume re-enables sync runs. It returns true if it was the last pause/resume
 // pair on the stack and so actually caused the state syncer to resume.
 func (s *StateSyncer) Resume() bool {
-	s.pauseLock.Lock()
-	s.paused--
-	if s.paused < 0 {
+	paused := atomic.AddInt32(&s.paused, -1)
+	if paused < 0 {
 		panic("unbalanced pause/resume")
 	}
-	trigger := s.paused == 0
-	s.pauseLock.Unlock()
+
+	trigger := paused == 0
 	if trigger {
 		s.SyncChanges.Trigger()
 	}
