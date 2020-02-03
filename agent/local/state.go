@@ -1206,6 +1206,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		Service:         l.services[key].Service,
 		EnterpriseMeta:  key.EnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: st},
+		SkipNodeUpdate:  l.nodeInfoInSync,
 	}
 
 	// Backwards-compatibility for Consul < 0.5
@@ -1268,6 +1269,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		Check:           c.Check,
 		EnterpriseMeta:  c.Check.EnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: ct},
+		SkipNodeUpdate:  l.nodeInfoInSync,
 	}
 
 	var serviceKey structs.ServiceID
