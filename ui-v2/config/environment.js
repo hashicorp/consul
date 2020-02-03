@@ -90,27 +90,10 @@ module.exports = function(environment, $ = process.env) {
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
-          endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+          endpoints: {
+            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+          },
         },
-        APP: Object.assign({}, ENV.APP, {
-          LOG_ACTIVE_GENERATION: false,
-          LOG_VIEW_LOOKUPS: false,
-
-          rootElement: '#ember-testing',
-          autoboot: false,
-        }),
-      });
-      break;
-    // The coverage environment is for when running test coverage
-    // which should only run on 'Unit' tests therefore don't use api-double
-    // to prevent it causing issues with coverage reporting
-    // (coverage reporting uses a http request which can get caught
-    // by the api-double mock http request)
-    case environment === 'coverage':
-      ENV = Object.assign({}, ENV, {
-        locationType: 'none',
-        CONSUL_NSPACES_TEST: true,
-        CONSUL_ACLS_ENABLED: true,
         APP: Object.assign({}, ENV.APP, {
           LOG_ACTIVE_GENERATION: false,
           LOG_VIEW_LOOKUPS: false,
@@ -125,7 +108,9 @@ module.exports = function(environment, $ = process.env) {
         CONSUL_NSPACES_ENABLED: true,
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
-          endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+          endpoints: {
+            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+          },
         },
       });
       break;
