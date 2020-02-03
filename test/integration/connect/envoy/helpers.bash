@@ -324,7 +324,7 @@ function get_healthy_service_count {
   local SERVICE_NAME=$1
   local DC=$2
   local NS=$3
-  
+
   run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
@@ -354,21 +354,21 @@ function assert_service_has_healthy_instances {
 function check_intention {
   local SOURCE=$1
   local DESTINATION=$2
-  
+
   curl -s -f "localhost:8500/v1/connect/intentions/check?source=${SOURCE}&destination=${DESTINATION}" | jq ".Allowed"
 }
 
 function assert_intention_allowed {
   local SOURCE=$1
   local DESTINATION=$2
-  
+
   [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "true" ]
 }
 
 function assert_intention_denied {
   local SOURCE=$1
   local DESTINATION=$2
-  
+
   [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "false" ]
 }
 
@@ -446,6 +446,18 @@ function must_match_in_prometheus_response {
   echo "OUTPUT head -n 10"
   echo "$output" | head -n 10
   echo "COUNT of '$2' matches: $COUNT"
+
+  [ "$status" == 0 ]
+  [ "$COUNT" -gt "0" ]
+}
+
+function must_match_in_stats_proxy_response {
+  run curl -f -s $1/$2
+  COUNT=$( echo "$output" | grep -Ec $3 )
+
+  echo "OUTPUT head -n 10"
+  echo "$output" | head -n 10
+  echo "COUNT of '$3' matches: $COUNT"
 
   [ "$status" == 0 ]
   [ "$COUNT" -gt "0" ]
@@ -542,12 +554,12 @@ function get_intention_target_namespace {
 function get_intention_by_targets {
   local SOURCE=$1
   local DESTINATION=$2
-  
+
   local SOURCE_NS=$(get_intention_target_namespace <<< "${SOURCE}")
   local SOURCE_NAME=$(get_intention_target_name <<< "${SOURCE}")
   local DESTINATION_NS=$(get_intention_target_namespace <<< "${DESTINATION}")
   local DESTINATION_NAME=$(get_intention_target_name <<< "${DESTINATION}")
-  
+
   existing=$(list_intentions | jq ".[] | select(.SourceNS == \"$SOURCE_NS\" and .SourceName == \"$SOURCE_NAME\" and .DestinationNS == \"$DESTINATION_NS\" and .DestinationName == \"$DESTINATION_NAME\")")
   if test -z "$existing"
   then
@@ -561,16 +573,16 @@ function update_intention {
   local SOURCE=$1
   local DESTINATION=$2
   local ACTION=$3
-  
+
   intention=$(get_intention_by_targets "${SOURCE}" "${DESTINATION}")
   if test $? -ne 0
   then
     return 1
   fi
-  
-  id=$(jq -r .ID <<< "${intention}") 
+
+  id=$(jq -r .ID <<< "${intention}")
   updated=$(jq ".Action = \"$ACTION\"" <<< "${intention}")
-  
+
   curl -s -X PUT "http://localhost:8500/v1/connect/intentions/${id}" -d "${updated}"
   return $?
 }
