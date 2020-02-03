@@ -181,8 +181,8 @@ func TestService_ServerTLSConfig(t *testing.T) {
 	// After some time, both root and leaves should be different but both should
 	// still be correct.
 	oldRootSubjects := bytes.Join(tlsCfg.RootCAs.Subjects(), []byte(", "))
-	oldLeafSerial := connect.HexString(cert.SerialNumber.Bytes())
-	oldLeafKeyID := connect.HexString(cert.SubjectKeyId)
+	oldLeafSerial := cert.SerialNumber
+	oldLeafKeyID := cert.SubjectKeyId
 	retry.Run(t, func(r *retry.R) {
 		updatedCfg := service.ServerTLSConfig()
 
@@ -198,13 +198,13 @@ func TestService_ServerTLSConfig(t *testing.T) {
 		cert, err := x509.ParseCertificate(leaf.Certificate[0])
 		r.Check(err)
 
-		if oldLeafSerial == connect.HexString(cert.SerialNumber.Bytes()) {
+		if oldLeafSerial.Cmp(cert.SerialNumber) == 0 {
 			r.Fatalf("leaf certificate should have changed, got serial %s",
-				oldLeafSerial)
+				connect.EncodeSerialNumber(oldLeafSerial))
 		}
-		if oldLeafKeyID == connect.HexString(cert.SubjectKeyId) {
+		if bytes.Equal(oldLeafKeyID, cert.SubjectKeyId) {
 			r.Fatalf("leaf should have a different key, got matching SubjectKeyID = %s",
-				oldLeafKeyID)
+				connect.HexString(oldLeafKeyID))
 		}
 	})
 }

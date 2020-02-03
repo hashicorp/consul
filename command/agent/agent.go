@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -16,11 +15,11 @@ import (
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
 	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 	"google.golang.org/grpc/grpclog"
 )
@@ -60,9 +59,13 @@ type cmd struct {
 	versionHuman      string
 	shutdownCh        <-chan struct{}
 	flagArgs          config.Flags
-	logFilter         *logutils.LevelFilter
 	logOutput         io.Writer
-	logger            *log.Logger
+	logger            hclog.InterceptLogger
+}
+
+type GatedUi struct {
+	JSONoutput bool
+	ui         cli.Ui
 }
 
 func (c *cmd) init() {
@@ -74,7 +77,7 @@ func (c *cmd) init() {
 func (c *cmd) Run(args []string) int {
 	code := c.run(args)
 	if c.logger != nil {
-		c.logger.Println("[INFO] agent: Exit code:", code)
+		c.logger.Info("Exit code", "code", code)
 	}
 	return code
 }
@@ -101,18 +104,18 @@ func (c *cmd) readConfig() *config.RuntimeConfig {
 // checkpointResults is used to handler periodic results from our update checker
 func (c *cmd) checkpointResults(results *checkpoint.CheckResponse, err error) {
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to check for updates: %v", err))
+		c.logger.Error("Failed to check for updates", "error", err)
 		return
 	}
 	if results.Outdated {
-		c.UI.Error(fmt.Sprintf("Newer Consul version available: %s (currently running: %s)", results.CurrentVersion, c.version))
+		c.logger.Error("Newer Consul version available", "new_version", results.CurrentVersion, "current_version", c.version)
 	}
 	for _, alert := range results.Alerts {
 		switch alert.Level {
 		case "info":
-			c.UI.Info(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
+			c.logger.Info("Bulletin", "alert_level", alert.Level, "alert_message", alert.Message, "alert_URL", alert.URL)
 		default:
-			c.UI.Error(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
+			c.logger.Error("Bulletin", "alert_level", alert.Level, "alert_message", alert.Message, "alert_URL", alert.URL)
 		}
 	}
 }
@@ -152,7 +155,7 @@ func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
 		return err
 	}
 
-	c.UI.Info(fmt.Sprintf("Join completed. Synced with %d initial agents", n))
+	c.logger.Info("Join completed. Initial agents synced with", "agent_count", n)
 	return nil
 }
 
@@ -168,7 +171,7 @@ func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) erro
 		return err
 	}
 
-	c.UI.Info(fmt.Sprintf("Join -wan completed. Synced with %d initial agents", n))
+	c.logger.Info("Join -wan completed. Initial agents synced with", "agent_count", n)
 	return nil
 }
 
@@ -187,8 +190,10 @@ func (c *cmd) run(args []string) int {
 	}
 
 	// Setup the log outputs
-	logConfig := &logger.Config{
+	logConfig := &logging.Config{
 		LogLevel:          config.LogLevel,
+		LogJSON:           config.LogJSON,
+		Name:              logging.Agent,
 		EnableSyslog:      config.EnableSyslog,
 		SyslogFacility:    config.SyslogFacility,
 		LogFilePath:       config.LogFile,
@@ -196,54 +201,57 @@ func (c *cmd) run(args []string) int {
 		LogRotateBytes:    config.LogRotateBytes,
 		LogRotateMaxFiles: config.LogRotateMaxFiles,
 	}
-	logFilter, logGate, logWriter, logOutput, ok := logger.Setup(logConfig, c.UI)
+	logger, logGate, logOutput, ok := logging.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
-	c.logFilter = logFilter
 	c.logOutput = logOutput
-	c.logger = log.New(logOutput, "", log.LstdFlags)
+
+	c.logger = logger
+
+	//Setup gate to check if we should output CLI information
+	cli := GatedUi{
+		JSONoutput: config.LogJSON,
+		ui:         c.UI,
+	}
 
 	// Setup gRPC logger to use the same output/filtering
-	grpclog.SetLoggerV2(logger.NewGRPCLogger(logConfig, c.logger))
+	grpclog.SetLoggerV2(logging.NewGRPCLogger(logConfig, c.logger))
 
 	memSink, err := lib.InitTelemetry(config.Telemetry)
 	if err != nil {
-		c.UI.Error(err.Error())
+		c.logger.Error(err.Error())
 		return 1
 	}
 
 	// Create the agent
-	c.UI.Output("Starting Consul agent...")
+	cli.output("Starting Consul agent...")
 	agent, err := agent.New(config, c.logger)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error creating agent: %s", err))
+		c.logger.Error("Error creating agent", "error", err)
 		return 1
 	}
 	agent.LogOutput = logOutput
-	agent.LogWriter = logWriter
 	agent.MemSink = memSink
 
 	segment := config.SegmentName
 	if config.ServerMode {
 		segment = "<all>"
 	}
-
-	c.UI.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
-	c.UI.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	c.UI.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	c.UI.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	c.UI.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	c.UI.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+	cli.info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
+	cli.info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
+	cli.info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	cli.info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	cli.info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	cli.info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
-	c.UI.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	cli.info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	c.UI.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
+	cli.info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
 		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-
 	// Enable log streaming
-	c.UI.Info("")
-	c.UI.Output("Log data will now stream in as it occurs:\n")
+	cli.output("")
+	cli.output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
 	// wait for signal
@@ -267,10 +275,10 @@ func (c *cmd) run(args []string) int {
 
 			case syscall.SIGHUP:
 				err := fmt.Errorf("cannot reload before agent started")
-				c.logger.Printf("[ERR] agent: Caught signal: %s err: %s\n", sig, err)
+				c.logger.Error("Caught", "signal", sig, "error", err)
 
 			default:
-				c.logger.Println("[INFO] agent: Caught signal: ", sig)
+				c.logger.Info("Caught", "signal", sig)
 				agent.InterruptStartCh <- struct{}{}
 				return
 			}
@@ -284,7 +292,7 @@ func (c *cmd) run(args []string) int {
 	default:
 	}
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error starting agent: %s", err))
+		c.logger.Error("Error starting agent", "error", err)
 		return 1
 	}
 
@@ -297,19 +305,19 @@ func (c *cmd) run(args []string) int {
 	}
 
 	if err := c.startupJoin(agent, config); err != nil {
-		c.UI.Error(err.Error())
+		c.logger.Error((err.Error()))
 		return 1
 	}
 
 	if err := c.startupJoinWan(agent, config); err != nil {
-		c.UI.Error(err.Error())
+		c.logger.Error((err.Error()))
 		return 1
 	}
 
 	// Let the agent know we've finished registration
 	agent.StartSync()
 
-	c.UI.Output("Consul agent running!")
+	cli.output("Consul agent running!")
 
 	// wait for signal
 	signalCh = make(chan os.Signal, 10)
@@ -329,7 +337,7 @@ func (c *cmd) run(args []string) int {
 		case <-c.shutdownCh:
 			sig = os.Interrupt
 		case err := <-agent.RetryJoinCh():
-			c.logger.Println("[ERR] agent: Retry join failed: ", err)
+			c.logger.Error("Retry join failed", "error", err)
 			return 1
 		case <-agent.ShutdownCh():
 			// agent is already down!
@@ -341,14 +349,14 @@ func (c *cmd) run(args []string) int {
 			continue
 
 		case syscall.SIGHUP:
-			c.logger.Println("[INFO] agent: Caught signal: ", sig)
+			c.logger.Info("Caught", "signal", sig)
 
 			conf, err := c.handleReload(agent, config)
 			if conf != nil {
 				config = conf
 			}
 			if err != nil {
-				c.logger.Println("[ERR] agent: Reload config failed: ", err)
+				c.logger.Error("Reload config failed", "error", err)
 			}
 			// Send result back if reload was called via HTTP
 			if reloadErrCh != nil {
@@ -356,19 +364,19 @@ func (c *cmd) run(args []string) int {
 			}
 
 		default:
-			c.logger.Println("[INFO] agent: Caught signal: ", sig)
+			c.logger.Info("Caught", "signal", sig)
 
 			graceful := (sig == os.Interrupt && !(config.SkipLeaveOnInt)) || (sig == syscall.SIGTERM && (config.LeaveOnTerm))
 			if !graceful {
-				c.logger.Println("[INFO] agent: Graceful shutdown disabled. Exiting")
+				c.logger.Info("Graceful shutdown disabled. Exiting")
 				return 1
 			}
 
-			c.logger.Println("[INFO] agent: Gracefully shutting down agent...")
+			c.logger.Info("Gracefully shutting down agent...")
 			gracefulCh := make(chan struct{})
 			go func() {
 				if err := agent.Leave(); err != nil {
-					c.logger.Println("[ERR] agent: Error on leave:", err)
+					c.logger.Error("Error on leave", "error", err)
 					return
 				}
 				close(gracefulCh)
@@ -377,13 +385,13 @@ func (c *cmd) run(args []string) int {
 			gracefulTimeout := 15 * time.Second
 			select {
 			case <-signalCh:
-				c.logger.Printf("[INFO] agent: Caught second signal %v. Exiting\n", sig)
+				c.logger.Info("Caught second signal, Exiting", "signal", sig)
 				return 1
 			case <-time.After(gracefulTimeout):
-				c.logger.Println("[INFO] agent: Timeout on graceful leave. Exiting")
+				c.logger.Info("Timeout on graceful leave. Exiting")
 				return 1
 			case <-gracefulCh:
-				c.logger.Println("[INFO] agent: Graceful exit completed")
+				c.logger.Info("Graceful exit completed")
 				return 0
 			}
 		}
@@ -392,7 +400,7 @@ func (c *cmd) run(args []string) int {
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
 func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*config.RuntimeConfig, error) {
-	c.logger.Println("[INFO] agent: Reloading configuration...")
+	c.logger.Info("Reloading configuration...")
 	var errs error
 	newCfg := c.readConfig()
 	if newCfg == nil {
@@ -401,16 +409,16 @@ func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*conf
 	}
 
 	// Change the log level
-	minLevel := logutils.LogLevel(strings.ToUpper(newCfg.LogLevel))
-	if logger.ValidateLevelFilter(minLevel, c.logFilter) {
-		c.logFilter.SetMinLevel(minLevel)
+	if logging.ValidateLogLevel(newCfg.LogLevel) {
+		c.logger.SetLevel(logging.LevelFromString(newCfg.LogLevel))
 	} else {
 		errs = multierror.Append(fmt.Errorf(
 			"Invalid log level: %s. Valid log levels are: %v",
-			minLevel, c.logFilter.Levels))
+			newCfg.LogLevel, logging.AllowedLogLevels()))
 
 		// Keep the current log level
 		newCfg.LogLevel = cfg.LogLevel
+
 	}
 
 	if err := agent.ReloadConfig(newCfg); err != nil {
@@ -419,6 +427,18 @@ func (c *cmd) handleReload(agent *agent.Agent, cfg *config.RuntimeConfig) (*conf
 	}
 
 	return newCfg, errs
+}
+
+func (g *GatedUi) output(s string) {
+	if !g.JSONoutput {
+		g.ui.Output(s)
+	}
+}
+
+func (g *GatedUi) info(s string) {
+	if !g.JSONoutput {
+		g.ui.Info(s)
+	}
 }
 
 func (c *cmd) Synopsis() string {

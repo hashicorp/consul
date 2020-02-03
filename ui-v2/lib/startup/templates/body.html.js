@@ -22,6 +22,9 @@ module.exports = ({ appName, environment, rootURL, config }) => `
       appendScript('${rootURL}assets/encoding-indexes.js');
       appendScript('${rootURL}assets/encoding.js');
     }
+    if(!(window.CSS && window.CSS.escape)) {
+      appendScript('${rootURL}assets/css.escape.js');
+    }
   </script>
   <script src="${rootURL}assets/${appName}.js"></script>
   <script>

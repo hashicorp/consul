@@ -1,6 +1,6 @@
 ---
 name: Question
-about: If you have a question, please check out our other community resources instead of opening an issue.
+about: If you have a question, please do not create an issue. Instead check out our other community resources.
 
 ---
 

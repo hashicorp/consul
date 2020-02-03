@@ -53,7 +53,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 	// the previous RPC should not return until the primary has been updated but will return
 	// before the secondary has the data.
 	state := s1.fsm.State()
-	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(t, err)
 
 	serviceConf, ok := entry.(*structs.ServiceConfigEntry)
@@ -64,7 +64,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		// wait for replication to happen
 		state := s2.fsm.State()
-		_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+		_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 		require.NoError(r, err)
 		require.NotNil(r, entry)
 		// this test is not testing that the config entries that are replicated are correct as thats done elsewhere.
@@ -91,7 +91,7 @@ func TestConfigEntry_Apply(t *testing.T) {
 	require.True(t, out)
 
 	state = s1.fsm.State()
-	_, entry, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, entry, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(t, err)
 
 	serviceConf, ok = entry.(*structs.ServiceConfigEntry)
@@ -124,7 +124,7 @@ func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
 	require.True(t, out)
 
 	state := s1.fsm.State()
-	_, entry, err := state.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	_, entry, err := state.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(t, err)
 
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
@@ -192,7 +192,7 @@ operator = "write"
 	require.NoError(err)
 
 	state := s1.fsm.State()
-	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, entry, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(err)
 
 	serviceConf, ok := entry.(*structs.ServiceConfigEntry)
@@ -237,7 +237,7 @@ func TestConfigEntry_Get(t *testing.T) {
 		Name: "foo",
 	}
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, entry))
+	require.NoError(state.EnsureConfigEntry(1, entry, nil))
 
 	args := structs.ConfigEntryQuery{
 		Kind:       structs.ServiceDefaults,
@@ -296,11 +296,11 @@ operator = "read"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}))
+	}, nil))
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ConfigEntryQuery{
@@ -350,8 +350,8 @@ func TestConfigEntry_List(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0]))
-	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1]))
+	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0], nil))
+	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1], nil))
 
 	args := structs.ConfigEntryQuery{
 		Kind:       structs.ServiceDefaults,
@@ -394,9 +394,9 @@ func TestConfigEntry_ListAll(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0]))
-	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1]))
-	require.NoError(state.EnsureConfigEntry(3, expected.Entries[2]))
+	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0], nil))
+	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1], nil))
+	require.NoError(state.EnsureConfigEntry(3, expected.Entries[2], nil))
 
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
@@ -451,15 +451,15 @@ operator = "read"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
-	}))
+	}, nil))
 
 	// This should filter out the "db" service since we don't have permissions for it.
 	args := structs.ConfigEntryQuery{
@@ -532,15 +532,15 @@ operator = "read"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
-	}))
+	}, nil))
 
 	// This should filter out the "db" service since we don't have permissions for it.
 	args := structs.ConfigEntryQuery{
@@ -600,10 +600,10 @@ func TestConfigEntry_Delete(t *testing.T) {
 		Name: "foo",
 	}
 	state := s1.fsm.State()
-	require.NoError(t, state.EnsureConfigEntry(1, entry))
+	require.NoError(t, state.EnsureConfigEntry(1, entry, nil))
 
 	// Verify it's there.
-	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(t, err)
 
 	serviceConf, ok := existing.(*structs.ServiceConfigEntry)
@@ -613,7 +613,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		// wait for it to be replicated into the secondary dc
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo")
+		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 		require.NoError(r, err)
 		require.NotNil(r, existing)
 	})
@@ -627,13 +627,13 @@ func TestConfigEntry_Delete(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec2, "ConfigEntry.Delete", &args, &out))
 
 	// Verify the entry was deleted.
-	_, existing, err = s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, existing, err = s1.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(t, err)
 	require.Nil(t, existing)
 
 	// verify it gets deleted from the secondary too
 	retry.Run(t, func(r *retry.R) {
-		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo")
+		_, existing, err := s2.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 		require.NoError(r, err)
 		require.Nil(r, existing)
 	})
@@ -682,11 +682,11 @@ operator = "write"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}))
+	}, nil))
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ConfigEntryRequest{
@@ -709,7 +709,7 @@ operator = "write"
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
 
 	// Verify the entry was deleted.
-	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(err)
 	require.Nil(existing)
 
@@ -729,7 +729,7 @@ operator = "write"
 	args.WriteRequest.Token = id
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out))
 
-	_, existing, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, existing, err = state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
 	require.NoError(err)
 	require.Nil(existing)
 }
@@ -753,17 +753,17 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Config: map[string]interface{}{
 			"foo": 1,
 		},
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "http",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "bar",
 		Protocol: "grpc",
-	}))
+	}, nil))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
@@ -788,7 +788,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	}
 	require.Equal(expected, out)
 
-	_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+	_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, nil)
 	require.NoError(err)
 	require.NotNil(entry)
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
@@ -819,17 +819,17 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		Config: map[string]interface{}{
 			"global": 1,
 		},
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "grpc",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "bar",
 		Protocol: "http",
-	}))
+	}, nil))
 
 	var index uint64
 
@@ -863,6 +863,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 			require.NoError(state.DeleteConfigEntry(index+1,
 				structs.ServiceDefaults,
 				"foo",
+				nil,
 			))
 		}()
 
@@ -927,6 +928,7 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 			require.NoError(state.DeleteConfigEntry(index+1,
 				structs.ProxyDefaults,
 				structs.ProxyConfigGlobal,
+				nil,
 			))
 		}()
 
@@ -979,24 +981,24 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "bar",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "other",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "alreadyprotocol",
 		Protocol: "grpc",
-	}))
+	}, nil))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
@@ -1100,15 +1102,15 @@ operator = "write"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}))
+	}, nil))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
-	}))
+	}, nil))
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ServiceConfigRequest{
@@ -1126,4 +1128,47 @@ operator = "write"
 	args.Name = "foo"
 	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
 
+}
+
+func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	expose := structs.ExposeConfig{
+		Checks: true,
+		Paths: []structs.ExposePath{
+			{
+				LocalPathPort: 8080,
+				ListenerPort:  21500,
+				Protocol:      "http2",
+				Path:          "/healthz",
+			},
+		},
+	}
+
+	args := structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Entry: &structs.ProxyConfigEntry{
+			Kind:   "proxy-defaults",
+			Name:   "global",
+			Expose: expose,
+		},
+	}
+
+	out := false
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	require.True(t, out)
+
+	state := s1.fsm.State()
+	_, entry, err := state.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
+	require.NoError(t, err)
+
+	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
+	require.True(t, ok)
+	require.Equal(t, expose, proxyConf.Expose)
 }

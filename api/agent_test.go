@@ -168,6 +168,86 @@ func TestAPI_AgentMembers(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+
+	regupdate := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		Port: 9000,
+	}
+
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := agent.ServiceRegisterOpts(regupdate, ServiceRegisterOpts{ReplaceExistingChecks: true}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %#v", services)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(checks) != 0 {
+		t.Fatalf("checks are not removed: %v", checks)
+	}
+
+	state, out, err := agent.AgentHealthServiceByID("foo")
+	require.Nil(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, HealthPassing, state)
+	require.Equal(t, 9000, out.Service.Port)
+
+	state, outs, err := agent.AgentHealthServiceByName("foo")
+	require.Nil(t, err)
+	require.NotNil(t, outs)
+	require.Equal(t, HealthPassing, state)
+	require.Equal(t, 9000, outs[0].Service.Port)
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentServices(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -231,7 +311,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthCritical, state)
-	require.Equal(t, 8000, out.Service.Port)
+	require.Equal(t, 8000, outs[0].Service.Port)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -647,7 +727,8 @@ func TestAPI_AgentService(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		Meta: map[string]string{},
+		Meta:      map[string]string{},
+		Namespace: defaultNamespace,
 	}
 	require.Equal(expect, got)
 	require.Equal(expect.ContentHash, qm.LastContentHash)
@@ -776,6 +857,9 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 	if chk.Status != HealthCritical {
 		t.Fatalf("check not critical: %v", chk)
+	}
+	if chk.Type != "ttl" {
+		t.Fatalf("expected type ttl, got %s", chk.Type)
 	}
 
 	if err := agent.CheckDeregister("foo"); err != nil {
@@ -951,6 +1035,9 @@ func TestAPI_AgentChecks_serviceBound(t *testing.T) {
 	if check.ServiceID != "redis" {
 		t.Fatalf("missing service association for check: %v", check)
 	}
+	if check.Type != "ttl" {
+		t.Fatalf("expected type ttl, got %s", check.Type)
+	}
 }
 
 func TestAPI_AgentChecks_Docker(t *testing.T) {
@@ -996,6 +1083,9 @@ func TestAPI_AgentChecks_Docker(t *testing.T) {
 	}
 	if check.ServiceID != "redis" {
 		t.Fatalf("missing service association for check: %v", check)
+	}
+	if check.Type != "docker" {
+		t.Fatalf("expected type docker, got %s", check.Type)
 	}
 }
 
@@ -1064,7 +1154,21 @@ func TestAPI_AgentForceLeave(t *testing.T) {
 	agent := c.Agent()
 
 	// Eject somebody
-	err := agent.ForceLeave("foo")
+	err := agent.ForceLeave(s.Config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentForceLeavePrune(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody
+	err := agent.ForceLeavePrune(s.Config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1077,7 +1181,7 @@ func TestAPI_AgentMonitor(t *testing.T) {
 
 	agent := c.Agent()
 
-	logCh, err := agent.Monitor("info", nil, nil)
+	logCh, err := agent.Monitor("debug", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1085,8 +1189,32 @@ func TestAPI_AgentMonitor(t *testing.T) {
 	// Wait for the first log message and validate it
 	select {
 	case log := <-logCh:
-		if !strings.Contains(log, "[INFO]") {
+		if !(strings.Contains(log, "[INFO]") || strings.Contains(log, "[DEBUG]")) {
 			t.Fatalf("bad: %q", log)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("failed to get a log message")
+	}
+}
+
+func TestAPI_AgentMonitorJSON(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	logCh, err := agent.MonitorJSON("debug", nil, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for the first log message and validate it is valid JSON
+	select {
+	case log := <-logCh:
+		var output map[string]interface{}
+		if err := json.Unmarshal([]byte(log), &output); err != nil {
+			t.Fatalf("log output was not JSON: %q", log)
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatalf("failed to get a log message")
@@ -1145,6 +1273,9 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
 		}
+		if check.Type != "maintenance" {
+			t.Fatalf("expected type 'maintenance', got %s", check.Type)
+		}
 	}
 }
 
@@ -1192,6 +1323,9 @@ func TestAPI_NodeMaintenance(t *testing.T) {
 	for _, check := range checks {
 		if strings.Contains(check.CheckID, "maintenance") {
 			t.Fatalf("should have removed health check")
+		}
+		if check.Type != "maintenance" {
+			t.Fatalf("expected type 'maintenance', got %s", check.Type)
 		}
 	}
 }
@@ -1358,6 +1492,9 @@ func TestAPI_AgentConnectCALeaf(t *testing.T) {
 	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	// ensure we don't try to sign a leaf cert before connect has been initialized
+	s.WaitForActiveCARoot(t)
 
 	agent := c.Agent()
 	// Setup service
@@ -1566,4 +1703,46 @@ func TestAgentService_Register_MeshGateway(t *testing.T) {
 	require.NotNil(t, svc.Proxy)
 	require.Contains(t, svc.Proxy.Config, "foo")
 	require.Equal(t, "bar", svc.Proxy.Config["foo"])
+}
+
+func TestAgentService_ExposeChecks(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	path := ExposePath{
+		LocalPathPort: 8080,
+		ListenerPort:  21500,
+		Path:          "/metrics",
+		Protocol:      "http2",
+	}
+	reg := AgentServiceRegistration{
+		Kind:    ServiceKindConnectProxy,
+		Name:    "expose-proxy",
+		Address: "10.1.2.3",
+		Port:    8443,
+		Proxy: &AgentServiceConnectProxyConfig{
+			DestinationServiceName: "expose",
+			Expose: ExposeConfig{
+				Checks: true,
+				Paths: []ExposePath{
+					path,
+				},
+			},
+		},
+	}
+
+	err := agent.ServiceRegister(&reg)
+	require.NoError(t, err)
+
+	svc, _, err := agent.Service("expose-proxy", nil)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	require.Equal(t, ServiceKindConnectProxy, svc.Kind)
+	require.NotNil(t, svc.Proxy)
+	require.Len(t, svc.Proxy.Expose.Paths, 1)
+	require.True(t, svc.Proxy.Expose.Checks)
+	require.Equal(t, path, svc.Proxy.Expose.Paths[0])
 }

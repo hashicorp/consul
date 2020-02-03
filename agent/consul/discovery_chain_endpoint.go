@@ -30,11 +30,13 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 	defer metrics.MeasureSince([]string{"discovery_chain", "get"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.ResolveToken(args.Token)
+	entMeta := args.GetEnterpriseMeta()
+	var authzContext acl.AuthorizerContext
+	rule, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, entMeta, &authzContext)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.ServiceRead(args.Name) {
+	if rule != nil && rule.ServiceRead(args.Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -47,17 +49,11 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 		evalDC = c.srv.config.Datacenter
 	}
 
-	evalNS := args.EvaluateInNamespace
-	if evalNS == "" {
-		// TODO(namespaces) pull from something else?
-		evalNS = "default"
-	}
-
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, entries, err := state.ReadDiscoveryChainConfigEntries(ws, args.Name)
+			index, entries, err := state.ReadDiscoveryChainConfigEntries(ws, args.Name, entMeta)
 			if err != nil {
 				return err
 			}
@@ -81,7 +77,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 			// Then we compile it into something useful.
 			chain, err := discoverychain.Compile(discoverychain.CompileRequest{
 				ServiceName:            args.Name,
-				EvaluateInNamespace:    evalNS,
+				EvaluateInNamespace:    entMeta.NamespaceOrDefault(),
 				EvaluateInDatacenter:   evalDC,
 				EvaluateInTrustDomain:  currentTrustDomain,
 				UseInDatacenter:        c.srv.config.Datacenter,

@@ -9,6 +9,7 @@ Feature: dc / acls / tokens / index: ACL Token List
       dc: dc-1
     ---
     Then the url should be /dc-1/acls/tokens
+    And the title should be "Tokens - Consul"
     Then I see 3 token models
   Scenario: Searching the tokens
     Given 1 datacenter model with the value "dc-1"

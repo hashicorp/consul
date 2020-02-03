@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/url"
 	"strings"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 // parseLeafX509Cert will parse an X509 certificate
@@ -205,29 +205,29 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 // api.Client to verify the TLS chain and perform AuthZ for the server end of
 // the connection. The service name provided is used as the target service name
 // for the Authorization.
-func newServerSideVerifier(client *api.Client, serviceName string) verifierFunc {
+func newServerSideVerifier(logger hclog.Logger, client *api.Client, serviceName string) verifierFunc {
 	return func(tlsCfg *tls.Config, rawCerts [][]byte) error {
 		leaf, err := verifyChain(tlsCfg, rawCerts, false)
 		if err != nil {
-			log.Printf("connect: failed TLS verification: %s", err)
+			logger.Error("failed TLS verification", "error", err)
 			return err
 		}
 
 		// Check leaf is a cert we understand
 		if len(leaf.URIs) < 1 {
-			log.Printf("connect: invalid leaf certificate")
+			logger.Error("invalid leaf certificate: no URIs set")
 			return errors.New("connect: invalid leaf certificate")
 		}
 
 		certURI, err := connect.ParseCertURI(leaf.URIs[0])
 		if err != nil {
-			log.Printf("connect: invalid leaf certificate URI")
+			logger.Error("invalid leaf certificate URI", "error", err)
 			return errors.New("connect: invalid leaf certificate URI")
 		}
 
 		// No AuthZ if there is no client.
 		if client == nil {
-			log.Printf("connect: nil client")
+			logger.Info("nil client provided")
 			return nil
 		}
 
@@ -235,15 +235,15 @@ func newServerSideVerifier(client *api.Client, serviceName string) verifierFunc 
 		req := &api.AgentAuthorizeParams{
 			Target:           serviceName,
 			ClientCertURI:    certURI.URI().String(),
-			ClientCertSerial: connect.HexString(leaf.SerialNumber.Bytes()),
+			ClientCertSerial: connect.EncodeSerialNumber(leaf.SerialNumber),
 		}
 		resp, err := client.Agent().ConnectAuthorize(req)
 		if err != nil {
-			log.Printf("connect: authz call failed: %s", err)
+			logger.Error("authz call failed", "error", err)
 			return errors.New("connect: authz call failed: " + err.Error())
 		}
 		if !resp.Authorized {
-			log.Printf("connect: authz call denied: %s", resp.Reason)
+			logger.Error("authz call denied", "reason", resp.Reason)
 			return errors.New("connect: authz denied: " + resp.Reason)
 		}
 		return nil
@@ -326,7 +326,7 @@ type tlsCfgUpdate struct {
 // newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
 // base.Certificates[0] is used as the initial leaf and base.RootCAs is used as
 // the initial roots.
-func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig {
+func newDynamicTLSConfig(base *tls.Config, logger hclog.Logger) *dynamicTLSConfig {
 	cfg := &dynamicTLSConfig{
 		base: base,
 	}
@@ -335,7 +335,7 @@ func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig
 		// If this does error then future calls to Ready will fail
 		// It is better to handle not-Ready rather than failing
 		if err := parseLeafX509Cert(cfg.leaf); err != nil && logger != nil {
-			logger.Printf("[ERR] Error parsing configured leaf certificate: %v", err)
+			logger.Error("error parsing configured leaf certificate", "error", err)
 		}
 	}
 	if base.RootCAs != nil {

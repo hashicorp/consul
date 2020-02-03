@@ -169,7 +169,7 @@ func TestSnapshot_LeaderState(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	codec := rpcClient(t, s1)
 	defer codec.Close()

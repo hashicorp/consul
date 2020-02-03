@@ -82,7 +82,8 @@ registering a proxy instance.
     "local_service_port": 9090,
     "config": {},
     "upstreams": [],
-    "mesh_gateway": {}
+    "mesh_gateway": {},
+    "expose": {}
   },
   "port": 8181
 }
@@ -122,12 +123,16 @@ registering a proxy instance.
 
  - `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
    for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
+   
+ - `expose` `(object: {})` - Specifies the configuration to expose HTTP paths through this proxy. 
+   The format is defined in the [Expose Paths Configuration Reference](#expose-paths-configuration-reference),
+   and is only compatible with an Envoy proxy.
 
 ### Upstream Configuration Reference
 
 The following examples show all possible upstream configuration parameters.
 
-Note that `snake_case` is used here as it works in both [config file and API
+-> Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 Upstreams support multiple destination types. Both examples are shown below
@@ -179,19 +184,22 @@ followed by documentation for each attribute.
   any valid JSON object. This might be used to configure proxy-specific features
   like timeouts or retries for the given upstream. See the [built-in proxy
   configuration
-  reference](/docs/connect/configuration.html#built-in-proxy-options) for
+  reference](/docs/connect/proxies/built-in.html#proxy-upstream-config-key-reference) for
   options available when using the built-in proxy. If using Envoy as a proxy,
   see [Envoy configuration
-  reference](/docs/connect/configuration.html#envoy-options)
+  reference](/docs/connect/proxies/envoy.html#proxy-upstream-config-options)
 * `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
    for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
+* `expose` `(object: {})` - Specifies the configuration to expose HTTP paths through this proxy. 
+  The format is defined in the [Expose Paths Configuration Reference](#expose-paths-configuration-reference),
+  and is only compatible with an Envoy proxy.
 
 
 ### Mesh Gateway Configuration Reference
 
 The following examples show all possible mesh gateway configurations.
 
-Note that `snake_case` is used here as it works in both [config file and API
+-> Note that `snake_case` is used here as it works in both [config file and API
 registrations](/docs/agent/services.html#service-definition-parameter-case).
 
 #### Using a Local/Egress Gateway in the Local Datacenter
@@ -202,7 +210,7 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
 }
 ```
 
-#### Direct to a Remote/Ingress in a Remote Dataceter
+#### Direct to a Remote/Ingress in a Remote Datacenter
 ```json
 {
   "mode": "remote"
@@ -237,3 +245,71 @@ registrations](/docs/agent/services.html#service-definition-parameter-case).
        2. Proxy Service's `Proxy` configuration
        3. The `service-defaults` configuration for the service.
        4. The `global` `proxy-defaults`.
+
+### Expose Paths Configuration Reference
+
+The following examples show possible configurations to expose HTTP paths through Envoy.
+
+Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing 
+non-Connect-enabled applications to contact an HTTP endpoint. 
+Some examples include: exposing a `/metrics` path for Prometheus or `/healthz` for kubelet liveness checks.
+
+-> Note that `snake_case` is used here as it works in both [config file and API
+registrations](/docs/agent/services.html#service-definition-parameter-case).
+
+#### Expose listeners in Envoy for HTTP and GRPC checks registered with the local Consul agent
+
+```json
+{
+  "expose": {
+    "checks": true
+  } 
+}
+```
+
+#### Expose an HTTP listener in Envoy at port 21500 that routes to an HTTP server listening at port 8080
+
+```json
+{
+  "expose": {
+    "paths": [
+      {
+        "path": "/healthz",
+        "local_path_port": 8080,
+        "listener_port": 21500
+      }
+    ]
+  } 
+}
+```
+
+#### Expose an HTTP2 listener in Envoy at port 21501 that routes to a gRPC server listening at port 9090
+
+```json
+{
+  "expose": {
+    "paths": [
+      {
+        "path": "/grpc.health.v1.Health/Check",
+        "protocol": "http2",
+        "local_path_port": 9090,
+        "listener_port": 21501
+      }
+    ]
+  } 
+}
+```
+
+* `checks` `(bool: false)` - If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
+  Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's 
+  [advertise address](/docs/agent/options.html#advertise). The port for these listeners are dynamically allocated from 
+  [expose_min_port](/docs/agent/options.html#expose_min_port) to [expose_max_port](/docs/agent/options.html#expose_max_port). 
+  This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running 
+  Consul on Kubernetes, and Consul agents run in their own pods.
+* `paths` `array<Path>: []` - A list of paths to expose through Envoy.
+  - `path` `(string: "")` - The HTTP path to expose. The path must be prefixed by a slash. ie: `/metrics`.
+  - `local_path_port` `(int: 0)` - The port where the local service is listening for connections to the path.
+  - `listener_port` `(int: 0)` - The port where the proxy will listen for connections. This port must be  available for 
+  the listener to be set up. If the port is not free then Envoy will not expose a listener for the path, 
+  but the proxy registration will not fail.
+  - `protocol` `(string: "http")` - Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.

@@ -10,8 +10,8 @@ import (
 
 func TestFilter_DirEnt(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil)
-	aclR, _ := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil, nil)
+	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
 		in  []string
@@ -50,42 +50,10 @@ func TestFilter_DirEnt(t *testing.T) {
 	}
 }
 
-func TestFilter_Keys(t *testing.T) {
-	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil)
-	aclR, _ := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
-
-	type tcase struct {
-		in  []string
-		out []string
-	}
-	cases := []tcase{
-		tcase{
-			in:  []string{"foo/test", "foo/priv/nope", "foo/other", "zoo"},
-			out: []string{"foo/test", "foo/other"},
-		},
-		tcase{
-			in:  []string{"abe", "lincoln"},
-			out: []string{},
-		},
-		tcase{
-			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
-			out: []string{"foo/1", "foo/2", "foo/3"},
-		},
-	}
-
-	for _, tc := range cases {
-		out := FilterKeys(aclR, tc.in)
-		if !reflect.DeepEqual(out, tc.out) {
-			t.Fatalf("bad: %#v %#v", out, tc.out)
-		}
-	}
-}
-
 func TestFilter_TxnResults(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil)
-	aclR, _ := acl.NewPolicyAuthorizer(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	policy, _ := acl.NewPolicyFromSource("", 0, testFilterRules, acl.SyntaxLegacy, nil, nil)
+	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
 		in  []string

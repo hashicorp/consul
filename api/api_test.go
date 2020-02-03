@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -422,7 +423,11 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 	os.Setenv(HTTPSSLVerifyEnvName, "0")
 	defer os.Setenv(HTTPSSLVerifyEnvName, "")
 
-	for i, config := range []*Config{DefaultConfig(), DefaultNonPooledConfig()} {
+	for i, config := range []*Config{
+		DefaultConfig(),
+		DefaultConfigWithLogger(testutil.Logger(t)),
+		DefaultNonPooledConfig(),
+	} {
 		if config.Address != addr {
 			t.Errorf("expected %q to be %q", config.Address, addr)
 		}
@@ -461,7 +466,7 @@ func TestAPI_DefaultConfig_env(t *testing.T) {
 		}
 
 		// Use keep alives as a check for whether pooling is on or off.
-		if pooled := i == 0; pooled {
+		if pooled := i != 2; pooled {
 			if config.Transport.DisableKeepAlives != false {
 				t.Errorf("expected keep alives to be enabled")
 			}
@@ -573,6 +578,36 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(cc.RootCAs.Subjects()) != 2 {
+		t.Fatalf("didn't load root CAs")
+	}
+
+	// Load certs in-memory
+	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	keyPEM, err := ioutil.ReadFile("../test/hostname/Alice.key")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	caPEM, err := ioutil.ReadFile("../test/hostname/CertAuth.crt")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Setup config with in-memory certs
+	cc, err = SetupTLSConfig(&TLSConfig{
+		CertPEM: certPEM,
+		KeyPEM:  keyPEM,
+		CAPem:   caPEM,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(cc.Certificates) != 1 {
+		t.Fatalf("missing certificate: %v", cc.Certificates)
+	}
+	if cc.RootCAs == nil {
 		t.Fatalf("didn't load root CAs")
 	}
 }
@@ -695,6 +730,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
+		Namespace:         "operator",
 		Datacenter:        "foo",
 		AllowStale:        true,
 		RequireConsistent: true,
@@ -706,6 +742,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	}
 	r.setQueryOptions(q)
 
+	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
 	if r.params.Get("dc") != "foo" {
 		t.Fatalf("bad: %v", r.params)
 	}
@@ -752,11 +791,14 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &WriteOptions{
+		Namespace:  "operator",
 		Datacenter: "foo",
 		Token:      "23456",
 	}
 	r.setWriteOptions(q)
-
+	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
 	if r.params.Get("dc") != "foo" {
 		t.Fatalf("bad: %v", r.params)
 	}

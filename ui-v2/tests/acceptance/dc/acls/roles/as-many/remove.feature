@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / acls / roles / as many / remove: Remove
+Feature: dc / acls / roles / as-many / remove: Remove
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 token model from yaml
@@ -21,8 +21,10 @@ Feature: dc / acls / roles / as many / remove: Remove
     And I click confirmDelete on the roles.selectedOptions
     And I see 0 role models on the roles component
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Roles: []
+      body:
+        Namespace: @namespace
+        Roles: []
     ---
     Then the url should be /datacenter/acls/tokens

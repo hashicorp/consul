@@ -86,6 +86,16 @@ type Config struct {
 	// DataDir is the directory to store our state in.
 	DataDir string
 
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	DefaultQueryTime time.Duration
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	MaxQueryTime time.Duration
+
 	// DevMode is used to enable a development server mode.
 	DevMode bool
 
@@ -109,6 +119,9 @@ type Config struct {
 	// RPCAdvertise will be set to the listener address if it hasn't been
 	// configured at this point.
 	NotifyListen func()
+
+	// NotifyShutdown is called after Server is completely Shutdown.
+	NotifyShutdown func()
 
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
@@ -336,6 +349,9 @@ type Config struct {
 	// a Consul server is now up and known about.
 	ServerUp func()
 
+	// Shutdown callback is used to trigger a full Consul shutdown
+	Shutdown func()
+
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
@@ -372,6 +388,12 @@ type Config struct {
 	// CheckOutputMaxSize control the max size of output of checks
 	CheckOutputMaxSize int
 
+	// RPCHandshakeTimeout limits how long we will wait for the initial magic byte
+	// on an RPC client connection. It also governs how long we will wait for a
+	// TLS handshake when TLS is configured however the timout applies separately
+	// for the initial magic byte and the TLS handshake and inner magic byte.
+	RPCHandshakeTimeout time.Duration
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -389,6 +411,10 @@ type Config struct {
 	// buckets.
 	RPCRate     rate.Limit
 	RPCMaxBurst int
+
+	// RPCMaxConnsPerClient is the limit of how many concurrent connections are
+	// allowed from a single source IP.
+	RPCMaxConnsPerClient int
 
 	// LeaveDrainTime is used to wait after a server has left the LAN Serf
 	// pool for RPCs to drain and new requests to be sent to other servers.
@@ -421,6 +447,9 @@ type Config struct {
 	// AutoEncryptAllowTLS is whether to enable the server responding to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	// Embedded Consul Enterprise specific configuration
+	*EnterpriseConfig
 }
 
 // ToTLSUtilConfig is only used by tests, usually the config is being passed
@@ -533,13 +562,17 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "72h",
+				"RotationPeriod":      "2160h",
+				"LeafCertTTL":         "72h",
+				"IntermediateCertTTL": "8760h", // 365 * 24h
 			},
 		},
 
 		ServerHealthInterval: 2 * time.Second,
 		AutopilotInterval:    10 * time.Second,
+		DefaultQueryTime:     300 * time.Second,
+		MaxQueryTime:         600 * time.Second,
+		EnterpriseConfig:     DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

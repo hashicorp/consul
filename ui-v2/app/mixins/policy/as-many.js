@@ -1,5 +1,3 @@
-import { REQUEST_CREATE, REQUEST_UPDATE } from 'consul-ui/adapters/application';
-
 import Mixin from '@ember/object/mixin';
 import { get } from '@ember/object';
 
@@ -17,6 +15,8 @@ const normalizeServiceIdentities = function(items) {
     return policy;
   });
 };
+// Sometimes we get `Policies: null`, make null equal an empty array
+// and add an empty template
 const normalizePolicies = function(items) {
   return (items || []).map(function(item) {
     return {
@@ -47,24 +47,36 @@ const serializePolicies = function(items) {
 };
 
 export default Mixin.create({
-  handleSingleResponse: function(url, response, primary, slug) {
-    response.Policies = normalizePolicies(response.Policies).concat(
-      normalizeServiceIdentities(response.ServiceIdentities)
-    );
-    return this._super(url, response, primary, slug);
+  //TODO: what about update and create?
+  respondForQueryRecord: function(respond, query) {
+    return this._super(function(cb) {
+      return respond((headers, body) => {
+        body.Policies = normalizePolicies(body.Policies).concat(
+          normalizeServiceIdentities(body.ServiceIdentities)
+        );
+        return cb(headers, body);
+      });
+    }, query);
   },
-  dataForRequest: function(params) {
+  respondForQuery: function(respond, query) {
+    return this._super(function(cb) {
+      return respond(function(headers, body) {
+        return cb(
+          headers,
+          body.map(function(item) {
+            item.Policies = normalizePolicies(item.Policies).concat(
+              normalizeServiceIdentities(item.ServiceIdentities)
+            );
+            return item;
+          })
+        );
+      });
+    }, query);
+  },
+  serialize: function(snapshot, options) {
     const data = this._super(...arguments);
-    const name = params.type.modelName;
-    switch (params.requestType) {
-      case REQUEST_UPDATE:
-      // falls through
-      case REQUEST_CREATE:
-        // ServiceIdentities serialization must happen first, or a copy taken
-        data[name].ServiceIdentities = serializeServiceIdentities(data[name].Policies);
-        data[name].Policies = minimizeModel(serializePolicies(data[name].Policies));
-        break;
-    }
+    data.ServiceIdentities = serializeServiceIdentities(data.Policies);
+    data.Policies = minimizeModel(serializePolicies(data.Policies));
     return data;
   },
 });

@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 
@@ -16,9 +18,6 @@ import (
 )
 
 const (
-	// IntentionWildcard is the wildcard value.
-	IntentionWildcard = "*"
-
 	// IntentionDefaultNamespace is the default namespace value.
 	// NOTE(mitchellh): This is only meant to be a temporary constant.
 	// When namespaces are introduced, we should delete this constant and
@@ -82,6 +81,26 @@ type Intention struct {
 	Hash []byte
 
 	RaftIndex
+}
+
+func (t *Intention) UnmarshalJSON(data []byte) (err error) {
+	type Alias Intention
+	aux := &struct {
+		Hash                 string
+		CreatedAt, UpdatedAt string // effectively `json:"-"` on Intention type
+
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.Hash != "" {
+		t.Hash = []byte(aux.Hash)
+	}
+	return nil
 }
 
 func (x *Intention) SetHash(force bool) []byte {
@@ -154,36 +173,36 @@ func (x *Intention) Validate() error {
 	}
 
 	// Wildcard usage verification
-	if x.SourceNS != IntentionWildcard {
-		if strings.Contains(x.SourceNS, IntentionWildcard) {
+	if x.SourceNS != WildcardSpecifier {
+		if strings.Contains(x.SourceNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceNS: wildcard character '*' cannot be used with partial values"))
 		}
 	}
-	if x.SourceName != IntentionWildcard {
-		if strings.Contains(x.SourceName, IntentionWildcard) {
+	if x.SourceName != WildcardSpecifier {
+		if strings.Contains(x.SourceName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceName: wildcard character '*' cannot be used with partial values"))
 		}
 
-		if x.SourceNS == IntentionWildcard {
+		if x.SourceNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
 				"SourceName: exact value cannot follow wildcard namespace"))
 		}
 	}
-	if x.DestinationNS != IntentionWildcard {
-		if strings.Contains(x.DestinationNS, IntentionWildcard) {
+	if x.DestinationNS != WildcardSpecifier {
+		if strings.Contains(x.DestinationNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationNS: wildcard character '*' cannot be used with partial values"))
 		}
 	}
-	if x.DestinationName != IntentionWildcard {
-		if strings.Contains(x.DestinationName, IntentionWildcard) {
+	if x.DestinationName != WildcardSpecifier {
+		if strings.Contains(x.DestinationName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationName: wildcard character '*' cannot be used with partial values"))
 		}
 
-		if x.DestinationNS == IntentionWildcard {
+		if x.DestinationNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
 				"DestinationName: exact value cannot follow wildcard namespace"))
 		}
@@ -226,6 +245,43 @@ func (x *Intention) Validate() error {
 	return result
 }
 
+func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
+	if authz == nil {
+		return true
+	}
+	var authzContext acl.AuthorizerContext
+
+	if ixn.SourceName != "" {
+		ixn.FillAuthzContext(&authzContext, false)
+		if authz.IntentionRead(ixn.SourceName, &authzContext) == acl.Allow {
+			return true
+		}
+	}
+
+	if ixn.DestinationName != "" {
+		ixn.FillAuthzContext(&authzContext, true)
+		if authz.IntentionRead(ixn.DestinationName, &authzContext) == acl.Allow {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
+	if authz == nil {
+		return true
+	}
+	var authzContext acl.AuthorizerContext
+
+	if ixn.DestinationName == "" {
+		return false
+	}
+
+	ixn.FillAuthzContext(&authzContext, true)
+	return authz.IntentionWrite(ixn.DestinationName, &authzContext) == acl.Allow
+}
+
 // UpdatePrecedence sets the Precedence value based on the fields of this
 // structure.
 func (x *Intention) UpdatePrecedence() {
@@ -255,25 +311,18 @@ func (x *Intention) UpdatePrecedence() {
 // the given namespace and name.
 func (x *Intention) countExact(ns, n string) int {
 	// If NS is wildcard, it must be zero since wildcards only follow exact
-	if ns == IntentionWildcard {
+	if ns == WildcardSpecifier {
 		return 0
 	}
 
 	// Same reasoning as above, a wildcard can only follow an exact value
 	// and an exact value cannot follow a wildcard, so if name is a wildcard
 	// we must have exactly one.
-	if n == IntentionWildcard {
+	if n == WildcardSpecifier {
 		return 1
 	}
 
 	return 2
-}
-
-// GetACLPrefix returns the prefix to look up the ACL policy for this
-// intention, and a boolean noting whether the prefix is valid to check
-// or not. You must check the ok value before using the prefix.
-func (x *Intention) GetACLPrefix() (string, bool) {
-	return x.DestinationName, x.DestinationName != ""
 }
 
 // String returns a human-friendly string for this intention.

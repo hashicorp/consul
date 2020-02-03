@@ -1,14 +1,15 @@
+{{title item.Node}}
 {{#app-view class="node show"}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{!TODO: Move sessions to its own folder within nodes }}
       {{partial 'dc/nodes/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'breadcrumbs'}}
+    {{#block-slot name='breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.nodes'}}>All Nodes</a></li>
         </ol>
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
           {{ item.Node }}
         </h1>
@@ -26,26 +27,26 @@
             selected=selectedTab
         }}
     {{/block-slot}}
-    {{#block-slot 'actions'}}
+    {{#block-slot name='actions'}}
       {{#feedback-dialog type='inline'}}
-          {{#block-slot 'action' as |success error|}}
+          {{#block-slot name='action' as |success error|}}
               {{#copy-button success=(action success) error=(action error) clipboardText=item.Address title='copy IP address to clipboard'}}
                   {{item.Address}}
               {{/copy-button}}
           {{/block-slot}}
-          {{#block-slot 'success' as |transition|}}
+          {{#block-slot name='success' as |transition|}}
               <p class={{transition}}>
                   Copied IP Address!
               </p>
           {{/block-slot}}
-          {{#block-slot 'error' as |transition|}}
+          {{#block-slot name='error' as |transition|}}
               <p class={{transition}}>
                   Sorry, something went wrong!
               </p>
           {{/block-slot}}
       {{/feedback-dialog}}
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
         {{#each
             (compact
                 (array

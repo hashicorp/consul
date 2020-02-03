@@ -36,7 +36,7 @@ The destination service verifies the client certificate
 against the [public CA bundle](/api/connect/ca.html#list-ca-root-certificates).
 After verifying the certificate, it must also call the
 [authorization API](/api/agent/connect.html#authorize) to authorize
-the connection against the configured set of Consul intentions.
+the connection against the configured set of Consul [intentions](/docs/connect/intentions.html).
 If the authorization API responds successfully, the connection is established.
 Otherwise, the connection is rejected.
 
@@ -46,7 +46,7 @@ also ships with built-in support for [Vault](/docs/connect/ca/vault.html). The P
 and can be extended to support any system by adding additional CA providers.
 
 All APIs required for Connect typically respond in microseconds and impose
-minimal overhead to existing services. This is because the Connect-related APIs
+minimal overhead to existing services. To ensure this, Connect-related API calls
 are all made to the local Consul agent over a loopback interface, and all [agent
 Connect endpoints](/api/agent/connect.html) implement local caching, background
 updating, and support blocking queries. Most API calls operate on purely local
@@ -96,7 +96,7 @@ in multiple datacenters (such as the [geo failover](https://learn.hashicorp.com/
 [Intentions](/docs/connect/intentions.html) verify connections between services by
 source and destination name seamlessly across datacenters.
 
-Connections can be made via gateways to enable when communciating across
+Connections can be made via gateways to enable when communicating across
 network topologies allowing connections between services in each datacenter
 without externally routable IPs at the service level.
 

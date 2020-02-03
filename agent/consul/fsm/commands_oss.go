@@ -47,7 +47,7 @@ func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 
 	// Apply all updates in a single transaction
 	if err := c.state.EnsureRegistration(index, &req); err != nil {
-		c.logger.Printf("[WARN] consul.fsm: EnsureRegistration failed: %v", err)
+		c.logger.Warn("EnsureRegistration failed", "error", err)
 		return err
 	}
 	return nil
@@ -64,18 +64,18 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 	// here is also baked into vetDeregisterWithACL() in acl.go, so if you
 	// make changes here, be sure to also adjust the code over there.
 	if req.ServiceID != "" {
-		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
-			c.logger.Printf("[WARN] consul.fsm: DeleteNodeService failed: %v", err)
+		if err := c.state.DeleteService(index, req.Node, req.ServiceID, &req.EnterpriseMeta); err != nil {
+			c.logger.Warn("DeleteNodeService failed", "error", err)
 			return err
 		}
 	} else if req.CheckID != "" {
-		if err := c.state.DeleteCheck(index, req.Node, req.CheckID); err != nil {
-			c.logger.Printf("[WARN] consul.fsm: DeleteNodeCheck failed: %v", err)
+		if err := c.state.DeleteCheck(index, req.Node, req.CheckID, &req.EnterpriseMeta); err != nil {
+			c.logger.Warn("DeleteNodeCheck failed", "error", err)
 			return err
 		}
 	} else {
 		if err := c.state.DeleteNode(index, req.Node); err != nil {
-			c.logger.Printf("[WARN] consul.fsm: DeleteNode failed: %v", err)
+			c.logger.Warn("DeleteNode failed", "error", err)
 			return err
 		}
 	}
@@ -93,15 +93,15 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	case api.KVSet:
 		return c.state.KVSSet(index, &req.DirEnt)
 	case api.KVDelete:
-		return c.state.KVSDelete(index, req.DirEnt.Key)
+		return c.state.KVSDelete(index, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 	case api.KVDeleteCAS:
-		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key)
+		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
 		return act
 	case api.KVDeleteTree:
-		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
+		return c.state.KVSDeleteTree(index, req.DirEnt.Key, &req.DirEnt.EnterpriseMeta)
 	case api.KVCAS:
 		act, err := c.state.KVSSetCAS(index, &req.DirEnt)
 		if err != nil {
@@ -122,7 +122,7 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 		return act
 	default:
 		err := fmt.Errorf("Invalid KVS operation '%s'", req.Op)
-		c.logger.Printf("[WARN] consul.fsm: %v", err)
+		c.logger.Warn("Invalid KVS operation", "operation", req.Op)
 		return err
 	}
 }
@@ -141,9 +141,9 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 		}
 		return req.Session.ID
 	case structs.SessionDestroy:
-		return c.state.SessionDestroy(index, req.Session.ID)
+		return c.state.SessionDestroy(index, req.Session.ID, &req.Session.EnterpriseMeta)
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid Session operation '%s'", req.Op)
+		c.logger.Warn("Invalid Session operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Session operation '%s'", req.Op)
 	}
 }
@@ -172,7 +172,7 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 
 		// No need to check expiration times as those did not exist in legacy tokens.
-		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID); err != nil {
+		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID, nil); err != nil {
 			return err
 		} else {
 			acl, err := token.Convert()
@@ -188,9 +188,9 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		}
 		return req.ACL.ID
 	case structs.ACLDelete:
-		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID)
+		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID, nil)
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
+		c.logger.Warn("Invalid ACL operation", "operation", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
 	}
 }
@@ -206,7 +206,7 @@ func (c *FSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
 	case structs.TombstoneReap:
 		return c.state.ReapTombstones(req.ReapIndex)
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid Tombstone operation '%s'", req.Op)
+		c.logger.Warn("Invalid Tombstone operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Tombstone operation '%s'", req.Op)
 	}
 }
@@ -243,7 +243,7 @@ func (c *FSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} 
 	case structs.PreparedQueryDelete:
 		return c.state.PreparedQueryDelete(index, req.Query.ID)
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid PreparedQuery operation '%s'", req.Op)
+		c.logger.Warn("Invalid PreparedQuery operation", "operation", req.Op)
 		return fmt.Errorf("Invalid PreparedQuery operation '%s'", req.Op)
 	}
 }
@@ -295,7 +295,7 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 	case structs.IntentionOpDelete:
 		return c.state.IntentionDelete(index, req.Intention.ID)
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid Intention operation '%s'", req.Op)
+		c.logger.Warn("Invalid Intention operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)
 	}
 }
@@ -357,8 +357,15 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return act
+	case structs.CAOpIncrementProviderSerialNumber:
+		sn, err := c.state.CAIncrementProviderSerialNumber()
+		if err != nil {
+			return err
+		}
+
+		return sn
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid CA operation '%s'", req.Op)
+		c.logger.Warn("Invalid CA operation", "operation", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }
@@ -378,7 +385,7 @@ func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} 
 		}
 		return index
 	default:
-		c.logger.Printf("[WARN consul.fsm: Invalid CA Leaf operation '%s'", req.Op)
+		c.logger.Warn("Invalid CA Leaf operation", "operation", req.Op)
 		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }
@@ -449,7 +456,7 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsertCAS:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
+		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry, req.Entry.GetEnterpriseMeta())
 		if err != nil {
 			return err
 		}
@@ -457,14 +464,14 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		if err := c.state.EnsureConfigEntry(index, req.Entry); err != nil {
+		if err := c.state.EnsureConfigEntry(index, req.Entry, req.Entry.GetEnterpriseMeta()); err != nil {
 			return err
 		}
 		return true
 	case structs.ConfigEntryDelete:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
-		return c.state.DeleteConfigEntry(index, req.Entry.GetKind(), req.Entry.GetName())
+		return c.state.DeleteConfigEntry(index, req.Entry.GetKind(), req.Entry.GetName(), req.Entry.GetEnterpriseMeta())
 	default:
 		return fmt.Errorf("invalid config entry operation type: %v", req.Op)
 	}
@@ -533,5 +540,5 @@ func (c *FSM) applyACLAuthMethodDeleteOperation(buf []byte, index uint64) interf
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "authmethod"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
-	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames)
+	return c.state.ACLAuthMethodBatchDelete(index, req.AuthMethodNames, &req.EnterpriseMeta)
 }

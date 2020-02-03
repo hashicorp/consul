@@ -7,14 +7,14 @@
       items=(sort-by 'AccessorID:asc' items) as |item index|
   }}
   {{#if caption}}
-    {{#block-slot 'caption'}}{{caption}}{{/block-slot}}
+    {{#block-slot name='caption'}}{{caption}}{{/block-slot}}
   {{/if}}
-      {{#block-slot 'header'}}
+      {{#block-slot name='header'}}
           <th>AccessorID</th>
           <th>Scope</th>
           <th>Description</th>
       {{/block-slot}}
-      {{#block-slot 'row'}}
+      {{#block-slot name='row'}}
           <td data-test-token="{{item.AccessorID}}">
             <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or target ''}}>{{truncate item.AccessorID 8 false}}</a>
           </td>

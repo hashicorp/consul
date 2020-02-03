@@ -9,18 +9,19 @@ export default RepositoryService.extend({
   getPrimaryKey: function() {
     return PRIMARY_KEY;
   },
-  findAllBySlug: function(slug, dc, configuration = {}) {
+  findAllBySlug: function(slug, dc, nspace, configuration = {}) {
     const query = {
       id: slug,
+      ns: nspace,
       dc: dc,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    return this.get('store').query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), query);
   },
-  findInstanceBySlug: function(id, node, slug, dc, configuration) {
-    return this.findAllBySlug(slug, dc, configuration).then(function(items) {
+  findInstanceBySlug: function(id, node, slug, dc, nspace, configuration) {
+    return this.findAllBySlug(slug, dc, nspace, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
         let instance = items.filterBy('ServiceProxy.DestinationServiceID', id).findBy('Node', node);

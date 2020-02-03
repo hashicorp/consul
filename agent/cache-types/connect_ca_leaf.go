@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -96,9 +97,9 @@ type ConnectCALeaf struct {
 // since all times we get from our wall clock should point to the same Location
 // anyway.
 type fetchState struct {
-	// authorityKeyID is the key ID of the CA root that signed the current cert.
-	// This is just to save parsing the whole cert everytime we have to check if
-	// the root changed.
+	// authorityKeyId is the ID of the CA key (whether root or intermediate) that signed
+	// the current cert.  This is just to save parsing the whole cert everytime
+	// we have to check if the root changed.
 	authorityKeyID string
 
 	// forceExpireAfter is used to coordinate renewing certs after a CA rotation
@@ -298,6 +299,10 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
 	// Do we already have a cert in the cache?
 	var existing *structs.IssuedCert
 	// Really important this is not a pointer type since otherwise we would set it
@@ -358,7 +363,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 		expiresAt = state.forceExpireAfter
 	}
 
-	if expiresAt == now || expiresAt.Before(now) {
+	if expiresAt.Equal(now) || expiresAt.Before(now) {
 		// Already expired, just make a new one right away
 		return c.generateNewLeaf(reqReal, lastResultWithNewState())
 	}
@@ -503,31 +508,49 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 
 	// Build the cert uri
 	var id connect.CertURI
+	var commonName string
+	var dnsNames []string
+	var ipAddresses []net.IP
 	if req.Service != "" {
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
-			Namespace:  "default",
+			Namespace:  req.TargetNamespace(),
 			Service:    req.Service,
 		}
+		commonName = connect.ServiceCN(req.Service, req.TargetNamespace(), roots.TrustDomain)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
+		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
+		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
+		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}, req.IPSAN...)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}
 
 	// Create a new private key
+
+	// TODO: for now we always generate EC keys on clients regardless of the key
+	// type being used by the active CA. This is fine and allowed in TLS1.2 and
+	// signing EC CSRs with an RSA key is supported by all current CA providers so
+	// it's OK. IFF we ever need to support a CA provider that refuses to sign a
+	// CSR with a different signature algorithm, or if we have compatibility
+	// issues with external PKI systems that require EC certs be signed with ECDSA
+	// from the CA (this was required in TLS1.1 but not in 1.2) then we can
+	// instead intelligently pick the key type we generate here based on the key
+	// type of the active signing CA. We already have that loaded since we need
+	// the trust domain.
 	pk, pkPEM, err := connect.GeneratePrivateKey()
 	if err != nil {
 		return result, err
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, pk)
+	csr, err := connect.CreateCSR(id, commonName, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return result, err
 	}
@@ -595,7 +618,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		return result, err
 	}
 	// Set the CA key ID so we can easily tell when a active root has changed.
-	state.authorityKeyID = connect.HexString(cert.AuthorityKeyId)
+	state.authorityKeyID = connect.EncodeSigningKeyID(cert.AuthorityKeyId)
 
 	result.Value = &reply
 	// Store value not pointer so we don't accidentally mutate the cache entry
@@ -618,8 +641,12 @@ type ConnectCALeafRequest struct {
 	Datacenter    string
 	Service       string // Service name, not ID
 	Agent         string // Agent name, not ID
+	DNSSAN        []string
+	IPSAN         []net.IP
 	MinQueryIndex uint64
 	MaxQueryTime  time.Duration
+
+	structs.EnterpriseMeta
 }
 
 func (r *ConnectCALeafRequest) Key() string {

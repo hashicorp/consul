@@ -21,7 +21,7 @@ build-staging: deps
 	yarn run build:staging
 
 build-ci: deps
-	yarn run build-ci --output-path=dist
+	yarn run build:ci --output-path=dist
 
 build: deps
 	yarn run build
@@ -29,20 +29,26 @@ build: deps
 start: deps
 	yarn run start
 
+start-consul: deps
+	yarn run start:consul
+
 start-api: deps
 	yarn run start:api
 
-test: deps
+test: deps test-node
 	yarn run test
 
-test-view: deps
+test-view: deps test-node
 	yarn run test:view
 
 test-parallel: deps
-	yarn test-parallel
+	yarn run test:parallel
+
+test-node:
+	yarn run test:node
 
 lint: deps
-	yarn run lint:js
+	yarn run lint:hbs && yarn run lint:js
 
 format: deps
 	yarn run format:js

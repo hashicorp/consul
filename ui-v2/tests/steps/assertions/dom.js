@@ -13,9 +13,10 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
       });
     })
     .then(['I see the text "$text" in "$selector"'], function(text, selector) {
+      const textContent = find(selector).textContent;
       assert.ok(
-        find(selector).textContent.indexOf(text) !== -1,
-        `Expected to see "${text}" in "${selector}"`
+        textContent.indexOf(text) !== -1,
+        `Expected to see "${text}" in "${selector}", was "${textContent}"`
       );
     })
     .then(['I copied "$text"'], function(text) {
@@ -35,10 +36,12 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
     // TODO: These should be mergeable
     .then(['"$selector" has the "$class" class'], function(selector, cls) {
       // because `find` doesn't work, guessing its sandboxed to ember's container
-      assert.ok(
-        document.querySelector(selector).classList.contains(cls),
-        `Expected [class] to contain ${cls} on ${selector}`
-      );
+      assert
+        .dom(document.querySelector(selector))
+        .hasClass(cls, `Expected [class] to contain ${cls} on ${selector}`);
+    })
+    .then([`I don't see the "$selector" element`], function(selector) {
+      assert.equal(document.querySelector(selector), null, `Expected not to see ${selector}`);
     })
     .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
       assert.ok(
@@ -66,5 +69,8 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
       }
       const current = currentURL() || '';
       assert.equal(current, url, `Expected the url to be ${url} was ${current}`);
+    })
+    .then(['the title should be "$title"'], function(title) {
+      assert.equal(document.title, title, `Expected the document.title to equal "${title}"`);
     });
 }

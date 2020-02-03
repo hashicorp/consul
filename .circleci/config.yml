@@ -3,8 +3,8 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.12.8
-    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
+    go: &GOLANG_IMAGE circleci/golang:1.12.13
+    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
     ember: &EMBER_IMAGE circleci/node:8-browsers
 
   paths:
@@ -22,6 +22,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts
     BASH_ENV: .circleci/bash_env.sh
+    VAULT_BINARY_VERSION: 1.2.2
 
 jobs:
   # lint consul tests
@@ -50,14 +51,17 @@ jobs:
       - run:
           name: check go fmt
           command: |
-            files=$(go fmt ./...)
+            files="$(go fmt ./... ; (cd api && go fmt ./... | sed 's@^@api/@') ; (cd sdk && go fmt ./... | sed 's@^@sdk/@'))"
             if [ -n "$files" ]; then
-              echo "The following file(s) do not conform to go fmt:"
-              echo "$files"
-              exit 1
+                echo "The following file(s) do not conform to go fmt:"
+                echo "$files"
+                exit 1
             fi
       - run:
-          command: go vet ./...
+          command: |
+            go vet ./... && \
+              (cd api && go vet ./...) && \
+              (cd sdk && go vet ./...)
     environment:
       <<: *ENVIRONMENT
 
@@ -87,13 +91,15 @@ jobs:
   go-test:
     docker:
       - image: *GOLANG_IMAGE
-    parallelism: 8
+    parallelism: 4
     environment:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 2 # medium (default) boxes are 2 vCPUs, 4GB RAM https://circleci.com/docs/2.0/configuration-reference/#docker-executor
     steps:
       - checkout
-      - restore_cache: # restore cache from dev-build job
+      - restore_cache: # restore cache from earlier job
           keys:
             - consul-modcache-v1-{{ checksum "go.mod" }}
       - attach_workspace:
@@ -103,12 +109,20 @@ jobs:
       - run: sudo service rsyslog start
       - run: |
           PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 3 $PACKAGE_NAMES
+          echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
+          echo $PACKAGE_NAMES
+          gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
 
       - store_test_results:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
       - store_artifacts:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
 
   # split off a job for the API package since it is separate
   go-test-api:
@@ -129,12 +143,41 @@ jobs:
           working_directory: api
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS $PACKAGE_NAMES
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -cover -coverprofile=cov_api.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: ./api
+          paths:
+            - cov_*.part
 
       - store_test_results:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
       - store_artifacts:
-          path: /tmp/test-results
+          path: *TEST_RESULTS_DIR
+
+  # combine code coverage results from the parallel circleci executors
+  coverage-merge:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: merge coverage reports
+          command: |
+            echo "mode: set" > coverage.out
+            grep -h -v "mode: set" cov_*.part >> coverage.out
+            go tool cover -html=coverage.out -o $TEST_RESULTS_DIR/coverage.html
+      - run:
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1 -f '!agent/bindata_assetfs.go'
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
 
   # build all distros
   build-distros: &build-distros
@@ -142,11 +185,11 @@ jobs:
       - image: *GOLANG_IMAGE
     environment: &build-env
       <<: *ENVIRONMENT
-      GOXPARALLEL: 2 # CircleCI containers are 2 CPU x 4GB RAM
-    resource_class: large
     steps:
       - checkout
-      - run: make tools
+      - restore_cache: # restore cache from dev-build job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
       - run: ./build-support/scripts/build-local.sh
 
       # save dev build to CircleCI
@@ -288,7 +331,7 @@ jobs:
 
       # make dev build of nomad
       - run:
-          command: make dev
+          command: make pkg/linux_amd64/nomad
           working_directory: *NOMAD_WORKING_DIR
 
       # update gotestsum
@@ -349,6 +392,10 @@ jobs:
           name: middleman build
           command: bundle exec middleman build
 
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
+
       # saves website build directory
       - persist_to_workspace:
           root: .
@@ -364,6 +411,10 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+
+      - run:
+          name: add missing tar binary
+          command: apk update && apk add tar
 
       # attach website build directory
       - attach_workspace:
@@ -431,7 +482,7 @@ jobs:
       - checkout
       - restore_cache:
           key: *YARN_CACHE_KEY
-      - run: cd ui-v2 && yarn build-ci --output-path=dist
+      - run: cd ui-v2 && make build-ci
 
       # saves the build to a workspace to be passed to a downstream job
       - persist_to_workspace:
@@ -507,146 +558,39 @@ jobs:
       ENVOY_VERSIONS: "1.11.1"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  # This job merges master into the 'current' branch (${CIRCLE_BRANCH}) specified
-  # in the branch filtering of the workflow
-  merge-master:
+  # run tests on vault ca provider integration tests
+  vault-ca-provider:
     docker:
       - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
     steps:
-      - add_ssh_keys:
-          fingerprints:
-            - c6:96:98:82:dc:04:6c:39:dd:ac:83:05:e3:15:1c:98
+      # Install vault
+      - run: |
+          wget -q -O /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_BINARY_VERSION}/vault_${VAULT_BINARY_VERSION}_linux_amd64.zip
+          sudo unzip -d /usr/local/bin /tmp/vault.zip
+          rm -rf /tmp/vault*
+      # Create directory to store test results
+      - run: mkdir -p $TEST_RESULTS_DIR
+      # Gather deps to run go tests
       - checkout
-      - run:
-          name: Merge Consul OSS master branch into current branch
-          command: |
-            set -eu -o pipefail
-
-            # Configure Git
-            git config --global user.email "hashicorp-ci@users.noreply.github.com"
-            git config --global user.name "hashicorp-ci"
-
-            # Fetch latest master
-            git fetch origin
-
-            # Create a merge branch to run tests on
-            git_merge_branch="ci/master-merge-${CIRCLE_BRANCH}-$(date +%Y%m%d%H%M%S)"
-            git checkout -b "${git_merge_branch}"
-            latest_oss_commit="$(git rev-parse origin/master)"
-
-            if ! errors=$(git merge -m "Merge Consul OSS branch 'master' at commit ${latest_oss_commit}" "${latest_oss_commit}"); then
-              printf "oss/master merge into ${CIRCLE_BRANCH} failed because git was unable to auto-merge!\n${errors}"
-              curl -X POST -H 'Content-type: application/json' \
-              --data \
-              "{ \
-                \"attachments\": [ \
-                  { \
-                    \"fallback\": \"master merge into ${CIRCLE_BRANCH} failed because git was unable to auto-merge!\", \
-                    \"text\": \"Nightly *master* merge into *${CIRCLE_BRANCH}* failed!\n\nBuild Log: ${CIRCLE_BUILD_URL}\n\nGit was unable to auto-merge due to possible merge conflict.\n\n*Errors:*\n${errors}\", \
-                    \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
-                    \"ts\": \"$(date +%s)\", \
-                    \"color\": \"danger\" \
-                  } \
-                ] \
-              }" ${CONSUL_SLACK_WEBHOOK_URL}
-              exit 1
-            fi
-
-            git push origin "${git_merge_branch}"
-            sleep 15  # Wait for merge branch to start CircleCI pipeline
-
-            # Wait for OSS merge branch CircleCI pipeline to finish
-            # return shallow results for better performance
-            project_url="https://circleci.com/api/v1.1/project/github/hashicorp/consul/tree/${git_merge_branch}?shallow=true"
-            echo "Waiting for master merge branch CI pipeline to finish..."
-            builds=
-            unfinished_builds="will be populated in the until loop below"
-            min_waited=0
-            until [[ -z "${unfinished_builds}" ]]; do
-              builds="$(curl \
-                --header 'Accept: application/json' \
-                --show-error \
-                --silent \
-                "${project_url}")"
-              unfinished_builds="$(echo "${builds}" \
-                | jq --raw-output '.[] | select(.lifecycle!="finished") | .workflows.job_name')"
-              sleep 60
-              let "min_waited += 1"
-              echo "Waited ${min_waited} min..."
-            done
-
-            # Fail this job if the merge branch CI pipeline failed
-            # unsuccessful_builds will be a multiline string variable with a line format of "  $job_name: $build_url"
-            unsuccessful_builds="$(echo "${builds}" \
-              | jq --raw-output '.[] | select(.outcome!="success") | "\(.workflows.job_name): \(.build_url)"')"
-            if [[ -n "${unsuccessful_builds}" ]]; then
-              printf "master merge CI pipeline jobs failed:\n${unsuccessful_builds}\n"
-              curl -X POST -H 'Content-type: application/json' \
-              --data \
-              "{ \
-                \"attachments\": [ \
-                  { \
-                    \"fallback\": \"Nightly Master Merge Failed!\", \
-                    \"text\": \"Nightly *master* merge into *${CIRCLE_BRANCH}* failed!\n\nBuild Log: ${CIRCLE_BUILD_URL}\n\n*master* merge CI pipeline jobs failed:\n${unsuccessful_builds}\", \
-                    \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
-                    \"ts\": \"$(date +%s)\", \
-                    \"color\": \"danger\" \
-                  } \
-                ] \
-              }" ${CONSUL_SLACK_WEBHOOK_URL}
-              git push --delete origin "${git_merge_branch}"
-              exit 1
-            fi
-
-            current_ref=$(git rev-parse HEAD)
-            # Set CLA check to pass
-            echo "Setting CLA check"
-            curl -u "${HASHICORP_CI_GITHUB_TOKEN}:" -X POST \
-              --header "Accept: application/json" \
-              --show-error \
-              --silent \
-              --fail \
-              --output /dev/null \
-              -d "{ \"state\": \"success\", \
-                    \"target_url\": \"https://cla.hashicorp.com/hashicorp/consul\", \
-                    \"description\": \"Contributor License Agreement is signed.\", \
-                    \"context\": \"license/cla\"}" https://api.github.com/repos/hashicorp/consul/statuses/${current_ref}
-
-            # CircleCI jobs passed, merging to release branch
-            echo "master merge CI pipeline passed successfully so merging to ${CIRCLE_BRANCH}!"
-            git checkout "${CIRCLE_BRANCH}"
-            git merge "${git_merge_branch}"
-            git push origin "${CIRCLE_BRANCH}"
-            git push --delete origin "${git_merge_branch}"
-            curl -X POST -H 'Content-type: application/json' \
-              --data \
-              "{ \
-                \"attachments\": [ \
-                  { \
-                    \"fallback\": \"Nightly master merge success!\", \
-                    \"text\": \"Nightly *master* merge into *${CIRCLE_BRANCH}* succeeded!\", \
-                    \"footer\": \"${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\", \
-                    \"ts\": \"$(date +%s)\", \
-                    \"color\": \"good\" \
-                  } \
-                ] \
-              }" ${CONSUL_SLACK_WEBHOOK_URL}
+      - restore_cache:
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      # Run go tests
+      - run: make test-vault-ca-provider
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
 
 workflows:
   version: 2
-  merge-master-to-release:
-    jobs:
-      - merge-master
-    triggers:
-      - schedule:
-          cron: "0 2 * * *" # 2AM UTC <> 10PM EST <> 7PM PST should have no impact
-          filters:
-            branches:
-              only:
-                - /^release\/.*$/
   go-tests:
     jobs:
-      - check-vendor
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - lint-consul-retry
       - go-fmt-and-vet:
           requires:
@@ -658,14 +602,29 @@ workflows:
           requires:
             - dev-build
       - go-test-api: *go-test
+      - coverage-merge:
+          requires:
+            - go-test
+            - go-test-api
   build-distros:
     jobs:
-      - build-386
-      - build-amd64
-      - build-arm
+      - check-vendor:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+      - build-386: &require-check-vendor
+          requires:
+            - check-vendor
+      - build-amd64: *require-check-vendor
+      - build-arm: *require-check-vendor
   test-integrations:
     jobs:
-      - dev-build
+      - dev-build:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
@@ -694,6 +653,9 @@ workflows:
       - envoy-integration-test-1.11.1:
           requires:
             - dev-build
+      - vault-ca-provider:
+          requires:
+            - dev-build
   website:
     jobs:
       - build-website
@@ -713,7 +675,11 @@ workflows:
               only: stable-website
   frontend:
     jobs:
-      - frontend-cache
+      - frontend-cache:
+          filters:
+            branches:
+              ignore:
+                - stable-website
       - ember-build:
           requires:
             - frontend-cache

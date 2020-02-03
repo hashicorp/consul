@@ -32,14 +32,16 @@ Feature: dc / acls / roles / as many / add existing: Add existing
       Description: The Description
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Description: The Description
-      Roles:
-      - ID: role-1
-        Name: Role 1
-      - ID: role-2
-        Name: Role 2
+      body:
+        Namespace: @namespace
+        Description: The Description
+        Roles:
+        - ID: role-1
+          Name: Role 1
+        - ID: role-2
+          Name: Role 2
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class

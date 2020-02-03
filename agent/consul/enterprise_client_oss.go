@@ -23,3 +23,7 @@ func (c *Client) handleEnterpriseUserEvents(event serf.UserEvent) bool {
 func (c *Client) enterpriseStats() map[string]map[string]string {
 	return nil
 }
+
+func (_ *Client) addEnterpriseSerfTags(_ map[string]string) {
+	// do nothing
+}

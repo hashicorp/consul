@@ -55,6 +55,7 @@ func DefaultSource() Source {
 		check_update_interval = "5m"
 		client_addr = "127.0.0.1"
 		datacenter = "` + consul.DefaultDC + `"
+		default_query_time = "300s"
 		disable_coordinates = false
 		disable_host_node_id = true
 		disable_remote_exec = true
@@ -62,6 +63,7 @@ func DefaultSource() Source {
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
 		log_level = "INFO"
+		max_query_time = "600s"
 		protocol =  2
 		retry_interval = "30s"
 		retry_interval_wan = "30s"
@@ -101,8 +103,12 @@ func DefaultSource() Source {
 			recursor_timeout = "2s"
 		}
 		limits = {
+			http_max_conns_per_client = 100
+			https_handshake_timeout = "5s"
+			rpc_handshake_timeout = "5s"
 			rpc_rate = -1
 			rpc_max_burst = 1000
+			rpc_max_conns_per_client = 100
 			kv_max_value_size = ` + strconv.FormatInt(raft.SuggestedMaxDataSize, 10) + `
 		}
 		performance = {
@@ -122,6 +128,8 @@ func DefaultSource() Source {
 			proxy_max_port = 20255
 			sidecar_min_port = 21000
 			sidecar_max_port = 21255
+			expose_min_port = 21500
+			expose_max_port = 21755
 		}
 		telemetry = {
 			metrics_prefix = "consul"

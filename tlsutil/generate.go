@@ -10,11 +10,11 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect"
 	"math/big"
 	"net"
-	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -144,7 +144,7 @@ func keyID(raw interface{}) ([]byte, error) {
 
 	// String formatted
 	kID := sha256.Sum256(bs)
-	return []byte(strings.Replace(fmt.Sprintf("% x", kID), " ", ":", -1)), nil
+	return kID[:], nil
 }
 
 func parseCert(pemValue string) (*x509.Certificate, error) {

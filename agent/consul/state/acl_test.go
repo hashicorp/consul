@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
@@ -217,7 +218,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure the ACLs are in an expected state.
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	compareTokens(t, token1, tokens[0])
@@ -231,7 +232,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	err = s.ACLBootstrap(32, index, token2.Clone(), false)
 	require.NoError(t, err)
 
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 	require.Len(t, tokens, 2)
 }
@@ -285,7 +286,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), true))
 
-		idx, rtoken, err := s.ACLTokenGetBySecret(nil, token.SecretID)
+		idx, rtoken, err := s.ACLTokenGetBySecret(nil, token.SecretID, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.NotNil(t, rtoken)
@@ -318,7 +319,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(3, update.Clone(), true))
 
-		idx, rtoken, err := s.ACLTokenGetBySecret(nil, original.SecretID)
+		idx, rtoken, err := s.ACLTokenGetBySecret(nil, original.SecretID, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.NotNil(t, rtoken)
@@ -497,7 +498,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
-		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		compareTokens(t, token, rtoken)
@@ -553,7 +554,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(3, updated.Clone(), false))
 
-		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		compareTokens(t, updated, rtoken)
@@ -587,7 +588,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
-		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a")
+		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		compareTokens(t, token, rtoken)
@@ -621,7 +622,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(2, tokens, true, false, false))
 
-		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, nil)
 		require.NoError(t, err)
 		require.Nil(t, token)
 	})
@@ -653,7 +654,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(6, updated, true, false, false))
 
-		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, token)
 		require.Equal(t, "", token.Description)
@@ -682,7 +683,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(6, updated, true, false, false))
 
-		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID)
+		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, token)
 		require.Equal(t, "", token.Description)
@@ -1202,7 +1203,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		{testPolicyID_A, testRoleID_A, ""},
 	} {
 		t.Run(fmt.Sprintf("can't filter on more than one: %s/%s/%s", tc.policy, tc.role, tc.methodName), func(t *testing.T) {
-			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName)
+			_, _, err := s.ACLTokenList(nil, false, false, tc.policy, tc.role, tc.methodName, nil, nil)
 			require.Error(t, err)
 		})
 	}
@@ -1211,7 +1212,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName)
+			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
 			require.NoError(t, err)
 			require.Len(t, tokens, len(tc.accessors))
 			tokens.Sort()
@@ -1245,7 +1246,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 
 	require.NoError(t, s.ACLTokenSet(2, token, false))
 
-	_, retrieved, err := s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, retrieved, err := s.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be identical
 	require.True(t, token == retrieved)
@@ -1264,7 +1265,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.NoError(t, s.ACLPolicySet(3, renamed))
 
 	// retrieve the token again
-	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, token != retrieved)
@@ -1272,7 +1273,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
 
 	// list tokens without stale links
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found := false
@@ -1306,17 +1307,17 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	require.True(t, found)
 
 	// delete the policy
-	require.NoError(t, s.ACLPolicyDeleteByID(4, testPolicyID_A))
+	require.NoError(t, s.ACLPolicyDeleteByID(4, testPolicyID_A, nil))
 
 	// retrieve the token again
-	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, token != retrieved)
 	require.Len(t, retrieved.Policies, 0)
 
 	// list tokens without stale links
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found = false
@@ -1371,7 +1372,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 
 	require.NoError(t, s.ACLTokenSet(2, token, false))
 
-	_, retrieved, err := s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, retrieved, err := s.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be identical
 	require.True(t, token == retrieved)
@@ -1393,7 +1394,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.NoError(t, s.ACLRoleSet(3, renamed))
 
 	// retrieve the token again
-	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, token != retrieved)
@@ -1401,7 +1402,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.Equal(t, "node-read-role-renamed", retrieved.Roles[0].Name)
 
 	// list tokens without stale links
-	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "")
+	_, tokens, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found := false
@@ -1435,17 +1436,17 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	require.True(t, found)
 
 	// delete the role
-	require.NoError(t, s.ACLRoleDeleteByID(4, testRoleID_A))
+	require.NoError(t, s.ACLRoleDeleteByID(4, testRoleID_A, nil))
 
 	// retrieve the token again
-	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, retrieved, err = s.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, token != retrieved)
 	require.Len(t, retrieved.Roles, 0)
 
 	// list tokens without stale links
-	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "")
+	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	found = false
@@ -1497,13 +1498,13 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
 
-		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "f1093997-b6c7-496d-bfb8-6b1b1895641b"))
+		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil))
 
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
 	})
@@ -1525,13 +1526,13 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
 
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
 
-		require.NoError(t, s.ACLTokenDeleteBySecret(3, "34ec8eb3-095d-417a-a937-b439af7a8e8b"))
+		require.NoError(t, s.ACLTokenDeleteBySecret(3, "34ec8eb3-095d-417a-a937-b439af7a8e8b", nil))
 
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
 	})
@@ -1565,10 +1566,10 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
 
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rtoken)
 
@@ -1576,10 +1577,10 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			"f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			"a0bfe8d4-b2f3-4b48-b387-f28afb820eab"}))
 
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab")
+		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab", nil)
 		require.NoError(t, err)
 		require.Nil(t, rtoken)
 	})
@@ -1588,8 +1589,8 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
 
-		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID))
-		require.Error(t, s.ACLTokenDeleteBySecret(3, "anonymous"))
+		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID, nil))
+		require.Error(t, s.ACLTokenDeleteBySecret(3, "anonymous", nil))
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -1597,8 +1598,8 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		s := testACLStateStore(t)
 
 		// deletion of non-existent policies is not an error
-		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "ea58a09c-2100-4aef-816b-8ee0ade77dcd"))
-		require.NoError(t, s.ACLTokenDeleteBySecret(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d"))
+		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "ea58a09c-2100-4aef-816b-8ee0ade77dcd", nil))
+		require.NoError(t, s.ACLTokenDeleteBySecret(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d", nil))
 	})
 }
 
@@ -1674,7 +1675,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 
 			require.NoError(t, s.ACLPolicySet(3, &policy))
 
-			_, rpolicy, err := s.ACLPolicyGetByName(nil, "management")
+			_, rpolicy, err := s.ACLPolicyGetByName(nil, "management", nil)
 			require.NoError(t, err)
 			require.NotNil(t, rpolicy)
 			require.Equal(t, structs.ACLPolicyGlobalManagementID, rpolicy.ID)
@@ -1701,7 +1702,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLPolicySet(3, &policy))
 
-		idx, rpolicy, err := s.ACLPolicyGetByID(nil, testPolicyID_A)
+		idx, rpolicy, err := s.ACLPolicyGetByID(nil, testPolicyID_A, nil)
 		require.Equal(t, uint64(3), idx)
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
@@ -1715,7 +1716,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.Equal(t, uint64(3), rpolicy.ModifyIndex)
 
 		// also verify the global management policy that testACLStateStore Set while we are at it.
-		idx, rpolicy, err = s.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+		idx, rpolicy, err = s.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 		require.Equal(t, uint64(3), idx)
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
@@ -1749,19 +1750,19 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		expect.ModifyIndex = 3
 
 		// policy found via id
-		idx, rpolicy, err := s.ACLPolicyGetByID(nil, testPolicyID_A)
+		idx, rpolicy, err := s.ACLPolicyGetByID(nil, testPolicyID_A, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.Equal(t, expect, rpolicy)
 
 		// policy no longer found via old name
-		idx, rpolicy, err = s.ACLPolicyGetByName(nil, "node-read")
+		idx, rpolicy, err = s.ACLPolicyGetByName(nil, "node-read", nil)
 		require.Equal(t, uint64(3), idx)
 		require.NoError(t, err)
 		require.Nil(t, rpolicy)
 
 		// policy is found via new name
-		idx, rpolicy, err = s.ACLPolicyGetByName(nil, "node-read-modified")
+		idx, rpolicy, err = s.ACLPolicyGetByName(nil, "node-read-modified", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.Equal(t, expect, rpolicy)
@@ -1891,7 +1892,7 @@ func TestStateStore_ACLPolicy_List(t *testing.T) {
 
 	require.NoError(t, s.ACLPolicyBatchSet(2, policies))
 
-	_, policies, err := s.ACLPolicyList(nil)
+	_, policies, err := s.ACLPolicyList(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, policies, 3)
 	policies.Sort()
@@ -1935,14 +1936,14 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLPolicySet(2, policy))
 
-		_, rpolicy, err := s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rpolicy, err := s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
 
-		require.NoError(t, s.ACLPolicyDeleteByID(3, "f1093997-b6c7-496d-bfb8-6b1b1895641b"))
+		require.NoError(t, s.ACLPolicyDeleteByID(3, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil))
 		require.NoError(t, err)
 
-		_, rpolicy, err = s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rpolicy, err = s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.Nil(t, rpolicy)
 	})
@@ -1959,14 +1960,14 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLPolicySet(2, policy))
 
-		_, rpolicy, err := s.ACLPolicyGetByName(nil, "test-policy")
+		_, rpolicy, err := s.ACLPolicyGetByName(nil, "test-policy", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
 
-		require.NoError(t, s.ACLPolicyDeleteByName(3, "test-policy"))
+		require.NoError(t, s.ACLPolicyDeleteByName(3, "test-policy", nil))
 		require.NoError(t, err)
 
-		_, rpolicy, err = s.ACLPolicyGetByName(nil, "test-policy")
+		_, rpolicy, err = s.ACLPolicyGetByName(nil, "test-policy", nil)
 		require.NoError(t, err)
 		require.Nil(t, rpolicy)
 	})
@@ -1990,10 +1991,10 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLPolicyBatchSet(2, policies))
 
-		_, rpolicy, err := s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rpolicy, err := s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
-		_, rpolicy, err = s.ACLPolicyGetByID(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab")
+		_, rpolicy, err = s.ACLPolicyGetByID(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rpolicy)
 
@@ -2001,10 +2002,10 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 			"f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			"a0bfe8d4-b2f3-4b48-b387-f28afb820eab"}))
 
-		_, rpolicy, err = s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b")
+		_, rpolicy, err = s.ACLPolicyGetByID(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
 		require.Nil(t, rpolicy)
-		_, rpolicy, err = s.ACLPolicyGetByID(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab")
+		_, rpolicy, err = s.ACLPolicyGetByID(nil, "a0bfe8d4-b2f3-4b48-b387-f28afb820eab", nil)
 		require.NoError(t, err)
 		require.Nil(t, rpolicy)
 	})
@@ -2013,8 +2014,8 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 		t.Parallel()
 		s := testACLStateStore(t)
 
-		require.Error(t, s.ACLPolicyDeleteByID(5, structs.ACLPolicyGlobalManagementID))
-		require.Error(t, s.ACLPolicyDeleteByName(5, "global-management"))
+		require.Error(t, s.ACLPolicyDeleteByID(5, structs.ACLPolicyGlobalManagementID, nil))
+		require.Error(t, s.ACLPolicyDeleteByName(5, "global-management", nil))
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -2022,8 +2023,8 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 		s := testACLStateStore(t)
 
 		// deletion of non-existent policies is not an error
-		require.NoError(t, s.ACLPolicyDeleteByName(3, "not-found"))
-		require.NoError(t, s.ACLPolicyDeleteByID(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d"))
+		require.NoError(t, s.ACLPolicyDeleteByName(3, "not-found", nil))
+		require.NoError(t, s.ACLPolicyDeleteByID(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d", nil))
 	})
 }
 
@@ -2161,10 +2162,10 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			require.Equal(t, "node-read", rrole.Policies[0].Name)
 		}
 
-		idx, rpolicy, err := s.ACLRoleGetByID(nil, testRoleID_A)
+		idx, rpolicy, err := s.ACLRoleGetByID(nil, testRoleID_A, nil)
 		verify(idx, rpolicy, err)
 
-		idx, rpolicy, err = s.ACLRoleGetByName(nil, "my-new-role")
+		idx, rpolicy, err = s.ACLRoleGetByName(nil, "my-new-role", nil)
 		verify(idx, rpolicy, err)
 	})
 
@@ -2217,17 +2218,17 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 		}
 
 		// role found via id
-		idx, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A)
+		idx, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A, nil)
 		verify(idx, rrole, err)
 
 		// role no longer found via old name
-		idx, rrole, err = s.ACLRoleGetByName(nil, "node-read-role")
+		idx, rrole, err = s.ACLRoleGetByName(nil, "node-read-role", nil)
 		require.Equal(t, uint64(3), idx)
 		require.NoError(t, err)
 		require.Nil(t, rrole)
 
 		// role is found via new name
-		idx, rrole, err = s.ACLRoleGetByName(nil, "node-read-role-modified")
+		idx, rrole, err = s.ACLRoleGetByName(nil, "node-read-role-modified", nil)
 		verify(idx, rrole, err)
 	})
 }
@@ -2460,7 +2461,7 @@ func TestStateStore_ACLRole_List(t *testing.T) {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			// t.Parallel()
-			_, rroles, err := s.ACLRoleList(nil, tc.policy)
+			_, rroles, err := s.ACLRoleList(nil, tc.policy, nil)
 			require.NoError(t, err)
 
 			require.Len(t, rroles, len(tc.ids))
@@ -2514,7 +2515,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 
 	require.NoError(t, s.ACLRoleSet(2, role))
 
-	_, retrieved, err := s.ACLRoleGetByID(nil, role.ID)
+	_, retrieved, err := s.ACLRoleGetByID(nil, role.ID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be identical
 	require.True(t, role == retrieved)
@@ -2533,7 +2534,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 	require.NoError(t, s.ACLPolicySet(3, renamed))
 
 	// retrieve the role again
-	_, retrieved, err = s.ACLRoleGetByID(nil, role.ID)
+	_, retrieved, err = s.ACLRoleGetByID(nil, role.ID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, role != retrieved)
@@ -2541,7 +2542,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 	require.Equal(t, "node-read-renamed", retrieved.Policies[0].Name)
 
 	// list roles without stale links
-	_, roles, err := s.ACLRoleList(nil, "")
+	_, roles, err := s.ACLRoleList(nil, "", nil)
 	require.NoError(t, err)
 
 	found := false
@@ -2575,17 +2576,17 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 	require.True(t, found)
 
 	// delete the policy
-	require.NoError(t, s.ACLPolicyDeleteByID(4, testPolicyID_A))
+	require.NoError(t, s.ACLPolicyDeleteByID(4, testPolicyID_A, nil))
 
 	// retrieve the role again
-	_, retrieved, err = s.ACLRoleGetByID(nil, role.ID)
+	_, retrieved, err = s.ACLRoleGetByID(nil, role.ID, nil)
 	require.NoError(t, err)
 	// pointer equality check these should be different if we cloned things appropriately
 	require.True(t, role != retrieved)
 	require.Len(t, retrieved.Policies, 0)
 
 	// list roles without stale links
-	_, roles, err = s.ACLRoleList(nil, "")
+	_, roles, err = s.ACLRoleList(nil, "", nil)
 	require.NoError(t, err)
 
 	found = false
@@ -2637,14 +2638,14 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLRoleSet(2, role))
 
-		_, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A)
+		_, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrole)
 
-		require.NoError(t, s.ACLRoleDeleteByID(3, testRoleID_A))
+		require.NoError(t, s.ACLRoleDeleteByID(3, testRoleID_A, nil))
 		require.NoError(t, err)
 
-		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_A)
+		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_A, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrole)
 	})
@@ -2666,14 +2667,14 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLRoleSet(2, role))
 
-		_, rrole, err := s.ACLRoleGetByName(nil, "role1")
+		_, rrole, err := s.ACLRoleGetByName(nil, "role1", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrole)
 
-		require.NoError(t, s.ACLRoleDeleteByName(3, "role1"))
+		require.NoError(t, s.ACLRoleDeleteByName(3, "role1", nil))
 		require.NoError(t, err)
 
-		_, rrole, err = s.ACLRoleGetByName(nil, "role1")
+		_, rrole, err = s.ACLRoleGetByName(nil, "role1", nil)
 		require.NoError(t, err)
 		require.Nil(t, rrole)
 	})
@@ -2707,19 +2708,19 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
-		_, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A)
+		_, rrole, err := s.ACLRoleGetByID(nil, testRoleID_A, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrole)
-		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_B)
+		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_B, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrole)
 
 		require.NoError(t, s.ACLRoleBatchDelete(3, []string{testRoleID_A, testRoleID_B}))
 
-		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_A)
+		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_A, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrole)
-		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_B)
+		_, rrole, err = s.ACLRoleGetByID(nil, testRoleID_B, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrole)
 	})
@@ -2729,8 +2730,8 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 		s := testACLStateStore(t)
 
 		// deletion of non-existent roles is not an error
-		require.NoError(t, s.ACLRoleDeleteByName(3, "not-found"))
-		require.NoError(t, s.ACLRoleDeleteByID(3, testRoleID_A))
+		require.NoError(t, s.ACLRoleDeleteByName(3, "not-found", nil))
+		require.NoError(t, s.ACLRoleDeleteByID(3, testRoleID_A, nil))
 	})
 }
 
@@ -2778,7 +2779,7 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLAuthMethodSet(3, &method))
 
-		idx, rmethod, err := s.ACLAuthMethodGetByName(nil, "test")
+		idx, rmethod, err := s.ACLAuthMethodGetByName(nil, "test", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.NotNil(t, rmethod)
@@ -2814,7 +2815,7 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLAuthMethodSet(3, &update))
 
-		idx, rmethod, err := s.ACLAuthMethodGetByName(nil, "test")
+		idx, rmethod, err := s.ACLAuthMethodGetByName(nil, "test", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.NotNil(t, rmethod)
@@ -2849,7 +2850,7 @@ func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
 
-		idx, rmethods, err := s.ACLAuthMethodList(nil)
+		idx, rmethods, err := s.ACLAuthMethodList(nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.Len(t, rmethods, 2)
@@ -2903,7 +2904,7 @@ func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLAuthMethodBatchSet(3, updates))
 
-		idx, rmethods, err := s.ACLAuthMethodList(nil)
+		idx, rmethods, err := s.ACLAuthMethodList(nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.Len(t, rmethods, 2)
@@ -2935,7 +2936,7 @@ func TestStateStore_ACLAuthMethod_List(t *testing.T) {
 
 	require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
 
-	_, rmethods, err := s.ACLAuthMethodList(nil)
+	_, rmethods, err := s.ACLAuthMethodList(nil, nil)
 	require.NoError(t, err)
 
 	require.Len(t, rmethods, 2)
@@ -2969,14 +2970,14 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLAuthMethodSet(2, &method))
 
-		_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test")
+		_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rmethod)
 
-		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "test"))
+		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "test", nil))
 		require.NoError(t, err)
 
-		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test")
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test", nil)
 		require.NoError(t, err)
 		require.Nil(t, rmethod)
 	})
@@ -3000,19 +3001,19 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLAuthMethodBatchSet(2, methods))
 
-		_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test-1")
+		_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test-1", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rmethod)
-		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-2")
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-2", nil)
 		require.NoError(t, err)
 		require.NotNil(t, rmethod)
 
-		require.NoError(t, s.ACLAuthMethodBatchDelete(3, []string{"test-1", "test-2"}))
+		require.NoError(t, s.ACLAuthMethodBatchDelete(3, []string{"test-1", "test-2"}, nil))
 
-		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-1")
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-1", nil)
 		require.NoError(t, err)
 		require.Nil(t, rmethod)
-		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-2")
+		_, rmethod, err = s.ACLAuthMethodGetByName(nil, "test-2", nil)
 		require.NoError(t, err)
 		require.Nil(t, rmethod)
 	})
@@ -3022,7 +3023,7 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 		s := testACLStateStore(t)
 
 		// deletion of non-existent methods is not an error
-		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "not-found"))
+		require.NoError(t, s.ACLAuthMethodDeleteByName(3, "not-found", nil))
 	})
 }
 
@@ -3113,33 +3114,33 @@ func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
 	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false, false, false))
 
 	// Delete one method.
-	require.NoError(t, s.ACLAuthMethodDeleteByName(4, "test-1"))
+	require.NoError(t, s.ACLAuthMethodDeleteByName(4, "test-1", nil))
 
 	// Make sure the method is gone.
-	_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test-1")
+	_, rmethod, err := s.ACLAuthMethodGetByName(nil, "test-1", nil)
 	require.NoError(t, err)
 	require.Nil(t, rmethod)
 
 	// Make sure the rules and tokens are gone.
 	for _, ruleID := range []string{method1_rule1, method1_rule2} {
-		_, rrule, err := s.ACLBindingRuleGetByID(nil, ruleID)
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, ruleID, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrule)
 	}
 	for _, tokID := range []string{method1_tok1, method1_tok2} {
-		_, tok, err := s.ACLTokenGetByAccessor(nil, tokID)
+		_, tok, err := s.ACLTokenGetByAccessor(nil, tokID, nil)
 		require.NoError(t, err)
 		require.Nil(t, tok)
 	}
 
 	// Make sure the rules and tokens for the untouched method are still there.
 	for _, ruleID := range []string{method2_rule1, method2_rule2} {
-		_, rrule, err := s.ACLBindingRuleGetByID(nil, ruleID)
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, ruleID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrule)
 	}
 	for _, tokID := range []string{method2_tok1, method2_tok2} {
-		_, tok, err := s.ACLTokenGetByAccessor(nil, tokID)
+		_, tok, err := s.ACLTokenGetByAccessor(nil, tokID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, tok)
 	}
@@ -3206,7 +3207,7 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLBindingRuleSet(3, &rule))
 
-		idx, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID)
+		idx, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.NotNil(t, rrule)
@@ -3242,7 +3243,7 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 
 		require.NoError(t, s.ACLBindingRuleSet(3, &update))
 
-		idx, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID)
+		idx, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.NotNil(t, rrule)
@@ -3279,7 +3280,7 @@ func TestStateStore_ACLBindingRules_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
 
-		idx, rrules, err := s.ACLBindingRuleList(nil, "test")
+		idx, rrules, err := s.ACLBindingRuleList(nil, "test", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.Len(t, rrules, 2)
@@ -3332,7 +3333,7 @@ func TestStateStore_ACLBindingRules_UpsertBatchRead(t *testing.T) {
 
 		require.NoError(t, s.ACLBindingRuleBatchSet(3, updates))
 
-		idx, rrules, err := s.ACLBindingRuleList(nil, "test")
+		idx, rrules, err := s.ACLBindingRuleList(nil, "test", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), idx)
 		require.Len(t, rrules, 2)
@@ -3365,7 +3366,7 @@ func TestStateStore_ACLBindingRule_List(t *testing.T) {
 
 	require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
 
-	_, rrules, err := s.ACLBindingRuleList(nil, "")
+	_, rrules, err := s.ACLBindingRuleList(nil, "", nil)
 	require.NoError(t, err)
 
 	require.Len(t, rrules, 2)
@@ -3400,14 +3401,14 @@ func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLBindingRuleSet(2, &rule))
 
-		_, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID)
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, rule.ID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrule)
 
-		require.NoError(t, s.ACLBindingRuleDeleteByID(3, rule.ID))
+		require.NoError(t, s.ACLBindingRuleDeleteByID(3, rule.ID, nil))
 		require.NoError(t, err)
 
-		_, rrule, err = s.ACLBindingRuleGetByID(nil, rule.ID)
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rule.ID, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrule)
 	})
@@ -3432,19 +3433,19 @@ func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
 
 		require.NoError(t, s.ACLBindingRuleBatchSet(2, rules))
 
-		_, rrule, err := s.ACLBindingRuleGetByID(nil, rules[0].ID)
+		_, rrule, err := s.ACLBindingRuleGetByID(nil, rules[0].ID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrule)
-		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[1].ID)
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[1].ID, nil)
 		require.NoError(t, err)
 		require.NotNil(t, rrule)
 
 		require.NoError(t, s.ACLBindingRuleBatchDelete(3, []string{rules[0].ID, rules[1].ID}))
 
-		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[0].ID)
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[0].ID, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrule)
-		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[1].ID)
+		_, rrule, err = s.ACLBindingRuleGetByID(nil, rules[1].ID, nil)
 		require.NoError(t, err)
 		require.Nil(t, rrule)
 	})
@@ -3454,7 +3455,7 @@ func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
 		s := testACLStateStore(t)
 
 		// deletion of non-existent rules is not an error
-		require.NoError(t, s.ACLBindingRuleDeleteByID(3, "ed3ce1b8-3a16-4e2f-b82e-f92e3b92410d"))
+		require.NoError(t, s.ACLBindingRuleDeleteByID(3, "ed3ce1b8-3a16-4e2f-b82e-f92e3b92410d", nil))
 	})
 }
 
@@ -3575,7 +3576,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	require.NoError(t, s.ACLTokenDeleteByAccessor(3, tokens[0].AccessorID))
+	require.NoError(t, s.ACLTokenDeleteByAccessor(3, tokens[0].AccessorID, nil))
 
 	// Verify the snapshot.
 	require.Equal(t, uint64(4), snap.LastIndex())
@@ -3589,6 +3590,9 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 	}
 	require.ElementsMatch(t, dump, tokens)
 
+	indexes, err := snapshotIndexes(snap)
+	require.NoError(t, err)
+
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
@@ -3596,6 +3600,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		for _, token := range dump {
 			require.NoError(t, restore.ACLToken(token))
 		}
+		require.NoError(t, restoreIndexes(indexes, restore))
 		restore.Commit()
 
 		// need to ensure we have the policies or else the links will be removed
@@ -3605,7 +3610,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, s.ACLRoleBatchSet(2, roles, false))
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "")
+		idx, res, err := s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
 		require.ElementsMatch(t, tokens, res)
@@ -3642,7 +3647,7 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	require.NoError(t, s.ACLPolicyDeleteByID(3, policies[0].ID))
+	require.NoError(t, s.ACLPolicyDeleteByID(3, policies[0].ID, nil))
 
 	// Verify the snapshot.
 	require.Equal(t, uint64(2), snap.LastIndex())
@@ -3656,6 +3661,9 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 	}
 	require.ElementsMatch(t, dump, policies)
 
+	indexes, err := snapshotIndexes(snap)
+	require.NoError(t, err)
+
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
@@ -3663,10 +3671,11 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 		for _, policy := range dump {
 			require.NoError(t, restore.ACLPolicy(policy))
 		}
+		require.NoError(t, restoreIndexes(indexes, restore))
 		restore.Commit()
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLPolicyList(nil)
+		idx, res, err := s.ACLPolicyList(nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, policies, res)
@@ -3911,7 +3920,7 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	require.NoError(t, s.ACLRoleDeleteByID(3, roles[0].ID))
+	require.NoError(t, s.ACLRoleDeleteByID(3, roles[0].ID, nil))
 
 	// Verify the snapshot.
 	require.Equal(t, uint64(2), snap.LastIndex())
@@ -3925,6 +3934,9 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 	}
 	require.ElementsMatch(t, dump, roles)
 
+	indexes, err := snapshotIndexes(snap)
+	require.NoError(t, err)
+
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
@@ -3932,13 +3944,14 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 		for _, role := range dump {
 			require.NoError(t, restore.ACLRole(role))
 		}
+		require.NoError(t, restoreIndexes(indexes, restore))
 		restore.Commit()
 
 		// need to ensure we have the policies or else the links will be removed
 		require.NoError(t, s.ACLPolicyBatchSet(2, policies))
 
 		// Read the restored ACLs back out and verify that they match.
-		idx, res, err := s.ACLRoleList(nil, "")
+		idx, res, err := s.ACLRoleList(nil, "", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, roles, res)
@@ -3971,7 +3984,7 @@ func TestStateStore_ACLAuthMethods_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	require.NoError(t, s.ACLAuthMethodDeleteByName(3, "test-1"))
+	require.NoError(t, s.ACLAuthMethodDeleteByName(3, "test-1", nil))
 
 	// Verify the snapshot.
 	require.Equal(t, uint64(2), snap.LastIndex())
@@ -3985,6 +3998,9 @@ func TestStateStore_ACLAuthMethods_Snapshot_Restore(t *testing.T) {
 	}
 	require.ElementsMatch(t, dump, methods)
 
+	indexes, err := snapshotIndexes(snap)
+	require.NoError(t, err)
+
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
@@ -3992,10 +4008,11 @@ func TestStateStore_ACLAuthMethods_Snapshot_Restore(t *testing.T) {
 		for _, method := range dump {
 			require.NoError(t, restore.ACLAuthMethod(method))
 		}
+		require.NoError(t, restoreIndexes(indexes, restore))
 		restore.Commit()
 
 		// Read the restored methods back out and verify that they match.
-		idx, res, err := s.ACLAuthMethodList(nil)
+		idx, res, err := s.ACLAuthMethodList(nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, methods, res)
@@ -4029,7 +4046,7 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	require.NoError(t, s.ACLBindingRuleDeleteByID(3, rules[0].ID))
+	require.NoError(t, s.ACLBindingRuleDeleteByID(3, rules[0].ID, nil))
 
 	// Verify the snapshot.
 	require.Equal(t, uint64(2), snap.LastIndex())
@@ -4043,6 +4060,9 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 	}
 	require.ElementsMatch(t, dump, rules)
 
+	indexes, err := snapshotIndexes(snap)
+	require.NoError(t, err)
+
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
@@ -4052,13 +4072,221 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 		for _, rule := range dump {
 			require.NoError(t, restore.ACLBindingRule(rule))
 		}
+		require.NoError(t, restoreIndexes(indexes, restore))
 		restore.Commit()
 
 		// Read the restored rules back out and verify that they match.
-		idx, res, err := s.ACLBindingRuleList(nil, "")
+		idx, res, err := s.ACLBindingRuleList(nil, "", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, rules, res)
 		require.Equal(t, uint64(2), s.maxIndex("acl-binding-rules"))
 	}()
+}
+
+func TestStateStore_resolveACLLinks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing link id", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		links := []agentpb.ACLLink{
+			agentpb.ACLLink{
+				Name: "foo",
+			},
+		}
+
+		_, err := s.resolveACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+			err := fmt.Errorf("Should not be attempting to resolve an empty id")
+			require.Fail(t, err.Error())
+			return "", err
+		})
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "Encountered an ACL resource linked by Name in the state store")
+	})
+
+	t.Run("typical", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		links := []agentpb.ACLLink{
+			agentpb.ACLLink{
+				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
+			},
+			agentpb.ACLLink{
+				ID: "e81887b4-836b-4053-a1fa-7e8305902be9",
+			},
+		}
+
+		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "e81887b4-836b-4053-a1fa-7e8305902be9":
+				return "foo", nil
+			case "b985e082-25d3-45a9-9dd8-fd1a41b83b0d":
+				return "bar", nil
+			default:
+				return "", fmt.Errorf("No such id")
+			}
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, "bar", links[0].Name)
+		require.Equal(t, "foo", links[1].Name)
+		require.Equal(t, 2, numValid)
+	})
+
+	t.Run("unresolvable", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		links := []agentpb.ACLLink{
+			agentpb.ACLLink{
+				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
+			},
+		}
+
+		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			require.Equal(t, "b985e082-25d3-45a9-9dd8-fd1a41b83b0d", linkID)
+			return "", nil
+		})
+
+		require.NoError(t, err)
+		require.Empty(t, links[0].Name)
+		require.Equal(t, 0, numValid)
+	})
+}
+
+func TestStateStore_fixupACLLinks(t *testing.T) {
+	t.Parallel()
+
+	links := []agentpb.ACLLink{
+		agentpb.ACLLink{
+			ID:   "40b57f86-97ea-40e4-a99a-c399cc81f4dd",
+			Name: "foo",
+		},
+		agentpb.ACLLink{
+			ID:   "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc",
+			Name: "bar",
+		},
+		agentpb.ACLLink{
+			ID:   "c91afed1-e474-4cd2-98aa-cd57dd9377e9",
+			Name: "baz",
+		},
+		agentpb.ACLLink{
+			ID:   "c1585be7-ab0e-4973-b572-ba9afda86e07",
+			Name: "four",
+		},
+	}
+
+	t.Run("unaltered", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
+				return "foo", nil
+			case "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc":
+				return "bar", nil
+			case "c91afed1-e474-4cd2-98aa-cd57dd9377e9":
+				return "baz", nil
+			case "c1585be7-ab0e-4973-b572-ba9afda86e07":
+				return "four", nil
+			default:
+				return "", nil
+			}
+		})
+
+		require.NoError(t, err)
+		require.False(t, cloned)
+		require.Equal(t, links, newLinks)
+	})
+
+	t.Run("renamed", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
+				return "foo", nil
+			case "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc":
+				return "bart", nil
+			case "c91afed1-e474-4cd2-98aa-cd57dd9377e9":
+				return "bazzy", nil
+			case "c1585be7-ab0e-4973-b572-ba9afda86e07":
+				return "four", nil
+			default:
+				return "", nil
+			}
+		})
+
+		require.NoError(t, err)
+		require.True(t, cloned)
+		require.Equal(t, links[0], newLinks[0])
+		require.Equal(t, links[1].ID, newLinks[1].ID)
+		require.Equal(t, "bart", newLinks[1].Name)
+		require.Equal(t, links[2].ID, newLinks[2].ID)
+		require.Equal(t, "bazzy", newLinks[2].Name)
+		require.Equal(t, links[3], newLinks[3])
+	})
+
+	t.Run("deleted", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+			switch linkID {
+			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
+				return "foo", nil
+			case "c91afed1-e474-4cd2-98aa-cd57dd9377e9":
+				return "baz", nil
+			case "c1585be7-ab0e-4973-b572-ba9afda86e07":
+				return "four", nil
+			default:
+				return "", nil
+			}
+		})
+
+		require.NoError(t, err)
+		require.True(t, cloned)
+		require.Equal(t, links[0], newLinks[0])
+		require.Equal(t, links[2], newLinks[1])
+		require.Equal(t, links[3], newLinks[2])
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		s := testStateStore(t)
+
+		tx := s.db.Txn(false)
+		defer tx.Abort()
+
+		_, _, err := s.fixupACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+			return "", fmt.Errorf("Resolver Error")
+		})
+
+		require.Error(t, err)
+		require.Equal(t, err.Error(), "Resolver Error")
+	})
 }

@@ -11,3 +11,9 @@
   /* important required as ember-collection will inline an overflow: visible*/
   overflow-x: hidden !important;
 }
+%dom-recycling-table dd {
+  flex-wrap: nowrap;
+}
+%dom-recycling-table dd > * {
+  margin-bottom: 0;
+}

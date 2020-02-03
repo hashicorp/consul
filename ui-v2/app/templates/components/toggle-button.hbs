@@ -1,0 +1,4 @@
+<input type="checkbox" checked={{if checked 'checked' undefined}} id={{concat 'toggle-button-' guid}} onchange={{action 'change'}} />
+<label for={{concat 'toggle-button-' guid}}>
+  {{yield (action 'click')}}
+</label>

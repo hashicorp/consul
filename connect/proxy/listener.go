@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"log"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -14,11 +13,12 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
-	publicListenerMetricPrefix = "inbound"
-	upstreamMetricPrefix       = "upstream"
+	publicListenerPrefix   = "inbound"
+	upstreamListenerPrefix = "upstream"
 )
 
 // Listener is the implementation of a specific proxy listener. It has pluggable
@@ -45,7 +45,7 @@ type Listener struct {
 	// this is cheap and correct.
 	listeningChan chan struct{}
 
-	logger *log.Logger
+	logger hclog.Logger
 
 	// Gauge to track current open connections
 	activeConns  int32
@@ -57,7 +57,7 @@ type Listener struct {
 // NewPublicListener returns a Listener setup to listen for public mTLS
 // connections and proxy them to the configured local application over TCP.
 func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
-	logger *log.Logger) *Listener {
+	logger hclog.Logger) *Listener {
 	bindAddr := ipaddr.FormatAddressPort(cfg.BindAddress, cfg.BindPort)
 	return &Listener{
 		Service: svc,
@@ -71,8 +71,8 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 		bindAddr:      bindAddr,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
-		logger:        logger,
-		metricPrefix:  publicListenerMetricPrefix,
+		logger:        logger.Named(publicListenerPrefix),
+		metricPrefix:  publicListenerPrefix,
 		// For now we only label ourselves as source - we could fetch the src
 		// service from cert on each connection and label metrics differently but it
 		// significaly complicates the active connection tracking here and it's not
@@ -88,14 +88,14 @@ func NewPublicListener(svc *connect.Service, cfg PublicListenerConfig,
 // NewUpstreamListener returns a Listener setup to listen locally for TCP
 // connections that are proxied to a discovered Connect service instance.
 func NewUpstreamListener(svc *connect.Service, client *api.Client,
-	cfg UpstreamConfig, logger *log.Logger) *Listener {
+	cfg UpstreamConfig, logger hclog.Logger) *Listener {
 	return newUpstreamListenerWithResolver(svc, cfg,
 		UpstreamResolverFuncFromClient(client), logger)
 }
 
 func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 	resolverFunc func(UpstreamConfig) (connect.Resolver, error),
-	logger *log.Logger) *Listener {
+	logger hclog.Logger) *Listener {
 	bindAddr := ipaddr.FormatAddressPort(cfg.LocalBindAddress, cfg.LocalBindPort)
 	return &Listener{
 		Service: svc,
@@ -115,8 +115,8 @@ func newUpstreamListenerWithResolver(svc *connect.Service, cfg UpstreamConfig,
 		bindAddr:      bindAddr,
 		stopChan:      make(chan struct{}),
 		listeningChan: make(chan struct{}),
-		logger:        logger,
-		metricPrefix:  upstreamMetricPrefix,
+		logger:        logger.Named(upstreamListenerPrefix),
+		metricPrefix:  upstreamListenerPrefix,
 		metricLabels: []metrics.Label{
 			{Name: "src", Value: svc.Name()},
 			// TODO(banks): namespace support
@@ -161,7 +161,7 @@ func (l *Listener) handleConn(src net.Conn) {
 
 	dst, err := l.dialFunc()
 	if err != nil {
-		l.logger.Printf("[ERR] failed to dial: %s", err)
+		l.logger.Error("failed to dial", "error", err)
 		return
 	}
 
@@ -184,7 +184,7 @@ func (l *Listener) handleConn(src net.Conn) {
 	go func() {
 		err = conn.CopyBytes()
 		if err != nil {
-			l.logger.Printf("[ERR] connection failed: %s", err)
+			l.logger.Error("connection failed", "error", err)
 		}
 		close(connStop)
 	}()

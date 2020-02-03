@@ -1,5 +1,4 @@
 import Service, { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
 export default Service.extend({
@@ -14,28 +13,30 @@ export default Service.extend({
   },
   //
   store: service('store'),
-  findAllByDatacenter: function(dc, configuration = {}) {
+  findAllByDatacenter: function(dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
+      ns: nspace,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    return get(this, 'store').query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), query);
   },
-  findBySlug: function(slug, dc, configuration = {}) {
+  findBySlug: function(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
+      ns: nspace,
       id: slug,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
     }
-    return get(this, 'store').queryRecord(this.getModelName(), query);
+    return this.store.queryRecord(this.getModelName(), query);
   },
   create: function(obj) {
     // TODO: This should probably return a Promise
-    return get(this, 'store').createRecord(this.getModelName(), obj);
+    return this.store.createRecord(this.getModelName(), obj);
   },
   persist: function(item) {
     return item.save();
@@ -45,14 +46,18 @@ export default Service.extend({
     if (typeof obj.destroyRecord === 'undefined') {
       item = obj.get('data');
     }
+    // TODO: Change this to use vanilla JS
+    // I think this was originally looking for a plain object
+    // as opposed to an ember one
     if (typeOf(item) === 'object') {
-      item = get(this, 'store').peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
+      item = this.store.peekRecord(this.getModelName(), item[this.getPrimaryKey()]);
     }
     return item.destroyRecord().then(item => {
-      return get(this, 'store').unloadRecord(item);
+      return this.store.unloadRecord(item);
     });
   },
   invalidate: function() {
-    get(this, 'store').unloadAll(this.getModelName());
+    // TODO: This should probably return a Promise
+    this.store.unloadAll(this.getModelName());
   },
 });

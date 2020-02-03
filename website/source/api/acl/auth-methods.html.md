@@ -36,7 +36,7 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-### Parameters
+### Payload Fields
 
 - `Name` `(string: <required>)` - Specifies a name for the ACL auth method. The
   name can contain alphanumeric characters, dashes `-`, and  underscores `_`.
@@ -53,6 +53,12 @@ The table below shows this endpoint's support for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
   method documentation](/docs/acl/acl-auth-methods.html).
+  
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace to 
+  create the auth method within. If not provided in the JSON body, the value of
+  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
 
@@ -118,6 +124,12 @@ The table below shows this endpoint's support for
 
 - `name` `(string: <required>)` - Specifies the name of the ACL auth method to
   read. This is required and is specified as part of the URL path.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to lookup
+  the auth method within. This value can be specified as the `ns` URL query 
+  parameter or in the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -178,6 +190,12 @@ The table below shows this endpoint's support for
   the chosen auth method. Contents will vary depending upon the type chosen.
   For more information on configuring specific auth method types, see the [auth
   method documentation](/docs/acl/acl-auth-methods.html).
+  
+- `Namespace` `(string: "")` - **(Enterprise Only)** Specifies the namespace of
+  the auth method to update. If not provided in the JSON body, the value of
+  the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used. 
+  If not provided at all, the namespace will be inherited from the request's ACL 
+  token or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
 
@@ -247,6 +265,12 @@ The table below shows this endpoint's support for
 
 - `name` `(string: <required>)` - Specifies the name of the ACL auth method to
   delete. This is required and is specified as part of the URL path.
+  
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace of the
+  Auth Method to delete. This value can be specified as the `ns` URL query 
+  parameter or in the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -278,6 +302,16 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
+
+### Parameters
+
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace to list
+  the auth methods for. This value can be specified as the `ns` URL query 
+  parameter or in the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. The namespace may be specified as '*' and then
+  results will be returned for all namespaces. Added in Consul 1.7.0.
+
 
 ## Sample Request
 

@@ -2,7 +2,6 @@ package fsm
 
 import (
 	"bytes"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +24,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -79,6 +80,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
+
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
@@ -142,8 +144,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Key:   "/remove",
 		Value: []byte("foo"),
 	})
-	fsm.state.KVSDelete(12, "/remove")
-	idx, _, err := fsm.state.KVSList(nil, "/remove")
+	fsm.state.KVSDelete(12, "/remove", nil)
+	idx, _, err := fsm.state.KVSList(nil, "/remove", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -239,8 +241,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: "global",
 	}
-	require.NoError(fsm.state.EnsureConfigEntry(18, serviceConfig))
-	require.NoError(fsm.state.EnsureConfigEntry(19, proxyConfig))
+	require.NoError(fsm.state.EnsureConfigEntry(18, serviceConfig, structs.DefaultEnterpriseMeta()))
+	require.NoError(fsm.state.EnsureConfigEntry(19, proxyConfig, structs.DefaultEnterpriseMeta()))
 
 	chunkState := &raftchunking.State{
 		ChunkMap: make(raftchunking.ChunkMap),
@@ -287,7 +289,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, os.Stderr)
+	fsm2, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -323,7 +325,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("bad: %v", nodes[1])
 	}
 
-	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo")
+	_, fooSrv, err := fsm2.state.NodeServices(nil, "foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -341,7 +343,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		t.Fatalf("got: %v, want: %v", connectSrv.Connect, connectConf)
 	}
 
-	_, checks, err := fsm2.state.NodeChecks(nil, "foo")
+	_, checks, err := fsm2.state.NodeChecks(nil, "foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -350,7 +352,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm2.state.KVSGet(nil, "/test")
+	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -359,7 +361,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify session is restored
-	idx, s, err := fsm2.state.SessionGet(nil, session.ID)
+	idx, s, err := fsm2.state.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -371,17 +373,17 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 
 	// Verify ACL Binding Rule is restored
-	_, bindingRule2, err := fsm2.state.ACLBindingRuleGetByID(nil, bindingRule.ID)
+	_, bindingRule2, err := fsm2.state.ACLBindingRuleGetByID(nil, bindingRule.ID, nil)
 	require.NoError(err)
 	require.Equal(bindingRule, bindingRule2)
 
 	// Verify ACL Auth Method is restored
-	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name)
+	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name, nil)
 	require.NoError(err)
 	require.Equal(method, method2)
 
 	// Verify ACL Token is restored
-	_, token2, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID)
+	_, token2, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
 	require.NoError(err)
 	{
 		// time.Time is tricky to compare generically when it takes a ser/deserialization round trip.
@@ -396,12 +398,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.True(index > 0)
 
 	// Verify ACL Role is restored
-	_, role2, err := fsm2.state.ACLRoleGetByID(nil, role.ID)
+	_, role2, err := fsm2.state.ACLRoleGetByID(nil, role.ID, nil)
 	require.NoError(err)
 	require.Equal(role, role2)
 
 	// Verify ACL Policy is restored
-	_, policy2, err := fsm2.state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID)
+	_, policy2, err := fsm2.state.ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 	require.NoError(err)
 	require.Equal(policy, policy2)
 
@@ -478,11 +480,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	assert.Equal(caConfig, caConf)
 
 	// Verify config entries are restored
-	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo")
+	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMeta())
 	require.NoError(err)
 	assert.Equal(serviceConfig, serviceConfEntry)
 
-	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global")
+	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMeta())
 	require.NoError(err)
 	assert.Equal(proxyConfig, proxyConfEntry)
 
@@ -520,7 +522,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 func TestFSM_BadRestore_OSS(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -562,7 +565,8 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 	require := require.New(t)
 
 	// Create an FSM with no config entry.
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -582,7 +586,7 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 	}
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, os.Stderr)
+	fsm2, err := New(nil, logger)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

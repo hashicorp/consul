@@ -14,16 +14,44 @@ type configSnapshotConnectProxy struct {
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 	WatchedGateways          map[string]map[string]context.CancelFunc
 	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
+	WatchedServiceChecks     map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
 
-	UpstreamEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
+	PreparedQueryEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
+}
+
+func (c *configSnapshotConnectProxy) IsEmpty() bool {
+	if c == nil {
+		return true
+	}
+	return c.Leaf == nil &&
+		len(c.DiscoveryChain) == 0 &&
+		len(c.WatchedUpstreams) == 0 &&
+		len(c.WatchedUpstreamEndpoints) == 0 &&
+		len(c.WatchedGateways) == 0 &&
+		len(c.WatchedGatewayEndpoints) == 0 &&
+		len(c.WatchedServiceChecks) == 0 &&
+		len(c.PreparedQueryEndpoints) == 0
 }
 
 type configSnapshotMeshGateway struct {
-	WatchedServices    map[string]context.CancelFunc
+	WatchedServices    map[structs.ServiceID]context.CancelFunc
+	WatchedServicesSet bool
 	WatchedDatacenters map[string]context.CancelFunc
-	ServiceGroups      map[string]structs.CheckServiceNodes
-	ServiceResolvers   map[string]*structs.ServiceResolverConfigEntry
+	ServiceGroups      map[structs.ServiceID]structs.CheckServiceNodes
+	ServiceResolvers   map[structs.ServiceID]*structs.ServiceResolverConfigEntry
 	GatewayGroups      map[string]structs.CheckServiceNodes
+}
+
+func (c *configSnapshotMeshGateway) IsEmpty() bool {
+	if c == nil {
+		return true
+	}
+	return len(c.WatchedServices) == 0 &&
+		!c.WatchedServicesSet &&
+		len(c.WatchedDatacenters) == 0 &&
+		len(c.ServiceGroups) == 0 &&
+		len(c.ServiceResolvers) == 0 &&
+		len(c.GatewayGroups) == 0
 }
 
 // ConfigSnapshot captures all the resulting config needed for a proxy instance.
@@ -32,13 +60,14 @@ type configSnapshotMeshGateway struct {
 type ConfigSnapshot struct {
 	Kind            structs.ServiceKind
 	Service         string
-	ProxyID         string
+	ProxyID         structs.ServiceID
 	Address         string
 	Port            int
 	TaggedAddresses map[string]structs.ServiceAddress
 	Proxy           structs.ConnectProxyConfig
 	Datacenter      string
-	Roots           *structs.IndexedCARoots
+
+	Roots *structs.IndexedCARoots
 
 	// connect-proxy specific
 	ConnectProxy configSnapshotConnectProxy
@@ -53,11 +82,9 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		// TODO(rb): sanity check discovery chain things here?
 		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
-		// TODO (mesh-gateway) - what happens if all the connect services go away
-		return s.Roots != nil && len(s.MeshGateway.ServiceGroups) > 0
+		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
 	default:
 		return false
 	}

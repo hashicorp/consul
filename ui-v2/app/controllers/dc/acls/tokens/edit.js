@@ -1,13 +1,12 @@
 import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
 export default Controller.extend({
   dom: service('dom'),
   builder: service('form'),
   isScoped: false,
   init: function() {
     this._super(...arguments);
-    this.form = get(this, 'builder').form('token');
+    this.form = this.builder.form('token');
   },
   setProperties: function(model) {
     // essentially this replaces the data with changesets
@@ -24,8 +23,8 @@ export default Controller.extend({
   },
   actions: {
     change: function(e, value, item) {
-      const event = get(this, 'dom').normalizeEvent(e, value);
-      const form = get(this, 'form');
+      const event = this.dom.normalizeEvent(e, value);
+      const form = this.form;
       try {
         form.handleEvent(event);
       } catch (err) {

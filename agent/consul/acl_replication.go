@@ -9,6 +9,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -111,6 +112,7 @@ func (s *Server) fetchACLRoles(lastRemoteIndex uint64) (*structs.ACLRoleListResp
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.ACLRoleListResponse
@@ -148,6 +150,7 @@ func (s *Server) fetchACLPolicies(lastRemoteIndex uint64) (*structs.ACLPolicyLis
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.ACLPolicyListResponse
@@ -261,7 +264,7 @@ func (s *Server) deleteLocalACLType(ctx context.Context, tr aclTypeReplicator, d
 	return false, nil
 }
 
-func (s *Server) updateLocalACLType(ctx context.Context, tr aclTypeReplicator) (bool, error) {
+func (s *Server) updateLocalACLType(ctx context.Context, logger hclog.Logger, tr aclTypeReplicator) (bool, error) {
 	ticker := time.NewTicker(time.Second / time.Duration(s.config.ACLReplicationApplyLimit))
 	defer ticker.Stop()
 
@@ -287,12 +290,10 @@ func (s *Server) updateLocalACLType(ctx context.Context, tr aclTypeReplicator) (
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply %s upserts: %v", tr.SingularNoun(), err)
 		}
-		s.logger.Printf(
-			"[DEBUG] acl: %s replication - upserted 1 batch with %d %s of size %d",
-			tr.SingularNoun(),
-			batchEnd-batchStart,
-			tr.PluralNoun(),
-			batchSize,
+		logger.Debug(
+			"acl replication - upserted batch",
+			"number_upserted", batchEnd-batchStart,
+			"batch_size", batchSize,
 		)
 
 		// items[batchEnd] wasn't include as the slicing doesn't include the element at the stop index
@@ -339,8 +340,9 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 			MinQueryIndex: lastRemoteIndex,
 			Token:         s.tokens.ReplicationToken(),
 		},
-		IncludeLocal:  false,
-		IncludeGlobal: true,
+		IncludeLocal:   false,
+		IncludeGlobal:  true,
+		EnterpriseMeta: *s.replicationEnterpriseMeta(),
 	}
 
 	var response structs.ACLTokenListResponse
@@ -350,28 +352,28 @@ func (s *Server) fetchACLTokens(lastRemoteIndex uint64) (*structs.ACLTokenListRe
 	return &response, nil
 }
 
-func (s *Server) replicateACLTokens(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLTokens(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
 	tr := &aclTokenReplicator{}
-	return s.replicateACLType(ctx, tr, lastRemoteIndex)
+	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
-func (s *Server) replicateACLPolicies(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLPolicies(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
 	tr := &aclPolicyReplicator{}
-	return s.replicateACLType(ctx, tr, lastRemoteIndex)
+	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
-func (s *Server) replicateACLRoles(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLRoles(ctx context.Context, logger hclog.Logger, lastRemoteIndex uint64) (uint64, bool, error) {
 	tr := &aclRoleReplicator{}
-	return s.replicateACLType(ctx, tr, lastRemoteIndex)
+	return s.replicateACLType(ctx, logger, tr, lastRemoteIndex)
 }
 
-func (s *Server) replicateACLType(ctx context.Context, tr aclTypeReplicator, lastRemoteIndex uint64) (uint64, bool, error) {
+func (s *Server) replicateACLType(ctx context.Context, logger hclog.Logger, tr aclTypeReplicator, lastRemoteIndex uint64) (uint64, bool, error) {
 	lenRemote, remoteIndex, err := tr.FetchRemote(s, lastRemoteIndex)
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to retrieve remote ACL %s: %v", tr.PluralNoun(), err)
 	}
 
-	s.logger.Printf("[DEBUG] acl: finished fetching %s: %d", tr.PluralNoun(), lenRemote)
+	logger.Debug("finished fetching acls", "amount", lenRemote)
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could
@@ -397,39 +399,34 @@ func (s *Server) replicateACLType(ctx context.Context, tr aclTypeReplicator, las
 	// the remote side was rebuilt and we should do a full sync since we
 	// can't make any assumptions about what's going on.
 	if remoteIndex < lastRemoteIndex {
-		s.logger.Printf(
-			"[WARN] consul: ACL %s replication remote index moved backwards (%d to %d), forcing a full ACL %s sync",
-			tr.SingularNoun(),
-			lastRemoteIndex,
-			remoteIndex,
-			tr.SingularNoun(),
+		logger.Warn(
+			"ACL replication remote index moved backwards, forcing a full ACL sync",
+			"from", lastRemoteIndex,
+			"to", remoteIndex,
 		)
 		lastRemoteIndex = 0
 	}
 
-	s.logger.Printf(
-		"[DEBUG] acl: %s replication - local: %d, remote: %d",
-		tr.SingularNoun(),
-		lenLocal,
-		lenRemote,
+	logger.Debug(
+		"acl replication",
+		"local", lenLocal,
+		"remote", lenRemote,
 	)
 	// Calculate the changes required to bring the state into sync and then apply them.
 	res := diffACLType(tr, lastRemoteIndex)
 	if res.LocalSkipped > 0 || res.RemoteSkipped > 0 {
-		s.logger.Printf(
-			"[DEBUG] acl: %s replication - deletions: %d, updates: %d, skipped: %d, skippedRemote: %d",
-			tr.SingularNoun(),
-			len(res.LocalDeletes),
-			len(res.LocalUpserts),
-			res.LocalSkipped,
-			res.RemoteSkipped,
+		logger.Debug(
+			"acl replication",
+			"deletions", len(res.LocalDeletes),
+			"updates", len(res.LocalUpserts),
+			"skipped", res.LocalSkipped,
+			"skipped_remote", res.RemoteSkipped,
 		)
 	} else {
-		s.logger.Printf(
-			"[DEBUG] acl: %s replication - deletions: %d, updates: %d",
-			tr.SingularNoun(),
-			len(res.LocalDeletes),
-			len(res.LocalUpserts),
+		logger.Debug(
+			"acl replication",
+			"deletions", len(res.LocalDeletes),
+			"updates", len(res.LocalUpserts),
 		)
 	}
 
@@ -440,18 +437,16 @@ func (s *Server) replicateACLType(ctx context.Context, tr aclTypeReplicator, las
 		} else if err != nil {
 			return 0, false, fmt.Errorf("failed to retrieve ACL %s updates: %v", tr.SingularNoun(), err)
 		}
-		s.logger.Printf(
-			"[DEBUG] acl: %s replication - downloaded %d %s",
-			tr.SingularNoun(),
-			lenUpdated,
-			tr.PluralNoun(),
+		logger.Debug(
+			"acl replication - downloaded updates",
+			"amount", lenUpdated,
 		)
 	}
 
 	if len(res.LocalDeletes) > 0 {
-		s.logger.Printf(
-			"[DEBUG] acl: %s replication - performing deletions",
-			tr.SingularNoun(),
+		logger.Debug(
+			"acl replication - performing deletions",
+			"amount", len(res.LocalDeletes),
 		)
 
 		exit, err := s.deleteLocalACLType(ctx, tr, res.LocalDeletes)
@@ -461,19 +456,19 @@ func (s *Server) replicateACLType(ctx context.Context, tr aclTypeReplicator, las
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to delete local ACL %s: %v", tr.PluralNoun(), err)
 		}
-		s.logger.Printf("[DEBUG] acl: %s replication - finished deletions", tr.SingularNoun())
+		logger.Debug("acl replication - finished deletions")
 	}
 
 	if len(res.LocalUpserts) > 0 {
-		s.logger.Printf("[DEBUG] acl: %s replication - performing updates", tr.SingularNoun())
-		exit, err := s.updateLocalACLType(ctx, tr)
+		logger.Debug("acl replication - performing updates")
+		exit, err := s.updateLocalACLType(ctx, logger, tr)
 		if exit {
 			return 0, true, nil
 		}
 		if err != nil {
 			return 0, false, fmt.Errorf("failed to update local ACL %s: %v", tr.PluralNoun(), err)
 		}
-		s.logger.Printf("[DEBUG] acl: %s replication - finished updates", tr.SingularNoun())
+		logger.Debug("acl replication - finished updates")
 	}
 
 	// Return the index we got back from the remote side, since we've synced

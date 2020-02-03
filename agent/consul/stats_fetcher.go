@@ -2,12 +2,12 @@ package consul
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -19,7 +19,7 @@ import (
 // a single in-flight RPC to any given server, so goroutines don't accumulate
 // as we run the health check fairly frequently.
 type StatsFetcher struct {
-	logger       *log.Logger
+	logger       hclog.Logger
 	pool         *pool.ConnPool
 	datacenter   string
 	inflight     map[string]struct{}
@@ -27,7 +27,7 @@ type StatsFetcher struct {
 }
 
 // NewStatsFetcher returns a stats fetcher.
-func NewStatsFetcher(logger *log.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
+func NewStatsFetcher(logger hclog.Logger, pool *pool.ConnPool, datacenter string) *StatsFetcher {
 	return &StatsFetcher{
 		logger:     logger,
 		pool:       pool,
@@ -45,8 +45,10 @@ func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *autopilot.Se
 	var reply autopilot.ServerStats
 	err := f.pool.RPC(f.datacenter, server.Addr, server.Version, "Status.RaftStats", server.UseTLS, &args, &reply)
 	if err != nil {
-		f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
-			server.Name, err)
+		f.logger.Warn("error getting server health from server",
+			"server", server.Name,
+			"error", err,
+		)
 	} else {
 		replyCh <- &reply
 	}
@@ -74,8 +76,10 @@ func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[str
 	f.inflightLock.Lock()
 	for _, server := range servers {
 		if _, ok := f.inflight[server.ID]; ok {
-			f.logger.Printf("[WARN] consul: error getting server health from %q: last request still outstanding",
-				server.Name)
+			f.logger.Warn("error getting server health from server",
+				"server", server.Name,
+				"error", "last request still outstanding",
+			)
 		} else {
 			workItem := &workItem{
 				server:  server,
@@ -105,8 +109,10 @@ func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[str
 			replies[workItem.server.ID] = reply
 
 		case <-ctx.Done():
-			f.logger.Printf("[WARN] consul: error getting server health from %q: %v",
-				workItem.server.Name, ctx.Err())
+			f.logger.Warn("error getting server health from server",
+				"server", workItem.server.Name,
+				"error", ctx.Err(),
+			)
 
 			f.inflightLock.Lock()
 			delete(f.inflight, workItem.server.ID)

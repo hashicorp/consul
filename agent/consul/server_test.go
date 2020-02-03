@@ -1,14 +1,16 @@
 package consul
 
 import (
+	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect/ca"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -20,11 +22,33 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/require"
 )
+
+const (
+	TestDefaultMasterToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+)
+
+// testServerACLConfig wraps another arbitrary Config altering callback
+// to setup some common ACL configurations. A new callback func will
+// be returned that has the original callback invoked after setting
+// up all of the ACL configurations (so they can still be overridden)
+func testServerACLConfig(cb func(*Config)) func(*Config) {
+	return func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+
+		if cb != nil {
+			cb(c)
+		}
+	}
+}
 
 func configureTLS(config *Config) {
 	config.CAFile = "../../test/ca/root.cer"
@@ -38,11 +62,36 @@ func uniqueNodeName(name string) string {
 	return fmt.Sprintf("%s-node-%d", name, atomic.AddInt64(&id, 1))
 }
 
+// This will find the leader of a list of servers and verify that leader establishment has completed
+func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
+	t.Helper()
+	retry.Run(t, func(r *retry.R) {
+		hasLeader := false
+		for _, srv := range servers {
+			if srv.IsLeader() {
+				hasLeader = true
+				require.True(r, srv.isReadyForConsistentReads(), "Leader %s hasn't finished establishing leadership yet", srv.config.NodeName)
+			}
+		}
+		require.True(r, hasLeader, "Cluster has not elected a leader yet")
+	})
+}
+
 func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
-	ports := freeport.Get(3)
+	ports := freeport.MustTake(3)
+
+	returnPortsFn := func() {
+		// The method of plumbing this into the server shutdown hook doesn't
+		// cover all exit points, so we insulate this against multiple
+		// invocations and then it's safe to call it a bunch of times.
+		freeport.Return(ports)
+		config.NotifyShutdown = nil // self-erasing
+	}
+	config.NotifyShutdown = returnPortsFn
+
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
@@ -56,6 +105,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
+		returnPortsFn()
 		t.Fatal(err)
 	}
 	config.NodeID = types.NodeID(nodeID)
@@ -105,12 +155,15 @@ func testServerConfig(t *testing.T) (string, *Config) {
 		ClusterID: connect.TestClusterID,
 		Provider:  structs.ConsulCAProvider,
 		Config: map[string]interface{}{
-			"PrivateKey":     "",
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"LeafCertTTL":    "72h",
+			"PrivateKey":          "",
+			"RootCert":            "",
+			"RotationPeriod":      "2160h",
+			"LeafCertTTL":         "72h",
+			"IntermediateCertTTL": "72h",
 		},
 	}
+
+	config.NotifyShutdown = returnPortsFn
 
 	return dir, config
 }
@@ -168,10 +221,22 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 
 		srv, err = newServer(config)
 		if err != nil {
+			config.NotifyShutdown()
 			os.RemoveAll(dir)
 			r.Fatalf("err: %v", err)
 		}
 	})
+	return dir, srv
+}
+
+// cb is a function that can alter the test servers configuration prior to the server starting.
+func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server) {
+	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
+
+	if initReplicationToken {
+		// setup some tokens here so we get less warnings in the logs
+		srv.tokens.UpdateReplicationToken(TestDefaultMasterToken, token.TokenSourceConfig)
+	}
 	return dir, srv
 }
 
@@ -191,7 +256,11 @@ func newServer(c *Config) (*Server, error) {
 	if w == nil {
 		w = os.Stderr
 	}
-	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  hclog.Debug,
+		Output: w,
+	})
 	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	if err != nil {
 		return nil, err
@@ -231,6 +300,48 @@ func TestServer_StartStop(t *testing.T) {
 	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestServer_fixupACLDatacenter(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "aye"
+		c.PrimaryDatacenter = "aye"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "bee"
+		c.PrimaryDatacenter = "aye"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(s1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s1 WAN members want %d", got, want)
+		}
+		if got, want := len(s2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d s2 WAN members want %d", got, want)
+		}
+	})
+
+	testrpc.WaitForLeader(t, s1.RPC, "aye")
+	testrpc.WaitForLeader(t, s2.RPC, "bee")
+
+	require.Equal(t, "aye", s1.config.Datacenter)
+	require.Equal(t, "aye", s1.config.ACLDatacenter)
+	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
+
+	require.Equal(t, "bee", s2.config.Datacenter)
+	require.Equal(t, "aye", s2.config.ACLDatacenter)
+	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 }
 
 func TestServer_JoinLAN(t *testing.T) {
@@ -1028,7 +1139,7 @@ func TestServer_Reload(t *testing.T) {
 
 	s.ReloadConfig(s.config)
 
-	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 	require.NotNil(t, entry)
 	global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1062,4 +1173,37 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 	})
+}
+
+func TestServer_CALogging(t *testing.T) {
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
+
+	// Setup dummy logger to catch output
+	var buf bytes.Buffer
+	logger := testutil.LoggerWithOutput(t, &buf)
+
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
+	require.NoError(t, err)
+	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	if _, ok := s1.caProvider.(ca.NeedsLogger); !ok {
+		t.Fatalf("provider does not implement NeedsLogger")
+	}
+
+	// Wait til CA root is setup
+	retry.Run(t, func(r *retry.R) {
+		var out structs.IndexedCARoots
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
+			Datacenter: conf1.Datacenter,
+		}, &out))
+	})
+
+	require.Contains(t, buf.String(), "consul CA provider configured")
 }

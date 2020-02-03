@@ -34,6 +34,23 @@ parameters are required to properly configure an auth method of type
 - `ServiceAccountJWT` `(string: <required>)` - A Service Account Token
   ([JWT](https://jwt.io/ "JSON Web Token")) used by the Consul leader to
   validate application JWTs during login.
+  
+- `MapNamespaces` `(bool: <false>)` - **(Enterprise Only)** Indicates whether 
+  the auth method should attempt to map the Kubernetes namespace to a Consul 
+  namespace instead of creating tokens in the auth methods own namespace. Note
+  that mapping namespaces requires the auth method to reside within the
+  `default` namespace.
+  
+- `ConsulNamespacePrefix` `(string: <optional>)` - **(Enterprise Only)** When
+  `MapNamespaces` is enabled, this value will be prefixed to the Kubernetes
+  namespace to determine the Consul namespace to create the new token within.
+
+- `ConsulNamespaceOverrides` `(map: <string:string>)` - **(Enterprise Only)**
+  This field is a mapping of Kubernetes namespace names to Consul namespace
+  names. If a Kubernetes namespace is present within this map, the value will
+  be used without adding the `ConsulNamespacePrefix`. If the value in the map
+  is `""` then the auth methods namespace will be used instead of attempting
+  to determine an alternate namespace.
 
 ### Sample Config
 

@@ -16,4 +16,4 @@ queries, sessions, and ACLs.
 [Consul Enterprise](https://www.hashicorp.com/consul.html) provides a [highly
 available service](/docs/commands/snapshot/agent.html) that
 integrates with the snapshot API to automatically manage taking snapshots,
-perform rotation and send backup files offsite to Amazon S3 (or another S3-compatible endpoint).
+perform rotation and send backup files offsite to GCP, Amazon S3, or another S3-compatible endpoint.

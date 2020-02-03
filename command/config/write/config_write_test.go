@@ -1042,6 +1042,86 @@ func TestParseConfigEntry(t *testing.T) {
 				Name: "main",
 			},
 		},
+		{
+			name: "expose paths: kitchen sink proxy defaults",
+			snake: `
+				kind = "proxy-defaults"
+				name = "global"
+				expose = {
+					checks = true
+					paths = [
+						{
+							local_path_port = 8080
+							listener_port = 21500
+							path = "/healthz"
+							protocol = "http2"
+						}
+					]
+				}`,
+			camel: `
+				Kind = "proxy-defaults"
+				Name = "global"
+				Expose = {
+					Checks = true
+					Paths = [
+						{
+							LocalPathPort = 8080
+							ListenerPort = 21500
+							Path = "/healthz"
+							Protocol = "http2"
+						}
+					]
+				}`,
+			snakeJSON: `
+			{
+				"kind": "proxy-defaults",
+				"name": "global",
+				"expose": {
+					"checks": true,
+					"paths": [
+						{
+							"local_path_port": 8080,
+							"listener_port": 21500,
+							"path": "/healthz",
+							"protocol": "http2"
+						}
+					]
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "proxy-defaults",
+				"Name": "global",
+				"Expose": {
+					"Checks": true,
+					"Paths": [
+						{
+							"LocalPathPort": 8080,
+							"ListenerPort": 21500,
+							"Path": "/healthz",
+							"Protocol": "http2"
+						}
+					]
+				}
+			}
+			`,
+			expect: &api.ProxyConfigEntry{
+				Kind: "proxy-defaults",
+				Name: "global",
+				Expose: api.ExposeConfig{
+					Checks: true,
+					Paths: []api.ExposePath{
+						{
+							ListenerPort:  21500,
+							Path:          "/healthz",
+							LocalPathPort: 8080,
+							Protocol:      "http2",
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

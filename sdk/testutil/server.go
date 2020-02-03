@@ -17,12 +17,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -104,6 +104,7 @@ type TestServerConfig struct {
 	ReadyTimeout        time.Duration          `json:"-"`
 	Stdout, Stderr      io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
+	ReturnPorts         func()                 `json:"-"`
 }
 
 type TestACLs struct {
@@ -138,7 +139,8 @@ func defaultServerConfig() *TestServerConfig {
 		panic(err)
 	}
 
-	ports := freeport.Get(6)
+	ports := freeport.MustTake(6)
+
 	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
@@ -166,6 +168,9 @@ func defaultServerConfig() *TestServerConfig {
 				// const TestClusterID causes import cycle so hard code it here.
 				"cluster_id": "11111111-2222-3333-4444-555555555555",
 			},
+		},
+		ReturnPorts: func() {
+			freeport.Return(ports)
 		},
 	}
 }
@@ -207,10 +212,18 @@ type TestServer struct {
 	tmpdir string
 }
 
-// NewTestServer is an easy helper method to create a new Consul
-// test server with the most basic configuration.
+// Deprecated: Use NewTestServerT instead.
 func NewTestServer() (*TestServer, error) {
 	return NewTestServerConfigT(nil, nil)
+}
+
+// NewTestServerT is an easy helper method to create a new Consul
+// test server with the most basic configuration.
+func NewTestServerT(t *testing.T) (*TestServer, error) {
+	if t == nil {
+		return nil, errors.New("testutil: a non-nil *testing.T is required")
+	}
+	return NewTestServerConfigT(t, nil)
 }
 
 func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
@@ -221,12 +234,12 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func NewTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	return newTestServerConfigT(t, cb)
 }
 
 // newTestServerConfigT is the internal helper for NewTestServerConfigT.
-func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func newTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
@@ -244,6 +257,10 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	cfg := defaultServerConfig()
+	testWriter := TestWriter(t)
+	cfg.Stdout = testWriter
+	cfg.Stderr = testWriter
+
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -251,22 +268,27 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
-	log.Printf("CONFIG JSON: %s", string(b))
+	if t != nil {
+		// if you really want this output ensure to pass a valid t
+		t.Logf("CONFIG JSON: %s", string(b))
+	}
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
 
-	stdout := io.Writer(os.Stdout)
+	stdout := testWriter
 	if cfg.Stdout != nil {
 		stdout = cfg.Stdout
 	}
-	stderr := io.Writer(os.Stderr)
+	stderr := testWriter
 	if cfg.Stderr != nil {
 		stderr = cfg.Stderr
 	}
@@ -278,6 +300,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
+		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
@@ -319,6 +342,7 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
+	defer s.Config.ReturnPorts()
 	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process
@@ -327,8 +351,14 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
-		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			return errors.Wrap(err, "failed to kill consul server")
+		if runtime.GOOS == "windows" {
+			if err := s.cmd.Process.Kill(); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
+		} else { // interrupt is not supported in windows
+			if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
 		}
 	}
 
@@ -396,6 +426,45 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 		}
 		if index < 2 {
 			r.Fatal("consul index should be at least 2")
+		}
+	})
+}
+
+// WaitForActiveCARoot waits until the server can return a Connect CA meaning
+// connect has completed bootstrapping and is ready to use.
+func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
+	// don't need to fully decode the response
+	type rootsResponse struct {
+		ActiveRootID string
+		TrustDomain  string
+		Roots        []interface{}
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/agent/connect/ca/roots")
+		resp, err := s.HTTPClient.Get(url)
+		if err != nil {
+			r.Fatalf("failed http get '%s': %v", url, err)
+		}
+		defer resp.Body.Close()
+		// Roots will return an error status until it's been bootstrapped. We could
+		// parse the body and sanity check but that causes either import cycles
+		// since this is used in both `api` and consul test or duplication. The 200
+		// is all we really need to wait for.
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+
+		var roots rootsResponse
+
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&roots); err != nil {
+			r.Fatal(err)
+		}
+
+		if roots.ActiveRootID == "" || len(roots.Roots) < 1 {
+			r.Fatalf("/v1/agent/connect/ca/roots returned 200 but without roots: %+v", roots)
 		}
 	})
 }

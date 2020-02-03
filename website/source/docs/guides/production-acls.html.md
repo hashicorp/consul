@@ -43,13 +43,13 @@ on them when you apply the token.
 
 ```
 # agent.hcl 
-{ 
-  acl = { 
-  	enabled = true, 
-  	default_policy = "deny",
+{
+  acl = {
+    enabled = true
+    default_policy = "deny"
     enable_token_persistence = true
-  	} 
-} 
+  }
+}
 ```
 
 ~> Note: Token persistence was introduced in Consul 1.4.3. In older versions
@@ -122,9 +122,9 @@ example below has unrestricted privileges for node related actions for
  
 ```
 # consul-server-one-policy.hcl
-node "consul-server-one" { 
+node "consul-server-one" {
   policy = "write"
-} 
+}
 ```
 
 When creating agent policies, review the [node rules](
@@ -232,9 +232,9 @@ definition](https://www.consul.io/docs/agent/services.html).
 
 ```sh
 # dashboard-policy.hcl
-service "dashboard" { 
-	policy = "write" 
-} 
+service "dashboard" {
+  policy = "write"
+}
 ```
 
 Use the policy definition to initiate the policy.
@@ -257,20 +257,20 @@ location.
 Finally, add the token to the service definition. 
 
 ``` 
-{ 
-  "service": { 
-  	"name": "dashboard", 
-  	"port": 9002, 
-  	"token": "57c5d69a-5f19-469b-0543-12a487eecc66", 
-  	"check": { 
-  		"id": "dashboard-check",
-  		"http": "http://localhost:9002/health", 
-  		"method": "GET", 
-  		"interval": "1s",
-  		"timeout": "1s" 
-  		} 
-  	} 
- } 
+{
+  "service": {
+    "name": "dashboard",
+    "port": 9002,
+    "token": "57c5d69a-5f19-469b-0543-12a487eecc66",
+    "check": {
+      "id": "dashboard-check",
+      "http": "http://localhost:9002/health",
+      "method": "GET",
+      "interval": "1s",
+      "timeout": "1s"
+    }
+  }
+}
 ```
 
 If the service is running, you will need to restart it. Unlike with agent 
@@ -301,16 +301,16 @@ nodes, and prepared queries.
 
 ```
 # dns-request-policy.hcl
-node_prefix "" { 
-	policy = "read" 
-} 
-service_prefix "" { 
-	policy = "read" 
+node_prefix "" {
+  policy = "read"
+}
+service_prefix "" {
+  policy = "read"
 }
 # only needed if using prepared queries
-query_prefix "" { 
-	policy = "read" 
-} 
+query_prefix "" {
+  policy = "read"
+}
 ```
 
 First, create the policy.
@@ -336,10 +336,9 @@ The data file must contain a valid token.
 
 ``` 
 # dns-token.json
-{ 
-  "Token":"5467d69a-5f19-469b-0543-12a487eecc66" 
+{
+  "Token": "5467d69a-5f19-469b-0543-12a487eecc66"
 }
-
 ``` 
 
 Note, if you have multiple agents serving DNS requests you can use the same
@@ -370,9 +369,9 @@ operator will use the token when issuing commands, either with the CLI or API.
 ### Recursive Reads
 
 ``` 
-key_prefix "redis/" { 
-  policy = "read" 
-} 
+key_prefix "redis/" {
+  policy = "read"
+}
 ```
 
 In the above example, we are allowing any key with the prefix `redis/` to be
@@ -387,8 +386,8 @@ same prefix would allow you to update any keys that begin with "redis/".
 
 ``` 
 key "dashboard-app" {
-  policy = "write" 
-} 
+  policy = "write"
+}
 ```
 
 In the above example, we are allowing read and write privileges to the
@@ -401,9 +400,9 @@ keys.
 ### Read Privileges for One Key
 
 ``` 
-key "counting-app" { 
-  policy = "read" 
-} 
+key "counting-app" {
+  policy = "read"
+}
 ```
 
 In the above example, we are setting a read privileges for a single key,
@@ -442,15 +441,15 @@ not even to view the token you used to access the UI.
 
 ```
 # operator-ui.hcl
-service_prefix "" { 
-  policy = "read" 
-  } 
-key_prefix "" { 
-  policy = "read" 
-  }
-node_prefix "" { 
-  policy = "read" 
-  }
+service_prefix "" {
+  policy = "read"
+}
+key_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "read"
+}
 ```
 
 ## Summary

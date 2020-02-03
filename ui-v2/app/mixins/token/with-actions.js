@@ -7,15 +7,20 @@ export default Mixin.create(WithBlockingActions, {
   settings: service('settings'),
   actions: {
     use: function(item) {
-      return get(this, 'feedback').execute(() => {
-        return get(this, 'repo')
-          .findBySlug(get(item, 'AccessorID'), this.modelFor('dc').dc.Name)
+      return this.feedback.execute(() => {
+        return this.repo
+          .findBySlug(
+            get(item, 'AccessorID'),
+            this.modelFor('dc').dc.Name,
+            this.modelFor('nspace').nspace.substr(1)
+          )
           .then(item => {
-            return get(this, 'settings')
+            return this.settings
               .persist({
                 token: {
                   AccessorID: get(item, 'AccessorID'),
                   SecretID: get(item, 'SecretID'),
+                  Namespace: get(item, 'Namespace'),
                 },
               })
               .then(() => {
@@ -28,21 +33,19 @@ export default Mixin.create(WithBlockingActions, {
       }, 'use');
     },
     logout: function(item) {
-      return get(this, 'feedback').execute(() => {
-        return get(this, 'settings')
-          .delete('token')
-          .then(() => {
-            // logging out is similar to delete in that
-            // if you log out from the listing page, stay on the listing page
-            // whereas if you logout from the detail page, take me back to the listing page
-            return this.afterDelete(...arguments);
-          });
+      return this.feedback.execute(() => {
+        return this.settings.delete('token').then(() => {
+          // logging out is similar to delete in that
+          // if you log out from the listing page, stay on the listing page
+          // whereas if you logout from the detail page, take me back to the listing page
+          return this.afterDelete(...arguments);
+        });
       }, 'logout');
     },
     clone: function(item) {
       let cloned;
-      return get(this, 'feedback').execute(() => {
-        return get(this, 'repo')
+      return this.feedback.execute(() => {
+        return this.repo
           .clone(item)
           .then(item => {
             cloned = item;

@@ -22,6 +22,7 @@ Features include:
 - [Advanced Federation for Complex Network
   Topologies](/docs/enterprise/federation/index.html)
 - [Network Segments](/docs/enterprise/network-segments/index.html)
+- [Namespaces](/docs/enterprise/namespaces/index.html)
 - [Sentinel](/docs/enterprise/sentinel/index.html)
 
 These features are part of [Consul

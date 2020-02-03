@@ -11,13 +11,14 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 var ErrNotInitialized = errors.New("provider not initialized")
@@ -28,30 +29,42 @@ type ConsulProvider struct {
 	config    *structs.ConsulCAProviderConfig
 	id        string
 	clusterID string
-	isRoot    bool
+	isPrimary bool
 	spiffeID  *connect.SpiffeIDSigning
+	logger    hclog.Logger
+
+	// testState is only used to test Consul leader's handling of providers that
+	// need to persist state. Consul provider actually manages it's state directly
+	// in the FSM since it is highly sensitive not (root private keys) not just
+	// metadata for lookups. We could make a whole mock provider to keep this out
+	// of Consul but that would still need to be configurable through real config
+	// and is a lot more boilerplate to test this for equivalent functionality.
+	testState map[string]string
 
 	sync.RWMutex
 }
 
 type ConsulProviderStateDelegate interface {
 	State() *state.Store
-	ApplyCARequest(*structs.CARequest) error
+	ApplyCARequest(*structs.CARequest) (interface{}, error)
 }
 
 // Configure sets up the provider using the given configuration.
-func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[string]interface{}) error {
+func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 	// Parse the raw config and update our ID.
-	config, err := ParseConsulCAConfig(rawConfig)
+	config, err := ParseConsulCAConfig(cfg.RawConfig)
 	if err != nil {
 		return err
 	}
 	c.config = config
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, isRoot)))
-	c.id = strings.Replace(fmt.Sprintf("% x", hash), " ", ":", -1)
-	c.clusterID = clusterID
-	c.isRoot = isRoot
-	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: clusterID})
+	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)))
+	c.id = connect.HexString(hash[:])
+	c.clusterID = cfg.ClusterID
+	c.isPrimary = cfg.IsPrimary
+	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
+
+	// Passthrough test state for state handling tests. See testState doc.
+	c.parseTestState(cfg.RawConfig, cfg.State)
 
 	// Exit early if the state store has an entry for this provider's config.
 	_, providerState, err := c.Delegate.State().CAProviderState(c.id)
@@ -79,7 +92,7 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 			Op:            structs.CAOpSetProviderState,
 			ProviderState: &newState,
 		}
-		if err := c.Delegate.ApplyCARequest(createReq); err != nil {
+		if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
 			return err
 		}
 
@@ -87,7 +100,7 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 			Op:            structs.CAOpDeleteProviderState,
 			ProviderState: providerState,
 		}
-		if err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
+		if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
 			return err
 		}
 
@@ -103,11 +116,25 @@ func (c *ConsulProvider) Configure(clusterID string, isRoot bool, rawConfig map[
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.Delegate.ApplyCARequest(args); err != nil {
+	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
+	c.logger.Debug("consul CA provider configured",
+		"id", c.id,
+		"is_primary", c.isPrimary,
+	)
+
 	return nil
+}
+
+// State implements Provider. Consul actually does store all it's state in raft
+// but it manages it independently through a separate table already so this is a
+// no-op. This method just passes through testState which allows tests to verify
+// state handling behavior without needing to plumb a full test mock provider
+// right through Consul server code.
+func (c *ConsulProvider) State() (map[string]string, error) {
+	return c.testState, nil
 }
 
 // ActiveRoot returns the active root CA certificate.
@@ -123,12 +150,12 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 // GenerateRoot initializes a new root certificate and private key
 // if needed.
 func (c *ConsulProvider) GenerateRoot() error {
-	idx, providerState, err := c.getState()
+	_, providerState, err := c.getState()
 	if err != nil {
 		return err
 	}
 
-	if !c.isRoot {
+	if !c.isPrimary {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
 	if providerState.RootCert != "" {
@@ -149,7 +176,12 @@ func (c *ConsulProvider) GenerateRoot() error {
 
 	// Generate the root CA if necessary
 	if c.config.RootCert == "" {
-		ca, err := c.generateCA(newState.PrivateKey, idx+1)
+		nextSerial, err := c.incrementAndGetNextSerialNumber()
+		if err != nil {
+			return fmt.Errorf("error computing next serial number: %v", err)
+		}
+
+		ca, err := c.generateCA(newState.PrivateKey, nextSerial)
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
@@ -163,7 +195,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.Delegate.ApplyCARequest(args); err != nil {
+	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -178,7 +210,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	if c.isRoot {
+	if c.isPrimary {
 		return "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
@@ -189,7 +221,13 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	csr, err := connect.CreateCACSR(c.spiffeID, signer)
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
+	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
+
+	csr, err := connect.CreateCACSR(c.spiffeID, cn, signer)
 	if err != nil {
 		return "", err
 	}
@@ -201,7 +239,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.Delegate.ApplyCARequest(args); err != nil {
+	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return "", err
 	}
 
@@ -216,53 +254,17 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 		return err
 	}
 
-	if c.isRoot {
+	if c.isPrimary {
 		return fmt.Errorf("cannot set an intermediate using another root in the primary datacenter")
 	}
 
-	// Get the key from the incoming intermediate cert so we can compare it
-	// to the currently stored key.
-	intermediate, err := connect.ParseCert(intermediatePEM)
-	if err != nil {
-		return fmt.Errorf("error parsing intermediate PEM: %v", err)
-	}
-	privKey, err := connect.ParseSigner(providerState.PrivateKey)
+	err = validateSetIntermediate(
+		intermediatePEM, rootPEM,
+		providerState.PrivateKey,
+		c.spiffeID,
+	)
 	if err != nil {
 		return err
-	}
-
-	// Compare the two keys to make sure they match.
-	b1, err := x509.MarshalPKIXPublicKey(intermediate.PublicKey)
-	if err != nil {
-		return err
-	}
-	b2, err := x509.MarshalPKIXPublicKey(privKey.Public())
-	if err != nil {
-		return err
-	}
-	if !bytes.Equal(b1, b2) {
-		return fmt.Errorf("intermediate cert is for a different private key")
-	}
-
-	// Validate the remaining fields and make sure the intermediate validates against
-	// the given root cert.
-	if !intermediate.IsCA {
-		return fmt.Errorf("intermediate is not a CA certificate")
-	}
-	if uriCount := len(intermediate.URIs); uriCount != 1 {
-		return fmt.Errorf("incoming intermediate cert has unexpected number of URIs: %d", uriCount)
-	}
-	if got, want := intermediate.URIs[0].String(), c.spiffeID.URI().String(); got != want {
-		return fmt.Errorf("incoming cert URI %q does not match current URI: %q", got, want)
-	}
-
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM([]byte(rootPEM))
-	_, err = intermediate.Verify(x509.VerifyOptions{
-		Roots: pool,
-	})
-	if err != nil {
-		return fmt.Errorf("could not verify intermediate cert against root: %v", err)
 	}
 
 	// Update the state
@@ -273,7 +275,7 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
 	}
-	if err := c.Delegate.ApplyCARequest(args); err != nil {
+	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -283,7 +285,7 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just return the root.
 func (c *ConsulProvider) ActiveIntermediate() (string, error) {
-	if c.isRoot {
+	if c.isPrimary {
 		return c.ActiveRoot()
 	}
 
@@ -307,7 +309,7 @@ func (c *ConsulProvider) Cleanup() error {
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
-	if err := c.Delegate.ApplyCARequest(args); err != nil {
+	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
@@ -323,7 +325,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	defer c.Unlock()
 
 	// Get the provider state
-	idx, providerState, err := c.getState()
+	_, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -344,20 +346,24 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", err
 	}
 
+	// Create the subjectKeyId for the cert from the csr public key.
+	subjectKeyID, err := connect.KeyId(csr.PublicKey)
+	if err != nil {
+		return "", err
+	}
+
 	// Parse the SPIFFE ID
 	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
 		return "", err
 	}
 
-	subject := ""
-	switch id := spiffeId.(type) {
-	case *connect.SpiffeIDService:
-		subject = id.Service
-	case *connect.SpiffeIDAgent:
-		subject = id.Agent
-	default:
-		return "", fmt.Errorf("SPIFFE ID in CSR must be a service ID")
+	// Even though leafs should be from our own CSRs which should have the same CN
+	// logic as here, override anyway to account for older version clients that
+	// didn't include the Common Name in the CSR.
+	subject, err := connect.CNForCertURI(spiffeId)
+	if err != nil {
+		return "", err
 	}
 
 	// Parse the CA cert
@@ -370,19 +376,27 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("error parsing CA cert: %s", err)
 	}
 
+	nextSerial, err := c.incrementAndGetNextSerialNumber()
+	if err != nil {
+		return "", fmt.Errorf("error computing next serial number: %v", err)
+	}
+
 	// Cert template for generation
 	sn := &big.Int{}
-	sn.SetUint64(idx + 1)
+	sn.SetUint64(nextSerial)
 	// Sign the certificate valid from 1 minute in the past, this helps it be
 	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
-		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: subject},
-		URIs:                  csr.URIs,
-		Signature:             csr.Signature,
-		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		SerialNumber: sn,
+		Subject:      pkix.Name{CommonName: subject},
+		URIs:         csr.URIs,
+		Signature:    csr.Signature,
+		// We use the correct signature algorithm for the CA key we are signing with
+		// regardless of the algorithm used to sign the CSR signature above since
+		// the leaf might use a different key type.
+		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
@@ -397,7 +411,9 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		NotAfter:       effectiveNow.Add(c.config.LeafCertTTL),
 		NotBefore:      effectiveNow,
 		AuthorityKeyId: keyId,
-		SubjectKeyId:   keyId,
+		SubjectKeyId:   subjectKeyID,
+		DNSNames:       csr.DNSNames,
+		IPAddresses:    csr.IPAddresses,
 	}
 
 	// Create the certificate, PEM encode it and return that value.
@@ -410,11 +426,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
 		return "", fmt.Errorf("error encoding certificate: %s", err)
-	}
-
-	err = c.incrementProviderIndex(providerState)
-	if err != nil {
-		return "", err
 	}
 
 	// Set the response
@@ -426,23 +437,14 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // are met. It should return a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	idx, providerState, err := c.getState()
+	_, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
 
-	if uriCount := len(csr.URIs); uriCount != 1 {
-		return "", fmt.Errorf("incoming CSR has unexpected number of URIs: %d", uriCount)
-	}
-	certURI, err := connect.ParseCertURI(csr.URIs[0])
+	err = validateSignIntermediate(csr, c.spiffeID)
 	if err != nil {
 		return "", err
-	}
-
-	// Verify that the trust domain is valid.
-	if !c.spiffeID.CanSign(certURI) {
-		return "", fmt.Errorf("incoming CSR domain %q is not valid for our domain %q",
-			certURI.URI().String(), c.spiffeID.URI().String())
 	}
 
 	// Get the signing private key.
@@ -450,7 +452,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	if err != nil {
 		return "", err
 	}
-	subjectKeyId, err := connect.KeyId(csr.PublicKey)
+	subjectKeyID, err := connect.KeyId(csr.PublicKey)
 	if err != nil {
 		return "", err
 	}
@@ -461,9 +463,14 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		return "", fmt.Errorf("error parsing CA cert: %s", err)
 	}
 
+	nextSerial, err := c.incrementAndGetNextSerialNumber()
+	if err != nil {
+		return "", fmt.Errorf("error computing next serial number: %v", err)
+	}
+
 	// Cert template for generation
 	sn := &big.Int{}
-	sn.SetUint64(idx + 1)
+	sn.SetUint64(nextSerial)
 	// Sign the certificate valid from 1 minute in the past, this helps it be
 	// accepted right away even when nodes are not in close time sync across the
 	// cluster. A minute is more than enough for typical DC clock drift.
@@ -473,7 +480,7 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		Subject:               csr.Subject,
 		URIs:                  csr.URIs,
 		Signature:             csr.Signature,
-		SignatureAlgorithm:    csr.SignatureAlgorithm,
+		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
 		PublicKey:             csr.PublicKey,
 		BasicConstraintsValid: true,
@@ -482,9 +489,9 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
 		MaxPathLenZero: true,
-		NotAfter:       effectiveNow.AddDate(1, 0, 0),
+		NotAfter:       effectiveNow.Add(c.config.IntermediateCertTTL),
 		NotBefore:      effectiveNow,
-		SubjectKeyId:   subjectKeyId,
+		SubjectKeyId:   subjectKeyID,
 	}
 
 	// Create the certificate, PEM encode it and return that value.
@@ -499,11 +506,6 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 		return "", fmt.Errorf("error encoding certificate: %s", err)
 	}
 
-	err = c.incrementProviderIndex(providerState)
-	if err != nil {
-		return "", err
-	}
-
 	// Set the response
 	return buf.String(), nil
 }
@@ -513,8 +515,12 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	c.Lock()
 	defer c.Unlock()
 
+	if c.config.DisableCrossSigning {
+		return "", errors.New("cross-signing disabled")
+	}
+
 	// Get the provider state
-	idx, providerState, err := c.getState()
+	_, providerState, err := c.getState()
 	if err != nil {
 		return "", err
 	}
@@ -534,9 +540,14 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", err
 	}
 
+	nextSerial, err := c.incrementAndGetNextSerialNumber()
+	if err != nil {
+		return "", fmt.Errorf("error computing next serial number: %v", err)
+	}
+
 	// Create the cross-signing template from the existing root CA
 	serialNum := &big.Int{}
-	serialNum.SetUint64(idx + 1)
+	serialNum.SetUint64(nextSerial)
 	template := *cert
 	template.SerialNumber = serialNum
 	template.SignatureAlgorithm = rootCA.SignatureAlgorithm
@@ -565,19 +576,19 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	err = c.incrementProviderIndex(providerState)
-	if err != nil {
-		return "", err
-	}
-
 	return buf.String(), nil
+}
+
+// SupportsCrossSigning implements Provider
+func (c *ConsulProvider) SupportsCrossSigning() (bool, error) {
+	return !c.config.DisableCrossSigning, nil
 }
 
 // getState returns the current provider state from the state delegate, and returns
 // ErrNotInitialized if no entry is found.
 func (c *ConsulProvider) getState() (uint64, *structs.CAConsulProviderState, error) {
-	state := c.Delegate.State()
-	idx, providerState, err := state.CAProviderState(c.id)
+	stateStore := c.Delegate.State()
+	idx, providerState, err := stateStore.CAProviderState(c.id)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -589,25 +600,23 @@ func (c *ConsulProvider) getState() (uint64, *structs.CAConsulProviderState, err
 	return idx, providerState, nil
 }
 
-// incrementProviderIndex does a write to increment the provider state store table index
-// used for serial numbers when generating certificates.
-func (c *ConsulProvider) incrementProviderIndex(providerState *structs.CAConsulProviderState) error {
-	newState := *providerState
+func (c *ConsulProvider) incrementAndGetNextSerialNumber() (uint64, error) {
 	args := &structs.CARequest{
-		Op:            structs.CAOpSetProviderState,
-		ProviderState: &newState,
-	}
-	if err := c.Delegate.ApplyCARequest(args); err != nil {
-		return err
+		Op: structs.CAOpIncrementProviderSerialNumber,
 	}
 
-	return nil
+	raw, err := c.Delegate.ApplyCARequest(args)
+	if err != nil {
+		return 0, err
+	}
+
+	return raw.(uint64), nil
 }
 
 // generateCA makes a new root CA using the current private key
 func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
-	state := c.Delegate.State()
-	_, config, err := state.CAConfig(nil)
+	stateStore := c.Delegate.State()
+	_, config, err := stateStore.CAConfig(nil)
 	if err != nil {
 		return "", err
 	}
@@ -617,8 +626,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 		return "", fmt.Errorf("error parsing private key %q: %s", privateKey, err)
 	}
 
-	name := fmt.Sprintf("Consul CA %d", sn)
-
 	// The URI (SPIFFE compatible) for the cert
 	id := connect.SpiffeIDSigningForCluster(config)
 	keyId, err := connect.KeyId(privKey.Public())
@@ -627,11 +634,16 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	// Create the CA cert
+	uid, err := connect.CompactUID()
+	if err != nil {
+		return "", err
+	}
+	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
 	template := x509.Certificate{
 		SerialNumber:          serialNum,
-		Subject:               pkix.Name{CommonName: name},
+		Subject:               pkix.Name{CommonName: cn},
 		URIs:                  []*url.URL{id.URI()},
 		BasicConstraintsValid: true,
 		KeyUsage: x509.KeyUsageCertSign |
@@ -657,4 +669,45 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
+}
+
+// SetLogger implements the NeedsLogger interface so the provider can log important messages.
+func (c *ConsulProvider) SetLogger(logger hclog.Logger) {
+	c.logger = logger.
+		ResetNamed(logging.Connect).
+		Named(logging.CA).
+		Named(logging.Consul)
+}
+
+func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {
+	c.testState = nil
+	if rawTestState, ok := rawConfig["test_state"]; ok {
+		if ts, ok := rawTestState.(map[string]string); ok {
+			c.testState = ts
+			return
+		}
+
+		// Secondary's config takes a trip through the state store before Configure
+		// is called and RPC calls that msgpack encode also have the same effect. It
+		// means we end up with map[string]string encoded as map[string]interface{}.
+		// We just handle that case. There is no struct error handling because this
+		// is test-only code (undocumented config key) and we'd rather not leave a
+		// way to error CA setup and leave cluster unavailable in prod by
+		// accidentally setting a bad test_state config.
+		if ts, ok := rawTestState.(map[string]interface{}); ok {
+			c.testState = make(map[string]string)
+			for k, v := range ts {
+				if s, ok := v.(string); ok {
+					c.testState[k] = s
+				}
+			}
+		}
+	}
+	// If config didn't explicitly specify test_state to return, but there is some
+	// actual state from a previous provider. Just use that since that is expected
+	// behavior that providers with state would preserve the state they are passed
+	// in the common case.
+	if len(state) > 0 && c.testState == nil {
+		c.testState = state
+	}
 }

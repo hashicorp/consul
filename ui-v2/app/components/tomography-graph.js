@@ -30,6 +30,8 @@ export default Component.extend({
   distances: computed('tomography', function() {
     const tomography = get(this, 'tomography');
     let distances = get(tomography, 'distances') || [];
+    // TODO: This should probably be moved into the milliseconds computedProperty
+    /*eslint ember/no-side-effects: "warn"*/
     distances.forEach((d, i) => {
       if (d.distance > get(this, 'max')) {
         set(this, 'max', d.distance);

@@ -44,7 +44,7 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
 }
 
 ################
@@ -63,10 +63,14 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary UNHEALTHY 1
 }
 
+@test "reset envoy statistics" {
+  reset_envoy_metrics 127.0.0.1:19000
+}
+
 @test "s1 upstream should be able to connect to s2 in secondary now" {
   assert_expected_fortio_name s2-secondary
 }
 
-@test "s1 upstream made 2 connections" {
-  assert_envoy_metric 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 2
+@test "s1 upstream made 1 connection" {
+  assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary.*cx_total" 1
 }

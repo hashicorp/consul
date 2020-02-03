@@ -1,9 +1,9 @@
 @setupApplicationTest
-Feature: dc / acls / tokens / index: ACL Login Errors
+Feature: dc / acls / tokens / login-errors: ACL Login Errors
 
   Scenario: I get any 500 error that is not the specific legacy token cluster one
     Given 1 datacenter model with the value "dc-1"
-    Given the url "/v1/acl/tokens" responds with a 500 status
+    Given the url "/v1/acl/tokens?ns=@namespace" responds with a 500 status
     When I visit the tokens page for yaml
     ---
       dc: dc-1
@@ -12,7 +12,7 @@ Feature: dc / acls / tokens / index: ACL Login Errors
     Then I see the text "500 (The backend responded with an error)" in "[data-test-error]"
   Scenario: I get a 500 error from acl/tokens that is the specific legacy one
     Given 1 datacenter model with the value "dc-1"
-    And the url "/v1/acl/tokens" responds with from yaml
+    And the url "/v1/acl/tokens?ns=@namespace" responds with from yaml
     ---
     status: 500
     body: "rpc error making call: rpc: can't find method ACL.TokenRead"
@@ -23,9 +23,10 @@ Feature: dc / acls / tokens / index: ACL Login Errors
     ---
     Then the url should be /dc-1/acls/tokens
     Then ".app-view" has the "unauthorized" class
+  @notNamespaceable
   Scenario: I get a 500 error from acl/token/self that is the specific legacy one
     Given 1 datacenter model with the value "dc-1"
-    Given the url "/v1/acl/tokens" responds with from yaml
+    Given the url "/v1/acl/tokens?ns=@namespace" responds with from yaml
     ---
     status: 500
     body: "rpc error making call: rpc: can't find method ACL.TokenRead"

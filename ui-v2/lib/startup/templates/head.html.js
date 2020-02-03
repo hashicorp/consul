@@ -23,7 +23,9 @@ module.exports = ({ appName, environment, rootURL, config }) => `
     setConfig(
       '${appName}',
       {
-        rootURL: '${rootURL}'
+        rootURL: '${rootURL}',
+        CONSUL_ACLS_ENABLED: ${config.CONSUL_ACLS_ENABLED},
+        CONSUL_NSPACES_ENABLED: ${config.CONSUL_NSPACES_ENABLED}
       }
     );
   </script>

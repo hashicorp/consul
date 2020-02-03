@@ -3,8 +3,6 @@ package xds
 import (
 	"bytes"
 	"fmt"
-	"log"
-	"os"
 	"path"
 	"sort"
 	"testing"
@@ -13,6 +11,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -205,8 +204,28 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "expose-paths-local-app-paths",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+		},
+		{
+			name:   "expose-paths-new-cluster-http2",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Expose.Paths[1] = structs.ExposePath{
+					LocalPathPort: 9090,
+					Path:          "/grpc.health.v1.Health/Check",
+					ListenerPort:  21501,
+					Protocol:      "http2",
+				}
+			},
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
+		},
+		{
+			name:   "mesh-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
 		},
 		{
 			name:   "mesh-gateway-tagged-addresses",
@@ -265,7 +284,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+			logger := testutil.Logger(t)
+			s := Server{
+				Logger: logger,
+			}
 
 			listeners, err := s.listenersFromSnapshot(snap, "my-token")
 			sort.Slice(listeners, func(i, j int) bool {

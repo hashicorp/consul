@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/serf"
@@ -16,7 +17,8 @@ import (
 // does not necessarily fit into the other systems. It is also
 // used to hold undocumented APIs that users should not rely on.
 type Internal struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // NodeInfo is used to retrieve information about a specific node.
@@ -30,7 +32,7 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeInfo(ws, args.Node)
+			index, dump, err := state.NodeInfo(ws, args.Node, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -56,7 +58,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, dump, err := state.NodeDump(ws)
+			index, dump, err := state.NodeDump(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -90,7 +92,7 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind)
+			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -125,8 +127,9 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
-	if rule != nil && !rule.EventWrite(args.Name) {
-		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
+	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
+		accessorID := m.aclAccessorID(args.Token)
+		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
 	}
 
@@ -162,7 +165,7 @@ func (m *Internal) KeyringOperation(
 	if rule != nil {
 		switch args.Operation {
 		case structs.KeyringList:
-			if !rule.KeyringRead() {
+			if rule.KeyringRead(nil) != acl.Allow {
 				return fmt.Errorf("Reading keyring denied by ACLs")
 			}
 		case structs.KeyringInstall:
@@ -170,7 +173,7 @@ func (m *Internal) KeyringOperation(
 		case structs.KeyringUse:
 			fallthrough
 		case structs.KeyringRemove:
-			if !rule.KeyringWrite() {
+			if rule.KeyringWrite(nil) != acl.Allow {
 				return fmt.Errorf("Modifying keyring denied due to ACLs")
 			}
 		default:
@@ -256,4 +259,22 @@ func (m *Internal) executeKeyringOpMgr(
 		NumNodes:   serfResp.NumNodes,
 		Error:      errStr,
 	})
+}
+
+// aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
+// critical purposes, such as logging. Therefore we interpret all errors as empty-string
+// so we can safely log it without handling non-critical errors at the usage site.
+func (m *Internal) aclAccessorID(secretID string) string {
+	_, ident, err := m.srv.ResolveIdentityFromToken(secretID)
+	if acl.IsErrNotFound(err) {
+		return ""
+	}
+	if err != nil {
+		m.logger.Debug("non-critical error resolving acl token accessor for logging", "error", err)
+		return ""
+	}
+	if ident == nil {
+		return ""
+	}
+	return ident.ID()
 }

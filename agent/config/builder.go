@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"golang.org/x/time/rate"
 )
@@ -99,7 +99,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 
 	b := &Builder{
 		Flags: flags,
-		Head:  []Source{DefaultSource()},
+		Head:  []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
 	if b.boolVal(b.Flags.DevMode) {
@@ -128,7 +128,7 @@ func NewBuilder(flags Flags) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), DefaultEnterpriseSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
 	if b.boolVal(b.Flags.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
@@ -369,6 +369,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	proxyMaxPort := b.portVal("ports.proxy_max_port", c.Ports.ProxyMaxPort)
 	sidecarMinPort := b.portVal("ports.sidecar_min_port", c.Ports.SidecarMinPort)
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
+	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
+	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -376,6 +378,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if sidecarMaxPort < sidecarMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"sidecar_min_port must be less than sidecar_max_port. To disable, set both to zero.")
+	}
+	if exposeMaxPort < exposeMinPort {
+		return RuntimeConfig{}, fmt.Errorf(
+			"expose_min_port must be less than expose_max_port. To disable, set both to zero.")
 	}
 
 	// determine the default bind and advertise address
@@ -409,6 +415,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
 	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
+
 	if ipaddr.IsAny(advertiseAddr) {
 
 		var addrtyp string
@@ -454,7 +461,39 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	// derive other advertise addresses from the advertise address
 	advertiseAddrLAN := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
+	advertiseAddrIsV6 := advertiseAddr.IP.To4() == nil
+	var advertiseAddrV4, advertiseAddrV6 *net.IPAddr
+	if !advertiseAddrIsV6 {
+		advertiseAddrV4 = advertiseAddr
+	} else {
+		advertiseAddrV6 = advertiseAddr
+	}
+	advertiseAddrLANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv4", c.AdvertiseAddrLANIPv4), advertiseAddrV4)
+	if advertiseAddrLANIPv4 != nil && advertiseAddrLANIPv4.IP.To4() == nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv4 must be an ipv4 address")
+	}
+	advertiseAddrLANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv6", c.AdvertiseAddrLANIPv6), advertiseAddrV6)
+	if advertiseAddrLANIPv6 != nil && advertiseAddrLANIPv6.IP.To4() != nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv6 must be an ipv6 address")
+	}
+
 	advertiseAddrWAN := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
+	advertiseAddrWANIsV6 := advertiseAddrWAN.IP.To4() == nil
+	var advertiseAddrWANv4, advertiseAddrWANv6 *net.IPAddr
+	if !advertiseAddrWANIsV6 {
+		advertiseAddrWANv4 = advertiseAddrWAN
+	} else {
+		advertiseAddrWANv6 = advertiseAddrWAN
+	}
+	advertiseAddrWANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv4", c.AdvertiseAddrWANIPv4), advertiseAddrWANv4)
+	if advertiseAddrWANIPv4 != nil && advertiseAddrWANIPv4.IP.To4() == nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv4 must be an ipv4 address")
+	}
+	advertiseAddrWANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv6", c.AdvertiseAddrWANIPv6), advertiseAddrWANv6)
+	if advertiseAddrWANIPv6 != nil && advertiseAddrWANIPv6.IP.To4() != nil {
+		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv6 must be an ipv6 address")
+	}
+
 	rpcAdvertiseAddr := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serverPort}
 	serfAdvertiseAddrLAN := &net.TCPAddr{IP: advertiseAddrLAN.IP, Port: serfPortLAN}
 	// Only initialize serf WAN advertise address when its enabled
@@ -503,8 +542,22 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if c.TaggedAddresses == nil {
 		c.TaggedAddresses = make(map[string]string)
 	}
-	c.TaggedAddresses["lan"] = advertiseAddrLAN.IP.String()
-	c.TaggedAddresses["wan"] = advertiseAddrWAN.IP.String()
+
+	c.TaggedAddresses[structs.TaggedAddressLAN] = advertiseAddrLAN.IP.String()
+	if advertiseAddrLANIPv4 != nil {
+		c.TaggedAddresses[structs.TaggedAddressLANIPv4] = advertiseAddrLANIPv4.IP.String()
+	}
+	if advertiseAddrLANIPv6 != nil {
+		c.TaggedAddresses[structs.TaggedAddressLANIPv6] = advertiseAddrLANIPv6.IP.String()
+	}
+
+	c.TaggedAddresses[structs.TaggedAddressWAN] = advertiseAddrWAN.IP.String()
+	if advertiseAddrWANIPv4 != nil {
+		c.TaggedAddresses[structs.TaggedAddressWANIPv4] = advertiseAddrWANIPv4.IP.String()
+	}
+	if advertiseAddrWANIPv6 != nil {
+		c.TaggedAddresses[structs.TaggedAddressWANIPv6] = advertiseAddrWANIPv6.IP.String()
+	}
 
 	// segments
 	var segments []structs.NetworkSegment
@@ -568,9 +621,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if connectCAConfig != nil {
 		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
-			"private_key":     "PrivateKey",
-			"root_cert":       "RootCert",
-			"rotation_period": "RotationPeriod",
+			"private_key":           "PrivateKey",
+			"root_cert":             "RootCert",
+			"rotation_period":       "RotationPeriod",
+			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
 			"address":               "Address",
@@ -584,6 +638,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			"tls_server_name":       "TLSServerName",
 			"tls_skip_verify":       "TLSSkipVerify",
 
+			// AWS CA config
+			"existing_arn":   "ExistingARN",
+			"delete_on_exit": "DeleteOnExit",
+
 			// Common CA config
 			"leaf_cert_ttl":      "LeafCertTTL",
 			"csr_max_per_second": "CSRMaxPerSecond",
@@ -594,6 +652,20 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptDNSSAN := []string{}
+	for _, d := range c.AutoEncrypt.DNSSAN {
+		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
+	}
+	autoEncryptIPSAN := []net.IP{}
+	for _, i := range c.AutoEncrypt.IPSAN {
+		ip := net.ParseIP(i)
+		if ip == nil {
+			b.warn(fmt.Sprintf("Cannot parse ip %q from AutoEncrypt.IPSAN", i))
+			continue
+		}
+		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
+
+	}
 	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
 
 	if autoEncryptAllowTLS {
@@ -617,9 +689,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		aclsEnabled = b.boolVal(c.ACL.Enabled)
 	}
 
-	aclDC := primaryDatacenter
-	if aclsEnabled && aclDC == "" {
-		aclDC = datacenter
+	// Set the primary DC if it wasn't set.
+	if primaryDatacenter == "" {
+		primaryDatacenter = datacenter
 	}
 
 	enableTokenReplication := false
@@ -704,7 +776,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ACLsEnabled:               aclsEnabled,
 		ACLAgentMasterToken:       b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
 		ACLAgentToken:             b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-		ACLDatacenter:             aclDC,
+		ACLDatacenter:             primaryDatacenter,
 		ACLDefaultPolicy:          b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
 		ACLDownPolicy:             b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
 		ACLEnableKeyListPolicy:    b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
@@ -722,6 +794,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AutopilotDisableUpgradeMigration: b.boolVal(c.Autopilot.DisableUpgradeMigration),
 		AutopilotLastContactThreshold:    b.durationVal("autopilot.last_contact_threshold", c.Autopilot.LastContactThreshold),
 		AutopilotMaxTrailingLogs:         b.intVal(c.Autopilot.MaxTrailingLogs),
+		AutopilotMinQuorum:               b.uintVal(c.Autopilot.MinQuorum),
 		AutopilotRedundancyZoneTag:       b.stringVal(c.Autopilot.RedundancyZoneTag),
 		AutopilotServerStabilizationTime: b.durationVal("autopilot.server_stabilization_time", c.Autopilot.ServerStabilizationTime),
 		AutopilotUpgradeVersionTag:       b.stringVal(c.Autopilot.UpgradeVersionTag),
@@ -798,14 +871,19 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		ClientAddrs:                      clientAddrs,
 		ConfigEntryBootstrap:             configEntries,
 		AutoEncryptTLS:                   autoEncryptTLS,
+		AutoEncryptDNSSAN:                autoEncryptDNSSAN,
+		AutoEncryptIPSAN:                 autoEncryptIPSAN,
 		AutoEncryptAllowTLS:              autoEncryptAllowTLS,
 		ConnectEnabled:                   connectEnabled,
 		ConnectCAProvider:                connectCAProvider,
 		ConnectCAConfig:                  connectCAConfig,
 		ConnectSidecarMinPort:            sidecarMinPort,
 		ConnectSidecarMaxPort:            sidecarMaxPort,
+		ExposeMinPort:                    exposeMinPort,
+		ExposeMaxPort:                    exposeMaxPort,
 		DataDir:                          b.stringVal(c.DataDir),
 		Datacenter:                       datacenter,
+		DefaultQueryTime:                 b.durationVal("default_query_time", c.DefaultQueryTime),
 		DevMode:                          b.boolVal(b.Flags.DevMode),
 		DisableAnonymousSignature:        b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:               b.boolVal(c.DisableCoordinates),
@@ -828,15 +906,19 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EncryptVerifyOutgoing:            b.boolVal(c.EncryptVerifyOutgoing),
 		GRPCPort:                         grpcPort,
 		GRPCAddrs:                        grpcAddrs,
+		HTTPMaxConnsPerClient:            b.intVal(c.Limits.HTTPMaxConnsPerClient),
+		HTTPSHandshakeTimeout:            b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KeyFile:                          b.stringVal(c.KeyFile),
 		KVMaxValueSize:                   b.uint64Val(c.Limits.KVMaxValueSize),
 		LeaveDrainTime:                   b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
 		LeaveOnTerm:                      leaveOnTerm,
 		LogLevel:                         b.stringVal(c.LogLevel),
+		LogJSON:                          b.boolVal(c.LogJSON),
 		LogFile:                          b.stringVal(c.LogFile),
 		LogRotateBytes:                   b.intVal(c.LogRotateBytes),
 		LogRotateDuration:                b.durationVal("log_rotate_duration", c.LogRotateDuration),
 		LogRotateMaxFiles:                b.intVal(c.LogRotateMaxFiles),
+		MaxQueryTime:                     b.durationVal("max_query_time", c.MaxQueryTime),
 		NodeID:                           types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                         c.NodeMeta,
 		NodeName:                         b.nodeName(c.NodeName),
@@ -845,8 +927,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		PrimaryDatacenter:                primaryDatacenter,
 		RPCAdvertiseAddr:                 rpcAdvertiseAddr,
 		RPCBindAddr:                      rpcBindAddr,
+		RPCHandshakeTimeout:              b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:                   b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
 		RPCMaxBurst:                      b.intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:             b.intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                      b.intVal(c.RPCProtocol),
 		RPCRateLimit:                     rate.Limit(b.float64Val(c.Limits.RPCRate)),
 		RaftProtocol:                     b.intVal(c.RaftProtocol),
@@ -885,7 +969,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:                  c.TaggedAddresses,
 		TranslateWANAddrs:                b.boolVal(c.TranslateWANAddrs),
 		UIDir:                            b.stringVal(c.UIDir),
-		UIContentPath:                    UIPathBuilder(b.stringVal(b.Flags.Config.UIContentPath)),
+		UIContentPath:                    UIPathBuilder(b.stringVal(c.UIContentPath)),
 		UnixSocketGroup:                  b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:                   b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                   b.stringVal(c.UnixSocket.User),
@@ -895,6 +979,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyOutgoing:                   verifyOutgoing,
 		VerifyServerHostname:             verifyServerName,
 		Watches:                          c.Watches,
+	}
+
+	if entCfg, err := b.BuildEnterpriseRuntimeConfig(&c); err != nil {
+		return RuntimeConfig{}, err
+	} else {
+		rt.EnterpriseRuntimeConfig = entCfg
 	}
 
 	if rt.BootstrapExpect == 1 {
@@ -1086,6 +1176,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		"":                       true,
 		structs.ConsulCAProvider: true,
 		structs.VaultCAProvider:  true,
+		structs.AWSCAProvider:    true,
 	}
 	if _, ok := validCAProviders[rt.ConnectCAProvider]; !ok {
 		return fmt.Errorf("%s is not a valid CA provider", rt.ConnectCAProvider)
@@ -1099,12 +1190,16 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
+		case structs.AWSCAProvider:
+			if _, err := ca.ParseAWSCAConfig(rt.ConnectCAConfig); err != nil {
+				return err
+			}
 		}
 	}
 
 	if rt.AutoEncryptAllowTLS {
 		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			return fmt.Errorf("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc must be enabled.")
+			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
 		}
 	}
 
@@ -1203,8 +1298,11 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		AliasService:                   b.stringVal(v.AliasService),
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
+		SuccessBeforePassing:           b.intVal(v.SuccessBeforePassing),
+		FailuresBeforeCritical:         b.intVal(v.FailuresBeforeCritical),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
+		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
 	}
 }
 
@@ -1275,6 +1373,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
+		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
 	}
 }
 
@@ -1305,6 +1404,7 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
+		Expose:                 b.exposeConfVal(v.Expose),
 	}
 }
 
@@ -1343,6 +1443,30 @@ func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 
 	cfg.Mode = mode
 	return cfg
+}
+
+func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
+	var out structs.ExposeConfig
+	if v == nil {
+		return out
+	}
+
+	out.Checks = b.boolVal(v.Checks)
+	out.Paths = b.pathsVal(v.Paths)
+	return out
+}
+
+func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
+	paths := make([]structs.ExposePath, len(v))
+	for i, p := range v {
+		paths[i] = structs.ExposePath{
+			ListenerPort:  b.intVal(p.ListenerPort),
+			Path:          b.stringVal(p.Path),
+			LocalPathPort: b.intVal(p.LocalPathPort),
+			Protocol:      b.stringVal(p.Protocol),
+		}
+	}
+	return paths
 }
 
 func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
@@ -1407,6 +1531,17 @@ func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
 
 func (b *Builder) intVal(v *int) int {
 	return b.intValWithDefault(v, 0)
+}
+
+func (b *Builder) uintVal(v *uint) uint {
+	return b.uintValWithDefault(v, 0)
+}
+
+func (b *Builder) uintValWithDefault(v *uint, defaultVal uint) uint {
+	if v == nil {
+		return defaultVal
+	}
+	return *v
 }
 
 func (b *Builder) uint64ValWithDefault(v *uint64, defaultVal uint64) uint64 {

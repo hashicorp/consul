@@ -1,10 +1,10 @@
 {{yield}}
-{{#yield-slot 'action' (block-params confirm cancel)}}
+{{#yield-slot name='action' params=(block-params confirm cancel)}}
 {{#if (or permanent (not confirming))}}
     {{yield}}
 {{/if}}
 {{/yield-slot}}
-{{#yield-slot 'dialog' (block-params execute cancel message actionName)}}
+{{#yield-slot name='dialog' params=(block-params execute cancel message actionName)}}
 {{#if confirming }}
     {{yield}}
 {{/if}}

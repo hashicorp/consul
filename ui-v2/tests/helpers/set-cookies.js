@@ -14,6 +14,9 @@ export default function(type, value) {
       case 'instance':
         key = 'CONSUL_NODE_COUNT';
         break;
+      case 'proxy':
+        key = 'CONSUL_PROXY_COUNT';
+        break;
       case 'kv':
         key = 'CONSUL_KV_COUNT';
         break;
@@ -38,6 +41,9 @@ export default function(type, value) {
       case 'token':
         key = 'CONSUL_TOKEN_COUNT';
         obj['CONSUL_ACLS_ENABLE'] = 1;
+        break;
+      case 'nspace':
+        key = 'CONSUL_NSPACE_COUNT';
         break;
     }
     if (key) {

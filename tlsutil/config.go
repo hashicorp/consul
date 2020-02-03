@@ -4,8 +4,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -160,14 +161,24 @@ type Configurator struct {
 	manual      *manual
 
 	caPool  *x509.CertPool
-	logger  *log.Logger
+	logger  hclog.Logger
 	version int
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
 // configuration.
-func NewConfigurator(config Config, logger *log.Logger) (*Configurator, error) {
-	c := &Configurator{logger: logger, manual: &manual{}, autoEncrypt: &autoEncrypt{}}
+func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{
+			Level: hclog.Debug,
+		})
+	}
+
+	c := &Configurator{
+		logger:      logger.Named(logging.TLSUtil),
+		manual:      &manual{},
+		autoEncrypt: &autoEncrypt{},
+	}
 	err := c.Update(config)
 	if err != nil {
 		return nil, err
@@ -323,11 +334,20 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 
 	// Ensure we have a CA and cert if VerifyIncoming is set
 	if config.anyVerifyIncoming() {
+		autoEncryptMsg := " AutoEncrypt only secures the connection between client and server and doesn't affect incoming connections on the client."
 		if pool == nil {
-			return fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+			errMsg := "VerifyIncoming set, and no CA certificate provided!"
+			if config.AutoEncryptTLS {
+				errMsg += autoEncryptMsg
+			}
+			return fmt.Errorf(errMsg)
 		}
-		if cert == nil || cert.Certificate == nil {
-			return fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+		if cert == nil {
+			errMsg := "VerifyIncoming set, and no Cert/Key pair provided!"
+			if config.AutoEncryptTLS {
+				errMsg += autoEncryptMsg
+			}
+			return fmt.Errorf(errMsg)
 		}
 	}
 	return nil
@@ -351,7 +371,7 @@ func (c *Config) baseVerifyIncoming() bool {
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
-		return &tls.Certificate{}, nil
+		return nil, nil
 	}
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -428,11 +448,11 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.PreferServerCipherSuites = c.base.PreferServerCipherSuites
 
 	// GetCertificate is used when acting as a server and responding to
-	// client requests. Always return the manually configured cert, because
-	// on the server this is all we have. And on the client, this is the
-	// only sensitive option.
+	// client requests. Default to the manually configured cert, but allow
+	// autoEncrypt cert too so that a client can encrypt incoming
+	// connections without having a manual cert configured.
 	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-		return c.manual.cert, nil
+		return c.Cert(), nil
 	}
 
 	// GetClientCertificate is used when acting as a client and responding
@@ -461,6 +481,17 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	}
 
 	return tlsConfig
+}
+
+// This function acquires a read lock because it reads from the config.
+func (c *Configurator) Cert() *tls.Certificate {
+	c.RLock()
+	defer c.RUnlock()
+	cert := c.manual.cert
+	if cert == nil {
+		cert = c.autoEncrypt.cert
+	}
+	return cert
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -547,6 +578,22 @@ func (c *Configurator) VerifyServerHostname() bool {
 	return c.base.VerifyServerHostname || c.autoEncrypt.verifyServerHostname
 }
 
+// IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
+func (c *Configurator) IncomingGRPCConfig() *tls.Config {
+	c.log("IncomingGRPCConfig")
+
+	// false has the effect that this config doesn't require a client cert
+	// verification. This is because there is no verify_incoming_grpc
+	// configuration option. And using verify_incoming would be backwards
+	// incompatible, because even if it was set before, it didn't have an
+	// effect on the grpc server.
+	config := c.commonTLSConfig(false)
+	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
+		return c.IncomingGRPCConfig(), nil
+	}
+	return config
+}
+
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
@@ -630,9 +677,9 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 // there is no cert, it will return a time in the past.
 func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
 	c.RLock()
+	defer c.RUnlock()
 	tlsCert := c.autoEncrypt.cert
-	c.RUnlock()
-	if tlsCert == nil {
+	if tlsCert == nil || tlsCert.Certificate == nil {
 		return time.Now().AddDate(0, 0, -1)
 	}
 	cert, err := x509.ParseCertificate(tlsCert.Certificate[0])
@@ -652,7 +699,7 @@ func (c *Configurator) log(name string) {
 	if c.logger != nil {
 		c.RLock()
 		defer c.RUnlock()
-		c.logger.Printf("[DEBUG] tlsutil: %s with version %d", name, c.version)
+		c.logger.Debug(name, "version", c.version)
 	}
 }
 

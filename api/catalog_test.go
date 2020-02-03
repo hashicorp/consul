@@ -52,8 +52,10 @@ func TestAPI_CatalogNodes(t *testing.T) {
 				Address:    "127.0.0.1",
 				Datacenter: "dc1",
 				TaggedAddresses: map[string]string{
-					"lan": "127.0.0.1",
-					"wan": "127.0.0.1",
+					"lan":      "127.0.0.1",
+					"lan_ipv4": "127.0.0.1",
+					"wan":      "127.0.0.1",
+					"wan_ipv4": "127.0.0.1",
 				},
 				Meta: map[string]string{
 					"consul-network-segment": "",
@@ -720,6 +722,65 @@ func TestAPI_CatalogNode(t *testing.T) {
 		if !reflect.DeepEqual(proxyReg.Service.Proxy, info.Services["web-proxy1"].Proxy) {
 			r.Fatalf("Bad proxy config:\nwant %v\n got: %v", proxyReg.Service.Proxy,
 				info.Services["web-proxy"].Proxy)
+		}
+	})
+}
+
+func TestAPI_CatalogNodeServiceList(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	catalog := c.Catalog()
+
+	name, err := c.Agent().NodeName()
+	require.NoError(t, err)
+
+	proxyReg := testUnmanagedProxyRegistration(t)
+	proxyReg.Node = name
+	proxyReg.SkipNodeUpdate = true
+
+	retry.Run(t, func(r *retry.R) {
+		// Register a connect proxy to ensure all it's config fields are returned
+		_, err := catalog.Register(proxyReg, nil)
+		r.Check(err)
+
+		info, meta, err := catalog.NodeServiceList(name, nil)
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(info.Services) != 2 {
+			r.Fatalf("Bad: %v (len %d)", info, len(info.Services))
+		}
+
+		if _, ok := info.Node.TaggedAddresses["wan"]; !ok {
+			r.Fatalf("Bad: %v", info.Node.TaggedAddresses)
+		}
+
+		if info.Node.Datacenter != "dc1" {
+			r.Fatalf("Bad datacenter: %v", info)
+		}
+
+		var proxySvc *AgentService
+		for _, svc := range info.Services {
+			if svc.ID == "web-proxy1" {
+				proxySvc = svc
+				break
+			}
+		}
+
+		if proxySvc == nil {
+			r.Fatalf("Missing proxy service: %v", info.Services)
+		}
+
+		if !reflect.DeepEqual(proxyReg.Service.Proxy, proxySvc.Proxy) {
+			r.Fatalf("Bad proxy config:\nwant %v\n got: %v", proxyReg.Service.Proxy,
+				proxySvc.Proxy)
 		}
 	})
 }

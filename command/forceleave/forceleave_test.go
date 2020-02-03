@@ -56,6 +56,60 @@ func TestForceLeaveCommand(t *testing.T) {
 	})
 }
 
+func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
+	t.Parallel()
+	a1 := agent.NewTestAgent(t, t.Name(), ``)
+	defer a1.Shutdown()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{
+		"-http-addr=" + a1.HTTPAddr(),
+		"garbage-name",
+	}
+
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestForceLeaveCommand_prune(t *testing.T) {
+	t.Parallel()
+	a1 := agent.NewTestAgent(t, t.Name()+"-a1", ``)
+	defer a1.Shutdown()
+	a2 := agent.NewTestAgent(t, t.Name()+"-a2", ``)
+	defer a2.Shutdown()
+
+	_, err := a2.JoinLAN([]string{a1.Config.SerfBindAddrLAN.String()})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Forcibly shutdown a2 so that it appears "failed" in a1
+	a2.Shutdown()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{
+		"-http-addr=" + a1.HTTPAddr(),
+		"-prune",
+		a2.Config.NodeName,
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	retry.Run(t, func(r *retry.R) {
+		m := len(a1.LANMembers())
+		if m != 1 {
+			r.Fatalf("should have 1 members, got %#v", m)
+		}
+	})
+
+}
+
 func TestForceLeaveCommand_noAddrs(t *testing.T) {
 	t.Parallel()
 	ui := cli.NewMockUi()

@@ -23,7 +23,7 @@ func (s *HTTPServer) preparedQueryCreate(resp http.ResponseWriter, req *http.Req
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Query, nil); err != nil {
+	if err := decodeBody(req.Body, &args.Query); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(resp, "Request decode failed: %v", err)
 		return nil, nil
@@ -163,7 +163,7 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	// a query can fail over to a different DC than where the execute request
 	// was sent to. That's why we use the reply's DC and not the one from
 	// the args.
-	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes)
+	s.agent.TranslateAddresses(reply.Datacenter, reply.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil.
 	if reply.Nodes == nil {
@@ -253,7 +253,7 @@ func (s *HTTPServer) preparedQueryUpdate(id string, resp http.ResponseWriter, re
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
 	if req.ContentLength > 0 {
-		if err := decodeBody(req, &args.Query, nil); err != nil {
+		if err := decodeBody(req.Body, &args.Query); err != nil {
 			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Request decode failed: %v", err)
 			return nil, nil

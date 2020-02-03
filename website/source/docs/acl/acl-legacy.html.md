@@ -19,7 +19,7 @@ the ACL system was rewritten and the legacy system was deprecated. The new ACL s
 The legacy documentation has two sections.
 
 - The [New ACL System Differences](#new-acl-system-differences) section 
-details the differences between ACLs in Consul 1.4.0 and older versions. You should read this section before upgrading to Consul 1.4.0 and [migrating](/docs/acl/acl-migrate-tokens.html)tokens.
+details the differences between ACLs in Consul 1.4.0 and older versions. You should read this section before upgrading to Consul 1.4.0 and [migrating](/docs/acl/acl-migrate-tokens.html) tokens.
 - The [Legacy ACL System documentation](#legacy-acl-system) section details the
 ACL system in Consul 1.3.0 and older. 
 
@@ -804,7 +804,7 @@ A token with `write` access on a prefix also has `list` access. A token with `li
 #### Sentinel Integration
 
 Consul Enterprise supports additional optional fields for key write policies for
-[Sentinel](https://docs.hashicorp.com/sentinel/app/consul/) integration. An example key rule with a
+[Sentinel](https://docs.hashicorp.com/sentinel/consul/) integration. An example key rule with a
 Sentinel code policy looks like this:
 
 ```hcl

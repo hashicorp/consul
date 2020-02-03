@@ -1,10 +1,10 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http/httptest"
 	"os"
@@ -12,9 +12,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"text/template"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent/config"
@@ -22,7 +24,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -52,12 +53,13 @@ type TestAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
+	// returnPortsFn will put the ports claimed for the test back into the
+	// general freeport pool
+	returnPortsFn func()
+
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
 	LogOutput io.Writer
-
-	// LogWriter is used for streaming logs.
-	LogWriter *logger.LogWriter
 
 	// DataDir is the data directory which is used when Config.DataDir
 	// is not set. It is created automatically and removed when
@@ -154,11 +156,31 @@ func (a *TestAgent) Start() (err error) {
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
-	a.Config = TestConfig(
-		randomPortsSource(a.UseTLS),
+	logOutput := a.LogOutput
+	if logOutput == nil {
+		logOutput = os.Stderr
+	}
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   a.Name,
+		Level:  hclog.Debug,
+		Output: logOutput,
+	})
+
+	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
+	a.returnPortsFn = returnPortsFn
+	a.Config = TestConfig(logger,
+		portsConfig,
 		config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 		config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
 	)
+
+	defer func() {
+		if err != nil && a.returnPortsFn != nil {
+			a.returnPortsFn()
+			a.returnPortsFn = nil
+		}
+	}()
 
 	// write the keyring
 	if a.Key != "" {
@@ -180,20 +202,13 @@ func (a *TestAgent) Start() (err error) {
 		}
 	}
 
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
-	agentLogger := log.New(logOutput, a.Name+" - ", log.LstdFlags|log.Lmicroseconds)
-
-	agent, err := New(a.Config, agentLogger)
+	agent, err := New(a.Config, logger)
 	if err != nil {
 		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
 	agent.LogOutput = logOutput
-	agent.LogWriter = a.LogWriter
 	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
 
 	id := string(a.Config.NodeID)
@@ -290,6 +305,14 @@ func (a *TestAgent) Shutdown() error {
 		return nil
 	}
 
+	// Return ports last of all
+	defer func() {
+		if a.returnPortsFn != nil {
+			a.returnPortsFn()
+			a.returnPortsFn = nil
+		}
+	}()
+
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
 	if err := a.Agent.ShutdownAgent(); err != nil {
@@ -354,27 +377,32 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(tls bool) config.Source {
-	ports := freeport.Get(6)
+func randomPortsSource(tls bool) (src config.Source, returnPortsFn func()) {
+	ports := freeport.MustTake(6)
+
+	var http, https int
 	if tls {
-		ports[1] = -1
+		http = -1
+		https = ports[2]
 	} else {
-		ports[2] = -1
+		http = ports[1]
+		https = -1
 	}
+
 	return config.Source{
 		Name:   "ports",
 		Format: "hcl",
 		Data: `
 			ports = {
 				dns = ` + strconv.Itoa(ports[0]) + `
-				http = ` + strconv.Itoa(ports[1]) + `
-				https = ` + strconv.Itoa(ports[2]) + `
+				http = ` + strconv.Itoa(http) + `
+				https = ` + strconv.Itoa(https) + `
 				serf_lan = ` + strconv.Itoa(ports[3]) + `
 				serf_wan = ` + strconv.Itoa(ports[4]) + `
 				server = ` + strconv.Itoa(ports[5]) + `
 			}
 		`,
-	}
+	}, func() { freeport.Return(ports) }
 }
 
 func NodeID() string {
@@ -387,7 +415,7 @@ func NodeID() string {
 
 // TestConfig returns a unique default configuration for testing an
 // agent.
-func TestConfig(sources ...config.Source) *config.RuntimeConfig {
+func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
 	testsrc := config.Source{
 		Name:   "test",
@@ -426,7 +454,7 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	}
 
 	for _, w := range b.Warnings {
-		fmt.Println("WARNING:", w)
+		logger.Warn(w)
 	}
 
 	// Effectively disables the delay after root rotation before requesting CSRs
@@ -450,17 +478,94 @@ func TestACLConfig() string {
 	`
 }
 
+const (
+	TestDefaultMasterToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
+)
+
+type TestACLConfigParams struct {
+	PrimaryDatacenter      string
+	DefaultPolicy          string
+	MasterToken            string
+	AgentToken             string
+	DefaultToken           string
+	AgentMasterToken       string
+	ReplicationToken       string
+	EnableTokenReplication bool
+}
+
+func DefaulTestACLConfigParams() *TestACLConfigParams {
+	return &TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       TestDefaultMasterToken,
+		AgentToken:        TestDefaultMasterToken,
+		AgentMasterToken:  TestDefaultAgentMasterToken,
+	}
+}
+
+func (p *TestACLConfigParams) HasConfiguredTokens() bool {
+	return p.MasterToken != "" ||
+		p.AgentToken != "" ||
+		p.DefaultToken != "" ||
+		p.AgentMasterToken != "" ||
+		p.ReplicationToken != ""
+}
+
 func TestACLConfigNew() string {
-	return `
-		primary_datacenter = "dc1"
-		acl {
-			enabled = true
-			default_policy = "deny"
-			tokens {
-				master = "root"
-				agent = "root"
-				agent_master = "towel"
-			}
+	return TestACLConfigWithParams(&TestACLConfigParams{
+		PrimaryDatacenter: "dc1",
+		DefaultPolicy:     "deny",
+		MasterToken:       "root",
+		AgentToken:        "root",
+		AgentMasterToken:  "towel",
+	})
+}
+
+var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
+   {{if ne .PrimaryDatacenter ""}}
+	primary_datacenter = "{{ .PrimaryDatacenter }}"
+	{{end}}
+	acl {
+		enabled = true
+		{{if ne .DefaultPolicy ""}}
+		default_policy = "{{ .DefaultPolicy }}"
+		{{end}}
+		enable_token_replication = {{printf "%t" .EnableTokenReplication }}
+		{{if .HasConfiguredTokens }}
+		tokens {
+			{{if ne .MasterToken ""}}
+			master = "{{ .MasterToken }}"
+			{{end}}
+			{{if ne .AgentToken ""}}
+			agent = "{{ .AgentToken }}"
+			{{end}}
+			{{if ne .AgentMasterToken "" }}
+			agent_master = "{{ .AgentMasterToken }}"
+			{{end}}
+			{{if ne .DefaultToken "" }}
+			default = "{{ .DefaultToken }}"
+			{{end}}
+			{{if ne .ReplicationToken "" }}
+			replication = "{{ .ReplicationToken }}"
+			{{end}}
 		}
-	`
+		{{end}}
+	}
+`))
+
+func TestACLConfigWithParams(params *TestACLConfigParams) string {
+	var buf bytes.Buffer
+
+	cfg := params
+	if params == nil {
+		cfg = DefaulTestACLConfigParams()
+	}
+
+	err := aclConfigTpl.Execute(&buf, &cfg)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to generate test ACL config: %v", err))
+	}
+
+	return buf.String()
 }

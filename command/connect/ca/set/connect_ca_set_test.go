@@ -50,4 +50,5 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 	parsed, err := ca.ParseConsulCAConfig(reply.Config)
 	require.NoError(err)
 	require.Equal(24*time.Hour, parsed.RotationPeriod)
+	require.Equal(36*time.Hour, parsed.IntermediateCertTTL)
 }

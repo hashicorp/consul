@@ -9,21 +9,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// fixHashField is used to convert the JSON string to a []byte before handing to mapstructure
-func fixHashField(raw interface{}) error {
-	rawMap, ok := raw.(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	if val, ok := rawMap["Hash"]; ok {
-		if sval, ok := val.(string); ok {
-			rawMap["Hash"] = []byte(sval)
-		}
-	}
-	return nil
-}
-
 // /v1/connection/intentions
 func (s *HTTPServer) IntentionEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
@@ -65,7 +50,7 @@ func (s *HTTPServer) IntentionCreate(resp http.ResponseWriter, req *http.Request
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Intention, fixHashField); err != nil {
+	if err := decodeBody(req.Body, &args.Intention); err != nil {
 		return nil, fmt.Errorf("Failed to decode request body: %s", err)
 	}
 
@@ -258,7 +243,7 @@ func (s *HTTPServer) IntentionSpecificUpdate(id string, resp http.ResponseWriter
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Intention, fixHashField); err != nil {
+	if err := decodeBody(req.Body, &args.Intention); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
@@ -302,9 +287,6 @@ type intentionCreateResponse struct{ ID string }
 func parseIntentionMatchEntry(input string) (structs.IntentionMatchEntry, error) {
 	var result structs.IntentionMatchEntry
 	result.Namespace = structs.IntentionDefaultNamespace
-
-	// TODO(mitchellh): when namespaces are introduced, set the default
-	// namespace to be the namespace of the requestor.
 
 	// Get the index to the '/'. If it doesn't exist, we have just a name
 	// so just set that and return.

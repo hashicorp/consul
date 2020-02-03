@@ -2,8 +2,6 @@ package xds
 
 import (
 	"bytes"
-	"log"
-	"os"
 	"path"
 	"sort"
 	"testing"
@@ -12,6 +10,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -112,6 +111,59 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "custom-limits-max-connections-only",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				for i := range snap.Proxy.Upstreams {
+					// We check if Config is nil because the prepared_query upstream is
+					// initialized without a Config map. Use Upstreams[i] syntax to
+					// modify the actual ConfigSnapshot instead of copying the Upstream
+					// in the range.
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+
+					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+						"max_connections": 500,
+					}
+				}
+			},
+		},
+		{
+			name:   "custom-limits-set-to-zero",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+
+					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+						"max_connections":         0,
+						"max_pending_requests":    0,
+						"max_concurrent_requests": 0,
+					}
+				}
+			},
+		},
+		{
+			name:   "custom-limits",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+
+					snap.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+						"max_connections":         500,
+						"max_pending_requests":    600,
+						"max_concurrent_requests": 700,
+					}
+				}
+			},
+		},
+		{
 			name:   "connect-proxy-with-chain",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain,
 			setup:  nil,
@@ -177,16 +229,37 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "expose-paths-local-app-paths",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+		},
+		{
+			name:   "expose-paths-new-cluster-http2",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Expose.Paths[1] = structs.ExposePath{
+					LocalPathPort: 9090,
+					Path:          "/grpc.health.v1.Health/Check",
+					ListenerPort:  21501,
+					Protocol:      "http2",
+				}
+			},
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
+			setup:  nil,
+		},
+		{
+			name:   "mesh-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
 			setup:  nil,
 		},
 		{
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
-					"bar": &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -227,7 +300,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+			logger := testutil.Logger(t)
+			s := Server{
+				Logger: logger,
+			}
 
 			clusters, err := s.clustersFromSnapshot(snap, "my-token")
 			require.NoError(err)
@@ -292,6 +368,9 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 				"outlierDetection": {
 
 				},
+				"circuitBreakers": {
+
+				},
 				"altStatName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"commonLbConfig": {
 					"healthyPanicThreshold": {}
@@ -312,6 +391,9 @@ func expectClustersJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 					}
 				},
 				"outlierDetection": {
+
+				},
+				"circuitBreakers": {
 
 				},
 				"connectTimeout": "5s",

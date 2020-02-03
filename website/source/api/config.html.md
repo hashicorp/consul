@@ -59,7 +59,7 @@ The table below shows this endpoint's support for
 {
     "Kind": "service-defaults",
     "Name": "web",
-    "Protocol": "http",
+    "Protocol": "http"
 }
 ```
 
@@ -194,7 +194,7 @@ $ curl \
 
 ## Delete Configuration
 
-This endpoint creates or updates the given config entry.
+This endpoint deletes the given config entry.
 
 | Method   | Path                         | Produces                   |
 | -------- | ---------------------------- | -------------------------- |

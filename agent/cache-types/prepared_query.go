@@ -26,7 +26,11 @@ func (c *PreparedQuery) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
-	// Allways allow stale - there's no point in hitting leader if the request is
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
+	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and endup arbitrarily stale anyway. This
 	// allows cached service-discover to automatically read scale across all
 	// servers too.

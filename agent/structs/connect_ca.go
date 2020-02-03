@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -60,8 +62,8 @@ type CARoot struct {
 	SerialNumber uint64
 
 	// SigningKeyID is the ID of the public key that corresponds to the private
-	// key used to sign the certificate. Is is the HexString format of the raw
-	// AuthorityKeyID bytes.
+	// key used to sign leaf certificates. Is is the HexString format of the
+	// raw AuthorityKeyID bytes.
 	SigningKeyID string
 
 	// ExternalTrustDomain is the trust domain this root was generated under. It
@@ -102,8 +104,14 @@ type CARoot struct {
 	// active root.
 	RotatedOutAt time.Time `json:"-"`
 
-	// Type of private key used to create the CA cert.
+	// PrivateKeyType is the type of the private key used to sign certificates. It
+	// may be "rsa" or "ec". This is provided as a convenience to avoid parsing
+	// the public key to from the certificate to infer the type.
 	PrivateKeyType string
+
+	// PrivateKeyBits is the length of the private key used to sign certificates.
+	// This is provided as a convenience to avoid parsing the public key from the
+	// certificate to infer the type.
 	PrivateKeyBits int
 
 	RaftIndex
@@ -164,11 +172,12 @@ type IssuedCert struct {
 type CAOp string
 
 const (
-	CAOpSetRoots            CAOp = "set-roots"
-	CAOpSetConfig           CAOp = "set-config"
-	CAOpSetProviderState    CAOp = "set-provider-state"
-	CAOpDeleteProviderState CAOp = "delete-provider-state"
-	CAOpSetRootsAndConfig   CAOp = "set-roots-config"
+	CAOpSetRoots                      CAOp = "set-roots"
+	CAOpSetConfig                     CAOp = "set-config"
+	CAOpSetProviderState              CAOp = "set-provider-state"
+	CAOpDeleteProviderState           CAOp = "delete-provider-state"
+	CAOpSetRootsAndConfig             CAOp = "set-roots-config"
+	CAOpIncrementProviderSerialNumber CAOp = "increment-provider-serial"
 )
 
 // CARequest is used to modify connect CA data. This is used by the
@@ -207,6 +216,7 @@ func (q *CARequest) RequestDatacenter() string {
 const (
 	ConsulCAProvider = "consul"
 	VaultCAProvider  = "vault"
+	AWSCAProvider    = "aws-pca"
 )
 
 // CAConfiguration is the configuration for the current CA plugin.
@@ -222,7 +232,92 @@ type CAConfiguration struct {
 	// and maps).
 	Config map[string]interface{}
 
+	// State is optionally used by the provider to persist information it needs
+	// between reloads like UUIDs of resources it manages. It only supports string
+	// values to avoid gotchas with interface{} since this is encoded through
+	// msgpack when it's written through raft. For example if providers used a
+	// custom struct or even a simple `int` type, msgpack with loose type
+	// information during encode/decode and providers will end up getting back
+	// different types have have to remember to test multiple variants of state
+	// handling to account for cases where it's been through msgpack or not.
+	// Keeping this as strings only forces compatibility and leaves the input
+	// Providers have to work with unambiguous - they can parse ints or other
+	// types as they need. We expect this only to be used to store a handful of
+	// identifiers anyway so this is simpler.
+	State map[string]string
+
+	// ForceWithoutCrossSigning indicates that the CA reconfiguration should go
+	// ahead even if the current CA is unable to cross sign certificates. This
+	// risks temporary connection failures during the rollout as new leafs will be
+	// rejected by proxies that have not yet observed the new root cert but is the
+	// only option if a CA that doesn't support cross signing needs to be
+	// reconfigured or mirated away from.
+	ForceWithoutCrossSigning bool
+
 	RaftIndex
+}
+
+// MarshalBinary writes CAConfiguration as msgpack encoded. It's only here
+// because we need custom decoding of the raw interface{} values and this
+// completes the interface.
+func (c *CAConfiguration) MarshalBinary() (data []byte, err error) {
+	// bs will grow if needed but allocate enough to avoid reallocation in common
+	// case.
+	bs := make([]byte, 128)
+	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+
+	type Alias CAConfiguration
+
+	if err := enc.Encode((*Alias)(c)); err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+// UnmarshalBinary decodes msgpack encoded CAConfiguration. It used
+// default msgpack encoding but fixes up the uint8 strings and other problems we
+// have with encoding map[string]interface{}.
+func (c *CAConfiguration) UnmarshalBinary(data []byte) error {
+	dec := codec.NewDecoderBytes(data, msgpackHandle)
+
+	type Alias CAConfiguration
+	var a Alias
+
+	if err := dec.Decode(&a); err != nil {
+		return err
+	}
+
+	*c = CAConfiguration(a)
+
+	var err error
+
+	// Fix strings and maps in the returned maps
+	c.Config, err = lib.MapWalk(c.Config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CAConfiguration) UnmarshalJSON(data []byte) (err error) {
+	type Alias CAConfiguration
+
+	aux := &struct {
+		ForceWithoutCrossSigningSnake bool `json:"force_without_cross_signing"`
+
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if aux.ForceWithoutCrossSigningSnake {
+		c.ForceWithoutCrossSigning = aux.ForceWithoutCrossSigningSnake
+	}
+
+	return nil
 }
 
 func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
@@ -282,7 +377,18 @@ type CommonCAProviderConfig struct {
 	// is used. This is ignored if CSRMaxPerSecond is non-zero.
 	CSRMaxConcurrent int
 
+	// PrivateKeyType specifies which type of key the CA should generate. It only
+	// applies when the provider is generating its own key and is ignored if the
+	// provider already has a key or an external key is provided. Supported values
+	// are "ec" or "rsa". "ec" is the default and will generate a NIST P-256
+	// Elliptic key.
 	PrivateKeyType string
+
+	// PrivateKeyBits specifies the number of bits the CA's private key should
+	// use. For RSA, supported values are 2048 and 4096. For EC, supported values
+	// are 224, 256, 384 and 521 and correspond to the NIST P-* curve of the same
+	// name. As with PrivateKeyType this is only relevant whan the provier is
+	// generating new CA keys (root or intermediate).
 	PrivateKeyBits int
 }
 
@@ -302,14 +408,14 @@ func (c CommonCAProviderConfig) Validate() error {
 	switch c.PrivateKeyType {
 	case "ec":
 		if c.PrivateKeyBits != 224 && c.PrivateKeyBits != 256 && c.PrivateKeyBits != 384 && c.PrivateKeyBits != 521 {
-			return fmt.Errorf("ECDSA key length must be one of (224, 256, 384, 521) bits")
+			return fmt.Errorf("EC key length must be one of (224, 256, 384, 521) bits")
 		}
 	case "rsa":
 		if c.PrivateKeyBits != 2048 && c.PrivateKeyBits != 4096 {
 			return fmt.Errorf("RSA key length must be 2048 or 4096 bits")
 		}
 	default:
-		return fmt.Errorf("private key type must be either 'ecdsa' or 'rsa'")
+		return fmt.Errorf("private key type must be either 'ec' or 'rsa'")
 	}
 
 	return nil
@@ -318,9 +424,16 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
+	PrivateKey          string
+	RootCert            string
+	RotationPeriod      time.Duration
+	IntermediateCertTTL time.Duration
+
+	// DisableCrossSigning is really only useful in test code to use the built in
+	// provider while exercising logic that depends on the CA provider ability to
+	// cross sign. We don't document this config field publicly or make any
+	// attempt to parse it from snake case unlike other fields here.
+	DisableCrossSigning bool
 }
 
 // CAConsulProviderState is used to track the built-in Consul CA provider's state.
@@ -347,6 +460,13 @@ type VaultCAProviderConfig struct {
 	KeyFile       string
 	TLSServerName string
 	TLSSkipVerify bool
+}
+
+type AWSCAProviderConfig struct {
+	CommonCAProviderConfig `mapstructure:",squash"`
+
+	ExistingARN  string
+	DeleteOnExit bool
 }
 
 // CALeafOp is the operation for a request related to leaf certificates.

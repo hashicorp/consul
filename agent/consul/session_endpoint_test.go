@@ -17,6 +17,7 @@ func TestSession_Apply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -41,7 +42,7 @@ func TestSession_Apply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.SessionGet(nil, out)
+	_, s, err := state.SessionGet(nil, out, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -63,7 +64,7 @@ func TestSession_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.SessionGet(nil, id)
+	_, s, err = state.SessionGet(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -77,6 +78,7 @@ func TestSession_DeleteApply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -102,7 +104,7 @@ func TestSession_DeleteApply(t *testing.T) {
 
 	// Verify
 	state := s1.fsm.State()
-	_, s, err := state.SessionGet(nil, out)
+	_, s, err := state.SessionGet(nil, out, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -127,7 +129,7 @@ func TestSession_DeleteApply(t *testing.T) {
 	}
 
 	// Verify
-	_, s, err = state.SessionGet(nil, id)
+	_, s, err = state.SessionGet(nil, id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -147,6 +149,7 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -237,6 +240,7 @@ func TestSession_Get(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -257,7 +261,7 @@ func TestSession_Get(t *testing.T) {
 
 	getR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
-		Session:    out,
+		SessionID:  out,
 	}
 	var sessions structs.IndexedSessions
 	if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
@@ -281,6 +285,7 @@ func TestSession_List(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -339,6 +344,7 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -384,7 +390,7 @@ session "foo" {
 	// 8 ACL enforcement isn't enabled.
 	getR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
-		Session:    out,
+		SessionID:  out,
 	}
 	{
 		var sessions structs.IndexedSessions
@@ -486,7 +492,7 @@ session "foo" {
 
 	// Try to get a session that doesn't exist to make sure that's handled
 	// correctly by the filter (it will get passed a nil slice).
-	getR.Session = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+	getR.SessionID = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
 	{
 		var sessions structs.IndexedSessions
 		if err := msgpackrpc.CallWithCodec(codec, "Session.Get", &getR, &sessions); err != nil {
@@ -503,9 +509,11 @@ func TestSession_ApplyTimers(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	arg := structs.SessionRequest{
@@ -551,6 +559,7 @@ func TestSession_Renew(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -613,7 +622,7 @@ func TestSession_Renew(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		renewR := structs.SessionSpecificRequest{
 			Datacenter: "dc1",
-			Session:    ids[i],
+			SessionID:  ids[i],
 		}
 		var session structs.IndexedSessions
 		if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
@@ -714,9 +723,11 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Create the ACL.
 	req := structs.ACLRequest{
@@ -761,7 +772,7 @@ session "foo" {
 	// enforcement.
 	renewR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
-		Session:    id,
+		SessionID:  id,
 	}
 	var session structs.IndexedSessions
 	if err := msgpackrpc.CallWithCodec(codec, "Session.Renew", &renewR, &session); err != nil {
@@ -787,6 +798,7 @@ func TestSession_NodeSessions(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -846,6 +858,7 @@ func TestSession_Apply_BadTTL(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 

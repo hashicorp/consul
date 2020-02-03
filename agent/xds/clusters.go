@@ -44,7 +44,7 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
 
 	// Include the "app" cluster for the public listener
-	appCluster, err := s.makeAppCluster(cfgSnap)
+	appCluster, err := s.makeAppCluster(cfgSnap, LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,39 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 		}
 	}
 
+	cfgSnap.Proxy.Expose.Finalize()
+	paths := cfgSnap.Proxy.Expose.Paths
+
+	// Add service health checks to the list of paths to create clusters for if needed
+	if cfgSnap.Proxy.Expose.Checks {
+		psid := structs.NewServiceID(cfgSnap.Proxy.DestinationServiceID, &cfgSnap.ProxyID.EnterpriseMeta)
+		for _, check := range s.CheckFetcher.ServiceHTTPBasedChecks(psid) {
+			p, err := parseCheckPath(check)
+			if err != nil {
+				s.Logger.Warn("failed to create cluster for", "check", check.CheckID, "error", err)
+				continue
+			}
+			paths = append(paths, p)
+		}
+	}
+
+	// Create a new cluster if we need to expose a port that is different from the service port
+	for _, path := range paths {
+		if path.LocalPathPort == cfgSnap.Proxy.LocalServicePort {
+			continue
+		}
+		c, err := s.makeAppCluster(cfgSnap, makeExposeClusterName(path.LocalPathPort), path.Protocol, path.LocalPathPort)
+		if err != nil {
+			s.Logger.Warn("failed to make local cluster", "path", path.Path, "error", err)
+			continue
+		}
+		clusters = append(clusters, c)
+	}
 	return clusters, nil
+}
+
+func makeExposeClusterName(destinationPort int) string {
+	return fmt.Sprintf("exposed_cluster_%d", destinationPort)
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
@@ -97,7 +129,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 	// generate the per-service clusters
 	for svc, _ := range cfgSnap.MeshGateway.ServiceGroups {
-		clusterName := connect.ServiceSNI(svc, "", "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 		cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 		if err != nil {
@@ -109,7 +141,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	// generate the service subset clusters
 	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
 		for subsetName, _ := range resolver.Subsets {
-			clusterName := connect.ServiceSNI(svc, subsetName, "default", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
 			if err != nil {
@@ -122,7 +154,7 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return clusters, nil
 }
 
-func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluster, error) {
+func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy.Cluster, error) {
 	var c *envoy.Cluster
 	var err error
 
@@ -130,7 +162,7 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Connect.Proxy.Config: %s", err)
+		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	// If we have overridden local cluster config try to parse it into an Envoy cluster
@@ -143,23 +175,23 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Cluste
 		addr = "127.0.0.1"
 	}
 	c = &envoy.Cluster{
-		Name:                 LocalAppClusterName,
+		Name:                 name,
 		ConnectTimeout:       time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond,
 		ClusterDiscoveryType: &envoy.Cluster_Type{Type: envoy.Cluster_STATIC},
 		LoadAssignment: &envoy.ClusterLoadAssignment{
-			ClusterName: LocalAppClusterName,
+			ClusterName: name,
 			Endpoints: []envoyendpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []envoyendpoint.LbEndpoint{
-						makeEndpoint(LocalAppClusterName,
+						makeEndpoint(name,
 							addr,
-							cfgSnap.Proxy.LocalServicePort),
+							port),
 					},
 				},
 			},
 		},
 	}
-	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
+	if cfg.Protocol == "http2" || cfg.Protocol == "grpc" || pathProtocol == "http2" {
 		c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 	}
 
@@ -180,8 +212,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-			upstream.Identifier(), err)
+		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(), "error", err)
 	}
 	if cfg.ClusterJSON != "" {
 		c, err = makeClusterFromUserConfig(cfg.ClusterJSON)
@@ -202,6 +233,9 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 						Ads: &envoycore.AggregatedConfigSource{},
 					},
 				},
+			},
+			CircuitBreakers: &envoycluster.CircuitBreakers{
+				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
@@ -233,8 +267,8 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse Upstream[%s].Config: %s",
-			upstream.Identifier(), err)
+		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(),
+			"error", err)
 	}
 
 	var escapeHatchCluster *envoy.Cluster
@@ -247,8 +281,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 				return nil, err
 			}
 		} else {
-			s.Logger.Printf("[WARN] envoy: ignoring escape hatch setting Upstream[%s].Config[%s] because a discovery chain for %q is configured",
-				upstream.Identifier(), "envoy_cluster_json", chain.ServiceName)
+			s.Logger.Warn("ignoring escape hatch setting, because a discovery chain is configued for",
+				"discovery chain", chain.ServiceName, "upstream", upstream.Identifier(),
+				"envoy_cluster_json", chain.ServiceName)
 		}
 	}
 
@@ -290,7 +325,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			}
 		}
 
-		s.Logger.Printf("[DEBUG] xds.clusters - generating cluster for %s", clusterName)
+		s.Logger.Debug("generating cluster for", "cluster", clusterName)
 		c := &envoy.Cluster{
 			Name:                 clusterName,
 			AltStatName:          clusterName,
@@ -307,6 +342,9 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 						Ads: &envoycore.AggregatedConfigSource{},
 					},
 				},
+			},
+			CircuitBreakers: &envoycluster.CircuitBreakers{
+				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
 			// Having an empty config enables outlier detection with default config.
 			OutlierDetection: &envoycluster.OutlierDetection{},
@@ -400,7 +438,7 @@ func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.Co
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
-		s.Logger.Printf("[WARN] envoy: failed to parse mesh gateway config: %s", err)
+		s.Logger.Warn("failed to parse mesh gateway config", "error", err)
 	}
 
 	return &envoy.Cluster{
@@ -417,4 +455,28 @@ func (s *Server) makeMeshGatewayCluster(clusterName string, cfgSnap *proxycfg.Co
 		// Having an empty config enables outlier detection with default config.
 		OutlierDetection: &envoycluster.OutlierDetection{},
 	}, nil
+}
+
+func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoycluster.CircuitBreakers_Thresholds {
+	var empty UpstreamLimits
+	// Make sure to not create any thresholds when passed the zero-value in order
+	// to rely on Envoy defaults
+	if limits == empty {
+		return nil
+	}
+
+	threshold := &envoycluster.CircuitBreakers_Thresholds{}
+	// Likewise, make sure to not set any threshold values on the zero-value in
+	// order to rely on Envoy defaults
+	if limits.MaxConnections != nil {
+		threshold.MaxConnections = makeUint32Value(*limits.MaxConnections)
+	}
+	if limits.MaxPendingRequests != nil {
+		threshold.MaxPendingRequests = makeUint32Value(*limits.MaxPendingRequests)
+	}
+	if limits.MaxConcurrentRequests != nil {
+		threshold.MaxRequests = makeUint32Value(*limits.MaxConcurrentRequests)
+	}
+
+	return []*envoycluster.CircuitBreakers_Thresholds{threshold}
 }

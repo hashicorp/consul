@@ -24,21 +24,23 @@ type TestTCPServer struct {
 	l                        net.Listener
 	stopped                  int32
 	accepted, closed, active int32
+	returnPortsFn            func()
 }
 
 // NewTestTCPServer opens as a listening socket on the given address and returns
 // a TestTCPServer serving requests to it. The server is already started and can
 // be stopped by calling Close().
 func NewTestTCPServer(t testing.T) *TestTCPServer {
-	port := freeport.GetT(t, 1)
-	addr := TestLocalAddr(port[0])
+	ports := freeport.MustTake(1)
+	addr := TestLocalAddr(ports[0])
 
 	l, err := net.Listen("tcp", addr)
 	require.NoError(t, err)
 
 	log.Printf("test tcp server listening on %s", addr)
 	s := &TestTCPServer{
-		l: l,
+		l:             l,
+		returnPortsFn: func() { freeport.Return(ports) },
 	}
 	go s.accept()
 
@@ -50,6 +52,10 @@ func (s *TestTCPServer) Close() {
 	atomic.StoreInt32(&s.stopped, 1)
 	if s.l != nil {
 		s.l.Close()
+	}
+	if s.returnPortsFn != nil {
+		s.returnPortsFn()
+		s.returnPortsFn = nil
 	}
 }
 

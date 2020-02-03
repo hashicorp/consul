@@ -113,7 +113,7 @@ func (a *Agent) handleEvents() {
 			// Decode the event
 			msg := new(UserEvent)
 			if err := decodeMsgPack(e.Payload, msg); err != nil {
-				a.logger.Printf("[ERR] agent: Failed to decode event: %v", err)
+				a.logger.Error("Failed to decode event", "error", err)
 				continue
 			}
 			msg.LTime = uint64(e.LTime)
@@ -136,16 +136,21 @@ func (a *Agent) handleEvents() {
 func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	// Check the version
 	if msg.Version > userEventMaxVersion {
-		a.logger.Printf("[WARN] agent: Event version %d may have unsupported features (%s)",
-			msg.Version, msg.Name)
+		a.logger.Warn("Event version may have unsupported features",
+			"version", msg.Version,
+			"event", msg.Name,
+		)
 	}
 
 	// Apply the filters
 	if msg.NodeFilter != "" {
 		re, err := regexp.Compile(msg.NodeFilter)
 		if err != nil {
-			a.logger.Printf("[ERR] agent: Failed to parse node filter '%s' for event '%s': %v",
-				msg.NodeFilter, msg.Name, err)
+			a.logger.Error("Failed to parse node filter for event",
+				"filter", msg.NodeFilter,
+				"event", msg.Name,
+				"error", err,
+			)
 			return false
 		}
 		if !re.MatchString(a.config.NodeName) {
@@ -156,8 +161,11 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	if msg.ServiceFilter != "" {
 		re, err := regexp.Compile(msg.ServiceFilter)
 		if err != nil {
-			a.logger.Printf("[ERR] agent: Failed to parse service filter '%s' for event '%s': %v",
-				msg.ServiceFilter, msg.Name, err)
+			a.logger.Error("Failed to parse service filter for event",
+				"filter", msg.ServiceFilter,
+				"event", msg.Name,
+				"error", err,
+			)
 			return false
 		}
 
@@ -165,20 +173,23 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		if msg.TagFilter != "" {
 			re, err := regexp.Compile(msg.TagFilter)
 			if err != nil {
-				a.logger.Printf("[ERR] agent: Failed to parse tag filter '%s' for event '%s': %v",
-					msg.TagFilter, msg.Name, err)
+				a.logger.Error("Failed to parse tag filter for event",
+					"filter", msg.TagFilter,
+					"event", msg.Name,
+					"error", err,
+				)
 				return false
 			}
 			tagRe = re
 		}
 
 		// Scan for a match
-		services := a.State.Services()
+		services := a.State.Services(structs.DefaultEnterpriseMeta())
 		found := false
 	OUTER:
 		for name, info := range services {
 			// Check the service name
-			if !re.MatchString(name) {
+			if !re.MatchString(name.String()) {
 				continue
 			}
 			if tagRe == nil {
@@ -210,13 +221,19 @@ func (a *Agent) ingestUserEvent(msg *UserEvent) {
 	switch msg.Name {
 	case remoteExecName:
 		if a.config.DisableRemoteExec {
-			a.logger.Printf("[INFO] agent: ignoring remote exec event (%s), disabled.", msg.ID)
+			a.logger.Info("ignoring remote exec event, disabled.",
+				"event_name", msg.Name,
+				"event_id", msg.ID,
+			)
 		} else {
 			go a.handleRemoteExec(msg)
 		}
 		return
 	default:
-		a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
+		a.logger.Debug("new event",
+			"event_name", msg.Name,
+			"event_id", msg.ID,
+		)
 	}
 
 	a.eventLock.Lock()

@@ -2,14 +2,14 @@
 <table class="with-details has-actions">
   <thead>
     <tr>
-      {{#yield-slot 'header'}}{{yield}}{{/yield-slot}}
+      {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
       <th class="actions">Actions</th>
     </tr>
   </thead>
   <tbody>
     {{#each items as |item index|}}
       <tr data-test-tabular-row onclick={{action 'click'}}>
-          {{#yield-slot 'row'}}{{yield item index}}{{/yield-slot}}
+          {{#yield-slot name='row'}}{{yield item index}}{{/yield-slot}}
           <td class="actions">
             <label for={{concat inputId index}}><span>Show details</span></label>
           </td>
@@ -20,7 +20,7 @@
           <div>
             <label for={{concat inputId index}}><span>Hide details</span></label>
             <div>
-              {{#yield-slot 'details'}}
+              {{#yield-slot name='details'}}
                 {{yield item index}}
               {{/yield-slot}}
             </div>

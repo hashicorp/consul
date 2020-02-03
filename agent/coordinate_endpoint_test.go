@@ -163,7 +163,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		if len(coordinates) != 2 ||
 			coordinates[0].Node != "bar" ||
 			coordinates[1].Node != "foo" {
-			r.Fatalf("expected: bar, foo recieved: %v", coordinates)
+			r.Fatalf("expected: bar, foo received: %v", coordinates)
 		}
 	})
 	// Filter on a nonexistent node segment

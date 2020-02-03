@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/connect"
-	"log"
 	"net"
-	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/connect"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +17,7 @@ import (
 	agConnect "github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func testSetupMetrics(t *testing.T) *metrics.InmemSink {
@@ -110,7 +110,8 @@ func TestPublicListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.GetT(t, 1)
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
 
 	testApp := NewTestTCPServer(t)
 	defer testApp.Close()
@@ -127,7 +128,7 @@ func TestPublicListener(t *testing.T) {
 	sink := testSetupMetrics(t)
 
 	svc := connect.TestService(t, "db", ca)
-	l := NewPublicListener(svc, cfg, log.New(os.Stderr, "", log.LstdFlags))
+	l := NewPublicListener(svc, cfg, testutil.Logger(t))
 
 	// Run proxy
 	go func() {
@@ -162,7 +163,8 @@ func TestUpstreamListener(t *testing.T) {
 	// Can't enable t.Parallel since we rely on the global metrics instance.
 
 	ca := agConnect.TestCA(t, nil)
-	ports := freeport.GetT(t, 1)
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
 
 	// Run a test server that we can dial.
 	testSvr := connect.NewTestServer(t, "db", ca)
@@ -192,7 +194,9 @@ func TestUpstreamListener(t *testing.T) {
 		Addr:    testSvr.Addr,
 		CertURI: agConnect.TestSpiffeIDService(t, "db"),
 	})
-	l := newUpstreamListenerWithResolver(svc, cfg, rf, log.New(os.Stderr, "", log.LstdFlags))
+
+	logger := testutil.Logger(t)
+	l := newUpstreamListenerWithResolver(svc, cfg, rf, logger)
 
 	// Run proxy
 	go func() {

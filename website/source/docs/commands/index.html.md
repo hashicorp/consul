@@ -117,7 +117,7 @@ particularly with configuration management and init systems.
 
 These environment variables and their purpose are described below:
 
-## `CONSUL_HTTP_ADDR`
+### `CONSUL_HTTP_ADDR`
 
 This is the HTTP API address to the *local* Consul agent
 (not the remote server) specified as a URI with optional scheme:
@@ -129,7 +129,7 @@ CONSUL_HTTP_ADDR=127.0.0.1:8500
 or as a Unix socket path:
 
 ```
-CONSUL_HTTP_ADDR=unix://var/run/consul_http.sock
+CONSUL_HTTP_ADDR=unix:///var/run/consul_http.sock
 ```
 
 If the `https://` scheme is used, `CONSUL_HTTP_SSL` is implied to be true.

@@ -108,6 +108,9 @@ The table below shows this endpoint's support for
 - `MaxTrailingLogs` `(int: 250)` specifies the maximum number of log entries
   that a server can trail the leader by before being considered unhealthy.
 
+- `MinQuorum` `(int: 0)` - specifies the minimum number of servers needed before
+  Autopilot can prune dead servers.
+
 - `ServerStabilizationTime` `(string: "10s")` - Specifies the minimum amount of
   time a server must be stable in the 'healthy' state before being added to the
   cluster. Only takes effect if all servers are running Raft protocol version 3
@@ -134,6 +137,7 @@ The table below shows this endpoint's support for
   "CleanupDeadServers": true,
   "LastContactThreshold": "200ms",
   "MaxTrailingLogs": 250,
+  "MinQuorum": 3,
   "ServerStabilizationTime": "10s",
   "RedundancyZoneTag": "",
   "DisableUpgradeMigration": false,

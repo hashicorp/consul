@@ -1,5 +1,5 @@
 import Service, { inject as service } from '@ember/service';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import callableType from 'consul-ui/utils/callable-type';
 
 const TYPE_SUCCESS = 'success';
@@ -20,7 +20,7 @@ export default Service.extend({
     set(controller, 'isLoading', true);
     const getAction = callableType(action);
     const getStatus = callableType(status);
-    const notify = get(this, 'notify');
+    const notify = this.notify;
     return (
       handle()
         //TODO: pass this through to getAction..
@@ -42,7 +42,7 @@ export default Service.extend({
         })
         .catch(e => {
           notify.clearMessages();
-          get(this, 'logger').execute(e);
+          this.logger.execute(e);
           if (e.name === 'TransitionAborted') {
             notify.add({
               ...notificationDefaults(),

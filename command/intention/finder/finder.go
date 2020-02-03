@@ -84,7 +84,7 @@ func (f *Finder) Find(src, dst string) (*api.Intention, error) {
 func StripDefaultNS(v string) string {
 	if idx := strings.IndexByte(v, '/'); idx > 0 {
 		if v[:idx] == api.IntentionDefaultNamespace {
-			return v[:idx+1]
+			return v[idx+1:]
 		}
 	}
 

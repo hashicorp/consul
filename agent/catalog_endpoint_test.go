@@ -292,70 +292,74 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WaitForAntiEntropySync())
 
-	// Register node
+	// Run the query
 	args := &structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-
 	var out structs.IndexedNodes
 	if err := a.RPC("Catalog.ListNodes", *args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// t.Fatal must be called from the main go routine
-	// of the test. Because of this we cannot call
-	// t.Fatal from within the go routines and use
-	// an error channel instead.
-	errch := make(chan error, 2)
+	// Async cause a change
+	waitIndex := out.Index
+	start := time.Now()
 	go func() {
-		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-		start := time.Now()
-
-		// register a service after the blocking call
-		// in order to unblock it.
-		time.AfterFunc(100*time.Millisecond, func() {
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       "foo",
-				Address:    "127.0.0.1",
-			}
-			var out struct{}
-			errch <- a.RPC("Catalog.Register", args, &out)
-		})
-
-		// now block
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=3s&index=%d", out.Index+1), nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.CatalogNodes(resp, req)
-		if err != nil {
-			errch <- err
+		time.Sleep(100 * time.Millisecond)
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
 		}
-
-		// Should block for a while
-		if d := time.Since(start); d < 50*time.Millisecond {
-			errch <- fmt.Errorf("too fast: %v", d)
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
 		}
-
-		if idx := getIndex(t, resp); idx <= out.Index {
-			errch <- fmt.Errorf("bad: %v", idx)
-		}
-
-		nodes := obj.(structs.Nodes)
-		if len(nodes) != 2 {
-			errch <- fmt.Errorf("bad: %v", obj)
-		}
-		errch <- nil
 	}()
 
-	// wait for both go routines to return
-	if err := <-errch; err != nil {
-		t.Fatal(err)
+	const waitDuration = 3 * time.Second
+
+	// Re-run the query, if errantly woken up with no change, resume blocking.
+	var elapsed time.Duration
+RUN_BLOCKING_QUERY:
+	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/catalog/nodes?wait=%s&index=%d",
+		waitDuration.String(),
+		waitIndex), nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
-	if err := <-errch; err != nil {
-		t.Fatal(err)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
+
+	elapsed = time.Since(start)
+
+	idx := getIndex(t, resp)
+	if idx < waitIndex {
+		t.Fatalf("bad: %v", idx)
+	} else if idx == waitIndex {
+		if elapsed > waitDuration {
+			// This should prevent the loop from running longer than the
+			// waitDuration
+			t.Fatalf("too slow: %v", elapsed)
+		}
+		goto RUN_BLOCKING_QUERY
+	}
+
+	// Should block at least 100ms before getting the changed results
+	if elapsed < 100*time.Millisecond {
+		t.Fatalf("too fast: %v", elapsed)
+	}
+
+	nodes := obj.(structs.Nodes)
+	if len(nodes) != 2 {
+		t.Fatalf("bad: %v", obj)
+	}
+
 }
 
 func TestCatalogNodes_DistanceSort(t *testing.T) {
@@ -518,6 +522,59 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 	if _, ok := services[args.Service.Service]; !ok {
 		t.Fatalf("bad: %v", services)
 	}
+}
+
+func TestCatalogRegister_checkRegistration(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+
+	// Register node with a service and check
+	check := structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "foo-check",
+		Name:      "foo check",
+		ServiceID: "api",
+		Definition: structs.HealthCheckDefinition{
+			TCP:      "localhost:8888",
+			Interval: 5 * time.Second,
+		},
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+		},
+		Check: &check,
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		req, _ := http.NewRequest("GET", "/v1/health/checks/api", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceChecks(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		checks := obj.(structs.HealthChecks)
+		if len(checks) != 1 {
+			r.Fatalf("expected 1 check, got: %d", len(checks))
+		}
+		if checks[0].CheckID != check.CheckID {
+			r.Fatalf("expected check id %s, got %s", check.Type, checks[0].Type)
+		}
+		if checks[0].Type != "tcp" {
+			r.Fatalf("expected check type tcp, got %s", checks[0].Type)
+		}
+	})
 }
 
 func TestCatalogServiceNodes(t *testing.T) {
@@ -898,27 +955,28 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	if err := a.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(300 * time.Millisecond)
 
-	// Query again and now foo should have moved to the front of the line.
-	req, _ = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.CatalogServiceNodes(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// Eventually foo should move to the front of the line.
+	retry.Run(t, func(r *retry.R) {
+		req, _ = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.CatalogServiceNodes(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
 
-	assertIndex(t, resp)
-	nodes = obj.(structs.ServiceNodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %v", obj)
-	}
-	if nodes[0].Node != "foo" {
-		t.Fatalf("bad: %v", nodes)
-	}
-	if nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", nodes)
-	}
+		assertIndex(t, resp)
+		nodes = obj.(structs.ServiceNodes)
+		if len(nodes) != 2 {
+			r.Fatalf("bad: %v", obj)
+		}
+		if nodes[0].Node != "foo" {
+			r.Fatalf("bad: %v", nodes)
+		}
+		if nodes[1].Node != "bar" {
+			r.Fatalf("bad: %v", nodes)
+		}
+	})
 }
 
 // Test that connect proxies can be queried via /v1/catalog/service/:service
@@ -1058,6 +1116,56 @@ func TestCatalogNodeServices(t *testing.T) {
 
 	// Proxy service should have it's config intact
 	require.Equal(t, args.Service.Proxy, services.Services["web-proxy"].Proxy)
+}
+
+func TestCatalogNodeServiceList(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Register node with a regular service and connect proxy
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Tags:    []string{"a"},
+		},
+	}
+
+	var out struct{}
+	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a connect proxy
+	args.Service = structs.TestNodeServiceProxy(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	req, _ := http.NewRequest("GET", "/v1/catalog/node-services/foo?dc=dc1", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.CatalogNodeServiceList(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	services := obj.(*structs.NodeServiceList)
+	if len(services.Services) != 2 {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	var proxySvc *structs.NodeService
+	for _, svc := range services.Services {
+		if svc.ID == "web-proxy" {
+			proxySvc = svc
+		}
+	}
+	require.NotNil(t, proxySvc, "Missing proxy service registration")
+	// Proxy service should have it's config intact
+	require.Equal(t, args.Service.Proxy, proxySvc.Proxy)
 }
 
 func TestCatalogNodeServices_Filter(t *testing.T) {

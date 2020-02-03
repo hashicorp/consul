@@ -16,9 +16,9 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	proxyImpl "github.com/hashicorp/consul/connect/proxy"
+	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/logger"
-	"github.com/hashicorp/logutils"
+	"github.com/hashicorp/consul/logging"
 	"github.com/mitchellh/cli"
 )
 
@@ -43,12 +43,12 @@ type cmd struct {
 
 	shutdownCh <-chan struct{}
 
-	logFilter *logutils.LevelFilter
 	logOutput io.Writer
-	logger    *log.Logger
+	logger    hclog.Logger
 
 	// flags
 	logLevel    string
+	logJSON     bool
 	cfgFile     string
 	proxyID     string
 	sidecarFor  string
@@ -78,6 +78,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.logLevel, "log-level", "INFO",
 		"Specifies the log level.")
+
+	c.flags.BoolVar(&c.logJSON, "log-json", false,
+		"Output logs in JSON format.")
 
 	c.flags.StringVar(&c.pprofAddr, "pprof-addr", "",
 		"Enable debugging via pprof. Providing a host:port (or just ':port') "+
@@ -130,16 +133,18 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Setup the log outputs
-	logConfig := &logger.Config{
+	logConfig := &logging.Config{
 		LogLevel: c.logLevel,
+		Name:     logging.Proxy,
+		LogJSON:  c.logJSON,
 	}
-	logFilter, logGate, _, logOutput, ok := logger.Setup(logConfig, c.UI)
+	logger, logGate, logOutput, ok := logging.Setup(logConfig, c.UI)
 	if !ok {
 		return 1
 	}
-	c.logFilter = logFilter
 	c.logOutput = logOutput
-	c.logger = log.New(logOutput, "", log.LstdFlags)
+
+	c.logger = logger
 
 	// Enable Pprof if needed
 	if c.pprofAddr != "" {
@@ -361,7 +366,7 @@ func (c *cmd) registerMonitor(client *api.Client) (*RegisterMonitor, error) {
 		return nil, err
 	}
 
-	m := NewRegisterMonitor()
+	m := NewRegisterMonitor(c.logger)
 	m.Logger = c.logger
 	m.Client = client
 	m.Service = c.service
@@ -405,7 +410,7 @@ Usage: consul connect proxy [options]
   a non-Connect-aware application to use Connect.
 
   The proxy requires service:write permissions for the service it represents.
-  The token may be passed via the CLI or the CONSUL_TOKEN environment
+  The token may be passed via the CLI or the CONSUL_HTTP_TOKEN environment
   variable.
 
   Consul can automatically start and manage this proxy by specifying the

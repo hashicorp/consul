@@ -30,6 +30,7 @@ func TestConfigRead(t *testing.T) {
 		Name:     "web",
 		Protocol: "tcp",
 	}, nil)
+	require.NoError(t, err)
 
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),

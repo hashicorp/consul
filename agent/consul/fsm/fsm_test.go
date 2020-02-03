@@ -2,10 +2,10 @@ package fsm
 
 import (
 	"bytes"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,8 @@ func makeLog(buf []byte) *raft.Log {
 
 func TestFSM_IgnoreUnknown(t *testing.T) {
 	t.Parallel()
-	fsm, err := New(nil, os.Stderr)
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
 	assert.Nil(t, err)
 
 	// Create a new reap request
@@ -47,7 +48,7 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 		Foo string
 	}
 	req := UnknownRequest{Foo: "bar"}
-	msgType := structs.IgnoreUnknownTypeFlag | 64
+	msgType := structs.IgnoreUnknownTypeFlag | 75
 	buf, err := structs.Encode(msgType, req)
 	assert.Nil(t, err)
 
@@ -55,4 +56,10 @@ func TestFSM_IgnoreUnknown(t *testing.T) {
 	resp := fsm.Apply(makeLog(buf))
 	err, ok := resp.(error)
 	assert.False(t, ok, "response: %s", err)
+}
+
+func TestFSM_NilLogger(t *testing.T) {
+	fsm, err := New(nil, nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, fsm)
 }

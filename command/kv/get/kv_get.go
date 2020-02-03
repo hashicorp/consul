@@ -54,6 +54,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -197,6 +198,9 @@ func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
 		fmt.Fprint(tw, "Session\t-\n")
 	} else {
 		fmt.Fprintf(tw, "Session\t%s\n", pair.Session)
+	}
+	if pair.Namespace != "" {
+		fmt.Fprintf(tw, "Namespace\t%s\n", pair.Namespace)
 	}
 	if base64EncodeValue {
 		fmt.Fprintf(tw, "Value\t%s", base64.StdEncoding.EncodeToString(pair.Value))

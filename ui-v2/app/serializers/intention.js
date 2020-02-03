@@ -1,7 +1,7 @@
 import Serializer from './application';
-import { PRIMARY_KEY, ATTRS } from 'consul-ui/models/intention';
+import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/intention';
 
 export default Serializer.extend({
   primaryKey: PRIMARY_KEY,
-  attrs: ATTRS,
+  slugKey: SLUG_KEY,
 });

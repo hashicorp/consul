@@ -11,6 +11,10 @@ export default function(scenario, pages, set) {
     .when(
       ['I visit the $name page for yaml\n$yaml', 'I visit the $name page for json\n$json'],
       function(name, data) {
+        const nspace = this.ctx.nspace;
+        if (nspace !== '' && typeof nspace !== 'undefined') {
+          data.nspace = `~${nspace}`;
+        }
         // TODO: Consider putting an assertion here for testing the current url
         // do I absolutely definitely need that all the time?
         return set(pages[name]).visit(data);

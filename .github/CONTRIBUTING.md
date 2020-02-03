@@ -60,7 +60,7 @@ issue. Stale issues will be closed.
 ## Building Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.10+ is _required_). Make sure you have Go properly installed,
+installed (version 1.12 is _required_, and [version 1.13 is not yet supported](https://github.com/hashicorp/consul/issues/6879)). Make sure you have Go properly installed,
 including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
 
 Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and 
@@ -136,3 +136,10 @@ Consul currently uses Go Modules for vendoring.
 Please only apply the minimal vendor changes to get your PR to work. 
 Consul does not attempt to track the latest version for each dependency.
 
+## Checklists
+
+Some common changes that many PRs require such as adding config fields, are
+documented through checklists.
+
+Please check in `contributing/` for any `checklist-*.md` files that might help
+with your change.

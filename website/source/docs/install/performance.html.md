@@ -177,7 +177,7 @@ In addition, two [performance indicators](/docs/agent/telemetry.html) &mdash; `c
 If you enable [Connect](/docs/connect/index.html), the leader server will need
 to perform public key signing operations for every service instance in the
 cluster. Typically these operations are fast on modern hardware, however when
-the CA is changed or it's key rotated, the leader will face an influx of
+the CA is changed or its key rotated, the leader will face an influx of
 requests for new certificates for every service instance running.
 
 While the client agents distribute these randomly over 30 seconds to avoid an

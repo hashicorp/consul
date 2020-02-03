@@ -59,7 +59,7 @@ func (e *cacheEntryExpiry) Reset() {
 }
 
 // expiryHeap is a heap implementation that stores information about
-// when entires expire. Implements container/heap.Interface.
+// when entries expire. Implements container/heap.Interface.
 //
 // All operations on the heap and read/write of the heap contents require
 // the proper entriesLock to be held on Cache.

@@ -3,28 +3,29 @@ package router
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (
-	localLogger    *log.Logger
 	localLogBuffer *bytes.Buffer
 )
 
 func init() {
 	localLogBuffer = new(bytes.Buffer)
-	localLogger = log.New(localLogBuffer, "", 0)
 }
 
-func GetBufferedLogger() *log.Logger {
-	return localLogger
+func GetBufferedLogger() hclog.Logger {
+	localLogBuffer = new(bytes.Buffer)
+	return hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: localLogBuffer,
+	})
 }
 
 type fauxConnPool struct {
@@ -58,7 +59,6 @@ func testManager() (m *Manager) {
 
 func testManagerFailProb(failPct float64) (m *Manager) {
 	logger := GetBufferedLogger()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return m
@@ -129,7 +129,6 @@ func TestManagerInternal_getServerList(t *testing.T) {
 	}
 }
 
-// func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo) (m *Manager) {
 func TestManagerInternal_New(t *testing.T) {
 	m := testManager()
 	if m == nil {
@@ -296,7 +295,7 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 		{1000000, 19, 10 * time.Minute},
 	}
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
+	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {

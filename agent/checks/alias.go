@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
 )
 
 // Constants related to alias check backoff.
@@ -22,10 +21,10 @@ const (
 // then this check is warning, and if a service has only passing checks, then
 // this check is passing.
 type CheckAlias struct {
-	Node      string // Node name of the service. If empty, assumed to be this node.
-	ServiceID string // ID (not name) of the service to alias
+	Node      string            // Node name of the service. If empty, assumed to be this node.
+	ServiceID structs.ServiceID // ID (not name) of the service to alias
 
-	CheckID types.CheckID               // ID of this check
+	CheckID structs.CheckID             // ID of this check
 	RPC     RPC                         // Used to query remote server if necessary
 	RPCReq  structs.NodeSpecificRequest // Base request
 	Notify  AliasNotifier               // For updating the check state
@@ -35,6 +34,8 @@ type CheckAlias struct {
 	stopLock sync.Mutex
 
 	stopWg sync.WaitGroup
+
+	structs.EnterpriseMeta
 }
 
 // AliasNotifier is a CheckNotifier specifically for the Alias check.
@@ -43,9 +44,9 @@ type CheckAlias struct {
 type AliasNotifier interface {
 	CheckNotifier
 
-	AddAliasCheck(types.CheckID, string, chan<- struct{}) error
-	RemoveAliasCheck(types.CheckID, string)
-	Checks() map[types.CheckID]*structs.HealthCheck
+	AddAliasCheck(structs.CheckID, structs.ServiceID, chan<- struct{}) error
+	RemoveAliasCheck(structs.CheckID, structs.ServiceID)
+	Checks(*structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck
 }
 
 // Start is used to start the check, runs until Stop() func (c *CheckAlias) Start() {
@@ -108,7 +109,7 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 	}
 
 	updateStatus := func() {
-		checks := c.Notify.Checks()
+		checks := c.Notify.Checks(structs.WildcardEnterpriseMeta())
 		checksList := make([]*structs.HealthCheck, 0, len(checks))
 		for _, chk := range checks {
 			checksList = append(checksList, chk)
@@ -138,6 +139,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 	args.Node = c.Node
 	args.AllowStale = true
 	args.MaxQueryTime = 1 * time.Minute
+	args.EnterpriseMeta = c.EnterpriseMeta
 
 	var attempt uint
 	for {
@@ -210,7 +212,9 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck) {
 		}
 
 		// We allow ServiceID == "" so that we also check node checks
-		if chk.ServiceID != "" && chk.ServiceID != c.ServiceID {
+		sid := chk.CompoundServiceID()
+
+		if chk.ServiceID != "" && !c.ServiceID.Matches(&sid) {
 			continue
 		}
 

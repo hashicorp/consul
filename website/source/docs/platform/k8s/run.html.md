@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Running Consul - Kubernetes"
+page_title: "Installing Consul on Kubernetes - Kubernetes"
 sidebar_current: "docs-platform-k8s-run"
 description: |-
   Consul can run directly on Kubernetes, both in server or client mode. For pure-Kubernetes workloads, this enables Consul to also exist purely within Kubernetes. For heterogeneous workloads, Consul agents can join a server running inside or outside of Kubernetes.
 ---
 
-# Running Consul on Kubernetes
+# Installing Consul on Kubernetes
 
 Consul can run directly on Kubernetes, both in server or client mode.
 For pure-Kubernetes workloads, this enables Consul to also exist purely
@@ -16,14 +16,20 @@ a server running inside or outside of Kubernetes.
 This page starts with a large how-to section for various specific tasks.
 To learn more about the general architecture of Consul on Kubernetes, scroll
 down to the [architecture](/docs/platform/k8s/run.html#architecture) section.
+If you would like to get hands-on experience testing Consul on Kubernetes,
+try the step-by-step beginner tutorial with an accompanying video in the
+[Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs)
 
-## Helm Chart
+## Helm Chart Installation
 
 The recommended way to run Consul on Kubernetes is via the
 [Helm chart](/docs/platform/k8s/helm.html). This will install and configure
 all the necessary components to run Consul. The configuration enables you
 to run just a server cluster, just a client cluster, or both. Using the Helm
-chart, you can have a full Consul deployment up and running in seconds.
+chart, you can have a full Consul deployment up and running in minutes.
+
+A step-by-step beginner tutorial and accompanying video can be found at the
+[Minikube with Consul guide](https://learn.hashicorp.com/consul/getting-started-k8s/minikube?utm_source=consul.io&utm_medium=docs).
 
 While the Helm chart exposes dozens of useful configurations and automatically
 sets up complex resources, it **does not automatically operate Consul.**
@@ -43,90 +49,93 @@ the [recommended security features](/docs/internals/security.html). Currently,
 some of these features are not supported in the Helm chart and require additional
 manual configuration.
 
-## How-To
+### Prerequisites
+
+The Consul Helm chart works with Helm 2 and Helm 3. If using Helm 2, you will
+need to install Tiller by following the
+[Helm 2 Installation Guide](https://v2.helm.sh/docs/using_helm/#quickstart-guide).
 
 ### Installing Consul
 
-To install Consul, clone the consul-helm repository, checkout the latest release, and install
-Consul. You can run `helm install` with the `--dry-run` flag to see the
-resources it would configure. In a production environment, you should always
-use the `--dry-run` flag prior to making any changes to the Consul cluster
-via Helm.
+Determine the latest version of the Consul Helm chart
+by visiting [https://github.com/hashicorp/consul-helm/releases](https://github.com/hashicorp/consul-helm/releases).
+
+Clone the chart at that version. For example, if the latest version is
+`v0.8.1`, you would run:
+
+```bash
+$ git clone --single-branch --branch v0.8.1 https://github.com/hashicorp/consul-helm.git
+Cloning into 'consul-helm'...
+...
+You are in 'detached HEAD' state...
+```
+
+Ensure you've checked out the correct version with `helm inspect chart`:
+
+```bash
+$ helm inspect chart ./consul-helm
+apiVersion: v1
+description: Install and configure Consul on Kubernetes.
+home: https://www.consul.io
+name: consul
+sources:
+- https://github.com/hashicorp/consul
+- https://github.com/hashicorp/consul-helm
+- https://github.com/hashicorp/consul-k8s
+version: 0.8.1
+```
+
+Now you're ready to install Consul! To install Consul with the default
+configuration using Helm 3 run:
 
 ```sh
-# Clone the chart repo
-$ git clone https://github.com/hashicorp/consul-helm.git
-$ cd consul-helm
-
-# Checkout a tagged version
-$ git checkout v0.1.0
-
-# Run Helm
-$ helm install --name consul ./
+$ helm install hashicorp ./consul-helm
+NAME: hashicorp
 ...
 ```
 
-_That's it._ The Helm chart does everything to setup a recommended
+-> If using Helm 2, run: `helm install --name hashicorp ./consul-helm`
+
+_That's it._ The Helm chart does everything to set up a recommended
 Consul-on-Kubernetes deployment.
 In a couple minutes, a Consul cluster will be formed and a leader
 elected and every node will have a running Consul agent.
 
-The defaults will install both server and client agents. To install
-only one or the other, see the
-[chart configuration values](/docs/platform/k8s/helm.html#configuration-values-).
+### Customizing Your Installation
+If you want to customize your installation,
+create a `config.yaml` file to override the default settings.
+You can learn what settings are available by running `helm inspect values ./consul-helm`
+or by reading the [Helm Chart Reference](/docs/platform/k8s/helm.html).
 
-### Viewing the Consul UI
+Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
+
+```bash
+$ helm install hashicorp ./consul-helm -f config.yaml
+```
+
+If you've already installed Consul and want to make changes, you'll need to run
+`helm upgrade`. See the [Upgrading Consul on Kubernetes](/docs/platform/k8s/run.html#upgrading-consul-on-kubernetes)
+section for more details.
+
+## Viewing the Consul UI
 
 The Consul UI is enabled by default when using the Helm chart.
-For security reasons, it isn't exposed via a Service by default so you must
-use `kubectl port-forward` to visit the UI. Once the port is forwarded as
-shown below, navigate your browser to `http://localhost:8500`.
+For security reasons, it isn't exposed via a `LoadBalancer` Service by default so you must
+use `kubectl port-forward` to visit the UI: 
 
 ```
-$ kubectl port-forward consul-server-0 8500:8500
+$ kubectl port-forward service/hashicorp-consul-server 8500:8500
 ...
 ```
 
-The UI can also be exposed via a Kubernetes Service. To do this, configure
+Once the port is forwarded navigate to [http://localhost:8500](http://localhost:8500).
+
+If you want to expose the UI via a Kubernetes Service, configure
 the [`ui.service` chart values](/docs/platform/k8s/helm.html#v-ui-service).
+This service will allow requests to the Consul servers so it should
+not be open to the world.
 
-### Joining an Existing Consul Cluster
-
-If you have a Consul cluster already running, you can configure your
-Kubernetes nodes to join this existing cluster.
-
-```yaml
-global:
-  enabled: false
-
-client:
-  enabled: true
-  join:
-    - "provider=my-cloud config=val ..."
-```
-
-The `values.yaml` file to configure the Helm chart sets the proper
-configuration to join an existing cluster.
-
-The `global.enabled` value first disables all chart components by default
-so that each component is opt-in. This allows us to _only_ setup the client
-agents. We then opt-in to the client agents by setting `client.enabled` to
-`true`.
-
-Next, `client.join` is set to an array of valid
-[`-retry-join` values](/docs/agent/options.html#retry-join). In the
-example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join.html)
-value is specified. This should be set to resolve to the proper addresses of
-your existing Consul cluster.
-
--> **Networking:** Note that for the Kubernetes nodes to join an existing
-cluster, the nodes (and specifically the agent pods) must be able to connect
-to all other server and client agents inside and _outside_ of Kubernetes.
-If this isn't possible, consider running the Kubernetes agents as a separate
-DC or adopting Enterprise for
-[network segments](/docs/enterprise/network-segments/index.html).
-
-### Accessing the Consul HTTP API
+## Accessing the Consul HTTP API
 
 The Consul HTTP API should be accessed by communicating to the local agent
 running on the same node. While technically any listening agent (client or
@@ -200,61 +209,6 @@ spec:
                 consul kv put hello world
 ```
 
-### Upgrading Consul on Kubernetes
-
-To upgrade Consul on Kubernetes, we follow the same pattern as
-[generally upgrading Consul](/docs/upgrading.html), except we can use
-the Helm chart to step through a rolling deploy. It is important to understand
-how to [generally upgrade Consul](/docs/upgrading.html) before reading this
-section.
-
-Upgrading Consul on Kubernetes will follow the same pattern: each server
-will be updated one-by-one. After that is successful, the clients will
-be updated in batches.
-
-#### Upgrading Consul Servers
-
-To initiate the upgrade, change the `server.image` value to the
-desired Consul version. For illustrative purposes, the example below will
-use `consul:123.456`. Also set the `server.updatePartition` value
-_equal to the number of server replicas_:
-
-```yaml
-server:
-  image: "consul:123.456"
-  replicas: 3
-  updatePartition: 3
-```
-
-The `updatePartition` value controls how many instances of the server
-cluster are updated. Only instances with an index _greater than_ the
-`updatePartition` value are updated (zero-indexed). Therefore, by setting
-it equal to replicas, none should update yet.
-
-Next, run the upgrade. You should run this with `--dry-run` first to verify
-the changes that will be sent to the Kubernetes cluster.
-
-```
-$ helm upgrade consul ./
-...
-```
-
-This should cause no changes (although the resource will be updated). If
-everything is stable, begin by decreasing the `updatePartition` value by one,
-and running `helm upgrade` again. This should cause the first Consul server
-to be stopped and restarted with the new image.
-
-Wait until the Consul server cluster is healthy again (30s to a few minutes)
-then decrease `updatePartition` and upgrade again. Continue until
-`updatePartition` is `0`. At this point, you may remove the
-`updatePartition` configuration. Your server upgrade is complete.
-
-#### Upgrading Consul Clients
-
-With the servers upgraded, it is time to upgrade the clients. To upgrade
-the clients, set the `client.image` value to the desired Consul version.
-Then, run `helm upgrade`. This will upgrade the clients in batches, waiting
-until the clients come up healthy before continuing.
 
 ## Architecture
 

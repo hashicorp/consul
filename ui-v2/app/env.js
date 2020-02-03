@@ -1,5 +1,3 @@
 import config from './config/environment';
-export default function(str) {
-  const user = window.localStorage.getItem(str);
-  return user !== null ? user : config[str];
-}
+import getEnvironment from './utils/get-environment';
+export const env = getEnvironment(config, window, document);

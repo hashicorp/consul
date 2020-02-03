@@ -27,7 +27,7 @@ module.exports = function(defaults) {
     },
     'babel': {
       plugins: [
-        'transform-object-rest-spread'
+        '@babel/plugin-proposal-object-rest-spread'
       ]
     },
     'codemirror': {
@@ -75,7 +75,9 @@ module.exports = function(defaults) {
 
   // TextEncoder/Decoder polyfill. See assets/index.html
   app.import('node_modules/text-encoding/lib/encoding-indexes.js', {outputFile: 'assets/encoding-indexes.js'});
-  app.import('node_modules/text-encoding/lib/encoding.js', {outputFile: 'assets/encoding.js'});
+
+  // CSS.escape polyfill
+  app.import('node_modules/css.escape/css.escape.js', {outputFile: 'assets/css.escape.js'});
 
   // JSON linting support. Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
   app.import('node_modules/jsonlint/lib/jsonlint.js', {outputFile: 'assets/codemirror/mode/javascript/javascript.js'});

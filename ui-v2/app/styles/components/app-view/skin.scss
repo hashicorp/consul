@@ -1,3 +1,10 @@
+/*TODO: Rename this to %app-view-brand-icon or similar */
+%with-external-source-icon {
+  background-repeat: no-repeat;
+  background-size: contain;
+  width: 18px;
+  height: 18px;
+}
 %app-view h2,
 %app-view fieldset {
   border-bottom: $decor-border-200;
@@ -29,12 +36,12 @@
     border-top: 0 !important;
   }
 }
-%app-content div > dl > dd {
+%app-view-content div > dl > dd {
   color: $gray-400;
 }
 [role='tabpanel'] > p:only-child,
 .template-error > div,
-%app-content > p:only-child,
+%app-view-content > p:only-child,
 %app-view > div.disabled > div {
   @extend %frame-gray-500;
 }

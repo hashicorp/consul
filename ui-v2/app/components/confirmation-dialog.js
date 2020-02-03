@@ -2,38 +2,22 @@
 import Component from '@ember/component';
 
 import SlotsMixin from 'block-slots';
-import { get, set } from '@ember/object';
-import { inject as service } from '@ember/service';
+import { set } from '@ember/object';
 
 const cancel = function() {
   set(this, 'confirming', false);
 };
 const execute = function() {
-  this.sendAction(...['actionName', ...get(this, 'arguments')]);
+  this.sendAction(...['actionName', ...this['arguments']]);
 };
 const confirm = function() {
   const [action, ...args] = arguments;
   set(this, 'actionName', action);
   set(this, 'arguments', args);
-  if (this._isRegistered('dialog')) {
-    set(this, 'confirming', true);
-  } else {
-    get(this, 'confirm')
-      .execute(get(this, 'message'))
-      .then(confirmed => {
-        if (confirmed) {
-          this.execute();
-        }
-      })
-      .catch(function() {
-        return get(this, 'error').execute(...arguments);
-      });
-  }
+  set(this, 'confirming', true);
 };
 export default Component.extend(SlotsMixin, {
   classNameBindings: ['confirming'],
-  confirm: service('confirm'),
-  error: service('error'),
   classNames: ['with-confirmation'],
   message: 'Are you sure?',
   confirming: false,

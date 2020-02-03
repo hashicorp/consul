@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/testrpc"
-
-	"github.com/hashicorp/consul/logger"
 )
 
 // extra endpoints that should be tested, and their allowed methods
@@ -75,7 +73,6 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 		}
 	}
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	// Use the master token here so the wait actually works.
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("sekrit"))
@@ -128,7 +125,6 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 
 func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 	a := NewTestAgent(t, t.Name(), `acl_datacenter = "dc1"`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -170,7 +166,6 @@ func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
 			allow_write_http_from = ["127.0.0.1/8"]
 		}
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 

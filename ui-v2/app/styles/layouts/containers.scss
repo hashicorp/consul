@@ -52,3 +52,19 @@ $ideal-content-padding: 33px;
     padding-right: $ideal-viewport-padding;
   }
 }
+form > fieldset [role='group'] {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+}
+[role='group'] fieldset {
+  width: 50%;
+}
+[role='group'] fieldset:not(:first-of-type) {
+  padding-left: 20px;
+  border-left: 1px solid;
+  border-left: $gray-500;
+}
+[role='group'] fieldset:not(:last-of-type) {
+  padding-right: 20px;
+}

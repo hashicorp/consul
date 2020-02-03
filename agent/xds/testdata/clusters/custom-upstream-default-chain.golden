@@ -13,6 +13,9 @@
         }
       },
       "connectTimeout": "5s",
+      "circuitBreakers": {
+
+      },
       "tlsContext": {
         "commonTlsContext": {
           "tlsParams": {

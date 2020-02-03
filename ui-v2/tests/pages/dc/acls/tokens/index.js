@@ -24,7 +24,8 @@ export default function(
           token: clickable('a'),
           actions: clickable('label'),
           use: clickable('[data-test-use]'),
-          confirmUse: clickable('button.type-delete'),
+          confirmUse: clickable('[data-test-confirm-use]'),
+          clone: clickable('[data-test-clone]'),
         })
       ),
       filter: filter,

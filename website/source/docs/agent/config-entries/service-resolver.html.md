@@ -93,7 +93,8 @@ name = "web"
   - `Filter` `(string: "")` - The 
     [filter expression](/api/features/filtering.html) to be used for selecting
     instances of the requested service. If empty all healthy instances are
-    returned.
+    returned. This expression can filter on the same selectors as the
+    [Health API endpoint](/api/health.html#filtering-2).
 
   - `OnlyPassing` `(bool: false)` - Specifies the behavior of the resolver's
     health check interpretation. If this is set to false, instances with checks

@@ -104,6 +104,25 @@ func ParseMeshGatewayConfig(m map[string]interface{}) (MeshGatewayConfig, error)
 	return cfg, err
 }
 
+// UpstreamLimits describes the limits that are associated with a specific
+// upstream of a service instance.
+type UpstreamLimits struct {
+	// MaxConnections is the maximum number of connections the local proxy can
+	// make to the upstream service.
+	MaxConnections *int `mapstructure:"max_connections"`
+
+	// MaxPendingRequests is the maximum number of requests that will be queued
+	// waiting for an available connection. This is mostly applicable to HTTP/1.1
+	// clusters since all HTTP/2 requests are streamed over a single
+	// connection.
+	MaxPendingRequests *int `mapstructure:"max_pending_requests"`
+
+	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
+	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
+	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
+	MaxConcurrentRequests *int `mapstructure:"max_concurrent_requests"`
+}
+
 // UpstreamConfig describes the keys we understand from
 // Connect.Proxy.Upstream[*].Config.
 type UpstreamConfig struct {
@@ -131,6 +150,10 @@ type UpstreamConfig struct {
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
+
+	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
+	// service instance.
+	Limits UpstreamLimits `mapstructure:"limits"`
 }
 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
@@ -139,7 +162,7 @@ func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, er
 	return cfg, err
 }
 
-// ParseUpstreamConfig returns the UpstreamConfig parsed from the an opaque map.
+// ParseUpstreamConfig returns the UpstreamConfig parsed from an opaque map.
 // If an error occurs during parsing it is returned along with the default
 // config this allows caller to choose whether and how to report the error.
 func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {

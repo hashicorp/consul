@@ -1,11 +1,12 @@
 SHELL = bash
+GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
-	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs \
-	github.com/hashicorp/go-bindata/go-bindata \
-	github.com/mitchellh/gox \
+	github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@master \
+	github.com/hashicorp/go-bindata/go-bindata@master \
 	golang.org/x/tools/cmd/cover \
 	golang.org/x/tools/cmd/stringer \
-	github.com/gogo/protobuf/protoc-gen-gofast \
+	github.com/gogo/protobuf/protoc-gen-gofast@$(GOGOVERSION) \
+	github.com/hashicorp/protoc-gen-go-binary \
 	github.com/vektra/mockery/cmd/mockery
 
 GOTAGS ?=
@@ -24,10 +25,15 @@ MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
+GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
+
+PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
+PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
+PROTOGOBINFILES=$(PROTOFILES:.proto=.pb.binary.go)
 
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
@@ -117,13 +123,12 @@ else
 PUB_WEBSITE_ARG=
 endif
 
-NOGOX?=1
 
-export NOGOX
 export GO_BUILD_TAG
 export UI_BUILD_TAG
 export BUILD_CONTAINER_NAME
 export GIT_COMMIT
+export GIT_COMMIT_YEAR
 export GIT_DIRTY
 export GIT_DESCRIBE
 export GOTAGS
@@ -281,6 +286,7 @@ test-docker: linux go-build-image
 		-e 'GOTEST_PKGS=$(GOTEST_PKGS)' \
 		-e 'GOTAGS=$(GOTAGS)' \
 		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
+		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
 		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
 		-e 'GIT_DESCRIBE=$(GIT_DESCRIBE)' \
 		$(TEST_PARALLELIZATION) \
@@ -304,11 +310,15 @@ cover:
 
 format:
 	@echo "--> Running go fmt"
-	@go fmt $(GOFILES)
+	@go fmt ./...
+	@cd api && go fmt ./... | sed 's@^@api/@'
+	@cd sdk && go fmt ./... | sed 's@^@sdk/@'
 
 vet:
 	@echo "--> Running go vet"
-	@go vet -tags '$(GOTAGS)' $(GOFILES); if [ $$? -eq 1 ]; then \
+	@go vet -tags '$(GOTAGS)' ./... && \
+		(cd api && go vet -tags '$(GOTAGS)' ./...) && \
+		(cd sdk && go vet -tags '$(GOTAGS)' ./...); if [ $$? -ne 0 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -327,7 +337,11 @@ static-assets:
 ui: ui-docker static-assets-docker
 
 tools:
-	go get -u -v $(GOTOOLS)
+	@mkdir -p .gotools
+	@cd .gotools && if [[ ! -f go.mod ]]; then \
+		go mod init consul-tools ; \
+	fi
+	cd .gotools && go get -v $(GOTOOLS)
 
 version:
 	@echo -n "Version:                    "
@@ -362,9 +376,32 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@$(SHELL) $(CURDIR)/test/integration/connect/envoy/run-tests.sh
 
-proto:
-	protoc agent/connect/ca/plugin/*.proto --gofast_out=plugins=grpc:../../..
+test-vault-ca-provider:
+ifeq ("$(CIRCLECI)","true")
+# Run in CI
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
+else
+# Run locally
+	@echo "Running /agent/connect/ca TestVault(CA)?Provider tests in verbose mode"
+	@go test $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider' -v
+endif
+
+proto-delete:
+	@echo "Removing $(PROTOGOFILES)"
+	-@rm $(PROTOGOFILES)
+	@echo "Removing $(PROTOGOBINFILES)"
+	-@rm $(PROTOGOBINFILES)
+
+proto-rebuild: proto-delete proto
+
+proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
+	@echo "Generated all protobuf Go files"
+
+
+%.pb.go %.pb.binary.go: %.proto
+	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
+
 
 .PHONY: all ci bin dev dist cov test test-ci test-internal test-install-deps cover format vet ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto test-envoy-integ
+.PHONY: version proto proto-rebuild proto-delete test-envoy-integ

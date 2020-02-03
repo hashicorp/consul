@@ -1,9 +1,10 @@
 package create
 
 import (
+	"crypto"
+	"crypto/x509"
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -22,81 +23,104 @@ func TestValidateCommand_noTabs(t *testing.T) {
 }
 
 func TestCACreateCommand(t *testing.T) {
-	require := require.New(t)
-
-	previousDirectory, err := os.Getwd()
-	require.NoError(err)
-
 	testDir := testutil.TempDir(t, "ca-create")
-
 	defer os.RemoveAll(testDir)
-	defer os.Chdir(previousDirectory)
 
-	os.Chdir(testDir)
+	defer switchToTempDir(t, testDir)()
 
-	ui := cli.NewMockUi()
-	cmd := New(ui)
+	type testcase struct {
+		name       string
+		args       []string
+		caPath     string
+		keyPath    string
+		extraCheck func(t *testing.T, cert *x509.Certificate)
+	}
+	// The following subtests must run serially.
+	cases := []testcase{
+		{"ca defaults",
+			nil,
+			"consul-agent-ca.pem",
+			"consul-agent-ca-key.pem",
+			func(t *testing.T, cert *x509.Certificate) {
+				require.Equal(t, 1825*24*time.Hour, time.Until(cert.NotAfter).Round(24*time.Hour))
+				require.False(t, cert.PermittedDNSDomainsCritical)
+				require.Len(t, cert.PermittedDNSDomains, 0)
+			},
+		},
+		{"ca options",
+			[]string{
+				"-days=365",
+				"-name-constraint=true",
+				"-domain=foo",
+				"-additional-name-constraint=bar",
+			},
+			"foo-agent-ca.pem",
+			"foo-agent-ca-key.pem",
+			func(t *testing.T, cert *x509.Certificate) {
+				require.Equal(t, 365*24*time.Hour, time.Until(cert.NotAfter).Round(24*time.Hour))
+				require.True(t, cert.PermittedDNSDomainsCritical)
+				require.Len(t, cert.PermittedDNSDomains, 3)
+				require.ElementsMatch(t, cert.PermittedDNSDomains, []string{"foo", "localhost", "bar"})
+			},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		require.True(t, t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+			require.Equal(t, 0, cmd.Run(tc.args))
+			require.Equal(t, "", ui.ErrorWriter.String())
 
-	require.Equal(0, cmd.Run(nil), "ca create should exit 0")
-
-	errOutput := ui.ErrorWriter.String()
-	require.Equal("", errOutput)
-
-	caPem := path.Join(testDir, "consul-agent-ca.pem")
-	require.FileExists(caPem)
-
-	certData, err := ioutil.ReadFile(caPem)
-	require.NoError(err)
-
-	cert, err := connect.ParseCert(string(certData))
-	require.NoError(err)
-	require.NotNil(cert)
-
-	require.Equal(1825*24*time.Hour, time.Until(cert.NotAfter).Round(24*time.Hour))
-	require.False(cert.PermittedDNSDomainsCritical)
-	require.Len(cert.PermittedDNSDomains, 0)
-}
-
-func TestCACreateCommandWithOptions(t *testing.T) {
-	require := require.New(t)
-
-	previousDirectory, err := os.Getwd()
-	require.NoError(err)
-
-	testDir := testutil.TempDir(t, "ca-create")
-
-	defer os.RemoveAll(testDir)
-	defer os.Chdir(previousDirectory)
-
-	os.Chdir(testDir)
-
-	ui := cli.NewMockUi()
-	cmd := New(ui)
-
-	args := []string{
-		"-days=365",
-		"-name-constraint=true",
-		"-domain=foo",
-		"-additional-name-constraint=bar",
+			cert, _ := expectFiles(t, tc.caPath, tc.keyPath)
+			require.Contains(t, cert.Subject.CommonName, "Consul Agent CA")
+			require.True(t, cert.BasicConstraintsValid)
+			require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+			require.True(t, cert.IsCA)
+			require.Equal(t, cert.AuthorityKeyId, cert.SubjectKeyId)
+			tc.extraCheck(t, cert)
+		}))
 	}
 
-	require.Equal(0, cmd.Run(args), "ca create should exit 0")
+}
 
-	errOutput := ui.ErrorWriter.String()
-	require.Equal("", errOutput)
+func expectFiles(t *testing.T, caPath, keyPath string) (*x509.Certificate, crypto.Signer) {
+	t.Helper()
 
-	caPem := path.Join(testDir, "foo-agent-ca.pem")
-	require.FileExists(caPem)
+	require.FileExists(t, caPath)
+	require.FileExists(t, keyPath)
 
-	certData, err := ioutil.ReadFile(caPem)
-	require.NoError(err)
+	caData, err := ioutil.ReadFile(caPath)
+	require.NoError(t, err)
+	keyData, err := ioutil.ReadFile(keyPath)
+	require.NoError(t, err)
 
-	cert, err := connect.ParseCert(string(certData))
-	require.NoError(err)
-	require.NotNil(cert)
+	ca, err := connect.ParseCert(string(caData))
+	require.NoError(t, err)
+	require.NotNil(t, ca)
 
-	require.Equal(365*24*time.Hour, time.Until(cert.NotAfter).Round(24*time.Hour))
-	require.True(cert.PermittedDNSDomainsCritical)
-	require.Len(cert.PermittedDNSDomains, 3)
-	require.ElementsMatch(cert.PermittedDNSDomains, []string{"foo", "localhost", "bar"})
+	signer, err := connect.ParseSigner(string(keyData))
+	require.NoError(t, err)
+	require.NotNil(t, signer)
+
+	return ca, signer
+}
+
+// switchToTempDir is meant to be used in a defer statement like:
+//
+//   defer switchToTempDir(t, testDir)()
+//
+// This exploits the fact that the body of a defer is evaluated
+// EXCEPT for the final function call invocation inline with the code
+// where it is found. Only the final evaluation happens in the defer
+// at a later time. In this case it means we switch to the temp
+// directory immediately and defer switching back in one line of test
+// code.
+func switchToTempDir(t *testing.T, testDir string) func() {
+	previousDirectory, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(testDir))
+	return func() {
+		os.Chdir(previousDirectory)
+	}
 }

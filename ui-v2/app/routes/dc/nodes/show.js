@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
@@ -17,11 +16,12 @@ export default Route.extend(WithBlockingActions, {
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     const name = params.name;
     return hash({
-      item: get(this, 'repo').findBySlug(name, dc),
-      tomography: get(this, 'coordinateRepo').findAllByNode(name, dc),
-      sessions: get(this, 'sessionRepo').findByNode(name, dc),
+      item: this.repo.findBySlug(name, dc, nspace),
+      sessions: this.sessionRepo.findByNode(name, dc, nspace),
+      tomography: this.coordinateRepo.findAllByNode(name, dc),
     });
   },
   setupController: function(controller, model) {
@@ -30,12 +30,11 @@ export default Route.extend(WithBlockingActions, {
   actions: {
     invalidateSession: function(item) {
       const dc = this.modelFor('dc').dc.Name;
+      const nspace = this.modelFor('nspace').nspace.substr(1);
       const controller = this.controller;
-      const repo = get(this, 'sessionRepo');
-      return get(this, 'feedback').execute(() => {
-        const node = get(item, 'Node');
-        return repo.remove(item).then(() => {
-          return repo.findByNode(node, dc).then(function(sessions) {
+      return this.feedback.execute(() => {
+        return this.sessionRepo.remove(item).then(() => {
+          return this.sessionRepo.findByNode(item.Node, dc, nspace).then(function(sessions) {
             controller.setProperties({
               sessions: sessions,
             });

@@ -1,4 +1,4 @@
-import env from 'consul-ui/env';
+import { env } from 'consul-ui/env';
 
 const SECONDARY_BUTTON = 2;
 const isSelecting = function(win = window) {

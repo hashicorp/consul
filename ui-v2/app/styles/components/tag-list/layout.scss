@@ -8,7 +8,14 @@
 %tag-list dd {
   display: inline-flex;
   padding-left: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+%tag-list dd:after {
+  content: '';
+  flex: auto;
 }
 %tag-list dd > * {
   margin-right: 3px;
+  margin-bottom: 10px;
 }

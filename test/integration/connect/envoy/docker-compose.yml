@@ -155,6 +155,22 @@ services:
      - "-redirect-port"
      - "disabled"
     network_mode: service:consul-primary
+    
+  s3-alt:
+    depends_on:
+      - consul-primary
+    image: "fortio/fortio"
+    environment:
+      - "FORTIO_NAME=s3-alt"
+    command:
+     - "server"
+     - "-http-port"
+     - ":8286"
+     - "-grpc-port"
+     - ":8280"
+     - "-redirect-port"
+     - "disabled"
+    network_mode: service:consul-primary
 
   s1-sidecar-proxy:
     depends_on:
@@ -290,6 +306,27 @@ services:
      - "envoy"
      - "-c"
      - "/workdir/primary/envoy/s3-v2-bootstrap.json"
+     - "-l"
+     - "debug"
+     # Hot restart breaks since both envoys seem to interact with each other
+     # despite separate containers that don't share IPC namespace. Not quite
+     # sure how this happens but may be due to unix socket being in some shared
+     # location?
+     - "--disable-hot-restart"
+     - "--drain-time-s"
+     - "1"
+    volumes:
+      - *workdir-volume
+    network_mode: service:consul-primary
+    
+  s3-alt-sidecar-proxy:
+    depends_on:
+      - consul-primary
+    image: "envoyproxy/envoy:v${ENVOY_VERSION:-1.8.0}"
+    command:
+     - "envoy"
+     - "-c"
+     - "/workdir/primary/envoy/s3-alt-bootstrap.json"
      - "-l"
      - "debug"
      # Hot restart breaks since both envoys seem to interact with each other
@@ -502,7 +539,7 @@ services:
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
-
+  
   gateway-secondary:
     depends_on:
       - consul-secondary
@@ -557,3 +594,35 @@ services:
       - *workdir-volume
     network_mode: service:consul-secondary
     pid: host
+
+  tcpdump-primary:
+    depends_on:
+      - consul-primary
+    build:
+      context: .
+      dockerfile: Dockerfile-tcpdump
+      
+    # we cant do this in circle but its only here to temporarily enable.
+    volumes: 
+      - type: bind
+        source: ./${LOG_DIR}
+        target: /data
+    command: -v -i any -w /data/primary.pcap
+    network_mode: service:consul-primary
+    
+  tcpdump-secondary:
+    depends_on:
+      - consul-secondary
+    build:
+      context: .
+      dockerfile: Dockerfile-tcpdump
+      
+    # we cant do this in circle but its only here to temporarily enable.
+    volumes: 
+      - type: bind
+        source: ./${LOG_DIR}
+        target: /data
+    command: -v -i any -w /data/secondary.pcap
+    network_mode: service:consul-secondary
+    
+    

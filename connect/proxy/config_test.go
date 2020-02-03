@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -11,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,7 +111,7 @@ func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
 	require.NoError(t, err)
 
 	w, err := NewAgentConfigWatcher(client, "web-sidecar-proxy",
-		log.New(os.Stderr, "", log.LstdFlags))
+		testutil.Logger(t))
 	require.NoError(t, err)
 
 	cfg := testGetConfigValTimeout(t, w, 500*time.Millisecond)

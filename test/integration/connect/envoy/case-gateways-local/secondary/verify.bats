@@ -23,5 +23,5 @@ load helpers
 }
 
 @test "gateway-secondary is used for the upstream connection" {
-  assert_envoy_metric 127.0.0.1:19003 "cluster.s2.default.secondary.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:19003 "cluster.s2.default.secondary.*cx_total" 1
 }

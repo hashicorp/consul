@@ -129,7 +129,6 @@
 
       .code {
         background: #1e212a;
-        font-size: 1.4rem;
         overflow: auto;
         padding: 16px 24px 32px;
         width: 100%;
@@ -138,12 +137,7 @@
           background: #1e212a;
           border-radius: 0;
           color: $white;
-          font-size: 1.2rem;
           white-space: pre;
-
-          @media (min-width: 992px) {
-            font-size: 1.4rem;
-          }
 
           &.keyword {
             color: #be5580;
@@ -182,17 +176,12 @@
   }
 
   li {
-    font-size: 1.6rem;
     list-style-type: none;
     margin: 16px;
     text-align: left;
 
     @media (min-width: 768px) {
       margin: 16px 0;
-    }
-
-    @media (min-width: 992px) {
-      font-size: 1.8rem;
     }
 
     &:before {

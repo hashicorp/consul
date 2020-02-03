@@ -1,11 +1,11 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupTest } from 'ember-qunit';
 
-moduleFor('route:dc/kv/index', 'Unit | Route | dc/kv/index', {
-  // Specify the other units that are required for this test.
-  needs: ['service:repository/kv', 'service:feedback', 'service:logger', 'service:flashMessages'],
-});
+module('Unit | Route | dc/kv/index', function(hooks) {
+  setupTest(hooks);
 
-test('it exists', function(assert) {
-  let route = this.subject();
-  assert.ok(route);
+  test('it exists', function(assert) {
+    let route = this.owner.lookup('route:dc/kv/index');
+    assert.ok(route);
+  });
 });

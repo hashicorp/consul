@@ -25,6 +25,10 @@ func (c *ConfigEntries) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
 	// Set the minimum query index to our current index so we block
 	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
 	reqReal.QueryOptions.MaxQueryTime = opts.Timeout

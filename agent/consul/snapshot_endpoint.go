@@ -61,7 +61,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// all the ACLs and you could escalate from there.
 	if rule, err := s.ResolveToken(args.Token); err != nil {
 		return nil, err
-	} else if rule != nil && !rule.Snapshot() {
+	} else if rule != nil && rule.Snapshot(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -163,7 +163,7 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			s.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+			s.logger.Error("Failed to close snapshot", "error", err)
 		}
 	}()
 

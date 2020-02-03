@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api/watch"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestMakeWatchHandler(t *testing.T) {
@@ -16,7 +17,7 @@ func TestMakeWatchHandler(t *testing.T) {
 	defer os.Remove("handler_out")
 	defer os.Remove("handler_index_out")
 	script := "bash -c 'echo $CONSUL_INDEX >> handler_index_out && cat >> handler_out'"
-	handler := makeWatchHandler(os.Stderr, script)
+	handler := makeWatchHandler(testutil.Logger(t), script)
 	handler(100, []string{"foo", "bar", "baz"})
 	raw, err := ioutil.ReadFile("handler_out")
 	if err != nil {
@@ -61,6 +62,6 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 		Header:  map[string][]string{"X-Custom": {"abc", "def"}},
 		Timeout: time.Minute,
 	}
-	handler := makeHTTPWatchHandler(os.Stderr, &config)
+	handler := makeHTTPWatchHandler(testutil.Logger(t), &config)
 	handler(100, []string{"foo", "bar", "baz"})
 }

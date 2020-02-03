@@ -2,35 +2,22 @@
 .healthchecked-resource > div {
   @extend %stats-card;
 }
-%tooltip-below::after {
-  top: calc(100% - 8px);
-  bottom: auto;
-  border-top: none;
-  border-bottom: 18px solid $gray-500;
-}
-%tooltip-below::before {
-  top: calc(100% + 4px);
-  bottom: auto;
-  /*TODO: This should probably go into base*/
-  line-height: 1em;
-}
-%tooltip-left::before {
-  right: 0;
-}
-%tooltip-right::before {
-  left: -10px;
-}
 %stats-card-icon {
   @extend %tooltip-below;
 }
 %stats-card-icon:first-child::before {
-  right: 0;
+  @extend %tooltip-left;
 }
 %stats-card-icon:last-child::before {
-  left: -10px;
+  @extend %tooltip-right;
 }
 
 %stats-card-icon:last-child {
+  /* TODO: In order to get rid of our colored star */
+  /* this needs to use a %mask, and we are already using */
+  /* our before/after psuedo elements for the tooltip */
+  /* so this will need reworking slighly before we can */
+  /* get rid of our hardcoded magenta star icon */
   @extend %with-star-icon;
 }
 %stats-card header > .zero {

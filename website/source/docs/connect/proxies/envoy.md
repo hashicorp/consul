@@ -71,6 +71,7 @@ The dynamic configuration Consul Connect provides to each Envoy instance include
  - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
    outgoing connections.
  - L7 configuration including timeouts and protocol-specific options.
+ - Configuration to [expose specific HTTP paths](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
 
 For more information on the parts of the Envoy proxy runtime configuration
 that are currently controllable via Consul Connect see [Dynamic
@@ -155,7 +156,7 @@ each service such as which protocol they speak. Consul will use this information
 to configure appropriate proxy settings for that service's proxies and also for
 the upstream listeners of any downstream service.
 
-Users can define a service's protocol in its [`service-defaults` configuration
+One example is how users can define a service's protocol in a [`service-defaults` configuration
 entry](/docs/agent/config-entries/service-defaults.html). Agents with
 [`enable_central_service_config`](/docs/agent/options.html#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
@@ -168,6 +169,9 @@ This automated discovery results in Consul auto-populating the `proxy.config`
 and `proxy.upstreams[*].config` fields of the [proxy service
 definition](/docs/connect/registration/service-registration.html) that is
 actually registered.
+
+To learn about other options that can be configured centrally see the 
+[Configuration Entries](/docs/agent/config_entries.html) docs.
 
 ### Proxy Config Options
 
@@ -252,6 +256,21 @@ definition](/docs/connect/registration/service-registration.html) or
     proxy upstream config will override any values defined in config entries.
     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
+- `limits` - A set of limits to apply when connecting to the upstream service.
+  These limits are applied on a per-service-instance basis.  The following
+  limits are respected:
+
+  - `max_connections` - The maximum number of connections a service instance
+    will be allowed to establish against the given upstream. Use this to limit
+    HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.
+  - `max_pending_requests` - The maximum number of requests that will be queued
+    while waiting for a connection to be established. For this configuration to
+    be respected, a L7 protocol must be defined in the `protocol` field.
+  - `max_concurrent_requests` - The maximum number of concurrent requests that
+    will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+    since HTTP/2 has many requests per connection. For this configuration to be
+    respected, a L7 protocol must be defined in the `protocol` field.
+
 ### Mesh Gateway Options
 
 These fields may also be overridden explicitly in the [proxy service
@@ -312,6 +331,56 @@ The JSON supplied may describe a protobuf `types.Any` message with an `@type`
 field set to the appropriate type (for example
 `type.googleapis.com/envoy.api.v2.Listener`), or it may be the direct encoding
 with no `@type` field.
+
+For example, given a tracing config:
+
+```json
+"tracing": {
+  "http": {
+     "name": "envoy.zipkin",
+     "config": {
+        "collector_cluster": "zipkin",
+        "collector_endpoint": "/api/v1/spans",
+        "shared_span_context": false
+     }
+  }
+}
+```
+
+JSON escape the value of `tracing` into a string, for example using [https://codebeautify.org/json-escape-unescape](https://codebeautify.org/json-escape-unescape),
+and then use that as the value for `envoy_tracing_json`:
+
+```json
+{
+  "kind": "proxy-defaults",
+  "name": "global",
+  "config": {
+    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.zipkin\",\"config\":{\"collector_cluster\":\"zipkin\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}"
+  }
+}
+```
+
+If using HCL, this escaping is done automatically:
+
+```hcl
+Kind = "proxy-defaults"
+Name = "global"
+Config {
+  envoy_tracing_json = <<EOF
+{
+  "http": {
+    "name": "envoy.zipkin",
+    "config": {
+      "collector_cluster": "zipkin",
+      "collector_endpoint": "/api/v1/spans",
+      "shared_span_context": false
+    }
+  }
+}
+EOF
+}
+```
+
 
 ### Advanced Bootstrap Options
 

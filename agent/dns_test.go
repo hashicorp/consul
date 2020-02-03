@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1013,7 +1012,7 @@ func TestDNS_ServiceReverseLookup(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "db.service.consul." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "consul", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1061,7 +1060,7 @@ func TestDNS_ServiceReverseLookup_IPV6(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "db.service.consul." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "consul", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1111,7 +1110,7 @@ func TestDNS_ServiceReverseLookup_CustomDomain(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "db.service.custom." {
+	if ptrRec.Ptr != serviceCanonicalDNSName("db", "dc1", "custom", nil)+"." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -1554,12 +1553,8 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 	}
 	verify.Values(t, "answer", in.Answer, wantAnswer)
 	wantExtra := []dns.RR{
-		&dns.CNAME{
-			Hdr:    dns.RR_Header{Name: "foo.node.dc1.consul.", Rrtype: 0x5, Class: 0x1, Rdlength: 0x2},
-			Target: "db.service.consul.",
-		},
 		&dns.A{
-			Hdr: dns.RR_Header{Name: "db.service.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
+			Hdr: dns.RR_Header{Name: "foo.node.dc1.consul.", Rrtype: 0x1, Class: 0x1, Rdlength: 0x4},
 			A:   []byte{0x7f, 0x0, 0x0, 0x1}, // 127.0.0.1
 		},
 	}
@@ -1569,7 +1564,6 @@ func TestDNS_ServiceLookupWithInternalServiceAddress(t *testing.T) {
 func TestDNS_ConnectServiceLookup(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1582,7 +1576,7 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 		args.Service.Address = ""
 		args.Service.Port = 12345
 		var out struct{}
-		assert.Nil(a.RPC("Catalog.Register", args, &out))
+		require.Nil(t, a.RPC("Catalog.Register", args, &out))
 	}
 
 	// Look up the service
@@ -1595,20 +1589,20 @@ func TestDNS_ConnectServiceLookup(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		assert.Nil(err)
-		assert.Len(in.Answer, 1)
+		require.Nil(t, err)
+		require.Len(t, in.Answer, 1)
 
 		srvRec, ok := in.Answer[0].(*dns.SRV)
-		assert.True(ok)
-		assert.Equal(uint16(12345), srvRec.Port)
-		assert.Equal("foo.node.dc1.consul.", srvRec.Target)
-		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
+		require.True(t, ok)
+		require.Equal(t, uint16(12345), srvRec.Port)
+		require.Equal(t, "foo.node.dc1.consul.", srvRec.Target)
+		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
 
 		cnameRec, ok := in.Extra[0].(*dns.A)
-		assert.True(ok)
-		assert.Equal("foo.node.dc1.consul.", cnameRec.Hdr.Name)
-		assert.Equal(uint32(0), srvRec.Hdr.Ttl)
-		assert.Equal("127.0.0.55", cnameRec.A.String())
+		require.True(t, ok)
+		require.Equal(t, "foo.node.dc1.consul.", cnameRec.Hdr.Name)
+		require.Equal(t, uint32(0), srvRec.Hdr.Ttl)
+		require.Equal(t, "127.0.0.55", cnameRec.A.String())
 	}
 }
 
@@ -1661,25 +1655,11 @@ func TestDNS_ExternalServiceLookup(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "foo.node.dc1.consul." {
+		if srvRec.Target != "www.google.com." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
 		if srvRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-
-		cnameRec, ok := in.Extra[0].(*dns.CNAME)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Hdr.Name != "foo.node.dc1.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Target != "www.google.com." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 	}
 }
@@ -1810,43 +1790,29 @@ func TestDNS_ExternalServiceToConsulCNAMELookup(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "alias.node.dc1.consul." {
+		if srvRec.Target != "web.service.consul." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
 		if srvRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 
-		if len(in.Extra) != 2 {
+		if len(in.Extra) != 1 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
-		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		aRec, ok := in.Extra[0].(*dns.A)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Hdr.Name != "alias.node.dc1.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Target != "web.service.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-
-		aRec, ok := in.Extra[1].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 		if aRec.Hdr.Name != "web.service.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[1])
+			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.A.String() != "127.0.0.1" {
-			t.Fatalf("Bad: %#v", in.Extra[1])
+			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if aRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[1])
+			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 
 	}
@@ -2011,14 +1977,13 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "alias2.node.dc1.consul." {
+		if srvRec.Target != "alias.service.consul." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
 		if srvRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
-
-		if len(in.Extra) != 3 {
+		if len(in.Extra) != 2 {
 			t.Fatalf("Bad: %#v", in)
 		}
 
@@ -2026,42 +1991,28 @@ func TestDNS_ExternalServiceToConsulCNAMENestedLookup(t *testing.T) {
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if cnameRec.Hdr.Name != "alias2.node.dc1.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Target != "alias.service.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-		if cnameRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[0])
-		}
-
-		cnameRec, ok = in.Extra[1].(*dns.CNAME)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Extra[1])
-		}
 		if cnameRec.Hdr.Name != "alias.service.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[1])
+			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if cnameRec.Target != "web.service.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[1])
+			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 		if cnameRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[1])
+			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
 
-		aRec, ok := in.Extra[2].(*dns.A)
+		aRec, ok := in.Extra[1].(*dns.A)
 		if !ok {
-			t.Fatalf("Bad: %#v", in.Extra[2])
+			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 		if aRec.Hdr.Name != "web.service.consul." {
 			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 		if aRec.A.String() != "127.0.0.1" {
-			t.Fatalf("Bad: %#v", in.Extra[2])
+			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 		if aRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[2])
+			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 	}
 }
@@ -2159,9 +2110,19 @@ func TestDNS_ServiceLookup_ServiceAddress_A(t *testing.T) {
 	}
 }
 
-func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
+func TestDNS_ServiceLookup_ServiceAddress_SRV(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, t.Name(), "")
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{
+			dnsCNAME("www.google.com", "google.com"),
+			dnsA("google.com", "1.2.3.4"),
+		},
+	})
+	defer recursor.Shutdown()
+
+	a := NewTestAgent(t, t.Name(), `
+		               recursors = ["`+recursor.Addr+`"]
+		       `)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -2229,25 +2190,29 @@ func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "foo.node.dc1.consul." {
+		if srvRec.Target != "www.google.com." {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
 		if srvRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 
-		cnameRec, ok := in.Extra[0].(*dns.CNAME)
+		// Should have google CNAME
+		cnRec, ok := in.Extra[0].(*dns.CNAME)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if cnameRec.Hdr.Name != "foo.node.dc1.consul." {
+		if cnRec.Target != "google.com." {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if cnameRec.Target != "www.google.com." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
+
+		// Check we recursively resolve
+		aRec, ok := in.Extra[1].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
-		if cnameRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Extra[0])
+		if aRec.A.String() != "1.2.3.4" {
+			t.Fatalf("Bad: %s", aRec.A.String())
 		}
 	}
 }
@@ -2366,8 +2331,8 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	_, err := a2.JoinWAN([]string{addr})
 	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
-		require.Len(t, a1.WANMembers(), 2)
-		require.Len(t, a2.WANMembers(), 2)
+		require.Len(r, a1.WANMembers(), 2)
+		require.Len(r, a2.WANMembers(), 2)
 	})
 
 	// Register an equivalent prepared query.
@@ -2548,6 +2513,196 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 				require.True(t, ok, "Bad: %#v", in.Answer[0])
 				require.Equal(t, question, aRec.Hdr.Name)
 				require.Equal(t, tc.expectedAddress, aRec.A.String())
+			}
+		})
+	}
+}
+
+func TestDNS_Lookup_TaggedIPAddresses(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "test",
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		require.NoError(t, a.RPC("PreparedQuery.Apply", args, &id))
+	}
+
+	type testCase struct {
+		nodeAddress            string
+		nodeTaggedAddresses    map[string]string
+		serviceAddress         string
+		serviceTaggedAddresses map[string]structs.ServiceAddress
+
+		expectedServiceIPv4Address string
+		expectedServiceIPv6Address string
+		expectedNodeIPv4Address    string
+		expectedNodeIPv6Address    string
+	}
+
+	cases := map[string]testCase{
+		"simple-ipv4": testCase{
+			serviceAddress: "127.0.0.2",
+			nodeAddress:    "127.0.0.1",
+
+			expectedServiceIPv4Address: "127.0.0.2",
+			expectedServiceIPv6Address: "",
+			expectedNodeIPv4Address:    "127.0.0.1",
+			expectedNodeIPv6Address:    "",
+		},
+		"simple-ipv6": testCase{
+			serviceAddress: "::2",
+			nodeAddress:    "::1",
+
+			expectedServiceIPv6Address: "::2",
+			expectedServiceIPv4Address: "",
+			expectedNodeIPv6Address:    "::1",
+			expectedNodeIPv4Address:    "",
+		},
+		"ipv4-with-tagged-ipv6": testCase{
+			serviceAddress: "127.0.0.2",
+			nodeAddress:    "127.0.0.1",
+
+			serviceTaggedAddresses: map[string]structs.ServiceAddress{
+				structs.TaggedAddressLANIPv6: {Address: "::2"},
+			},
+			nodeTaggedAddresses: map[string]string{
+				structs.TaggedAddressLANIPv6: "::1",
+			},
+
+			expectedServiceIPv4Address: "127.0.0.2",
+			expectedServiceIPv6Address: "::2",
+			expectedNodeIPv4Address:    "127.0.0.1",
+			expectedNodeIPv6Address:    "::1",
+		},
+		"ipv6-with-tagged-ipv4": testCase{
+			serviceAddress: "::2",
+			nodeAddress:    "::1",
+
+			serviceTaggedAddresses: map[string]structs.ServiceAddress{
+				structs.TaggedAddressLANIPv4: {Address: "127.0.0.2"},
+			},
+			nodeTaggedAddresses: map[string]string{
+				structs.TaggedAddressLANIPv4: "127.0.0.1",
+			},
+
+			expectedServiceIPv4Address: "127.0.0.2",
+			expectedServiceIPv6Address: "::2",
+			expectedNodeIPv4Address:    "127.0.0.1",
+			expectedNodeIPv6Address:    "::1",
+		},
+	}
+
+	for name, tc := range cases {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			args := &structs.RegisterRequest{
+				Datacenter:      "dc1",
+				Node:            "foo",
+				Address:         tc.nodeAddress,
+				TaggedAddresses: tc.nodeTaggedAddresses,
+				Service: &structs.NodeService{
+					Service:         "db",
+					Address:         tc.serviceAddress,
+					Port:            8080,
+					TaggedAddresses: tc.serviceTaggedAddresses,
+				},
+			}
+
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+			// Look up the SRV record via service and prepared query.
+			questions := []string{
+				"db.service.consul.",
+				id + ".query.consul.",
+			}
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeA)
+
+				c := new(dns.Client)
+				addr := a.config.DNSAddrs[0].String()
+				in, _, err := c.Exchange(m, addr)
+				require.NoError(t, err)
+
+				if tc.expectedServiceIPv4Address != "" {
+					require.Len(t, in.Answer, 1)
+					aRec, ok := in.Answer[0].(*dns.A)
+					require.True(t, ok, "Bad: %#v", in.Answer[0])
+					require.Equal(t, question, aRec.Hdr.Name)
+					require.Equal(t, tc.expectedServiceIPv4Address, aRec.A.String())
+				} else {
+					require.Len(t, in.Answer, 0)
+				}
+
+				m = new(dns.Msg)
+				m.SetQuestion(question, dns.TypeAAAA)
+
+				c = new(dns.Client)
+				addr = a.config.DNSAddrs[0].String()
+				in, _, err = c.Exchange(m, addr)
+				require.NoError(t, err)
+
+				if tc.expectedServiceIPv6Address != "" {
+					require.Len(t, in.Answer, 1)
+					aRec, ok := in.Answer[0].(*dns.AAAA)
+					require.True(t, ok, "Bad: %#v", in.Answer[0])
+					require.Equal(t, question, aRec.Hdr.Name)
+					require.Equal(t, tc.expectedServiceIPv6Address, aRec.AAAA.String())
+				} else {
+					require.Len(t, in.Answer, 0)
+				}
+			}
+
+			// Look up node
+			m := new(dns.Msg)
+			m.SetQuestion("foo.node.consul.", dns.TypeA)
+
+			c := new(dns.Client)
+			addr := a.config.DNSAddrs[0].String()
+			in, _, err := c.Exchange(m, addr)
+			require.NoError(t, err)
+
+			if tc.expectedNodeIPv4Address != "" {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.A)
+				require.True(t, ok, "Bad: %#v", in.Answer[0])
+				require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
+				require.Equal(t, tc.expectedNodeIPv4Address, aRec.A.String())
+			} else {
+				require.Len(t, in.Answer, 0)
+			}
+
+			m = new(dns.Msg)
+			m.SetQuestion("foo.node.consul.", dns.TypeAAAA)
+
+			c = new(dns.Client)
+			addr = a.config.DNSAddrs[0].String()
+			in, _, err = c.Exchange(m, addr)
+			require.NoError(t, err)
+
+			if tc.expectedNodeIPv6Address != "" {
+				require.Len(t, in.Answer, 1)
+				aRec, ok := in.Answer[0].(*dns.AAAA)
+				require.True(t, ok, "Bad: %#v", in.Answer[0])
+				require.Equal(t, "foo.node.consul.", aRec.Hdr.Name)
+				require.Equal(t, tc.expectedNodeIPv6Address, aRec.AAAA.String())
+			} else {
+				require.Len(t, in.Answer, 0)
 			}
 		})
 	}
@@ -3302,7 +3457,7 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())
-	if err != dns.ErrTruncated {
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if in.Truncated != true {
@@ -3987,10 +4142,17 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 								c.Net = protocol
 								m.Compress = compress
 								in, _, err := c.Exchange(m, a.DNSAddr())
-								if err != nil && err != dns.ErrTruncated {
+								if err != nil {
 									t.Fatalf("err: %v", err)
 								}
-
+								// actually check if we need to have the truncate bit
+								resbuf, err := in.Pack()
+								if err != nil {
+									t.Fatalf("Error while packing answer: %s", err)
+								}
+								if !in.Truncated && len(resbuf) > int(maxSz) {
+									t.Fatalf("should have truncate bit %#v %#v", in, len(in.Answer))
+								}
 								// Check for the truncate bit
 								buf, err := m.Pack()
 								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
@@ -4068,7 +4230,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -4140,8 +4302,12 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil && err != dns.ErrTruncated {
+		if err != nil {
 			t.Fatalf("err: %v", err)
+		}
+
+		if !in.Truncated {
+			t.Fatalf("should have truncate bit")
 		}
 
 		// Make sure the response size is RFC 1035-compliant for UDP messages
@@ -4339,6 +4505,7 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		}
 		c := &dns.Client{Net: protocol, UDPSize: 8192}
 		in, _, err := c.Exchange(m, a.DNSAddr())
+		t.Logf("DNS Response for %+v - %+v", m, in)
 		if err != nil {
 			return fmt.Errorf("err: %v", err)
 		}
@@ -4519,6 +4686,104 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 			Service: &structs.NodeService{
 				Service: "search",
 				Port:    80,
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "test",
+				Service: structs.ServiceQuery{
+					Service: "search",
+				},
+			},
+		}
+		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		"search.service.consul.",
+		id + ".query.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeANY)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Service CNAME, google CNAME, google A record
+		if len(in.Answer) != 3 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		// Should have service CNAME
+		cnRec, ok := in.Answer[0].(*dns.CNAME)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if cnRec.Target != "www.google.com." {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		// Should have google CNAME
+		cnRec, ok = in.Answer[1].(*dns.CNAME)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[1])
+		}
+		if cnRec.Target != "google.com." {
+			t.Fatalf("Bad: %#v", in.Answer[1])
+		}
+
+		// Check we recursively resolve
+		if _, ok := in.Answer[2].(*dns.A); !ok {
+			t.Fatalf("Bad: %#v", in.Answer[2])
+		}
+	}
+}
+
+func TestDNS_ServiceLookup_ServiceAddress_CNAME(t *testing.T) {
+	t.Parallel()
+	recursor := makeRecursor(t, dns.Msg{
+		Answer: []dns.RR{
+			dnsCNAME("www.google.com", "google.com"),
+			dnsA("google.com", "1.2.3.4"),
+		},
+	})
+	defer recursor.Shutdown()
+
+	a := NewTestAgent(t, t.Name(), `
+		recursors = ["`+recursor.Addr+`"]
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a node with a name for an address.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "google",
+			Address:    "1.2.3.4",
+			Service: &structs.NodeService{
+				Service: "search",
+				Port:    80,
+				Address: "www.google.com",
 			},
 		}
 
@@ -5782,9 +6047,9 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		"node.consul.",
 		"service.consul.",
 		"query.consul.",
-		"foo.node.dc1.extra.consul.",
-		"foo.service.dc1.extra.consul.",
-		"foo.query.dc1.extra.consul.",
+		"foo.node.dc1.extra.more.consul.",
+		"foo.service.dc1.extra.more.consul.",
+		"foo.query.dc1.extra.more.consul.",
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)
@@ -6525,25 +6790,6 @@ func TestDNSInvalidRegex(t *testing.T) {
 		})
 
 	}
-}
-
-func TestDNS_formatNodeRecord(t *testing.T) {
-	s := &DNSServer{}
-
-	node := &structs.Node{
-		Meta: map[string]string{
-			"key":  "value",
-			"key2": "value2",
-		},
-	}
-
-	records, meta := s.formatNodeRecord(&dnsConfig{}, node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, false)
-	require.Len(t, records, 1)
-	require.Len(t, meta, 0)
-
-	records, meta = s.formatNodeRecord(&dnsConfig{}, node, "198.18.0.1", "test.node.consul", dns.TypeA, 5*time.Minute, false, 3, true)
-	require.Len(t, records, 1)
-	require.Len(t, meta, 2)
 }
 
 func TestDNS_ConfigReload(t *testing.T) {
