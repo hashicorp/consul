@@ -132,7 +132,6 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 	s.retrySyncFullEvent = s.retrySyncFullEventFn
 	s.syncChangesEvent = s.syncChangesEventFn
 	s.stagger = s.staggerFn
-	s.resetNextFullSyncCh()
 
 	return s
 }
@@ -153,6 +152,7 @@ func (s *StateSyncer) Run() {
 	if s.ClusterSize == nil {
 		panic("ClusterSize not set")
 	}
+	s.resetNextFullSyncCh()
 	s.runFSM(fullSyncState, s.nextFSMState)
 }
 
@@ -295,7 +295,11 @@ func (s *StateSyncer) syncChangesEventFn() event {
 // resetNextFullSyncCh resets nextFullSyncCh and sets it to interval+stagger.
 // Call this function everytime a full sync is performed.
 func (s *StateSyncer) resetNextFullSyncCh() {
-	s.nextFullSyncCh = time.After(s.Interval + s.stagger(s.Interval))
+	if s.stagger != nil {
+		s.nextFullSyncCh = time.After(s.Interval + s.stagger(s.Interval))
+	} else {
+		s.nextFullSyncCh = time.After(s.Interval)
+	}
 }
 
 // stubbed out for testing
