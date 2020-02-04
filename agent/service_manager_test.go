@@ -310,8 +310,10 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
-	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svc.ID))
-	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHash(svc.ID))
+	svcID := svc.CompoundServiceID()
+
+	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHash())
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHash())
 
 	// Service is not persisted unless requested, but we always persist service configs.
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceRemote))
