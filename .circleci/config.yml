@@ -491,11 +491,27 @@ jobs:
             - dist
 
   # run ember frontend tests
-  ember-test:
+  ember-test-oss:
     docker:
       - image: *EMBER_IMAGE
     environment:
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: make test-ci
+      - store_test_results:
+          path: ui-v2/test-results
+  # run ember frontend tests
+  ember-test-ent:
+    docker:
+      - image: *EMBER_IMAGE
+    environment:
       EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
     steps:
       - checkout
@@ -682,6 +698,9 @@ workflows:
       - ember-build:
           requires:
             - frontend-cache
-      - ember-test:
+      - ember-test-oss:
+          requires:
+            - ember-build
+      - ember-test-ent:
           requires:
             - ember-build
