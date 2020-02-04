@@ -662,6 +662,18 @@ default will automatically work with some tooling.
         token replication is enabled then it must have "write" permissions. This also enables
         Connect replication, for which the token will require both operator
         "write" and intention "read" permissions for replicating CA and Intention data.
+        
+        * <a name="acl_tokens_managed_service_provider"></a><a href="#acl_tokens_managed_service_provider">`managed_service_provider`</a> - 
+        **(Enterprise Only)** An array of ACL tokens used by Consul managed service providers for cluster operations.
+        
+        ```javascript
+          "managed_service_provider": [
+               {
+                   "accessor_id": "ed22003b-0832-4e48-ac65-31de64e5c2ff",
+                   "secret_id": "cb6be010-bba8-4f30-a9ed-d347128dde17"
+               }
+          ]
+        ```
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
   deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**

@@ -51,6 +51,9 @@ type Store struct {
 
 	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
+
+	// enterpriseTokens contains tokens only used in consul-enterprise
+	enterpriseTokens
 }
 
 // UpdateUserToken replaces the current user token in the store.

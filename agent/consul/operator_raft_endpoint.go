@@ -80,8 +80,11 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
+		return err
+	}
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
 	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
@@ -149,8 +152,11 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
+		return err
+	}
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
 	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {

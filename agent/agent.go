@@ -400,6 +400,7 @@ func (a *Agent) Start() error {
 	// load the tokens - this requires the logger to be setup
 	// which is why we can't do this in New
 	a.loadTokens(a.config)
+	a.loadEnterpriseTokens(a.config)
 
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
@@ -3991,6 +3992,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// to ensure the correct tokens are available for attaching to
 	// the checks and service registrations.
 	a.loadTokens(newCfg)
+	a.loadEnterpriseTokens(newCfg)
 
 	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)

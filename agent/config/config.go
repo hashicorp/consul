@@ -95,6 +95,7 @@ func Parse(data string, format string) (c Config, err error) {
 		"services.proxy.upstreams",
 		"service.proxy.expose.paths",
 		"services.proxy.expose.paths",
+		"acl.tokens.managed_service_provider",
 
 		// Need all the service(s) exceptions also for nested sidecar service.
 		"service.connect.sidecar_service.checks",
@@ -707,11 +708,17 @@ type ACL struct {
 }
 
 type Tokens struct {
-	Master      *string `json:"master,omitempty" hcl:"master" mapstructure:"master"`
-	Replication *string `json:"replication,omitempty" hcl:"replication" mapstructure:"replication"`
-	AgentMaster *string `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
-	Default     *string `json:"default,omitempty" hcl:"default" mapstructure:"default"`
-	Agent       *string `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
+	Master                 *string                `json:"master,omitempty" hcl:"master" mapstructure:"master"`
+	Replication            *string                `json:"replication,omitempty" hcl:"replication" mapstructure:"replication"`
+	AgentMaster            *string                `json:"agent_master,omitempty" hcl:"agent_master" mapstructure:"agent_master"`
+	Default                *string                `json:"default,omitempty" hcl:"default" mapstructure:"default"`
+	Agent                  *string                `json:"agent,omitempty" hcl:"agent" mapstructure:"agent"`
+	ManagedServiceProvider []ServiceProviderToken `json:"managed_service_provider,omitempty" hcl:"managed_service_provider" mapstructure:"managed_service_provider"`
+}
+
+type ServiceProviderToken struct {
+	AccessorID *string `json:"accessor_id,omitempty" hcl:"accessor_id" mapstructure:"accessor_id"`
+	SecretID   *string `json:"secret_id,omitempty" hcl:"secret_id" mapstructure:"secret_id"`
 }
 
 type ConfigEntries struct {
