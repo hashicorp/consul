@@ -1,4 +1,5 @@
 @setupApplicationTest
+@onlyNamespaceable
 Feature: dc / nspaces / index: Nspaces List
   Background:
     Given settings from yaml
