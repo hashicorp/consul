@@ -97,9 +97,9 @@ type StateSyncer struct {
 	// when the state machine is performing partial state syncs.
 	syncChangesEvent func() event
 
-	// nextFullSync is the point in time when the next full sync should
-	// occur.
-	nextFullSync time.Time
+	// nextFullSyncCh is a chan that receives a time.Time when the next
+	// full sync should occur.
+	nextFullSyncCh <-chan time.Time
 }
 
 const (
@@ -132,7 +132,7 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 	s.retrySyncFullEvent = s.retrySyncFullEventFn
 	s.syncChangesEvent = s.syncChangesEventFn
 	s.stagger = s.staggerFn
-	s.resetNextFullSync()
+	s.resetNextFullSyncCh()
 
 	return s
 }
@@ -252,7 +252,7 @@ func (s *StateSyncer) retrySyncFullEventFn() event {
 	// retry full sync after some time
 	// it is using retryFailInterval because it is retrying the sync
 	case <-time.After(s.retryFailInterval + s.stagger(s.retryFailInterval)):
-		s.resetNextFullSync()
+		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
 
 	case <-s.ShutdownCh:
@@ -272,15 +272,15 @@ func (s *StateSyncer) syncChangesEventFn() event {
 	case <-s.SyncFull.Notif():
 		select {
 		case <-time.After(s.stagger(s.serverUpInterval)):
-			s.resetNextFullSync()
+			s.resetNextFullSyncCh()
 			return syncFullNotifEvent
 		case <-s.ShutdownCh:
 			return shutdownEvent
 		}
 
 	// time for a full sync again
-	case <-time.After(s.nextFullSync.Sub(time.Now())):
-		s.resetNextFullSync()
+	case <-s.nextFullSyncCh:
+		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
 
 	// do partial syncs on demand
@@ -292,10 +292,10 @@ func (s *StateSyncer) syncChangesEventFn() event {
 	}
 }
 
-// resetNextFullSync resets nextFullSync and sets it to Now()+interval. Call
-// this function everytime a full sync is performed.
-func (s *StateSyncer) resetNextFullSync() {
-	s.nextFullSync = time.Now().Add(s.Interval + s.stagger(s.Interval))
+// resetNextFullSyncCh resets nextFullSyncCh and sets it to interval+stagger.
+// Call this function everytime a full sync is performed.
+func (s *StateSyncer) resetNextFullSyncCh() {
+	s.nextFullSyncCh = time.After(s.Interval + s.stagger(s.Interval))
 }
 
 // stubbed out for testing
