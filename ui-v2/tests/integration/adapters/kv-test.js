@@ -58,7 +58,8 @@ module('Integration | Adapter | kv', function(hooks) {
     test(`requestForUpdateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:kv');
       const client = this.owner.lookup('service:client/http');
-      const expected = `PUT /v1/kv/${id}?dc=${dc}${
+      const flags = 12;
+      const expected = `PUT /v1/kv/${id}?dc=${dc}&flags=${flags}${
         typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
       }`;
       let actual = adapter
@@ -70,6 +71,7 @@ module('Integration | Adapter | kv', function(hooks) {
             Key: id,
             Value: '',
             Namespace: nspace,
+            Flags: flags,
           }
         )
         .split('\n')
