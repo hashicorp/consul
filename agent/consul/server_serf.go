@@ -82,9 +82,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	var subLoggerName string
 	if wan {
-		subLoggerName = "wan"
+		subLoggerName = logging.WAN
 	} else {
-		subLoggerName = "lan"
+		subLoggerName = logging.LAN
 	}
 
 	// Wrap hclog in a standard logger wrapper for serf and memberlist
