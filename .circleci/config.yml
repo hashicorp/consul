@@ -495,7 +495,7 @@ jobs:
     docker:
       - image: *EMBER_IMAGE
     environment:
-      EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
     steps:
       - checkout
       - restore_cache:
@@ -504,7 +504,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-ci
+          command: make test-oss-ci
       - store_test_results:
           path: ui-v2/test-results
   # run ember frontend tests
@@ -512,7 +512,7 @@ jobs:
     docker:
       - image: *EMBER_IMAGE
     environment:
-      EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
     steps:
       - checkout
       - restore_cache:
