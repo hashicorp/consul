@@ -60,6 +60,8 @@ and consider if they're appropriate for your deployment.
 
         * <a name="v-global-gossip-encryption-secret-key" href="#v-global-gossip-encryption-secret-key">`secretKey`</a> (`string: ""`) - The key within the Kubernetes secret that holds the gossip encryption key.
 
+  * <a name="v-global-enableconsulnamespaces" href="#v-global-enableconsulnamespaces">`enableConsulNamespaces`</a> (`boolean: false`) - [Enterprise Only] `enableConsulNamespaces` indicates that you are running Consul Enterprise v1.7+ with a valid Consul Enterprise license and would like to make use of configuration beyond registering everything into the `default` Consul namespace. Requires consul-k8s v0.12+. Additional configuration options are found in the `consulNamespaces` section of both the catalog sync and connect injector.
+  
   * <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
 
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure running a Consul server within Kubernetes.
@@ -254,7 +256,27 @@ to run the sync program.
   * <a name="v-synccatalog-tok8s" href="#v-synccatalog-tok8s">`toK8S`</a> (`boolean: true`) - If true, will sync Consul services to Kubernetes. This can be disabled to have a one-way sync.
 
   * <a name="v-synccatalog-k8sprefix" href="#v-synccatalog-k8sprefix">`k8sPrefix`</a> (`string: ""`) - A prefix to prepend to all services registered in Kubernetes from Consul. This defaults to `""` where no prefix is prepended; Consul services are synced with the same name to Kubernetes. (Consul -> Kubernetes sync only)
+  
+  * <a name="v-synccatalog-k8sallownamespaces" href="#v-synccatalog-k8sallownamespaces">`k8sAllowNamespaces`</a> (`[]string: ["*"]`) - list of k8s namespaces to sync the k8s services from. If a k8s namespace is not included in this list or is listed in `k8sDenyNamespaces`, services in that k8s namespace will not be synced even if they are explicitly annotated. Use `["*"]` to automatically allow all k8s namespaces.
+     
+         For example, `["namespace1", "namespace2"]` will only allow services in the k8s namespaces `namespace1` and `namespace2` to be synced and registered with Consul. All other k8s namespaces will be ignored.
+         
+         Note: `k8sDenyNamespaces` takes precedence over values defined here. Requires consul-k8s v0.12+
+         
+  * <a name="v-synccatalog-k8sdenynamespaces" href="#v-synccatalog-k8sdenynamespaces">`k8sDenyNamespaces`</a> (`[]string: ["kube-system", "kube-public"]` - list of k8s namespaces that should not have their services synced. This list takes precedence over `k8sAllowNamespaces`. `*` is not supported because then nothing would be allowed to sync. Requires consul-k8s v0.12+.
+  
+        For example, if `k8sAllowNamespaces` is `["*"]` and `k8sDenyNamespaces` is `["namespace1", "namespace2"]`, then all k8s namespaces besides `namespace1` and `namespace2` will be synced. 
 
+  * <a name="v-synccatalog-k8ssourcenamespace" href="#v-synccatalog-k8ssourcenamespace">`k8sSourceNamespace`</a> (`string: ""`) - **[DEPRECATED] Use `k8sAllowNamespaces` and `k8sDenyNamespaces` instead.** `k8sSourceNamespace` is the Kubernetes namespace to watch for service changes and sync to Consul. If this is not set then it will default to all namespaces.
+  
+  * <a name="v-synccatalog-consulnamespaces" href="#v-synccatalog-consulnamespaces">`consulNamespaces`</a> -  [Enterprise Only] These settings manage the catalog sync's interaction with Consul namespaces (requires consul-ent v1.7+ and consul-k8s v0.12+). Also, `global.enableConsulNamespaces` must be true.
+  
+      * <a name="v-synccatalog-consulnamespaces-consuldestinationnamespace" href="#v-synccatalog-consulnamespaces-consuldestinationnamespace">`consulDestinationNamespace`</a> (`string: "default"`) - Name of the Consul namespace to register all k8s services into. If the Consul namespace does not already exist, it will be created. This will be ignored if `mirroringK8S` is true.
+      
+      * <a name="v-synccatalog-consulnamespaces-mirroringk8s" href="#v-synccatalog-consulnamespaces-mirroringk8s">`mirroringK8S`</a> (`bool: false`) - causes k8s services to be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting. `addK8SNamespaceSuffix` may no longer be needed if enabling this option.
+      
+      * <a name="v-synccatalog-consulnamespaces-mirroringk8sprefix" href="#v-synccatalog-consulnamespaces-mirroringk8sprefix">`mirroringK8SPrefix`</a> (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace to be given a prefix. For example, if `mirroringK8SPrefix` is set to `"k8s-"`, a service in the k8s `staging` namespace will be registered into the `k8s-staging` Consul namespace.
+  
   * <a name="v-synccatalog-consulPrefix" href="#v-synccatalog-consulPrefix">`consulPrefix`</a> (`string: ""`) - A prefix to prepend to all services registered in Consul from Kubernetes. This defaults to `""` where no prefix is prepended. Service names within Kubernetes remain unchanged. (Kubernetes -> Consul sync only)
 
   * <a name="v-synccatalog-k8stag" href="#v-synccatalog-k8stag">`k8sTag`</a> (`string: null`) - An optional tag that is applied to all of the Kubernetes services that are synced into Consul. If nothing is set, this defaults to "k8s". (Kubernetes -> Consul sync only)
@@ -305,6 +327,26 @@ to run the sync program.
             namespace-label: label-value
         ```
 
+  * <a name="v-connectinject-k8sallownamespaces" href="#v-connectinject-k8sallownamespaces">`k8sAllowNamespaces`</a> - list of k8s namespaces to allow Connect sidecar injection in. If a k8s namespace is not included or is listed in `k8sDenyNamespaces`, pods in that k8s namespace will not be injected even if they are explicitly annotated. Use `["*"]` to automatically allow all k8s namespaces.
+  
+        For example, `["namespace1", "namespace2"]` will only allow pods in the k8s namespaces `namespace1` and `namespace2` to have Connect sidecars injected and registered with Consul. All other k8s namespaces will be ignored. 
+        
+        Note: `k8sDenyNamespaces` takes precedence over values defined here and `namespaceSelector` takes precedence over both since it is applied first. `kube-system` and `kube-public` are never injected, even if included here. Requires consul-k8s v0.12+
+        
+  * <a name="v-connectinject-k8sdenynamespaces" href="#v-connectinject-k8sdenynamespaces">`k8sDenyNamespaces`</a> - list of k8s namespaces that should not allow Connect sidecar injection. This list takes precedence over `k8sAllowNamespaces`. `*` is not supported because then nothing would be allowed to be injected.
+  
+        For example, if `k8sAllowNamespaces` is `["*"]` and `k8sDenyNamespaces` is `["namespace1", "namespace2"]`, then all k8s namespaces besides `namespace1` and `namespace2` will be injected.
+        
+        Note: `namespaceSelector` takes precedence over this since it is applied first. `kube-system` and `kube-public` are never injected. Requires consul-k8s v0.12+.
+  
+  * <a name="v-connectinject-consulnamespaces" href="#v-connectinject-consulnamespaces">`consulNamespaces`</a> - [Enterprise Only] These settings manage the connect injector's interaction with Consul namespaces (requires consul-ent v1.7+ and consul-k8s v0.12+). Also, `global.enableConsulNamespaces` must be true.
+  
+      * <a name="v-connectinject-consulnamespaces-consuldestinationnamespace" href="#v-connectinject-consulnamespaces-consuldestinationnamespace">`consulDestinationNamespace`</a> (`string: "default"`) - Name of the Consul namespace to register all k8s services into. If the Consul namespace does not already exist, it will be created. This will be ignored if `mirroringK8S` is true.
+      
+      * <a name="v-connectinject-consulnamespaces-mirroringk8s" href="#v-connectinject-consulnamespaces-mirroringk8s">`mirroringK8S`</a> (`bool: false`) - causes k8s services to be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting.
+      
+      * <a name="v-connectinject-consulnamespaces-mirroringk8sprefix" href="#v-connectinject-consulnamespaces-mirroringk8sprefix">`mirroringK8SPrefix`</a> (`string: ""`) - If `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace to be given a prefix. For example, if `mirroringK8SPrefix` is set to `"k8s-"`, a service in the k8s `staging` namespace will be registered into the `k8s-staging` Consul namespace.
+      
   * <a name="v-connectinject-certs" href="#v-connectinject-certs">`certs`</a> - The certs section configures how the webhook TLS certs are configured. These are the TLS certs for the Kube apiserver communicating to the webhook. By default, the injector will generate and manage its own certs, but this requires the ability for the injector to update its own `MutatingWebhookConfiguration`. In a production environment, custom certs should probably be used. Configure the values below to enable this.
 
       - <a name="v-connectinject-certs-secretname" href="#v-connectinject-certs-secretname">`secretName`</a> (`string: null`) -
@@ -329,11 +371,18 @@ to run the sync program.
   * <a name="v-connectinject-acl-bindingrule-selector" href="#v-connectinject-acl-bindingrule-selector">`aclBindingRuleSelector`</a> (`string: "serviceaccount.name!=default"`) -
   A [selector](/docs/acl/acl-auth-methods.html#binding-rules) for restricting automatic injection to only matching services based on
   their associated service account. By default, services using the `default` Kubernetes service account will not have a proxy injected.
+  
+  * <a name="v-connectinject-aclinjecttoken" href="#v-connectinject-aclinjecttoken">`aclInjectToken`</a> - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.bootstrapACLs` to `true`. This token needs to have `operator = "write"` privileges.
+  
+      - <a name="v-connectinject-aclinjecttoken-secretname" href="#v-synccatalog-aclinjecttoken-secretname">secretName </a>`(string: null)` - The name of the Kubernetes secret.
+    
+      - <a name="v-connectinject-aclinjecttoken-secretkey" href="#v-synccatalog-aclinjecttoken-secretkey">secretKey </a>`(string: null)` - The key within the Kubernetes secret that holds the acl token.
+  
 
   * <a name="v-connectinject-centralconfig" href="#v-connectinject-centralconfig">`centralConfig`</a> - Values that configure
   Consul's [central configuration](/docs/agent/config_entries.html) feature (requires Consul v1.5+ and consul-k8s v0.8.1+).
 
-      - <a name="v-connectinject-centralconfig-enabled" href="#v-connectinject-centralconfig-enabled">`enabled`</a> (`boolean: false`) -
+      - <a name="v-connectinject-centralconfig-enabled" href="#v-connectinject-centralconfig-enabled">`enabled`</a> (`boolean: true`) -
       Turns on the central configuration feature. Pods that have a Connect proxy injected will have their service
       automatically registered in this central configuration.
 
