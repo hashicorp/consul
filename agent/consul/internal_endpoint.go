@@ -158,8 +158,11 @@ func (m *Internal) KeyringOperation(
 	reply *structs.KeyringResponses) error {
 
 	// Check ACLs
-	rule, err := m.srv.ResolveToken(args.Token)
+	identity, rule, err := m.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
 	if rule != nil {

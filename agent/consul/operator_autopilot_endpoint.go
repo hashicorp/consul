@@ -15,8 +15,11 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
+		return err
+	}
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
 	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
@@ -44,8 +47,11 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	}
 
 	// This action requires operator write access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
+		return err
+	}
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
 	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
@@ -80,8 +86,11 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *autopil
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
+		return err
+	}
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
 	if rule != nil && rule.OperatorRead(nil) != acl.Allow {

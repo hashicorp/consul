@@ -3694,7 +3694,17 @@ func TestFullConfig(t *testing.T) {
 					"agent_master" : "64fd0e08",
 					"replication" : "5795983a",
 					"agent" : "bed2377c",
-					"default" : "418fdff1"
+					"default" : "418fdff1",
+					"managed_service_provider": [
+						{
+							"accessor_id": "first", 
+							"secret_id": "fb0cee1f-2847-467c-99db-a897cff5fd4d"
+						}, 
+						{
+							"accessor_id": "second", 
+							"secret_id": "1046c8da-e166-4667-897a-aefb343db9db"
+						}
+					]
 				}
 			},
 			"addresses": {
@@ -4302,7 +4312,17 @@ func TestFullConfig(t *testing.T) {
 					agent_master = "64fd0e08",
 					replication = "5795983a",
 					agent = "bed2377c",
-					default = "418fdff1"
+					default = "418fdff1",
+					managed_service_provider = [
+						{
+							accessor_id = "first", 
+							secret_id = "fb0cee1f-2847-467c-99db-a897cff5fd4d"
+						}, 
+						{
+							accessor_id = "second", 
+							secret_id = "1046c8da-e166-4667-897a-aefb343db9db"
+						}
+					]
 				}
 			}
 			addresses = {

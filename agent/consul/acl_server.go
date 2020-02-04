@@ -211,10 +211,14 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
-	return s.acls.ResolveToken(token)
+	_, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
+	return authz, err
 }
 
 func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	if id, authz := s.ResolveEntTokenToIdentityAndAuthorizer(token); id != nil && authz != nil {
+		return id, authz, nil
+	}
 	return s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 }
 

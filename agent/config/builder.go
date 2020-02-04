@@ -1197,12 +1197,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		}
 	}
 
-	if rt.AutoEncryptAllowTLS {
-		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
-		}
-	}
-
 	// ----------------------------------------------------------------
 	// warnings
 	//
@@ -1221,6 +1215,12 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	if rt.ServerMode && !rt.DevMode && !rt.Bootstrap && rt.BootstrapExpect > 1 {
 		b.warn("bootstrap_expect > 0: expecting %d servers", rt.BootstrapExpect)
+	}
+
+	if rt.AutoEncryptAllowTLS {
+		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
+			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
+		}
 	}
 
 	return nil
