@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -56,6 +57,58 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 				return
 			}
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestCAProviderConfig_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *ConsulCAProviderConfig
+		wantErr bool
+		wantMsg string
+	}{
+		{
+			name:    "defaults",
+			cfg:     &ConsulCAProviderConfig{},
+			wantErr: true,
+			wantMsg: "Intermediate Cert TTL must be greater or equal than 3h.",
+		},
+		{
+			name: "intermediate cert ttl too short",
+			cfg: &ConsulCAProviderConfig{
+				CommonCAProviderConfig: CommonCAProviderConfig{LeafCertTTL: 2 * time.Hour},
+				IntermediateCertTTL:    4 * time.Hour,
+			},
+			wantErr: true,
+			wantMsg: "Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL.",
+		},
+		{
+			name: "intermediate cert ttl too short",
+			cfg: &ConsulCAProviderConfig{
+				CommonCAProviderConfig: CommonCAProviderConfig{LeafCertTTL: 5 * time.Hour},
+				IntermediateCertTTL:    15 * time.Hour,
+			},
+			wantErr: true,
+			wantMsg: "Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL.",
+		},
+		{
+			name: "good intermediate and leaf cert TTL",
+			cfg: &ConsulCAProviderConfig{
+				CommonCAProviderConfig: CommonCAProviderConfig{LeafCertTTL: 1 * time.Hour},
+				IntermediateCertTTL:    4 * time.Hour,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.Validate()
+			if err == nil {
+				require.False(t, tt.wantErr)
+				return
+			}
+			require.True(t, strings.HasPrefix(err.Error(), tt.wantMsg))
 		})
 	}
 }

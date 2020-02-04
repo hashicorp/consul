@@ -35,10 +35,6 @@ var (
 	// maxRetryBackoff is the maximum number of seconds to wait between failed blocking
 	// queries when backing off.
 	maxRetryBackoff = 256
-
-	// intermediateCertRenewInterval is the interval at which the expiration
-	// of the intermediate cert is checked and renewed if necessary.
-	intermediateCertRenewInterval = time.Hour
 )
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -643,7 +639,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(intermediateCertRenewInterval):
+		case <-time.After(structs.IntermediateCertRenewInterval):
 			retryLoopBackoff(ctx.Done(), func() error {
 				s.caProviderReconfigurationLock.Lock()
 				defer s.caProviderReconfigurationLock.Unlock()

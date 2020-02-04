@@ -177,7 +177,8 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	t.Parallel()
 
-	intermediateCertRenewInterval = time.Millisecond
+	structs.IntermediateCertRenewInterval = time.Millisecond
+	structs.MinLeafCertTTL = time.Second
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -188,7 +189,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 				"PrivateKey":     "",
 				"RootCert":       "",
 				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "72h",
+				"LeafCertTTL":    "5s",
 				// The retry loop only retries for 7sec max and
 				// the ttl needs to be below so that it
 				// triggers definitely.
