@@ -1,5 +1,9 @@
 import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
+import { env } from '../../../env';
+const shouldHaveNspace = function(nspace) {
+  return typeof nspace !== 'undefined' && env('CONSUL_NSPACES_ENABLED');
+};
 module('Integration | Adapter | policy', function(hooks) {
   setupTest(hooks);
   skip('urlForTranslateRecord returns the correct url', function(assert) {
@@ -24,7 +28,7 @@ module('Integration | Adapter | policy', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
@@ -38,7 +42,7 @@ module('Integration | Adapter | policy', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:policy');
@@ -79,7 +83,7 @@ module('Integration | Adapter | policy', function(hooks) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const expected = `DELETE /v1/acl/policy/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForDeleteRecord(
