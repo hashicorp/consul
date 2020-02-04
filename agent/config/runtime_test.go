@@ -1562,50 +1562,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "managed_service_provider cannot contain empty string",
-			args: []string{`-data-dir=` + dataDir},
-			json: []string{`{ 
-			"acl": {
-				"tokens": { 
-					"managed_service_provider": [
-						{"secret_id": ""}
-					]
-				} 
-			} }`},
-			hcl: []string{`
-			acl = { 
-				tokens = { 
-					managed_service_provider = [
-						{secret_id = ""}
-					]
-				} 
-			}`},
-			err: "acl.tokens.managed_service_provider contains an invalid UUID: \"\"",
-		},
-		{
-			desc: "All tokens in managed_service_provider must be UUIDs",
-			args: []string{`-data-dir=` + dataDir},
-			json: []string{`{ 
-			"acl": {
-				"tokens": { 
-					"managed_service_provider": [
-						{"secret_id": "1802e62f-f3f4-4fd8-8819-fc659509304c"},
-						{"secret_id": "a"}
-					]
-				} 
-			} }`},
-			hcl: []string{`
-			acl = { 
-				tokens = { 
-					managed_service_provider = [
-						{secret_id = "1802e62f-f3f4-4fd8-8819-fc659509304c"}, 
-						{secret_id = "a"}
-					]
-				} 
-			}`},
-			err: "acl.tokens.managed_service_provider contains an invalid UUID",
-		},
-		{
 			desc: "advertise address detect fails v4",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "0.0.0.0"}`},
