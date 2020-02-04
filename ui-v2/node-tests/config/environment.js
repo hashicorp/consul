@@ -19,6 +19,15 @@ test(
         CONSUL_NSPACES_ENABLED: true,
       },
       {
+        $: {
+          CONSUL_NSPACES_ENABLED: 0
+        },
+        environment: 'test',
+        CONSUL_BINARY_TYPE: 'oss',
+        CONSUL_ACLS_ENABLED: true,
+        CONSUL_NSPACES_ENABLED: false,
+      },
+      {
         environment: 'staging',
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: true,
@@ -26,10 +35,17 @@ test(
       }
     ].forEach(
       function(item) {
-        const env = getEnvironment(item.environment);
+        const env = getEnvironment(item.environment, typeof item.$ !== 'undefined' ? item.$ : undefined);
         Object.keys(item).forEach(
           function(key) {
-            t.equal(env[key], item[key], `Expect ${key} to equal ${item[key]} in the ${item.environment} environment`);
+            if(key === '$') {
+              return;
+            }
+            t.equal(
+              env[key],
+              item[key],
+              `Expect ${key} to equal ${item[key]} in the ${item.environment} environment ${typeof item.$ !== 'undefined' ? `(with ${JSON.stringify(item.$)})` : ''}`
+            );
           }
         );
       }
