@@ -305,6 +305,9 @@ type PreparedQueryExecuteResponse struct {
 	// Service is the service that was queried.
 	Service string
 
+	// EnterpriseMeta of the service that was queried.
+	EnterpriseMeta
+
 	// Nodes has the nodes that were output by the query.
 	Nodes CheckServiceNodes
 
