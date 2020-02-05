@@ -357,7 +357,7 @@ func (s *Store) validateProposedConfigEntryInServiceGraph(
 		// somehow omit the ones that have a default protocol configured.
 
 		for _, kind := range serviceGraphKinds {
-			_, entries, err := s.configEntriesByKindTxn(tx, nil, kind, entMeta)
+			_, entries, err := s.configEntriesByKindTxn(tx, nil, kind, structs.WildcardEnterpriseMeta())
 			if err != nil {
 				return err
 			}
