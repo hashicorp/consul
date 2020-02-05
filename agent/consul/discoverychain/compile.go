@@ -554,7 +554,7 @@ func (c *compiler) assembleChain() error {
 		dest := route.Destination
 
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
-		destNamespace := defaultIfEmpty(dest.Namespace, c.evaluateInNamespace)
+		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
 
 		// Check to see if the destination is eligible for splitting.
 		var (
@@ -579,13 +579,13 @@ func (c *compiler) assembleChain() error {
 
 	// If we have a router, we'll add a catch-all route at the end to send
 	// unmatched traffic to the next hop in the chain.
-	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", ""))
+	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), ""))
 	if err != nil {
 		return err
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition: newDefaultServiceRoute(c.serviceName, c.evaluateInNamespace),
+		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault()),
 		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
