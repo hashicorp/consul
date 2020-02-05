@@ -240,6 +240,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							TLSSkipVerify:                  check.Definition.TLSSkipVerify,
 							Header:                         check.Definition.Header,
 							Method:                         check.Definition.Method,
+							Body:                           check.Definition.Body,
 							TCP:                            check.Definition.TCP,
 							Interval:                       interval,
 							Timeout:                        timeout,
