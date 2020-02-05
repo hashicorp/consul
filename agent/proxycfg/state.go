@@ -63,6 +63,35 @@ type state struct {
 	reqCh  chan chan *ConfigSnapshot
 }
 
+func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error) {
+	if ns == nil {
+		return structs.ConnectProxyConfig{}, nil
+	}
+	// Copy the config map
+	proxyCfgRaw, err := copystructure.Copy(ns.Proxy)
+	if err != nil {
+		return structs.ConnectProxyConfig{}, err
+	}
+	proxyCfg, ok := proxyCfgRaw.(structs.ConnectProxyConfig)
+	if !ok {
+		return structs.ConnectProxyConfig{}, errors.New("failed to copy proxy config")
+	}
+
+	// we can safely modify these since we just copied them
+	for idx, _ := range proxyCfg.Upstreams {
+		us := &proxyCfg.Upstreams[idx]
+		if us.DestinationType != structs.UpstreamDestTypePreparedQuery && us.DestinationNamespace == "" {
+			// default the upstreams target namespace to the namespace of the proxy
+			// doing this here prevents needing much more complex logic a bunch of other
+			// places and makes tracking these upstreams simpler as we can dedup them
+			// with the maps tracking upstream ids being watched.
+			proxyCfg.Upstreams[idx].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrDefault()
+		}
+	}
+
+	return proxyCfg, nil
+}
+
 // newState populates the state struct by copying relevant fields from the
 // NodeService and Token. We copy so that we can use them in a separate
 // goroutine later without reasoning about races with the NodeService passed
@@ -75,14 +104,9 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 		return nil, errors.New("not a connect-proxy or mesh-gateway")
 	}
 
-	// Copy the config map
-	proxyCfgRaw, err := copystructure.Copy(ns.Proxy)
+	proxyCfg, err := copyProxyConfig(ns)
 	if err != nil {
 		return nil, err
-	}
-	proxyCfg, ok := proxyCfgRaw.(structs.ConnectProxyConfig)
-	if !ok {
-		return nil, errors.New("failed to copy proxy config")
 	}
 
 	taggedAddresses := make(map[string]structs.ServiceAddress)
@@ -232,8 +256,8 @@ func (s *state) initWatchesConnectProxy() error {
 		return err
 	}
 
-	// let namespace inference happen server side
-	currentNamespace := ""
+	// default the namespace to the namespace of this proxy service
+	currentNamespace := s.proxyID.NamespaceOrDefault()
 
 	// Watch for updates to service endpoints for all upstreams
 	for _, u := range s.proxyCfg.Upstreams {
@@ -889,10 +913,16 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 	if ns == nil {
 		return true
 	}
+
+	proxyCfg, err := copyProxyConfig(ns)
+	if err != nil {
+		s.logger.Warn("Failed to parse proxy config and will treat the new service as unchanged")
+	}
+
 	return ns.Kind != s.kind ||
 		s.proxyID != ns.CompoundServiceID() ||
 		s.address != ns.Address ||
 		s.port != ns.Port ||
-		!reflect.DeepEqual(s.proxyCfg, ns.Proxy) ||
+		!reflect.DeepEqual(s.proxyCfg, proxyCfg) ||
 		s.token != token
 }

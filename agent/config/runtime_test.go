@@ -2207,8 +2207,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
-					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
+					&structs.CheckDefinition{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
+					&structs.CheckDefinition{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2226,7 +2226,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
+					&structs.CheckDefinition{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2244,7 +2244,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Checks = []*structs.CheckDefinition{
-					&structs.CheckDefinition{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize, EnterpriseMeta: *structs.DefaultEnterpriseMeta()},
+					&structs.CheckDefinition{Name: "a", AliasService: "foo", OutputMaxSize: checks.DefaultBufSize},
 				}
 				rt.DataDir = dataDir
 			},
@@ -2271,7 +2271,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Passing: 1,
 							Warning: 1,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 					&structs.ServiceDefinition{
 						Name: "b",
@@ -2281,7 +2280,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Passing: 13,
 							Warning: 1,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 				rt.DataDir = dataDir
@@ -2399,7 +2397,6 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 							Passing: 1,
 							Warning: 1,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 				rt.DataDir = dataDir
@@ -2540,14 +2537,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									Passing: 1,
 									Warning: 1,
 								},
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 							},
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
 							Warning: 1,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 			},
@@ -2671,14 +2666,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 									Passing: 1,
 									Warning: 1,
 								},
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 							},
 						},
 						Weights: &structs.Weights{
 							Passing: 1,
 							Warning: 1,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				}
 			},
@@ -5087,7 +5080,6 @@ func TestFullConfig(t *testing.T) {
 				Timeout:                        1813 * time.Second,
 				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
-				EnterpriseMeta:                 *structs.DefaultEnterpriseMeta(),
 			},
 			&structs.CheckDefinition{
 				ID:         "Cqq95BhP",
@@ -5112,7 +5104,6 @@ func TestFullConfig(t *testing.T) {
 				Timeout:                        18506 * time.Second,
 				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
-				EnterpriseMeta:                 *structs.DefaultEnterpriseMeta(),
 			},
 			&structs.CheckDefinition{
 				ID:         "fZaCAXww",
@@ -5137,7 +5128,6 @@ func TestFullConfig(t *testing.T) {
 				Timeout:                        5954 * time.Second,
 				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
-				EnterpriseMeta:                 *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		CheckUpdateInterval: 16507 * time.Second,
@@ -5324,10 +5314,8 @@ func TestFullConfig(t *testing.T) {
 							Passing: 1,
 							Warning: 1,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:      "MRHVMZuD",
@@ -5387,8 +5375,7 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
 					},
 				},
-				Connect:        &structs.ServiceConnect{},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Connect: &structs.ServiceConnect{},
 			},
 			{
 				ID:   "Kh81CPF6",
@@ -5436,7 +5423,6 @@ func TestFullConfig(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:   "kvVqbwSE",
@@ -5452,7 +5438,6 @@ func TestFullConfig(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				ID:   "dLOXpSCI",
@@ -5548,7 +5533,6 @@ func TestFullConfig(t *testing.T) {
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
 		},
 		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),

@@ -71,6 +71,8 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
 	}
+	ns.EnterpriseMeta.Normalize()
+
 	if s.Connect != nil {
 		ns.Connect = *s.Connect
 	}

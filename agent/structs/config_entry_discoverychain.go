@@ -204,11 +204,15 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 	found := make(map[ServiceID]struct{})
 
 	// We always inject a default catch-all route to the same service as the router.
-	found[NewServiceID(e.Name, &e.EnterpriseMeta)] = struct{}{}
+	svcID := NewServiceID(e.Name, &e.EnterpriseMeta)
+	found[svcID] = struct{}{}
 
 	for _, route := range e.Routes {
-		if route.Destination != nil && route.Destination.Service != "" {
-			found[NewServiceID(route.Destination.Service, route.Destination.GetEnterpriseMeta(&e.EnterpriseMeta))] = struct{}{}
+		if route.Destination != nil {
+			destID := NewServiceID(defaultIfEmpty(route.Destination.Service, e.Name), route.Destination.GetEnterpriseMeta(&e.EnterpriseMeta))
+			if destID != svcID {
+				found[destID] = struct{}{}
+			}
 		}
 	}
 
@@ -527,9 +531,12 @@ func (e *ServiceSplitterConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 func (e *ServiceSplitterConfigEntry) ListRelatedServices() []ServiceID {
 	found := make(map[ServiceID]struct{})
 
+	svcID := NewServiceID(e.Name, &e.EnterpriseMeta)
 	for _, split := range e.Splits {
-		if split.Service != "" {
-			found[NewServiceID(split.Service, split.GetEnterpriseMeta(&e.EnterpriseMeta))] = struct{}{}
+		splitID := NewServiceID(defaultIfEmpty(split.Service, e.Name), split.GetEnterpriseMeta(&e.EnterpriseMeta))
+
+		if splitID != svcID {
+			found[splitID] = struct{}{}
 		}
 	}
 
@@ -830,16 +837,19 @@ func (e *ServiceResolverConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 	found := make(map[ServiceID]struct{})
 
+	svcID := NewServiceID(e.Name, &e.EnterpriseMeta)
 	if e.Redirect != nil {
-		if e.Redirect.Service != "" {
-			found[NewServiceID(e.Redirect.Service, e.Redirect.GetEnterpriseMeta(&e.EnterpriseMeta))] = struct{}{}
+		redirectID := NewServiceID(defaultIfEmpty(e.Redirect.Service, e.Name), e.Redirect.GetEnterpriseMeta(&e.EnterpriseMeta))
+		if redirectID != svcID {
+			found[redirectID] = struct{}{}
 		}
 	}
 
 	if len(e.Failover) > 0 {
 		for _, failover := range e.Failover {
-			if failover.Service != "" {
-				found[NewServiceID(failover.Service, failover.GetEnterpriseMeta(&e.EnterpriseMeta))] = struct{}{}
+			failoverID := NewServiceID(defaultIfEmpty(failover.Service, e.Name), failover.GetEnterpriseMeta(&e.EnterpriseMeta))
+			if failoverID != svcID {
+				found[failoverID] = struct{}{}
 			}
 		}
 	}
@@ -947,8 +957,10 @@ func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer
 }
 
 func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
+	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
+
 	var authzContext acl.AuthorizerContext
-	entry.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+	entryID.FillAuthzContext(&authzContext)
 
 	name := entry.GetName()
 
@@ -957,7 +969,7 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 	}
 
 	for _, svc := range entry.ListRelatedServices() {
-		if svc.ID == name {
+		if entryID == svc {
 			continue
 		}
 
@@ -1192,4 +1204,11 @@ func validateServiceSubset(subset string) error {
 		return fmt.Errorf("must be 63 characters or fewer, begin or end with lower case alphanumeric characters, and contain lower case alphanumeric characters or '-' in between")
 	}
 	return nil
+}
+
+func defaultIfEmpty(val, defaultVal string) string {
+	if val != "" {
+		return val
+	}
+	return defaultVal
 }
