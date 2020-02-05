@@ -37,7 +37,6 @@ export const getAlternateServices = function(targets, a) {
 export const getSplitters = function(nodes) {
   return getNodesByType(nodes, 'splitter').map(function(item) {
     // Splitters need IDs adding so we can find them in the DOM later
-    item.ID = `splitter:${item.Name}`;
     // splitters have a service.nspace as a name
     // do the reverse dance to ensure we don't mess up any
     // serivice names with dots in them
@@ -45,8 +44,11 @@ export const getSplitters = function(nodes) {
     temp.reverse();
     temp.shift();
     temp.reverse();
-    item.Name = temp.join('.');
-    return item;
+    return {
+      ...item,
+      ID: `splitter:${item.Name}`,
+      Name: temp.join('.'),
+    };
   });
 };
 export const getRoutes = function(nodes, uid) {
