@@ -17,17 +17,18 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     And I click actions on the [Listing]
     And I click delete on the [Listing]
     And I click confirmDelete on the [Listing]
-    Then a [Method] request is made to "[URL]"
+    Then a [Method] request was made to "[URL]"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
   Where:
-    ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    | Edit     | Listing     | Method | URL                                                                         | Data                                                                 | Slug                                            |
-    # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                    | {"Name": "something", "ID": "something"}                             | acl: something                                  |
-    | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter&ns=default                                    | ["key-name"]                                                         | kv: key-name                                    |
-    | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter   | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
-    | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=default | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    | Edit     | Listing     | Method | URL                                                                             | Data                                                                 |
+    | kv        | kvs        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                    | ["key-name"]                                                         |
+    | intention | intentions | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter       | {"SourceName": "name", "ID": "ee52203d-989f-4f7a-ab5a-2bef004164ca"} |
+    | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               |
+    | nspace    | nspaces    | DELETE | /v1/namespace/a-namespace                                                       | {"Name": "a-namespace"}                                              |
+    # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                        | {"Name": "something", "ID": "something"}                             |
+    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
     When I visit the [Model] page for yaml
     ---
@@ -36,7 +37,7 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     ---
     And I click delete
     And I click confirmDelete
-    Then a [Method] request is made to "[URL]"
+    Then a [Method] request was made to "[URL]"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
     When I visit the [Model] page for yaml
@@ -50,13 +51,14 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "error" class
   Where:
-    -------------------------------------------------------------------------------------------------------------------------------------------------------
-    | Model     | Method | URL                                                                          | Slug                                            |
+    -----------------------------------------------------------------------------------------------------------------------------------------------------------
+    | Model     | Method | URL                                                                              | Slug                                            |
+    | kv        | DELETE | /v1/kv/key-name?dc=datacenter&ns=@!namespace                                     | kv: key-name                                    |
+    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter        | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
+    | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
+    | nspace    | DELETE | /v1/namespace/a-namespace                                                        | namespace: a-namespace                          |
     # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                      | acl: something                                  |
-      | kv        | DELETE | /v1/kv/key-name?dc=datacenter&ns=default                                   | kv: key-name                                    |
-    | intention | DELETE | /v1/connect/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=datacenter    | intention: ee52203d-989f-4f7a-ab5a-2bef004164ca |
-    | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=default  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    -------------------------------------------------------------------------------------------------------------------------------------------------------
+    -----------------------------------------------------------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Sort out the wide tables ^
     Then ok

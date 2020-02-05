@@ -20,28 +20,30 @@ func (c *consulCAMockDelegate) State() *state.Store {
 	return c.state
 }
 
-func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) error {
+func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
 	idx, _, err := c.state.CAConfig(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch req.Op {
 	case structs.CAOpSetProviderState:
 		_, err := c.state.CASetProviderState(idx+1, req.ProviderState)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return true, nil
 	case structs.CAOpDeleteProviderState:
 		if err := c.state.CADeleteProviderState(req.ProviderState.ID); err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return true, nil
+	case structs.CAOpIncrementProviderSerialNumber:
+		return uint64(2), nil
 	default:
-		return fmt.Errorf("Invalid CA operation '%s'", req.Op)
+		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }
 
@@ -66,7 +68,8 @@ func testConsulCAConfig() *structs.CAConfiguration {
 		Provider:  "consul",
 		Config: map[string]interface{}{
 			// Tests duration parsing after msgpack type mangling during raft apply.
-			"LeafCertTTL": []uint8("72h"),
+			"LeafCertTTL":         []uint8("72h"),
+			"IntermediateCertTTL": []uint8("72h"),
 		},
 	}
 }
@@ -171,8 +174,11 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
-				require.Equal(connect.ServiceCN("foo", connect.TestClusterID), parsed.Subject.CommonName)
+				require.Equal(connect.ServiceCN("foo", "default", connect.TestClusterID), parsed.Subject.CommonName)
 				require.Equal(uint64(2), parsed.SerialNumber.Uint64())
+				subjectKeyID, err := connect.KeyId(csr.PublicKey)
+				require.NoError(err)
+				require.Equal(subjectKeyID, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
 
@@ -197,7 +203,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
-				require.Equal(connect.ServiceCN("bar", connect.TestClusterID), parsed.Subject.CommonName)
+				require.Equal(connect.ServiceCN("bar", "default", connect.TestClusterID), parsed.Subject.CommonName)
 				require.Equal(parsed.SerialNumber.Uint64(), uint64(2))
 				requireNotEncoded(t, parsed.SubjectKeyId)
 				requireNotEncoded(t, parsed.AuthorityKeyId)
@@ -452,7 +458,7 @@ func TestConsulCAProvider_MigrateOldID(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 
 	// Create an entry with an old-style ID.
-	err := delegate.ApplyCARequest(&structs.CARequest{
+	_, err := delegate.ApplyCARequest(&structs.CARequest{
 		Op: structs.CAOpSetProviderState,
 		ProviderState: &structs.CAConsulProviderState{
 			ID: ",",

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
 	"google.golang.org/grpc"
@@ -42,7 +43,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
-	"github.com/hashicorp/consul/logger"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-multierror"
@@ -137,6 +138,7 @@ type delegate interface {
 	RemoveFailedNode(node string, prune bool) error
 	ResolveToken(secretID string) (acl.Authorizer, error)
 	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+	ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error)
 	RPC(method string, args interface{}, reply interface{}) error
 	ACLsEnabled() bool
 	UseLegacyACLs() bool
@@ -152,7 +154,7 @@ type notifier interface {
 	Notify(string) error
 }
 
-// The agent is the long running process that is run on every machine.
+// Agent is the long running process that is run on every machine.
 // It exposes an RPC interface that is used by the CLI to control the
 // agent. The agent runs the query interfaces like HTTP, DNS, and RPC.
 // However, it can run in either a client, or server mode. In server
@@ -163,13 +165,10 @@ type Agent struct {
 	config *config.RuntimeConfig
 
 	// Used for writing our logs
-	logger *log.Logger
+	logger hclog.InterceptLogger
 
 	// Output sink for logs
 	LogOutput io.Writer
-
-	// Used for streaming logs to
-	LogWriter *logger.LogWriter
 
 	// In-memory sink used for collecting metrics
 	MemSink *metrics.InmemSink
@@ -307,9 +306,15 @@ type Agent struct {
 	// store within the data directory. This will prevent loading while writing as
 	// well as multiple concurrent writes.
 	persistedTokensLock sync.RWMutex
+
+	// httpConnLimiter is used to limit connections to the HTTP server by client
+	// IP.
+	httpConnLimiter connlimit.Limiter
 }
 
-func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
+// New verifies the configuration given has a Datacenter and DataDir
+// configured, and maps the remaining config fields to fields on the Agent.
+func New(c *config.RuntimeConfig, logger hclog.InterceptLogger) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
@@ -353,6 +358,7 @@ func New(c *config.RuntimeConfig, logger *log.Logger) (*Agent, error) {
 	return &a, nil
 }
 
+// LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
 func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	lc := local.Config{
 		AdvertiseAddr:       cfg.AdvertiseAddrLAN.String(),
@@ -369,6 +375,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 	return lc
 }
 
+// Start verifies its configuration and runs an agent's various subprocesses.
 func (a *Agent) Start() error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -377,18 +384,23 @@ func (a *Agent) Start() error {
 
 	// Warn if the node name is incompatible with DNS
 	if InvalidDnsRe.MatchString(a.config.NodeName) {
-		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
+		a.logger.Warn("Node name will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.", a.config.NodeName)
+			"all alpha-numerics and dashes.",
+			"node_name", a.config.NodeName,
+		)
 	} else if len(a.config.NodeName) > MaxDNSLabelLength {
-		a.logger.Printf("[WARN] agent: Node name %q will not be discoverable "+
+		a.logger.Warn("Node name will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.", a.config.NodeName)
+			"1 and 63 bytes.",
+			"node_name", a.config.NodeName,
+		)
 	}
 
 	// load the tokens - this requires the logger to be setup
 	// which is why we can't do this in New
 	a.loadTokens(a.config)
+	a.loadEnterpriseTokens(a.config)
 
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
@@ -460,7 +472,7 @@ func (a *Agent) Start() error {
 		if err = a.setupClientAutoEncryptWatching(rootsReq, leafReq); err != nil {
 			return fmt.Errorf("AutoEncrypt failed: %s", err)
 		}
-		a.logger.Printf("[INFO] AutoEncrypt: upgraded to TLS")
+		a.logger.Info("automatically upgraded to TLS")
 	}
 
 	a.serviceManager.Start()
@@ -479,7 +491,7 @@ func (a *Agent) Start() error {
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
-		Logger: a.logger,
+		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
 			Node:       a.config.NodeName,
@@ -492,7 +504,7 @@ func (a *Agent) Start() error {
 	}
 	go func() {
 		if err := a.proxyConfig.Run(); err != nil {
-			a.logger.Printf("[ERR] Proxy Config Manager exited: %s", err)
+			a.logger.Error("proxy config manager exited with error", "error", err)
 		}
 	}()
 
@@ -517,6 +529,11 @@ func (a *Agent) Start() error {
 	if err := a.listenAndServeDNS(); err != nil {
 		return err
 	}
+
+	// Configure the http connection limiter.
+	a.httpConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: a.config.HTTPMaxConnsPerClient,
+	})
 
 	// Create listeners and unstarted servers; see comment on listenHTTP why
 	// we are doing this.
@@ -592,6 +609,8 @@ func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*str
 		Datacenter: a.config.Datacenter,
 		Token:      a.tokens.AgentToken(),
 		Agent:      a.config.NodeName,
+		DNSSAN:     a.config.AutoEncryptDNSSAN,
+		IPSAN:      a.config.AutoEncryptIPSAN,
 	}
 
 	// prepolutate leaf cache
@@ -636,7 +655,10 @@ func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificReque
 					roots, ok := u.Result.(*structs.IndexedCARoots)
 					if !ok {
 						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
-						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						a.logger.Error("watch error for correlation id",
+							"correlation_id", u.CorrelationID,
+							"error", err,
+						)
 						continue
 					}
 					pems := []string{}
@@ -648,7 +670,10 @@ func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificReque
 					leaf, ok := u.Result.(*structs.IssuedCert)
 					if !ok {
 						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
-						a.logger.Printf("[ERR] %s watch error: %s", u.CorrelationID, err)
+						a.logger.Error("watch error for correlation id",
+							"correlation_id", u.CorrelationID,
+							"error", err,
+						)
 						continue
 					}
 					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
@@ -671,25 +696,26 @@ func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificReque
 			// renew, but this case shouldn't happen because at
 			// this point, auto_encrypt was just being setup
 			// successfully.
+			autoLogger := a.logger.Named(logging.AutoEncrypt)
 			interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
-			a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expiration check in %s", interval)
+			a.logger.Debug("setting up client certificate expiration check on interval", "interval", interval)
 			select {
 			case <-a.shutdownCh:
 				return
 			case <-time.After(interval):
 				// check auto encrypt client cert expiration
 				if a.tlsConfigurator.AutoEncryptCertExpired() {
-					a.logger.Printf("[DEBUG] AutoEncrypt: client certificate expired.")
+					autoLogger.Debug("client certificate expired.")
 					reply, err := a.setupClientAutoEncrypt()
 					if err != nil {
-						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to renew: %s", err)
+						autoLogger.Error("client certificate expired, failed to renew", "error", err)
 						// in case of an error, try again in one minute
 						interval = time.Minute
 						continue
 					}
 					_, _, err = a.setupClientAutoEncryptCache(reply)
 					if err != nil {
-						a.logger.Printf("[ERR] AutoEncrypt: client certificate expired, failed to populate cache: %s", err)
+						autoLogger.Error("client certificate expired, failed to populate cache", "error", err)
 						// in case of an error, try again in one minute
 						interval = time.Minute
 						continue
@@ -721,9 +747,9 @@ func (a *Agent) listenAndServeGRPC() error {
 	if a.config.HTTPSPort > 0 {
 		// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is
 		// enabled then gRPC will require HTTPS as well.
-		a.grpcServer, err = a.xdsServer.GRPCServer(a.config.CertFile, a.config.KeyFile)
+		a.grpcServer, err = a.xdsServer.GRPCServer(a.tlsConfigurator)
 	} else {
-		a.grpcServer, err = a.xdsServer.GRPCServer("", "")
+		a.grpcServer, err = a.xdsServer.GRPCServer(nil)
 	}
 	if err != nil {
 		return err
@@ -736,11 +762,13 @@ func (a *Agent) listenAndServeGRPC() error {
 
 	for _, l := range ln {
 		go func(innerL net.Listener) {
-			a.logger.Printf("[INFO] agent: Started gRPC server on %s (%s)",
-				innerL.Addr().String(), innerL.Addr().Network())
+			a.logger.Info("Started gRPC server",
+				"address", innerL.Addr().String(),
+				"network", innerL.Addr().Network(),
+			)
 			err := a.grpcServer.Serve(innerL)
 			if err != nil {
-				a.logger.Printf("[ERR] gRPC server failed: %s", err)
+				a.logger.Error("gRPC server failed", "error", err)
 			}
 		}(l)
 	}
@@ -775,7 +803,10 @@ func (a *Agent) listenAndServeDNS() error {
 	for range a.config.DNSAddrs {
 		select {
 		case addr := <-notif:
-			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", addr.String(), addr.Network())
+			a.logger.Info("Started DNS server",
+				"address", addr.String(),
+				"network", addr.Network(),
+			)
 
 		case err := <-errCh:
 			merr = multierror.Append(merr, err)
@@ -846,6 +877,7 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
+
 			srv := &HTTPServer{
 				Server: &http.Server{
 					Addr:      l.Addr().String(),
@@ -858,13 +890,37 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 			}
 			srv.Server.Handler = srv.handler(a.config.EnableDebug)
 
-			// This will enable upgrading connections to HTTP/2 as
-			// part of TLS negotiation.
+			// Load the connlimit helper into the server
+			connLimitFn := a.httpConnLimiter.HTTPConnStateFunc()
+
 			if proto == "https" {
+				// Enforce TLS handshake timeout
+				srv.Server.ConnState = func(conn net.Conn, state http.ConnState) {
+					switch state {
+					case http.StateNew:
+						// Set deadline to prevent slow send before TLS handshake or first
+						// byte of request.
+						conn.SetReadDeadline(time.Now().Add(a.config.HTTPSHandshakeTimeout))
+					case http.StateActive:
+						// Clear read deadline. We should maybe set read timeouts more
+						// generally but that's a bigger task as some HTTP endpoints may
+						// stream large requests and responses (e.g. snapshot) so we can't
+						// set sensible blanket timeouts here.
+						conn.SetReadDeadline(time.Time{})
+					}
+					// Pass through to conn limit. This is OK because we didn't change
+					// state (i.e. Close conn).
+					connLimitFn(conn, state)
+				}
+
+				// This will enable upgrading connections to HTTP/2 as
+				// part of TLS negotiation.
 				err = http2.ConfigureServer(srv.Server, nil)
 				if err != nil {
 					return err
 				}
+			} else {
+				srv.Server.ConnState = connLimitFn
 			}
 
 			ln = append(ln, l)
@@ -906,7 +962,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 
 func (a *Agent) listenSocket(path string) (net.Listener, error) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		a.logger.Printf("[WARN] agent: Replacing socket %q", path)
+		a.logger.Warn("Replacing socket", "path", path)
 	}
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("error removing socket file: %s", err)
@@ -936,16 +992,22 @@ func (a *Agent) serveHTTP(srv *HTTPServer) error {
 		notif <- srv.ln.Addr()
 		err := srv.Serve(srv.ln)
 		if err != nil && err != http.ErrServerClosed {
-			a.logger.Print(err)
+			a.logger.Error("error closing server", "error", err)
 		}
 	}()
 
 	select {
 	case addr := <-notif:
 		if srv.proto == "https" {
-			a.logger.Printf("[INFO] agent: Started HTTPS server on %s (%s)", addr.String(), addr.Network())
+			a.logger.Info("Started HTTPS server",
+				"address", addr.String(),
+				"network", addr.Network(),
+			)
 		} else {
-			a.logger.Printf("[INFO] agent: Started HTTP server on %s (%s)", addr.String(), addr.Network())
+			a.logger.Info("Started HTTP server",
+				"address", addr.String(),
+				"network", addr.Network(),
+			)
 		}
 		return nil
 	case <-time.After(time.Second):
@@ -1001,7 +1063,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 		handler, hasHandler := wp.Exempt["handler"]
 		args, hasArgs := wp.Exempt["args"]
 		if hasHandler {
-			a.logger.Printf("[WARN] agent: The 'handler' field in watches has been deprecated " +
+			a.logger.Warn("The 'handler' field in watches has been deprecated " +
 				"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
 		}
 		if _, ok := handler.(string); hasHandler && !ok {
@@ -1036,19 +1098,19 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	for _, wp := range watchPlans {
 		config, err := a.config.APIConfig(true)
 		if err != nil {
-			a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
+			a.logger.Error("Failed to run watch", "error", err)
 			continue
 		}
 
 		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
 			if h, ok := wp.Exempt["handler"]; ok {
-				wp.Handler = makeWatchHandler(a.LogOutput, h)
+				wp.Handler = makeWatchHandler(a.logger, h)
 			} else if h, ok := wp.Exempt["args"]; ok {
-				wp.Handler = makeWatchHandler(a.LogOutput, h)
+				wp.Handler = makeWatchHandler(a.logger, h)
 			} else {
 				httpConfig := wp.Exempt["http_handler_config"].(*watch.HttpHandlerConfig)
-				wp.Handler = makeHTTPWatchHandler(a.LogOutput, httpConfig)
+				wp.Handler = makeHTTPWatchHandler(a.logger, httpConfig)
 			}
 			wp.LogOutput = a.LogOutput
 
@@ -1058,7 +1120,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 
 			if err := wp.RunWithConfig(addr, config); err != nil {
-				a.logger.Printf("[ERR] agent: Failed to run watch: %v", err)
+				a.logger.Error("Failed to run watch", "error", err)
 			}
 		}(wp)
 	}
@@ -1226,10 +1288,18 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.RPCMaxBurst = a.config.RPCMaxBurst
 	}
 
-	// RPC-related performance configs.
-	if a.config.RPCHoldTimeout > 0 {
-		base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	// RPC timeouts/limits.
+	if a.config.RPCHandshakeTimeout > 0 {
+		base.RPCHandshakeTimeout = a.config.RPCHandshakeTimeout
 	}
+	if a.config.RPCMaxConnsPerClient > 0 {
+		base.RPCMaxConnsPerClient = a.config.RPCMaxConnsPerClient
+	}
+
+	// RPC-related performance configs. We allow explicit zero value to disable so
+	// copy it whatever the value.
+	base.RPCHoldTimeout = a.config.RPCHoldTimeout
+
 	if a.config.LeaveDrainTime > 0 {
 		base.LeaveDrainTime = a.config.LeaveDrainTime
 	}
@@ -1263,6 +1333,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.TLSMinVersion = a.config.TLSMinVersion
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
+	base.DefaultQueryTime = a.config.DefaultQueryTime
+	base.MaxQueryTime = a.config.MaxQueryTime
 
 	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
 
@@ -1287,7 +1359,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 				// If the tried to specify an ID but typoed it don't ignore as they will
 				// then bootstrap with a new ID and have to throw away the whole cluster
 				// and start again.
-				a.logger.Println("[ERR] connect CA config cluster_id specified but " +
+				a.logger.Error("connect CA config cluster_id specified but " +
 					"is not a valid UUID, aborting startup")
 				return nil, fmt.Errorf("cluster_id was supplied but was not a valid UUID")
 			}
@@ -1378,7 +1450,7 @@ func (a *Agent) makeRandomID() (string, error) {
 		return "", err
 	}
 
-	a.logger.Printf("[DEBUG] agent: Using random ID %q as node ID", id)
+	a.logger.Debug("Using random ID as node ID", "id", id)
 	return id, nil
 }
 
@@ -1396,7 +1468,7 @@ func (a *Agent) makeNodeID() (string, error) {
 	// Try to get a stable ID associated with the host itself.
 	info, err := host.Info()
 	if err != nil {
-		a.logger.Printf("[DEBUG] agent: Couldn't get a unique ID from the host: %v", err)
+		a.logger.Debug("Couldn't get a unique ID from the host", "error", err)
 		return a.makeRandomID()
 	}
 
@@ -1404,8 +1476,10 @@ func (a *Agent) makeNodeID() (string, error) {
 	// control over this process.
 	id := strings.ToLower(info.HostID)
 	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Printf("[DEBUG] agent: Unique ID %q from host isn't formatted as a UUID: %v",
-			id, err)
+		a.logger.Debug("Unique ID from host isn't formatted as a UUID",
+			"id", id,
+			"error", err,
+		)
 		return a.makeRandomID()
 	}
 
@@ -1420,7 +1494,7 @@ func (a *Agent) makeNodeID() (string, error) {
 		buf[8:10],
 		buf[10:16])
 
-	a.logger.Printf("[DEBUG] agent: Using unique ID %q from host as node ID", id)
+	a.logger.Debug("Using unique ID from host as node ID", "id", id)
 	return id, nil
 }
 
@@ -1629,7 +1703,7 @@ func (a *Agent) ShutdownAgent() error {
 	if a.shutdown {
 		return nil
 	}
-	a.logger.Println("[INFO] agent: Requesting shutdown")
+	a.logger.Info("Requesting shutdown")
 
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
@@ -1680,18 +1754,18 @@ func (a *Agent) ShutdownAgent() error {
 	if a.delegate != nil {
 		err = a.delegate.Shutdown()
 		if _, ok := a.delegate.(*consul.Server); ok {
-			a.logger.Print("[INFO] agent: consul server down")
+			a.logger.Info("consul server down")
 		} else {
-			a.logger.Print("[INFO] agent: consul client down")
+			a.logger.Info("consul client down")
 		}
 	}
 
 	pidErr := a.deletePid()
 	if pidErr != nil {
-		a.logger.Println("[WARN] agent: could not delete pid file ", pidErr)
+		a.logger.Warn("could not delete pid file", "error", pidErr)
 	}
 
-	a.logger.Println("[INFO] agent: shutdown complete")
+	a.logger.Info("shutdown complete")
 	a.shutdown = true
 	close(a.shutdownCh)
 	return err
@@ -1709,26 +1783,38 @@ func (a *Agent) ShutdownEndpoints() {
 
 	for _, srv := range a.dnsServers {
 		if srv.Server != nil {
-			a.logger.Printf("[INFO] agent: Stopping DNS server %s (%s)", srv.Server.Addr, srv.Server.Net)
+			a.logger.Info("Stopping server",
+				"protocol", "DNS",
+				"address", srv.Server.Addr,
+				"network", srv.Server.Net,
+			)
 			srv.Shutdown()
 		}
 	}
 	a.dnsServers = nil
 
 	for _, srv := range a.httpServers {
-		a.logger.Printf("[INFO] agent: Stopping %s server %s (%s)", strings.ToUpper(srv.proto), srv.ln.Addr().String(), srv.ln.Addr().Network())
+		a.logger.Info("Stopping server",
+			"protocol", strings.ToUpper(srv.proto),
+			"address", srv.ln.Addr().String(),
+			"network", srv.ln.Addr().Network(),
+		)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)
 		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s (%s)", strings.ToUpper(srv.proto), srv.ln.Addr().String(), srv.ln.Addr().Network())
+			a.logger.Warn("Timeout stopping server",
+				"protocol", strings.ToUpper(srv.proto),
+				"address", srv.ln.Addr().String(),
+				"network", srv.ln.Addr().Network(),
+			)
 		}
 	}
 	a.httpServers = nil
 
-	a.logger.Println("[INFO] agent: Waiting for endpoints to shut down")
+	a.logger.Info("Waiting for endpoints to shut down")
 	a.wgServers.Wait()
-	a.logger.Print("[INFO] agent: Endpoints down")
+	a.logger.Info("Endpoints down")
 }
 
 // ReloadCh is used to return a channel that can be
@@ -1751,46 +1837,55 @@ func (a *Agent) ShutdownCh() <-chan struct{} {
 
 // JoinLAN is used to have the agent join a LAN cluster
 func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
-	a.logger.Printf("[INFO] agent: (LAN) joining: %v", addrs)
+	a.logger.Info("(LAN) joining", "lan_addresses", addrs)
 	n, err = a.delegate.JoinLAN(addrs)
 	if err == nil {
-		a.logger.Printf("[INFO] agent: (LAN) joined: %d", n)
+		a.logger.Info("(LAN) joined", "number_of_nodes", n)
 		if a.joinLANNotifier != nil {
 			if notifErr := a.joinLANNotifier.Notify(systemd.Ready); notifErr != nil {
-				a.logger.Printf("[DEBUG] agent: systemd notify failed: %v", notifErr)
+				a.logger.Debug("systemd notify failed", "error", notifErr)
 			}
 		}
 	} else {
-		a.logger.Printf("[WARN] agent: (LAN) couldn't join: %d Err: %v", n, err)
+		a.logger.Warn("(LAN) couldn't join",
+			"number_of_nodes", n,
+			"error", err,
+		)
 	}
 	return
 }
 
 // JoinWAN is used to have the agent join a WAN cluster
 func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
-	a.logger.Printf("[INFO] agent: (WAN) joining: %v", addrs)
+	a.logger.Info("(WAN) joining", "wan_addresses", addrs)
 	if srv, ok := a.delegate.(*consul.Server); ok {
 		n, err = srv.JoinWAN(addrs)
 	} else {
 		err = fmt.Errorf("Must be a server to join WAN cluster")
 	}
 	if err == nil {
-		a.logger.Printf("[INFO] agent: (WAN) joined: %d", n)
+		a.logger.Info("(WAN) joined", "number_of_nodes", n)
 	} else {
-		a.logger.Printf("[WARN] agent: (WAN) couldn't join: %d Err: %v", n, err)
+		a.logger.Warn("(WAN) couldn't join",
+			"number_of_nodes", n,
+			"error", err,
+		)
 	}
 	return
 }
 
 // ForceLeave is used to remove a failed node from the cluster
 func (a *Agent) ForceLeave(node string, prune bool) (err error) {
-	a.logger.Printf("[INFO] agent: Force leaving node: %v", node)
+	a.logger.Info("Force leaving node", "node", node)
 	if ok := a.IsMember(node); !ok {
 		return fmt.Errorf("agent: No node found with name '%s'", node)
 	}
 	err = a.delegate.RemoveFailedNode(node, prune)
 	if err != nil {
-		a.logger.Printf("[WARN] agent: Failed to remove node: %v", err)
+		a.logger.Warn("Failed to remove node",
+			"node", node,
+			"error", err,
+		)
 	}
 	return err
 }
@@ -1829,7 +1924,7 @@ func (a *Agent) IsMember(nodeName string) bool {
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
 	go a.sync.Run()
-	a.logger.Printf("[INFO] agent: started state syncer")
+	a.logger.Info("started state syncer")
 }
 
 // PauseSync is used to pause anti-entropy while bulk changes are made. It also
@@ -1873,7 +1968,7 @@ func (a *Agent) ResumeSync() {
 	}
 }
 
-// syncPausedCh returns either a channel or nil. If nil sync is not paused. If
+// SyncPausedCh returns either a channel or nil. If nil sync is not paused. If
 // non-nil, the channel will be closed when sync resumes.
 func (a *Agent) SyncPausedCh() <-chan struct{} {
 	a.syncMu.Lock()
@@ -1902,34 +1997,38 @@ OUTER:
 			members := a.LANMembers()
 			grok, err := consul.CanServersUnderstandProtocol(members, 3)
 			if err != nil {
-				a.logger.Printf("[ERR] agent: Failed to check servers: %s", err)
+				a.logger.Error("Failed to check servers", "error", err)
 				continue
 			}
 			if !grok {
-				a.logger.Printf("[DEBUG] agent: Skipping coordinate updates until servers are upgraded")
+				a.logger.Debug("Skipping coordinate updates until servers are upgraded")
 				continue
 			}
 
 			cs, err := a.GetLANCoordinate()
 			if err != nil {
-				a.logger.Printf("[ERR] agent: Failed to get coordinate: %s", err)
+				a.logger.Error("Failed to get coordinate", "error", err)
 				continue
 			}
 
 			for segment, coord := range cs {
+				agentToken := a.tokens.AgentToken()
 				req := structs.CoordinateUpdateRequest{
 					Datacenter:   a.config.Datacenter,
 					Node:         a.config.NodeName,
 					Segment:      segment,
 					Coord:        coord,
-					WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
+					WriteRequest: structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
+				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
+				// todo(kit) handle acl.ErrNotFound cases here in the future
 				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
-						a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+						accessorID := a.aclAccessorID(agentToken)
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
 					} else {
-						a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+						a.logger.Error("Coordinate update error", "error", err)
 					}
 					continue OUTER
 				}
@@ -1968,11 +2067,15 @@ func (a *Agent) reapServicesInternal() {
 		if timeout > 0 && cs.CriticalFor() > timeout {
 			reaped[serviceID] = true
 			if err := a.RemoveService(serviceID); err != nil {
-				a.logger.Printf("[ERR] agent: unable to deregister service %q after check %q has been critical for too long: %s",
-					serviceID, checkID, err)
+				a.logger.Error("unable to deregister service after check has been critical for too long",
+					"service", serviceID.String(),
+					"check", checkID.String(),
+					"error", err)
 			} else {
-				a.logger.Printf("[INFO] agent: Check %q for service %q has been critical for too long; deregistered service",
-					checkID, serviceID)
+				a.logger.Info("Check for service has been critical for too long; deregistered service",
+					"service", serviceID.String(),
+					"check", checkID.String(),
+				)
 			}
 		}
 	}
@@ -2119,7 +2222,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 
 		// Skip all partially written temporary files
 		if strings.HasSuffix(fi.Name(), "tmp") {
-			a.logger.Printf("[WARN] agent: Ignoring temporary service config file %v", fi.Name())
+			a.logger.Warn("Ignoring temporary service config file", "file", fi.Name())
 			continue
 		}
 
@@ -2133,7 +2236,10 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 		// Try decoding the service config definition
 		var p persistedServiceConfig
 		if err := json.Unmarshal(buf, &p); err != nil {
-			a.logger.Printf("[ERR] agent: Failed decoding service config file %q: %s", file, err)
+			a.logger.Error("Failed decoding service config file",
+				"file", file,
+				"error", err,
+			)
 			continue
 		}
 		out[structs.NewServiceID(p.ServiceID, &p.EnterpriseMeta)] = p.Defaults
@@ -2256,6 +2362,26 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	a.PauseSync()
 	defer a.ResumeSync()
 
+	// Set default tagged addresses
+	serviceIP := net.ParseIP(service.Address)
+	serviceAddressIs4 := serviceIP != nil && serviceIP.To4() != nil
+	serviceAddressIs6 := serviceIP != nil && serviceIP.To4() == nil
+	if service.TaggedAddresses == nil {
+		service.TaggedAddresses = map[string]structs.ServiceAddress{}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; !ok && serviceAddressIs4 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; !ok && serviceAddressIs4 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv4] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; !ok && serviceAddressIs6 {
+		service.TaggedAddresses[structs.TaggedAddressLANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+	if _, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv6]; !ok && serviceAddressIs6 {
+		service.TaggedAddresses[structs.TaggedAddressWANIPv6] = structs.ServiceAddress{Address: service.Address, Port: service.Port}
+	}
+
 	// Take a snapshot of the current state of checks (if any), and when adding
 	// a check that already existed carry over the state before resuming
 	// anti-entropy.
@@ -2361,7 +2487,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	if service.Proxy.Expose.Checks {
 		err := a.rerouteExposedChecks(psid, service.Proxy.LocalServiceAddress)
 		if err != nil {
-			a.logger.Println("[WARN] failed to reroute L7 checks to exposed proxy listener")
+			a.logger.Warn("failed to reroute L7 checks to exposed proxy listener")
 		}
 	} else {
 		// Reset check targets if proxy was re-registered but no longer wants to expose checks
@@ -2429,25 +2555,61 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 
 	// Warn if the service name is incompatible with DNS
 	if InvalidDnsRe.MatchString(service.Service) {
-		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.", service.Service)
+			"all alpha-numerics and dashes.",
+			"service", service.Service,
+		)
 	} else if len(service.Service) > MaxDNSLabelLength {
-		a.logger.Printf("[WARN] agent: Service name %q will not be discoverable "+
+		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.", service.Service)
+			"1 and 63 bytes.",
+			"service", service.Service,
+		)
 	}
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if InvalidDnsRe.MatchString(tag) {
-			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
-				"all alpha-numerics and dashes.", tag)
+				"all alpha-numerics and dashes.",
+				"tag", tag,
+			)
 		} else if len(tag) > MaxDNSLabelLength {
-			a.logger.Printf("[DEBUG] agent: Service tag %q will not be discoverable "+
+			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
-				"1 and 63 bytes.", tag)
+				"1 and 63 bytes.",
+				"tag", tag,
+			)
+		}
+	}
+
+	// Check IPv4/IPv6 tagged addresses
+	if service.TaggedAddresses != nil {
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv4]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv4 address", structs.TaggedAddressLANIPv4)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressWANIPv4]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() == nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv4 address", structs.TaggedAddressWANIPv4)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() != nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv6 address", structs.TaggedAddressLANIPv6)
+			}
+		}
+		if sa, ok := service.TaggedAddresses[structs.TaggedAddressLANIPv6]; ok {
+			ip := net.ParseIP(sa.Address)
+			if ip == nil || ip.To4() != nil {
+				return fmt.Errorf("Service tagged address %q must be a valid ipv6 address", structs.TaggedAddressLANIPv6)
+			}
 		}
 	}
 
@@ -2459,23 +2621,41 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 func (a *Agent) cleanupRegistration(serviceIDs []structs.ServiceID, checksIDs []structs.CheckID) {
 	for _, s := range serviceIDs {
 		if err := a.State.RemoveService(s); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to remove service %s: %s", s, err)
+			a.logger.Error("failed to remove service during cleanup",
+				"service", s.String(),
+				"error", err,
+			)
 		}
 		if err := a.purgeService(s); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge service %s file: %s", s, err)
+			a.logger.Error("failed to purge service file during cleanup",
+				"service", s.String(),
+				"error", err,
+			)
 		}
 		if err := a.purgeServiceConfig(s); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge service config %s file: %s", s, err)
+			a.logger.Error("failed to purge service config file during cleanup",
+				"service", s,
+				"error", err,
+			)
+		}
+		if err := a.removeServiceSidecars(s, true); err != nil {
+			a.logger.Error("service registration: cleanup: failed remove sidecars for", "service", s, "error", err)
 		}
 	}
 
 	for _, c := range checksIDs {
 		a.cancelCheckMonitors(c)
 		if err := a.State.RemoveCheck(c); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to remove check %s: %s", c, err)
+			a.logger.Error("failed to remove check during cleanup",
+				"check", c.String(),
+				"error", err,
+			)
 		}
 		if err := a.purgeCheck(c); err != nil {
-			a.logger.Printf("[ERR] consul: service registration: cleanup: failed to purge check %s file: %s", c, err)
+			a.logger.Error("failed to purge check file during cleanup",
+				"check", c.String(),
+				"error", err,
+			)
 		}
 	}
 }
@@ -2523,7 +2703,10 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 
 	// Remove service immediately
 	if err := a.State.RemoveServiceWithChecks(serviceID, checkIDs); err != nil {
-		a.logger.Printf("[WARN] agent: Failed to deregister service %q: %s", serviceID, err)
+		a.logger.Warn("Failed to deregister service",
+			"service", serviceID.String(),
+			"error", err,
+		)
 		return nil
 	}
 
@@ -2544,9 +2727,13 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 		}
 	}
 
-	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID.String())
+	a.logger.Debug("removed service", "service", serviceID.String())
 
 	// If any Sidecar services exist for the removed service ID, remove them too.
+	return a.removeServiceSidecars(serviceID, persist)
+}
+
+func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
 	var sidecarSID structs.ServiceID
 	sidecarSID.Init(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
@@ -2694,8 +2881,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			// Restore persisted state, if any
 			if err := a.loadCheckState(check); err != nil {
-				a.logger.Printf("[WARN] agent: failed restoring state for check %q: %s",
-					cid, err)
+				a.logger.Warn("failed restoring state for check",
+					"check", cid.String(),
+					"error", err,
+				)
 			}
 
 			ttl.Start()
@@ -2707,8 +2896,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkHTTPs, cid)
 			}
 			if chkType.Interval < checks.MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					cid, checks.MinInterval))
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
 				chkType.Interval = checks.MinInterval
 			}
 
@@ -2732,7 +2923,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			if proxy != nil && proxy.Proxy.Expose.Checks {
 				port, err := a.listenerPortLocked(sid, cid)
 				if err != nil {
-					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
+					a.logger.Error("error exposing check",
+						"check", cid.String(),
+						"error", err,
+					)
 					return err
 				}
 				http.ProxyHTTP = httpInjectAddr(http.HTTP, proxy.Proxy.LocalServiceAddress, port)
@@ -2747,8 +2941,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkTCPs, cid)
 			}
 			if chkType.Interval < checks.MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					cid, checks.MinInterval))
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
 				chkType.Interval = checks.MinInterval
 			}
 
@@ -2770,8 +2966,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkGRPCs, cid)
 			}
 			if chkType.Interval < checks.MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					cid, checks.MinInterval))
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
 				chkType.Interval = checks.MinInterval
 			}
 
@@ -2794,7 +2992,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			if proxy != nil && proxy.Proxy.Expose.Checks {
 				port, err := a.listenerPortLocked(sid, cid)
 				if err != nil {
-					a.logger.Printf("[ERR] agent: error exposing check: %s", err)
+					a.logger.Error("error exposing check",
+						"check", cid.String(),
+						"error", err,
+					)
 					return err
 				}
 				grpc.ProxyGRPC = grpcInjectAddr(grpc.GRPC, proxy.Proxy.LocalServiceAddress, port)
@@ -2809,18 +3010,20 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkDockers, cid)
 			}
 			if chkType.Interval < checks.MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					cid, checks.MinInterval))
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
 				chkType.Interval = checks.MinInterval
 			}
 
 			if a.dockerClient == nil {
 				dc, err := checks.NewDockerClient(os.Getenv("DOCKER_HOST"), int64(maxOutputSize))
 				if err != nil {
-					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
+					a.logger.Error("error creating docker client", "error", err)
 					return err
 				}
-				a.logger.Printf("[DEBUG] agent: created docker client for %s", dc.Host())
+				a.logger.Debug("created docker client", "host", dc.Host())
 				a.dockerClient = dc
 			}
 
@@ -2847,8 +3050,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkMonitors, cid)
 			}
 			if chkType.Interval < checks.MinInterval {
-				a.logger.Printf("[WARN] agent: check '%s' has interval below minimum of %v",
-					cid, checks.MinInterval)
+				a.logger.Warn("check has interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", checks.MinInterval,
+				)
 				chkType.Interval = checks.MinInterval
 			}
 			monitor := &checks.CheckMonitor{
@@ -2915,8 +3120,10 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			timeout := chkType.DeregisterCriticalServiceAfter
 			if timeout < a.config.CheckDeregisterIntervalMin {
 				timeout = a.config.CheckDeregisterIntervalMin
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has deregister interval below minimum of %v",
-					cid, a.config.CheckDeregisterIntervalMin))
+				a.logger.Warn("check has deregister interval below minimum",
+					"check", cid.String(),
+					"minimum_interval", a.config.CheckDeregisterIntervalMin,
+				)
 			}
 			a.checkReapAfter[cid] = timeout
 		} else {
@@ -2975,7 +3182,7 @@ func (a *Agent) removeCheckLocked(checkID structs.CheckID, persist bool) error {
 		}
 	}
 
-	a.logger.Printf("[DEBUG] agent: removed check %q", checkID.String())
+	a.logger.Debug("removed check", "check", checkID.String())
 	return nil
 }
 
@@ -3154,13 +3361,13 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	// Decode the state data
 	var p persistedCheckState
 	if err := json.Unmarshal(buf, &p); err != nil {
-		a.logger.Printf("[ERR] agent: failed decoding check state: %s", err)
+		a.logger.Error("failed decoding check state", "error", err)
 		return a.purgeCheckState(cid)
 	}
 
 	// Check if the state has expired
 	if time.Now().Unix() >= p.Expires {
-		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", cid.String())
+		a.logger.Debug("check state expired, not restoring", "check", cid.String())
 		return a.purgeCheckState(cid)
 	}
 
@@ -3336,7 +3543,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 
 		// Skip all partially written temporary files
 		if strings.HasSuffix(fi.Name(), "tmp") {
-			a.logger.Printf("[WARN] agent: Ignoring temporary service file %v", fi.Name())
+			a.logger.Warn("Ignoring temporary service file", "file", fi.Name())
 			continue
 		}
 
@@ -3352,7 +3559,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if err := json.Unmarshal(buf, &p); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
 			if err := json.Unmarshal(buf, &p.Service); err != nil {
-				a.logger.Printf("[ERR] agent: Failed decoding service file %q: %s", file, err)
+				a.logger.Error("Failed decoding service file",
+					"file", file,
+					"error", err,
+				)
 				continue
 			}
 		}
@@ -3360,7 +3570,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 
 		source, ok := ConfigSourceFromName(p.Source)
 		if !ok {
-			a.logger.Printf("[WARN] agent: service %q exists with invalid source %q, purging", serviceID, p.Source)
+			a.logger.Warn("service exists with invalid source, purging",
+				"service", serviceID.String(),
+				"source", p.Source,
+			)
 			if err := a.purgeService(serviceID); err != nil {
 				return fmt.Errorf("failed purging service %q: %s", serviceID, err)
 			}
@@ -3373,8 +3586,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 		if a.State.Service(serviceID) != nil {
 			// Purge previously persisted service. This allows config to be
 			// preferred over services persisted from the API.
-			a.logger.Printf("[DEBUG] agent: service %q exists, not restoring from %q",
-				serviceID.String(), file)
+			a.logger.Debug("service exists, not restoring from file",
+				"service", serviceID.String(),
+				"file", file,
+			)
 			if err := a.purgeService(serviceID); err != nil {
 				return fmt.Errorf("failed purging service %q: %s", serviceID.String(), err)
 			}
@@ -3382,8 +3597,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 				return fmt.Errorf("failed purging service config %q: %s", serviceID.String(), err)
 			}
 		} else {
-			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
-				serviceID.String(), file)
+			a.logger.Debug("restored service definition from file",
+				"service", serviceID.String(),
+				"file", file,
+			)
 			err = a.addServiceLocked(&addServiceRequest{
 				service:               p.Service,
 				chkTypes:              nil,
@@ -3468,14 +3685,20 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		// Decode the check
 		var p persistedCheck
 		if err := json.Unmarshal(buf, &p); err != nil {
-			a.logger.Printf("[ERR] agent: Failed decoding check file %q: %s", file, err)
+			a.logger.Error("Failed decoding check file",
+				"file", file,
+				"error", err,
+			)
 			continue
 		}
 		checkID := p.Check.CompoundCheckID()
 
 		source, ok := ConfigSourceFromName(p.Source)
 		if !ok {
-			a.logger.Printf("[WARN] agent: check %q exists with invalid source %q, purging", checkID, p.Source)
+			a.logger.Warn("check exists with invalid source, purging",
+				"check", checkID.String(),
+				"source", p.Source,
+			)
 			if err := a.purgeCheck(checkID); err != nil {
 				return fmt.Errorf("failed purging check %q: %s", checkID, err)
 			}
@@ -3485,8 +3708,10 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 		if a.State.Check(checkID) != nil {
 			// Purge previously persisted check. This allows config to be
 			// preferred over persisted checks from the API.
-			a.logger.Printf("[DEBUG] agent: check %q exists, not restoring from %q",
-				checkID.String(), file)
+			a.logger.Debug("check exists, not restoring from file",
+				"check", checkID.String(),
+				"file", file,
+			)
 			if err := a.purgeCheck(checkID); err != nil {
 				return fmt.Errorf("Failed purging check %q: %s", checkID, err)
 			}
@@ -3503,14 +3728,18 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 			if err := a.addCheckLocked(p.Check, p.ChkType, false, p.Token, source); err != nil {
 				// Purge the check if it is unable to be restored.
-				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
-					checkID, err)
+				a.logger.Warn("Failed to restore check",
+					"check", checkID.String(),
+					"error", err,
+				)
 				if err := a.purgeCheck(checkID); err != nil {
 					return fmt.Errorf("Failed purging check %q: %s", checkID, err)
 				}
 			}
-			a.logger.Printf("[DEBUG] agent: restored health check %q from %q",
-				p.Check.CheckID, file)
+			a.logger.Debug("restored health check from file",
+				"check", p.Check.CheckID,
+				"file", file,
+			)
 		}
 	}
 
@@ -3565,14 +3794,14 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 	persistedTokens, persistenceErr := a.getPersistedTokens()
 
 	if persistenceErr != nil {
-		a.logger.Printf("[WARN] unable to load persisted tokens: %v", persistenceErr)
+		a.logger.Warn("unable to load persisted tokens", "error", persistenceErr)
 	}
 
 	if persistedTokens.Default != "" {
 		a.tokens.UpdateUserToken(persistedTokens.Default, token.TokenSourceAPI)
 
 		if conf.ACLToken != "" {
-			a.logger.Printf("[WARN] \"default\" token present in both the configuration and persisted token store, using the persisted token")
+			a.logger.Warn("\"default\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
 		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
@@ -3582,7 +3811,7 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateAgentToken(persistedTokens.Agent, token.TokenSourceAPI)
 
 		if conf.ACLAgentToken != "" {
-			a.logger.Printf("[WARN] \"agent\" token present in both the configuration and persisted token store, using the persisted token")
+			a.logger.Warn("\"agent\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
 		a.tokens.UpdateAgentToken(conf.ACLAgentToken, token.TokenSourceConfig)
@@ -3592,7 +3821,7 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateAgentMasterToken(persistedTokens.AgentMaster, token.TokenSourceAPI)
 
 		if conf.ACLAgentMasterToken != "" {
-			a.logger.Printf("[WARN] \"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
+			a.logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
 		a.tokens.UpdateAgentMasterToken(conf.ACLAgentMasterToken, token.TokenSourceConfig)
@@ -3602,7 +3831,7 @@ func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
 		a.tokens.UpdateReplicationToken(persistedTokens.Replication, token.TokenSourceAPI)
 
 		if conf.ACLReplicationToken != "" {
-			a.logger.Printf("[WARN] \"replication\" token present in both the configuration and persisted token store, using the persisted token")
+			a.logger.Warn("\"replication\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
 		a.tokens.UpdateReplicationToken(conf.ACLReplicationToken, token.TokenSourceConfig)
@@ -3673,7 +3902,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID structs.ServiceID, reason, to
 		EnterpriseMeta: checkID.EnterpriseMeta,
 	}
 	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
-	a.logger.Printf("[INFO] agent: Service %q entered maintenance mode", serviceID.String())
+	a.logger.Info("Service entered maintenance mode", "service", serviceID.String())
 
 	return nil
 }
@@ -3694,7 +3923,7 @@ func (a *Agent) DisableServiceMaintenance(serviceID structs.ServiceID) error {
 
 	// Deregister the maintenance check
 	a.RemoveCheck(checkID, true)
-	a.logger.Printf("[INFO] agent: Service %q left maintenance mode", serviceID.String())
+	a.logger.Info("Service left maintenance mode", "service", serviceID.String())
 
 	return nil
 }
@@ -3721,7 +3950,7 @@ func (a *Agent) EnableNodeMaintenance(reason, token string) {
 		Type:    "maintenance",
 	}
 	a.AddCheck(check, nil, true, token, ConfigSourceLocal)
-	a.logger.Printf("[INFO] agent: Node entered maintenance mode")
+	a.logger.Info("Node entered maintenance mode")
 }
 
 // DisableNodeMaintenance removes a node from maintenance mode
@@ -3730,7 +3959,7 @@ func (a *Agent) DisableNodeMaintenance() {
 		return
 	}
 	a.RemoveCheck(structs.NodeMaintCheckID, true)
-	a.logger.Printf("[INFO] agent: Node left maintenance mode")
+	a.logger.Info("Node left maintenance mode")
 }
 
 func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
@@ -3764,6 +3993,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// to ensure the correct tokens are available for attaching to
 	// the checks and service registrations.
 	a.loadTokens(newCfg)
+	a.loadEnterpriseTokens(newCfg)
 
 	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
@@ -3786,6 +4016,10 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	a.loadLimits(newCfg)
 
+	a.httpConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
+	})
+
 	for _, s := range a.dnsServers {
 		if err := s.ReloadConfig(newCfg); err != nil {
 			return fmt.Errorf("Failed reloading dns config : %v", err)
@@ -3795,7 +4029,7 @@ func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// this only gets used by the consulConfig function and since
 	// that is only ever done during init and reload here then
 	// an in place modification is safe as reloads cannot be
-	// concurrent due to both gaing a full lock on the stateLock
+	// concurrent due to both gaining a full lock on the stateLock
 	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
 
 	// create the config for the rpc server/client
@@ -3959,6 +4193,14 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.CatalogListServicesName, &cachetype.CatalogListServices{
+		RPC: a,
+	}, &cache.RegisterOptions{
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	a.cache.RegisterType(cachetype.CatalogServiceListName, &cachetype.CatalogServiceList{
 		RPC: a,
 	}, &cache.RegisterOptions{
 		Refresh:        true,

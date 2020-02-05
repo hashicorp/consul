@@ -40,6 +40,9 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
         .dom(document.querySelector(selector))
         .hasClass(cls, `Expected [class] to contain ${cls} on ${selector}`);
     })
+    .then([`I don't see the "$selector" element`], function(selector) {
+      assert.equal(document.querySelector(selector), null, `Expected not to see ${selector}`);
+    })
     .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
       assert.ok(
         !document.querySelector(selector).classList.contains(cls),
@@ -66,5 +69,8 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
       }
       const current = currentURL() || '';
       assert.equal(current, url, `Expected the url to be ${url} was ${current}`);
+    })
+    .then(['the title should be "$title"'], function(title) {
+      assert.equal(document.title, title, `Expected the document.title to equal "${title}"`);
     });
 }

@@ -21,10 +21,3 @@
 %main-nav-horizontal-drop-nav {
   @extend %menu-panel;
 }
-/*TODO: %menu-panel? */
-%main-nav-horizontal-drop-nav [role='separator'] {
-  @extend %main-nav-horizontal-drop-nav-separator;
-}
-%main-nav-horizontal-drop-nav > div {
-  @extend %main-nav-horizontal-drop-nav-header;
-}

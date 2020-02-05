@@ -1,18 +1,17 @@
 package tlsutil
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
 )
@@ -337,12 +336,10 @@ func TestConfig_SpecifyDC(t *testing.T) {
 }
 
 func TestConfigurator_NewConfigurator(t *testing.T) {
-	buf := bytes.Buffer{}
-	logger := log.New(&buf, "logger: ", log.Lshortfile)
+	logger := testutil.Logger(t)
 	c, err := NewConfigurator(Config{}, logger)
 	require.NoError(t, err)
 	require.NotNil(t, c)
-	require.Equal(t, logger, c.logger)
 
 	c, err = NewConfigurator(Config{VerifyOutgoing: true}, nil)
 	require.Error(t, err)

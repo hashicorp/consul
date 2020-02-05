@@ -109,10 +109,23 @@ const (
 	// ends up being very small. If we see a value below this threshold,
 	// we multiply by time.Second
 	lockDelayMinThreshold = 1000
+
+	// WildcardSpecifier is the string which should be used for specifying a wildcard
+	// The exact semantics of the wildcard is left up to the code where its used.
+	WildcardSpecifier = "*"
 )
 
 var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
+)
+
+const (
+	TaggedAddressWAN     = "wan"
+	TaggedAddressWANIPv4 = "wan_ipv4"
+	TaggedAddressWANIPv6 = "wan_ipv6"
+	TaggedAddressLAN     = "lan"
+	TaggedAddressLANIPv4 = "lan_ipv4"
+	TaggedAddressLANIPv6 = "lan_ipv6"
 )
 
 // metaKeyFormat checks if a metadata key string is valid
@@ -608,7 +621,7 @@ type Node struct {
 
 func (n *Node) BestAddress(wan bool) string {
 	if wan {
-		if addr, ok := n.TaggedAddresses["wan"]; ok {
+		if addr, ok := n.TaggedAddresses[TaggedAddressWAN]; ok {
 			return addr
 		}
 	}
@@ -790,19 +803,30 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 	}
 }
 
-func (s *ServiceNode) CompoundServiceID() ServiceID {
-	id := s.ServiceID
-	if id == "" {
-		id = s.ServiceName
+func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
+	var id string
+	if sn.ServiceID == "" || (preferName && sn.ServiceName != "") {
+		id = sn.ServiceName
+	} else {
+		id = sn.ServiceID
 	}
 
-	entMeta := s.EnterpriseMeta
+	// copy the ent meta and normalize it
+	entMeta := sn.EnterpriseMeta
 	entMeta.Normalize()
 
 	return ServiceID{
 		ID:             id,
 		EnterpriseMeta: entMeta,
 	}
+}
+
+func (sn *ServiceNode) CompoundServiceID() ServiceID {
+	return sn.compoundID(false)
+}
+
+func (sn *ServiceNode) CompoundServiceName() ServiceID {
+	return sn.compoundID(true)
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -915,7 +939,7 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	port := ns.Port
 
 	if wan {
-		if wan, ok := ns.TaggedAddresses["wan"]; ok {
+		if wan, ok := ns.TaggedAddresses[TaggedAddressWAN]; ok {
 			addr = wan.Address
 			if wan.Port != 0 {
 				port = wan.Port
@@ -925,11 +949,12 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	return addr, port
 }
 
-func (ns *NodeService) CompoundServiceID() ServiceID {
-	id := ns.ID
-
-	if id == "" {
+func (ns *NodeService) compoundID(preferName bool) ServiceID {
+	var id string
+	if ns.ID == "" || (preferName && ns.Service != "") {
 		id = ns.Service
+	} else {
+		id = ns.ID
 	}
 
 	// copy the ent meta and normalize it
@@ -940,6 +965,14 @@ func (ns *NodeService) CompoundServiceID() ServiceID {
 		ID:             id,
 		EnterpriseMeta: entMeta,
 	}
+}
+
+func (ns *NodeService) CompoundServiceID() ServiceID {
+	return ns.compoundID(false)
+}
+
+func (ns *NodeService) CompoundServiceName() ServiceID {
+	return ns.compoundID(true)
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -1632,6 +1665,22 @@ type IndexedServices struct {
 	QueryMeta
 }
 
+type ServiceInfo struct {
+	Name string
+	EnterpriseMeta
+}
+
+func (si *ServiceInfo) ToServiceID() ServiceID {
+	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+}
+
+type ServiceList []ServiceInfo
+
+type IndexedServiceList struct {
+	Services ServiceList
+	QueryMeta
+}
+
 type IndexedServiceNodes struct {
 	ServiceNodes ServiceNodes
 	QueryMeta
@@ -1930,22 +1979,6 @@ type Session struct {
 type ServiceCheck struct {
 	ID        string
 	Namespace string
-}
-
-// CheckIDs returns the IDs for all checks associated with a session, regardless of type
-func (s *Session) CheckIDs() []types.CheckID {
-	// Merge all check IDs into a single slice, since they will be handled the same way
-	checks := make([]types.CheckID, 0, len(s.Checks)+len(s.NodeChecks)+len(s.ServiceChecks))
-	checks = append(checks, s.Checks...)
-
-	for _, c := range s.NodeChecks {
-		checks = append(checks, types.CheckID(c))
-	}
-
-	for _, c := range s.ServiceChecks {
-		checks = append(checks, types.CheckID(c.ID))
-	}
-	return checks
 }
 
 func (s *Session) UnmarshalJSON(data []byte) (err error) {

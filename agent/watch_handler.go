@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	osexec "os/exec"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/exec"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/net/context"
 )
 
@@ -27,7 +27,7 @@ const (
 )
 
 // makeWatchHandler returns a handler for the given watch
-func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFunc {
+func makeWatchHandler(logger hclog.Logger, handler interface{}) watch.HandlerFunc {
 	var args []string
 	var script string
 
@@ -41,7 +41,6 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		panic(fmt.Errorf("unknown handler type %T", handler))
 	}
 
-	logger := log.New(logOutput, "", log.LstdFlags)
 	fn := func(idx uint64, data interface{}) {
 		// Create the command
 		var cmd *osexec.Cmd
@@ -53,7 +52,7 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 			cmd, err = exec.Script(script)
 		}
 		if err != nil {
-			logger.Printf("[ERR] agent: Failed to setup watch: %v", err)
+			logger.Error("Failed to setup watch", "error", err)
 			return
 		}
 
@@ -70,14 +69,20 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		var inp bytes.Buffer
 		enc := json.NewEncoder(&inp)
 		if err := enc.Encode(data); err != nil {
-			logger.Printf("[ERR] agent: Failed to encode data for watch '%v': %v", handler, err)
+			logger.Error("Failed to encode data for watch",
+				"watch", handler,
+				"error", err,
+			)
 			return
 		}
 		cmd.Stdin = &inp
 
 		// Run the handler
 		if err := cmd.Run(); err != nil {
-			logger.Printf("[ERR] agent: Failed to run watch handler '%v': %v", handler, err)
+			logger.Error("Failed to run watch handler",
+				"watch_handler", handler,
+				"error", err,
+			)
 		}
 
 		// Get the output, add a message about truncation
@@ -88,14 +93,15 @@ func makeWatchHandler(logOutput io.Writer, handler interface{}) watch.HandlerFun
 		}
 
 		// Log the output
-		logger.Printf("[DEBUG] agent: watch handler '%v' output: %s", handler, outputStr)
+		logger.Debug("watch handler output",
+			"watch_handler", handler,
+			"output", outputStr,
+		)
 	}
 	return fn
 }
 
-func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) watch.HandlerFunc {
-	logger := log.New(logOutput, "", log.LstdFlags)
-
+func makeHTTPWatchHandler(logger hclog.Logger, config *watch.HttpHandlerConfig) watch.HandlerFunc {
 	fn := func(idx uint64, data interface{}) {
 		trans := cleanhttp.DefaultTransport()
 
@@ -121,13 +127,16 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 		var inp bytes.Buffer
 		enc := json.NewEncoder(&inp)
 		if err := enc.Encode(data); err != nil {
-			logger.Printf("[ERR] agent: Failed to encode data for http watch '%s': %v", config.Path, err)
+			logger.Error("Failed to encode data for http watch",
+				"watch", config.Path,
+				"error", err,
+			)
 			return
 		}
 
 		req, err := http.NewRequest(config.Method, config.Path, &inp)
 		if err != nil {
-			logger.Printf("[ERR] agent: Failed to setup http watch: %v", err)
+			logger.Error("Failed to setup http watch", "error", err)
 			return
 		}
 		req = req.WithContext(ctx)
@@ -140,7 +149,10 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 		}
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			logger.Printf("[ERR] agent: Failed to invoke http watch handler '%s': %v", config.Path, err)
+			logger.Error("Failed to invoke http watch handler",
+				"watch", config.Path,
+				"error", err,
+			)
 			return
 		}
 		defer resp.Body.Close()
@@ -158,10 +170,16 @@ func makeHTTPWatchHandler(logOutput io.Writer, config *watch.HttpHandlerConfig) 
 
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			// Log the output
-			logger.Printf("[TRACE] agent: http watch handler '%s' output: %s", config.Path, outputStr)
+			logger.Trace("http watch handler output",
+				"watch", config.Path,
+				"output", outputStr,
+			)
 		} else {
-			logger.Printf("[ERR] agent: http watch handler '%s' got '%s' with output: %s",
-				config.Path, resp.Status, outputStr)
+			logger.Error("http watch handler failed with output",
+				"watch", config.Path,
+				"status", resp.Status,
+				"output", outputStr,
+			)
 		}
 	}
 	return fn

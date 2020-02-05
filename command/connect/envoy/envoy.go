@@ -13,6 +13,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
@@ -130,6 +131,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -244,7 +246,7 @@ func (c *cmd) Run(args []string) int {
 		taggedAddrs := make(map[string]api.ServiceAddress)
 
 		if lanAddr != "" {
-			taggedAddrs["lan"] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
+			taggedAddrs[structs.TaggedAddressLAN] = api.ServiceAddress{Address: lanAddr, Port: lanPort}
 		}
 
 		wanAddr := ""
@@ -255,7 +257,7 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Failed to parse the -wan-address parameter: %v", err))
 				return 1
 			}
-			taggedAddrs["wan"] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
+			taggedAddrs[structs.TaggedAddressWAN] = api.ServiceAddress{Address: wanAddr, Port: wanPort}
 		}
 
 		tcpCheckAddr := lanAddr
@@ -494,13 +496,13 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		adminAccessLogPath = DefaultAdminAccessLogPath
 	}
 
-	var caPEM []byte
+	var caPEM string
 	if httpCfg.TLSConfig.CAFile != "" {
 		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read CA file: %s", err)
 		}
-		caPEM = content
+		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
 	}
 
 	return &BootstrapTplArgs{
@@ -516,6 +518,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		AdminBindPort:         adminPort,
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
+		Namespace:             httpCfg.Namespace,
 	}, nil
 }
 

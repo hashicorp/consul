@@ -6,17 +6,18 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestReplicationRestart(t *testing.T) {
-	mgr := NewLeaderRoutineManager(testutil.TestLogger(t))
+	mgr := NewLeaderRoutineManager(testutil.Logger(t))
 
 	config := ReplicatorConfig{
 		Name: "mock",
 		Delegate: &FunctionReplicator{
-			ReplicateFn: func(ctx context.Context, lastRemoteIndex uint64) (uint64, bool, error) {
+			ReplicateFn: func(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 				return 1, false, nil
 			},
 		},
@@ -86,12 +87,12 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(0)).Return(0, nil, uint64(0), fmt.Errorf("induced error"))
 
-		idx, done, err := replicator.Replicate(context.Background(), 0)
+		idx, done, err := replicator.Replicate(context.Background(), 0, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.False(t, done)
@@ -105,13 +106,13 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(1), nil)
 		delegate.On("FetchLocal").Return(0, nil, fmt.Errorf("induced error"))
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.False(t, done)
@@ -125,7 +126,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(1), nil)
@@ -133,7 +134,7 @@ func TestIndexReplicator(t *testing.T) {
 		// this also is verifying that when the remote index goes backwards then we reset the index to 0
 		delegate.On("DiffRemoteAndLocalState", nil, nil, uint64(0)).Return(&IndexReplicatorDiff{}, fmt.Errorf("induced error"))
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.False(t, done)
@@ -147,14 +148,14 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
 		delegate.On("FetchLocal").Return(1, nil, nil)
 		delegate.On("DiffRemoteAndLocalState", nil, nil, uint64(3)).Return(&IndexReplicatorDiff{}, nil)
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(4), idx)
 		require.False(t, done)
@@ -167,7 +168,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -175,7 +176,7 @@ func TestIndexReplicator(t *testing.T) {
 		delegate.On("DiffRemoteAndLocalState", nil, nil, uint64(3)).Return(&IndexReplicatorDiff{NumDeletions: 1}, nil)
 		delegate.On("PerformDeletions", nil).Return(false, fmt.Errorf("induced error"))
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.False(t, done)
@@ -189,7 +190,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -197,7 +198,7 @@ func TestIndexReplicator(t *testing.T) {
 		delegate.On("DiffRemoteAndLocalState", nil, nil, uint64(3)).Return(&IndexReplicatorDiff{NumDeletions: 1}, nil)
 		delegate.On("PerformDeletions", nil).Return(true, nil)
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.True(t, done)
@@ -210,7 +211,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -218,7 +219,7 @@ func TestIndexReplicator(t *testing.T) {
 		delegate.On("DiffRemoteAndLocalState", nil, nil, uint64(3)).Return(&IndexReplicatorDiff{NumUpdates: 1}, nil)
 		delegate.On("PerformUpdates", nil).Return(false, fmt.Errorf("induced error"))
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.False(t, done)
@@ -232,7 +233,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(1, nil, uint64(4), nil)
@@ -240,7 +241,7 @@ func TestIndexReplicator(t *testing.T) {
 		delegate.On("DiffRemoteAndLocalState", nil, nil, uint64(3)).Return(&IndexReplicatorDiff{NumUpdates: 1}, nil)
 		delegate.On("PerformUpdates", nil).Return(true, nil)
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(0), idx)
 		require.True(t, done)
@@ -253,7 +254,7 @@ func TestIndexReplicator(t *testing.T) {
 
 		replicator := IndexReplicator{
 			Delegate: delegate,
-			Logger:   testutil.TestLogger(t),
+			Logger:   testutil.Logger(t),
 		}
 
 		delegate.On("FetchRemote", uint64(3)).Return(3, "bcd", uint64(4), nil)
@@ -262,7 +263,7 @@ func TestIndexReplicator(t *testing.T) {
 		delegate.On("PerformDeletions", "a").Return(false, nil)
 		delegate.On("PerformUpdates", "bcd").Return(false, nil)
 
-		idx, done, err := replicator.Replicate(context.Background(), 3)
+		idx, done, err := replicator.Replicate(context.Background(), 3, nil)
 
 		require.Equal(t, uint64(4), idx)
 		require.False(t, done)

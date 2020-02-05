@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: Datacenters
+Feature: dc / index: Datacenters
 @ignore
   Scenario: Arriving at the service page
     Given 10 datacenter models

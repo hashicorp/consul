@@ -54,11 +54,11 @@ function cleanup {
 trap cleanup EXIT
 
 function command_error {
-  echo "ERR: command exited with status $1"
-  echo "     command:   $2"
-  echo "     line:      $3"
-  echo "     function:  $4"
-  echo "     called at: $5"
+  echo "ERR: command exited with status $1" 1>&2
+  echo "     command:   $2" 1>&2
+  echo "     line:      $3" 1>&2
+  echo "     function:  $4" 1>&2
+  echo "     called at: $5" 1>&2
   # printf '%s\n' "${FUNCNAME[@]}"
   # printf '%s\n' "${BASH_SOURCE[@]}"
   # printf '%s\n' "${BASH_LINENO[@]}"
@@ -84,7 +84,7 @@ function init_workdir {
   # don't wipe logs between runs as they are already split and we need them to
   # upload as artifacts later.
   rm -rf workdir/${DC}
-  mkdir -p workdir/${DC}/{consul,envoy,bats,statsd}
+  mkdir -p workdir/${DC}/{consul,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
   cp consul-base-cfg/* workdir/${DC}/consul/
@@ -103,7 +103,12 @@ function init_workdir {
     find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
     find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
   fi
-
+  
+  if test -d "${CASE_DIR}/data"
+  then
+    cp -r ${CASE_DIR}/data/* workdir/${DC}/data
+  fi
+  
   return 0
 }
 
@@ -131,7 +136,7 @@ function start_services {
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
   docker cp workdir/. envoy_workdir_1:/workdir
-
+  
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
     docker-compose rm -s -v -f $REQUIRED_SERVICES || true
@@ -243,23 +248,28 @@ function runTest {
     fi
   fi
 
+  echo "Setting up the primary datacenter"
   pre_service_setup primary
   if [ $? -ne 0 ]
   then
+    echo "Setting up the primary datacenter failed"
     capture_logs
     return 1
   fi
 
   if is_set $REQUIRE_SECONDARY
   then
+    echo "Setting up the secondary datacenter"
     pre_service_setup secondary
     if [ $? -ne 0 ]
     then
+      echo "Setting up the secondary datacenter failed"
       capture_logs
       return 1
     fi
   fi
 
+  echo "Starting services"
   start_services
   if [ $? -ne 0 ]
   then

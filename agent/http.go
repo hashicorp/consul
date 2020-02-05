@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
@@ -380,6 +381,7 @@ var (
 
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
+	httpLogger := s.agent.logger.Named(logging.HTTP)
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
@@ -387,7 +389,10 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
-			s.agent.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
+			httpLogger.Error("Failed to decode query",
+				"from", req.RemoteAddr,
+				"error", err,
+			)
 			resp.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -405,7 +410,12 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 
 		if s.blacklist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
-			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			httpLogger.Error("Request error",
+				"method", req.Method,
+				"url", logURL,
+				"from", req.RemoteAddr,
+				"error", errMsg,
+			)
 			resp.WriteHeader(http.StatusForbidden)
 			fmt.Fprint(resp, errMsg)
 			return
@@ -444,7 +454,12 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 		}
 
 		handleErr := func(err error) {
-			s.agent.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
+			httpLogger.Error("Request error",
+				"method", req.Method,
+				"url", logURL,
+				"from", req.RemoteAddr,
+				"error", err,
+			)
 			switch {
 			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)
@@ -476,7 +491,12 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 
 		start := time.Now()
 		defer func() {
-			s.agent.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Since(start), req.RemoteAddr)
+			httpLogger.Debug("Request finished",
+				"method", req.Method,
+				"url", logURL,
+				"from", req.RemoteAddr,
+				"latency", time.Since(start).String(),
+			)
 		}()
 
 		var obj interface{}

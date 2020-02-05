@@ -1,19 +1,28 @@
+{{#if isAuthorized }}
+  {{#if create }}
+      {{title 'New Policy'}}
+  {{else}}
+      {{title 'Edit Policy'}}
+  {{/if}}
+{{else}}
+  {{title 'Access Controls'}}
+{{/if}}
 {{#app-view class=(concat 'policy ' (if (or isAuthorized isEnabled) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-    {{#block-slot 'notification' as |status type|}}
+    {{#block-slot name='notification' as |status type|}}
       {{partial 'dc/acls/policies/notifications'}}
     {{/block-slot}}
-    {{#block-slot 'disabled'}}
+    {{#block-slot name='disabled'}}
       {{partial 'dc/acls/disabled'}}
     {{/block-slot}}
-    {{#block-slot 'authorization'}}
+    {{#block-slot name='authorization'}}
       {{partial 'dc/acls/authorization'}}
     {{/block-slot}}
-    {{#block-slot 'breadcrumbs'}}
+    {{#block-slot name='breadcrumbs'}}
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
         </ol>
     {{/block-slot}}
-    {{#block-slot 'header'}}
+    {{#block-slot name='header'}}
         <h1>
 {{#if isAuthorized }}
   {{#if create }}
@@ -30,7 +39,7 @@
 {{/if}}
         </h1>
     {{/block-slot}}
-    {{#block-slot 'content'}}
+    {{#block-slot name='content'}}
 {{#if (eq (policy/typeof item) 'policy-management')}}
       {{ partial 'dc/acls/policies/view'}}
 {{else}}

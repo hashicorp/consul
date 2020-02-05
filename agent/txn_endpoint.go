@@ -69,9 +69,11 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	sizeStr := req.Header.Get("Content-Length")
 	if sizeStr != "" {
 		if size, err := strconv.Atoi(sizeStr); err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(resp, "Failed to parse Content-Length: %v", err)
 			return nil, 0, false
 		} else if size > int(s.agent.config.KVMaxValueSize) {
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
 			fmt.Fprintf(resp, "Request body too large, max size: %v bytes", s.agent.config.KVMaxValueSize)
 			return nil, 0, false
 		}
@@ -123,10 +125,11 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 				KV: &structs.TxnKVOp{
 					Verb: verb,
 					DirEnt: structs.DirEntry{
-						Key:     in.KV.Key,
-						Value:   in.KV.Value,
-						Flags:   in.KV.Flags,
-						Session: in.KV.Session,
+						Key:            in.KV.Key,
+						Value:          in.KV.Value,
+						Flags:          in.KV.Flags,
+						Session:        in.KV.Session,
+						EnterpriseMeta: structs.EnterpriseMetaInitializer(in.KV.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: in.KV.Index,
 						},
@@ -186,6 +189,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
+						EnterpriseMeta:    structs.EnterpriseMetaInitializer(svc.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: svc.ModifyIndex,
 						},
@@ -241,6 +245,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
+						EnterpriseMeta: structs.EnterpriseMetaInitializer(check.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
 						},

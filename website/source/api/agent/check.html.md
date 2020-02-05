@@ -159,7 +159,7 @@ The table below shows this endpoint's support for
 - `GRPC` `(string: "")` - Specifies a `gRPC` check's endpoint that supports the standard
   [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
   The state of the check will be updated at the given `Interval` by probing the configured
-  endpoint.
+  endpoint. Add the service identifier after the `gRPC` check's endpoint in the following format to check for a specific service instead of the whole gRPC server `/:service_identifier`.
 
 - `GRPCUseTLS` `(bool: false)` - Specifies whether to use TLS for this `gRPC` health check.
   If TLS is enabled, then by default, a valid TLS certificate is expected. Certificate

@@ -6,7 +6,6 @@
 package router
 
 import (
-	"log"
 	"math/rand"
 	"net"
 	"sync"
@@ -15,6 +14,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -85,7 +86,7 @@ type Manager struct {
 	// shutdownCh is a copy of the channel in consul.Client
 	shutdownCh chan struct{}
 
-	logger *log.Logger
+	logger hclog.Logger
 
 	// clusterInfo is used to estimate the approximate number of nodes in
 	// a cluster and limit the rate at which it rebalances server
@@ -148,6 +149,18 @@ func (m *Manager) AddServer(s *metadata.Server) {
 	m.saveServerList(l)
 }
 
+// UpdateTLS updates the TLS setting for the servers in this manager
+func (m *Manager) UpdateTLS(useTLS bool) {
+	m.listLock.Lock()
+	defer m.listLock.Unlock()
+
+	list := m.getServerList()
+	for _, server := range list.servers {
+		server.UseTLS = useTLS
+	}
+	m.saveServerList(list)
+}
+
 // cycleServers returns a new list of servers that has dequeued the first
 // server and enqueued it at the end of the list.  cycleServers assumes the
 // caller is holding the listLock.  cycleServer does not test or ping
@@ -206,7 +219,7 @@ func (m *Manager) FindServer() *metadata.Server {
 	l := m.getServerList()
 	numServers := len(l.servers)
 	if numServers == 0 {
-		m.logger.Printf("[WARN] manager: No servers available")
+		m.logger.Warn("No servers available")
 		return nil
 	}
 
@@ -215,6 +228,19 @@ func (m *Manager) FindServer() *metadata.Server {
 	// hypothetically - the server list was rotated right after a
 	// server was added).
 	return l.servers[0]
+}
+
+func (m *Manager) checkServers(fn func(srv *metadata.Server) bool) bool {
+	for _, srv := range m.getServerList().servers {
+		if !fn(srv) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
+	_ = m.checkServers(fn)
 }
 
 // getServerList is a convenience method which hides the locking semantics
@@ -230,9 +256,13 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
+func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	m = new(Manager)
-	m.logger = logger
+	m.logger = logger.Named(logging.Manager)
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
@@ -270,7 +300,7 @@ func (m *Manager) NotifyFailedServer(s *metadata.Server) {
 		if len(l.servers) > 1 && l.servers[0].Name == s.Name {
 			l.servers = l.cycleServer()
 			m.saveServerList(l)
-			m.logger.Printf(`[DEBUG] manager: cycled away from server "%s"`, s.Name)
+			m.logger.Debug("cycled away from server", "server", s.String())
 		}
 	}
 }
@@ -315,7 +345,10 @@ func (m *Manager) RebalanceServers() {
 			foundHealthyServer = true
 			break
 		}
-		m.logger.Printf(`[DEBUG] manager: pinging server "%s" failed: %s`, srv, err)
+		m.logger.Debug("pinging server failed",
+			"server", srv.String(),
+			"error", err,
+		)
 		l.servers = l.cycleServer()
 	}
 
@@ -325,13 +358,16 @@ func (m *Manager) RebalanceServers() {
 		atomic.StoreInt32(&m.offline, 0)
 	} else {
 		atomic.StoreInt32(&m.offline, 1)
-		m.logger.Printf("[DEBUG] manager: No healthy servers during rebalance, aborting")
+		m.logger.Debug("No healthy servers during rebalance, aborting")
 		return
 	}
 
 	// Verify that all servers are present
 	if m.reconcileServerList(&l) {
-		m.logger.Printf("[DEBUG] manager: Rebalanced %d servers, next active server is %s", len(l.servers), l.servers[0].String())
+		m.logger.Debug("Rebalanced servers, new active server",
+			"number_of_servers", len(l.servers),
+			"active_server", l.servers[0].String(),
+		)
 	} else {
 		// reconcileServerList failed because Serf removed the server
 		// that was at the front of the list that had successfully
@@ -472,7 +508,7 @@ func (m *Manager) Start() {
 			m.refreshServerRebalanceTimer()
 
 		case <-m.shutdownCh:
-			m.logger.Printf("[INFO] manager: shutting down")
+			m.logger.Info("shutting down")
 			return
 		}
 	}

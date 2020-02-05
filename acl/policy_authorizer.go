@@ -340,6 +340,107 @@ func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (Authorizer, 
 	return p, nil
 }
 
+// enforceCallbacks are to be passed to anyAllowed or allAllowed. The interface{}
+// parameter will be a value stored in the radix.Tree passed to those functions.
+// prefixOnly indicates that only we only want to consider the prefix matching rule
+// if any. The return value indicates whether this one leaf node in the tree would
+// allow, deny or make no decision regarding some authorization.
+type enforceCallback func(raw interface{}, prefixOnly bool) EnforcementDecision
+
+func anyAllowed(tree *radix.Tree, enforceFn enforceCallback) EnforcementDecision {
+	decision := Default
+
+	// special case for handling a catch-all prefix rule. If the rule woul Deny access then our default decision
+	// should be to Deny, but this decision should still be overridable with other more specific rules.
+	if raw, found := tree.Get(""); found {
+		decision = enforceFn(raw, true)
+		if decision == Allow {
+			return Allow
+		}
+	}
+
+	tree.Walk(func(path string, raw interface{}) bool {
+		if enforceFn(raw, false) == Allow {
+			decision = Allow
+			return true
+		}
+
+		return false
+	})
+
+	return decision
+}
+
+func allAllowed(tree *radix.Tree, enforceFn enforceCallback) EnforcementDecision {
+	decision := Default
+
+	// look for a "" prefix rule
+	if raw, found := tree.Get(""); found {
+		// ensure that the empty prefix rule would allow the access
+		// if it does allow it we still must check all the other rules to ensure
+		// nothing overrides the top level grant with a different access level
+		// if not we can return early
+		decision = enforceFn(raw, true)
+
+		// the top level prefix rule denied access so we can return early.
+		if decision == Deny {
+			return Deny
+		}
+	}
+
+	tree.Walk(func(path string, raw interface{}) bool {
+		if enforceFn(raw, false) == Deny {
+			decision = Deny
+			return true
+		}
+		return false
+	})
+
+	return decision
+}
+
+func (authz *policyAuthorizer) anyAllowed(tree *radix.Tree, requiredPermission AccessLevel) EnforcementDecision {
+	return anyAllowed(tree, func(raw interface{}, prefixOnly bool) EnforcementDecision {
+		leaf := raw.(*policyAuthorizerRadixLeaf)
+		decision := Default
+
+		if leaf.prefix != nil {
+			decision = enforce(leaf.prefix.access, requiredPermission)
+		}
+
+		if prefixOnly || decision == Allow || leaf.exact == nil {
+			return decision
+		}
+
+		return enforce(leaf.exact.access, requiredPermission)
+	})
+}
+
+func (authz *policyAuthorizer) allAllowed(tree *radix.Tree, requiredPermission AccessLevel) EnforcementDecision {
+	return allAllowed(tree, func(raw interface{}, prefixOnly bool) EnforcementDecision {
+		leaf := raw.(*policyAuthorizerRadixLeaf)
+		prefixDecision := Default
+
+		if leaf.prefix != nil {
+			prefixDecision = enforce(leaf.prefix.access, requiredPermission)
+		}
+
+		if prefixOnly || prefixDecision == Deny || leaf.exact == nil {
+			return prefixDecision
+		}
+
+		decision := enforce(leaf.exact.access, requiredPermission)
+
+		if decision == Default {
+			// basically this means defer to the prefix decision as the
+			// authorizer rule made no decision with an exact match rule
+			return prefixDecision
+		}
+
+		return decision
+	})
+}
+
 // ACLRead checks if listing of ACLs is allowed
 func (p *policyAuthorizer) ACLRead(*AuthorizerContext) EnforcementDecision {
 	if p.aclRule != nil {
@@ -410,6 +511,10 @@ func (p *policyAuthorizer) IntentionDefaultAllow(_ *AuthorizerContext) Enforceme
 // IntentionRead checks if writing (creating, updating, or deleting) of an
 // intention is allowed.
 func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "*" {
+		return p.anyAllowed(p.intentionRules, AccessRead)
+	}
+
 	if rule, ok := getPolicy(prefix, p.intentionRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -419,6 +524,10 @@ func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) En
 // IntentionWrite checks if writing (creating, updating, or deleting) of an
 // intention is allowed.
 func (p *policyAuthorizer) IntentionWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "*" {
+		return p.allAllowed(p.intentionRules, AccessWrite)
+	}
+
 	if rule, ok := getPolicy(prefix, p.intentionRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}

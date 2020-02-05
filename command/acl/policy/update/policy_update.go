@@ -102,7 +102,10 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	rules, err := helpers.LoadDataSource(c.rules, c.testStdin)
-
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error loading data source: %v", err))
+		return 1
+	}
 	var updated *api.ACLPolicy
 	if c.noMerge {
 		updated = &api.ACLPolicy{

@@ -13,6 +13,11 @@
 }
 
 %stats-card-icon:last-child {
+  /* TODO: In order to get rid of our colored star */
+  /* this needs to use a %mask, and we are already using */
+  /* our before/after psuedo elements for the tooltip */
+  /* so this will need reworking slighly before we can */
+  /* get rid of our hardcoded magenta star icon */
   @extend %with-star-icon;
 }
 %stats-card header > .zero {

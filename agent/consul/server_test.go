@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -23,11 +22,33 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/require"
 )
+
+const (
+	TestDefaultMasterToken = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+)
+
+// testServerACLConfig wraps another arbitrary Config altering callback
+// to setup some common ACL configurations. A new callback func will
+// be returned that has the original callback invoked after setting
+// up all of the ACL configurations (so they can still be overridden)
+func testServerACLConfig(cb func(*Config)) func(*Config) {
+	return func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+
+		if cb != nil {
+			cb(c)
+		}
+	}
+}
 
 func configureTLS(config *Config) {
 	config.CAFile = "../../test/ca/root.cer"
@@ -134,10 +155,11 @@ func testServerConfig(t *testing.T) (string, *Config) {
 		ClusterID: connect.TestClusterID,
 		Provider:  structs.ConsulCAProvider,
 		Config: map[string]interface{}{
-			"PrivateKey":     "",
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"LeafCertTTL":    "72h",
+			"PrivateKey":          "",
+			"RootCert":            "",
+			"RotationPeriod":      "2160h",
+			"LeafCertTTL":         "72h",
+			"IntermediateCertTTL": "72h",
 		},
 	}
 
@@ -207,6 +229,17 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	return dir, srv
 }
 
+// cb is a function that can alter the test servers configuration prior to the server starting.
+func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server) {
+	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
+
+	if initReplicationToken {
+		// setup some tokens here so we get less warnings in the logs
+		srv.tokens.UpdateReplicationToken(TestDefaultMasterToken, token.TokenSourceConfig)
+	}
+	return dir, srv
+}
+
 func newServer(c *Config) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
@@ -223,7 +256,11 @@ func newServer(c *Config) (*Server, error) {
 	if w == nil {
 		w = os.Stderr
 	}
-	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  hclog.Debug,
+		Output: w,
+	})
 	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	if err != nil {
 		return nil, err
@@ -1102,7 +1139,7 @@ func TestServer_Reload(t *testing.T) {
 
 	s.ReloadConfig(s.config)
 
-	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 	require.NotNil(t, entry)
 	global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1144,9 +1181,9 @@ func TestServer_CALogging(t *testing.T) {
 
 	// Setup dummy logger to catch output
 	var buf bytes.Buffer
-	logger := log.New(&buf, "", log.LstdFlags)
+	logger := testutil.LoggerWithOutput(t, &buf)
 
-	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), nil)
+	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
 	require.NoError(t, err)
 	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
 	if err != nil {

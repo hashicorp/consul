@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
@@ -34,7 +33,6 @@ func TestDebugCommand(t *testing.T) {
 	a := agent.NewTestAgent(t, t.Name(), `
 	enable_debug = true
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -187,7 +185,6 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, t.Name(), "")
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -271,7 +268,6 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		a := agent.NewTestAgent(t, t.Name(), `
 		enable_debug = true
 		`)
-		a.Agent.LogWriter = logger.NewLogWriter(512)
 
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -338,7 +334,6 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	a := agent.NewTestAgent(t, t.Name(), `
 	enable_debug = true
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -449,7 +444,6 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	a := agent.NewTestAgent(t, t.Name(), `
 	enable_debug = false
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

@@ -10,7 +10,10 @@
   },
   "node": {
     "cluster": "test-proxy",
-    "id": "test-proxy"
+    "id": "test-proxy",
+    "metadata": {
+      "namespace": "default"
+    }
   },
   "static_resources": {
     "clusters": [

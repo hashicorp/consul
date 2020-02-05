@@ -3,10 +3,9 @@
 package consul
 
 import (
-	"log"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 // EnterpriseACLResolverDelegate stub
@@ -16,8 +15,10 @@ func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
-func newEnterpriseACLConfig(*log.Logger) *acl.Config {
-	return nil
+func newACLConfig(hclog.Logger) *acl.Config {
+	return &acl.Config{
+		WildcardName: structs.WildcardSpecifier,
+	}
 }
 
 func (r *ACLResolver) resolveEnterpriseDefaultsForIdentity(identity structs.ACLIdentity) (acl.Authorizer, error) {

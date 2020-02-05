@@ -185,7 +185,7 @@ func genVerifyRootsWatch(expectedDatacenter string) verifyWatchRequest {
 }
 
 func genVerifyListServicesWatch(expectedDatacenter string) verifyWatchRequest {
-	return genVerifyDCSpecificWatch(cachetype.CatalogListServicesName, expectedDatacenter)
+	return genVerifyDCSpecificWatch(cachetype.CatalogServiceListName, expectedDatacenter)
 }
 
 func verifyDatacentersWatch(t testing.TB, cacheType string, request cache.Request) {
@@ -252,6 +252,7 @@ func genVerifyGatewayWatch(expectedDatacenter string) verifyWatchRequest {
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.True(t, reqReal.UseServiceKind)
 		require.Equal(t, structs.ServiceKindMeshGateway, reqReal.ServiceKind)
+		require.Equal(t, structs.DefaultEnterpriseMeta(), &reqReal.EnterpriseMeta)
 	}
 }
 
@@ -383,7 +384,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api",
 					EvaluateInDatacenter: "dc1",
-					EvaluateInNamespace:  "default",
+					EvaluateInNamespace:  "",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,
@@ -392,7 +393,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-failover-remote?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-remote",
 					EvaluateInDatacenter: "dc2",
-					EvaluateInNamespace:  "default",
+					EvaluateInNamespace:  "",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
@@ -401,7 +402,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-failover-local?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-local",
 					EvaluateInDatacenter: "dc2",
-					EvaluateInNamespace:  "default",
+					EvaluateInNamespace:  "",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeLocal,
@@ -410,7 +411,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-failover-direct?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-direct",
 					EvaluateInDatacenter: "dc2",
-					EvaluateInNamespace:  "default",
+					EvaluateInNamespace:  "",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeNone,
@@ -419,7 +420,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"discovery-chain:api-dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-dc2",
 					EvaluateInDatacenter: "dc1",
-					EvaluateInNamespace:  "default",
+					EvaluateInNamespace:  "",
 					Datacenter:           "dc1",
 					OverrideMeshGateway: structs.MeshGatewayConfig{
 						Mode: meshGatewayProxyConfigValue,
@@ -506,7 +507,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 5, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-				require.Len(t, snap.ConnectProxy.UpstreamEndpoints, 0, "%+v", snap.ConnectProxy.UpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 			},
 		}
 
@@ -532,7 +533,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Len(t, snap.ConnectProxy.WatchedGatewayEndpoints, 5, "%+v", snap.ConnectProxy.WatchedGatewayEndpoints)
 
 				require.Len(t, snap.ConnectProxy.WatchedServiceChecks, 0, "%+v", snap.ConnectProxy.WatchedServiceChecks)
-				require.Len(t, snap.ConnectProxy.UpstreamEndpoints, 0, "%+v", snap.ConnectProxy.UpstreamEndpoints)
+				require.Len(t, snap.ConnectProxy.PreparedQueryEndpoints, 0, "%+v", snap.ConnectProxy.PreparedQueryEndpoints)
 			},
 		}
 
@@ -589,8 +590,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					events: []cache.UpdateEvent{
 						cache.UpdateEvent{
 							CorrelationID: serviceListWatchID,
-							Result: &structs.IndexedServices{
-								Services: make(structs.Services),
+							Result: &structs.IndexedServiceList{
+								Services: make(structs.ServiceList, 0),
 							},
 							Err: nil,
 						},
@@ -622,7 +623,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			require.NotNil(t, state)
 
 			// setup the test logger to use the t.Log
-			state.logger = testutil.TestLogger(t)
+			state.logger = testutil.Logger(t)
 
 			// setup a new testing cache notifier
 			cn := newTestCacheNotifier()

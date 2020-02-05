@@ -60,7 +60,7 @@ and consider if they're appropriate for your deployment.
 
         * <a name="v-global-gossip-encryption-secret-key" href="#v-global-gossip-encryption-secret-key">`secretKey`</a> (`string: ""`) - The key within the Kubernetes secret that holds the gossip encryption key.
 
-* <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
+  * <a name="v-global-bootstrap-acls" href="#v-global-bootstrap-acls">`bootstrapACLs`</a> (`boolean: false`) - Automatically create and assign ACL tokens within the Consul cluster. This requires servers to be running inside Kubernetes. Additionally requires Consul >= 1.4 and consul-k8s >= 0.8.0.
 
 * <a name="v-server" href="#v-server">`server`</a> - Values that configure running a Consul server within Kubernetes.
 
@@ -127,7 +127,7 @@ and consider if they're appropriate for your deployment.
 
       - <a name="v-server-extravolumes-name" href="#v-server-extravolumes-name">`name`</a> (`string: required`) -
       Name of the configMap or secret to be mounted. This also controls the path
-      that it is mounted to. The volume will be mounted to `/config/userconfig/<name>`.
+      that it is mounted to. The volume will be mounted to `/consul/userconfig/<name>`.
 
       - <a name="v-server-extravolumes-load" href="#v-server-extravolumes-load">`load`</a> (`boolean: false`) -
       If true, then the agent will be configured to automatically load HCL/JSON
@@ -135,10 +135,10 @@ and consider if they're appropriate for your deployment.
       to false.
 
         ```yaml
-        extraVolumes:    
+        extraVolumes:
           -  type: "secret"
              name: "consul-certs"
-             load: false        
+             load: false
         ```
 
   * <a name="v-server-affinity" href="#v-server-affinity">`affinity`</a> (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) for server pods. It defaults to allowing only a single pod on each node, which minimizes risk of the cluster becoming unusable if a node is lost. If you need to run more pods per node (for example, testing on Minikube), set this value to `null`.
@@ -209,7 +209,7 @@ and consider if they're appropriate for your deployment.
 
       - <a name="v-client-extravolumes-name" href="#v-client-extravolumes-name">`name`</a> (`string: required`) -
       Name of the configMap or secret to be mounted. This also controls the path
-      that it is mounted to. The volume will be mounted to `/config/userconfig/<name>`.
+      that it is mounted to. The volume will be mounted to `/consul/userconfig/<name>`.
 
       - <a name="v-client-extravolumes-load" href="#v-client-extravolumes-load">`load`</a> (`boolean: false`) -
       If true, then the agent will be configured to automatically load HCL/JSON
@@ -217,10 +217,10 @@ and consider if they're appropriate for your deployment.
       to false.
 
         ```yaml
-        extraVolumes:    
+        extraVolumes:
           -  type: "secret"
              name: "consul-certs"
-             load: false        
+             load: false
         ```
 
   * <a name="v-client-priorityclassname" href="#v-client-priorityclassname">`priorityClassName`</a> (`string`) - This value references an existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to client pods.
@@ -237,6 +237,8 @@ and consider if they're appropriate for your deployment.
 * <a name="v-dns" href="#v-dns">`dns`</a> - Values that configure Consul DNS service.
 
   * <a name="v-dns-enabled" href="#v-dns-enabled">`enabled`</a> (`boolean: global.enabled`) - If true, a `consul-dns` service will be created that exposes port 53 for TCP and UDP to the running Consul agents (servers and clients). This can then be used to [configure kube-dns](/docs/platform/k8s/dns.html). The Helm chart _does not_ automatically configure kube-dns.
+
+  * <a name="v-dns-clusterip" href="#v-dns-clusterip">`clusterIP`</a> (`string`) - If defined, this value configures the cluster IP of the DNS service.
 
 * <a name="v-synccatalog" href="#v-synccatalog">`syncCatalog`</a> - Values that configure the [service sync](/docs/platform/k8s/service-sync.html) process.
 
@@ -293,7 +295,7 @@ to run the sync program.
 
   * <a name="v-connectinject-imageConsul" href="#v-connectinject-imageConsul">`imageConsul`</a> (`string: global.image`) - The name of the Docker image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
-  * <a name="v-connectinject-imageEnvoy" href="#v-connectinject-imageEnvoy">`imageEnvoy`</a> (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. This defaults to letting the injector choose the Envoy image, which is usually `envoy/envoy-alpine`.
+  * <a name="v-connectinject-imageEnvoy" href="#v-connectinject-imageEnvoy">`imageEnvoy`</a> (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. This defaults to letting the injector choose the Envoy image, which is usually `envoyproxy/envoy-alpine`.
 
   * <a name="v-connectinject-namespaceselector" href="#v-connectinject-namespaceselector">`namespaceSelector`</a> (`string: ""`) - A [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) for restricting injection to only matching namespaces. By default all namespaces except `kube-system` and `kube-public` will have injection enabled.
     
@@ -353,113 +355,6 @@ to run the sync program.
           }
         ```
 
-## Using the Helm Chart to deploy Consul Enterprise
-
-You can also use this Helm chart to deploy Consul Enterprise by following a few extra steps.
-
-Find the license file that you received in your welcome email. It should have the extension `.hclic`. You will use the contents of this file to create a Kubernetes secret before installing the Helm chart.
-
-You can use the following commands to create the secret:
-
-```bash
-secret=$(cat 1931d1f4-bdfd-6881-f3f5-19349374841f.hclic)
-kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
-```
-
--> **Note:** If you cannot find your `.hclic` file, please contact your sales team or Technical Account Manager.
-
-In your `config.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
-
-```yaml
-# config.yaml
-global:
-  image: "hashicorp/consul-enterprise:1.4.3-ent"
-```
-
-Add the name of the secret you just created to `server.enterpriseLicense`.
-
-```yaml
-# config.yaml
-global:
-  image: "hashicorp/consul-enterprise:1.4.3-ent"
-server:
-  enterpriseLicense:
-    secretName: "consul-ent-license"
-    secretKey: "key"
-```
-
-Now run `helm install`:
-
-```bash
-$ helm install --wait hashicorp ./consul-helm -f config.yaml
-```
-
-Once the cluster is up, you can verify the nodes are running Consul Enterprise by
-using the `consul license get` command.
-
-First, forward your local port 8500 to the Consul servers so you can run `consul`
-commands locally against the Consul servers in Kubernetes:
-
-```bash
-$ kubectl port-forward service/hashicorp-consul-server 8500:8500
-```
-
-In a separate tab, run the `consul license get` command (if using ACLs see below):
-
-```bash
-$ consul license get
-License is valid
-License ID: 1931d1f4-bdfd-6881-f3f5-19349374841f
-Customer ID: b2025a4a-8fdd-f268-95ce-1704723b9996
-Expires At: 2020-03-09 03:59:59.999 +0000 UTC
-Datacenter: *
-Package: premium
-Licensed Features:
-        Automated Backups
-        Automated Upgrades
-        Enhanced Read Scalability
-        Network Segments
-        Redundancy Zone
-        Advanced Network Federation
-$ consul members
-Node                                       Address           Status  Type    Build      Protocol  DC   Segment
-hashicorp-consul-server-0                  10.60.0.187:8301  alive   server  1.4.3+ent  2         dc1  <all>
-hashicorp-consul-server-1                  10.60.1.229:8301  alive   server  1.4.3+ent  2         dc1  <all>
-hashicorp-consul-server-2                  10.60.2.197:8301  alive   server  1.4.3+ent  2         dc1  <all>
-```
-
-If you get an error:
-
-```bash
-Error getting license: invalid character 'r' looking for beginning of value
-```
-
-Then you have likely enabled ACLs. You need to specify your ACL token when
-running the `license get` command. First, get the ACL token:
-
-```bash
-$ kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template={{.data.token}} | base64 -D
-4dae8373-b4d7-8009-9880-a796850caef9%
-```
-
-Now use the token when running the `license get` command:
-
-```bash
-$ consul license get -token=4dae8373-b4d7-8009-9880-a796850caef9
-License is valid
-License ID: 1931d1f4-bdfd-6881-f3f5-19349374841f
-Customer ID: b2025a4a-8fdd-f268-95ce-1704723b9996
-Expires At: 2020-03-09 03:59:59.999 +0000 UTC
-Datacenter: *
-Package: premium
-Licensed Features:
-        Automated Backups
-        Automated Upgrades
-        Enhanced Read Scalability
-        Network Segments
-        Redundancy Zone
-        Advanced Network Federation
-```
 
 ## Helm Chart Examples
 
@@ -506,4 +401,8 @@ connectInject:
 
 Consul within Kubernetes is highly configurable and the Helm chart contains dozens
 of the most commonly used configuration options.
-If you need to extend the Helm chart with additional options, we recommend using a third-party tool, such as [kustomize](https://github.com/kubernetes-sigs/kustomize) or [ship](https://github.com/replicatedhq/ship).
+If you need to extend the Helm chart with additional options, we recommend using a third-party tool,
+such as [kustomize](https://github.com/kubernetes-sigs/kustomize) or [ship](https://github.com/replicatedhq/ship).
+Note that the Helm chart heavily relies on Helm lifecycle hooks, and so features like bootstrapping ACLs or TLS
+will not work as expected. Additionally, we can make changes to the internal implementation (e.g., renaming template files) that
+may be backward incompatible with such customizations.

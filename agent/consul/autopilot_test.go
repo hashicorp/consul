@@ -310,7 +310,10 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add s4 to peers directly
-	s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(joinAddrLAN(s4)), 0, 0)
+	addVoterFuture := s1.raft.AddVoter(raft.ServerID(s4.config.NodeID), raft.ServerAddress(joinAddrLAN(s4)), 0, 0)
+	if err := addVoterFuture.Error(); err != nil {
+		t.Fatal(err)
+	}
 
 	// Verify we have 4 peers
 	peers, err := s1.numPeers()

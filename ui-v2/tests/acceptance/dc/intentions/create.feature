@@ -19,6 +19,7 @@ Feature: dc / intentions / create: Intention Create
       dc: datacenter
     ---
     Then the url should be /datacenter/intentions/create
+    And the title should be "New Intention - Consul"
     # Set source
     And I click "[data-test-source-element] .ember-power-select-trigger"
     And I type "web" into ".ember-power-select-search-input"
@@ -32,12 +33,13 @@ Feature: dc / intentions / create: Intention Create
     # Specifically set deny
     And I click "[value=deny]"
     And I submit
-    Then a POST request is made to "/v1/connect/intentions?dc=datacenter" with the body from yaml
+    Then a POST request was made to "/v1/connect/intentions?dc=datacenter" with the body from yaml
     ---
       SourceName: web
       DestinationName: db
       Action: deny
     ---
     Then the url should be /datacenter/intentions
+    And the title should be "Intentions - Consul"
     And "[data-notification]" has the "notification-create" class
     And "[data-notification]" has the "success" class

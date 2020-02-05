@@ -3,6 +3,7 @@ import Service, { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import { Promise } from 'rsvp';
 
+import { env } from 'consul-ui/env';
 import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
 import createURL from 'consul-ui/utils/createURL';
@@ -41,31 +42,7 @@ export default Service.extend({
   settings: service('settings'),
   init: function() {
     this._super(...arguments);
-    let protocol = 'http/1.1';
-    try {
-      protocol = performance.getEntriesByType('resource').find(item => {
-        // isCurrent is added in initializers/client and is used
-        // to ensure we use the consul-ui.js src to sniff what the protocol
-        // is. Based on the assumption that whereever this script is it's
-        // likely to be the same as the xmlhttprequests
-        return item.initiatorType === 'script' && this.isCurrent(item.name);
-      }).nextHopProtocol;
-    } catch (e) {
-      // pass through
-    }
-    let maxConnections;
-    // http/2, http2+QUIC/39 and SPDY don't have connection limits
-    switch (true) {
-      case protocol.indexOf('h2') === 0:
-      case protocol.indexOf('hq') === 0:
-      case protocol.indexOf('spdy') === 0:
-        break;
-      default:
-        // generally 6 are available
-        // reserve 1 for traffic that we can't manage
-        maxConnections = 5;
-        break;
-    }
+    const maxConnections = env('CONSUL_HTTP_MAX_CONNECTIONS');
     set(this, 'connections', getObjectPool(dispose, maxConnections));
     if (typeof maxConnections !== 'undefined') {
       set(this, 'maxConnections', maxConnections);

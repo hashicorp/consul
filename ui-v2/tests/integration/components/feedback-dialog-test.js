@@ -18,9 +18,9 @@ module('Integration | Component | feedback dialog', function(hooks) {
     // Template block usage:
     await render(hbs`
       {{#feedback-dialog}}
-        {{#block-slot 'success'}}
+        {{#block-slot name='success'}}
         {{/block-slot}}
-        {{#block-slot 'error'}}
+        {{#block-slot name='error'}}
         {{/block-slot}}
       {{/feedback-dialog}}
     `);

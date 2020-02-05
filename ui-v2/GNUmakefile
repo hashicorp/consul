@@ -35,14 +35,17 @@ start-consul: deps
 start-api: deps
 	yarn run start:api
 
-test: deps
+test: deps test-node
 	yarn run test
 
-test-view: deps
+test-view: deps test-node
 	yarn run test:view
 
 test-parallel: deps
 	yarn run test:parallel
+
+test-node:
+	yarn run test:node
 
 lint: deps
 	yarn run lint:hbs && yarn run lint:js

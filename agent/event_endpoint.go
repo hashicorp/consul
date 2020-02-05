@@ -134,7 +134,7 @@ RUN_QUERY:
 			if authz.EventRead(name, nil) == acl.Allow {
 				continue
 			}
-			s.agent.logger.Printf("[DEBUG] agent: dropping event %q from result due to ACLs", name)
+			s.agent.logger.Debug("dropping event from result due to ACLs", "event", name)
 			events = append(events[:i], events[i+1:]...)
 			i--
 		}

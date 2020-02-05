@@ -38,7 +38,7 @@ documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
-You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent. 
+You can test the following configuration options by following the [Getting Started](https://learn.hashicorp.com/consul/getting-started/install?utm_source=consul.io&utm_medium=docs) guides to install a local agent.
 
 ## Environment Variables
 Environment variables **cannot** be used to configure the Consul client. They
@@ -100,12 +100,12 @@ The options below are all specified on the command-line.
   the local machine and will [advertise](/docs/agent/options.html#_advertise)
   the private IPv4 address to the rest of the cluster. If there
   are multiple private IPv4 addresses available, Consul will exit with an error
-  at startup. If you specify "[::]", Consul will [advertise](/docs/agent/options.html#_advertise) 
-  the public IPv6 address. 
+  at startup. If you specify "[::]", Consul will [advertise](/docs/agent/options.html#_advertise)
+  the public IPv6 address.
   If there are multiple public IPv6 addresses available, Consul will exit with an error at startup.
-  Consul uses both TCP and UDP and the same port for both. If you have any firewalls, 
-  be sure to allow both protocols. In Consul 1.0 and later this can be set to a 
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) 
+  Consul uses both TCP and UDP and the same port for both. If you have any firewalls,
+  be sure to allow both protocols. In Consul 1.0 and later this can be set to a
+  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
   template that needs to resolve to a single address. Some example templates:
 
     ```sh
@@ -277,6 +277,10 @@ The options below are all specified on the command-line.
   to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
   you to set the port directly via a Procfile.
 
+* <a name="_https_port"></a><a href="#_https_port">`-https-port`</a> - the HTTPS API
+  port to listen on. Default -1 (https disabled). See [ports](#ports)
+  documentation for more detail.
+
 * <a name="_log_file"></a><a href="#_log_file">`-log-file`</a> - to redirect all the Consul agent log messages to a file. This can be specified with the complete path along with the name of the log. In case the path doesn't have the filename, the filename defaults to `consul-{timestamp}.log`. Can be combined with <a href="#_log_rotate_bytes"> -log-rotate-bytes</a> and <a href="#_log_rotate_duration"> -log-rotate-duration </a> for a fine-grained log rotation experience.
 
 * <a name="_log_rotate_bytes"></a><a href="#_log_rotate_bytes">`-log-rotate-bytes`</a> - to specify the number of bytes that should be written to a log before it needs to be rotated. Unless specified, there is no limit to the number of bytes that can be written to a log file.
@@ -284,6 +288,16 @@ The options below are all specified on the command-line.
 * <a name="_log_rotate_duration"></a><a href="#_log_rotate_duration">`-log-rotate-duration`</a> - to specify the maximum duration a log should be written to before it needs to be rotated. Must be a duration value such as 30s. Defaults to 24h.
 
 * <a name="_log_rotate_max_files"></a><a href="#_log_rotate_max_files">`-log-rotate-max-files`</a> - to specify the maximum number of older log file archives to keep. Defaults to 0 (no files are ever deleted). Set to -1 to discard old log files when a new one is created.
+
+* <a name="_default_query_time"></a><a href="#_default_query_time">`-default-query-time`</a> - This flag controls the
+  amount of time a blocking query will wait before Consul will force a response.
+  This value can be overridden by the `wait` query parameter. Note that Consul
+  applies some jitter on top of this time. Defaults to 300s.
+
+* <a name="_max_query_time"></a><a href="#_max_query_time">`-max-query-time`</a> -
+  this flag controls the maximum amount of time a blocking query can wait before
+  Consul will force a response. Consul applies jitter to the wait time. The jittered
+  time will be capped to this time. Defaults to 600s.
 
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
@@ -301,8 +315,10 @@ The options below are all specified on the command-line.
 
 <a name="_retry_join"></a>
 
-* `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join if the
-  first attempt fails. This is useful for cases where you know the address will
+* `-retry-join` - Similar to [`-join`](#_join) but allows retrying a join until
+  it is successful. Once it joins successfully to a member in a list of members
+  it will never attempt to join again. Agents will then solely maintain their
+  membership via gossip. This is useful for cases where you know the address will
   eventually be available. This option can be specified multiple times to
   specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
   addresses. In Consul 1.1.0 and later this can be set to a
@@ -384,6 +400,9 @@ The options below are all specified on the command-line.
   "trace", "debug", "info", "warn", and "err". You can always connect to an
   agent via [`consul monitor`](/docs/commands/monitor.html) and use any log level. Also, the
   log level can be changed during a config reload.
+
+* <a name="_log_json"></a><a href="#_log_json">`-log-json`</a> - This flag
+  enables the agent to output logs in a JSON format. By default this is false.
 
 * <a name="_node"></a><a href="#_node">`-node`</a> - The name of this node in the cluster.
   This must be unique within the cluster. By default this is the hostname of the machine.
@@ -643,6 +662,18 @@ default will automatically work with some tooling.
         token replication is enabled then it must have "write" permissions. This also enables
         Connect replication, for which the token will require both operator
         "write" and intention "read" permissions for replicating CA and Intention data.
+        
+        * <a name="acl_tokens_managed_service_provider"></a><a href="#acl_tokens_managed_service_provider">`managed_service_provider`</a> - 
+        **(Enterprise Only)** An array of ACL tokens used by Consul managed service providers for cluster operations.
+        
+        ```javascript
+          "managed_service_provider": [
+               {
+                   "accessor_id": "ed22003b-0832-4e48-ac65-31de64e5c2ff",
+                   "secret_id": "cb6be010-bba8-4f30-a9ed-d347128dde17"
+               }
+          ]
+        ```
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - **This field is
   deprecated in Consul 1.4.0. See the [`primary_datacenter`](#primary_datacenter) field instead.**
@@ -826,6 +857,10 @@ default will automatically work with some tooling.
 
     * <a name="tls"></a><a href="#tls">`tls`</a> (Defaults to `false`) Allows the client to request the Connect CA and certificates from the servers, for encrypting RPC communication. The client will make the request to any servers listed in the `-join` or `-retry-join` option. This requires that every server to have `auto_encrypt.allow_tls` enabled. When both `auto_encrypt` options are used, it allows clients to receive certificates that are generated on the servers. If the `-server-port` is not the default one, it has to be provided to the client as well. Usually this is discovered through LAN gossip, but `auto_encrypt` provision happens before the information can be distributed through gossip. The most secure `auto_encrypt` setup is when the client is provided with the built-in CA, `verify_server_hostname` is turned on, and when an ACL token with `node.write` permissions is setup. It is also possible to use `auto_encrypt` with a CA and ACL, but without `verify_server_hostname`, or only with a ACL enabled, or only with CA and `verify_server_hostname`, or only with a CA, or finally without a CA and without ACL enabled. In any case, the communication to the `auto_encrypt` endpoint is always TLS encrypted.
 
+    * <a name="dns_san"></a><a href="#dns_san">`dns_san`</a> (Defaults to `[]`) When this option is being used, the certificates requested by `auto_encrypt` from the server have these `dns_san` set as DNS SAN.
+
+    * <a name="ip_san"></a><a href="#ip_san">`ip_san`</a> (Defaults to `[]`) When this option is being used, the certificates requested by `auto_encrypt` from the server have these `ip_san` set as IP SAN.
+
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
 
@@ -973,14 +1008,14 @@ default will automatically work with some tooling.
           generating a new key. If `private_key` is set for the Consul provider,
           or existing root or intermediate PKI paths given for Vault then this
           will be ignored. Currently supported options are `ec` or `rsa`.
-          Default is `ec`. 
-          
+          Default is `ec`.
+
             It is required that all servers in a Datacenter have
           the same config for the CA. It is recommended that servers in
           different Datacenters have the same CA config for key type and size
           although the built-in CA and Vault provider will both allow mixed CA
           key types.
-          
+
             Some CA providers (currently Vault) will not allow cross-signing a
             new CA certificate with a different key type. This means that if you
             migrate from an RSA-keyed Vault CA to an EC-keyed CA from any
@@ -1164,8 +1199,8 @@ default will automatically work with some tooling.
     set to true, in a DNS query for a service, the label between the domain and the `service` label will be treated as a
     namespace name instead of a datacenter. When set to false, the default, the behavior will be the same as non-Enterprise
     versions and will assume the label is the datacenter. See: [this section](/docs/agent/dns.html#namespaced-services-enterprise) for more details.
-    
-    
+
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 
@@ -1346,18 +1381,68 @@ default will automatically work with some tooling.
   value was unconditionally set to `false`). On agents in client-mode, this defaults to `true`
   and for agents in server-mode, this defaults to `false`.
 
-* <a name="limits"></a><a href="#limits">`limits`</a> Available in Consul 0.9.3 and later, this
-  is a nested object that configures limits that are enforced by the agent. Currently, this only
-  applies to agents in client mode, not Consul servers. The following parameters are available:
+* <a name="limits"></a><a href="#limits">`limits`</a> Available in Consul 0.9.3
+  and later, this is a nested object that configures limits that are enforced by
+  the agent. Prior to Consul 1.5.2, this only applied to agents in client mode,
+  not Consul servers. The following parameters are available:
 
-    *   <a name="rpc_rate"></a><a href="#rpc_rate">`rpc_rate`</a> - Configures the RPC rate
-        limiter by setting the maximum request rate that this agent is allowed to make for RPC
-        requests to Consul servers, in requests per second. Defaults to infinite, which disables
+    *   <a name="http_max_conns_per_client"></a><a
+        href="#http_max_conns_per_client">`http_max_conns_per_client`</a> -
+        Configures a limit of how many concurrent TCP connections a single
+        client IP address is allowed to open to the agent's HTTP(S) server. This
+        affects the HTTP(S) servers in both client and server agents. Default
+        value is `100`.
+    *   <a name="https_handshake_timeout"></a><a
+        href="#https_handshake_timeout">`https_handshake_timeout`</a> -
+        Configures the limit for how long the HTTPS server in both client and
+        server agents will wait for a client to complete a TLS handshake. This
+        should be kept conservative as it limits how many connections an
+        unauthenticated attacker can open if `verify_incoming` is being using to
+        authenticate clients (strongly recommended in production). Default value
+        is `5s`.
+    *   <a name="rpc_handshake_timeout"></a><a
+        href="#rpc_handshake_timeout">`rpc_handshake_timeout`</a> - Configures
+        the limit for how long servers will wait after a client TCP connection
+        is established before they complete the connection handshake. When TLS
+        is used, the same timeout applies to the TLS handshake separately from
+        the initial protocol negotiation. All Consul clients should perform this
+        immediately on establishing a new connection. This should be kept
+        conservative as it limits how many connections an unauthenticated
+        attacker can open if `verify_incoming` is being using to authenticate
+        clients (strongly recommended in production). When `verify_incoming` is
+        true on servers, this limits how long the connection socket and
+        associated goroutines will be held open before the client successfully
+        authenticates. Default value is `5s`.
+    *   <a name="rpc_max_conns_per_client"></a><a
+        href="#rpc_max_conns_per_client">`rpc_max_conns_per_client`</a> -
+        Configures a limit of how many concurrent TCP connections a single
+        source IP address is allowed to open to a single server. It affects both
+        clients connections and other server connections. In general Consul
+        clients multiplex many RPC calls over a single TCP connection so this
+        can typically be kept low. It needs to be more than one though since
+        servers open at least one additional connection for raft RPC, possibly
+        more for WAN federation when using network areas, and snapshot requests
+        from clients run over a separate TCP conn. A reasonably low limit
+        significantly reduces the ability of an unauthenticated attacker to
+        consume unbounded resources by holding open many connections. You may
+        need to increase this if WAN federated servers connect via proxies or
+        NAT gateways or similar causing many legitimate connections from a
+        single source IP. Default value is `100` which is designed to be
+        extremely conservative to limit issues with certain deployment patterns.
+        Most deployments can probably reduce this safely. 100 connections on
+        modern server hardware should not cause a significant impact on resource
+        usage from an unauthenticated attacker though.
+    *   <a name="rpc_rate"></a><a href="#rpc_rate">`rpc_rate`</a> - Configures
+        the RPC rate limiter on Consul _clients_ by setting the maximum request
+        rate that this agent is allowed to make for RPC requests to Consul
+        servers, in requests per second. Defaults to infinite, which disables
         rate limiting.
-    *   <a name="rpc_rate"></a><a href="#rpc_max_burst">`rpc_max_burst`</a> - The size of the token
-        bucket used to recharge the RPC rate limiter. Defaults to 1000 tokens, and each token is
-        good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket
-        for more details about how token bucket rate limiters operate.
+    *   <a name="rpc_max_burst"></a><a href="#rpc_max_burst">`rpc_max_burst`</a> -
+        The size of the token bucket used to recharge the RPC rate limiter on
+        Consul _clients_ . Defaults to 1000 tokens, and each token is good for a
+        single RPC call to a Consul server. See
+        https://en.wikipedia.org/wiki/Token_bucket for more details about how
+        token bucket rate limiters operate.
 
 * <a name="log_file"></a><a href="#log_file">`log_file`</a> Equivalent to the
   [`-log-file` command-line flag](#_log_file).
@@ -1373,6 +1458,15 @@ default will automatically work with some tooling.
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
+
+* <a name="log_json"></a><a href="#log_json">`log_json`</a> Equivalent to the
+  [`-log-json` command-line flag](#_log_json).
+
+* <a name="default_query_time"></a><a href="#default_query_time">`default_query_time`</a>
+  Equivalent to the [`-default-query-time` command-line flag](#_default_query_time).
+
+* <a name="max_query_time"></a><a href="#max_query_time">`max_query_time`</a>
+  Equivalent to the [`-max-query-time` command-line flag](#_max_query_time).
 
 * <a name="node_id"></a><a href="#node_id">`node_id`</a> Equivalent to the
   [`-node-id` command-line flag](#_node_id).
@@ -1455,13 +1549,13 @@ default will automatically work with some tooling.
       Set to `0` to disable automatic port assignment.
     * <a name="expose_min_port"></a><a
       href="#expose_min_port">`expose_min_port`</a> - Inclusive minimum port
-      number to use for automatically assigned 
-      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference). 
+      number to use for automatically assigned
+      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
       Default 21500. Set to `0` to disable automatic port assignment.
     * <a name="expose_max_port"></a><a
       href="#expose_max_port">`expose_max_port`</a> - Inclusive maximum port
-      number to use for automatically assigned 
-      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference). 
+      number to use for automatically assigned
+      [exposed check listeners](/docs/connect/registration/service-registration.html#expose-paths-configuration-reference).
       Default 21755. Set to `0` to disable automatic port assignment.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
@@ -1477,8 +1571,8 @@ default will automatically work with some tooling.
   [`-raft-protocol` command-line flag](#_raft_protocol).
 
 <!-- Note the extra _ anchors are here because we used to erroneously list these as
-command line flags even though they are not actually defined as valid flags and can 
-only be set in config file. Duplicating the anchor preserves any existing external links 
+command line flags even though they are not actually defined as valid flags and can
+only be set in config file. Duplicating the anchor preserves any existing external links
 to the old fragment -->
 * <a name="raft_snapshot_threshold"></a><a name="_raft_snapshot_threshold"></a>
   <a href="#raft_snapshot_threshold">`raft_snapshot_threshold`</a> This controls
@@ -1787,7 +1881,7 @@ to the old fragment -->
       currently only supports numeric IDs.
     - `mode` - The permission bits to set on the file.
 
-* <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> 
+* <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a>
   - If set to true, Consul requires that all incoming connections make use of TLS
   and that the client provides a certificate signed by a Certificate Authority
   from the [`ca_file`](#ca_file) or [`ca_path`](#ca_path).  This applies to

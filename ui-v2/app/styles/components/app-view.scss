@@ -1,6 +1,32 @@
 @import './app-view/index';
 @import './filter-bar/index';
 @import '../base/components/buttons/index';
+
+@import '../base/components/popover-menu/index';
+
+%app-view-header .actions > [type='checkbox'] {
+  @extend %more-popover-menu;
+}
+%more-popover-menu-panel [type='checkbox']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 143px;
+  max-height: 143px;
+}
+%more-popover-menu-panel [id$='logout']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 163px;
+  max-height: 163px;
+}
+%more-popover-menu-panel [id$='delete']:checked ~ ul label[for$='delete'] + [role='menu'],
+%more-popover-menu-panel [id$='logout']:checked ~ ul label[for$='logout'] + [role='menu'],
+%more-popover-menu-panel [id$='use']:checked ~ ul label[for$='use'] + [role='menu'] {
+  display: block;
+}
+%app-view-header .actions label + div {
+  // We need this extra to allow tooltips to show
+  overflow: visible !important;
+}
+
 main {
   @extend %app-view;
 }

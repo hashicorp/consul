@@ -35,12 +35,12 @@ func TestValidateLogin(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("invalid bearer token", func(t *testing.T) {
-		_, err := validator.ValidateLogin("invalid")
+		_, _, err := validator.ValidateLogin("invalid")
 		require.Error(t, err)
 	})
 
 	t.Run("valid bearer token", func(t *testing.T) {
-		fields, err := validator.ValidateLogin(goodJWT_B)
+		fields, _, err := validator.ValidateLogin(goodJWT_B)
 		require.NoError(t, err)
 		require.Equal(t, map[string]string{
 			"serviceaccount.namespace": "default",
@@ -59,7 +59,7 @@ func TestValidateLogin(t *testing.T) {
 	)
 
 	t.Run("valid bearer token with annotation", func(t *testing.T) {
-		fields, err := validator.ValidateLogin(goodJWT_B)
+		fields, _, err := validator.ValidateLogin(goodJWT_B)
 		require.NoError(t, err)
 		require.Equal(t, map[string]string{
 			"serviceaccount.namespace": "default",

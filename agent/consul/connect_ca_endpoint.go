@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib/semaphore"
+	"github.com/hashicorp/go-hclog"
 
 	"golang.org/x/time/rate"
 
@@ -50,6 +51,8 @@ const (
 type ConnectCA struct {
 	// srv is a pointer back to the server.
 	srv *Server
+
+	logger hclog.Logger
 
 	// csrRateLimiter limits the rate of signing new certs if configured. Lazily
 	// initialized from current config to support dynamic changes.
@@ -251,7 +254,7 @@ func (s *ConnectCA) ConfigurationSet(
 		// If the config has been committed, update the local provider instance
 		s.srv.setCAProvider(newProvider, newActiveRoot)
 
-		s.srv.logger.Printf("[INFO] connect: CA provider config updated")
+		s.logger.Info("CA provider config updated")
 
 		return nil
 	}
@@ -276,7 +279,7 @@ func (s *ConnectCA) ConfigurationSet(
 			"disruption - see documentation for more.")
 	}
 	if !canXSign && args.Config.ForceWithoutCrossSigning {
-		s.srv.logger.Println("[WARN] current CA doesn't support cross signing but " +
+		s.logger.Warn("current CA doesn't support cross signing but " +
 			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
 	}
 
@@ -348,10 +351,10 @@ func (s *ConnectCA) ConfigurationSet(
 	s.srv.setCAProvider(newProvider, newActiveRoot)
 
 	if err := oldProvider.Cleanup(); err != nil {
-		s.srv.logger.Printf("[WARN] connect: failed to clean up old provider %q", config.Provider)
+		s.logger.Warn("failed to clean up old provider", "provider", config.Provider)
 	}
 
-	s.srv.logger.Printf("[INFO] connect: CA rotated to new root under provider %q", args.Config.Provider)
+	s.logger.Info("CA rotated to new root under provider", "provider", args.Config.Provider)
 
 	return nil
 }

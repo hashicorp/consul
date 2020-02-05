@@ -320,6 +320,34 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		})
 }
 
+func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.IndexedServiceList) error {
+	if done, err := c.srv.forward("Catalog.ServiceList", args, args, reply); done {
+		return err
+	}
+
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	return c.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, services, err := state.ServiceList(ws, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
+			return c.srv.filterACLWithAuthorizer(authz, reply)
+		})
+}
+
 // ServiceNodes returns all the nodes registered as part of a service
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
 	if done, err := c.srv.forward("Catalog.ServiceNodes", args, args, reply); done {
@@ -520,7 +548,7 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 		return fmt.Errorf("Must provide node")
 	}
 
-	var filterType map[string]*structs.NodeService
+	var filterType []*structs.NodeService
 	filter, err := bexpr.CreateFilter(args.Filter, nil, filterType)
 	if err != nil {
 		return err

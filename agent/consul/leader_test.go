@@ -1153,7 +1153,7 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	retry.Run(t, func(t *retry.R) {
-		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal)
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
 		require.NoError(t, err)
 		require.NotNil(t, entry)
 		global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1177,11 +1177,11 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 		for scan.Scan() {
 			line := scan.Text()
 
-			if strings.Contains(line, "consul: failed to establish leadership") {
+			if strings.Contains(line, "failed to establish leadership") {
 				ch <- ""
 				return
 			}
-			if strings.Contains(line, "connect: initialized primary datacenter") {
+			if strings.Contains(line, "initialized primary datacenter") {
 				ch <- "leadership should not have gotten here if config entries properly failed"
 				return
 			}

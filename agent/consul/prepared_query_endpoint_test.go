@@ -3,7 +3,6 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net/rpc"
 	"os"
 	"reflect"
@@ -19,7 +18,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
 )
@@ -1464,14 +1464,15 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
 	// Try to WAN join.
+	joinWAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s1.WANMembers()), 2; got != want {
 			r.Fatalf("got %d WAN members want %d", got, want)
 		}
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Create an ACL with read permission to the service.
 	var execToken string
@@ -2960,16 +2961,17 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+
 	// Try to WAN join.
 	joinWAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Try all the operations on a real server via the wrapper.
 	wrapper := &queryServerWrapper{s1}
-	wrapper.GetLogger().Printf("[DEBUG] Test")
+	wrapper.GetLogger().Debug("Test")
 
 	ret, err := wrapper.GetOtherDatacentersByDistance()
-	wrapper.GetLogger().Println("Returned value: ", ret)
+	wrapper.GetLogger().Info("Returned value", "value", ret)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2988,7 +2990,7 @@ type mockQueryServer struct {
 	DatacentersError error
 	QueryLog         []string
 	QueryFn          func(dc string, args interface{}, reply interface{}) error
-	Logger           *log.Logger
+	Logger           hclog.Logger
 	LogBuffer        *bytes.Buffer
 }
 
@@ -2996,10 +2998,15 @@ func (m *mockQueryServer) JoinQueryLog() string {
 	return strings.Join(m.QueryLog, "|")
 }
 
-func (m *mockQueryServer) GetLogger() *log.Logger {
+func (m *mockQueryServer) GetLogger() hclog.Logger {
 	if m.Logger == nil {
 		m.LogBuffer = new(bytes.Buffer)
-		m.Logger = log.New(m.LogBuffer, "", 0)
+
+		m.Logger = hclog.New(&hclog.LoggerOptions{
+			Name:   "mock_query",
+			Output: m.LogBuffer,
+			Level:  hclog.Debug,
+		})
 	}
 	return m.Logger
 }

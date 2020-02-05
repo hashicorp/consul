@@ -12,10 +12,10 @@ description: |-
 Consul Connect provides service-to-service connection authorization and
 encryption using mutual Transport Layer Security (TLS). Applications can use
 [sidecar proxies](/docs/connect/proxies.html) in a service mesh configuration to
-automatically establish TLS connections for inbound and outbound connections
-without being aware of Connect at all. Applications may also [natively integrate
-with Connect](/docs/connect/native.html) for optimal performance and security.
-Connect can help you secure your services and provide data about service-to-service
+establish TLS connections for inbound and outbound connections without being aware 
+of Connect at all. Applications may also [natively integrate with Connect](/docs/connect/native.html) 
+for optimal performance and security. Connect can help you secure your services and provide data 
+about service-to-service
 communications.
 
 Review the video below to learn more about Consul Connect from HashiCorp's co-founder Armon. 
@@ -41,7 +41,7 @@ programming languages and frameworks. When you configure Consul Connect to use
 sidecar proxies, those proxies "see" all service-to-service traffic and can
 collect data about it. Consul Connect can configure Envoy proxies to collect
 layer 7 metrics and export them to tools like Prometheus. Correctly instrumented
-application can also send open tracing data through Envoy.
+applications can also send open tracing data through Envoy.
 
 ## Getting Started With Connect
 

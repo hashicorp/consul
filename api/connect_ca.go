@@ -39,9 +39,10 @@ type CommonCAProviderConfig struct {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
+	PrivateKey          string
+	RootCert            string
+	RotationPeriod      time.Duration
+	IntermediateCertTTL time.Duration
 }
 
 // ParseConsulCAConfig takes a raw config map and returns a parsed

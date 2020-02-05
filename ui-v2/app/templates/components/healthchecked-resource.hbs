@@ -1,19 +1,19 @@
 {{#stats-card}}
-  {{#block-slot 'icon'}}{{yield}}{{/block-slot}}
-  {{#block-slot 'mini-stat'}}
+  {{#block-slot name='icon'}}{{yield}}{{/block-slot}}
+  {{#block-slot name='mini-stat'}}
     {{#if (eq checks.length 0)}}
       <span class="zero" data-tooltip="This node has no registered healthchecks">{{checks.length}}</span>
     {{else if (eq checks.length healthy.length)}}
       <span class="non-zero" data-tooltip={{concat 'All ' healthy.length ' ' (pluralize healthy.length 'check' without-count=true) ' passing'}}>{{healthy.length}}</span>
     {{/if}}
   {{/block-slot}}
-  {{#block-slot 'header'}}
+  {{#block-slot name='header'}}
     <a href={{href}}>
       <strong>{{name}}</strong>
       <span>{{address}}</span>
     </a>
   {{/block-slot}}
-  {{#block-slot 'body'}}
+  {{#block-slot name='body'}}
   {{#if (not-eq checks.length healthy.length)}}
     <ul>
   {{#each unhealthy as |item|}}

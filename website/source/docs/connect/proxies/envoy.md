@@ -138,6 +138,11 @@ configuration entry](/docs/agent/config-entries/proxy-defaults.html). The env va
     -> **Note:** Envoy versions prior to 1.10 do not export timing histograms
     using the internal Prometheus endpoint.
 
+- `envoy_stats_bind_addr` - Specifies that the proxy should expose the /stats prefix
+  to the _public_ network. It must be supplied in the form `ip:port` and
+  the ip/port combination must be free within the network namespace the proxy runs.
+  Typically the IP would be `0.0.0.0` to bind to all available interfaces or a pod IP address.
+
 - `envoy_stats_tags` - Specifies one or more static tags that will be added to
   all metrics produced by the proxy.
 
@@ -170,7 +175,7 @@ and `proxy.upstreams[*].config` fields of the [proxy service
 definition](/docs/connect/registration/service-registration.html) that is
 actually registered.
 
-To learn about other options that can be configured centrally see the 
+To learn about other options that can be configured centrally see the
 [Configuration Entries](/docs/agent/config_entries.html) docs.
 
 ### Proxy Config Options

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/rpc"
 	"os"
@@ -30,8 +29,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/raft"
@@ -89,16 +90,17 @@ const (
 )
 
 const (
-	legacyACLReplicationRoutineName = "legacy ACL replication"
-	aclPolicyReplicationRoutineName = "ACL policy replication"
-	aclRoleReplicationRoutineName   = "ACL role replication"
-	aclTokenReplicationRoutineName  = "ACL token replication"
-	aclTokenReapingRoutineName      = "acl token reaping"
-	aclUpgradeRoutineName           = "legacy ACL token upgrade"
-	caRootPruningRoutineName        = "CA root pruning"
-	configReplicationRoutineName    = "config entry replication"
-	intentionReplicationRoutineName = "intention replication"
-	secondaryCARootWatchRoutineName = "secondary CA roots watch"
+	legacyACLReplicationRoutineName    = "legacy ACL replication"
+	aclPolicyReplicationRoutineName    = "ACL policy replication"
+	aclRoleReplicationRoutineName      = "ACL role replication"
+	aclTokenReplicationRoutineName     = "ACL token replication"
+	aclTokenReapingRoutineName         = "acl token reaping"
+	aclUpgradeRoutineName              = "legacy ACL token upgrade"
+	caRootPruningRoutineName           = "CA root pruning"
+	configReplicationRoutineName       = "config entry replication"
+	intentionReplicationRoutineName    = "intention replication"
+	secondaryCARootWatchRoutineName    = "secondary CA roots watch"
+	secondaryCertRenewWatchRoutineName = "secondary cert renew watch"
 )
 
 var (
@@ -108,9 +110,8 @@ var (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// enterpriseACLConfig is the Consul Enterprise specific items
-	// necessary for ACLs
-	enterpriseACLConfig *acl.Config
+	// aclConfig is the configuration for the ACL system
+	aclConfig *acl.Config
 
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
@@ -127,6 +128,8 @@ type Server struct {
 	// autopilotWaitGroup is used to block until Autopilot shuts down.
 	autopilotWaitGroup sync.WaitGroup
 
+	// caProviderReconfigurationLock guards the provider reconfiguration.
+	caProviderReconfigurationLock sync.Mutex
 	// caProvider is the current CA provider in use for Connect. This is
 	// only non-nil when we are the leader.
 	caProvider ca.Provider
@@ -165,7 +168,8 @@ type Server struct {
 	fsm *fsm.FSM
 
 	// Logger uses the provided LogOutput
-	logger *log.Logger
+	logger  hclog.InterceptLogger
+	loggers *loggerStore
 
 	// The raft instance is used among Consul nodes within the DC to protect
 	// operations that require strong consistency.
@@ -202,6 +206,9 @@ type Server struct {
 	// rpcLimiter is used to rate limit the total number of RPCs initiated
 	// from an agent.
 	rpcLimiter atomic.Value
+
+	// rpcConnLimiter limits the number of RPC connections from a single source IP
+	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
 	Listener  net.Listener
@@ -289,7 +296,7 @@ func NewServer(config *Config) (*Server, error) {
 
 // NewServerLogger is used to construct a new Consul server from the
 // configuration, potentially returning an error
-func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
+func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
 	// Check the protocol version.
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -309,8 +316,12 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
 	}
+
 	if logger == nil {
-		logger = log.New(config.LogOutput, "", log.LstdFlags)
+		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+			Level:  hclog.Debug,
+			Output: config.LogOutput,
+		})
 	}
 
 	// Check if TLS is enabled
@@ -349,6 +360,8 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		ForceTLS:        config.VerifyOutgoing,
 	}
 
+	serverLogger := logger.NamedIntercept(logging.ConsulServer)
+	loggers := newLoggerStore(serverLogger)
 	// Create server.
 	s := &Server{
 		config:                  config,
@@ -356,10 +369,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 		connPool:                connPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
-		logger:                  logger,
+		logger:                  serverLogger,
+		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(logger, config.Datacenter),
+		router:                  router.NewRouter(serverLogger, config.Datacenter),
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         tlsConfigurator,
@@ -382,11 +396,11 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
-		Name:     "Config Entry",
+		Name:     logging.ConfigEntry,
 		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig},
 		Rate:     s.config.ConfigReplicationRate,
 		Burst:    s.config.ConfigReplicationBurst,
-		Logger:   logger,
+		Logger:   s.logger,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
 	if err != nil {
@@ -397,15 +411,15 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.enterpriseACLConfig = newEnterpriseACLConfig(logger)
+	s.aclConfig = newACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:           config,
-		Delegate:         s,
-		CacheConfig:      serverACLCacheConfig,
-		AutoDisable:      false,
-		Logger:           logger,
-		EnterpriseConfig: s.enterpriseACLConfig,
+		Config:      config,
+		Delegate:    s,
+		CacheConfig: serverACLCacheConfig,
+		AutoDisable: false,
+		Logger:      logger,
+		ACLConfig:   s.aclConfig,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
@@ -460,7 +474,7 @@ func NewServerLogger(config *Config, logger *log.Logger, tokens *token.Store, tl
 			if serfBindPortWAN == 0 {
 				return nil, fmt.Errorf("Failed to get dynamic bind port for WAN Serf")
 			}
-			s.logger.Printf("[INFO] agent: Serf WAN TCP bound to port %d", serfBindPortWAN)
+			s.logger.Info("Serf WAN TCP bound", "port", serfBindPortWAN)
 		}
 	}
 
@@ -532,7 +546,7 @@ func (s *Server) trackAutoEncryptCARoots() {
 	for {
 		select {
 		case <-s.shutdownCh:
-			s.logger.Printf("[DEBUG] agent: shutting down trackAutoEncryptCARoots because shutdown")
+			s.logger.Debug("shutting down trackAutoEncryptCARoots because shutdown")
 			return
 		default:
 		}
@@ -541,7 +555,7 @@ func (s *Server) trackAutoEncryptCARoots() {
 		ws.Add(state.AbandonCh())
 		_, cas, err := state.CARoots(ws)
 		if err != nil {
-			s.logger.Printf("[DEBUG] agent: Failed to watch AutoEncrypt CARoot: %v", err)
+			s.logger.Error("Failed to watch AutoEncrypt CARoot", "error", err)
 			return
 		}
 		caPems := []string{}
@@ -549,7 +563,7 @@ func (s *Server) trackAutoEncryptCARoots() {
 			caPems = append(caPems, ca.RootCert)
 		}
 		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
-			s.logger.Printf("[DEBUG] agent: Failed to update AutoEncrypt CAPems: %v", err)
+			s.logger.Error("Failed to update AutoEncrypt CAPems", "error", err)
 		}
 		ws.Watch(nil)
 	}
@@ -561,14 +575,14 @@ func (s *Server) setupRaft() error {
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
 			if err := s.raftStore.Close(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to close Raft store: %v", err)
+				s.logger.Error("failed to close Raft store", "error", err)
 			}
 		}
 	}()
 
 	// Create the FSM.
 	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.config.LogOutput)
+	s.fsm, err = fsm.New(s.tombstoneGC, s.logger)
 	if err != nil {
 		return err
 	}
@@ -584,21 +598,12 @@ func (s *Server) setupRaft() error {
 		MaxPool:               3,
 		Timeout:               10 * time.Second,
 		ServerAddressProvider: serverAddressProvider,
-		Logger:                s.logger,
+		Logger:                s.loggers.Named(logging.Raft),
 	}
 
 	trans := raft.NewNetworkTransportWithConfig(transConfig)
 	s.raftTransport = trans
-
-	// Make sure we set the LogOutput.
-	s.config.RaftConfig.LogOutput = s.config.LogOutput
-	raftLogger := hclog.New(&hclog.LoggerOptions{
-		Name:       "raft",
-		Level:      hclog.LevelFromString(s.config.LogLevel),
-		Output:     s.config.LogOutput,
-		TimeFormat: `2006/01/02 15:04:05`,
-	})
-	s.config.RaftConfig.Logger = raftLogger
+	s.config.RaftConfig.Logger = s.loggers.Named(logging.Raft)
 
 	// Versions of the Raft protocol below 3 require the LocalID to match the network
 	// address of the transport.
@@ -667,10 +672,10 @@ func (s *Server) setupRaft() error {
 				if err := os.Remove(peersFile); err != nil {
 					return fmt.Errorf("failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
 				}
-				s.logger.Printf("[INFO] consul: deleted peers.json file (see peers.info for details)")
+				s.logger.Info("deleted peers.json file (see peers.info for details)")
 			}
 		} else if _, err := os.Stat(peersFile); err == nil {
-			s.logger.Printf("[INFO] consul: found peers.json file, recovering Raft configuration...")
+			s.logger.Info("found peers.json file, recovering Raft configuration...")
 
 			var configuration raft.Configuration
 			if s.config.RaftConfig.ProtocolVersion < 3 {
@@ -682,7 +687,7 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.config.LogOutput)
+			tmpFsm, err := fsm.New(s.tombstoneGC, s.logger)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}
@@ -694,7 +699,7 @@ func (s *Server) setupRaft() error {
 			if err := os.Remove(peersFile); err != nil {
 				return fmt.Errorf("recovery failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
 			}
-			s.logger.Printf("[INFO] consul: deleted peers.json file after successful recovery")
+			s.logger.Info("deleted peers.json file after successful recovery")
 		}
 	}
 
@@ -722,7 +727,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Set up a channel for reliable leader notifications.
-	raftNotifyCh := make(chan bool, 1)
+	raftNotifyCh := make(chan bool, 10)
 	s.config.RaftConfig.NotifyCh = raftNotifyCh
 	s.raftNotifyCh = raftNotifyCh
 
@@ -748,6 +753,10 @@ func registerEndpoint(fn factory) {
 
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC() error {
+	s.rpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: s.config.RPCMaxConnsPerClient,
+	})
+
 	for _, fn := range endpoints {
 		s.rpcServer.Register(fn(s))
 	}
@@ -800,7 +809,7 @@ func (s *Server) setupRPC() error {
 
 // Shutdown is used to shutdown the server
 func (s *Server) Shutdown() error {
-	s.logger.Printf("[INFO] consul: shutting down server")
+	s.logger.Info("shutting down server")
 	s.shutdownLock.Lock()
 	defer s.shutdownLock.Unlock()
 
@@ -823,7 +832,7 @@ func (s *Server) Shutdown() error {
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
 		if err := s.router.RemoveArea(types.AreaWAN); err != nil {
-			s.logger.Printf("[WARN] consul: error removing WAN area: %v", err)
+			s.logger.Warn("error removing WAN area", "error", err)
 		}
 	}
 	s.router.Shutdown()
@@ -833,7 +842,7 @@ func (s *Server) Shutdown() error {
 		s.raftLayer.Close()
 		future := s.raft.Shutdown()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[WARN] consul: error shutting down raft: %s", err)
+			s.logger.Warn("error shutting down raft", "error", err)
 		}
 		if s.raftStore != nil {
 			s.raftStore.Close()
@@ -858,12 +867,12 @@ func (s *Server) Shutdown() error {
 
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
-	s.logger.Printf("[INFO] consul: server starting leave")
+	s.logger.Info("server starting leave")
 
 	// Check the number of known peers
 	numPeers, err := s.numPeers()
 	if err != nil {
-		s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
+		s.logger.Error("failed to check raft peers", "error", err)
 		return err
 	}
 
@@ -883,12 +892,12 @@ func (s *Server) Leave() error {
 		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
 			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
 			if err := future.Error(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+				s.logger.Error("failed to remove ourself as raft peer", "error", err)
 			}
 		} else {
 			future := s.raft.RemovePeer(addr)
 			if err := future.Error(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+				s.logger.Error("failed to remove ourself as raft peer", "error", err)
 			}
 		}
 	}
@@ -896,14 +905,14 @@ func (s *Server) Leave() error {
 	// Leave the WAN pool
 	if s.serfWAN != nil {
 		if err := s.serfWAN.Leave(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to leave WAN Serf cluster: %v", err)
+			s.logger.Error("failed to leave WAN Serf cluster", "error", err)
 		}
 	}
 
 	// Leave the LAN pool
 	if s.serfLAN != nil {
 		if err := s.serfLAN.Leave(); err != nil {
-			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
+			s.logger.Error("failed to leave LAN Serf cluster", "error", err)
 		}
 	}
 
@@ -914,7 +923,7 @@ func (s *Server) Leave() error {
 	// to do this *after* we've left the LAN pool so that clients will know
 	// to shift onto another server if they perform a retry. We also wake up
 	// all queries in the RPC retry state.
-	s.logger.Printf("[INFO] consul: Waiting %s to drain RPC traffic", s.config.LeaveDrainTime)
+	s.logger.Info("Waiting to drain RPC traffic", "drain_time", s.config.LeaveDrainTime)
 	close(s.leaveCh)
 	time.Sleep(s.config.LeaveDrainTime)
 
@@ -931,7 +940,7 @@ func (s *Server) Leave() error {
 			// Get the latest configuration.
 			future := s.raft.GetConfiguration()
 			if err := future.Error(); err != nil {
-				s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
+				s.logger.Error("failed to get raft configuration", "error", err)
 				break
 			}
 
@@ -961,7 +970,7 @@ func (s *Server) Leave() error {
 		// may not realize that it has been removed. Need to revisit this
 		// and the warning here.
 		if !left {
-			s.logger.Printf("[WARN] consul: failed to leave raft configuration gracefully, timeout")
+			s.logger.Warn("failed to leave raft configuration gracefully, timeout")
 		}
 	}
 
@@ -1162,7 +1171,7 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			s.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+			s.logger.Error("Failed to close snapshot", "error", err)
 		}
 	}()
 
@@ -1184,7 +1193,7 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 
 // RegisterEndpoint is used to substitute an endpoint for testing.
 func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
-	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
+	s.logger.Warn("endpoint injected; this should only be used for testing")
 	return s.rpcServer.RegisterName(name, handler)
 }
 
@@ -1257,6 +1266,9 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (s *Server) ReloadConfig(config *Config) error {
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	s.rpcConnLimiter.SetConfig(connlimit.Config{
+		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
+	})
 
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader

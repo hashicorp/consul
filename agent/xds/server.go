@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +24,9 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
 )
 
 // ADSStream is a shorter way of referring to this thing...
@@ -114,7 +116,7 @@ type ConfigFetcher interface {
 // easier testing without several layers of mocked cache, local state and
 // proxycfg.Manager.
 type ConfigManager interface {
-	Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
+	Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
 }
 
 // Server represents a gRPC server that can handle both XDS and ext_authz
@@ -124,7 +126,7 @@ type ConfigManager interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	Logger       *log.Logger
+	Logger       hclog.Logger
 	CfgMgr       ConfigManager
 	Authz        ConnectAuthz
 	ResolveToken ACLResolverFunc
@@ -142,6 +144,7 @@ func (s *Server) Initialize() {
 	if s.AuthCheckFrequency == 0 {
 		s.AuthCheckFrequency = DefaultAuthCheckFrequency
 	}
+	s.Logger = s.Logger.Named(logging.Envoy)
 }
 
 // StreamAggregatedResources implements
@@ -167,7 +170,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Printf("[DEBUG] Error handling ADS stream: %s", err)
+		s.Logger.Debug("Error handling ADS stream", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -199,7 +202,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 	var ok bool
 	var stateCh <-chan *proxycfg.ConfigSnapshot
 	var watchCancel func()
-	var proxyID string
+	var proxyID structs.ServiceID
 
 	// need to run a small state machine to get through initial authentication.
 	var state = stateInit
@@ -253,15 +256,16 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			return err
 		}
 
+		var authzContext acl.AuthorizerContext
 		switch cfgSnap.Kind {
 		case structs.ServiceKindConnectProxy:
-			// TODO (namespaces) - pass through a real ent authz ctx
-			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, nil) != acl.Allow {
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")
 			}
 		case structs.ServiceKindMeshGateway:
-			// TODO (namespaces) - pass through a real ent authz ctx
-			if rule != nil && rule.ServiceWrite(cfgSnap.Service, nil) != acl.Allow {
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 				return status.Errorf(codes.PermissionDenied, "permission denied")
 			}
 		default:
@@ -309,7 +313,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 				continue
 			}
 			// Start authentication process, we need the proxyID
-			proxyID = req.Node.Id
+			proxyID = structs.NewServiceID(req.Node.Id, parseEnterpriseMeta(req.Node))
 
 			// Start watching config for that proxy
 			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
@@ -475,8 +479,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	// Parse destination to know the target service
 	dest, err := connect.ParseCertURIFromString(r.Attributes.Destination.Principal)
 	if err != nil {
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination URI: src=%s dest=%s",
-			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+		s.Logger.Debug("Connect AuthZ DENIED: bad destination URI", "source", r.Attributes.Source.Principal, "destination",
+			r.Attributes.Destination.Principal)
 		// Treat this as an auth error since Envoy has sent something it considers
 		// valid, it's just not an identity we trust.
 		return deniedResponse("Destination Principal is not a valid Connect identity")
@@ -484,8 +488,8 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 	destID, ok := dest.(*connect.SpiffeIDService)
 	if !ok {
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: bad destination service ID: src=%s dest=%s",
-			r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+		s.Logger.Debug("Connect AuthZ DENIED: bad destination service ID", "source", r.Attributes.Source.Principal, "destination",
+			r.Attributes.Destination.Principal)
 		return deniedResponse("Destination Principal is not a valid Service identity")
 	}
 
@@ -501,8 +505,9 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 	// Create an authz request
 	req := &structs.ConnectAuthorizeRequest{
-		Target:        destID.Service,
-		ClientCertURI: r.Attributes.Source.Principal,
+		Target:         destID.Service,
+		EnterpriseMeta: *destID.GetEnterpriseMeta(),
+		ClientCertURI:  r.Attributes.Source.Principal,
 		// TODO(banks): need Envoy to support sending cert serial/hash to enforce
 		// revocation later.
 	}
@@ -510,22 +515,22 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
 	if err != nil {
 		if err == acl.ErrPermissionDenied {
-			s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed ACL check: %s: src=%s dest=%s",
-				err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+			s.Logger.Debug("Connect AuthZ failed ACL check", "error", err, "source", r.Attributes.Source.Principal,
+				"dest", r.Attributes.Destination.Principal)
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ failed: %s: src=%s dest=%s",
-			err, r.Attributes.Source.Principal, r.Attributes.Destination.Principal)
+		s.Logger.Debug("Connect AuthZ failed", "error", err, "source", r.Attributes.Source.Principal,
+			"destination", r.Attributes.Destination.Principal)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if !authed {
-		s.Logger.Printf("[DEBUG] grpc: Connect AuthZ DENIED: src=%s dest=%s reason=%s",
-			r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
+		s.Logger.Debug("Connect AuthZ DENIED", "source", r.Attributes.Source.Principal,
+			"destination", r.Attributes.Destination.Principal, "reason", reason)
 		return deniedResponse(reason)
 	}
 
-	s.Logger.Printf("[DEBUG] grpc: Connect AuthZ ALLOWED: src=%s dest=%s reason=%s",
-		r.Attributes.Source.Principal, r.Attributes.Destination.Principal, reason)
+	s.Logger.Debug("Connect AuthZ ALLOWED", "source", r.Attributes.Source.Principal,
+		"destination", r.Attributes.Destination.Principal, "reason", reason)
 	return &envoyauthz.CheckResponse{
 		Status: &rpc.Status{
 			Code:    int32(rpc.OK),
@@ -536,16 +541,15 @@ func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoya
 
 // GRPCServer returns a server instance that can handle XDS and ext_authz
 // requests.
-func (s *Server) GRPCServer(certFile, keyFile string) (*grpc.Server, error) {
+func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 	}
-	if certFile != "" && keyFile != "" {
-		creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
-		if err != nil {
-			return nil, err
+	if tlsConfigurator != nil {
+		if tlsConfigurator.Cert() != nil {
+			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
+			opts = append(opts, grpc.Creds(creds))
 		}
-		opts = append(opts, grpc.Creds(creds))
 	}
 	srv := grpc.NewServer(opts...)
 	envoydisco.RegisterAggregatedDiscoveryServiceServer(srv, s)

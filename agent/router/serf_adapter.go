@@ -1,10 +1,9 @@
 package router
 
 import (
-	"log"
-
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -13,36 +12,45 @@ type routerFn func(types.AreaID, *metadata.Server) error
 
 // handleMemberEvents attempts to apply the given Serf member event to the given
 // router function.
-func handleMemberEvent(logger *log.Logger, fn routerFn, areaID types.AreaID, e serf.Event) {
+func handleMemberEvent(logger hclog.Logger, fn routerFn, areaID types.AreaID, e serf.Event) {
 	me, ok := e.(serf.MemberEvent)
 	if !ok {
-		logger.Printf("[ERR] consul: Bad event type %#v", e)
+		logger.Error("Bad event type", "event", e)
 		return
 	}
 
 	for _, m := range me.Members {
 		ok, parts := metadata.IsConsulServer(m)
 		if !ok {
-			logger.Printf("[WARN]: consul: Non-server %q in server-only area %q",
-				m.Name, areaID)
+			logger.Warn("Non-server in server-only area",
+				"non_server", m.Name,
+				"area", areaID,
+			)
 			continue
 		}
 
 		if err := fn(areaID, parts); err != nil {
-			logger.Printf("[ERR] consul: Failed to process %s event for server %q in area %q: %v",
-				me.Type.String(), m.Name, areaID, err)
+			logger.Error("Failed to process event for server in area",
+				"event", me.Type.String(),
+				"server", m.Name,
+				"area", areaID,
+				"error", err,
+			)
 			continue
 		}
 
-		logger.Printf("[INFO] consul: Handled %s event for server %q in area %q",
-			me.Type.String(), m.Name, areaID)
+		logger.Info("Handled event for server in area",
+			"event", me.Type.String(),
+			"server", m.Name,
+			"area", areaID,
+		)
 	}
 }
 
 // HandleSerfEvents is a long-running goroutine that pushes incoming events from
 // a Serf manager's channel into the given router. This will return when the
 // shutdown channel is closed.
-func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, shutdownCh <-chan struct{}, eventCh <-chan serf.Event) {
+func HandleSerfEvents(logger hclog.Logger, router *Router, areaID types.AreaID, shutdownCh <-chan struct{}, eventCh <-chan serf.Event) {
 	for {
 		select {
 		case <-shutdownCh:
@@ -61,11 +69,12 @@ func HandleSerfEvents(logger *log.Logger, router *Router, areaID types.AreaID, s
 
 			// All of these event types are ignored.
 			case serf.EventMemberUpdate:
+				handleMemberEvent(logger, router.AddServer, areaID, e)
 			case serf.EventUser:
 			case serf.EventQuery:
 
 			default:
-				logger.Printf("[WARN] consul: Unhandled Serf Event: %#v", e)
+				logger.Warn("Unhandled Serf Event", "event", e)
 			}
 		}
 	}

@@ -728,7 +728,7 @@ func (s *Store) aclTokenSetTxn(tx *memdb.Txn, idx uint64, token *structs.ACLToke
 	}
 
 	if token.AuthMethod != "" {
-		method, err := s.getAuthMethodWithTxn(tx, nil, token.AuthMethod, &token.EnterpriseMeta)
+		method, err := s.getAuthMethodWithTxn(tx, nil, token.AuthMethod, token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta())
 		if err != nil {
 			return err
 		} else if method == nil {
@@ -838,7 +838,7 @@ func (s *Store) aclTokenGetTxn(tx *memdb.Txn, ws memdb.WatchSet, value, index st
 }
 
 // ACLTokenList is used to list out all of the ACLs in the state store.
-func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
+func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -868,7 +868,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 		needLocalityFilter = true
 
 	} else if policy == "" && role == "" && methodName != "" {
-		iter, err = s.aclTokenListByAuthMethod(tx, methodName, entMeta)
+		iter, err = s.aclTokenListByAuthMethod(tx, methodName, methodMeta, entMeta)
 		needLocalityFilter = true
 
 	} else {
@@ -1052,9 +1052,9 @@ func (s *Store) aclTokenDeleteTxn(tx *memdb.Txn, idx uint64, value, index string
 	return s.aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
 }
 
-func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string, entMeta *structs.EnterpriseMeta) error {
-	// collect them all
-	iter, err := s.aclTokenListByAuthMethod(tx, methodName, entMeta)
+func (s *Store) aclTokenDeleteAllForAuthMethodTxn(tx *memdb.Txn, idx uint64, methodName string, methodMeta *structs.EnterpriseMeta) error {
+	// collect all the tokens linked with the given auth method.
+	iter, err := s.aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMeta())
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}

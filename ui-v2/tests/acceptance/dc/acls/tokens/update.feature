@@ -13,15 +13,18 @@ Feature: dc / acls / tokens / update: ACL Token Update
       token: key
     ---
     Then the url should be /datacenter/acls/tokens/key
+    And the title should be "Edit Token - Consul"
   Scenario: Update to [Name]
     Then I fill in with yaml
     ---
       Description: [Description]
     ---
     And I submit
-    Then a PUT request is made to "/v1/acl/token/key?dc=datacenter&ns=default" with the body from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
     ---
-      Description: [Description]
+      body:
+        Namespace: @namespace
+        Description: [Description]
     ---
     Then the url should be /datacenter/acls/tokens
     And "[data-notification]" has the "notification-update" class

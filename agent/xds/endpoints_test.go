@@ -1,8 +1,6 @@
 package xds
 
 import (
-	"log"
-	"os"
 	"path"
 	"sort"
 	"testing"
@@ -16,6 +14,7 @@ import (
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 )
 
@@ -311,8 +310,8 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
-					"bar": &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -325,7 +324,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					"foo": &structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "foo",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -366,7 +365,10 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+			logger := testutil.Logger(t)
+			s := Server{
+				Logger: logger,
+			}
 
 			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
 			sort.Slice(endpoints, func(i, j int) bool {

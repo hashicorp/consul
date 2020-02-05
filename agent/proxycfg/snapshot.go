@@ -14,9 +14,9 @@ type configSnapshotConnectProxy struct {
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 	WatchedGateways          map[string]map[string]context.CancelFunc
 	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
-	WatchedServiceChecks     map[string][]structs.CheckType // TODO: missing garbage collection
+	WatchedServiceChecks     map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
 
-	UpstreamEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
+	PreparedQueryEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
 }
 
 func (c *configSnapshotConnectProxy) IsEmpty() bool {
@@ -30,15 +30,15 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
-		len(c.UpstreamEndpoints) == 0
+		len(c.PreparedQueryEndpoints) == 0
 }
 
 type configSnapshotMeshGateway struct {
-	WatchedServices    map[string]context.CancelFunc
+	WatchedServices    map[structs.ServiceID]context.CancelFunc
 	WatchedServicesSet bool
 	WatchedDatacenters map[string]context.CancelFunc
-	ServiceGroups      map[string]structs.CheckServiceNodes
-	ServiceResolvers   map[string]*structs.ServiceResolverConfigEntry
+	ServiceGroups      map[structs.ServiceID]structs.CheckServiceNodes
+	ServiceResolvers   map[structs.ServiceID]*structs.ServiceResolverConfigEntry
 	GatewayGroups      map[string]structs.CheckServiceNodes
 }
 
@@ -60,13 +60,14 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 type ConfigSnapshot struct {
 	Kind            structs.ServiceKind
 	Service         string
-	ProxyID         string
+	ProxyID         structs.ServiceID
 	Address         string
 	Port            int
 	TaggedAddresses map[string]structs.ServiceAddress
 	Proxy           structs.ConnectProxyConfig
 	Datacenter      string
-	Roots           *structs.IndexedCARoots
+
+	Roots *structs.IndexedCARoots
 
 	// connect-proxy specific
 	ConnectProxy configSnapshotConnectProxy

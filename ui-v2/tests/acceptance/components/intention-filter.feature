@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: components / intention filter: Intention Filter
+Feature: components / intention-filter: Intention Filter
   In order to find the intention I'm looking for easier
   As a user
   I should be able to filter by 'policy' (allow/deny) and freetext search tokens by source and destination

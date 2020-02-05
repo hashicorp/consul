@@ -34,7 +34,7 @@ module('Unit | Mixin | acl/with actions', function(hooks) {
       })
     );
     const item = { ID: 'id' };
-    const expectedToken = { AccessorID: null, SecretID: item.ID };
+    const expectedToken = { Namespace: 'default', AccessorID: null, SecretID: item.ID };
     this.owner.register(
       'service:settings',
       Service.extend({

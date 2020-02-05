@@ -70,8 +70,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -86,8 +88,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -106,8 +110,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("5.6.7.8:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "5.6.7.8",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "5.6.7.8",
+					"wan_ipv4": "5.6.7.8",
 				}
 				rt.DataDir = dataDir
 			},
@@ -129,8 +135,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfBindAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -188,6 +196,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -202,6 +212,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -217,6 +229,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "b"
+				rt.ACLDatacenter = "b"
+				rt.PrimaryDatacenter = "b"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -246,6 +260,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 		},
@@ -282,7 +298,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrWAN = tcpAddr("127.0.0.1:8302")
 				rt.ServerMode = true
 				rt.SkipLeaveOnInt = true
-				rt.TaggedAddresses = map[string]string{"lan": "127.0.0.1", "wan": "127.0.0.1"}
+				rt.TaggedAddresses = map[string]string{
+					"lan":      "127.0.0.1",
+					"lan_ipv4": "127.0.0.1",
+					"wan":      "127.0.0.1",
+					"wan_ipv4": "127.0.0.1",
+				}
 				rt.ConsulCoordinateUpdatePeriod = 100 * time.Millisecond
 				rt.ConsulRaftElectionTimeout = 52 * time.Millisecond
 				rt.ConsulRaftHeartbeatTimeout = 35 * time.Millisecond
@@ -423,6 +444,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -439,6 +462,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -454,6 +479,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 			pre: func() {
@@ -511,6 +538,17 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.LogLevel = "a"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "-log-json",
+			args: []string{
+				`-log-json`,
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.LogJSON = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -836,8 +874,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:8301")
 				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "10.0.0.1",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "10.0.0.1",
+					"wan_ipv4": "10.0.0.1",
 				}
 				rt.DataDir = dataDir
 			},
@@ -858,8 +898,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("[::]:8301")
 				rt.SerfBindAddrWAN = tcpAddr("[::]:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "dead:beef::1",
-					"wan": "dead:beef::1",
+					"lan":      "dead:beef::1",
+					"lan_ipv6": "dead:beef::1",
+					"wan":      "dead:beef::1",
+					"wan_ipv6": "dead:beef::1",
 				}
 				rt.DataDir = dataDir
 			},
@@ -883,8 +925,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfBindAddrLAN = tcpAddr("0.0.0.0:8301")
 				rt.SerfBindAddrWAN = tcpAddr("0.0.0.0:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1101,8 +1145,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.2.3.4:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1116,8 +1162,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.AdvertiseAddrWAN = ipAddr("1.2.3.4")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("1.2.3.4:8302")
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1154,8 +1202,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfPortWAN = 3000
 				rt.ServerPort = 1000
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.2.3.4",
-					"wan": "1.2.3.4",
+					"lan":      "1.2.3.4",
+					"lan_ipv4": "1.2.3.4",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1192,8 +1242,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfPortWAN = 3000
 				rt.ServerPort = 1000
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1218,8 +1270,10 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrWAN = nil
 				rt.SerfBindAddrWAN = nil
 				rt.TaggedAddresses = map[string]string{
-					"lan": "10.0.0.1",
-					"wan": "1.2.3.4",
+					"lan":      "10.0.0.1",
+					"lan_ipv4": "10.0.0.1",
+					"wan":      "1.2.3.4",
+					"wan_ipv4": "1.2.3.4",
 				}
 				rt.DataDir = dataDir
 				rt.SerfPortWAN = -1
@@ -1369,6 +1423,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.Bootstrap = false
 				rt.BootstrapExpect = 0
 				rt.Datacenter = "b"
+				rt.ACLDatacenter = "b"
+				rt.PrimaryDatacenter = "b"
 				rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.DataDir = dataDir
@@ -1424,14 +1480,18 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				rt.SerfAdvertiseAddrLAN = tcpAddr("1.1.1.1:8301")
 				rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 				rt.Datacenter = "b"
+				rt.ACLDatacenter = "b"
+				rt.PrimaryDatacenter = "b"
 				rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
 				rt.NodeMeta = map[string]string{"a": "c"}
 				rt.SerfBindAddrLAN = tcpAddr("3.3.3.3:8301")
 				rt.SerfBindAddrWAN = tcpAddr("4.4.4.4:8302")
 				rt.StartJoinAddrsLAN = []string{"c", "d", "a", "b"}
 				rt.TaggedAddresses = map[string]string{
-					"lan": "1.1.1.1",
-					"wan": "2.2.2.2",
+					"lan":      "1.1.1.1",
+					"lan_ipv4": "1.1.1.1",
+					"wan":      "2.2.2.2",
+					"wan_ipv4": "2.2.2.2",
 				}
 				rt.DataDir = dataDir
 			},
@@ -1472,6 +1532,8 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			hcl:  []string{`datacenter = "A"`},
 			patch: func(rt *RuntimeConfig) {
 				rt.Datacenter = "a"
+				rt.ACLDatacenter = "a"
+				rt.PrimaryDatacenter = "a"
 				rt.DataDir = dataDir
 			},
 		},
@@ -3393,6 +3455,28 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			},
 		},
+
+		///////////////////////////////////
+		// Defaults sanity checks
+
+		{
+			desc: "default limits",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				// Note that in the happy case this test will pass even if you comment
+				// out all the stuff below since rt is also initialized from the
+				// defaults. But it's still valuable as it will fail as soon as the
+				// defaults are changed from these values forcing that change to be
+				// intentional.
+				rt.RPCHandshakeTimeout = 5 * time.Second
+				rt.HTTPSHandshakeTimeout = 5 * time.Second
+				rt.HTTPMaxConnsPerClient = 100
+				rt.RPCMaxConnsPerClient = 100
+			},
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -3610,7 +3694,17 @@ func TestFullConfig(t *testing.T) {
 					"agent_master" : "64fd0e08",
 					"replication" : "5795983a",
 					"agent" : "bed2377c",
-					"default" : "418fdff1"
+					"default" : "418fdff1",
+					"managed_service_provider": [
+						{
+							"accessor_id": "first", 
+							"secret_id": "fb0cee1f-2847-467c-99db-a897cff5fd4d"
+						}, 
+						{
+							"accessor_id": "second", 
+							"secret_id": "1046c8da-e166-4667-897a-aefb343db9db"
+						}
+					]
 				}
 			},
 			"addresses": {
@@ -3730,12 +3824,15 @@ func TestFullConfig(t *testing.T) {
                         },
 			"auto_encrypt": {
 				"tls": true,
+				"dns_san": ["a.com", "b.com"],
+				"ip_san": ["192.168.4.139", "192.168.4.140"],
 				"allow_tls": true
 			},
 			"connect": {
 				"ca_provider": "consul",
 				"ca_config": {
 					"rotation_period": "90h",
+					"intermediate_cert_ttl": "8760h",
 					"leaf_cert_ttl": "1h",
 					"csr_max_per_second": 100,
 					"csr_max_concurrent": 2
@@ -3760,6 +3857,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"data_dir": "` + dataDir + `",
 			"datacenter": "rzo029wg",
+			"default_query_time": "16743s",
 			"disable_anonymous_signature": true,
 			"disable_coordinates": true,
 			"disable_host_node_id": true,
@@ -3808,11 +3906,17 @@ func TestFullConfig(t *testing.T) {
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
 			"limits": {
+				"http_max_conns_per_client": 9283,
+				"https_handshake_timeout": "2391ms",
+				"rpc_handshake_timeout": "1932ms",
 				"rpc_rate": 12029.43,
 				"rpc_max_burst": 44848,
+				"rpc_max_conns_per_client": 2954,
 				"kv_max_value_size": 1234567800000000
 			},
 			"log_level": "k1zo9Spt",
+			"log_json": true,
+			"max_query_time": "18237s",
 			"node_id": "AsUIlw99",
 			"node_meta": {
 				"5mgGQMBk": "mJLtVMSG",
@@ -4217,7 +4321,17 @@ func TestFullConfig(t *testing.T) {
 					agent_master = "64fd0e08",
 					replication = "5795983a",
 					agent = "bed2377c",
-					default = "418fdff1"
+					default = "418fdff1",
+					managed_service_provider = [
+						{
+							accessor_id = "first", 
+							secret_id = "fb0cee1f-2847-467c-99db-a897cff5fd4d"
+						}, 
+						{
+							accessor_id = "second", 
+							secret_id = "1046c8da-e166-4667-897a-aefb343db9db"
+						}
+					]
 				}
 			}
 			addresses = {
@@ -4336,12 +4450,15 @@ func TestFullConfig(t *testing.T) {
 			}
 			auto_encrypt = {
 				tls = true
+				dns_san = ["a.com", "b.com"]
+				ip_san = ["192.168.4.139", "192.168.4.140"]
 				allow_tls = true
 			}
 			connect {
 				ca_provider = "consul"
 				ca_config {
 					rotation_period = "90h"
+					intermediate_cert_ttl = "8760h"
 					leaf_cert_ttl = "1h"
 					# hack float since json parses numbers as float and we have to
 					# assert against the same thing
@@ -4368,6 +4485,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			data_dir = "` + dataDir + `"
 			datacenter = "rzo029wg"
+			default_query_time = "16743s"
 			disable_anonymous_signature = true
 			disable_coordinates = true
 			disable_host_node_id = true
@@ -4417,11 +4535,17 @@ func TestFullConfig(t *testing.T) {
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
 			limits {
+				http_max_conns_per_client = 9283
+				https_handshake_timeout = "2391ms"
+				rpc_handshake_timeout = "1932ms"
 				rpc_rate = 12029.43
 				rpc_max_burst = 44848
+				rpc_max_conns_per_client = 2954
 				kv_max_value_size = 1234567800000000
 			}
 			log_level = "k1zo9Spt"
+			log_json = true
+			max_query_time = "18237s"
 			node_id = "AsUIlw99"
 			node_meta {
 				"5mgGQMBk" = "mJLtVMSG"
@@ -5051,6 +5175,8 @@ func TestFullConfig(t *testing.T) {
 			},
 		},
 		AutoEncryptTLS:        true,
+		AutoEncryptDNSSAN:     []string{"a.com", "b.com"},
+		AutoEncryptIPSAN:      []net.IP{net.ParseIP("192.168.4.139"), net.ParseIP("192.168.4.140")},
 		AutoEncryptAllowTLS:   true,
 		ConnectEnabled:        true,
 		ConnectSidecarMinPort: 8888,
@@ -5059,10 +5185,11 @@ func TestFullConfig(t *testing.T) {
 		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"RotationPeriod":   "90h",
-			"LeafCertTTL":      "1h",
-			"CSRMaxPerSecond":  float64(100),
-			"CSRMaxConcurrent": float64(2),
+			"RotationPeriod":      "90h",
+			"IntermediateCertTTL": "8760h",
+			"LeafCertTTL":         "1h",
+			"CSRMaxPerSecond":     float64(100),
+			"CSRMaxConcurrent":    float64(2),
 		},
 		DNSAddrs:                         []net.Addr{tcpAddr("93.95.95.81:7001"), udpAddr("93.95.95.81:7001")},
 		DNSARecordLimit:                  29907,
@@ -5085,6 +5212,7 @@ func TestFullConfig(t *testing.T) {
 		DNSCacheMaxAge:                   5 * time.Minute,
 		DataDir:                          dataDir,
 		Datacenter:                       "rzo029wg",
+		DefaultQueryTime:                 16743 * time.Second,
 		DevMode:                          true,
 		DisableAnonymousSignature:        true,
 		DisableCoordinates:               true,
@@ -5113,12 +5241,16 @@ func TestFullConfig(t *testing.T) {
 		HTTPPort:                         7999,
 		HTTPResponseHeaders:              map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                       []net.Addr{tcpAddr("95.17.17.19:15127")},
+		HTTPMaxConnsPerClient:            9283,
+		HTTPSHandshakeTimeout:            2391 * time.Millisecond,
 		HTTPSPort:                        15127,
 		KeyFile:                          "IEkkwgIA",
 		KVMaxValueSize:                   1234567800000000,
 		LeaveDrainTime:                   8265 * time.Second,
 		LeaveOnTerm:                      true,
 		LogLevel:                         "k1zo9Spt",
+		LogJSON:                          true,
+		MaxQueryTime:                     18237 * time.Second,
 		NodeID:                           types.NodeID("AsUIlw99"),
 		NodeMeta:                         map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
 		NodeName:                         "otlLxGaI",
@@ -5127,10 +5259,12 @@ func TestFullConfig(t *testing.T) {
 		PrimaryDatacenter:                "ejtmd43d",
 		RPCAdvertiseAddr:                 tcpAddr("17.99.29.16:3757"),
 		RPCBindAddr:                      tcpAddr("16.99.34.17:3757"),
+		RPCHandshakeTimeout:              1932 * time.Millisecond,
 		RPCHoldTimeout:                   15707 * time.Second,
 		RPCProtocol:                      30793,
 		RPCRateLimit:                     12029.43,
 		RPCMaxBurst:                      44848,
+		RPCMaxConnsPerClient:             2954,
 		RaftProtocol:                     19016,
 		RaftSnapshotThreshold:            16384,
 		RaftSnapshotInterval:             30 * time.Second,
@@ -5485,7 +5619,9 @@ func TestFullConfig(t *testing.T) {
 			"7MYgHrYH": "dALJAhLD",
 			"h6DdBy6K": "ebrr9zZ8",
 			"lan":      "17.99.29.16",
+			"lan_ipv4": "17.99.29.16",
 			"wan":      "78.63.37.19",
+			"wan_ipv4": "78.63.37.19",
 		},
 		TranslateWANAddrs:    true,
 		UIContentPath:        "/consul/",
@@ -5896,6 +6032,8 @@ func TestSanitize(t *testing.T) {
 		"ClientAddrs": [],
 		"ConfigEntryBootstrap": [],
 		"AutoEncryptTLS": false,
+		"AutoEncryptDNSSAN": [],
+		"AutoEncryptIPSAN": [],
 		"AutoEncryptAllowTLS": false,
 		"ConnectCAConfig": {},
 		"ConnectCAProvider": "",
@@ -5952,6 +6090,7 @@ func TestSanitize(t *testing.T) {
 		"DNSCacheMaxAge": "0s",
 		"DataDir": "",
 		"Datacenter": "",
+		"DefaultQueryTime": "0s",
 		"DevMode": false,
 		"DisableAnonymousSignature": false,
 		"DisableCoordinates": false,
@@ -5982,19 +6121,23 @@ func TestSanitize(t *testing.T) {
 			"unix:///var/run/foo"
 		],
 		"HTTPBlockEndpoints": [],
+		"HTTPMaxConnsPerClient": 0,
 		"HTTPPort": 0,
 		"HTTPResponseHeaders": {},
 		"HTTPSAddrs": [],
+		"HTTPSHandshakeTimeout": "0s",
 		"HTTPSPort": 0,
 		"KeyFile": "hidden",
 		"KVMaxValueSize": 1234567800000000,
 		"LeaveDrainTime": "0s",
 		"LeaveOnTerm": false,
 		"LogLevel": "",
+		"LogJSON": false,
 		"LogFile": "",
 		"LogRotateBytes": 0,
 		"LogRotateDuration": "0s",
 		"LogRotateMaxFiles": 0,
+		"MaxQueryTime": "0s",
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",
@@ -6003,8 +6146,10 @@ func TestSanitize(t *testing.T) {
 		"PrimaryDatacenter": "",
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
+		"RPCHandshakeTimeout": "0s",
 		"RPCHoldTimeout": "0s",
 		"RPCMaxBurst": 0,
+		"RPCMaxConnsPerClient": 0,
 		"RPCProtocol": 0,
 		"RPCRateLimit": 0,
 		"RaftProtocol": 0,

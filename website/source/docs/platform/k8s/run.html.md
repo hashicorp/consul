@@ -117,33 +117,6 @@ If you've already installed Consul and want to make changes, you'll need to run
 `helm upgrade`. See the [Upgrading Consul on Kubernetes](/docs/platform/k8s/run.html#upgrading-consul-on-kubernetes)
 section for more details.
 
-## Uninstalling Consul
-Consul can be uninstalled via the `helm delete` command:
-
-```bash
-$ helm delete hashicorp
-release "hashicorp" uninstalled
-```
-
--> If using Helm 2, run `helm delete --purge hashicorp`
-
-After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
-for the persistent volumes that store Consul's data. These are not deleted by Helm due to a [bug](https://github.com/helm/helm/issues/5156).
-To delete, run:
-
-```bash
-$ kubectl get pvc -l chart=consul-helm
-NAME                                   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-data-default-hashicorp-consul-server-0   Bound    pvc-32cb296b-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m
-data-default-hashicorp-consul-server-1   Bound    pvc-32d79919-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m
-data-default-hashicorp-consul-server-2   Bound    pvc-331581ea-1213-11ea-b6f0-42010a8001db   10Gi       RWO            standard       17m
-
-$ kubectl delete pvc -l chart=consul-helm
-persistentvolumeclaim "data-default-hashicorp-consul-server-0" deleted
-persistentvolumeclaim "data-default-hashicorp-consul-server-1" deleted
-persistentvolumeclaim "data-default-hashicorp-consul-server-2" deleted
-```
-
 ## Viewing the Consul UI
 
 The Consul UI is enabled by default when using the Helm chart.
@@ -161,44 +134,6 @@ If you want to expose the UI via a Kubernetes Service, configure
 the [`ui.service` chart values](/docs/platform/k8s/helm.html#v-ui-service).
 This service will allow requests to the Consul servers so it should
 not be open to the world.
-
-
-## Joining an Existing Consul Cluster
-
-If you have a Consul cluster already running, you can configure your
-Kubernetes nodes to join this existing cluster.
-
-```yaml
-# config.yaml
-global:
-  enabled: false
-
-client:
-  enabled: true
-  join:
-    - "provider=my-cloud config=val ..."
-```
-
-The `config.yaml` file to configure the Helm chart sets the proper
-configuration to join an existing cluster.
-
-The `global.enabled` value first disables all chart components by default
-so that each component is opt-in. This allows us to _only_ setup the client
-agents. We then opt-in to the client agents by setting `client.enabled` to
-`true`.
-
-Next, `client.join` is set to an array of valid
-[`-retry-join` values](/docs/agent/options.html#retry-join). In the
-example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join.html)
-value is specified. This should be set to resolve to the proper addresses of
-your existing Consul cluster.
-
--> **Networking:** Note that for the Kubernetes nodes to join an existing
-cluster, the nodes (and specifically the agent pods) must be able to connect
-to all other server and client agents inside and _outside_ of Kubernetes.
-If this isn't possible, consider running the Kubernetes agents as a separate
-DC or adopting Enterprise for
-[network segments](/docs/enterprise/network-segments/index.html).
 
 ## Accessing the Consul HTTP API
 
@@ -274,86 +209,6 @@ spec:
                 consul kv put hello world
 ```
 
-## Upgrading Consul on Kubernetes
-
-To upgrade Consul on Kubernetes, we follow the same pattern as
-[generally upgrading Consul](/docs/upgrading.html), except we can use
-the Helm chart to step through a rolling deploy. It is important to understand
-how to [generally upgrade Consul](/docs/upgrading.html) before reading this
-section.
-
-Upgrading Consul on Kubernetes will follow the same pattern: each server
-will be updated one-by-one. After that is successful, the clients will
-be updated in batches.
-
-### Upgrading Consul Servers
-
-To initiate the upgrade, change the `server.image` value to the
-desired Consul version. For illustrative purposes, the example below will
-use `consul:123.456`. Also set the `server.updatePartition` value
-_equal to the number of server replicas_:
-
-```yaml
-server:
-  image: "consul:123.456"
-  replicas: 3
-  updatePartition: 3
-```
-
-The `updatePartition` value controls how many instances of the server
-cluster are updated. Only instances with an index _greater than_ the
-`updatePartition` value are updated (zero-indexed). Therefore, by setting
-it equal to replicas, none should update yet.
-
-Next, run the upgrade. You should run this with `--dry-run` first to verify
-the changes that will be sent to the Kubernetes cluster.
-
-```
-$ helm upgrade consul ./
-...
-```
-
-This should cause no changes (although the resource will be updated). If
-everything is stable, begin by decreasing the `updatePartition` value by one,
-and running `helm upgrade` again. This should cause the first Consul server
-to be stopped and restarted with the new image.
-
-Wait until the Consul server cluster is healthy again (30s to a few minutes)
-then decrease `updatePartition` and upgrade again. Continue until
-`updatePartition` is `0`. At this point, you may remove the
-`updatePartition` configuration. Your server upgrade is complete.
-
-### Upgrading Consul Clients
-
-With the servers upgraded, it is time to upgrade the clients. To upgrade
-the clients, set the `client.image` value to the desired Consul version.
-Then, run `helm upgrade`. This will upgrade the clients in batches, waiting
-until the clients come up healthy before continuing.
-
-### Using Existing Persistent Volume Claims (PVCs)
-
-The only way to use a pre-created PVC is to name them in the format Kubernetes expects:
-
-```
-data-<kubernetes namespace>-<helm release name>-consul-server-<ordinal>
-```
-
-The Kubernetes namespace you are installing into, helm release name, and ordinal
-must match between your Consul servers and your pre-created PVCs. You only
-need as many PVCs as you have Consul servers. For example, given a Kubernetes
-namespace of "vault" and a release name of "consul" and 5 servers, you would need
-to create PVCs with the following names:
-
-```
-data-vault-consul-consul-server-0
-data-vault-consul-consul-server-1
-data-vault-consul-consul-server-2
-data-vault-consul-consul-server-3
-data-vault-consul-consul-server-4
-```
-
-If you are using your own storage, you'll need to configure a storage class. See the
-documentation for configuring storage classes [here](https://kubernetes.io/docs/concepts/storage/storage-classes/).
 
 ## Architecture
 

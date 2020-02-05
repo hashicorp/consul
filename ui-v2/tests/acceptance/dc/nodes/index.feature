@@ -14,6 +14,7 @@ Feature: dc / nodes / index
       dc: dc-1
     ---
     Then the url should be /dc-1/nodes
+    And the title should be "Nodes - Consul"
     Then I see 3 node models
   Scenario: Seeing the leader in unhealthy listing
     Given 3 node models from yaml

@@ -3,9 +3,9 @@ package ca
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/go-testing-interface"
 )
 
@@ -70,6 +70,9 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 // SetLogger can be called again with another logger to capture logs.
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
 	provider := &ConsulProvider{Delegate: d}
-	provider.SetLogger(log.New(ioutil.Discard, "", 0))
+	logger := hclog.New(&hclog.LoggerOptions{
+		Output: ioutil.Discard,
+	})
+	provider.SetLogger(logger)
 	return provider
 }

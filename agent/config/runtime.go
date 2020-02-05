@@ -339,12 +339,12 @@ type RuntimeConfig struct {
 	// flag: -recursor string [-recursor string]
 	DNSRecursors []string
 
-	// DNSUseCache wether or not to use cache for dns queries
+	// DNSUseCache whether or not to use cache for dns queries
 	//
 	// hcl: dns_config { use_cache = (true|false) }
 	DNSUseCache bool
 
-	// DNSUseCache wether or not to use cache for dns queries
+	// DNSUseCache whether or not to use cache for dns queries
 	//
 	// hcl: dns_config { cache_max_age = "duration" }
 	DNSCacheMaxAge time.Duration
@@ -529,6 +529,14 @@ type RuntimeConfig struct {
 	// servers.
 	AutoEncryptTLS bool
 
+	// Additional DNS SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptDNSSAN []string
+
+	// Additional IP SAN entries that clients request during auto_encrypt
+	// flow for their certificates.
+	AutoEncryptIPSAN []net.IP
+
 	// AutoEncryptAllowTLS enables the server to respond to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
@@ -599,6 +607,14 @@ type RuntimeConfig struct {
 	// hcl: data_dir = string
 	// flag: -data-dir string
 	DataDir string
+
+	// DefaultQueryTime is the amount of time a blocking query will wait before
+	// Consul will force a response. This value can be overridden by the 'wait'
+	// query parameter.
+	//
+	// hcl: default_query_time = "duration"
+	// flag: -default-query-time string
+	DefaultQueryTime time.Duration
 
 	// DevMode enables a fast-path mode of operation to bring up an in-memory
 	// server with minimal configuration. Useful for developing Consul.
@@ -787,10 +803,23 @@ type RuntimeConfig struct {
 	// hcl: client_addr = string addresses { https = string } ports { https = int }
 	HTTPSAddrs []net.Addr
 
+	// HTTPMaxConnsPerClient limits the number of concurrent TCP connections the
+	// HTTP(S) server will accept from any single source IP address.
+	//
+	// hcl: limits{ http_max_conns_per_client = 100 }
+	HTTPMaxConnsPerClient int
+
+	// HTTPSHandshakeTimeout is the time allowed for HTTPS client to complete the
+	// TLS handshake and send first bytes of the request.
+	//
+	// hcl: limits{ https_handshake_timeout = "5s" }
+	HTTPSHandshakeTimeout time.Duration
+
 	// HTTPSPort is the port the HTTP server listens on. The default is -1.
 	// Setting this to a value <= 0 disables the endpoint.
 	//
 	// hcl: ports { https = int }
+	// flags: -https-port int
 	HTTPSPort int
 
 	// KeyFile is used to provide a TLS key that is used for serving TLS
@@ -822,6 +851,12 @@ type RuntimeConfig struct {
 	// hcl: log_level = string
 	LogLevel string
 
+	// LogJSON controls whether to output logs as structured JSON. Defaults to false.
+	//
+	// hcl: log_json = (true|false)
+	// flag: -log-json
+	LogJSON bool
+
 	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
 	//
 	// hcl: log_file = string
@@ -845,6 +880,14 @@ type RuntimeConfig struct {
 	// hcl: log_rotate_max_files = int
 	// flags: -log-rotate-max-files int
 	LogRotateMaxFiles int
+
+	// MaxQueryTime is the maximum amount of time a blocking query can wait
+	// before Consul will force a response. Consul applies jitter to the wait
+	// time. The jittered time will be capped to MaxQueryTime.
+	//
+	// hcl: max_query_time = "duration"
+	// flags: -max-query-time string
+	MaxQueryTime time.Duration
 
 	// Node ID is a unique ID for this node across space and time. Defaults
 	// to a randomly-generated ID that persists in the data-dir.
@@ -896,6 +939,15 @@ type RuntimeConfig struct {
 	// hcl: bind_addr = string ports { server = int }
 	RPCBindAddr *net.TCPAddr
 
+	// RPCHandshakeTimeout is the timeout for reading the initial magic byte on a
+	// new RPC connection. If this is set high it may allow unauthenticated users
+	// to hold connections open arbitrarily long, even when mutual TLS is being
+	// enforced. It may be set to 0 explicitly to disable the timeout but this
+	// should never be used in production. Default is 5 seconds.
+	//
+	// hcl: limits { rpc_handshake_timeout = "duration" }
+	RPCHandshakeTimeout time.Duration
+
 	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
 	// This is used to paper over a loss of leadership by instead holding RPCs,
 	// so that the caller experiences a slow response rather than an error.
@@ -917,6 +969,12 @@ type RuntimeConfig struct {
 	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
+
+	// RPCMaxConnsPerClient limits the number of concurrent TCP connections the
+	// RPC server will accept from any single source IP address.
+	//
+	// hcl: limits{ rpc_max_conns_per_client = 100 }
+	RPCMaxConnsPerClient int
 
 	// RPCProtocol is the Consul protocol version to use.
 	//

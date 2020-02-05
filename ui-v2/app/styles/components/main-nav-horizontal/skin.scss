@@ -35,14 +35,14 @@
 %main-nav-horizontal input {
   display: none;
 }
-%main-nav-horizontal input + label > *::after {
+%main-nav-horizontal [type='checkbox'] + label > *::after {
   @extend %as-pseudo;
   @extend %with-chevron-down-mask;
   position: relative;
   top: 2px;
   background-color: $white;
 }
-%main-nav-horizontal input:checked + label > *::after {
+%main-nav-horizontal [type='checkbox']:checked + label > *::after {
   @extend %with-chevron-up-mask;
 }
 %main-nav-horizontal-toggle-button span {
@@ -57,23 +57,3 @@
   }
 }
 /**/
-%main-nav-horizontal-drop-nav-header {
-  background-color: $gray-050;
-}
-%main-nav-horizontal-drop-nav-separator {
-  text-transform: uppercase;
-  color: $gray-400;
-}
-%main-nav-horizontal-drop-nav .is-active > *::after {
-  @extend %with-check-plain-mask, %as-pseudo;
-  background-color: $magenta-600;
-}
-%main-nav-horizontal-drop-nav-header + ul,
-%main-nav-horizontal-drop-nav-separator:not(:first-child) {
-  border-top: $decor-border-100;
-  border-color: $gray-300;
-}
-%main-nav-horizontal-drop-nav-header::before {
-  @extend %with-info-circle-fill-color-icon, %as-pseudo;
-  font-size: 1.1em;
-}

@@ -11,6 +11,56 @@ import (
 
 var invalidDNSNameChars = regexp.MustCompile(`[^a-z0-9]`)
 
+const (
+	// 64 = max length of a certificate common name
+	// 21 = 7 bytes for ".consul", 9 bytes for .<trust domain> and 5 bytes for ".svc."
+	// This ends up being 43 bytes
+	maxServiceAndNamespaceLen = 64 - 21
+	minServiceNameLen         = 15
+	minNamespaceNameLen       = 15
+)
+
+// trucateServiceAndNamespace will take a service name and namespace name and truncate
+// them appropriately so that they would fit within the space alloted for them in the
+// Common Name field of the x509 certificate. That field is capped at 64 characters
+// in length and there is other data that must be a part of the name too. This function
+// takes all of that into account.
+func truncateServiceAndNamespace(serviceName, namespace string) (string, string) {
+	svcLen := len(serviceName)
+	nsLen := len(namespace)
+	totalLen := svcLen + nsLen
+
+	// quick exit when the entirety of both can fit
+	if totalLen <= maxServiceAndNamespaceLen {
+		return serviceName, namespace
+	}
+
+	toRemove := totalLen - maxServiceAndNamespaceLen
+	// now we must figure out how to truncate each one, we need to ensure we don't remove all of either one.
+	if svcLen <= minServiceNameLen {
+		// only remove bytes from the namespace
+		return serviceName, truncateTo(namespace, nsLen-toRemove)
+	} else if nsLen <= minNamespaceNameLen {
+		// only remove bytes from the service name
+		return truncateTo(serviceName, svcLen-toRemove), namespace
+	} else {
+		// we can remove an "equal" amount from each. If the number of bytes to remove is odd we give it to the namespace
+		svcTruncate := svcLen - (toRemove / 2) - (toRemove % 2)
+		nsTruncate := nsLen - (toRemove / 2)
+
+		// checks to ensure we don't reduce one side too much when they are not roughly balanced in length.
+		if svcTruncate <= minServiceNameLen {
+			svcTruncate = minServiceNameLen
+			nsTruncate = maxServiceAndNamespaceLen - minServiceNameLen
+		} else if nsTruncate <= minNamespaceNameLen {
+			svcTruncate = maxServiceAndNamespaceLen - minNamespaceNameLen
+			nsTruncate = minNamespaceNameLen
+		}
+
+		return truncateTo(serviceName, svcTruncate), truncateTo(namespace, nsTruncate)
+	}
+}
+
 // ServiceCN returns the common name for a service's certificate. We can't use
 // SPIFFE URIs because some CAs require valid FQDN format. We can't use SNI
 // values because they are often too long than the 64 bytes allowed by
@@ -31,11 +81,12 @@ var invalidDNSNameChars = regexp.MustCompile(`[^a-z0-9]`)
 //   total at 64.
 //
 //   trust domain is truncated to keep the whole name short
-func ServiceCN(serviceName, trustDomain string) string {
+func ServiceCN(serviceName, namespace, trustDomain string) string {
 	svc := invalidDNSNameChars.ReplaceAllString(strings.ToLower(serviceName), "")
-	// 20 = 7 bytes for ".consul", 8 bytes for trust domain, 5 bytes for ".svc."
-	return fmt.Sprintf("%s.svc.%s.consul",
-		truncateTo(svc, 64-20), truncateTo(trustDomain, 8))
+
+	svc, namespace = truncateServiceAndNamespace(svc, namespace)
+	return fmt.Sprintf("%s.svc.%s.%s.consul",
+		svc, namespace, truncateTo(trustDomain, 8))
 }
 
 // AgentCN returns the common name for an agent certificate. See ServiceCN for
@@ -122,7 +173,7 @@ func CNForCertURI(uri CertURI) (string, error) {
 	// didn't include the Common Name in the CSR.
 	switch id := uri.(type) {
 	case *SpiffeIDService:
-		return ServiceCN(id.Service, id.Host), nil
+		return ServiceCN(id.Service, id.Namespace, id.Host), nil
 	case *SpiffeIDAgent:
 		return AgentCN(id.Agent, id.Host), nil
 	case *SpiffeIDSigning:

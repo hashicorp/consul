@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -38,7 +39,8 @@ var (
 
 // ACL endpoint is used to manipulate ACLs
 type ACL struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // fileBootstrapResetIndex retrieves the reset index specified by the administrator from
@@ -65,7 +67,10 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			a.srv.logger.Printf("[ERR] acl.bootstrap: failed to read %q: %v", path, err)
+			a.logger.Error("bootstrap: failed to read path",
+				"path", path,
+				"error", err,
+			)
 		}
 		return 0
 	}
@@ -73,18 +78,18 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 	// Attempt to parse the file
 	var resetIdx uint64
 	if _, err := fmt.Sscanf(string(raw), "%d", &resetIdx); err != nil {
-		a.srv.logger.Printf("[ERR] acl.bootstrap: failed to parse %q: %v", path, err)
+		a.logger.Error("failed to parse bootstrap reset index path", "path", path, "error", err)
 		return 0
 	}
 
 	// Return the reset index
-	a.srv.logger.Printf("[DEBUG] acl.bootstrap: parsed %q: reset index %d", path, resetIdx)
+	a.logger.Debug("parsed bootstrap reset index path", "path", path, "reset_index", resetIdx)
 	return resetIdx
 }
 
 func (a *ACL) removeBootstrapResetFile() {
 	if err := os.Remove(filepath.Join(a.srv.config.DataDir, aclBootstrapReset)); err != nil {
-		a.srv.logger.Printf("[WARN] acl.bootstrap: failed to remove bootstrap file: %v", err)
+		a.logger.Warn("failed to remove bootstrap file", "error", err)
 	}
 }
 
@@ -182,7 +187,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		*reply = *token
 	}
 
-	a.srv.logger.Printf("[INFO] consul.acl: ACL bootstrap completed")
+	a.logger.Info("ACL bootstrap completed")
 	return nil
 }
 
@@ -821,16 +826,31 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	var authzContext acl.AuthorizerContext
-	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	var requestMeta structs.EnterpriseMeta
+	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &requestMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	}
+	// merge the token default meta into the requests meta
+	args.EnterpriseMeta.Merge(&requestMeta)
+	args.EnterpriseMeta.FillAuthzContext(&authzContext)
+	if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
+	}
+
+	var methodMeta *structs.EnterpriseMeta
+	if args.AuthMethod != "" {
+		methodMeta = args.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		// attempt to merge in the overall meta, wildcards will not be merged
+		methodMeta.MergeNoWildcard(&args.EnterpriseMeta)
+		// in the event that the meta above didn't merge due to being a wildcard
+		// we ensure that proper token based meta inference occurs
+		methodMeta.Merge(&requestMeta)
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, &args.EnterpriseMeta)
+			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, methodMeta, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -1070,7 +1090,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.enterpriseACLConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource("", 0, policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}
@@ -2221,13 +2241,16 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 2. Send args.Data.BearerToken to method validator and get back a fields map
-	verifiedFields, err := validator.ValidateLogin(auth.BearerToken)
+	verifiedFields, desiredMeta, err := validator.ValidateLogin(auth.BearerToken)
 	if err != nil {
 		return err
 	}
 
+	// This always will return a valid pointer
+	targetMeta := method.TargetEnterpriseMeta(desiredMeta)
+
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta)
+	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta, targetMeta)
 	if err != nil {
 		return err
 	}
@@ -2256,10 +2279,12 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 			AuthMethod:        auth.AuthMethod,
 			ServiceIdentities: serviceIdentities,
 			Roles:             roleLinks,
-			EnterpriseMeta:    auth.EnterpriseMeta,
+			EnterpriseMeta:    *targetMeta,
 		},
 		WriteRequest: args.WriteRequest,
 	}
+
+	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(&auth.EnterpriseMeta)
 
 	// 5. return token information like a TokenCreate would
 	err = a.tokenSetInternal(&createReq, reply, true)

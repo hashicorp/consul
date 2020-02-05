@@ -2,8 +2,6 @@ package xds
 
 import (
 	"bytes"
-	"log"
-	"os"
 	"path"
 	"sort"
 	"testing"
@@ -12,6 +10,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -259,8 +258,8 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[string]*structs.ServiceResolverConfigEntry{
-					"bar": &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
@@ -301,7 +300,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			}
 
 			// Need server just for logger dependency
-			s := Server{Logger: log.New(os.Stderr, "", log.LstdFlags)}
+			logger := testutil.Logger(t)
+			s := Server{
+				Logger: logger,
+			}
 
 			clusters, err := s.clustersFromSnapshot(snap, "my-token")
 			require.NoError(err)

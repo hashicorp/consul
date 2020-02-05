@@ -358,6 +358,9 @@ func (s *HTTPServer) ACLTokenList(resp http.ResponseWriter, req *http.Request) (
 	args.Policy = req.URL.Query().Get("policy")
 	args.Role = req.URL.Query().Get("role")
 	args.AuthMethod = req.URL.Query().Get("authmethod")
+	if err := parseACLAuthMethodEnterpriseMeta(req, &args.ACLAuthMethodEnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var out structs.ACLTokenListResponse
 	defer setMeta(resp, &out.QueryMeta)

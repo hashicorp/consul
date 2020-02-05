@@ -247,7 +247,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Translate addresses after filtering so we don't waste effort.
-	s.agent.TranslateAddresses(args.Datacenter, out.Nodes)
+	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {

@@ -138,7 +138,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
-	s.agent.TranslateAddresses(args.Datacenter, out.Nodes)
+	s.agent.TranslateAddresses(args.Datacenter, out.Nodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {
@@ -284,7 +284,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	}
 
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes)
+	s.agent.TranslateAddresses(args.Datacenter, out.ServiceNodes, TranslateAddressAcceptAny)
 
 	// Use empty list instead of nil
 	if out.ServiceNodes == nil {
@@ -340,7 +340,7 @@ RETRY_ONCE:
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	if out.NodeServices != nil {
-		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices)
+		s.agent.TranslateAddresses(args.Datacenter, out.NodeServices, TranslateAddressAcceptAny)
 	}
 
 	// TODO: The NodeServices object in IndexedNodeServices is a pointer to
@@ -363,4 +363,54 @@ RETRY_ONCE:
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 	return out.NodeServices, nil
+}
+
+func (s *HTTPServer) CatalogNodeServiceList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_service_list"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+
+	// Set default Datacenter
+	args := structs.NodeSpecificRequest{}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the node name
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node-services/")
+	if args.Node == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing node name")
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedNodeServiceList
+	defer setMeta(resp, &out.QueryMeta)
+RETRY_ONCE:
+	if err := s.agent.RPC("Catalog.NodeServiceList", &args, &out); err != nil {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_node_service_list"}, 1,
+			[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	s.agent.TranslateAddresses(args.Datacenter, &out.NodeServices, TranslateAddressAcceptAny)
+
+	// Use empty list instead of nil
+	for _, s := range out.NodeServices.Services {
+		if s.Tags == nil {
+			s.Tags = make([]string, 0)
+		}
+	}
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_node_service_list"}, 1,
+		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
+	return &out.NodeServices, nil
 }

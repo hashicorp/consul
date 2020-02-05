@@ -25,6 +25,7 @@ MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 ASSETFS_PATH?=agent/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
+GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
@@ -127,6 +128,7 @@ export GO_BUILD_TAG
 export UI_BUILD_TAG
 export BUILD_CONTAINER_NAME
 export GIT_COMMIT
+export GIT_COMMIT_YEAR
 export GIT_DIRTY
 export GIT_DESCRIBE
 export GOTAGS
@@ -217,7 +219,13 @@ test: other-consul dev-build vet test-install-deps test-internal
 test-install-deps:
 	go test -tags '$(GOTAGS)' -i $(GOTEST_PKGS)
 
-update-vendor:
+go-mod-tidy:
+	@echo "--> Running go mod tidy"
+	@cd sdk && go mod tidy
+	@cd api && go mod tidy
+	@go mod tidy
+
+update-vendor: go-mod-tidy
 	@echo "--> Running go mod vendor"
 	@go mod vendor
 	@echo "--> Removing vendoring of our own nested modules"
@@ -284,6 +292,7 @@ test-docker: linux go-build-image
 		-e 'GOTEST_PKGS=$(GOTEST_PKGS)' \
 		-e 'GOTAGS=$(GOTAGS)' \
 		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
+		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
 		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
 		-e 'GIT_DESCRIBE=$(GIT_DESCRIBE)' \
 		$(TEST_PARALLELIZATION) \
@@ -376,11 +385,11 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 test-vault-ca-provider:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
 else
 # Run locally
-	@echo "Running /agent/connect/ca TestVaultCAProvider tests in verbose mode"
-	@go test $(CURDIR)/agent/connect/ca/* -run TestVaultCAProvider -v
+	@echo "Running /agent/connect/ca TestVault(CA)?Provider tests in verbose mode"
+	@go test $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider' -v
 endif
 
 proto-delete:

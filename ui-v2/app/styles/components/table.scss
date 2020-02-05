@@ -1,7 +1,19 @@
-@import './icons/index';
 @import '../base/components/table/index';
+@import '../base/components/popover-menu/index';
 table {
   @extend %table, %table-flex;
+}
+
+%table-actions > [type='checkbox'] {
+  @extend %more-popover-menu;
+}
+%table-actions .confirmation-alert {
+  @extend %confirmation-alert;
+}
+%table-actions > [type='checkbox'] + label {
+  position: absolute;
+  top: 8px;
+  right: 15px;
 }
 
 html.template-service.template-list td:first-child a span,
@@ -19,8 +31,11 @@ html.template-service.template-list main th:first-child {
   text-indent: 28px;
 }
 
-td.folder {
-  @extend %with-folder;
+td.folder::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
+  background-color: $gray-300;
+  margin-top: 1px;
+  margin-right: 5px;
 }
 table:not(.sessions) tbody tr {
   cursor: pointer;

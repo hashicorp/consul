@@ -1,20 +1,23 @@
 package consul
 
 import (
-	"log"
 	"net"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAutoEncrypt_resolveAddr(t *testing.T) {
 	type args struct {
 		rawHost string
-		logger  *log.Logger
+		logger  hclog.Logger
 	}
+	logger := testutil.Logger(t)
+
 	tests := []struct {
 		name    string
 		args    args
@@ -25,7 +28,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			name: "host without port",
 			args: args{
 				"127.0.0.1",
-				log.New(os.Stderr, "", log.LstdFlags),
+				logger,
 			},
 			ips:     []net.IP{net.IPv4(127, 0, 0, 1)},
 			wantErr: false,
@@ -34,7 +37,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			name: "host with port",
 			args: args{
 				"127.0.0.1:1234",
-				log.New(os.Stderr, "", log.LstdFlags),
+				logger,
 			},
 			ips:     []net.IP{net.IPv4(127, 0, 0, 1)},
 			wantErr: false,
@@ -43,7 +46,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			name: "host with broken port",
 			args: args{
 				"127.0.0.1:xyz",
-				log.New(os.Stderr, "", log.LstdFlags),
+				logger,
 			},
 			ips:     []net.IP{net.IPv4(127, 0, 0, 1)},
 			wantErr: false,
@@ -52,7 +55,7 @@ func TestAutoEncrypt_resolveAddr(t *testing.T) {
 			name: "not an address",
 			args: args{
 				"abc",
-				log.New(os.Stderr, "", log.LstdFlags),
+				logger,
 			},
 			ips:     nil,
 			wantErr: true,

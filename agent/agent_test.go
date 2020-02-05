@@ -718,6 +718,134 @@ func testAgent_AddServiceNoRemoteExec(t *testing.T, extraHCL string) {
 	}
 }
 
+func TestAddServiceIPv4TaggedDefault(t *testing.T) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		Service: "my_service",
+		ID:      "my_service_id",
+		Port:    8100,
+		Address: "10.0.1.2",
+	}
+
+	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
+	require.Nil(t, err)
+
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
+	require.NotNil(t, ns)
+
+	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
+	require.Equal(t, svcAddr, ns.TaggedAddresses[structs.TaggedAddressLANIPv4])
+	require.Equal(t, svcAddr, ns.TaggedAddresses[structs.TaggedAddressWANIPv4])
+	_, ok := ns.TaggedAddresses[structs.TaggedAddressLANIPv6]
+	require.False(t, ok)
+	_, ok = ns.TaggedAddresses[structs.TaggedAddressWANIPv6]
+	require.False(t, ok)
+}
+
+func TestAddServiceIPv6TaggedDefault(t *testing.T) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		Service: "my_service",
+		ID:      "my_service_id",
+		Port:    8100,
+		Address: "::5",
+	}
+
+	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
+	require.Nil(t, err)
+
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
+	require.NotNil(t, ns)
+
+	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
+	require.Equal(t, svcAddr, ns.TaggedAddresses[structs.TaggedAddressLANIPv6])
+	require.Equal(t, svcAddr, ns.TaggedAddresses[structs.TaggedAddressWANIPv6])
+	_, ok := ns.TaggedAddresses[structs.TaggedAddressLANIPv4]
+	require.False(t, ok)
+	_, ok = ns.TaggedAddresses[structs.TaggedAddressWANIPv4]
+	require.False(t, ok)
+}
+
+func TestAddServiceIPv4TaggedSet(t *testing.T) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		Service: "my_service",
+		ID:      "my_service_id",
+		Port:    8100,
+		Address: "10.0.1.2",
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressWANIPv4: {
+				Address: "10.100.200.5",
+				Port:    8100,
+			},
+		},
+	}
+
+	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
+	require.Nil(t, err)
+
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
+	require.NotNil(t, ns)
+
+	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
+	require.Equal(t, svcAddr, ns.TaggedAddresses[structs.TaggedAddressLANIPv4])
+	require.Equal(t, structs.ServiceAddress{Address: "10.100.200.5", Port: 8100}, ns.TaggedAddresses[structs.TaggedAddressWANIPv4])
+	_, ok := ns.TaggedAddresses[structs.TaggedAddressLANIPv6]
+	require.False(t, ok)
+	_, ok = ns.TaggedAddresses[structs.TaggedAddressWANIPv6]
+	require.False(t, ok)
+}
+
+func TestAddServiceIPv6TaggedSet(t *testing.T) {
+	t.Helper()
+
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		Service: "my_service",
+		ID:      "my_service_id",
+		Port:    8100,
+		Address: "::5",
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressWANIPv6: {
+				Address: "::6",
+				Port:    8100,
+			},
+		},
+	}
+
+	err := a.AddService(srv, []*structs.CheckType{}, false, "", ConfigSourceRemote)
+	require.Nil(t, err)
+
+	ns := a.State.Service(structs.NewServiceID("my_service_id", nil))
+	require.NotNil(t, ns)
+
+	svcAddr := structs.ServiceAddress{Address: srv.Address, Port: srv.Port}
+	require.Equal(t, svcAddr, ns.TaggedAddresses[structs.TaggedAddressLANIPv6])
+	require.Equal(t, structs.ServiceAddress{Address: "::6", Port: 8100}, ns.TaggedAddresses[structs.TaggedAddressWANIPv6])
+	_, ok := ns.TaggedAddresses[structs.TaggedAddressLANIPv4]
+	require.False(t, ok)
+	_, ok = ns.TaggedAddresses[structs.TaggedAddressWANIPv4]
+	require.False(t, ok)
+}
+
 func TestAgent_RemoveService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
@@ -982,7 +1110,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 		t.Fatalf("err: %v", err)
 	}
 	for _, name := range before.Nodes[0].Checks {
-		a.logger.Println("[DEBUG] Checks Registered: ", name.Name)
+		a.logger.Debug("Registered node", "node", name.Name)
 	}
 	if got, want := len(before.Nodes), 1; got != want {
 		t.Fatalf("got %d want %d", got, want)
@@ -992,7 +1120,7 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 	}
 
 	for i := 0; i < 10; i++ {
-		a.logger.Println("[INFO] # ", i+1, "Sync in progress ")
+		a.logger.Info("Sync in progress", "iteration", i+1)
 		if err := a.sync.State.SyncFull(); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1288,7 +1416,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	// We do this so that the agent logs and the informational messages from
 	// the test itself are interwoven properly.
 	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
-		a.logger.Printf("[INFO] testharness: "+format, args...)
+		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
@@ -1876,12 +2004,13 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	defer a.Shutdown()
 
 	svc := &structs.NodeService{
-		ID:             "redis",
-		Service:        "redis",
-		Tags:           []string{"foo"},
-		Port:           8000,
-		Weights:        &structs.Weights{Passing: 1, Warning: 1},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		ID:              "redis",
+		Service:         "redis",
+		Tags:            []string{"foo"},
+		Port:            8000,
+		TaggedAddresses: map[string]structs.ServiceAddress{},
+		Weights:         &structs.Weights{Passing: 1, Warning: 1},
+		EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
 	}
 
 	// Encode the NodeService directly. This is what previous versions
@@ -3300,7 +3429,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.TestLogger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.ReloadConfig(c))
 	tlsConf = a.tlsConfigurator.OutgoingRPCConfig()
 	require.False(t, tlsConf.InsecureSkipVerify)
@@ -3339,7 +3468,7 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 		key_file = "../test/key/ourdomain.key"
 		verify_server_hostname = true
 	`
-	c := TestConfig(testutil.TestLogger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.ReloadConfig(c))
 	tlsConf, err = tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
@@ -3368,7 +3497,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 		data_dir = "` + dataDir + `"
 		verify_incoming = true
 	`
-	c := TestConfig(testutil.TestLogger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
+	c := TestConfig(testutil.Logger(t), config.Source{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.Error(t, a.ReloadConfig(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)

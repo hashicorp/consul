@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
+	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/cli"
 )
@@ -98,10 +98,14 @@ func (c *cmd) Run(args []string) int {
 
 	if c.server {
 		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
-		DNSNames = append(DNSNames, []string{name, "localhost"}...)
+
+		DNSNames = append(DNSNames, name)
+		DNSNames = append(DNSNames, "localhost")
+
 		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 		prefix = fmt.Sprintf("%s-server-%s", c.dc, c.domain)
+
 	} else if c.client {
 		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
 		DNSNames = append(DNSNames, []string{name, "localhost"}...)
@@ -174,24 +178,20 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if err = tlsutil.Verify(string(cert), pub, name); err != nil {
-		c.UI.Error("==> " + err.Error())
-		return 1
-	}
-
-	certFile, err := os.Create(certFileName)
-	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	certFile.WriteString(pub)
+
+	if err := file.WriteAtomicWithPerms(certFileName, []byte(pub), 0755, 0666); err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
 	c.UI.Output("==> Saved " + certFileName)
 
-	pkFile, err := os.Create(pkFileName)
-	if err != nil {
+	if err := file.WriteAtomicWithPerms(pkFileName, []byte(priv), 0755, 0666); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	pkFile.WriteString(priv)
 	c.UI.Output("==> Saved " + pkFileName)
 
 	return 0

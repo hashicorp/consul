@@ -165,6 +165,9 @@ type IssuedCert struct {
 	ValidAfter  time.Time
 	ValidBefore time.Time
 
+	// EnterpriseMeta is the Consul Enterprise specific metadata
+	EnterpriseMeta
+
 	RaftIndex
 }
 
@@ -172,11 +175,12 @@ type IssuedCert struct {
 type CAOp string
 
 const (
-	CAOpSetRoots            CAOp = "set-roots"
-	CAOpSetConfig           CAOp = "set-config"
-	CAOpSetProviderState    CAOp = "set-provider-state"
-	CAOpDeleteProviderState CAOp = "delete-provider-state"
-	CAOpSetRootsAndConfig   CAOp = "set-roots-config"
+	CAOpSetRoots                      CAOp = "set-roots"
+	CAOpSetConfig                     CAOp = "set-config"
+	CAOpSetProviderState              CAOp = "set-provider-state"
+	CAOpDeleteProviderState           CAOp = "delete-provider-state"
+	CAOpSetRootsAndConfig             CAOp = "set-roots-config"
+	CAOpIncrementProviderSerialNumber CAOp = "increment-provider-serial"
 )
 
 // CARequest is used to modify connect CA data. This is used by the
@@ -423,9 +427,10 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
+	PrivateKey          string
+	RootCert            string
+	RotationPeriod      time.Duration
+	IntermediateCertTTL time.Duration
 
 	// DisableCrossSigning is really only useful in test code to use the built in
 	// provider while exercising logic that depends on the CA provider ability to
