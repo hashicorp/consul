@@ -770,6 +770,12 @@ These metrics are used to monitor the health of the Consul servers.
     <td>counter</td>
   </tr>
   <tr>
+    <td>`consul.rpc.queries_blocking`</td>
+    <td>Shows the current number of (potentially blocking) active queries.</td>
+    <td>queries</td>
+    <td>gauge</td>
+  </tr>
+  <tr>
     <td>`consul.rpc.cross-dc`</td>
     <td>This increments when a server sends a (potentially blocking) cross datacenter RPC query.</td>
     <td>queries</td>

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -542,10 +543,28 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	timeout = time.NewTimer(queryTimeout)
 	defer timeout.Stop()
 
+	// REVIEW: The spec for this placed the atomic inc for queries_blocking inside the RUN_QUERY statement
+	// however, there are a combination of factors that I believe should mean we should place it before.
+	// - `goto RUN_QUERY` on L528 above means that we'd instrument a non-blocking query as blocking for its duration.
+	// - using defer dec on L554 would mean that we inc the counter multiple times as the blocking query waits, while
+	//   we only dec on the return of blockingQuery(). We'd need swap out defer for a dec on retry on L616 as well as
+	// 	 on the return at L621
+	// -> There I think it's simpler if we don't instrument the RUN_QUERY statement and continue to use the
+    // 	  end of s.blockingQuery()'s setup phase as the point of measurement.
+
+	// atomic inc our gauge of blockingQueries
+	atomic.AddUint64(&s.queriesBlocking, 1)
+	// atomic dec when we return from blockingQuery()
+	defer atomic.AddUint64(&s.queriesBlocking, -1)
+	// set gauge directly to a float32 of our Server's queriesBlocking
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(s.queriesBlocking))
+
 RUN_QUERY:
+	// Setup blocking loop
 	// Update the query metadata.
 	s.setQueryMeta(queryMeta)
 
+	// Validate
 	// If the read must be consistent we verify that we are still the leader.
 	if queryOpts.GetRequireConsistent() {
 		if err := s.consistentRead(); err != nil {
@@ -553,7 +572,9 @@ RUN_QUERY:
 		}
 	}
 
-	// Run the query.
+	// Run query
+
+	// inc count of all queries run
 	metrics.IncrCounter([]string{"rpc", "query"}, 1)
 
 	// Operate on a consistent set of state. This makes sure that the
@@ -571,7 +592,7 @@ RUN_QUERY:
 		ws.Add(state.AbandonCh())
 	}
 
-	// Block up to the timeout if we didn't see anything fresh.
+	// Execute the queryFn
 	err := fn(ws, state)
 	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
 	// blocking was requested by client, NOT meta.Index since the state function
@@ -584,6 +605,7 @@ RUN_QUERY:
 	if err == nil && queryMeta.GetIndex() < 1 {
 		queryMeta.SetIndex(1)
 	}
+	// block up to the timeout if we don't see anything fresh.
 	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
 			// If a restore may have woken us up then bail out from
@@ -594,6 +616,7 @@ RUN_QUERY:
 			select {
 			case <-state.AbandonCh():
 			default:
+				// loop back and look for an update again
 				goto RUN_QUERY
 			}
 		}
