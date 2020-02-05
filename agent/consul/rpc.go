@@ -555,9 +555,10 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	// atomic inc our gauge of blockingQueries
 	atomic.AddUint64(&s.queriesBlocking, 1)
 	// atomic dec when we return from blockingQuery()
-	defer atomic.AddUint64(&s.queriesBlocking, -1)
+	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
 	// set gauge directly to a float32 of our Server's queriesBlocking
-	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(s.queriesBlocking))
+	queriesBlocking := float32(atomic.LoadUint64(&s.queriesBlocking))
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, queriesBlocking)
 
 RUN_QUERY:
 	// Setup blocking loop
