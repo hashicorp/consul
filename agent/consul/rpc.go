@@ -550,7 +550,7 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	//   we only dec on the return of blockingQuery(). We'd need swap out defer for a dec on retry on L616 as well as
 	// 	 on the return at L621
 	// -> There I think it's simpler if we don't instrument the RUN_QUERY statement and continue to use the
-    // 	  end of s.blockingQuery()'s setup phase as the point of measurement.
+	// 	  end of s.blockingQuery()'s setup phase as the point of measurement.
 
 	// atomic inc our gauge of blockingQueries
 	atomic.AddUint64(&s.queriesBlocking, 1)
