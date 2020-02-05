@@ -23,6 +23,7 @@ const (
 	Intentions    string = "intentions"
 	Internal      string = "internal"
 	KV            string = "kvs"
+	LAN           string = "lan"
 	Leader        string = "leader"
 	Legacy        string = "legacy"
 	License       string = "license"
@@ -44,5 +45,6 @@ const (
 	Snapshot      string = "snapshot"
 	TLSUtil       string = "tlsutil"
 	Transaction   string = "txn"
+	WAN           string = "wan"
 	Watch         string = "watch"
 )

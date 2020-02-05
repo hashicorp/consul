@@ -38,9 +38,11 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	// can be streamed via the monitor endpoint
 	serfLogger := c.logger.
 		NamedIntercept(logging.Serf).
+		NamedIntercept(logging.LAN).
 		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 	memberlistLogger := c.logger.
 		NamedIntercept(logging.Memberlist).
+		NamedIntercept(logging.LAN).
 		StandardLoggerIntercept(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	conf.MemberlistConfig.Logger = memberlistLogger
