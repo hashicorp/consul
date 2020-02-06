@@ -53,8 +53,8 @@ JSON:
 HCL:
 
 ```hcl
-Name: "team-1"
-Description: "Namespace for Team 1"
+Name = "team-1"
+Description = "Namespace for Team 1"
 ACLs {
   PolicyDefaults = [
     {
