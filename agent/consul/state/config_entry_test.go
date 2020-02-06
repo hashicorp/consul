@@ -191,8 +191,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 100},
 					},
 				}
 				return s.EnsureConfigEntry(0, entry, nil)
@@ -213,8 +212,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 100},
 					},
 				}
 				return s.EnsureConfigEntry(0, entry, nil)
@@ -272,14 +270,26 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						"protocol": "http",
 					},
 				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v1",
+						},
+						"v2": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v2",
+						},
+					},
+				},
 			},
 			op: func(t *testing.T, s *Store) error {
 				entry := &structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 90, ServiceSubset: "v1"},
+						{Weight: 10, ServiceSubset: "v2"},
 					},
 				}
 				return s.EnsureConfigEntry(0, entry, nil)
@@ -291,6 +301,15 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind:     structs.ServiceDefaults,
 					Name:     "main",
 					Protocol: "tcp",
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"other": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == other",
+						},
+					},
 				},
 			},
 			op: func(t *testing.T, s *Store) error {
@@ -305,7 +324,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 								},
 							},
 							Destination: &structs.ServiceRouteDestination{
-								Namespace: "other",
+								ServiceSubset: "other",
 							},
 						},
 					},
@@ -316,7 +335,17 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			expectGraphErr: true,
 		},
 		"router fails without default protocol": tcase{
-			entries: []structs.ConfigEntry{},
+			entries: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"other": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == other",
+						},
+					},
+				},
+			},
 			op: func(t *testing.T, s *Store) error {
 				entry := &structs.ServiceRouterConfigEntry{
 					Kind: structs.ServiceRouter,
@@ -329,7 +358,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 								},
 							},
 							Destination: &structs.ServiceRouteDestination{
-								Namespace: "other",
+								ServiceSubset: "other",
 							},
 						},
 					},
@@ -383,12 +412,24 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						"protocol": "http",
 					},
 				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "main",
+					Subsets: map[string]structs.ServiceResolverSubset{
+						"v1": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v1",
+						},
+						"v2": structs.ServiceResolverSubset{
+							Filter: "Service.Meta.version == v2",
+						},
+					},
+				},
 				&structs.ServiceSplitterConfigEntry{
 					Kind: structs.ServiceSplitter,
 					Name: "main",
 					Splits: []structs.ServiceSplit{
-						{Weight: 90, Namespace: "v1"},
-						{Weight: 10, Namespace: "v2"},
+						{Weight: 90, ServiceSubset: "v1"},
+						{Weight: 10, ServiceSubset: "v2"},
 					},
 				},
 			},
@@ -798,6 +839,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := testStateStore(t)
 			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
 				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 			}
 

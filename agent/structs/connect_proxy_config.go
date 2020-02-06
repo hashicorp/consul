@@ -356,13 +356,15 @@ func (k UpstreamKey) String() string {
 // upstream in a canonical but human readable way.
 func (u *Upstream) Identifier() string {
 	name := u.DestinationName
-	if u.DestinationNamespace != "" && u.DestinationNamespace != "default" {
+	typ := u.DestinationType
+
+	if typ != UpstreamDestTypePreparedQuery && u.DestinationNamespace != "" && u.DestinationNamespace != "default" {
 		name = u.DestinationNamespace + "/" + u.DestinationName
 	}
 	if u.Datacenter != "" {
 		name += "?dc=" + u.Datacenter
 	}
-	typ := u.DestinationType
+
 	// Service is default type so never prefix it. This is more readable and long
 	// term it is the only type that matters so we can drop the prefix and have
 	// nicer naming in metrics etc.
