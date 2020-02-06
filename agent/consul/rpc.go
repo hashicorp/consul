@@ -522,6 +522,23 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	var timeout *time.Timer
 	var queryTimeout time.Duration
 
+	// REVIEW: The spec for this placed the atomic inc for queries_blocking inside the RUN_QUERY statement
+	// however, there are a combination of factors that I believe should mean we should place it before.
+	// - `goto RUN_QUERY` on L545 above means that we'd instrument a non-blocking query as blocking for its duration.
+	// - using defer dec on L537 would mean that we inc the counter multiple times as the blocking query waits, while
+	//   we only dec on the return of blockingQuery(). We'd need swap out defer for a dec on retry on L621 as well as
+	// 	 on the return at L625
+	// -> There I think it's simpler if we don't instrument the RUN_QUERY statement and use the
+	// 	  start and end of s.blockingQuery() as the points of measurement.
+
+	// atomic inc our gauge of blockingQueries
+	atomic.AddUint64(&s.queriesBlocking, 1)
+	// atomic dec when we return from blockingQuery()
+	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+	// set gauge directly to a float32 of our Server's queriesBlocking
+	queriesBlocking := float32(atomic.LoadUint64(&s.queriesBlocking))
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, queriesBlocking)
+
 	minQueryIndex := queryOpts.GetMinQueryIndex()
 	// Fast path right to the non-blocking query.
 	if minQueryIndex == 0 {
@@ -542,23 +559,6 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	// Setup a query timeout.
 	timeout = time.NewTimer(queryTimeout)
 	defer timeout.Stop()
-
-	// REVIEW: The spec for this placed the atomic inc for queries_blocking inside the RUN_QUERY statement.
-	// However, there are a combination of factors that I believe should mean we should place it before.
-	// - `goto RUN_QUERY` on L528 above means that we'd instrument a non-blocking query as blocking for its duration.
-	// - using defer dec on L554 would mean that we inc the counter multiple times as the blocking query waits, while
-	//   we only dec on the return of blockingQuery(). We'd need swap out defer for a dec on retry on L616 as well as
-	// 	 on the return at L621
-	// -> I think the current impl is simpler, where we don't instrument the RUN_QUERY statement, use the
-	// 	  end of s.blockingQuery()'s setup phase as the point of inc, and continue using defer as the dec point.
-
-	// atomic inc our gauge of blockingQueries
-	atomic.AddUint64(&s.queriesBlocking, 1)
-	// atomic dec when we return from blockingQuery()
-	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
-	// set gauge directly to a float32 of our Server's queriesBlocking
-	queriesBlocking := float32(atomic.LoadUint64(&s.queriesBlocking))
-	metrics.SetGauge([]string{"rpc", "queries_blocking"}, queriesBlocking)
 
 RUN_QUERY:
 	// Setup blocking loop
