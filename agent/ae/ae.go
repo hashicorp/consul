@@ -96,6 +96,10 @@ type StateSyncer struct {
 	// syncChangesEvent generates an event based on multiple conditions
 	// when the state machine is performing partial state syncs.
 	syncChangesEvent func() event
+
+	// nextFullSyncCh is a chan that receives a time.Time when the next
+	// full sync should occur.
+	nextFullSyncCh <-chan time.Time
 }
 
 const (
@@ -148,6 +152,7 @@ func (s *StateSyncer) Run() {
 	if s.ClusterSize == nil {
 		panic("ClusterSize not set")
 	}
+	s.resetNextFullSyncCh()
 	s.runFSM(fullSyncState, s.nextFSMState)
 }
 
@@ -245,8 +250,9 @@ func (s *StateSyncer) retrySyncFullEventFn() event {
 		}
 
 	// retry full sync after some time
-	// todo(fs): why don't we use s.Interval here?
+	// it is using retryFailInterval because it is retrying the sync
 	case <-time.After(s.retryFailInterval + s.stagger(s.retryFailInterval)):
+		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
 
 	case <-s.ShutdownCh:
@@ -266,13 +272,15 @@ func (s *StateSyncer) syncChangesEventFn() event {
 	case <-s.SyncFull.Notif():
 		select {
 		case <-time.After(s.stagger(s.serverUpInterval)):
+			s.resetNextFullSyncCh()
 			return syncFullNotifEvent
 		case <-s.ShutdownCh:
 			return shutdownEvent
 		}
 
 	// time for a full sync again
-	case <-time.After(s.Interval + s.stagger(s.Interval)):
+	case <-s.nextFullSyncCh:
+		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
 
 	// do partial syncs on demand
@@ -281,6 +289,16 @@ func (s *StateSyncer) syncChangesEventFn() event {
 
 	case <-s.ShutdownCh:
 		return shutdownEvent
+	}
+}
+
+// resetNextFullSyncCh resets nextFullSyncCh and sets it to interval+stagger.
+// Call this function everytime a full sync is performed.
+func (s *StateSyncer) resetNextFullSyncCh() {
+	if s.stagger != nil {
+		s.nextFullSyncCh = time.After(s.Interval + s.stagger(s.Interval))
+	} else {
+		s.nextFullSyncCh = time.After(s.Interval)
 	}
 }
 

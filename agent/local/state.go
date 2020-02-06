@@ -1023,6 +1023,15 @@ func (l *State) SyncChanges() error {
 	l.Lock()
 	defer l.Unlock()
 
+	// Sync the node level info if we need to.
+	if l.nodeInfoInSync {
+		l.logger.Debug("Node info in sync")
+	} else {
+		if err := l.syncNodeInfo(); err != nil {
+			return err
+		}
+	}
+
 	// We will do node-level info syncing at the end, since it will get
 	// updated by a service or check sync anyway, given how the register
 	// API works.
@@ -1064,14 +1073,7 @@ func (l *State) SyncChanges() error {
 			return err
 		}
 	}
-
-	// Now sync the node level info if we need to, and didn't do any of
-	// the other sync operations.
-	if l.nodeInfoInSync {
-		l.logger.Debug("Node info in sync")
-		return nil
-	}
-	return l.syncNodeInfo()
+	return nil
 }
 
 // deleteService is used to delete a service from the server
@@ -1204,6 +1206,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		Service:         l.services[key].Service,
 		EnterpriseMeta:  key.EnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: st},
+		SkipNodeUpdate:  l.nodeInfoInSync,
 	}
 
 	// Backwards-compatibility for Consul < 0.5
@@ -1266,6 +1269,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		Check:           c.Check,
 		EnterpriseMeta:  c.Check.EnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: ct},
+		SkipNodeUpdate:  l.nodeInfoInSync,
 	}
 
 	var serviceKey structs.ServiceID

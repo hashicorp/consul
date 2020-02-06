@@ -400,5 +400,6 @@ func testSyncer(t *testing.T) *StateSyncer {
 	l := NewStateSyncer(nil, time.Second, nil, logger)
 	l.stagger = func(d time.Duration) time.Duration { return d }
 	l.ClusterSize = func() int { return 1 }
+	l.resetNextFullSyncCh()
 	return l
 }
