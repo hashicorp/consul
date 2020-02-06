@@ -31,11 +31,13 @@ export default Component.extend({
     this._super(...arguments);
     this._viewportlistener.add(
       this.dom.isInViewport(this.element, bool => {
-        set(this, 'isDisplayed', bool);
-        if (this.isDisplayed) {
-          this.addPathListeners();
-        } else {
-          this.ticker.destroy(this);
+        if (get(this, 'isDisplayed') !== bool) {
+          set(this, 'isDisplayed', bool);
+          if (this.isDisplayed) {
+            this.addPathListeners();
+          } else {
+            this.ticker.destroy(this);
+          }
         }
       })
     );
@@ -63,24 +65,29 @@ export default Component.extend({
       !routes.find(item => get(item, 'Definition.Match.HTTP.PathPrefix') === '/') &&
       !routes.find(item => typeof item.Definition === 'undefined')
     ) {
-      let nextNode = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
-      const splitterID = `splitter:${this.chain.ServiceName}`;
-      if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
+      let nextNode;
+      const resolverID = `resolver:${this.chain.ServiceName}.${this.chain.Namespace}.${this.chain.Datacenter}`;
+      const splitterID = `splitter:${this.chain.ServiceName}.${this.chain.Namespace}`;
+      if (typeof this.chain.Nodes[resolverID] !== 'undefined') {
+        nextNode = resolverID;
+      } else if (typeof this.chain.Nodes[splitterID] !== 'undefined') {
         nextNode = splitterID;
       }
-      routes.push({
-        Default: true,
-        ID: `route:${this.chain.ServiceName}`,
-        Name: this.chain.ServiceName,
-        Definition: {
-          Match: {
-            HTTP: {
-              PathPrefix: '/',
+      if (typeof nextNode !== 'undefined') {
+        routes.push({
+          Default: true,
+          ID: `route:${this.chain.ServiceName}`,
+          Name: this.chain.ServiceName,
+          Definition: {
+            Match: {
+              HTTP: {
+                PathPrefix: '/',
+              },
             },
           },
-        },
-        NextNode: nextNode,
-      });
+          NextNode: nextNode,
+        });
+      }
     }
     return routes;
   }),
@@ -92,23 +99,17 @@ export default Component.extend({
       get(this, 'chain.Nodes')
     );
   }),
-  graph: computed('chain.Nodes', function() {
+  graph: computed('splitters', 'routes', function() {
     const graph = this.dataStructs.graph();
     const router = this.chain.ServiceName;
-    Object.entries(get(this, 'chain.Nodes')).forEach(([key, item]) => {
-      switch (item.Type) {
-        case 'splitter':
-          item.Splits.forEach(splitter => {
-            graph.addLink(item.ID, splitter.NextNode);
-          });
-          break;
-        case 'router':
-          item.Routes.forEach((route, i) => {
-            route = createRoute(route, router, this.dom.guid);
-            graph.addLink(route.ID, route.NextNode);
-          });
-          break;
-      }
+    this.splitters.forEach(item => {
+      item.Splits.forEach(splitter => {
+        graph.addLink(item.ID, splitter.NextNode);
+      });
+    });
+    this.routes.forEach((route, i) => {
+      route = createRoute(route, router, this.dom.guid);
+      graph.addLink(route.ID, route.NextNode);
     });
     return graph;
   }),
