@@ -53,6 +53,7 @@ export default Adapter.extend({
   requestForUpdateRecord: function(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      flags: data.Flags,
       ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`

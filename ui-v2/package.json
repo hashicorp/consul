@@ -22,6 +22,7 @@
     "start:consul": "ember serve --proxy=${CONSUL_HTTP_ADDR:-http://localhost:8500} --port=${EMBER_SERVE_PORT:-4200} --live-reload-port=${EMBER_LIVE_RELOAD_PORT:-7020}",
     "start:api": "api-double --dir ./node_modules/@hashicorp/consul-api-double",
     "test": "ember test --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:ci": "ember test --test-port=${EMBER_TEST_PORT:-7357} --path dist --silent --reporter xunit",
     "test:parallel": "EMBER_EXAM_PARALLEL=true ember exam --split=4 --parallel",
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:node": "tape ./node-tests/**/*.js",
