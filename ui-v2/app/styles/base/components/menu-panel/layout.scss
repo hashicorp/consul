@@ -65,8 +65,13 @@
   padding: 10px;
   padding-left: 36px;
 }
+/* here the !important is only needed for what seems to be a difference */
+/* with the CSS before and after compression */
+/* i.e. before compression this style is applied */
+/* after compression it is in the source but doesn't seem to get */
+/* applied (unless you add the !important) */
 %menu-panel .is-active {
-  position: relative;
+  position: relative !important;
 }
 %menu-panel .is-active > *::after {
   position: absolute;
