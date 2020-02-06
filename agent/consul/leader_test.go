@@ -982,16 +982,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
-
-	retry.Run(t, func(r *retry.R) {
-		failed := 0
-		for _, m := range s1.LANMembers() {
-			if m.Status == serf.StatusFailed {
-				failed++
-			}
-		}
-		require.Equal(r, 1, failed)
-	})
+	waitForAnyLANLeave(t, s1)
 
 	// Bring up a new server with s3's name that will get a different ID
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {

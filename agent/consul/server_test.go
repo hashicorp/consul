@@ -3,6 +3,7 @@ package consul
 import (
 	"bytes"
 	"fmt"
+	"github.com/hashicorp/serf/serf"
 	"net"
 	"os"
 	"strings"
@@ -74,6 +75,20 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 			}
 		}
 		require.True(r, hasLeader, "Cluster has not elected a leader yet")
+	})
+}
+
+// waitForAnyLANLeave retries until it sees a LANMember with StatusLeft, or it gets interrupted
+// by the test runner
+func waitForAnyLANLeave(t *testing.T, server *Server) {
+	retry.Run(t, func(r *retry.R) {
+		left := 0
+		for _, m := range server.LANMembers() {
+			if m.Status == serf.StatusLeft {
+				left++
+			}
+		}
+		require.Equal(r, 1, left, "no LANMember with StatusLeft found")
 	})
 }
 
