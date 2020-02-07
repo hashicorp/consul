@@ -81,5 +81,23 @@ export default function(scenario, assert, lastNthRequest) {
           )}, ${key} was ${JSON.stringify(headers[key])}`
         );
       });
+    })
+    .then('a $method request was made to "$endpoint" without properties from yaml\n$yaml', function(
+      method,
+      url,
+      properties
+    ) {
+      const requests = lastNthRequest(null, method);
+      const request = requests.find(function(item) {
+        return method === item.method && url === item.url;
+      });
+      const body = JSON.parse(request.requestBody);
+      properties.forEach(function(key, i, arr) {
+        assert.equal(
+          typeof body[key],
+          'undefined',
+          `Expected payload to not have a ${key} property`
+        );
+      });
     });
 }
