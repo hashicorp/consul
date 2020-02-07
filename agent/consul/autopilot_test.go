@@ -399,7 +399,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	})
 }
 
-func TestAutopilot_BootstrapExpect(t *testing.T) {
+func TestAutopilot_MinQuorum(t *testing.T) {
 	dc := "dc1"
 	closeMap := make(map[string]chan struct{})
 	conf := func(c *Config) {
