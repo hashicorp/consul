@@ -1,5 +1,9 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
+import { env } from '../../../env';
+const shouldHaveNspace = function(nspace) {
+  return typeof nspace !== 'undefined' && env('CONSUL_NSPACES_ENABLED');
+};
 module('Integration | Adapter | token', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -17,7 +21,7 @@ module('Integration | Adapter | token', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForQuery returns the correct url/method when a policy is specified when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -31,7 +35,7 @@ module('Integration | Adapter | token', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForQuery returns the correct url/method when a role is specified when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -45,7 +49,7 @@ module('Integration | Adapter | token', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -59,7 +63,7 @@ module('Integration | Adapter | token', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:token');
@@ -119,7 +123,7 @@ module('Integration | Adapter | token', function(hooks) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
       const expected = `DELETE /v1/acl/token/${id}?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForDeleteRecord(
@@ -139,7 +143,7 @@ module('Integration | Adapter | token', function(hooks) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
       const expected = `PUT /v1/acl/token/${id}/clone?dc=${dc}${
-        typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
       const actual = adapter
         .requestForCloneRecord(

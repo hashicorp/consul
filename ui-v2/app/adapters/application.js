@@ -1,5 +1,6 @@
 import Adapter from './http';
 import { inject as service } from '@ember/service';
+// TODO: This should be changed to use env
 import config from 'consul-ui/config/environment';
 
 export const DATACENTER_QUERY_PARAM = 'dc';

@@ -8,7 +8,7 @@ Feature: token-header
     Given 1 datacenter model with the value "datacenter"
     When I visit the index page
     Then the url should be /datacenter/services
-    And a GET request was made to "/v1/namespaces" from yaml
+    And a GET request was made to "/v1/internal/ui/services?dc=datacenter&ns=@namespace" from yaml
     ---
     headers:
       X-Consul-Token: ''
@@ -28,7 +28,7 @@ Feature: token-header
     And I submit
     When I visit the index page
     Then the url should be /datacenter/services
-    And a GET request was made to "/v1/namespaces" from yaml
+    And a GET request was made to "/v1/internal/ui/services?dc=datacenter&ns=@namespace" from yaml
     ---
     headers:
       X-Consul-Token: [Token]

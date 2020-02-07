@@ -4,8 +4,15 @@ import { SLUG_KEY } from 'consul-ui/models/policy';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
+import { env } from 'consul-ui/env';
 import nonEmptySet from 'consul-ui/utils/non-empty-set';
-const Namespace = nonEmptySet('Namespace');
+
+let Namespace;
+if (env('CONSUL_NSPACES_ENABLED')) {
+  Namespace = nonEmptySet('Namespace');
+} else {
+  Namespace = () => ({});
+}
 
 // TODO: Update to use this.formatDatacenter()
 export default Adapter.extend({
@@ -60,7 +67,7 @@ export default Adapter.extend({
         Description: serialized.Description,
         Rules: serialized.Rules,
         Datacenters: serialized.Datacenters,
-        Namespace: serialized.Namespace,
+        ...Namespace(serialized.Namespace),
       }}
     `;
   },

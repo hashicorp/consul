@@ -1,7 +1,8 @@
 /* eslint no-control-regex: "off" */
 import Yadda from 'yadda';
 import YAML from 'js-yaml';
-export default function(nspace, dict = new Yadda.Dictionary()) {
+import { env } from '../env';
+export default function(annotations, nspace, dict = new Yadda.Dictionary()) {
   dict
     .define('model', /(\w+)/, function(model, cb) {
       switch (model) {
@@ -43,7 +44,13 @@ export default function(nspace, dict = new Yadda.Dictionary()) {
     .define('yaml', /([^\u0000]*)/, function(val, cb) {
       // sometimes we need to always force a namespace queryParam
       // mainly for DELETEs
-      val = val.replace(/ns=@!namespace/g, `ns=${nspace || 'default'}`);
+      if (env('CONSUL_NSPACES_ENABLED')) {
+        val = val.replace(/ns=@!namespace/g, `ns=${nspace || 'default'}`);
+      } else {
+        val = val.replace(/&ns=@!namespace/g, '');
+        val = val.replace(/&ns=\*/g, '');
+        val = val.replace(/- \/v1\/namespaces/g, '');
+      }
       if (typeof nspace === 'undefined' || nspace === '') {
         val = val.replace(/Namespace: @namespace/g, '').replace(/&ns=@namespace/g, '');
       }
@@ -57,7 +64,12 @@ export default function(nspace, dict = new Yadda.Dictionary()) {
     .define('endpoint', /([^\u0000]*)/, function(val, cb) {
       // if is @namespace is !important, always replace with namespace
       // or if its undefined or empty then use default
-      val = val.replace(/ns=@!namespace/g, `ns=${nspace || 'default'}`);
+      if (env('CONSUL_NSPACES_ENABLED')) {
+        val = val.replace(/ns=@!namespace/g, `ns=${nspace || 'default'}`);
+      } else {
+        val = val.replace(/&ns=@!namespace/g, '');
+        val = val.replace(/&ns=\*/g, '');
+      }
       // for endpoints if namespace isn't specified it should
       // never add the ns= unless its !important...
       if (typeof nspace !== 'undefined' && nspace !== '') {

@@ -35,20 +35,39 @@ start-consul: deps
 start-api: deps
 	yarn run start:api
 
+# testing
+
+# things with 'view' will open your browser for you
+# otherwise its headless
+
+# oss is currently with namespace support disabled
 test: deps test-node
 	yarn run test
-
-test-ci: deps test-node
-	yarn run test:ci
 
 test-view: deps test-node
 	yarn run test:view
 
+test-oss: deps test-node
+	yarn run test:oss
+
+test-oss-view: deps test-node
+	yarn run test:oss:view
+
+# these run from CI, both with and without namespaces
+test-ci: deps test-node
+	yarn run test:ci
+
+test-oss-ci: deps test-node
+	yarn run test:oss:ci
+
+# these tests are only possible to run outside of ember
+# and use node + tape for a test harness
+test-node:
+	yarn run test:node
+
 test-parallel: deps
 	yarn run test:parallel
 
-test-node:
-	yarn run test:node
 
 lint: deps
 	yarn run lint:hbs && yarn run lint:js
