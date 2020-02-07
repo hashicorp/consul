@@ -520,24 +520,11 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 // blockingQuery is used to process a potentially blocking query operation.
 func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
 	var timeout *time.Timer
+	var queriesBlocking uint64
 	var queryTimeout time.Duration
 
-	// REVIEW: The spec for this placed the atomic inc for queries_blocking inside the RUN_QUERY statement
-	// however, there are a combination of factors that I believe should mean we should place it before.
-	// - `goto RUN_QUERY` on L545 above means that we'd instrument a non-blocking query as blocking for its duration.
-	// - using defer dec on L537 would mean that we inc the counter multiple times as the blocking query waits, while
-	//   we only dec on the return of blockingQuery(). We'd need swap out defer for a dec on retry on L621 as well as
-	// 	 on the return at L625
-	// -> There I think it's simpler if we don't instrument the RUN_QUERY statement and use the
-	// 	  start and end of s.blockingQuery() as the points of measurement.
-
-	// atomic inc our gauge of blockingQueries
-	atomic.AddUint64(&s.queriesBlocking, 1)
-	// atomic dec when we return from blockingQuery()
-	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
-	// set gauge directly to a float32 of our Server's queriesBlocking
-	queriesBlocking := float32(atomic.LoadUint64(&s.queriesBlocking))
-	metrics.SetGauge([]string{"rpc", "queries_blocking"}, queriesBlocking)
+	// Instrument all queries run
+	metrics.IncrCounter([]string{"rpc", "query"}, 1)
 
 	minQueryIndex := queryOpts.GetMinQueryIndex()
 	// Fast path right to the non-blocking query.
@@ -560,6 +547,14 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	timeout = time.NewTimer(queryTimeout)
 	defer timeout.Stop()
 
+	// instrument blockingQueries
+	// atomic inc our server's count of in-flight blockingQueries and store the new value
+	queriesBlocking = atomic.AddUint64(&s.queriesBlocking, 1)
+	// atomic dec when we return from blockingQuery()
+	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+	// set the gauge directly to the new value of s.blockingQueries
+	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(queriesBlocking))
+
 RUN_QUERY:
 	// Setup blocking loop
 	// Update the query metadata.
@@ -574,9 +569,6 @@ RUN_QUERY:
 	}
 
 	// Run query
-
-	// inc count of all queries run
-	metrics.IncrCounter([]string{"rpc", "query"}, 1)
 
 	// Operate on a consistent set of state. This makes sure that the
 	// abandon channel goes with the state that the caller is using to
