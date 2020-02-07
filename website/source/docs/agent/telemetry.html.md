@@ -771,7 +771,7 @@ These metrics are used to monitor the health of the Consul servers.
   </tr>
   <tr>
     <td>`consul.rpc.queries_blocking`</td>
-    <td>Shows the current number of blocking active queries.</td>
+    <td>This shows the current number of in-flight blocking queries the server is handling.</td>
     <td>queries</td>
     <td>gauge</td>
   </tr>
