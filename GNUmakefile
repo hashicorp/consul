@@ -374,12 +374,16 @@ proto-delete:
 
 proto-rebuild: proto-delete proto
 
-proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
+proto: $(PROTOGOFILES) $(PROTOGOBINFILES) structs.structgen.go
 	@echo "Generated all protobuf Go files"
 
 
 %.pb.go %.pb.binary.go: %.proto
 	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
+
+structs.structgen.go: agent/structs/structs.go
+	@echo "Building conversion methods from/to structs package"
+	go run $(CURDIR)/agent/agentpb/structgen/structgen.go
 
 
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools

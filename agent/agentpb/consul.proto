@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package agentpb;
+
+import "subscribe.proto";
+
+// Consul service is the gRPC API that Consul servers expose to Consul client
+// agents. It is intended to supercede the net/rpc-based RPC layer entirely but
+// is currently only used for new streaming subscriptions.
+//
+// RPC-specific types should be defined in a correspondingly named proto file in
+// this package. Shared types shoudl be in other sensibly named proto files.
+// Eventually we may want to break this into multiple packages to keep it
+// organised.
+service Consul {
+    // Susbscribe is a generic event streaming mechanism used for efficiently
+    // requesting a specific result snapshot and then following updates that
+    // affect that snapshot.
+    rpc Subscribe(SubscribeRequest) returns (stream Event) {}
+}
+
+
+// DummyTypeDontUse is here as a quick hack to work around a bug in the Binary
+// marshaller plugin which will generate an empty Go file for this proto file
+// which then fails to compile. We only want the service def in here but this is
+// a quick way to work around until we can fix the binary marshaller plugin.
+// That's a yak I can't shave right now.
+message DummyTypeDontUse {
+    bool Nope = 1;
+}
