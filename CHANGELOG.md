@@ -3,6 +3,18 @@
 IMPROVEMENTS:
 
 * connect: Envoy's whole stats endpoint can now be exposed to allow integrations like DataDog agent [[GH-7070](https://github.com/hashicorp/consul/pull/7070)]
+* ui: Discovery chain improvements for clarifying the default router [[GH-7222](https://github.com/hashicorp/consul/pull/7222)]
+
+BUGFIXES:
+* ui: Ensure the main navigation menu is closed on click [[GH-7164](https://github.com/hashicorp/consul/pull/7164)]
+* ui: Ensure KV flags are passed through to Consul on update [[GH-7216](https://github.com/hashicorp/consul/pull/7216)]
+* ui: Fix positioning of active icon in main navigation menu [[GH-7233](https://github.com/hashicorp/consul/pull/7233)]
+* ui: Ensure the Namespace property is sent to Consul in OSS [[GH-7238](https://github.com/hashicorp/consul/pull/7238)]
+
+FEATURES:
+* ui: Hides the Routing tab for a service proxy [[GH-7195](https://github.com/hashicorp/consul/pull/7195)]
+* ui: Add ability to search nodes listing page with IP Address [[GH-7204](https://github.com/hashicorp/consul/pull/7204)]
+
 
 ## 1.7.0-beta4 (January 31, 2020)
 
