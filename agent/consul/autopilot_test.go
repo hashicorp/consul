@@ -462,7 +462,6 @@ func TestAutopilot_BootstrapExpect(t *testing.T) {
 	}
 
 	// Have autopilot take one into left
-
 	dead := findStatus(false)
 	if dead == nil {
 		t.Fatalf("no members set")
