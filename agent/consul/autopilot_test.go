@@ -427,7 +427,7 @@ func TestAutopilot_BootstrapExpect(t *testing.T) {
 
 	dir3, s3 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir3)
-	defer s3.Shutdown() 
+	defer s3.Shutdown()
 
 	dir4, s4 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir4)
