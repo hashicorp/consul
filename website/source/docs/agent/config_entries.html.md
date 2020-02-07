@@ -125,6 +125,24 @@ $ consul config delete -kind service-defaults -name web
 
 This command will not output anything when the deletion is successful.
 
+#### Configuration Entry Management with Namespaces
+
+**Enterprise Only** - Configuration entry operations support passing a namespace in
+order to isolate the entry to affect only operations within that namespace. This was
+added in Consul 1.7.0.
+
+Example: 
+
+```bash
+$ consul config write service-defaults.hcl -namespace foo
+```
+
+```bash
+$ consul config list -kind service-defaults -namespace foo
+web
+api
+```
+
 ### Bootstrapping From A Configuration File
 
 
