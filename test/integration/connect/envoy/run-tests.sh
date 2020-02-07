@@ -17,7 +17,7 @@ FILTER_TESTS=${FILTER_TESTS:-}
 STOP_ON_FAIL=${STOP_ON_FAIL:-}
 
 # ENVOY_VERSIONS is the list of envoy versions to run each test against
-ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.10.0 1.9.1 1.8.0 1.11.2"}
+ENVOY_VERSIONS=${ENVOY_VERSIONS:-"1.9.1 1.10.0 1.11.2 1.12.2"}
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
