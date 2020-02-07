@@ -982,15 +982,15 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
-
+	// wait for s1.LANMembers() to show s3 as StatusFailed or StatusLeft on
 	retry.Run(t, func(r *retry.R) {
-		failed := 0
+		var gone bool
 		for _, m := range s1.LANMembers() {
-			if m.Status == serf.StatusFailed {
-				failed++
+			if m.Name == s3.config.NodeName && (m.Status == serf.StatusFailed || m.Status == serf.StatusLeft) {
+				gone = true
 			}
 		}
-		require.Equal(r, 1, failed)
+		require.True(r, gone, "s3 has not been detected as failed or left after shutdown")
 	})
 
 	// Bring up a new server with s3's name that will get a different ID
