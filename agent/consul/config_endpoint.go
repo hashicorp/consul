@@ -85,6 +85,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 
 	// Create a dummy config entry to check the ACL permissions.
 	lookupEntry, err := structs.MakeConfigEntry(args.Kind, args.Name)
+	lookupEntry.GetEnterpriseMeta().Merge(&args.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
