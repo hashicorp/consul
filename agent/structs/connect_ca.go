@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -258,49 +257,6 @@ type CAConfiguration struct {
 	ForceWithoutCrossSigning bool
 
 	RaftIndex
-}
-
-// MarshalBinary writes CAConfiguration as msgpack encoded. It's only here
-// because we need custom decoding of the raw interface{} values and this
-// completes the interface.
-func (c *CAConfiguration) MarshalBinary() (data []byte, err error) {
-	// bs will grow if needed but allocate enough to avoid reallocation in common
-	// case.
-	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
-
-	type Alias CAConfiguration
-
-	if err := enc.Encode((*Alias)(c)); err != nil {
-		return nil, err
-	}
-
-	return bs, nil
-}
-
-// UnmarshalBinary decodes msgpack encoded CAConfiguration. It used
-// default msgpack encoding but fixes up the uint8 strings and other problems we
-// have with encoding map[string]interface{}.
-func (c *CAConfiguration) UnmarshalBinary(data []byte) error {
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
-
-	type Alias CAConfiguration
-	var a Alias
-
-	if err := dec.Decode(&a); err != nil {
-		return err
-	}
-
-	*c = CAConfiguration(a)
-
-	var err error
-
-	// Fix strings and maps in the returned maps
-	c.Config, err = lib.MapWalk(c.Config)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *CAConfiguration) UnmarshalJSON(data []byte) (err error) {

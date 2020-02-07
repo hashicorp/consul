@@ -150,7 +150,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 // a snapshot request.
 func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	var args structs.SnapshotRequest
-	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
+	dec := codec.NewDecoder(conn, structs.MsgpackHandle)
 	if err := dec.Decode(&args); err != nil {
 		return fmt.Errorf("failed to decode request: %v", err)
 	}
@@ -168,7 +168,7 @@ func (s *Server) handleSnapshotRequest(conn net.Conn) error {
 	}()
 
 RESPOND:
-	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
+	enc := codec.NewEncoder(conn, structs.MsgpackHandle)
 	if err := enc.Encode(&reply); err != nil {
 		return fmt.Errorf("failed to encode response: %v", err)
 	}
@@ -213,7 +213,7 @@ func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 	}
 
 	// Push the header encoded as msgpack, then stream the input.
-	enc := codec.NewEncoder(conn, &codec.MsgpackHandle{})
+	enc := codec.NewEncoder(conn, structs.MsgpackHandle)
 	if err := enc.Encode(&args); err != nil {
 		return nil, fmt.Errorf("failed to encode request: %v", err)
 	}
@@ -235,7 +235,7 @@ func SnapshotRPC(connPool *pool.ConnPool, dc string, addr net.Addr, useTLS bool,
 
 	// Pull the header decoded as msgpack. The caller can continue to read
 	// the conn to stream the remaining data.
-	dec := codec.NewDecoder(conn, &codec.MsgpackHandle{})
+	dec := codec.NewDecoder(conn, structs.MsgpackHandle)
 	if err := dec.Decode(reply); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}

@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-uuid"
 )
 
@@ -84,7 +86,7 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 		return fmt.Errorf("UUID generation failed: %v", err)
 	}
 	params.Version = userEventMaxVersion
-	payload, err := encodeMsgPack(&params)
+	payload, err := encodeMsgPackUserEvent(&params)
 	if err != nil {
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
@@ -112,7 +114,7 @@ func (a *Agent) handleEvents() {
 		case e := <-a.eventCh:
 			// Decode the event
 			msg := new(UserEvent)
-			if err := decodeMsgPack(e.Payload, msg); err != nil {
+			if err := decodeMsgPackUserEvent(e.Payload, msg); err != nil {
 				a.logger.Error("Failed to decode event", "error", err)
 				continue
 			}
@@ -279,4 +281,23 @@ func (a *Agent) LastUserEvent() *UserEvent {
 	n := len(a.eventBuf)
 	idx := (((a.eventIndex - 1) % n) + n) % n
 	return a.eventBuf[idx]
+}
+
+// msgpackHandleUserEvent is a shared handle for encoding/decoding of
+// messages for user events
+var msgpackHandleUserEvent = &codec.MsgpackHandle{
+	RawToString: true,
+	WriteExt:    true,
+}
+
+// decodeMsgPackUserEvent is used to decode a MsgPack encoded object
+func decodeMsgPackUserEvent(buf []byte, out interface{}) error {
+	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandleUserEvent).Decode(out)
+}
+
+// encodeMsgPackUserEvent is used to encode an object with msgpack
+func encodeMsgPackUserEvent(msg interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	err := codec.NewEncoder(&buf, msgpackHandleUserEvent).Encode(msg)
+	return buf.Bytes(), err
 }

@@ -1725,7 +1725,7 @@ func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 
 	// Encode length.
 	err = enc.Encode(len(c.Entries))
@@ -1755,7 +1755,7 @@ func (c *IndexedConfigEntries) MarshalBinary() (data []byte, err error) {
 func (c *IndexedConfigEntries) UnmarshalBinary(data []byte) error {
 	// First decode the number of entries.
 	var numEntries int
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 	if err := dec.Decode(&numEntries); err != nil {
 		return err
 	}
@@ -1799,7 +1799,7 @@ func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
 	// bs will grow if needed but allocate enough to avoid reallocation in common
 	// case.
 	bs := make([]byte, 128)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
+	enc := codec.NewEncoderBytes(&bs, MsgpackHandle)
 
 	if err := enc.Encode(len(c.Entries)); err != nil {
 		return nil, err
@@ -1824,7 +1824,7 @@ func (c *IndexedGenericConfigEntries) MarshalBinary() (data []byte, err error) {
 func (c *IndexedGenericConfigEntries) UnmarshalBinary(data []byte) error {
 	// First decode the number of entries.
 	var numEntries int
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
+	dec := codec.NewDecoderBytes(data, MsgpackHandle)
 	if err := dec.Decode(&numEntries); err != nil {
 		return err
 	}
@@ -2135,19 +2135,26 @@ func (r *TombstoneRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// msgpackHandle is a shared handle for encoding/decoding of structs
-var msgpackHandle = &codec.MsgpackHandle{}
+// MsgpackHandle is a shared handle for encoding/decoding msgpack payloads
+var MsgpackHandle = &codec.MsgpackHandle{
+	RawToString: true,
+	BasicHandle: codec.BasicHandle{
+		DecodeOptions: codec.DecodeOptions{
+			MapType: reflect.TypeOf(map[string]interface{}{}),
+		},
+	},
+}
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
-	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandle).Decode(out)
+	return codec.NewDecoder(bytes.NewReader(buf), MsgpackHandle).Decode(out)
 }
 
 // Encode is used to encode a MsgPack object with type prefix
 func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte(uint8(t))
-	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
+	err := codec.NewEncoder(&buf, MsgpackHandle).Encode(msg)
 	return buf.Bytes(), err
 }
 

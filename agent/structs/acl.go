@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-msgpack/codec"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -1046,49 +1045,6 @@ type ACLAuthMethod struct {
 
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
-}
-
-// MarshalBinary writes ACLAuthMethod as msgpack encoded. It's only here
-// because we need custom decoding of the raw interface{} values and this
-// completes the interface.
-func (m *ACLAuthMethod) MarshalBinary() (data []byte, err error) {
-	// bs will grow if needed but allocate enough to avoid reallocation in common
-	// case.
-	bs := make([]byte, 256)
-	enc := codec.NewEncoderBytes(&bs, msgpackHandle)
-
-	type Alias ACLAuthMethod
-
-	if err := enc.Encode((*Alias)(m)); err != nil {
-		return nil, err
-	}
-
-	return bs, nil
-}
-
-// UnmarshalBinary decodes msgpack encoded ACLAuthMethod. It used
-// default msgpack encoding but fixes up the uint8 strings and other problems we
-// have with encoding map[string]interface{}.
-func (m *ACLAuthMethod) UnmarshalBinary(data []byte) error {
-	dec := codec.NewDecoderBytes(data, msgpackHandle)
-
-	type Alias ACLAuthMethod
-	var a Alias
-
-	if err := dec.Decode(&a); err != nil {
-		return err
-	}
-
-	*m = ACLAuthMethod(a)
-
-	var err error
-
-	// Fix strings and maps in the returned maps
-	m.Config, err = lib.MapWalk(m.Config)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 type ACLReplicationType string

@@ -592,12 +592,12 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 
 	// Encode as msgPack using a regular handle i.e. NOT one with RawAsString
 	// since our RPC codec doesn't use that.
-	enc := codec.NewEncoder(&buf, msgpackHandle)
+	enc := codec.NewEncoder(&buf, MsgpackHandle)
 	require.NoError(t, enc.Encode(&a))
 
 	var b ServiceConfigResponse
 
-	dec := codec.NewDecoder(&buf, msgpackHandle)
+	dec := codec.NewDecoder(&buf, MsgpackHandle)
 	require.NoError(t, dec.Decode(&b))
 
 	require.Equal(t, a, b)

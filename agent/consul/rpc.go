@@ -196,7 +196,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewServerCodec(conn)
+	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -221,7 +221,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 // handleInsecureConsulConn is used to service a single Consul INSECURERPC connection
 func (s *Server) handleInsecureConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := msgpackrpc.NewServerCodec(conn)
+	rpcCodec := msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 	for {
 		select {
 		case <-s.shutdownCh:
