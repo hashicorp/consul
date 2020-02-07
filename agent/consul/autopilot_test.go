@@ -446,10 +446,10 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 	//Differentiate between leader and server
 	findStatus := func(leader bool) *Server {
 		for _, mem := range servers {
-			if mem.IsLeader() && leader {
+			if mem.IsLeader() == leader {
 				return mem
 			}
-			if !mem.IsLeader() && !leader {
+			if !mem.IsLeader() == !leader {
 				return mem
 			}
 		}
@@ -457,9 +457,6 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 		return nil
 	}
 	testrpc.WaitForLeader(t, s1.RPC, dc)
-	for _, s := range servers {
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 4)) })
-	}
 
 	// Have autopilot take one into left
 	dead := findStatus(false)
