@@ -1,4 +1,5 @@
 @setupApplicationTest
+@onlyNamespaceable
 Feature: dc / nspaces / update: Nspace Update
   Background:
     Given 1 datacenter model with the value "datacenter"

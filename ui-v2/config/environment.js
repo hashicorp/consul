@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-module.exports = function(environment) {
+module.exports = function(environment, $ = process.env) {
   let ENV = {
     modulePrefix: 'consul-ui',
     environment,
@@ -83,7 +83,10 @@ module.exports = function(environment) {
       ENV = Object.assign({}, ENV, {
         locationType: 'none',
         CONSUL_NSPACES_TEST: true,
-        CONSUL_ACLS_ENABLED: true,
+        CONSUL_NSPACES_ENABLED:
+          typeof $['CONSUL_NSPACES_ENABLED'] !== 'undefined'
+            ? !!JSON.parse(String($['CONSUL_NSPACES_ENABLED']).toLowerCase())
+            : true,
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
@@ -100,6 +103,7 @@ module.exports = function(environment) {
       break;
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
+        CONSUL_NSPACES_ENABLED: true,
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
           endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
@@ -117,7 +121,6 @@ module.exports = function(environment) {
   switch (true) {
     case isDevLike:
       ENV = Object.assign({}, ENV, {
-        CONSUL_NSPACES_ENABLED: true,
         CONSUL_ACLS_ENABLED: true,
         // 'APP': Object.assign({}, ENV.APP, {
         //   'LOG_RESOLVER': true,

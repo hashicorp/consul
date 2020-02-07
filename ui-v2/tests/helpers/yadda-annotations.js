@@ -32,7 +32,7 @@ const runTest = function(context, libraries, steps, scenarioContext) {
 };
 const checkAnnotations = function(annotations, isScenario) {
   annotations = {
-    namespaceable: env('CONSUL_NSPACES_TEST'),
+    namespaceable: env('CONSUL_NSPACES_ENABLED'),
     ...annotations,
   };
   if (annotations.ignore) {
@@ -41,36 +41,48 @@ const checkAnnotations = function(annotations, isScenario) {
     };
   }
   if (isScenario) {
-    return function(scenario, feature, yadda, yaddaAnnotations, library) {
-      test(`Scenario: ${scenario.title}`, function(assert) {
-        const libraries = library.default({
-          assert: assert,
-          library: Yadda.localisation.English.library(getDictionary()),
-        });
-        const scenarioContext = {
-          ctx: {},
+    if (env('CONSUL_NSPACES_ENABLED')) {
+      if (!annotations.notnamespaceable) {
+        return function(scenario, feature, yadda, yaddaAnnotations, library) {
+          ['', 'default', 'team-1', undefined].forEach(function(item) {
+            test(`Scenario: ${
+              scenario.title
+            } with the ${item === '' ? 'empty' : typeof item === 'undefined' ? 'undefined' : item} namespace set`, function(assert) {
+              const libraries = library.default({
+                assert: assert,
+                library: Yadda.localisation.English.library(getDictionary(annotations, item)),
+              });
+              const scenarioContext = {
+                ctx: {
+                  nspace: item,
+                },
+              };
+              const result = runTest(this, libraries, scenario.steps, scenarioContext);
+              return result;
+            });
+          });
         };
-        return runTest(this, libraries, scenario.steps, scenarioContext);
-      });
-      if (annotations.namespaceable && !annotations.notnamespaceable) {
-        ['', 'default', 'team-1', undefined].forEach(function(item) {
-          test(`Scenario: ${
-            scenario.title
-          } with the ${item === '' ? 'empty' : typeof item === 'undefined' ? 'undefined' : item} namespace set`, function(assert) {
+      } else {
+        return function() {};
+      }
+    } else {
+      if (!annotations.onlynamespaceable) {
+        return function(scenario, feature, yadda, yaddaAnnotations, library) {
+          test(`Scenario: ${scenario.title}`, function(assert) {
             const libraries = library.default({
               assert: assert,
-              library: Yadda.localisation.English.library(getDictionary(item)),
+              library: Yadda.localisation.English.library(getDictionary(annotations)),
             });
             const scenarioContext = {
-              ctx: {
-                nspace: item,
-              },
+              ctx: {},
             };
             return runTest(this, libraries, scenario.steps, scenarioContext);
           });
-        });
+        };
+      } else {
+        return function() {};
       }
-    };
+    }
   }
 };
 export const setupFeature = function(featureAnnotations) {

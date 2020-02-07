@@ -1,4 +1,5 @@
 @setupApplicationTest
+@onlyNamespaceable
 Feature: dc / nspaces / manage : Managing Namespaces
   Scenario:
     Given settings from yaml

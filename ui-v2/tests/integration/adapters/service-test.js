@@ -1,5 +1,9 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
+import { env } from '../../../env';
+const shouldHaveNspace = function(nspace) {
+  return typeof nspace !== 'undefined' && env('CONSUL_NSPACES_ENABLED');
+};
 module('Integration | Adapter | service', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -17,7 +21,7 @@ module('Integration | Adapter | service', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:service');
@@ -31,7 +35,7 @@ module('Integration | Adapter | service', function(hooks) {
       actual = actual.split('\n');
       assert.equal(actual.shift().trim(), expected);
       actual = actual.join('\n').trim();
-      assert.equal(actual, `${typeof nspace !== 'undefined' ? `ns=${nspace}` : ``}`);
+      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
     });
   });
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
