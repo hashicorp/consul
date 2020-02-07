@@ -15,11 +15,6 @@ import (
 	"github.com/hashicorp/raft"
 )
 
-// msgpackHandle is a shared handle for encoding/decoding msgpack payloads
-var msgpackHandle = &codec.MsgpackHandle{
-	RawToString: true,
-}
-
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}
 
@@ -166,7 +161,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	defer restore.Abort()
 
 	// Create a decoder
-	dec := codec.NewDecoder(old, msgpackHandle)
+	dec := codec.NewDecoder(old, structs.MsgpackHandle)
 
 	// Read in the header
 	var header snapshotHeader

@@ -11,9 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 )
 
@@ -76,7 +77,7 @@ func (c *Conn) getClient() (*StreamClient, error) {
 	}
 
 	// Create the RPC client
-	codec := msgpackrpc.NewClientCodec(stream)
+	codec := msgpackrpc.NewCodecFromHandle(true, true, stream, structs.MsgpackHandle)
 
 	// Return a new stream client
 	sc := &StreamClient{
@@ -443,7 +444,7 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	if err != nil {
 		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
 	}
-	codec = msgpackrpc.NewClientCodec(conn)
+	codec = msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 
 	// Make the RPC call
 	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
