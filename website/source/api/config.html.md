@@ -52,6 +52,14 @@ The table below shows this endpoint's support for
   non-zero, the entry is only set if the current index matches the `ModifyIndex`
   of that entry.
 
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
+  service and checks will be registered. This value may be provided by either the
+  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
+  the namespace may be provided within the `Service` or `Check` fields but if
+  present in multiple places, they must all be the same. If not provided at all, 
+  the namespace will be inherited from the request's ACL token or will default 
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Payload
 
 
@@ -109,6 +117,14 @@ The table below shows this endpoint's support for
 - `name` `(string: <required>)` - Specifies the name of the entry to read. This
   is specified as part of the URL.
 
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
+  service and checks will be registered. This value may be provided by either the
+  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
+  the namespace may be provided within the `Service` or `Check` fields but if
+  present in multiple places, they must all be the same. If not provided at all, 
+  the namespace will be inherited from the request's ACL token or will default 
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```sh
@@ -162,6 +178,14 @@ The table below shows this endpoint's support for
 
 - `kind` `(string: <required>)` - Specifies the kind of the entry to list. This
   is specified as part of the URL.
+
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
+  service and checks will be registered. This value may be provided by either the
+  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
+  the namespace may be provided within the `Service` or `Check` fields but if
+  present in multiple places, they must all be the same. If not provided at all, 
+  the namespace will be inherited from the request's ACL token or will default 
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -228,6 +252,14 @@ The table below shows this endpoint's support for
 
 - `name` `(string: <required>)` - Specifies the name of the entry to delete. This
   is specified as part of the URL.
+
+- `ns` `(string: "")` - **(Enterprise Only)** Specifies the namespace in which the
+  service and checks will be registered. This value may be provided by either the
+  `ns` URL query parameter or in the `X-Consul-Namespace` header. Additionally,
+  the namespace may be provided within the `Service` or `Check` fields but if
+  present in multiple places, they must all be the same. If not provided at all, 
+  the namespace will be inherited from the request's ACL token or will default 
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
