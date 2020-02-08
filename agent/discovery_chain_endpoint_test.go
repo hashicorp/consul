@@ -256,8 +256,6 @@ func TestDiscoveryChainRead(t *testing.T) {
 		})
 	}))
 
-	// TODO(namespaces): add a test
-
 	expectTarget_DC2 := newTarget("web", "", "default", "dc2")
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,

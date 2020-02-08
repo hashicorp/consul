@@ -26,7 +26,7 @@ type ServiceQuery struct {
 	Service string
 
 	// Namespace of the service to query
-	Namespace string
+	Namespace string `json:",omitempty"`
 
 	// Near allows baking in the name of a node to automatically distance-
 	// sort from. The magic "_agent" value is supported, which sorts near
@@ -123,7 +123,7 @@ type PreparedQueryExecuteResponse struct {
 	Service string
 
 	// Namespace of the service that was queried
-	Namespace string
+	Namespace string `json:",omitempty"`
 
 	// Nodes has the nodes that were output by the query.
 	Nodes []ServiceEntry

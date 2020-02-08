@@ -528,7 +528,6 @@ func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName strin
 
 // deleteNodeTxn is the inner method used for removing a node from
 // the store within a given transaction.
-// TODO (namespaces) (catalog) access to catalog tables needs to become namespace aware for services/checks
 func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error {
 	// Look up the node.
 	node, err := tx.First("nodes", "id", nodeName)
