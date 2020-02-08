@@ -74,7 +74,7 @@
 /docs/guides/connect-production.html           https://learn.hashicorp.com/consul/developer-segmentation/connect-production
 /docs/guides/connect-envoy.html                https://learn.hashicorp.com/consul/developer-segmentation/connect-envoy
 /docs/guides/consul-template.html              https://learn.hashicorp.com/consul/developer-configuration/consul-template
-/docs/guides/consul-aws.html                   https://learn.hashicorp.com/consul/integrations/consul-aws
+/docs/guides/consul-aws.html                   https://learn.hashicorp.com/consul/cloud-integrations/consul-aws
 /docs/guides/forwarding.html                   https://learn.hashicorp.com/consul/security-networking/forwarding
 /docs/guides/external.html                     https://learn.hashicorp.com/consul/developer-discovery/external
 /docs/guides/advanced-federation.html          https://learn.hashicorp.com/consul/day-2-operations/advanced-federation
