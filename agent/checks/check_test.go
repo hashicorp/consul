@@ -591,11 +591,16 @@ func TestCheckHTTPBody(t *testing.T) {
 	timeout := 5 * time.Millisecond
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var (
+			buf  bytes.Buffer
+			body []byte
+		)
 		code := 200
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
+		if _, err := buf.ReadFrom(r.Body); err != nil {
 			code = 999
 			body = []byte(err.Error())
+		} else {
+			body = buf.Bytes()
 		}
 
 		w.WriteHeader(code)
@@ -619,7 +624,7 @@ func TestCheckHTTPBody(t *testing.T) {
 			notif := mock.NewNotify()
 
 			cid := structs.NewCheckID("checkbody", nil)
-			logger := log.New(ioutil.Discard, uniqueID(), log.LstdFlags)
+			logger := testutil.Logger(t)
 			check := &CheckHTTP{
 				CheckID:       cid,
 				HTTP:          server.URL,
