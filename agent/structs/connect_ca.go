@@ -403,7 +403,7 @@ type ConsulCAProviderConfig struct {
 var IntermediateCertRenewInterval = time.Hour
 
 func (c *ConsulCAProviderConfig) Validate() error {
-	if c.IntermediateCertTTL < 3*IntermediateCertRenewInterval {
+	if c.IntermediateCertTTL < (3 * IntermediateCertRenewInterval) {
 		// Intermediate Certificates are checked every
 		// hour(intermediateCertRenewInterval) if they are about to
 		// expire. Recreating an intermediate certs is started once
@@ -419,7 +419,7 @@ func (c *ConsulCAProviderConfig) Validate() error {
 		// performed.
 		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than %dh", int(IntermediateCertRenewInterval.Hours()))
 	}
-	if c.IntermediateCertTTL < 3*c.CommonCAProviderConfig.LeafCertTTL {
+	if c.IntermediateCertTTL < (3 * c.CommonCAProviderConfig.LeafCertTTL) {
 		// Intermediate Certificates are being sent to the proxy when
 		// the Leaf Certificate changes because they are bundled
 		// together.
@@ -427,7 +427,7 @@ func (c *ConsulCAProviderConfig) Validate() error {
 		// a minimum of 3 * Leaf Certificate TTL to ensure that the new
 		// Intermediate is being set together with the Leaf Certificate
 		// before it expires.
-		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL(>%s).", 3*c.CommonCAProviderConfig.LeafCertTTL)
+		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=%s).", 3*c.CommonCAProviderConfig.LeafCertTTL)
 	}
 	return nil
 }
