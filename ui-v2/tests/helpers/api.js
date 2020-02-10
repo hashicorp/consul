@@ -5,10 +5,7 @@ import setCookies from 'consul-ui/tests/helpers/set-cookies';
 import typeToURL from 'consul-ui/tests/helpers/type-to-url';
 
 const addon = config['@hashicorp/ember-cli-api-double'];
-const temp = addon.endpoints[0].split('/');
-temp.pop();
-const path = temp.join('/');
-const api = apiDouble(path, setCookies, typeToURL);
+const api = apiDouble(addon, setCookies, typeToURL);
 export const get = function(_url, options = { headers: { cookie: {} } }) {
   const url = new URL(_url, 'http://localhost');
   return new Promise(function(resolve) {
