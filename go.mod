@@ -56,7 +56,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6
 	github.com/kr/text v0.1.0
-	github.com/miekg/dns v1.1.22
+	github.com/miekg/dns v1.1.26
 	github.com/mitchellh/cli v1.0.0
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-testing-interface v1.0.0
