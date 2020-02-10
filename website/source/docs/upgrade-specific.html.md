@@ -35,6 +35,13 @@ users, both the datacenter and the services namespace will be present. For examp
 PTR record would previously have contained `web.service.consul`, it will now be `web.service.dc1.consul`
 in OSS or `web.service.ns1.dc1.consul` for Enterprise.
 
+### Telemetry: semantics of `consul.rpc.query` changed, see `consul.rpc.queries_blocking`
+
+Consul has changed the semantics of query counts in its [telemetry](/docs/agent/telemetry.html#metrics-reference).
+`consul.rpc.query` now only increments on the *start* of a query (blocking or non-blocking), whereas before it would
+measure when blocking queries polled for more data. The gauge `consul.rpc.queries_blocking` has been added for a more
+to more precisely capture the view of *active* blocking queries.
+
 ## Consul 1.6.0
 
 #### Removal of Deprecated Features
