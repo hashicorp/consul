@@ -175,7 +175,13 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
-	t.Parallel()
+	// no parallel execution because we change globals
+	origInterval := structs.IntermediateCertRenewInterval
+	origMinTTL := structs.MinLeafCertTTL
+	defer func() {
+		structs.IntermediateCertRenewInterval = origInterval
+		structs.MinLeafCertTTL = origMinTTL
+	}()
 
 	structs.IntermediateCertRenewInterval = time.Millisecond
 	structs.MinLeafCertTTL = time.Second
