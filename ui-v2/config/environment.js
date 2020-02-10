@@ -90,7 +90,9 @@ module.exports = function(environment, $ = process.env) {
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
-          endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+          endpoints: {
+            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+          },
         },
         APP: Object.assign({}, ENV.APP, {
           LOG_ACTIVE_GENERATION: false,
@@ -106,7 +108,9 @@ module.exports = function(environment, $ = process.env) {
         CONSUL_NSPACES_ENABLED: true,
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
-          endpoints: ['/node_modules/@hashicorp/consul-api-double/v1'],
+          endpoints: {
+            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+          },
         },
       });
       break;
