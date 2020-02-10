@@ -508,6 +508,7 @@ function gen_envoy_bootstrap {
 
   if output=$(docker_consul "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
+    -envoy-version "$ENVOY_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file

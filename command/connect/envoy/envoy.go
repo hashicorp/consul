@@ -56,6 +56,7 @@ type cmd struct {
 	bootstrap            bool
 	disableCentralConfig bool
 	grpcAddr             string
+	envoyVersion         string
 
 	// mesh gateway registration information
 	register           bool
@@ -109,6 +110,9 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.grpcAddr, "grpc-addr", "",
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
+
+	c.flags.StringVar(&c.envoyVersion, "envoy-version", "1.13.0",
+		"Sets the envoy-version that the envoy binary has.")
 
 	c.flags.BoolVar(&c.register, "register", false,
 		"Register a new Mesh Gateway service before configuring and starting Envoy")
@@ -519,6 +523,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
+		EnvoyVersion:          c.envoyVersion,
 	}, nil
 }
 

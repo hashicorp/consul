@@ -96,6 +96,8 @@ type BootstrapTplArgs struct {
 	// Namespace is the Consul Enterprise Namespace of the proxy service instance as
 	// registered with the Consul agent.
 	Namespace string
+
+	EnvoyVersion string
 }
 
 const bootstrapTemplate = `{
@@ -190,6 +192,7 @@ const bootstrapTemplate = `{
         }
       }
     }
+  {{- if ne .EnvoyVersion "1.10.0"}}
   },
   "layered_runtime":{
     "layers": [
@@ -202,6 +205,7 @@ const bootstrapTemplate = `{
         }
       }
     ]
+  {{- end }}
   }
 }
 `
