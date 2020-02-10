@@ -1,3 +1,4 @@
+import { inject as service } from '@ember/service';
 import Adapter from 'ember-data/adapter';
 import AdapterError from '@ember-data/adapter/error';
 import {
@@ -10,46 +11,70 @@ import {
   ConflictError,
   InvalidError,
 } from 'ember-data/adapters/errors';
-// TODO: This is a little skeleton cb function
-// is to be replaced soon with something slightly more involved
-const responder = function(response) {
-  return response;
-};
-const read = function(adapter, serializer, client, type, query) {
-  return client
-    .request(function(request) {
+
+// TODO These are now exactly the same, apart from the fact that one uses
+// `serialized, unserialized` and the other just `query`
+// they could actually be one function now, but would be nice to think about
+// the naming of things (serialized vs query etc)
+const read = function(adapter, modelName, type, query = {}) {
+  return adapter.rpc(
+    function(adapter, request, query) {
       return adapter[`requestFor${type}`](request, query);
-    })
-    .catch(function(e) {
-      return adapter.error(e);
-    })
-    .then(function(response) {
-      return serializer[`respondFor${type}`](responder(response), query);
-    });
-  // TODO: Potentially add specific serializer errors here
-  // .catch(function(e) {
-  //   return Promise.reject(e);
-  // });
+    },
+    function(serializer, respond, query) {
+      return serializer[`respondFor${type}`](respond, query);
+    },
+    query,
+    modelName
+  );
 };
-const write = function(adapter, serializer, client, type, snapshot) {
-  const unserialized = snapshot.attributes();
-  const serialized = serializer.serialize(snapshot, {});
-  return client
-    .request(function(request) {
+const write = function(adapter, modelName, type, snapshot) {
+  return adapter.rpc(
+    function(adapter, request, serialized, unserialized) {
       return adapter[`requestFor${type}`](request, serialized, unserialized);
-    })
-    .catch(function(e) {
-      return adapter.error(e);
-    })
-    .then(function(response) {
-      return serializer[`respondFor${type}`](responder(response), serialized, unserialized);
-    });
-  // TODO: Potentially add specific serializer errors here
-  // .catch(function(e) {
-  //   return Promise.reject(e);
-  // });
+    },
+    function(serializer, respond, serialized, unserialized) {
+      return serializer[`respondFor${type}`](respond, serialized, unserialized);
+    },
+    snapshot,
+    modelName
+  );
 };
 export default Adapter.extend({
+  client: service('client/http'),
+  rpc: function(req, resp, obj, modelName) {
+    const client = this.client;
+    const store = this.store;
+    const adapter = this;
+
+    let unserialized, serialized;
+    const serializer = store.serializerFor(modelName);
+    // workable way to decide whether this is a snapshot
+    // Snapshot is private so we can't do instanceof here
+    if (obj.constructor.name === 'Snapshot') {
+      unserialized = obj.attributes();
+      serialized = serializer.serialize(obj, {});
+    } else {
+      unserialized = obj;
+      serialized = unserialized;
+    }
+
+    return client
+      .request(function(request) {
+        return req(adapter, request, serialized, unserialized);
+      })
+      .catch(function(e) {
+        return adapter.error(e);
+      })
+      .then(function(respond) {
+        // TODO: When HTTPAdapter:responder changes, this will also need to change
+        return resp(serializer, respond, serialized, unserialized);
+      });
+    // TODO: Potentially add specific serializer errors here
+    // .catch(function(e) {
+    //   return Promise.reject(e);
+    // });
+  },
   error: function(err) {
     const errors = [
       {
@@ -97,21 +122,21 @@ export default Adapter.extend({
     throw error;
   },
   query: function(store, type, query) {
-    return read(this, store.serializerFor(type.modelName), this.client, 'Query', query);
+    return read(this, type.modelName, 'Query', query);
   },
   queryRecord: function(store, type, query) {
-    return read(this, store.serializerFor(type.modelName), this.client, 'QueryRecord', query);
+    return read(this, type.modelName, 'QueryRecord', query);
   },
   findAll: function(store, type) {
-    return read(this, store.serializerFor(type.modelName), this.client, 'FindAll');
+    return read(this, type.modelName, 'FindAll');
   },
   createRecord: function(store, type, snapshot) {
-    return write(this, store.serializerFor(type.modelName), this.client, 'CreateRecord', snapshot);
+    return write(this, type.modelName, 'CreateRecord', snapshot);
   },
   updateRecord: function(store, type, snapshot) {
-    return write(this, store.serializerFor(type.modelName), this.client, 'UpdateRecord', snapshot);
+    return write(this, type.modelName, 'UpdateRecord', snapshot);
   },
   deleteRecord: function(store, type, snapshot) {
-    return write(this, store.serializerFor(type.modelName), this.client, 'DeleteRecord', snapshot);
+    return write(this, type.modelName, 'DeleteRecord', snapshot);
   },
 });
