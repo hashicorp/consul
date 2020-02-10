@@ -417,7 +417,7 @@ func (c *ConsulCAProviderConfig) Validate() error {
 		// in the next check too. But just in case minimum LeafCertTTL
 		// changes at some point, this validation must still be
 		// performed.
-		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than %dh", int(IntermediateCertRenewInterval.Hours()))
+		return fmt.Errorf("Intermediate Cert TTL must be greater or equal than %dh", 3*int(IntermediateCertRenewInterval.Hours()))
 	}
 	if c.IntermediateCertTTL < (3 * c.CommonCAProviderConfig.LeafCertTTL) {
 		// Intermediate Certificates are being sent to the proxy when

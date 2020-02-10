@@ -71,7 +71,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			name:    "defaults",
 			cfg:     &ConsulCAProviderConfig{},
 			wantErr: true,
-			wantMsg: "Intermediate Cert TTL must be greater or equal than 1h",
+			wantMsg: "Intermediate Cert TTL must be greater or equal than 3h",
 		},
 		{
 			name: "intermediate cert ttl too short",
@@ -103,7 +103,6 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.cfg.Validate()
-			t.Log("ERR", err)
 			if err == nil {
 				require.False(t, tt.wantErr)
 				return
