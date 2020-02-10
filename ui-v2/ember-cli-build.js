@@ -48,7 +48,7 @@ module.exports = function(defaults) {
       },
     },
     'sassOptions': {
-      implementation: require('node-sass'),
+      implementation: require('dart-sass'),
       sourceMapEmbed: sourcemaps,
     },
     'autoprefixer': {
