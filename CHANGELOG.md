@@ -8,6 +8,10 @@ Prior to this release, MacOS 10.15+ users attempting to run our software may see
 
 MacOS 10.15+ users should plan to upgrade to 1.7.0+.
 
+SECURITY:
+
+* dns: Updated miekg/dns dependency to fix a memory leak and CVE-2019-19794. [[GH-6984](https://github.com/hashicorp/consul/issues/6984),[GH-7252](https://github.com/hashicorp/consul/pull/7252)]
+
 BREAKING CHANGES:
 
 * http: The HTTP API no longer accepts JSON fields that are unknown to it. Instead errors will be returned with 400 status codes [[GH-6874](https://github.com/hashicorp/consul/pull/6874)]
@@ -80,7 +84,6 @@ BUGFIXES:
 * connect: derive connect certificate serial numbers from a memdb index instead of the provider table max index [[GH-7011](https://github.com/hashicorp/consul/pull/7011)]
 * connect: ensure that updates to the secondary root CA configuration use the correct signing key ID values for comparison [[GH-7012](https://github.com/hashicorp/consul/pull/7012)]
 * connect: use correct subject key id for leaf certificates. [[GH-7091](https://github.com/hashicorp/consul/pull/7091)]
-* dns: Updated miekg/dns dependency to fix a memory leak and CVE. [[GH-6748](https://github.com/hashicorp/consul/pull/6748),[GH-7252](https://github.com/hashicorp/consul/pull/7252)]
 * log: handle discard all logfiles properly [[GH-6945](https://github.com/hashicorp/consul/pull/6945)]
 * state: restore a few more service-kind index updates so blocking in ServiceDump works in more cases [[GH-6948](https://github.com/hashicorp/consul/issues/6948)]
 * tls: fix behavior related to auto_encrypt and verify_incoming (#6899) [[GH-6811](https://github.com/hashicorp/consul/pull/6811)]
