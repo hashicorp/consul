@@ -11,6 +11,7 @@ MacOS 10.15+ users should plan to upgrade to 1.7.0+.
 SECURITY:
 
 * dns: Updated miekg/dns dependency to fix a memory leak and CVE-2019-19794. [[GH-6984](https://github.com/hashicorp/consul/issues/6984),[GH-7252](https://github.com/hashicorp/consul/pull/7252)]
+* updated to compile with [[Go 1.12.16](https://groups.google.com/forum/m/#!topic/golang-announce/Hsw4mHYc470)] which includes a fix for CVE-2020-0601 on windows [[GH-7153](https://github.com/hashicorp/consul/pull/7153)]
 
 BREAKING CHANGES:
 
@@ -21,6 +22,7 @@ BREAKING CHANGES:
 * telemetry: `consul.rpc.query` has changed to only measure the _start_ of `srv.blockingQuery() calls`. In certain rare cases where there are lots of idempotent updates this will cause the metric to report lower than before. The counter should now provides more meaningful behavior that maps to the rate of client-initiated requests. [GH-7224](https://github.com/hashicorp/consul/pull/7224)
 
 FEATURES:
+
 * **Namespaces (Consul Enterprise only)** This version adds namespacing to Consul. Namespaces help reduce operational challenges by removing restrictions around uniqueness of resource names across distinct teams, and enable operators to provide self-service through delegation of administrative privileges. Namespace support was added to:
   * ACLs
   * Key/Value Store
@@ -36,6 +38,7 @@ FEATURES:
 * ui: Visualisation of the Discovery Chain  [[GH6746]](https://github.com/hashicorp/consul/pull/6746)
 
 IMPROVEMENTS:
+
 * acl: Use constant time comparison when checking for the ACL agent master token. [[GH-6943](https://github.com/hashicorp/consul/pull/6943)]
 * agent: default the primary_datacenter to the datacenter if not configured [[GH-7111](https://github.com/hashicorp/consul/issues/7111)]
 * agent: configurable `MaxQueryTime` and `DefaultQueryTime` [[GH-3777](https://github.com/hashicorp/consul/pull/3777)]
@@ -45,7 +48,10 @@ IMPROVEMENTS:
 * agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
 * agent: clients should only attempt to remove pruned nodes once per call [[GH-6591](https://github.com/hashicorp/consul/pull/6591)]
 * agent: Consul HTTP checks can now send a configurable `body` in the request. [[GH-6602](https://github.com/hashicorp/consul/pull/6602)]
+* agent: increase watchLimit to 8192. [[GH-7200](https://github.com/hashicorp/consul/pull/7200)]
 * api: A new `/v1/catalog/node-services/:node` endpoint was added that mirrors the existing `/v1/catalog/node/:node` endpoint but has a response structure that contains a slice of services instead of a map of service ids to services. This new endpoint allows retrieving all services in all namespaces for a node. [[GH-7115](https://github.com/hashicorp/consul/pull/7115)]
+* api: add option to set TLS options in-memory for API client [[GH-7093](https://github.com/hashicorp/consul/pull/7093)]
+* api: add replace-existing-checks param to the api package [[GH-7136](https://github.com/hashicorp/consul/pull/7136)]
 * auto_encrypt: set dns and ip san for k8s and provide configuration [[GH-6944](https://github.com/hashicorp/consul/pull/6944)]
 * cli: improve the file safety of 'consul tls' subcommands [[GH-7186](https://github.com/hashicorp/consul/issues/7186)]
 * cli: give feedback to CLI user on forceleave command if node does not exist [[GH-6841](https://github.com/hashicorp/consul/pull/6841)]
@@ -74,7 +80,9 @@ IMPROVEMENTS:
 * xds: Verified integration test suite with Envoy 1.12.2 & 1.13.0 [[GH-6947](https://github.com/hashicorp/consul/pull/7240)]
 
 BUGFIXES:
+
 * agent: fix watch event behavior [[GH-5265](https://github.com/hashicorp/consul/pull/5265)]
+* agent: ensure node info sync and full sync [[GH-7189](https://github.com/hashicorp/consul/pull/7189)]
 * autopilot: Fixed dead server removal condition to use correct failure tolerance. [[GH-4017](https://github.com/hashicorp/consul/pull/4017)]
 * cli: services register command now correctly registers an unamed healthcheck [[GH-6800](https://github.com/hashicorp/consul/pull/6800)]
 * cli: remove `-dev` from `consul version` in ARM builds in the 1.6.2 release [[GH-6875](https://github.com/hashicorp/consul/issues/6875)]
