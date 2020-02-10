@@ -10,6 +10,8 @@ coverage:
         # https://docs.codecov.io/docs/commit-status#section-excluding-tests-example-
         # TODO: should any paths be excluded from coverage metrics?
         # paths:
+      ui:
+        informational: true
     # https://docs.codecov.io/docs/commit-status#section-changes-status
     # TODO: enable after eliminating current unexpected coverage changes?
     changes: off
@@ -29,4 +31,6 @@ comment: false
 
 # https://docs.codecov.io/docs/flags
 # TODO: split out test coverage for API, SDK, UI, website?
-# flags:
+flags:
+  ui:
+    paths: /ui-v2/
