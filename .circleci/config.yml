@@ -489,6 +489,23 @@ jobs:
           command: make test-ci
       - store_test_results:
           path: ui-v2/test-results
+  # run ember frontend unit tests to produce coverage report
+  ember-coverage:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: make test-coverage
+      - run:
+          name: codecov ui upload
+          working_directory: ui-v2
+          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
 
   envoy-integration-test-1.11.2:
     docker:
@@ -680,6 +697,9 @@ workflows:
           requires:
             - ember-build
       - ember-test-ent:
+          requires:
+            - ember-build
+      - ember-coverage:
           requires:
             - ember-build
   cherry-pick:
