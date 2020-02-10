@@ -399,13 +399,13 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	})
 }
 
-func TestAutopilot_BootstrapExpect(t *testing.T) {
+func TestAutopilot_MinQuorum(t *testing.T) {
 	dc := "dc1"
 	closeMap := make(map[string]chan struct{})
 	conf := func(c *Config) {
 		c.Datacenter = dc
 		c.Bootstrap = false
-		c.BootstrapExpect = 3
+		c.BootstrapExpect = 4
 		c.AutopilotConfig.MinQuorum = 3
 		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(2)
 		c.AutopilotInterval = 100 * time.Millisecond
@@ -446,29 +446,30 @@ func TestAutopilot_BootstrapExpect(t *testing.T) {
 	//Differentiate between leader and server
 	findStatus := func(leader bool) *Server {
 		for _, mem := range servers {
-			if mem.IsLeader() && leader {
+			if mem.IsLeader() == leader {
 				return mem
 			}
-			if !leader && !mem.IsLeader() {
+			if !mem.IsLeader() == !leader {
 				return mem
 			}
 		}
 
-		t.Fatalf("no members set")
 		return nil
 	}
-
-	for _, s := range servers {
-		testrpc.WaitForLeader(t, s.RPC, dc)
-		retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 4)) })
-	}
+	testrpc.WaitForLeader(t, s1.RPC, dc)
 
 	// Have autopilot take one into left
 	dead := findStatus(false)
+	if dead == nil {
+		t.Fatalf("no members set")
+	}
 	dead.Shutdown()
 	<-closeMap[dead.config.NodeName]
 	retry.Run(t, func(r *retry.R) {
 		leader := findStatus(true)
+		if leader == nil {
+			r.Fatalf("no members set")
+		}
 		for _, m := range leader.LANMembers() {
 			if m.Name == dead.config.NodeName && m.Status != serf.StatusLeft {
 				r.Fatalf("%v should be left, got %v", m.Name, m.Status.String())
@@ -479,11 +480,16 @@ func TestAutopilot_BootstrapExpect(t *testing.T) {
 	delete(servers, dead.config.NodeName)
 	//Autopilot should not take this one into left
 	dead = findStatus(false)
-	dead.Shutdown()
+	if err := dead.Shutdown(); err != nil {
+		t.Fatalf("could not shut down %s, error %v", dead.config.NodeName, err)
+	}
 	<-closeMap[dead.config.NodeName]
 
 	retry.Run(t, func(r *retry.R) {
 		leader := findStatus(true)
+		if leader == nil {
+			r.Fatalf("no members set")
+		}
 		for _, m := range leader.LANMembers() {
 			if m.Name == dead.config.NodeName && m.Status != serf.StatusFailed {
 				r.Fatalf("%v should be failed, got %v", m.Name, m.Status.String())
