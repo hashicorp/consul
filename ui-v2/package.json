@@ -29,8 +29,8 @@
     "test:view": "ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:oss:view": "CONSUL_NSPACES_ENABLED=0 ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
     "test:node": "tape ./node-tests/**/*.js",
-    "test:coverage": "COVERAGE=true ember test --test-port=${EMBER_TEST_PORT:-7357}",
-    "test:view:coverage": "COVERAGE=true ember test --server --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:coverage": "COVERAGE=true ember test --environment test --filter=Unit --test-port=${EMBER_TEST_PORT:-7357}",
+    "test:view:coverage": "COVERAGE=true ember test --server --environment test --filter=Unit --test-port=${EMBER_TEST_PORT:-7357}",
     "steps:list": "node ./lib/commands/bin/list.js"
   },
   "husky": {
@@ -54,7 +54,7 @@
     "@ember/jquery": "^0.6.0",
     "@ember/optional-features": "^0.7.0",
     "@hashicorp/consul-api-double": "^2.6.2",
-    "@hashicorp/ember-cli-api-double": "^2.0.0",
+    "@hashicorp/ember-cli-api-double": "^3.0.0",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^3.0.0",
     "chalk": "^2.4.2",
@@ -111,6 +111,7 @@
     "loader.js": "^4.7.0",
     "ngraph.graph": "^18.0.3",
     "node-sass": "^4.9.3",
+    "pretender": "^3.2.0",
     "prettier": "^1.10.2",
     "qunit-dom": "^0.9.0",
     "tape": "^4.13.0",
