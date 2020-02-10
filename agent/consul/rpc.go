@@ -68,8 +68,7 @@ func (s *Server) listen(listener net.Listener) {
 
 		free, err := s.rpcConnLimiter.Accept(conn)
 		if err != nil {
-			s.rpcLogger().Error("rejecting RPC conn from %s"+
-				" rpc_max_conns_per_client exceeded", conn.RemoteAddr().String())
+			s.rpcLogger().Error("rejecting RPC conn from because rpc_max_conns_per_client exceeded", "conn", logConn(conn))
 			conn.Close()
 			continue
 		}
