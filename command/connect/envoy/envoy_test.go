@@ -83,6 +83,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy"},
 			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -99,6 +100,7 @@ func TestGenerateConfig(t *testing.T) {
 				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},
 			Env: []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -117,6 +119,7 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_HTTP_TOKEN=c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -138,6 +141,7 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -159,6 +163,7 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -176,6 +181,7 @@ func TestGenerateConfig(t *testing.T) {
 				"-grpc-addr", "localhost:9999"},
 			Env: []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: "1.13.0",
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -196,6 +202,7 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_GRPC_ADDR=localhost:9999",
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: "1.13.0",
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -215,6 +222,7 @@ func TestGenerateConfig(t *testing.T) {
 				"-grpc-addr", "unix:///var/run/consul.sock"},
 			Env: []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentSocket:           "/var/run/consul.sock",
@@ -229,6 +237,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags:    []string{"-proxy-id", "test-proxy"},
 			GRPCPort: 9999,
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: "1.13.0",
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -247,6 +256,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
 			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: "1.13.0",
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -265,6 +275,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
 			Env:   []string{},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: "1.13.0",
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -280,6 +291,7 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
 			Env:   []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: "1.13.0",
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// Should resolve IP, note this might not resolve the same way
@@ -322,6 +334,7 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -354,6 +367,7 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -391,6 +405,7 @@ func TestGenerateConfig(t *testing.T) {
 				} , { "name": "fake_sink_2" }`,
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -415,6 +430,7 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
@@ -469,6 +485,7 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
+				EnvoyVersion:          "1.13.0",
 				ProxyCluster:          "test-proxy",
 				ProxyID:               "test-proxy",
 				AgentAddress:          "127.0.0.1",
