@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * connect: Envoy's whole stats endpoint can now be exposed to allow integrations like DataDog agent [[GH-7070](https://github.com/hashicorp/consul/pull/7070)]
 * ui: Discovery chain improvements for clarifying the default router [[GH-7222](https://github.com/hashicorp/consul/pull/7222)]
+* agent: Consul HTTP checks can now send a configurable `body` in the request. [[GH-6602](https://github.com/hashicorp/consul/pull/6602)]
 
 BUGFIXES:
 * ui: Ensure the main navigation menu is closed on click [[GH-7164](https://github.com/hashicorp/consul/pull/7164)]
