@@ -461,6 +461,9 @@ jobs:
       - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: 0
+    parallelism: 2
     steps:
       - checkout
       - restore_cache:
@@ -469,7 +472,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-oss-ci
+          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
   # run ember frontend tests
@@ -478,6 +481,8 @@ jobs:
       - image: *EMBER_IMAGE
     environment:
       EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+    parallelism: 2
     steps:
       - checkout
       - restore_cache:
@@ -486,7 +491,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: make test-ci
+          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
   # run ember frontend unit tests to produce coverage report
