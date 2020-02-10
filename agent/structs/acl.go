@@ -182,6 +182,7 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = s.Datacenters
+	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
 	return policy
 }

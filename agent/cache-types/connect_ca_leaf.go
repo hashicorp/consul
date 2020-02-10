@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib"
+	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -654,7 +655,20 @@ func (r *ConnectCALeafRequest) Key() string {
 		return fmt.Sprintf("agent:%s", r.Agent)
 	}
 
-	return fmt.Sprintf("service:%s", r.Service)
+	r.EnterpriseMeta.Normalize()
+
+	v, err := hashstructure.Hash([]interface{}{
+		r.Service,
+		r.EnterpriseMeta,
+	}, nil)
+	if err == nil {
+		return fmt.Sprintf("service:%d", v)
+	}
+
+	// If there is an error, we don't set the key. A blank key forces
+	// no cache for this request so the request is forwarded directly
+	// to the server.
+	return ""
 }
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
