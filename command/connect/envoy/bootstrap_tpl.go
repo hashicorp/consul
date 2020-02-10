@@ -97,6 +97,8 @@ type BootstrapTplArgs struct {
 	// registered with the Consul agent.
 	Namespace string
 
+	// EnvoyVersion is the envoy version, which is necessary to generate the
+	// correct configuration.
 	EnvoyVersion string
 }
 
