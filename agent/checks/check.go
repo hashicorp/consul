@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	osexec "os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -333,6 +334,7 @@ type CheckHTTP struct {
 	HTTP            string
 	Header          map[string][]string
 	Method          string
+	Body            string
 	Interval        time.Duration
 	Timeout         time.Duration
 	Logger          hclog.Logger
@@ -355,6 +357,7 @@ func (c *CheckHTTP) CheckType() structs.CheckType {
 		CheckID:       c.CheckID.ID,
 		HTTP:          c.HTTP,
 		Method:        c.Method,
+		Body:          c.Body,
 		Header:        c.Header,
 		Interval:      c.Interval,
 		ProxyHTTP:     c.ProxyHTTP,
@@ -435,7 +438,8 @@ func (c *CheckHTTP) check() {
 		target = c.ProxyHTTP
 	}
 
-	req, err := http.NewRequest(method, target, nil)
+	bodyReader := strings.NewReader(c.Body)
+	req, err := http.NewRequest(method, target, bodyReader)
 	if err != nil {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, err.Error())
 		return

@@ -1287,6 +1287,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		HTTP:                           b.stringVal(v.HTTP),
 		Header:                         v.Header,
 		Method:                         b.stringVal(v.Method),
+		Body:                           b.stringVal(v.Body),
 		TCP:                            b.stringVal(v.TCP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              b.stringVal(v.DockerContainerID),

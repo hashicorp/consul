@@ -1318,6 +1318,7 @@ type HealthCheckDefinition struct {
 	TLSSkipVerify                  bool                `json:",omitempty"`
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
+	Body                           string              `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
@@ -1463,6 +1464,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		GRPCUseTLS:                     c.Definition.GRPCUseTLS,
 		Header:                         c.Definition.Header,
 		Method:                         c.Definition.Method,
+		Body:                           c.Definition.Body,
 		TCP:                            c.Definition.TCP,
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,

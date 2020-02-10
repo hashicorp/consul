@@ -190,6 +190,7 @@ type AgentServiceCheck struct {
 	HTTP              string              `json:",omitempty"`
 	Header            map[string][]string `json:",omitempty"`
 	Method            string              `json:",omitempty"`
+	Body              string              `json:",omitempty"`
 	TCP               string              `json:",omitempty"`
 	Status            string              `json:",omitempty"`
 	Notes             string              `json:",omitempty"`

@@ -2671,6 +2671,7 @@ func TestDecodeSessionCreate(t *testing.T) {
 //                     HTTP	string
 //                     Header	map[string][]string
 //                     Method	string
+//                     Body	string
 //                     TLSSkipVerify	bool
 //                     TCP	string
 //                     IntervalDuration	time.Duration
