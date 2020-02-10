@@ -39,6 +39,7 @@ IMPROVEMENTS:
 * agent: setup grpc server with auto_encrypt certs and add `-https-port` [[GH-7086](https://github.com/hashicorp/consul/pull/7086)
 * agent: some check types now support configuring a number of consecutive failure and success before the check status is updated in the catalog. [[GH-5739](https://github.com/hashicorp/consul/pull/5739)]
 * agent: clients should only attempt to remove pruned nodes once per call [[GH-6591](https://github.com/hashicorp/consul/pull/6591)]
+* agent: Consul HTTP checks can now send a configurable `body` in the request. [[GH-6602](https://github.com/hashicorp/consul/pull/6602)]
 * api: A new `/v1/catalog/node-services/:node` endpoint was added that mirrors the existing `/v1/catalog/node/:node` endpoint but has a response structure that contains a slice of services instead of a map of service ids to services. This new endpoint allows retrieving all services in all namespaces for a node. [[GH-7115](https://github.com/hashicorp/consul/pull/7115)]
 * auto_encrypt: set dns and ip san for k8s and provide configuration [[GH-6944](https://github.com/hashicorp/consul/pull/6944)]
 * cli: improve the file safety of 'consul tls' subcommands [[GH-7186](https://github.com/hashicorp/consul/issues/7186)]

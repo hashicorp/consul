@@ -586,6 +586,74 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	})
 }
 
+func TestCheckHTTPBody(t *testing.T) {
+	t.Parallel()
+	timeout := 5 * time.Millisecond
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var (
+			buf  bytes.Buffer
+			body []byte
+		)
+		code := 200
+		if _, err := buf.ReadFrom(r.Body); err != nil {
+			code = 999
+			body = []byte(err.Error())
+		} else {
+			body = buf.Bytes()
+		}
+
+		w.WriteHeader(code)
+		w.Write(body)
+	}))
+	defer server.Close()
+
+	tests := []struct {
+		desc   string
+		method string
+		header http.Header
+		body   string
+	}{
+		{desc: "get body", method: "GET", body: "hello world"},
+		{desc: "post body", method: "POST", body: "hello world"},
+		{desc: "post json body", header: http.Header{"Content-Type": []string{"application/json"}}, method: "POST", body: "{\"foo\":\"bar\"}"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			notif := mock.NewNotify()
+
+			cid := structs.NewCheckID("checkbody", nil)
+			logger := testutil.Logger(t)
+			check := &CheckHTTP{
+				CheckID:       cid,
+				HTTP:          server.URL,
+				Header:        tt.header,
+				Method:        tt.method,
+				Body:          tt.body,
+				Timeout:       timeout,
+				Interval:      2 * time.Millisecond,
+				Logger:        logger,
+				StatusHandler: NewStatusHandler(notif, logger, 0, 0),
+			}
+			check.Start()
+			defer check.Stop()
+
+			retry.Run(t, func(r *retry.R) {
+				if got, want := notif.Updates(cid), 2; got < want {
+					r.Fatalf("got %d updates want at least %d", got, want)
+				}
+				if got, want := notif.State(cid), api.HealthPassing; got != want {
+					r.Fatalf("got status %q want %q", got, want)
+				}
+				if got, want := notif.Output(cid), tt.body; !strings.HasSuffix(got, want) {
+					r.Fatalf("got output %q want suffix %q", got, want)
+				}
+			})
+		})
+	}
+}
+
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	t.Parallel()
 	notif := mock.NewNotify()
