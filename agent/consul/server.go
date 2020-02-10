@@ -110,6 +110,12 @@ var (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
+	// queriesBlocking is a counter that we incr and decr atomically in
+	// rpc calls to provide telemetry on how many blocking queries are running.
+	// We interact with queriesBlocking atomically, do not move without ensuring it is
+	// correctly 64-byte aligned in the struct layout
+	queriesBlocking uint64
+
 	// aclConfig is the configuration for the ACL system
 	aclConfig *acl.Config
 
