@@ -35,10 +35,6 @@ var (
 	// maxRetryBackoff is the maximum number of seconds to wait between failed blocking
 	// queries when backing off.
 	maxRetryBackoff = 256
-
-	// intermediateCertRenewInterval is the interval at which the expiration
-	// of the intermediate cert is checked and renewed if necessary.
-	intermediateCertRenewInterval = time.Hour
 )
 
 // initializeCAConfig is used to initialize the CA config if necessary
@@ -49,25 +45,36 @@ func (s *Server) initializeCAConfig() (*structs.CAConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
-	if config != nil {
-		return config, nil
-	}
-
-	config = s.config.CAConfig
-	if config.ClusterID == "" {
-		id, err := uuid.GenerateUUID()
-		if err != nil {
-			return nil, err
+	if config == nil {
+		config = s.config.CAConfig
+		if config.ClusterID == "" {
+			id, err := uuid.GenerateUUID()
+			if err != nil {
+				return nil, err
+			}
+			config.ClusterID = id
 		}
-		config.ClusterID = id
+	} else if _, ok := config.Config["IntermediateCertTTL"]; !ok {
+		dup := *config
+		copied := make(map[string]interface{})
+		for k, v := range dup.Config {
+			copied[k] = v
+		}
+		copied["IntermediateCertTTL"] = connect.DefaultIntermediateCertTTL.String()
+		dup.Config = copied
+		config = &dup
+	} else {
+		return config, nil
 	}
 
 	req := structs.CARequest{
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if _, err = s.raftApply(structs.ConnectCARequestType, req); err != nil {
+	if resp, err := s.raftApply(structs.ConnectCARequestType, req); err != nil {
 		return nil, err
+	} else if respErr, ok := resp.(error); ok {
+		return nil, respErr
 	}
 
 	return config, nil
@@ -643,7 +650,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(intermediateCertRenewInterval):
+		case <-time.After(structs.IntermediateCertRenewInterval):
 			retryLoopBackoff(ctx.Done(), func() error {
 				s.caProviderReconfigurationLock.Lock()
 				defer s.caProviderReconfigurationLock.Unlock()

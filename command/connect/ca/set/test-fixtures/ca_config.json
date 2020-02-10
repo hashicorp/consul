@@ -4,6 +4,6 @@
 		"PrivateKey": "",
 		"RootCert": "",
 		"RotationPeriod": "24h",
-		"IntermediateCertTTL": "36h"
+		"IntermediateCertTTL": "288h"
 	}
 }

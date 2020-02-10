@@ -51,7 +51,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 					"PrivateKey":          "key",
 					"RootCert":            "cert",
 					"RotationPeriod":      "5m",
-					"IntermediateCertTTL": "30m",
+					"IntermediateCertTTL": "90h",
 					"DisableCrossSigning": true,
 				},
 			},
@@ -60,7 +60,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 				PrivateKey:             "key",
 				RootCert:               "cert",
 				RotationPeriod:         5 * time.Minute,
-				IntermediateCertTTL:    30 * time.Minute,
+				IntermediateCertTTL:    90 * time.Hour,
 				DisableCrossSigning:    true,
 			},
 			parseFunc: func(t *testing.T, raw map[string]interface{}) interface{} {

@@ -11,11 +11,13 @@ import (
 	"encoding/pem"
 	"fmt"
 	"strings"
+	"time"
 )
 
 const (
-	DefaultPrivateKeyType = "ec"
-	DefaultPrivateKeyBits = 256
+	DefaultPrivateKeyType      = "ec"
+	DefaultPrivateKeyBits      = 256
+	DefaultIntermediateCertTTL = 24 * 365 * time.Hour
 )
 
 func pemEncodeKey(key []byte, blockType string) (string, error) {
