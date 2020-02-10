@@ -445,6 +445,13 @@ Option:
 		}
 		edns = append(edns, e)
 		off += int(optlen)
+	case EDNS0EXPIRE:
+		e := new(EDNS0_EXPIRE)
+		if err := e.unpack(msg[off : off+int(optlen)]); err != nil {
+			return nil, len(msg), err
+		}
+		edns = append(edns, e)
+		off += int(optlen)
 	case EDNS0UL:
 		e := new(EDNS0_UL)
 		if err := e.unpack(msg[off : off+int(optlen)]); err != nil {
