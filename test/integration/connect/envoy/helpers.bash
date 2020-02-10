@@ -144,7 +144,14 @@ function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local QUERY=''
+  if [ "$ENVOY_VERSION" == "1.13.0" ]; then
+    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  else
+    QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
+  fi
+  echo "$output" | jq --raw-output "$QUERY"
 }
 
 function get_envoy_cluster_threshold {
@@ -508,6 +515,7 @@ function gen_envoy_bootstrap {
 
   if output=$(docker_consul "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
+    -envoy-version "$ENVOY_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file

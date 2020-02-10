@@ -73,6 +73,9 @@ proxy configuration needed.
       for and so can be used to access any upstream service that that service is
       allowed to access by [Connect intentions](/docs/connect/intentions.html).
 
+ * `-envoy-version` - The version of envoy that is being started. Default is
+   `1.13.0`. This is required so that the correct configuration can be generated.
+
  * `-- [pass-through options]` - Any options given after a double dash are passed
    directly through to the `envoy` invocation. See [Envoy's
    documentation](https://www.envoyproxy.io/docs) for more details. The command
