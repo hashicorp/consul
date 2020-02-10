@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
-	github.com/hashicorp/go-connlimit v0.1.0
+	github.com/hashicorp/go-connlimit v0.2.0
 	github.com/hashicorp/go-discover v0.0.0-20191202160150-7ec2cfbda7a2
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-memdb v1.0.3

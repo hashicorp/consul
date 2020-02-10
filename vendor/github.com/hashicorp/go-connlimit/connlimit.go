@@ -64,7 +64,7 @@ func NewLimiter(cfg Config) *Limiter {
 // or transient failure to read or parse the remote IP. The free func will be a
 // no-op in this case and need not be called.
 func (l *Limiter) Accept(conn net.Conn) (func(), error) {
-	addrKey := addrKey(conn)
+	addrKey := connKey(conn)
 
 	// Load config outside locked section since it's not updated under lock anyway
 	// and the atomic Load might be slower/contented so better to do outside lock.
@@ -101,8 +101,29 @@ func (l *Limiter) Accept(conn net.Conn) (func(), error) {
 	return free, nil
 }
 
-func addrKey(conn net.Conn) string {
-	addr := conn.RemoteAddr()
+func (l *Limiter) NumOpen(addr net.Addr) int {
+	addrKey := addrKey(addr)
+
+	l.l.Lock()
+	defer l.l.Unlock()
+
+	if l.cs == nil {
+		return 0
+	}
+
+	cs := l.cs[addrKey]
+	if cs == nil {
+		return 0
+	}
+
+	return len(cs)
+}
+
+func connKey(conn net.Conn) string {
+	return addrKey(conn.RemoteAddr())
+}
+
+func addrKey(addr net.Addr) string {
 	switch a := addr.(type) {
 	case *net.TCPAddr:
 		return "ip:" + a.IP.String()
@@ -119,7 +140,7 @@ func addrKey(conn net.Conn) string {
 // freeConn removes a connection from the map if it's present. It is a no-op if
 // the conn was never accepted by Accept.
 func (l *Limiter) freeConn(conn net.Conn) {
-	addrKey := addrKey(conn)
+	addrKey := connKey(conn)
 
 	l.l.Lock()
 	defer l.l.Unlock()
