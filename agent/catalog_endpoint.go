@@ -226,7 +226,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 
 	// Set default DC
 	args := structs.ServiceSpecificRequest{Connect: connect}
-	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 

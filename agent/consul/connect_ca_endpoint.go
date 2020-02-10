@@ -487,9 +487,12 @@ func (s *ConnectCA) Sign(
 	if err != nil {
 		return err
 	}
+	var authzContext acl.AuthorizerContext
+	var entMeta structs.EnterpriseMeta
 	if isService {
-		// TODO (namespaces) use actual ent authz context
-		if rule != nil && rule.ServiceWrite(serviceID.Service, nil) != acl.Allow {
+		entMeta.Merge(serviceID.GetEnterpriseMeta())
+		entMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -500,8 +503,8 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		// TODO (namespaces) use actual ent authz context
-		if rule != nil && rule.NodeWrite(agentID.Agent, nil) != acl.Allow {
+		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+		if rule != nil && rule.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -588,10 +591,11 @@ func (s *ConnectCA) Sign(
 
 	// Set the response
 	*reply = structs.IssuedCert{
-		SerialNumber: connect.EncodeSerialNumber(cert.SerialNumber),
-		CertPEM:      pem,
-		ValidAfter:   cert.NotBefore,
-		ValidBefore:  cert.NotAfter,
+		SerialNumber:   connect.EncodeSerialNumber(cert.SerialNumber),
+		CertPEM:        pem,
+		ValidAfter:     cert.NotBefore,
+		ValidBefore:    cert.NotAfter,
+		EnterpriseMeta: entMeta,
 		RaftIndex: structs.RaftIndex{
 			ModifyIndex: modIdx,
 			CreateIndex: modIdx,

@@ -1206,7 +1206,7 @@ func (s *Store) getPolicyWithTxn(tx *memdb.Txn, ws memdb.WatchSet, value string,
 	}
 	ws.Add(watchCh)
 
-	if err != nil || policy == nil {
+	if policy == nil {
 		return nil, err
 	}
 

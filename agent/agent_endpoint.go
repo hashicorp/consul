@@ -1107,7 +1107,6 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	if err != nil {
 		return nil, err
 	}
-	// TODO (namespaces) - pass through a real ent authz ctx?
 	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
@@ -1325,11 +1324,14 @@ func (s *HTTPServer) AgentConnectCALeafCert(resp http.ResponseWriter, req *http.
 	// not the ID of the service instance.
 	serviceName := strings.TrimPrefix(req.URL.Path, "/v1/agent/connect/ca/leaf/")
 
-	// TODO (namespaces) add namespacing to connect leaf cert generation request
 	args := cachetype.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
+
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	// Store DC in the ConnectCALeafRequest but query opts separately
 	if done := s.parse(resp, req, &args.Datacenter, &qOpts); done {
