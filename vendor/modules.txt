@@ -177,7 +177,7 @@ github.com/hashicorp/go-bexpr
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-connlimit v0.1.0
+# github.com/hashicorp/go-connlimit v0.2.0
 github.com/hashicorp/go-connlimit
 # github.com/hashicorp/go-discover v0.0.0-20191202160150-7ec2cfbda7a2
 github.com/hashicorp/go-discover

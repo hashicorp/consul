@@ -631,7 +631,13 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			defer conn3.Close()
 
 			// If we close one of the earlier ones, we should be able to open another
+			addr := conn1.RemoteAddr()
 			conn1.Close()
+			retry.Run(t, func(r *retry.R) {
+				if n := s1.rpcConnLimiter.NumOpen(addr); n >= 2 {
+					r.Fatal("waiting for open conns to drop")
+				}
+			})
 			conn4 := connectClient(t, s1, tc.magicByte, tc.tlsEnabled, true, "conn4")
 			defer conn4.Close()
 
