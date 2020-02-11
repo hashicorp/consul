@@ -75,7 +75,7 @@ func (c *cmd) init() {
 		"The proxy's ID on the local agent.")
 
 	c.flags.BoolVar(&c.meshGateway, "mesh-gateway", false,
-		"Generate the bootstrap.json but don't exec envoy")
+		"Configure Envoy as a Mesh Gateway.")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", "",
 		"The ID of a service instance on the local agent that this proxy should "+
