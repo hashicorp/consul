@@ -137,7 +137,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCTLS:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
 		if isTLS {
-			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection %s", logConn(conn))
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection", "conn", logConn(conn))
 			conn.Close()
 			return
 		}
@@ -153,7 +153,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCTLSInsecure:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
 		if isTLS {
-			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection %s", logConn(conn))
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection", "conn", logConn(conn))
 			conn.Close()
 			return
 		}

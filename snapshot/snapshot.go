@@ -40,7 +40,7 @@ func New(logger hclog.Logger, r *raft.Raft) (*Snapshot, error) {
 	}
 	defer func() {
 		if err := snap.Close(); err != nil {
-			logger.Error("Failed to close Raft snapshot: %v", err)
+			logger.Error("Failed to close Raft snapshot", "error", err)
 		}
 	}()
 
