@@ -11,13 +11,11 @@
   {{#block-slot name='header'}}
     <h1>
       {{item.Service.Service}}
-{{#with (service/external-source item.Service) as |externalSource|}}
-{{#with (css-var (concat '--' externalSource '-color-svg') 'none') as |bg|}}
-  {{#if (not-eq bg 'none')}}
-      <span data-test-external-source={{externalSource}} style={{{concat 'background-image:' bg}}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
-  {{/if}}
-{{/with}}
-{{/with}}
+{{#let (service/external-source item.Service) as |externalSource| }}
+    {{#if externalSource }}
+        <span data-test-external-source={{externalSource}} style={{concat 'background-image: var(--' externalSource '-icon)'}} data-tooltip="Registered via {{externalSource}}">Registered via {{externalSource}}</span>
+    {{/if}}
+{{/let}}
 {{#if (eq item.Service.Kind 'connect-proxy')}}
       <span class="kind-proxy">Proxy</span>
 {{else if (eq item.Service.Kind 'mesh-gateway')}}
