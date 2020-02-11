@@ -36,7 +36,10 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `none`            | `none`        | `service:read` |
+| `YES`<sup>1</sup>| `none`            | `none`        | `service:read` |
+
+<sup>1</sup> Supports [hash-based
+blocking](/api/features/blocking.html#hash-based-blocking-queries) only.
 
 ### Parameters
 
