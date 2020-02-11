@@ -13,6 +13,12 @@ can be isolated from each other with the use of Namespaces. Namespaces help redu
 by removing restrictions around uniqueness of resource names across distinct teams, and enable operators 
 to provide self-service through delegation of administrative privileges.
 
+For more information on how to use namespaces with Consul Enterprise please review the following Learn Guides:
+
+- [Register and Discover Services within Namespaces](https://learn.hashicorp.com/consul/namespaces/discovery-namespaces) - Register multiple services within different Namespaces in Consul
+- [Setup Secure Namespaces](https://learn.hashicorp.com/consul/namespaces/secure-namespaces) - Secure resources within a namespace and delegate Namespace ACL rights via ACL tokens
+
+
 ## Namespace Definition
 
 Namespaces are managed exclusively through the [HTTP API](/api/namespaces.html) and the [Consul CLI](/docs/commands/namespace.html).
