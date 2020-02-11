@@ -130,14 +130,16 @@ func (s *Server) clearAllSessionTimers() {
 	s.sessionTimers.StopAll()
 }
 
-// sessionStats is a long running routine used to capture
-// the number of active sessions being tracked
-func (s *Server) sessionStats() {
+// updateMetrics is a long running routine used to uddate a
+// number of server periodic metrics
+func (s *Server) updateMetrics() {
 	for {
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(time.Second):
 			metrics.SetGauge([]string{"session_ttl", "active"}, float32(s.sessionTimers.Len()))
 
+			metrics.SetGauge([]string{"raft", "applied_index"}, float32(s.raft.AppliedIndex()))
+			metrics.SetGauge([]string{"raft", "last_index"}, float32(s.raft.LastIndex()))
 		case <-s.shutdownCh:
 			return
 		}
