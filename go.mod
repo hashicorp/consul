@@ -27,8 +27,8 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
-	github.com/hashicorp/consul/api v1.2.0
-	github.com/hashicorp/consul/sdk v0.2.0
+	github.com/hashicorp/consul/api v1.4.0
+	github.com/hashicorp/consul/sdk v0.4.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
 	github.com/hashicorp/go-cleanhttp v0.5.1
