@@ -1,4 +1,15 @@
 @import './custom-query';
+
+// TODO: Setup only the CSS props we actually need here
+// potentially see if our compiled can automatically remove
+// unused CSS props
+:root {
+  --white: #{$white};
+  --decor-border-100: #{$decor-border-100};
+  --decor-radius-300: #{$decor-radius-300};
+  --gray-500: #{$gray-500};
+}
+
 $gray: $gray-200;
 $gray-025: #fafbfc;
 
