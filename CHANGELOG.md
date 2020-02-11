@@ -2,6 +2,8 @@
 
 NOTES:
 
+* cli: Our Windows 32-bit and 64-bit executables for this version and up will be signed with a HashiCorp certificate. Windows users will no longer see a warning about an "unknown publisher" when running our software.
+
 * cli: Our darwin releases for this version and up will be signed and notarized according to Apple's requirements.
 
 Prior to this release, MacOS 10.15+ users attempting to run our software may see the error: "'consul' cannot be opened because the developer cannot be verified." This error affected all MacOS 10.15+ users who downloaded our software directly via web browsers, and was caused by changes to [Apple's third-party software requirements](https://developer.apple.com/news/?id=09032019a).
