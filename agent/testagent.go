@@ -149,6 +149,10 @@ func (a *TestAgent) Start() (err error) {
 		if err != nil {
 			return fmt.Errorf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err)
 		}
+		// Convert windows style path to posix style path
+		// to avoid illegal char escape error when hcl
+		// parsing.
+		d = filepath.ToSlash(d)
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 
