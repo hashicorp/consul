@@ -543,7 +543,7 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	}
 
 	// Start the metrics handlers.
-	go s.sessionStats()
+	go s.updateMetrics()
 
 	return s, nil
 }

@@ -64,6 +64,10 @@ func (c *cmd) Run(args []string) int {
 	eventDoneCh := make(chan struct{})
 	if c.logJSON {
 		logCh, err = client.Agent().MonitorJSON(c.logLevel, eventDoneCh, nil)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error starting JSON monitor: %s", err))
+			return 1
+		}
 	}
 	logCh, err = client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
 	if err != nil {
