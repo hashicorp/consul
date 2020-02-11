@@ -538,6 +538,76 @@ func TestAPI_AgentServices_CheckID(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentServicesQueryOpts(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	require := require.New(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		ID:   "foo",
+		Tags: []string{"bar", "baz"},
+		TaggedAddresses: map[string]ServiceAddress{
+			"lan": ServiceAddress{
+				Address: "198.18.0.1",
+				Port:    80,
+			},
+		},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+
+	require.NoError(agent.ServiceRegister(reg))
+
+	got, qm, err := agent.ServicesWithQueryOptions("", nil)
+	require.NoError(err)
+
+	expectHash := "7b989d87ac51531a"
+	expectServices := map[string]*AgentService{
+		"foo": &AgentService{
+			ID:      "foo",
+			Service: "foo",
+			Tags:    []string{"bar", "baz"},
+			Port:    8000,
+			TaggedAddresses: map[string]ServiceAddress{
+				"lan": ServiceAddress{
+					Address: "198.18.0.1",
+					Port:    80,
+				},
+			},
+			Weights: AgentWeights{
+				Passing: 1,
+				Warning: 1,
+			},
+			Meta:      map[string]string{},
+			Namespace: defaultNamespace,
+		},
+	}
+
+	require.Equal(expectHash, qm.LastContentHash)
+	require.Equal(expectServices, got)
+
+	// Sanity check blocking behavior - this is more thoroughly tested in the
+	// agent endpoint tests but this ensures that the API package is at least
+	// passing the hash param properly.
+	opts := QueryOptions{
+		WaitHash: qm.LastContentHash,
+		WaitTime: 100 * time.Millisecond, // Just long enough to be reliably measurable
+	}
+	start := time.Now()
+	got, qm, err = agent.ServicesWithQueryOptions("", &opts)
+	elapsed := time.Since(start)
+	require.NoError(err)
+	require.True(elapsed >= opts.WaitTime)
+}
+
 func TestAPI_AgentServiceAddress(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

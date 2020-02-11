@@ -533,6 +533,28 @@ func (a *Agent) ServicesWithFilter(filter string) (map[string]*AgentService, err
 	return out, nil
 }
 
+func (a *Agent) ServicesWithQueryOptions(filter string, q *QueryOptions) (map[string]*AgentService, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/agent/services")
+	r.filterQuery(filter)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var out map[string]*AgentService
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return out, qm, nil
+}
+
 // AgentHealthServiceByID returns for a given serviceID: the aggregated health status, the service definition or an error if any
 // - If the service is not found, will return status (critical, nil, nil)
 // - If the service is found, will return (critical|passing|warning), AgentServiceChecksInfo, nil)
