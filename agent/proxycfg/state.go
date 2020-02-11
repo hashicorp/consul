@@ -292,6 +292,9 @@ func (s *state) initWatchesConnectProxy() error {
 				Connect:       true,
 				Source:        *s.source,
 			}, "upstream:"+u.Identifier(), s.ch)
+			if err != nil {
+				return err
+			}
 
 		case structs.UpstreamDestTypeService:
 			fallthrough
