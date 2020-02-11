@@ -4,6 +4,12 @@
   background-size: contain;
   width: 18px;
   height: 18px;
+
+  --kubernetes-icon: #{$kubernetes-logo-color-svg};
+  --terraform-icon: #{$terraform-logo-color-svg};
+  --nomad-icon: #{$nomad-logo-color-svg};
+  --consul-icon: #{$consul-logo-color-svg};
+  --aws-icon: #{$aws-logo-color-svg};
 }
 %app-view h2,
 %app-view fieldset {
