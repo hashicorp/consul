@@ -14,7 +14,7 @@ MacOS 10.15+ users should plan to upgrade to 1.7.0+.
 
 SECURITY:
 
-* dns: Updated miekg/dns dependency to fix a memory leak and CVE-2019-19794. [[GH-6984](https://github.com/hashicorp/consul/issues/6984),[GH-7252](https://github.com/hashicorp/consul/pull/7252)]
+* dns: Updated miekg/dns dependency to fix a memory leak and CVE-2019-19794. [[GH-6984](https://github.com/hashicorp/consul/issues/6984)], [[GH-7252](https://github.com/hashicorp/consul/issues/7252)]
 * updated to compile with [[Go 1.12.16](https://groups.google.com/forum/m/#!topic/golang-announce/Hsw4mHYc470)] which includes a fix for CVE-2020-0601 on windows [[GH-7153](https://github.com/hashicorp/consul/pull/7153)]
 
 BREAKING CHANGES:
