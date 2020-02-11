@@ -565,6 +565,12 @@ default will automatically work with some tooling.
 
 #### Configuration Key Reference
 
+-> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
+[formatting specification](https://golang.org/pkg/time/#ParseDuration): "A
+duration string is a possibly signed sequence of decimal numbers, each with
+optional fraction and a unit suffix, such as '300ms', '-1.5h' or '2h45m'.
+Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
+
 * <a name="acl"></a><a href="#acl">`acl`</a> - This object allows a number
     of sub-keys to be set which controls the ACL system. Configuring the
     ACL system within the ACL stanza was added in Consul 1.4.0
