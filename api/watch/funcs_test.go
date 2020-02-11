@@ -1045,6 +1045,102 @@ func TestAgentServiceWatch(t *testing.T) {
 	}
 }
 
+func TestAgentServicesWatch(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	var (
+		wakeups  []*api.AgentService
+		notifyCh = make(chan struct{})
+	)
+
+	// Register a local agent service
+	reg := &api.AgentServiceRegistration{
+		Name: "web",
+		Port: 8080,
+	}
+	client := c
+	agent := client.Agent()
+	err := agent.ServiceRegister(reg)
+	require.NoError(t, err)
+
+	plan := mustParse(t, `{"type":"agent_services"}`)
+	plan.HybridHandler = func(blockParamVal watch.BlockingParamVal, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.(map[string]*api.AgentService)
+		if !ok || v == nil {
+			return // ignore
+		}
+		for _, s := range v {
+			wakeups = append(wakeups, s)
+		}
+		notifyCh <- struct{}{}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		// Change the service definition
+		reg.Port = 9090
+		err := agent.ServiceRegister(reg)
+		require.NoError(t, err)
+	}
+
+	// Wait for second wakeup.
+	<-notifyCh
+
+	reg2 := &api.AgentServiceRegistration{
+		Name: "api",
+		Port: 7070,
+	}
+
+	{
+		// Add a new service definition
+		err := agent.ServiceRegister(reg2)
+		require.NoError(t, err)
+	}
+
+	// Wait for third wakeup.
+	<-notifyCh
+
+	plan.Stop()
+	wg.Wait()
+
+	require.Len(t, wakeups, 4)
+
+	{
+		v := wakeups[0]
+		require.Equal(t, 8080, v.Port)
+	}
+	{
+		v := wakeups[1]
+		require.Equal(t, 9090, v.Port)
+	}
+	{
+		v := wakeups[2]
+		require.Equal(t, 7070, v.Port)
+	}
+	{
+		v := wakeups[1]
+		require.Equal(t, 9090, v.Port)
+	}
+}
+
 func mustParse(t *testing.T, q string) *watch.Plan {
 	t.Helper()
 	var params map[string]interface{}

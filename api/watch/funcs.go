@@ -16,16 +16,17 @@ var watchFuncFactory map[string]watchFactory
 
 func init() {
 	watchFuncFactory = map[string]watchFactory{
-		"key":           keyWatch,
-		"keyprefix":     keyPrefixWatch,
-		"services":      servicesWatch,
-		"nodes":         nodesWatch,
-		"service":       serviceWatch,
-		"checks":        checksWatch,
-		"event":         eventWatch,
-		"connect_roots": connectRootsWatch,
-		"connect_leaf":  connectLeafWatch,
-		"agent_service": agentServiceWatch,
+		"key":            keyWatch,
+		"keyprefix":      keyPrefixWatch,
+		"services":       servicesWatch,
+		"nodes":          nodesWatch,
+		"service":        serviceWatch,
+		"checks":         checksWatch,
+		"event":          eventWatch,
+		"connect_roots":  connectRootsWatch,
+		"connect_leaf":   connectLeafWatch,
+		"agent_service":  agentServiceWatch,
+		"agent_services": agentServicesWatch,
 	}
 }
 
@@ -303,6 +304,33 @@ func agentServiceWatch(params map[string]interface{}) (WatcherFunc, error) {
 
 		// Return string ContentHash since we don't have Raft indexes to block on.
 		return WaitHashVal(svc.ContentHash), svc, err
+	}
+	return fn, nil
+}
+
+// agentServicesWatch is used to watch for changes to services
+// on the local agent. Note that this state is agent-local so the watch
+// mechanism uses `hash` rather than `index` for deciding whether to block.
+func agentServicesWatch(params map[string]interface{}) (WatcherFunc, error) {
+	// We don't support consistency modes since it's agent local data
+
+	var filter string
+	if err := assignValue(params, "filter", &filter); err != nil {
+		return nil, err
+	}
+
+	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
+		agent := p.client.Agent()
+		opts := makeQueryOptionsWithContext(p, false)
+		defer p.cancelFunc()
+
+		svc, qm, err := agent.ServicesWithQueryOptions(filter, &opts)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Return string ContentHash since we don't have Raft indexes to block on.
+		return WaitHashVal(qm.LastContentHash), svc, err
 	}
 	return fn, nil
 }
