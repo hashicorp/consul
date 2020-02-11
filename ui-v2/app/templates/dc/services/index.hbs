@@ -35,7 +35,13 @@
                 {{#block-slot name='row'}}
                     <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
                       <a href={{href-to 'dc.services.show' item.Name}}>
-                        <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
+            {{#let (service/external-source item) as |externalSource| }}
+              {{#if externalSource }}
+                <span data-test-external-source={{externalSource}} style={{concat 'background-image: var(--' externalSource '-icon)'}}></span>
+              {{else}}
+                <span></span>
+              {{/if}}
+            {{/let}}
                         {{item.Name}}
                       </a>
                     </td>
