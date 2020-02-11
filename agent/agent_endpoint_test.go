@@ -18,6 +18,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
@@ -33,10 +38,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
@@ -6214,4 +6215,173 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 	require.NotNil(t, actual)
 	require.Equal(t, api.ServiceKindConnectProxy, actual.Kind)
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
+func TestAgent_ServicesBlocking(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	svc1 := &structs.ServiceDefinition{
+		ID:   "foo:1234",
+		Name: "foo",
+		Port: 1234,
+	}
+
+	svc2 := &structs.ServiceDefinition{
+		ID:   "bar:5678",
+		Name: "bar",
+		Port: 5678,
+	}
+
+	assert := assert.New(t)
+	require := require.New(t)
+
+	{
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(svc1))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+	}
+
+	expectedResponse1 := map[string]*api.AgentService{
+		"foo:1234": {
+			ID:         "foo:1234",
+			Datacenter: "dc1",
+			Service:    "foo",
+			Port:       1234,
+			Meta:       map[string]string{},
+			Tags:       []string{},
+			Kind:       api.ServiceKindTypical,
+			Weights: api.AgentWeights{
+				Passing: 1,
+				Warning: 1,
+			},
+		},
+	}
+
+	expectedResponse2 := map[string]*api.AgentService{
+		"foo:1234": {
+			ID:         "foo:1234",
+			Datacenter: "dc1",
+			Service:    "foo",
+			Port:       1234,
+			Meta:       map[string]string{},
+			Tags:       []string{},
+			Kind:       api.ServiceKindTypical,
+			Weights: api.AgentWeights{
+				Passing: 1,
+				Warning: 1,
+			},
+		},
+		"bar:5678": {
+			ID:         "bar:5678",
+			Datacenter: "dc1",
+			Service:    "bar",
+			Port:       5678,
+			Meta:       map[string]string{},
+			Tags:       []string{},
+			Kind:       api.ServiceKindTypical,
+			Weights: api.AgentWeights{
+				Passing: 1,
+				Warning: 1,
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		url        string
+		updateFunc func()
+		wantWait   time.Duration
+		wantCode   int
+		wantErr    string
+		wantResp   map[string]*api.AgentService
+		wantHash   string
+	}{
+		{
+			name:     "no blocking services",
+			url:      "/v1/agent/services",
+			wantCode: 200,
+			wantResp: expectedResponse1,
+		},
+		{
+			name:     "blocking fetch timeout, no change",
+			url:      "/v1/agent/services?hash=2593138afc0803c4&wait=100ms",
+			wantWait: 100 * time.Millisecond,
+			wantCode: 200,
+			wantResp: expectedResponse1,
+		},
+		{
+			name:     "blocking fetch old hash should return immediately",
+			url:      "/v1/agent/services?hash=0&wait=100ms",
+			wantCode: 200,
+			wantResp: expectedResponse1,
+			wantHash: "2593138afc0803c4",
+		},
+		{
+			name: "blocking fetch returns change",
+			url:  "/v1/agent/services?hash=2593138afc0803c4",
+			updateFunc: func() {
+				time.Sleep(100 * time.Millisecond)
+				// Register a new service
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(svc2))
+				resp := httptest.NewRecorder()
+				_, err := a.srv.AgentRegisterService(resp, req)
+				require.NoError(err)
+				require.Equal(200, resp.Code, "body: %s", resp.Body.String())
+			},
+			wantWait: 100 * time.Millisecond,
+			wantCode: 200,
+			wantResp: expectedResponse2,
+			wantHash: "9c528524c5e7c353",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", tt.url, nil)
+			require.NoError(err)
+
+			resp := httptest.NewRecorder()
+			if tt.updateFunc != nil {
+				go tt.updateFunc()
+			}
+			start := time.Now()
+			obj, err := a.srv.AgentServices(resp, req)
+			elapsed := time.Since(start)
+
+			fmt.Println(resp.HeaderMap)
+
+			if tt.wantErr != "" {
+				require.Error(err)
+				require.Contains(strings.ToLower(err.Error()), strings.ToLower(tt.wantErr))
+			} else {
+				require.NoError(err)
+			}
+			if tt.wantCode != 0 {
+				require.Equal(tt.wantCode, resp.Code, "body: %s", resp.Body.String())
+			}
+			if tt.wantWait != 0 {
+				assert.True(elapsed >= tt.wantWait, "should have waited at least %s, "+
+					"took %s", tt.wantWait, elapsed)
+			} else {
+				assert.True(elapsed < 10*time.Millisecond, "should not have waited, "+
+					"took %s", elapsed)
+			}
+
+			if tt.wantResp != nil {
+				assert.Equal(tt.wantResp, obj)
+			} else {
+				assert.Nil(obj)
+			}
+
+			if tt.wantHash != "" {
+				assert.Equal(tt.wantHash, resp.Header().Get("X-Consul-ContentHash"))
+			}
+		})
+	}
 }

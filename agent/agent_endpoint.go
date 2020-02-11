@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/debug"
@@ -22,11 +28,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Self struct {
@@ -226,6 +227,13 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 }
 
 func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Maybe block
+	var queryOpts structs.QueryOptions
+	if parseWait(resp, req, &queryOpts) {
+		// parseWait returns an error itself
+		return nil, nil
+	}
+
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
@@ -243,31 +251,69 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
-	services := s.agent.State.Services(&entMeta)
-	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
-		return nil, err
-	}
+	wch := make(chan struct{})
+	s.agent.State.Notify(wch)
 
-	// Convert into api.AgentService since that includes Connect config but so far
-	// NodeService doesn't need to internally. They are otherwise identical since
-	// that is the struct used in client for reading the one we output here
-	// anyway.
-	agentSvcs := make(map[string]*api.AgentService)
-
+	// Parse hash specially. parseWait doesn't parse the hash currently
+	hash := req.URL.Query().Get("hash")
 	dc := s.agent.config.Datacenter
 
-	// Use empty list instead of nil
-	for id, s := range services {
-		agentService := buildAgentService(s, dc)
-		agentSvcs[id.ID] = &agentService
+	resultHash, services, err := s.agent.LocalBlockingQuery(false, hash, queryOpts.MaxQueryTime,
+		func(ws memdb.WatchSet) (string, interface{}, error) {
+
+			svcStates := s.agent.State.ServiceStates(&entMeta)
+
+			m := make(map[structs.ServiceID]*structs.NodeService)
+			for id, s := range svcStates {
+				if s.Deleted {
+					continue
+				}
+				if !entMeta.Matches(&id.EnterpriseMeta) {
+					continue
+				}
+				m[id] = s.Service
+			}
+
+			if err := s.agent.filterServicesWithAuthorizer(authz, &m); err != nil {
+				return "", nil, err
+			}
+
+			// Convert into api.AgentService since that includes Connect config but so far
+			// NodeService doesn't need to internally. They are otherwise identical since
+			// that is the struct used in client for reading the one we output here
+			// anyway.
+			agentSvcs := make(map[string]*api.AgentService)
+
+			// Pass the notify channel to the WatchSet
+			ws.Add(wch)
+			for id, service := range m {
+				agentService := buildAgentService(service, dc)
+				agentSvcs[id.ID] = &agentService
+			}
+
+			reply := &agentSvcs
+
+			rawHash, err := hashstructure.Hash(reply, nil)
+			if err != nil {
+				return "", nil, err
+			}
+
+			return fmt.Sprintf("%x", rawHash), agentSvcs, nil
+		},
+	)
+
+	s.agent.State.StopNotify(wch)
+
+	if resultHash != "" && resp != nil {
+		resp.Header().Set("X-Consul-ContentHash", resultHash)
 	}
 
-	filter, err := bexpr.CreateFilter(filterExpression, nil, agentSvcs)
+	filter, err := bexpr.CreateFilter(filterExpression, nil, services)
 	if err != nil {
 		return nil, err
 	}
 
-	return filter.Execute(agentSvcs)
+	return filter.Execute(services)
 }
 
 // GET /v1/agent/service/:service_id
