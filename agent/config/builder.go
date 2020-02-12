@@ -1106,16 +1106,6 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		if _, err := decodeBytes(rt.EncryptKey); err != nil {
 			return fmt.Errorf("encrypt has invalid key: %s", err)
 		}
-		keyfileLAN := filepath.Join(rt.DataDir, SerfLANKeyring)
-		if _, err := os.Stat(keyfileLAN); err == nil {
-			b.warn("WARNING: LAN keyring exists but -encrypt given, using keyring")
-		}
-		if rt.ServerMode {
-			keyfileWAN := filepath.Join(rt.DataDir, SerfWANKeyring)
-			if _, err := os.Stat(keyfileWAN); err == nil {
-				b.warn("WARNING: WAN keyring exists but -encrypt given, using keyring")
-			}
-		}
 	}
 
 	// Check the data dir for signs of an un-migrated Consul 0.5.x or older

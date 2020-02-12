@@ -1,9 +1,11 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha512"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1585,6 +1587,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
 	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
 
+	var existingLANKeyring, existingWANKeyring bool
 	if a.config.EncryptKey == "" {
 		goto LOAD
 	}
@@ -1592,12 +1595,16 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
 			return err
 		}
+	} else {
+		existingLANKeyring = true
 	}
 	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
 			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
 				return err
 			}
+		} else {
+			existingWANKeyring = true
 		}
 	}
 
@@ -1617,7 +1624,42 @@ LOAD:
 		}
 	}
 
+	// Only perform the following checks if there was an encrypt_key
+	// provided in the configuration.
+	if a.config.EncryptKey != "" {
+		msg := " keyring doesn't include key provided with -encrypt, using keyring"
+		if existingLANKeyring &&
+			keyringIsMissingKey(
+				config.SerfLANConfig.MemberlistConfig.Keyring,
+				a.config.EncryptKey,
+			) {
+			a.logger.Warn("LAN" + msg)
+		}
+		if existingWANKeyring &&
+			keyringIsMissingKey(
+				config.SerfWANConfig.MemberlistConfig.Keyring,
+				a.config.EncryptKey,
+			) {
+			a.logger.Warn("WAN" + msg)
+		}
+	}
+
 	return nil
+}
+
+// keyringIsMissingKey checks whether a key is part of a keyring. Returns true
+// if it is not included.
+func keyringIsMissingKey(keyring *memberlist.Keyring, key string) bool {
+	k1, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return true
+	}
+	for _, k2 := range keyring.GetKeys() {
+		if bytes.Equal(k1, k2) {
+			return false
+		}
+	}
+	return true
 }
 
 // setupKeyrings is used to initialize and load keyrings during agent startup.
