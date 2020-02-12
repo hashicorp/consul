@@ -39,7 +39,7 @@ export const getSplitters = function(nodes) {
     // Splitters need IDs adding so we can find them in the DOM later
     // splitters have a service.nspace as a name
     // do the reverse dance to ensure we don't mess up any
-    // serivice names with dots in them
+    // service names with dots in them
     const temp = item.Name.split('.');
     temp.reverse();
     temp.shift();
