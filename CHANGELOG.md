@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* build: Switched to compile with Go 1.13.7 [GH-7262]
+
 ## 1.7.0 (February 11, 2020)
 
 NOTES:
