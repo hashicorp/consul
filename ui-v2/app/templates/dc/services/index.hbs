@@ -22,40 +22,7 @@
     {{#block-slot name='content'}}
         {{#changeable-set dispatcher=searchable}}
           {{#block-slot name='set' as |filtered|}}
-            {{#tabular-collection
-                route='dc.services.show'
-                key='Name'
-                items=filtered as |item index|
-            }}
-                {{#block-slot name='header'}}
-                    <th style={{remainingWidth}}>Service</th>
-                    <th style={{totalWidth}}>Health Checks<span><em role="tooltip">The number of health checks for the service on all nodes</em></span></th>
-                    <th style={{remainingWidth}}>Tags</th>
-                {{/block-slot}}
-                {{#block-slot name='row'}}
-                    <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
-                      <a href={{href-to 'dc.services.show' item.Name}}>
-            {{#let (service/external-source item) as |externalSource| }}
-              {{#if externalSource }}
-                <span data-test-external-source={{externalSource}} style={{concat 'background-image: var(--' externalSource '-icon)'}}></span>
-              {{else}}
-                <span></span>
-              {{/if}}
-            {{/let}}
-                        {{item.Name}}
-                      </a>
-                    </td>
-                    <td style={{totalWidth}}>
-                      {{healthcheck-info
-                        passing=item.ChecksPassing warning=item.ChecksWarning critical=item.ChecksCritical
-                        passingWidth=passingWidth warningWidth=warningWidth criticalWidth=criticalWidth
-                      }}
-                    </td>
-                    <td style={{remainingWidth}}>
-                      {{tag-list items=item.Tags}}
-                    </td>
-                {{/block-slot}}
-            {{/tabular-collection}}
+            {{consul-service-list routeName="dc.services.show" items=filtered}}
           {{/block-slot}}
           {{#block-slot name='empty'}}
             <p>
