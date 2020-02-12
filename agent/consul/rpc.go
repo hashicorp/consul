@@ -68,8 +68,7 @@ func (s *Server) listen(listener net.Listener) {
 
 		free, err := s.rpcConnLimiter.Accept(conn)
 		if err != nil {
-			s.rpcLogger().Error("rejecting RPC conn from %s"+
-				" rpc_max_conns_per_client exceeded", conn.RemoteAddr().String())
+			s.rpcLogger().Error("rejecting RPC conn from because rpc_max_conns_per_client exceeded", "conn", logConn(conn))
 			conn.Close()
 			continue
 		}
@@ -138,7 +137,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCTLS:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
 		if isTLS {
-			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection %s", logConn(conn))
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection", "conn", logConn(conn))
 			conn.Close()
 			return
 		}
@@ -154,7 +153,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCTLSInsecure:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
 		if isTLS {
-			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection %s", logConn(conn))
+			s.rpcLogger().Error("TLS connection attempting to establish inner TLS connection", "conn", logConn(conn))
 			conn.Close()
 			return
 		}
