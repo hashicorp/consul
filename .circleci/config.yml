@@ -338,8 +338,7 @@ jobs:
       # get consul binary
       - attach_workspace:
           at: bin/
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - run: make ci.dev-docker
 
   # Nomad 0.8 builds on go0.10
@@ -569,8 +568,7 @@ jobs:
       # Get go binary from workspace
       - attach_workspace:
           at: .
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       # Build the consul-dev image from the already built binary
       - run: docker build -t consul-dev -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
