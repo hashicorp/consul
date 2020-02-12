@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE circleci/golang:1.12.16
+    go: &GOLANG_IMAGE circleci/golang:1.13.7
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
     ember: &EMBER_IMAGE circleci/node:8-browsers
 
@@ -148,6 +148,38 @@ jobs:
       # save coverage report parts
       - persist_to_workspace:
           root: ./api
+          paths:
+            - cov_*.part
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # split off a job for the SDK package since it is separate
+  go-test-sdk:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+    steps:
+      - checkout
+      - restore_cache: # restore cache from dev-build job
+          keys:
+            - consul-modcache-v1-{{ checksum "go.mod" }}
+      - attach_workspace:
+          at: /go/bin
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          working_directory: sdk
+          command: |
+            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -tags=$GOTAGS -cover -coverprofile=cov_sdk.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: ./sdk
           paths:
             - cov_*.part
 
@@ -616,10 +648,12 @@ workflows:
           requires:
             - dev-build
       - go-test-api: *go-test
+      - go-test-sdk: *go-test
       - coverage-merge:
           requires:
             - go-test
             - go-test-api
+            - go-test-sdk
   build-distros:
     jobs:
       - check-vendor:
