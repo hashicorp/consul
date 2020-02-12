@@ -105,7 +105,7 @@ module('Unit | Utility | components/discovery-chain/get-resolvers', function() {
             Type: 'resolver',
             Name: 'v2.dc-failover.default.dc-1',
             Resolver: {
-              Target: 'v2.dc-failover.defauilt.dc-1',
+              Target: 'v2.dc-failover.default.dc-1',
               Failover: {
                 Targets: ['v2.dc-failover.default.dc-5', 'v2.dc-failover.default.dc-6'],
               },
@@ -166,7 +166,7 @@ module('Unit | Utility | components/discovery-chain/get-resolvers', function() {
             Type: 'resolver',
             Name: 'dc-failover.default.dc-1',
             Resolver: {
-              Target: 'dc-failover.defauilt.dc-1',
+              Target: 'dc-failover.default.dc-1',
               Failover: {
                 Targets: ['dc-failover.default.dc-5', 'dc-failover.default.dc-6'],
               },
@@ -192,6 +192,62 @@ module('Unit | Utility | components/discovery-chain/get-resolvers', function() {
           Type: 'Datacenter',
           Targets: ['dc-5', 'dc-6'],
         },
+      };
+      assert.deepEqual(actual[0], expected);
+    });
+  });
+  test('it finds services with redirects with failovers correctly', function(assert) {
+    return Promise.resolve({
+      Chain: {
+        ServiceName: 'service-name',
+        Namespace: 'default',
+        Datacenter: 'dc-1',
+        Protocol: 'http',
+        StartNode: '',
+        Nodes: {
+          'resolver:dc-failover.default.redirect-dc-1': {
+            Type: 'resolver',
+            Name: 'dc-failover.default.redirect-dc-1',
+            Resolver: {
+              Target: 'dc-failover.default.redirect-dc-1',
+              Failover: {
+                Targets: ['dc-failover.default.redirect-dc-5', 'dc-failover.default.redirect-dc-6'],
+              },
+            },
+          },
+        },
+        Targets: {
+          'dc-failover.default.redirect-dc-1': {
+            ID: 'dc-failover.default.redirect-dc-1',
+            Service: 'dc-failover',
+            Namespace: 'default',
+            Datacenter: 'redirect-dc-1',
+          },
+        },
+      },
+    }).then(function({ Chain }) {
+      const actual = getResolvers(dc, nspace, Chain.Targets, Chain.Nodes);
+      // Both the parent and the child should have a Failover property
+      // as in order for a redirect to have failovers it must redirect to a
+      // service that already has failovers
+      const expected = {
+        ID: 'dc-failover.default.dc-1',
+        Name: 'dc-failover',
+        Failover: {
+          Targets: ['redirect-dc-5', 'redirect-dc-6'],
+          Type: 'Datacenter',
+        },
+        Children: [
+          {
+            Failover: {
+              Targets: ['redirect-dc-5', 'redirect-dc-6'],
+              Type: 'Datacenter',
+            },
+            ID: 'dc-failover.default.redirect-dc-1',
+            Name: 'redirect-dc-1',
+            Redirect: true,
+          },
+        ],
       };
       assert.deepEqual(actual[0], expected);
     });
