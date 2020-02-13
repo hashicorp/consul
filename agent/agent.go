@@ -1631,14 +1631,14 @@ LOAD:
 				config.SerfLANConfig.MemberlistConfig.Keyring,
 				a.config.EncryptKey,
 			) {
-			a.logger.Warn("LAN" + msg)
+			a.logger.Warn(msg, "keyring", "LAN")
 		}
 		if existingWANKeyring &&
 			keyringIsMissingKey(
 				config.SerfWANConfig.MemberlistConfig.Keyring,
 				a.config.EncryptKey,
 			) {
-			a.logger.Warn("WAN" + msg)
+			a.logger.Warn(msg, "keyring", "WAN")
 		}
 	}
 
