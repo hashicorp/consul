@@ -3466,7 +3466,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 				// intentional.
 				rt.RPCHandshakeTimeout = 5 * time.Second
 				rt.HTTPSHandshakeTimeout = 5 * time.Second
-				rt.HTTPMaxConnsPerClient = 100
+				rt.HTTPMaxConnsPerClient = 200
 				rt.RPCMaxConnsPerClient = 100
 			},
 		},

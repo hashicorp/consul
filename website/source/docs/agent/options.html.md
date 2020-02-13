@@ -1397,7 +1397,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
         Configures a limit of how many concurrent TCP connections a single
         client IP address is allowed to open to the agent's HTTP(S) server. This
         affects the HTTP(S) servers in both client and server agents. Default
-        value is `100`.
+        value is `200`.
     *   <a name="https_handshake_timeout"></a><a
         href="#https_handshake_timeout">`https_handshake_timeout`</a> -
         Configures the limit for how long the HTTPS server in both client and
