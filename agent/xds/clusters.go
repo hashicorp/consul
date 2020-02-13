@@ -113,7 +113,7 @@ func makeExposeClusterName(destinationPort int) string {
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
 func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters()
+	datacenters := cfgSnap.MeshGateway.Datacenters(cfgSnap.Datacenter)
 
 	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
 	clusters := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))

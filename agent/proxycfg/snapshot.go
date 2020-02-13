@@ -59,7 +59,7 @@ type configSnapshotMeshGateway struct {
 	ConsulServers structs.CheckServiceNodes
 }
 
-func (c *configSnapshotMeshGateway) Datacenters() []string {
+func (c *configSnapshotMeshGateway) Datacenters(skipDatacenter string) []string {
 	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
 
 	sz := sz1
@@ -69,9 +69,15 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 
 	dcs := make([]string, 0, sz)
 	for dc, _ := range c.GatewayGroups {
+		if dc == skipDatacenter {
+			continue
+		}
 		dcs = append(dcs, dc)
 	}
 	for dc, _ := range c.FedStateGateways {
+		if dc == skipDatacenter {
+			continue
+		}
 		if _, ok := c.GatewayGroups[dc]; !ok {
 			dcs = append(dcs, dc)
 		}
