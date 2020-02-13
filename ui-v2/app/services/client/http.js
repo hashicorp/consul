@@ -8,6 +8,21 @@ import getObjectPool from 'consul-ui/utils/get-object-pool';
 import Request from 'consul-ui/utils/http/request';
 import createURL from 'consul-ui/utils/createURL';
 
+// reopen EventSources if a user changes tab
+export const restartWhenAvailable = function(client) {
+  return function(e) {
+    // setup the aborted connection restarting
+    // this should happen here to avoid cache deletion
+    const status = get(e, 'errors.firstObject.status');
+    if (status === '0') {
+      // Any '0' errors (abort) should possibly try again, depending upon the circumstances
+      // whenAvailable returns a Promise that resolves when the client is available
+      // again
+      return client.whenAvailable(e);
+    }
+    throw e;
+  };
+};
 class HTTPError extends Error {
   constructor(statusCode, message) {
     super(message);
@@ -37,6 +52,15 @@ const dispose = function(request) {
 // right now createURL converts undefined to '' so we need to check thats not needed
 // anywhere (todo written here for visibility)
 const url = createURL(encodeURIComponent);
+const createHeaders = function(lines) {
+  return lines.reduce(function(prev, item) {
+    const temp = item.split(':');
+    if (temp.length > 1) {
+      prev[temp[0].trim()] = temp[1].trim();
+    }
+    return prev;
+  }, {});
+};
 export default Service.extend({
   dom: service('dom'),
   settings: service('settings'),
@@ -90,36 +114,33 @@ export default Service.extend({
         }
       }, body);
     }
-    return body;
+    return [body, ...values];
   },
   request: function(cb) {
     const client = this;
     return cb(function(strs, ...values) {
-      const body = client.body(strs, ...values);
-      let temp = url(strs, ...values).split(' ');
-      const method = temp.shift();
-      let rest = temp.join(' ');
-      temp = rest.split('\n');
-      const path = temp.shift().trim();
-      const createHeaders = function(lines) {
-        return lines.reduce(function(prev, item) {
-          const temp = item.split(':');
-          if (temp.length > 1) {
-            prev[temp[0].trim()] = temp[1].trim();
-          }
-          return prev;
-        }, {});
-      };
+      // first go to the end and remove/parse the http body
+      const [body, ...urlVars] = client.body(...arguments);
+      // with whats left get the method off the front
+      const [method, ...urlParts] = client.url(strs, ...urlVars).split(' ');
+      // with whats left use the rest of the line for the url
+      // with whats left after the line, use for the headers
+      const [url, ...headerParts] = urlParts.join(' ').split('\n');
+
       const headers = {
+        // default to application/json
         ...{
           'Content-Type': 'application/json; charset=utf-8',
         },
+        // add any application level headers
         ...get(client, 'settings').findHeaders(),
-        ...createHeaders(temp),
+        // but overwrite or add to those from anything in the specific request
+        ...createHeaders(headerParts),
       };
+
       return new Promise(function(resolve, reject) {
         const options = {
-          url: path,
+          url: url.trim(),
           method: method,
           contentType: headers['Content-Type'],
           // type: 'json',
@@ -131,7 +152,7 @@ export default Service.extend({
             const respond = function(cb) {
               return cb(headers, response);
             };
-            //TODO: nextTick ?
+            // TODO: nextTick ?
             resolve(respond);
           },
           error: function(xhr, textStatus, err) {
