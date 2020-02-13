@@ -18,7 +18,7 @@ module('Integration | Adapter | coordinate', function(hooks) {
     const expected = {
       index: 1,
     };
-    const actual = adapter.requestForQuery(client.body, {
+    const [actual] = adapter.requestForQuery(client.body, {
       dc: dc,
       index: 1,
     });
