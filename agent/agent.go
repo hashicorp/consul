@@ -1,11 +1,9 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha512"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1645,21 +1643,6 @@ LOAD:
 	}
 
 	return nil
-}
-
-// keyringIsMissingKey checks whether a key is part of a keyring. Returns true
-// if it is not included.
-func keyringIsMissingKey(keyring *memberlist.Keyring, key string) bool {
-	k1, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return true
-	}
-	for _, k2 := range keyring.GetKeys() {
-		if bytes.Equal(k1, k2) {
-			return false
-		}
-	}
-	return true
 }
 
 // setupKeyrings is used to initialize and load keyrings during agent startup.
