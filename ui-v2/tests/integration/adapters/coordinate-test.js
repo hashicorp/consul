@@ -12,4 +12,16 @@ module('Integration | Adapter | coordinate', function(hooks) {
     });
     assert.equal(actual, expected);
   });
+  test('requestForQuery returns the correct body', function(assert) {
+    const adapter = this.owner.lookup('adapter:coordinate');
+    const client = this.owner.lookup('service:client/http');
+    const expected = {
+      index: 1,
+    };
+    const actual = adapter.requestForQuery(client.body, {
+      dc: dc,
+      index: 1,
+    });
+    assert.deepEqual(actual, expected);
+  });
 });
