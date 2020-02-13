@@ -1585,6 +1585,7 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
 	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
 
+	var existingLANKeyring, existingWANKeyring bool
 	if a.config.EncryptKey == "" {
 		goto LOAD
 	}
@@ -1592,12 +1593,16 @@ func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
 			return err
 		}
+	} else {
+		existingLANKeyring = true
 	}
 	if a.config.ServerMode && federationEnabled {
 		if _, err := os.Stat(fileWAN); err != nil {
 			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
 				return err
 			}
+		} else {
+			existingWANKeyring = true
 		}
 	}
 
@@ -1614,6 +1619,26 @@ LOAD:
 		}
 		if err := loadKeyringFile(config.SerfWANConfig); err != nil {
 			return err
+		}
+	}
+
+	// Only perform the following checks if there was an encrypt_key
+	// provided in the configuration.
+	if a.config.EncryptKey != "" {
+		msg := " keyring doesn't include key provided with -encrypt, using keyring"
+		if existingLANKeyring &&
+			keyringIsMissingKey(
+				config.SerfLANConfig.MemberlistConfig.Keyring,
+				a.config.EncryptKey,
+			) {
+			a.logger.Warn(msg, "keyring", "LAN")
+		}
+		if existingWANKeyring &&
+			keyringIsMissingKey(
+				config.SerfWANConfig.MemberlistConfig.Keyring,
+				a.config.EncryptKey,
+			) {
+			a.logger.Warn(msg, "keyring", "WAN")
 		}
 	}
 

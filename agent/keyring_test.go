@@ -334,3 +334,15 @@ func TestValidateLocalOnly(t *testing.T) {
 
 	require.Error(t, ValidateLocalOnly(true, false))
 }
+
+func TestAgent_KeyringIsMissingKey(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
+	decoded1, err := decodeStringKey(key1)
+	require.NoError(t, err)
+	keyring, err := memberlist.NewKeyring([][]byte{}, decoded1)
+	require.NoError(t, err)
+
+	require.True(t, keyringIsMissingKey(keyring, key2))
+	require.False(t, keyringIsMissingKey(keyring, key1))
+}
