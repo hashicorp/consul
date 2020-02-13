@@ -42,6 +42,16 @@ Consul has changed the semantics of query counts in its [telemetry](/docs/agent/
 measure when blocking queries polled for more data. The gauge `consul.rpc.queries_blocking` has been added for a more
 to more precisely capture the view of *active* blocking queries.
 
+### Vault: default for `http_max_conns_per_client` to low to run Vault properly
+
+Consul 1.7.0 introduced limiting of connections per client ((docs)[https://www.consul.io/docs/agent/options.html#http_max_conns_per_client]). The default is 100, but Vault allows up to 128 which causes problems. If you want to use Vault with Consul 1.7.0, you should change it to 200. Starting with Consul 1.7.1 this is the new default.
+
+## Consul 1.6.3
+
+### Vault: default for `http_max_conns_per_client` to low to run Vault properly
+
+Consul 1.6.3 introduced limiting of connections per client ((docs)[https://www.consul.io/docs/agent/options.html#http_max_conns_per_client]). The default is 100, but Vault allows up to 128 which causes problems. If you want to use Vault with Consul 1.6.3, you should change it to 200. Starting with Consul 1.6.4 this is the new default.
+
 ## Consul 1.6.0
 
 #### Removal of Deprecated Features
