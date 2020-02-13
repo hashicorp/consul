@@ -171,11 +171,14 @@ func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, en
 }
 
 func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters(cfgSnap.Datacenter)
+	datacenters := cfgSnap.MeshGateway.Datacenters()
 	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the endpoints for the gateways in the remote datacenters
 	for _, dc := range datacenters {
+		if dc == cfgSnap.Datacenter {
+			continue // skip local
+		}
 		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
 		if !ok {
 			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[dc]
@@ -198,7 +201,7 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 			resources = append(resources, la)
 		}
 
-		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil && dc != cfgSnap.Datacenter {
+		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
 			clusterName := cfgSnap.ServerSNIFn(dc, "")
 
 			la := makeLoadAssignment(
