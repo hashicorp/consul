@@ -806,7 +806,7 @@ type RuntimeConfig struct {
 	// HTTPMaxConnsPerClient limits the number of concurrent TCP connections the
 	// HTTP(S) server will accept from any single source IP address.
 	//
-	// hcl: limits{ http_max_conns_per_client = 100 }
+	// hcl: limits{ http_max_conns_per_client = 200 }
 	HTTPMaxConnsPerClient int
 
 	// HTTPSHandshakeTimeout is the time allowed for HTTPS client to complete the
