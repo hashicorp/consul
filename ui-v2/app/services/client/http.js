@@ -58,40 +58,44 @@ export default Service.extend({
   url: function() {
     return url(...arguments);
   },
+  body: function(strs, ...values) {
+    let body = {};
+    const doubleBreak = strs.reduce(function(prev, item, i) {
+      if (item.indexOf('\n\n') !== -1) {
+        return i;
+      }
+      return prev;
+    }, -1);
+    if (doubleBreak !== -1) {
+      // This merges request bodies together, so you can specify multiple bodies
+      // in the request and it will merge them together.
+      // Turns out we never actually do this, so it might be worth removing as it complicates
+      // matters slightly as we assumed post bodies would be an object.
+      // This actually works as it just uses the value of the first object, if its an array
+      // it concats
+      body = values.splice(doubleBreak).reduce(function(prev, item, i) {
+        switch (true) {
+          case Array.isArray(item):
+            if (i === 0) {
+              prev = [];
+            }
+            return prev.concat(item);
+          case typeof item !== 'string':
+            return {
+              ...prev,
+              ...item,
+            };
+          default:
+            return item;
+        }
+      }, body);
+    }
+    return body;
+  },
   request: function(cb) {
     const client = this;
     return cb(function(strs, ...values) {
-      let body = {};
-      const doubleBreak = strs.reduce(function(prev, item, i) {
-        if (item.indexOf('\n\n') !== -1) {
-          return i;
-        }
-        return prev;
-      }, -1);
-      if (doubleBreak !== -1) {
-        // This merges request bodies together, so you can specify multiple bodies
-        // in the request and it will merge them together.
-        // Turns out we never actually do this, so it might be worth removing as it complicates
-        // matters slightly as we assumed post bodies would be an object.
-        // This actually works as it just uses the value of the first object, if its an array
-        // it concats
-        body = values.splice(doubleBreak).reduce(function(prev, item, i) {
-          switch (true) {
-            case Array.isArray(item):
-              if (i === 0) {
-                prev = [];
-              }
-              return prev.concat(item);
-            case typeof item !== 'string':
-              return {
-                ...prev,
-                ...item,
-              };
-            default:
-              return item;
-          }
-        }, body);
-      }
+      const body = client.body(strs, ...values);
       let temp = url(strs, ...values).split(' ');
       const method = temp.shift();
       let rest = temp.join(' ');
