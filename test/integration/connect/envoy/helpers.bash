@@ -179,11 +179,12 @@ function snapshot_envoy_admin {
   local HOSTPORT=$1
   local ENVOY_NAME=$2
   local DC=${3:-primary}
-
-
-  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-config_dump.json"
-  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-clusters.json"
-  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "./workdir/${DC}/envoy/${ENVOY_NAME}-stats.txt"
+  local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
+  
+  mkdir -p "${OUTDIR}"
+  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
+  docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
+  docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "${OUTDIR}/stats.txt"
 }
 
 function reset_envoy_metrics {
