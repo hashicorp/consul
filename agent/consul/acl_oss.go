@@ -24,3 +24,15 @@ func newACLConfig(hclog.Logger) *acl.Config {
 func (r *ACLResolver) resolveEnterpriseDefaultsForIdentity(identity structs.ACLIdentity) (acl.Authorizer, error) {
 	return nil, nil
 }
+
+// resolveEnterpriseIdentityAndRoles will resolve an enterprise identity to an additional set of roles
+func (_ *ACLResolver) resolveEnterpriseIdentityAndRoles(_ structs.ACLIdentity) (structs.ACLIdentity, structs.ACLRoles, error) {
+	// this function does nothing in OSS
+	return nil, nil, nil
+}
+
+// resolveEnterpriseIdentityAndPolicies will resolve an enterprise identity to an additional set of policies
+func (_ *ACLResolver) resolveEnterpriseIdentityAndPolicies(_ structs.ACLIdentity) (structs.ACLIdentity, structs.ACLPolicies, error) {
+	// this function does nothing in OSS
+	return nil, nil, nil
+}
