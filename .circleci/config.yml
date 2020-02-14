@@ -637,7 +637,13 @@ workflows:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
-      - lint-consul-retry
+      - lint-consul-retry:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+                - /^docs\/.*/
+                - /^ui\/.*/
       - go-fmt-and-vet:
           requires:
             - check-vendor
