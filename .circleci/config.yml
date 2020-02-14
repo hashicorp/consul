@@ -635,6 +635,7 @@ workflows:
             branches:
               ignore:
                 - stable-website
+                - /^docs\/.*/
       - lint-consul-retry
       - go-fmt-and-vet:
           requires:
@@ -659,6 +660,7 @@ workflows:
             branches:
               ignore:
                 - stable-website
+                - /^docs\/.*/
       - build-386: &require-check-vendor
           requires:
             - check-vendor
@@ -671,6 +673,7 @@ workflows:
             branches:
               ignore:
                 - stable-website
+                - /^docs\/.*/
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
@@ -726,6 +729,7 @@ workflows:
             branches:
               ignore:
                 - stable-website
+                - /^docs\/.*/
       - ember-build:
           requires:
             - frontend-cache
