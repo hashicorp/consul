@@ -151,6 +151,10 @@ type UpstreamConfig struct {
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
 	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
 
+	// RouteTimeMs is the number of milliseconds that Envoy will wait for the
+	// upstream to respond with a complete response. Default to 300000 (5 mins)
+	// if not set
+	RouteTimeoutMs int `mapstructure:"route_timeout_ms"`
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
 	Limits UpstreamLimits `mapstructure:"limits"`
@@ -175,6 +179,9 @@ func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
 	}
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000
+	}
+	if cfg.RouteTimeoutMs <= 0 {
+		cfg.RouteTimeoutMs = 300000
 	}
 	return cfg, err
 }

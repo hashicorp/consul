@@ -37,7 +37,8 @@
                                                       "path": "/grpc.health.v1.Health/Check"
                                                     },
                                                 "route": {
-                                                      "cluster": "exposed_cluster_9090"
+                                                      "cluster": "exposed_cluster_9090",
+                                                      "timeout": "300s"
                                                     }
                                               }
                                         ]
@@ -89,7 +90,8 @@
                                                       "path": "/health1"
                                                     },
                                                 "route": {
-                                                      "cluster": "local_app"
+                                                      "cluster": "local_app",
+                                                      "timeout": "300s"
                                                     }
                                               }
                                         ]

@@ -144,6 +144,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -152,6 +153,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -163,6 +165,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -173,6 +176,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "http",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -183,6 +187,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
 				Protocol:         "tcp",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -193,6 +198,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
 				Protocol:         "tcp",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -203,6 +209,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
 				Protocol:         "tcp",
+				RouteTimeoutMs:   300000,
 			},
 		},
 		{
@@ -222,6 +229,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					MaxPendingRequests:    intPointer(60),
 					MaxConcurrentRequests: intPointer(70),
 				},
+				RouteTimeoutMs: 300000,
 			},
 		},
 		{
@@ -241,6 +249,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					MaxPendingRequests:    intPointer(0),
 					MaxConcurrentRequests: intPointer(0),
 				},
+				RouteTimeoutMs: 300000,
 			},
 		},
 	}

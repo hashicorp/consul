@@ -121,7 +121,8 @@
                                                       "prefix": "/"
                                                     },
                                                 "route": {
-                                                      "cluster": "local_app"
+                                                      "cluster": "local_app",
+                                                      "timeout": "300s"
                                                     }
                                               }
                                         ]

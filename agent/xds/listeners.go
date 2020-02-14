@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -359,7 +360,7 @@ func (s *Server) makePublicListener(cfgSnap *proxycfg.ConfigSnapshot, token stri
 		l = makeListener(PublicListenerName, addr, port)
 
 		filter, err := makeListenerFilter(
-			false, cfg.Protocol, "public_listener", LocalAppClusterName, "", "", true)
+			false, cfg.Protocol, "public_listener", LocalAppClusterName, "", "", true, 300000)
 		if err != nil {
 			return nil, err
 		}
@@ -403,7 +404,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 
 	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
-	f, err := makeListenerFilter(false, path.Protocol, filterName, cluster, "", path.Path, true)
+	f, err := makeListenerFilter(false, path.Protocol, filterName, cluster, "", path.Path, true, 300000)
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +473,7 @@ func (s *Server) makeUpstreamListenerIgnoreDiscoveryChain(
 
 	l := makeListener(upstreamID, addr, u.LocalBindPort)
 	filter, err := makeListenerFilter(
-		false, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false)
+		false, cfg.Protocol, upstreamID, clusterName, "upstream_", "", false, cfg.RouteTimeoutMs)
 	if err != nil {
 		return nil, err
 	}
@@ -576,6 +577,11 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		proto = "tcp"
 	}
 
+	routeTimeout := cfg.RouteTimeoutMs
+	if routeTimeout == 0 {
+		routeTimeout = 15000
+	}
+
 	useRDS := true
 	clusterName := ""
 	if proto == "tcp" {
@@ -592,7 +598,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	}
 
 	filter, err := makeListenerFilter(
-		useRDS, proto, upstreamID, clusterName, "upstream_", "", false)
+		useRDS, proto, upstreamID, clusterName, "upstream_", "", false, routeTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -609,15 +615,15 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 
 func makeListenerFilter(
 	useRDS bool,
-	protocol, filterName, cluster, statPrefix, routePath string, ingress bool) (envoylistener.Filter, error) {
+	protocol, filterName, cluster, statPrefix, routePath string, ingress bool, routeTimeout int) (envoylistener.Filter, error) {
 
 	switch protocol {
 	case "grpc":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, true, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, routeTimeout, ingress, true, true)
 	case "http2":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, true)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, routeTimeout, ingress, false, true)
 	case "http":
-		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, ingress, false, false)
+		return makeHTTPFilter(useRDS, filterName, cluster, statPrefix, routePath, routeTimeout, ingress, false, false)
 	case "tcp":
 		fallthrough
 	default:
@@ -664,6 +670,7 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 func makeHTTPFilter(
 	useRDS bool,
 	filterName, cluster, statPrefix, routePath string,
+	routeTimeout int,
 	ingress, grpc, http2 bool,
 ) (envoylistener.Filter, error) {
 	op := envoyhttp.INGRESS
@@ -726,6 +733,7 @@ func makeHTTPFilter(
 					ClusterSpecifier: &envoyroute.RouteAction_Cluster{
 						Cluster: cluster,
 					},
+					Timeout: addrOfTime(time.Duration(routeTimeout) * time.Millisecond),
 				},
 			},
 		}
@@ -842,4 +850,8 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 			},
 		},
 	}
+}
+
+func addrOfTime(t time.Duration) *time.Duration {
+	return &t
 }

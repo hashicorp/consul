@@ -35,7 +35,8 @@
                                                       "path": "/health1"
                                                     },
                                                 "route": {
-                                                      "cluster": "local_app"
+                                                      "cluster": "local_app",
+                                                      "timeout": "300s"
                                                     }
                                               }
                                         ]
@@ -87,7 +88,8 @@
                                                       "path": "/health2"
                                                     },
                                                 "route": {
-                                                      "cluster": "local_app"
+                                                      "cluster": "local_app",
+                                                      "timeout": "300s"
                                                     }
                                               }
                                         ]

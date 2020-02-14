@@ -3,9 +3,9 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"strings"
-
 	"github.com/gogo/protobuf/proto"
+	"strings"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -317,6 +317,7 @@ func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDis
 			ClusterSpecifier: &envoyroute.RouteAction_Cluster{
 				Cluster: clusterName,
 			},
+			Timeout: addrOfTime(5 * time.Minute),
 		},
 	}
 }
@@ -353,6 +354,7 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
 			},
+			Timeout: addrOfTime(5 * time.Minute),
 		},
 	}, nil
 }
