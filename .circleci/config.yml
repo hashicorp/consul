@@ -636,7 +636,14 @@ workflows:
               ignore:
                 - stable-website
                 - /^docs\/.*/
-      - lint-consul-retry
+                - /^ui\/.*/
+      - lint-consul-retry:
+          filters:
+            branches:
+              ignore:
+                - stable-website
+                - /^docs\/.*/
+                - /^ui\/.*/
       - go-fmt-and-vet:
           requires:
             - check-vendor
@@ -661,6 +668,7 @@ workflows:
               ignore:
                 - stable-website
                 - /^docs\/.*/
+                - /^ui\/.*/
       - build-386: &require-check-vendor
           requires:
             - check-vendor
@@ -674,6 +682,7 @@ workflows:
               ignore:
                 - stable-website
                 - /^docs\/.*/
+                - /^ui\/.*/
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
