@@ -1,6 +1,7 @@
 package bindingrulelist
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -160,5 +162,30 @@ func TestBindingRuleListCommand(t *testing.T) {
 				require.Contains(t, output, v)
 			}
 		}
+	})
+
+	t.Run("normal json formatted", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+		output := ui.OutputWriter.String()
+
+		for i, v := range ruleIDs {
+			require.Contains(t, output, fmt.Sprintf("test-rule-%d", i))
+			require.Contains(t, output, v)
+		}
+
+		var jsonOutput json.RawMessage
+		err := json.Unmarshal([]byte(output), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }

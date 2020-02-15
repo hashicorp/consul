@@ -3,8 +3,9 @@ package authmethodlist
 import (
 	"flag"
 	"fmt"
+	"strings"
 
-	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/authmethod"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -22,6 +23,7 @@ type cmd struct {
 	help  string
 
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -33,6 +35,12 @@ func (c *cmd) init() {
 		false,
 		"Indicates that auth method metadata such "+
 			"as the raft indices should be shown for each entry.",
+	)
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		authmethod.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
 
 	c.http = &flags.HTTPFlags{}
@@ -59,8 +67,19 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	for _, method := range methods {
-		acl.PrintAuthMethodListEntry(method, c.UI, c.showMeta)
+	formatter, err := authmethod.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	out, err := formatter.FormatAuthMethodList(methods)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
 	}
 
 	return 0

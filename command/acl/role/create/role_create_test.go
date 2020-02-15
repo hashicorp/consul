@@ -1,6 +1,7 @@
 package rolecreate
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +23,7 @@ func TestRoleCreateCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestRoleCreateCommand(t *testing.T) {
+func TestRoleCreateCommand_Pretty(t *testing.T) {
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
@@ -109,5 +111,56 @@ func TestRoleCreateCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
+	}
+}
+
+func TestRoleCreateCommand_JSON(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	// Create a policy
+	client := a.Client()
+
+	policy, _, err := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "test-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+
+	// create with policy by name
+	{
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-name=role-with-policy-by-name",
+			"-description=test-role",
+			"-policy-name=" + policy.Name,
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		var jsonOutput json.RawMessage
+		err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+		assert.NoError(t, err)
 	}
 }

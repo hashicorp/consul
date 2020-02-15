@@ -1,6 +1,7 @@
 package bindingruleupdate
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -423,6 +425,45 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 		require.Equal(t, api.BindingRuleBindTypeRole, rule.BindType)
 		require.Equal(t, "role-updated", rule.BindName)
 		require.Empty(t, rule.Selector)
+	})
+
+	t.Run("update all fields json formatted", func(t *testing.T) {
+		id := createRule(t)
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-id", id,
+			"-description=test rule edited",
+			"-bind-type", "role",
+			"-bind-name=role-updated",
+			"-selector=serviceaccount.namespace==alt and serviceaccount.name==demo",
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0, "err: %s", ui.ErrorWriter.String())
+		require.Empty(t, ui.ErrorWriter.String())
+
+		rule, _, err := client.ACL().BindingRuleRead(
+			id,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, rule)
+
+		require.Equal(t, "test rule edited", rule.Description)
+		require.Equal(t, "role-updated", rule.BindName)
+		require.Equal(t, api.BindingRuleBindTypeRole, rule.BindType)
+		require.Equal(t, "serviceaccount.namespace==alt and serviceaccount.name==demo", rule.Selector)
+
+		output := ui.OutputWriter.String()
+		var jsonOutput json.RawMessage
+		err = json.Unmarshal([]byte(output), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }
 

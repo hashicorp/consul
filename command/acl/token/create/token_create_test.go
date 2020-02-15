@@ -1,6 +1,7 @@
 package tokencreate
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -21,7 +22,7 @@ func TestTokenCreateCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestTokenCreateCommand(t *testing.T) {
+func TestTokenCreateCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
@@ -109,5 +110,56 @@ func TestTokenCreateCommand(t *testing.T) {
 		require.NoError(err)
 		require.Equal("3d852bb8-5153-4388-a3ca-8ca78661889f", token.AccessorID)
 		require.Equal("3a69a8d8-c4d4-485d-9b19-b5b61648ea0c", token.SecretID)
+	}
+}
+
+func TestTokenCreateCommand_JSON(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	// Create a policy
+	client := a.Client()
+
+	policy, _, err := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "test-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(err)
+
+	// create with policy by name
+	{
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-policy-name=" + policy.Name,
+			"-description=test token",
+			"-format=json",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(code, 0)
+		require.Empty(ui.ErrorWriter.String())
+
+		var jsonOutput json.RawMessage
+		err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+		require.NoError(err, "token unmarshalling error")
 	}
 }

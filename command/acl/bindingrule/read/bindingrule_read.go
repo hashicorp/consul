@@ -3,8 +3,10 @@ package bindingruleread
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/bindingrule"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -24,6 +26,7 @@ type cmd struct {
 	ruleID string
 
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -46,6 +49,12 @@ func (c *cmd) init() {
 			"matches multiple binding rule IDs",
 	)
 
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		bindingrule.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(bindingrule.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -84,7 +93,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	acl.PrintBindingRule(rule, c.UI, c.showMeta)
+	formatter, err := bindingrule.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	out, err := formatter.FormatBindingRule(rule)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

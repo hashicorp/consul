@@ -3,9 +3,11 @@ package roleupdate
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/role"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -31,6 +33,7 @@ type cmd struct {
 
 	noMerge  bool
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -52,6 +55,12 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.noMerge, "no-merge", false, "Do not merge the current role "+
 		"information with what is provided to the command. Instead overwrite all fields "+
 		"with the exception of the role ID which is immutable.")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		role.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(role.GetSupportedFormats(), "|")),
+	)
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -98,9 +107,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var role *api.ACLRole
+	var r *api.ACLRole
 	if c.noMerge {
-		role = &api.ACLRole{
+		r = &api.ACLRole{
 			ID:                c.roleID,
 			Name:              c.name,
 			Description:       c.description,
@@ -110,7 +119,7 @@ func (c *cmd) Run(args []string) int {
 		for _, policyName := range c.policyNames {
 			// We could resolve names to IDs here but there isn't any reason
 			// why its would be better than allowing the agent to do it.
-			role.Policies = append(role.Policies, &api.ACLRolePolicyLink{Name: policyName})
+			r.Policies = append(r.Policies, &api.ACLRolePolicyLink{Name: policyName})
 		}
 
 		for _, policyID := range c.policyIDs {
@@ -119,21 +128,21 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Error(fmt.Sprintf("Error resolving policy ID %s: %v", policyID, err))
 				return 1
 			}
-			role.Policies = append(role.Policies, &api.ACLRolePolicyLink{ID: policyID})
+			r.Policies = append(r.Policies, &api.ACLRolePolicyLink{ID: policyID})
 		}
 	} else {
-		role = currentRole
+		r = currentRole
 
 		if c.name != "" {
-			role.Name = c.name
+			r.Name = c.name
 		}
 		if c.description != "" {
-			role.Description = c.description
+			r.Description = c.description
 		}
 
 		for _, policyName := range c.policyNames {
 			found := false
-			for _, link := range role.Policies {
+			for _, link := range r.Policies {
 				if link.Name == policyName {
 					found = true
 					break
@@ -144,7 +153,7 @@ func (c *cmd) Run(args []string) int {
 				// We could resolve names to IDs here but there isn't any
 				// reason why its would be better than allowing the agent to do
 				// it.
-				role.Policies = append(role.Policies, &api.ACLRolePolicyLink{Name: policyName})
+				r.Policies = append(r.Policies, &api.ACLRolePolicyLink{Name: policyName})
 			}
 		}
 
@@ -156,7 +165,7 @@ func (c *cmd) Run(args []string) int {
 			}
 			found := false
 
-			for _, link := range role.Policies {
+			for _, link := range r.Policies {
 				if link.ID == policyID {
 					found = true
 					break
@@ -164,13 +173,13 @@ func (c *cmd) Run(args []string) int {
 			}
 
 			if !found {
-				role.Policies = append(role.Policies, &api.ACLRolePolicyLink{ID: policyID})
+				r.Policies = append(r.Policies, &api.ACLRolePolicyLink{ID: policyID})
 			}
 		}
 
 		for _, svcid := range parsedServiceIdents {
 			found := -1
-			for i, link := range role.ServiceIdentities {
+			for i, link := range r.ServiceIdentities {
 				if link.ServiceName == svcid.ServiceName {
 					found = i
 					break
@@ -178,21 +187,32 @@ func (c *cmd) Run(args []string) int {
 			}
 
 			if found != -1 {
-				role.ServiceIdentities[found] = svcid
+				r.ServiceIdentities[found] = svcid
 			} else {
-				role.ServiceIdentities = append(role.ServiceIdentities, svcid)
+				r.ServiceIdentities = append(r.ServiceIdentities, svcid)
 			}
 		}
 	}
 
-	role, _, err = client.ACL().RoleUpdate(role, nil)
+	r, _, err = client.ACL().RoleUpdate(r, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error updating role %q: %v", roleID, err))
 		return 1
 	}
 
-	c.UI.Info(fmt.Sprintf("Role updated successfully"))
-	acl.PrintRole(role, c.UI, c.showMeta)
+	formatter, err := role.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatRole(r)
+	if err != nil {
+		c.UI.Error(err.Error())
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 

@@ -1,6 +1,7 @@
 package authmethodupdate
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	// activate testing auth method
@@ -121,6 +123,94 @@ func TestAuthMethodUpdateCommand(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, method)
 		require.Equal(t, "updated description", method.Description)
+	})
+}
+
+func TestAuthMethodUpdateCommand_JSON(t *testing.T) {
+	t.Parallel()
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	client := a.Client()
+
+	t.Run("update without name", func(t *testing.T) {
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 1)
+		require.Contains(t, ui.ErrorWriter.String(), "Cannot update an auth method without specifying the -name parameter")
+	})
+
+	createAuthMethod := func(t *testing.T) string {
+		id, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		methodName := "test-" + id
+
+		_, _, err = client.ACL().AuthMethodCreate(
+			&api.ACLAuthMethod{
+				Name:        methodName,
+				Type:        "testing",
+				Description: "test",
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		return methodName
+	}
+
+	t.Run("update all fields", func(t *testing.T) {
+		name := createAuthMethod(t)
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-name=" + name,
+			"-description", "updated description",
+			"-format=json",
+		}
+
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(args)
+		require.Equal(t, code, 0)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		method, _, err := client.ACL().AuthMethodRead(
+			name,
+			&api.QueryOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+		require.NotNil(t, method)
+		require.Equal(t, "updated description", method.Description)
+
+		output := ui.OutputWriter.String()
+
+		var jsonOutput json.RawMessage
+		err = json.Unmarshal([]byte(output), &jsonOutput)
+		assert.NoError(t, err)
 	})
 }
 

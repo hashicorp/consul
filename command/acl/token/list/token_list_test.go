@@ -1,6 +1,7 @@
 package tokenlist
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTokenListCommand_noTabs(t *testing.T) {
@@ -22,7 +24,7 @@ func TestTokenListCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestTokenListCommand(t *testing.T) {
+func TestTokenListCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -74,4 +76,57 @@ func TestTokenListCommand(t *testing.T) {
 		assert.Contains(output, fmt.Sprintf("test token %d", i))
 		assert.Contains(output, v)
 	}
+}
+
+func TestTokenListCommand_JSON(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	testDir := testutil.TempDir(t, "acl")
+	defer os.RemoveAll(testDir)
+
+	a := agent.NewTestAgent(t, t.Name(), `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	var tokenIds []string
+
+	// Create a couple tokens to list
+	client := a.Client()
+	for i := 0; i < 5; i++ {
+		description := fmt.Sprintf("test token %d", i)
+
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{Description: description},
+			&api.WriteOptions{Token: "root"},
+		)
+		tokenIds = append(tokenIds, token.AccessorID)
+
+		assert.NoError(err)
+	}
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+		"-format=json",
+	}
+
+	code := cmd.Run(args)
+	assert.Equal(code, 0)
+	assert.Empty(ui.ErrorWriter.String())
+
+	var jsonOutput json.RawMessage
+	err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+	require.NoError(t, err, "token unmarshalling error")
 }
