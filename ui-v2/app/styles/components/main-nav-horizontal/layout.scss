@@ -1,7 +1,7 @@
-%main-nav-horizontal [type='checkbox'] ~ div {
+%main-nav-horizontal > ul > li > [type='checkbox'] ~ div {
   display: none;
 }
-%main-nav-horizontal [type='checkbox']:checked ~ div {
+%main-nav-horizontal > ul > li > [type='checkbox']:checked ~ div {
   display: block;
 }
 %main-nav-horizontal [type='checkbox'] + label > * {
