@@ -41,7 +41,11 @@ export default Service.extend({
           return repo.findAllByDatacenter(dc, nspace, configuration);
         };
         break;
-      // weirder ones
+      case 'session':
+        obj.find = function(configuration) {
+          return repo.findByNode(slug, dc, nspace, configuration);
+        };
+        break;
       case 'service-instance':
         temp = slug.split('/');
         id = temp[0];
