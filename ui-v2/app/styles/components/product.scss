@@ -3,6 +3,16 @@
 html body > svg {
   display: none;
 }
+%main-nav-horizontal .docs-link a::after {
+  @extend %with-learn-icon, %as-pseudo;
+}
+
+%main-nav-horizontal .learn-link a::after {
+  @extend %with-docs-icon, %as-pseudo;
+}
+%main-nav-horizontal .feedback-link a::after {
+  @extend %with-logo-github-monochrome-icon, %as-pseudo;
+}
 html.ember-loading body > svg {
   @extend %brand-loader;
 }
