@@ -5,7 +5,7 @@ references:
   images:
     go: &GOLANG_IMAGE circleci/golang:1.14.1
     middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.40
-    ember: &EMBER_IMAGE circleci/node:8-browsers
+    ember: &EMBER_IMAGE circleci/node:12-browsers
 
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
