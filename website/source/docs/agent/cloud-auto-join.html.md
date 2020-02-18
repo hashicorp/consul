@@ -244,8 +244,11 @@ $ consul agent -retry-join "provider=os tag_key=consul tag_value=server username
 - `provider` (required) - the name of the provider ("os" in this case).
 - `tag_key` (required) - the key of the tag to auto-join on.
 - `tag_value` (required) - the value of the tag to auto-join on.
+- `domain_name` (optional) - the name of the domain.
+- `domain_id` (optional) - the id of the domain.
 - `project_id` (optional) - the id of the project (tenant id).
-- `username` (optional) - the username to use for auth.
+- `region` (optional) - the name of the region.
+- `user_name` (optional) - the username to use for auth.
 - `password` (optional) - the password to use for auth.
 - `token` (optional) - the token to use for auth.
 - `auth_url` (optional) - the identity endpoint to use for auth.
