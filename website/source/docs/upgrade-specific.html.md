@@ -315,6 +315,12 @@ config files loaded by Consul, even when using the
 [`-config-file`](/docs/agent/options.html#_config_file) argument to specify a
 file directly.
 
+#### Service Definition Parameter Case changed
+
+All config file formats now require snake_case fields, so all CamelCased parameter
+names should be changed before upgrading.
+See [Service Definition Parameter Case](https://www.consul.io/docs/agent/services.html#service-definition-parameter-case) documentation for details.
+
 #### Deprecated Options Have Been Removed
 
 All of Consul's previously deprecated command line flags and config options
