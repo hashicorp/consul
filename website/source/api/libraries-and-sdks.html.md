@@ -25,6 +25,9 @@ the community.
     <a href="https://github.com/cablehead/python-consul">python-consul</a> - Python client for the Consul HTTP API
   </li>
   <li>
+    <a href="https://github.com/poppyred/python-consul2">python-consul2</a> - Python client for the Consul HTTP API
+  </li>
+  <li>
     <a href="https://github.com/vdloo/consul-kv">consul-kv</a> - Python 3 client for the Consul KV-store
   </li>
   <li>
