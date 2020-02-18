@@ -8,7 +8,7 @@ behavior "remove_labels_on_reply" "remove_stale" {
 }
 
 poll "stale_issue_closer" "waiting_reply_closer" {
-    schedule = "1 0 * * *"
+    schedule = "0 0 2 * * *"
     no_reply_in_last = "480h" # 20 days
     max_issues = 50
     sleep_between_issues = "5s"
@@ -23,9 +23,9 @@ poll "stale_issue_closer" "waiting_reply_closer" {
 }
 
 poll "stale_issue_closer" "old_issue_closer" {
-    schedule = "*/5 * * * *"
-    no_reply_in_last = "1s" # hack to close issue with that label immediately.
-    max_issues = 50
+    schedule = "0 0 3 * * *"
+    no_reply_in_last = "1s"
+    max_issues = 100
     sleep_between_issues = "5s"
     labels = ["close-old-issue-🤖"]
     message = <<-EOF
@@ -36,7 +36,7 @@ poll "stale_issue_closer" "old_issue_closer" {
 }
 
 # poll "closed_issue_locker" "locker" {
-#   schedule             = "1 1 * * *"
+#   schedule             = "0 0 4 * * *"
 #   closed_for           = "720h" # 30 days
 #   max_issues           = 250
 #   sleep_between_issues = "1m"
