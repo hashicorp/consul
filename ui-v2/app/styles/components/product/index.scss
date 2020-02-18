@@ -24,9 +24,6 @@
 %secondary-nav {
   @extend %main-nav-horizontal;
 }
-%primary-nav label + div {
-  @extend %main-nav-horizontal-drop-nav;
-}
 @media #{$--lt-horizontal-nav} {
   %primary-nav {
     margin-top: 65px;

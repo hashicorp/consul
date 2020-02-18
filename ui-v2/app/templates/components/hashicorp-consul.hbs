@@ -16,7 +16,7 @@
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
-                        {{#popover-menu}}
+                        {{#popover-menu position='left'}}
                           {{#block-slot name='trigger'}}
                             {{nspace.Name}}
                           {{/block-slot}}
@@ -51,7 +51,7 @@
   {{#if (or (not dcs) (eq dcs.length 1)) }}
                         <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
   {{ else }}
-                        {{#popover-menu}}
+                        {{#popover-menu position='left'}}
                           {{#block-slot name='trigger'}}
                             {{dc.Name}}
                           {{/block-slot}}
@@ -90,7 +90,23 @@
             <nav>
                 <ul>
                     <li data-test-main-nav-docs>
-                        <a href="{{ env 'CONSUL_DOCS_URL'}}" rel="help noopener noreferrer" target="_blank">Documentation</a>
+                      {{#popover-menu position='right'}}
+                        {{#block-slot name='trigger'}}
+                          Help
+                        {{/block-slot}}
+                        {{#block-slot name='menu'}}
+                          <li role="none" class="docs-link">
+                            <a tabindex="-1" role="menuitem" href={{env 'CONSUL_DOCS_URL'}} rel="noopener noreferrer" target="_blank">Documentation</a>
+                          </li>
+                          <li role="none" class="learn-link">
+                            <a tabindex="-1" role="menuitem" href={{env 'CONSUL_DOCS_LEARN_URL'}} rel="noopener noreferrer" target="_blank">HashiCorp Learn</a>
+                          </li>
+                          <li role="separator"></li>
+                          <li role="none" class="feedback-link">
+                            <a tabindex="-1" role="menuitem" href={{env 'CONSUL_REPO_ISSUES_URL'}} target="_blank" rel="noopener noreferrer">Provide Feedback</a>
+                          </li>
+                        {{/block-slot}}
+                      {{/popover-menu}}
                     </li>
                     <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
                         <a href={{href-to 'settings'}}>Settings</a>
