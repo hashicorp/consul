@@ -6,7 +6,8 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
-* xds: fix envoy retryOn behavior when multiple behaviors are configured [[GH-7280](https://github.com/hashicorp/consul/pull/7280)]
+* dns: Fixed an issue that could cause the DNS server to consume excessive CPU resources when trying to parse IPv6 recursor addresses: [[GH-6120](https://github.com/hashicorp/consul/issues/6120)]
+* xds: Fix envoy retryOn behavior when multiple behaviors are configured [[GH-7280](https://github.com/hashicorp/consul/pull/7280)]
 
 ## 1.7.0 (February 11, 2020)
 
