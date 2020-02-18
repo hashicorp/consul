@@ -232,7 +232,7 @@ func (g *GatewayLocator) updateFromState(results []*structs.FederationState) {
 	}
 
 	if changed {
-		g.logger.Debug(
+		g.logger.Info(
 			"new cached locations of mesh gateways",
 			"primary", primaryAddrs,
 			"local", localAddrs,
