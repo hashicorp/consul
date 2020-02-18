@@ -6,6 +6,7 @@ IMPROVEMENTS:
 
 BUGFIXES:
 
+* acl: **(Consul Enterprise only)** Fixed an issue that prevented remote policy and role resolution from working when namespace policy or role defaults were configured.
 * dns: Fixed an issue that could cause the DNS server to consume excessive CPU resources when trying to parse IPv6 recursor addresses: [[GH-6120](https://github.com/hashicorp/consul/issues/6120)]
 * sessions: Fixed an issue that was causing deletions of a non-existent session to return a 500 when ACLs were enabled. [[GH-6840](https://github.com/hashicorp/consul/issues/6840)]
 * xds: Fix envoy retryOn behavior when multiple behaviors are configured [[GH-7280](https://github.com/hashicorp/consul/pull/7280)]
