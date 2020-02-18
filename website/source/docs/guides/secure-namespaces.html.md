@@ -92,7 +92,7 @@ In this section, you will delegate token management to multiple operators. One o
 
 The namespaced-operators are then responsible for managing access to services, Consul KV, and other resources within their namespaces. Additionally, the namespaced-operator should further delegate service-access privileges to developers or end-users. This is consistent with the current ACL management workflow. Before namespaces, only one or a few operators managed tokens for an entire datacenter. 
 
-Note that namespaces control access to Consul data and services. They don't have any impact on compute or other node resoursces, and nodes themselves are not namespaced.
+Note that namespaces control access to Consul data and services. They don't have any impact on compute or other node resources, and nodes themselves are not namespaced.
 
 Namespaced-operators will only be aware of data within their namespaces. Without global privileges, they will not be able to see other namespaces. 
 
