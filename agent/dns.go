@@ -274,9 +274,16 @@ func recursorAddr(recursor string) (string, error) {
 	// Add the port if none
 START:
 	_, _, err := net.SplitHostPort(recursor)
-	if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
-		recursor = ipaddr.FormatAddressPort(recursor, 53)
-		goto START
+	if ae, ok := err.(*net.AddrError); ok {
+		if ae.Err == "missing port in address" {
+			recursor = ipaddr.FormatAddressPort(recursor, 53)
+			goto START
+		} else if ae.Err == "too many colons in address" {
+			if ip := net.ParseIP(recursor); ip != nil && ip.To4() == nil {
+				recursor = ipaddr.FormatAddressPort(recursor, 53)
+				goto START
+			}
+		}
 	}
 	if err != nil {
 		return "", err
