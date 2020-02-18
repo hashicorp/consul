@@ -32,7 +32,7 @@
   color: inherit;
 }
 %main-nav-horizontal-toggle,
-%main-nav-horizontal input {
+%main-nav-horizontal input[type='checkbox'] {
   display: none;
 }
 %main-nav-horizontal [type='checkbox'] + label > *::after {

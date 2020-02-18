@@ -9,6 +9,9 @@ export default Component.extend(Slotted, {
   expanded: false,
   keyboardAccess: true,
   onchange: function() {},
+  // TODO: this needs to be made dynamic/auto detect
+  // for now use this to set left/right explicitly
+  position: '',
   init: function() {
     this._super(...arguments);
     this.guid = this.dom.guid(this);
