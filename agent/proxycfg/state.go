@@ -292,6 +292,9 @@ func (s *state) initWatchesConnectProxy() error {
 				Connect:       true,
 				Source:        *s.source,
 			}, "upstream:"+u.Identifier(), s.ch)
+			if err != nil {
+				return err
+			}
 
 		case structs.UpstreamDestTypeService:
 			fallthrough
@@ -370,6 +373,9 @@ func (s *state) initWatchesMeshGateway() error {
 	err = s.cache.Notify(s.ctx, cachetype.CatalogDatacentersName, &structs.DatacentersRequest{
 		QueryOptions: structs.QueryOptions{Token: s.token, MaxAge: 30 * time.Second},
 	}, datacentersWatchID, s.ch)
+	if err != nil {
+		return err
+	}
 
 	// Once we start getting notified about the datacenters we will setup watches on the
 	// gateways within those other datacenters. We cannot do that here because we don't
