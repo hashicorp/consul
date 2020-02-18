@@ -1,6 +1,8 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
+import getNspaceRunner from 'consul-ui/tests/helpers/get-nspace-runner';
 
+const nspaceRunner = getNspaceRunner('discovery-chain');
 module('Integration | Adapter | discovery-chain', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -23,5 +25,26 @@ module('Integration | Adapter | discovery-chain', function(hooks) {
         dc: dc,
       });
     });
+  });
+  test('requestForQueryRecord returns the correct body', function(assert) {
+    return nspaceRunner(
+      (adapter, serializer, client) => {
+        return adapter.requestForQueryRecord(client.body, {
+          id: id,
+          dc: dc,
+          ns: 'team-1',
+          index: 1,
+        });
+      },
+      {
+        index: 1,
+        ns: 'team-1',
+      },
+      {
+        index: 1,
+      },
+      this,
+      assert
+    );
   });
 });
