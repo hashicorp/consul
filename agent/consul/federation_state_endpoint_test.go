@@ -482,6 +482,11 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	}
 
 	cases := map[string]tcase{
+		"no token": tcase{
+			token:       "",
+			listDenied:  true,
+			gwListEmpty: true,
+		},
 		"no perms": tcase{
 			token:       nadaToken.SecretID,
 			listDenied:  true,
