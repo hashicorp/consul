@@ -7,7 +7,7 @@
       {{/yield-slot}}
     </button>
   {{/toggle-button}}
-  <div>
+  <div class={{position}}>
     <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
     {{#each submenus as |sub|}}
       <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} />

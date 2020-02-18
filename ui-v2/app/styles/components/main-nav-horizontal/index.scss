@@ -18,6 +18,9 @@
 %main-nav-horizontal > ul > li.is-active > label > * {
   @extend %main-nav-horizontal-action-active;
 }
+%main-nav-horizontal label + div {
+  @extend %main-nav-horizontal-drop-nav;
+}
 %main-nav-horizontal-drop-nav {
   @extend %menu-panel;
 }
