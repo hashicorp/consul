@@ -33,7 +33,7 @@ Feature: dc / list-blocking
     When I visit the [Page] page for yaml
     ---
       dc: dc-1
-      service: service-0
+      service: service-0-proxy
     ---
     Then the url should be /dc-1/[Url]
     And pause until I see 3 [Model] models
@@ -44,7 +44,7 @@ Feature: dc / list-blocking
     And an external edit results in 0 [Model] models
     And pause until I see the text "deregistered" in "[data-notification]"
   Where:
-    -------------------------------------------------
-    | Page       | Model       | Url                |
-    | service    | instance    | services/service-0 |
-    -------------------------------------------------
+    -------------------------------------------------------
+    | Page       | Model       | Url                      |
+    | service    | instance    | services/service-0-proxy |
+    -------------------------------------------------------
