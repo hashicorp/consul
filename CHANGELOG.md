@@ -4,6 +4,10 @@ IMPROVEMENTS:
 
 * build: Switched to compile with Go 1.13.7 [GH-7262]
 
+BUGFIXES:
+
+* xds: fix envoy retryOn behavior when multiple behaviors are configured [[GH-7280](https://github.com/hashicorp/consul/pull/7280)]
+
 ## 1.7.0 (February 11, 2020)
 
 NOTES:
