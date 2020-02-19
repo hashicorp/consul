@@ -671,7 +671,7 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		return fmt.Errorf("failed service lookup: %s", err)
 	}
 
-	if err = structs.ValidateMetadata(svc.Meta, false); err != nil {
+	if err = structs.ValidateServiceMetadata(svc.Kind, svc.Meta, false); err != nil {
 		return fmt.Errorf("Invalid Service Meta for node %s and serviceID %s: %v", node, svc.ID, err)
 	}
 	// Create the service node entry and populate the indexes. Note that

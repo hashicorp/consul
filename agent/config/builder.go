@@ -1104,7 +1104,7 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.DNSARecordLimit < 0 {
 		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)
 	}
-	if err := structs.ValidateMetadata(rt.NodeMeta, false); err != nil {
+	if err := structs.ValidateNodeMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)
 	}
 	if rt.EncryptKey != "" {
@@ -1358,8 +1358,10 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		checks = append(checks, b.checkVal(v.Check).CheckType())
 	}
 
+	kind := b.serviceKindVal(v.Kind)
+
 	meta := make(map[string]string)
-	if err := structs.ValidateMetadata(v.Meta, false); err != nil {
+	if err := structs.ValidateServiceMetadata(kind, v.Meta, false); err != nil {
 		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", b.stringVal(v.Name), err))
 	} else {
 		meta = v.Meta
@@ -1378,7 +1380,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", b.stringVal(v.Name), err))
 	}
 	return &structs.ServiceDefinition{
-		Kind:              b.serviceKindVal(v.Kind),
+		Kind:              kind,
 		ID:                b.stringVal(v.ID),
 		Name:              b.stringVal(v.Name),
 		Tags:              v.Tags,

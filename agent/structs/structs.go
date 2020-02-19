@@ -101,7 +101,7 @@ const (
 
 	// MetaWANFederationKey is the mesh gateway metadata key that indicates a
 	// mesh gateway is usable for wan federation.
-	MetaWANFederationKey = "wan-federation"
+	MetaWANFederationKey = "consul-wan-federation"
 
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
@@ -119,6 +119,8 @@ const (
 	// The exact semantics of the wildcard is left up to the code where its used.
 	WildcardSpecifier = "*"
 )
+
+var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: struct{}{}}
 
 var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
@@ -646,14 +648,30 @@ func (n *Node) IsSame(other *Node) bool {
 		reflect.DeepEqual(n.Meta, other.Meta)
 }
 
+// ValidateNodeMetadata validates a set of key/value pairs from the agent
+// config for use on a Node.
+func ValidateNodeMetadata(meta map[string]string, allowConsulPrefix bool) error {
+	return validateMetadata(meta, allowConsulPrefix, nil)
+}
+
+// ValidateServiceMetadata validates a set of key/value pairs from the agent config for use on a Service.
 // ValidateMeta validates a set of key/value pairs from the agent config
-func ValidateMetadata(meta map[string]string, allowConsulPrefix bool) error {
+func ValidateServiceMetadata(kind ServiceKind, meta map[string]string, allowConsulPrefix bool) error {
+	switch kind {
+	case ServiceKindMeshGateway:
+		return validateMetadata(meta, allowConsulPrefix, allowedConsulMetaKeysForMeshGateway)
+	default:
+		return validateMetadata(meta, allowConsulPrefix, nil)
+	}
+}
+
+func validateMetadata(meta map[string]string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
 	if len(meta) > metaMaxKeyPairs {
 		return fmt.Errorf("Node metadata cannot contain more than %d key/value pairs", metaMaxKeyPairs)
 	}
 
 	for key, value := range meta {
-		if err := validateMetaPair(key, value, allowConsulPrefix); err != nil {
+		if err := validateMetaPair(key, value, allowConsulPrefix, allowedConsulKeys); err != nil {
 			return fmt.Errorf("Couldn't load metadata pair ('%s', '%s'): %s", key, value, err)
 		}
 	}
@@ -679,7 +697,7 @@ func ValidateWeights(weights *Weights) error {
 }
 
 // validateMetaPair checks that the given key/value pair is in a valid format
-func validateMetaPair(key, value string, allowConsulPrefix bool) error {
+func validateMetaPair(key, value string, allowConsulPrefix bool, allowedConsulKeys map[string]struct{}) error {
 	if key == "" {
 		return fmt.Errorf("Key cannot be blank")
 	}
@@ -689,8 +707,10 @@ func validateMetaPair(key, value string, allowConsulPrefix bool) error {
 	if len(key) > metaKeyMaxLength {
 		return fmt.Errorf("Key is too long (limit: %d characters)", metaKeyMaxLength)
 	}
-	if strings.HasPrefix(key, metaKeyReservedPrefix) && !allowConsulPrefix {
-		return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
+	if strings.HasPrefix(key, metaKeyReservedPrefix) {
+		if _, ok := allowedConsulKeys[key]; !allowConsulPrefix && !ok {
+			return fmt.Errorf("Key prefix '%s' is reserved for internal use", metaKeyReservedPrefix)
+		}
 	}
 	if len(value) > metaValueMaxLength {
 		return fmt.Errorf("Value is too long (limit: %d characters)", metaValueMaxLength)

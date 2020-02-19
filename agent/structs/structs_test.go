@@ -1164,45 +1164,102 @@ func TestStructs_DirEntry_Clone(t *testing.T) {
 	}
 }
 
-func TestStructs_ValidateMetadata(t *testing.T) {
-	// Load a valid set of key/value pairs
-	meta := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-	}
-	// Should succeed
-	if err := ValidateMetadata(meta, false); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Should get error
-	meta = map[string]string{
-		"": "value1",
-	}
-	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "Couldn't load metadata pair") {
-		t.Fatalf("should have failed")
-	}
-
-	// Should get error
-	meta = make(map[string]string)
+func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
+	tooMuchMeta := make(map[string]string)
 	for i := 0; i < metaMaxKeyPairs+1; i++ {
-		meta[string(i)] = "value"
+		tooMuchMeta[string(i)] = "value"
 	}
-	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "cannot contain more than") {
-		t.Fatalf("should have failed")
+	type testcase struct {
+		Meta              map[string]string
+		AllowConsulPrefix bool
+		NodeError         string
+		ServiceError      string
+		GatewayError      string
+	}
+	cases := map[string]testcase{
+		"should succeed": {
+			map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			false,
+			"",
+			"",
+			"",
+		},
+		"invalid key": {
+			map[string]string{
+				"": "value1",
+			},
+			false,
+			"Couldn't load metadata pair",
+			"Couldn't load metadata pair",
+			"Couldn't load metadata pair",
+		},
+		"too many keys": {
+			tooMuchMeta,
+			false,
+			"cannot contain more than",
+			"cannot contain more than",
+			"cannot contain more than",
+		},
+		"reserved key prefix denied": {
+			map[string]string{
+				metaKeyReservedPrefix + "key": "value1",
+			},
+			false,
+			"reserved for internal use",
+			"reserved for internal use",
+			"reserved for internal use",
+		},
+		"reserved key prefix allowed": {
+			map[string]string{
+				metaKeyReservedPrefix + "key": "value1",
+			},
+			true,
+			"",
+			"",
+			"",
+		},
+		"reserved key prefix allowed via whitelist just for gateway - " + MetaWANFederationKey: {
+			map[string]string{
+				MetaWANFederationKey: "value1",
+			},
+			false,
+			"reserved for internal use",
+			"reserved for internal use",
+			"",
+		},
 	}
 
-	// Should not error
-	meta = map[string]string{
-		metaKeyReservedPrefix + "key": "value1",
-	}
-	// Should fail
-	if err := ValidateMetadata(meta, false); err == nil || !strings.Contains(err.Error(), "reserved for internal use") {
-		t.Fatalf("err: %s", err)
-	}
-	// Should succeed
-	if err := ValidateMetadata(meta, true); err != nil {
-		t.Fatalf("err: %s", err)
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Run("ValidateNodeMetadata", func(t *testing.T) {
+				err := ValidateNodeMetadata(tc.Meta, tc.AllowConsulPrefix)
+				if tc.NodeError == "" {
+					require.NoError(t, err)
+				} else {
+					requireErrorContains(t, err, tc.NodeError)
+				}
+			})
+			t.Run("ValidateServiceMetadata - typical", func(t *testing.T) {
+				err := ValidateServiceMetadata(ServiceKindTypical, tc.Meta, tc.AllowConsulPrefix)
+				if tc.ServiceError == "" {
+					require.NoError(t, err)
+				} else {
+					requireErrorContains(t, err, tc.ServiceError)
+				}
+			})
+			t.Run("ValidateServiceMetadata - mesh-gateway", func(t *testing.T) {
+				err := ValidateServiceMetadata(ServiceKindMeshGateway, tc.Meta, tc.AllowConsulPrefix)
+				if tc.GatewayError == "" {
+					require.NoError(t, err)
+				} else {
+					requireErrorContains(t, err, tc.GatewayError)
+				}
+			})
+		})
 	}
 }
 
@@ -1214,27 +1271,32 @@ func TestStructs_validateMetaPair(t *testing.T) {
 		Value             string
 		Error             string
 		AllowConsulPrefix bool
+		AllowConsulKeys   map[string]struct{}
 	}{
 		// valid pair
-		{"key", "value", "", false},
+		{"key", "value", "", false, nil},
 		// invalid, blank key
-		{"", "value", "cannot be blank", false},
+		{"", "value", "cannot be blank", false, nil},
 		// allowed special chars in key name
-		{"k_e-y", "value", "", false},
+		{"k_e-y", "value", "", false, nil},
 		// disallowed special chars in key name
-		{"(%key&)", "value", "invalid characters", false},
+		{"(%key&)", "value", "invalid characters", false, nil},
 		// key too long
-		{longKey, "value", "Key is too long", false},
+		{longKey, "value", "Key is too long", false, nil},
 		// reserved prefix
-		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false},
+		{metaKeyReservedPrefix + "key", "value", "reserved for internal use", false, nil},
 		// reserved prefix, allowed
-		{metaKeyReservedPrefix + "key", "value", "", true},
+		{metaKeyReservedPrefix + "key", "value", "", true, nil},
+		// reserved prefix, not allowed via whitelist
+		{metaKeyReservedPrefix + "bad", "value", "reserved for internal use", false, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
+		// reserved prefix, allowed via whitelist
+		{metaKeyReservedPrefix + "good", "value", "", true, map[string]struct{}{metaKeyReservedPrefix + "good": struct{}{}}},
 		// value too long
-		{"key", longValue, "Value is too long", false},
+		{"key", longValue, "Value is too long", false, nil},
 	}
 
 	for _, pair := range pairs {
-		err := validateMetaPair(pair.Key, pair.Value, pair.AllowConsulPrefix)
+		err := validateMetaPair(pair.Key, pair.Value, pair.AllowConsulPrefix, pair.AllowConsulKeys)
 		if pair.Error == "" && err != nil {
 			t.Fatalf("should have succeeded: %v, %v", pair, err)
 		} else if pair.Error != "" && !strings.Contains(err.Error(), pair.Error) {
@@ -1962,4 +2024,14 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 		TestMsgpackEncodeDecode(t, in, true)
 	})
 
+}
+
+func requireErrorContains(t *testing.T, err error, expectedErrorMessage string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("An error is expected but got nil.")
+	}
+	if !strings.Contains(err.Error(), expectedErrorMessage) {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
