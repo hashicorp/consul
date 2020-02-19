@@ -1,6 +1,6 @@
 {{#if (gt items.length 0)}}
-  {{#tabular-collection items=items as |item index|}}
-    {{#block-slot name='header'}}
+  <TabularCollection @items={{items}} as |item index|>
+    <BlockSlot @name="header">
       <th style={{remainingWidth}}>Service</th>
       <th style={{totalWidth}}>
         Health Checks
@@ -9,8 +9,8 @@
         </span>
       </th>
       <th style={{remainingWidth}}>Tags</th>
-    {{/block-slot}}
-    {{#block-slot name='row'}}
+    </BlockSlot>
+    <BlockSlot @name="row">
       <td data-test-service={{item.Name}} style={{remainingWidth}}>
         <a href={{href-to routeName item.Name}}>
       {{#let (service/external-source item) as |externalSource| }}
@@ -24,14 +24,11 @@
         </a>
       </td>
       <td style={{totalWidth}}>
-        {{healthcheck-info
-          passing=item.ChecksPassing warning=item.ChecksWarning critical=item.ChecksCritical
-          passingWidth=passingWidth warningWidth=warningWidth criticalWidth=criticalWidth
-        }}
+        <HealthcheckInfo @passing={{item.ChecksPassing}} @warning={{item.ChecksWarning}} @critical={{item.ChecksCritical}} @passingWidth={{passingWidth}} @warningWidth={{warningWidth}} @criticalWidth={{criticalWidth}} />
       </td>
       <td style={{remainingWidth}}>
-        {{tag-list items=item.Tags}}
+        <TagList @items={{item.Tags}} />
       </td>
-    {{/block-slot}}
-  {{/tabular-collection}}
+    </BlockSlot>
+  </TabularCollection>
 {{/if}}

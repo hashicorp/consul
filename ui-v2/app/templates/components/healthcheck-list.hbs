@@ -1,15 +1,11 @@
 <ul data-test-healthchecks>
 {{#each (sort-by (action 'sortChecksByImportance') items) as |item| }}
 {{! TODO: this component and its child should be moved to a single component }}
-  {{#healthcheck-output
-    data-test-node-healthcheck=item.Name
-    class=item.Status
-    tagName='li'
-    }}
-      {{#block-slot name='header'}}
+  <HealthcheckOutput @data-test-node-healthcheck={{item.Name}} @class={{item.Status}} @tagName="li">
+      <BlockSlot @name="header">
         <h3>{{item.Name}}</h3>
-      {{/block-slot}}
-      {{#block-slot name='content'}}
+      </BlockSlot>
+      <BlockSlot @name="content">
       <dl>
         <dt>ServiceName</dt>
         <dd>{{or item.ServiceName '-'}}</dd>
@@ -36,25 +32,25 @@
         <dt>Output</dt>
         <dd>
             <pre><code>{{item.Output}}</code></pre>
-    {{#feedback-dialog type='inline'}}
-      {{#block-slot name='action' as |success error|}}
-          {{copy-button success=(action success) error=(action error) clipboardText=item.Output title='copy output to clipboard'}}
-      {{/block-slot}}
-      {{#block-slot name='success' as |transition|}}
+    <FeedbackDialog @type="inline">
+      <BlockSlot @name="action" as |success error|>
+          <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.Output}} @title="copy output to clipboard" />
+      </BlockSlot>
+      <BlockSlot @name="success" as |transition|>
         <p class={{transition}}>
           Copied output!
         </p>
-      {{/block-slot}}
-      {{#block-slot name='error' as |transition|}}
+      </BlockSlot>
+      <BlockSlot @name="error" as |transition|>
         <p class={{transition}}>
           Sorry, something went wrong!
         </p>
-      {{/block-slot}}
-    {{/feedback-dialog}}
+      </BlockSlot>
+    </FeedbackDialog>
         </dd>
 {{/if}}
       </dl>
-      {{/block-slot}}
-    {{/healthcheck-output}}
+      </BlockSlot>
+    </HealthcheckOutput>
 {{/each}}
 </ul>

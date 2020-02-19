@@ -1,12 +1,12 @@
 {{yield (concat 'popover-menu-' guid)}}
-{{#aria-menu keyboardAccess=keyboardAccess as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|}}
-  {{#toggle-button checked=ariaExpanded onchange=(queue change (action 'change')) as |click|}}
+<AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress ariaLabelledBy ariaControls ariaExpanded keypressClick|>
+  <ToggleButton @checked={{ariaExpanded}} @onchange={{queue change (action "change")}} as |click|>
     <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{click}} id={{ariaLabelledBy}} aria-controls={{ariaControls}}>
-      {{#yield-slot name='trigger'}}
+      <YieldSlot @name="trigger">
         {{yield}}
-      {{/yield-slot}}
+      </YieldSlot>
     </button>
-  {{/toggle-button}}
+  </ToggleButton>
   <div class={{position}}>
     <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
     {{#each submenus as |sub|}}
@@ -19,9 +19,9 @@
     {{else}}
     {{/yield-slot}}
     <ul role="menu" id={{ariaControls}} aria-labelledby={{ariaLabelledBy}} aria-expanded={{ariaExpanded}}>
-      {{#yield-slot name='menu' params=(block-params (concat 'popover-menu-' guid '-') send keypressClick) }}
+      <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick}}>
         {{yield}}
-      {{/yield-slot}}
+      </YieldSlot>
     </ul>
   </div>
-{{/aria-menu}}
+</AriaMenu>

@@ -1,23 +1,23 @@
 {{#if (gt items.length 0) }}
   <input type="checkbox" id="toolbar-toggle" />
   <form class="filter-bar">
-    {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+    <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
   </form>
 {{/if}}
-  {{#changeable-set dispatcher=searchable}}
-    {{#block-slot name='set' as |filtered|}}
+  <ChangeableSet @dispatcher={{searchable}}>
+    <BlockSlot @name="set" as |filtered|>
       {{#tabular-collection
           data-test-instances
           items=filtered as |item index|
       }}
-          {{#block-slot name='header'}}
+          <BlockSlot @name="header">
             <th>ID</th>
             <th>Node</th>
             <th>Address</th>
             <th>Node Checks</th>
             <th>Service Checks</th>
-          {{/block-slot}}
-          {{#block-slot name='row'}}
+          </BlockSlot>
+          <BlockSlot @name="row">
             <td data-test-id={{item.Service.ID}}>
               <a href={{href-to 'dc.services.instance' item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
             {{#let (service/external-source item.Service) as |externalSource| }}
@@ -38,24 +38,20 @@
             </td>
             <td>
               {{#with (reject-by 'ServiceID' '' item.Checks) as |checks|}}
-                {{healthcheck-info
-                  passing=(filter-by 'Status' 'passing' checks) warning=(filter-by 'Status' 'warning' checks) critical=(filter-by 'Status' 'critical' checks)
-                }}
+                <HealthcheckInfo @passing={{filter-by "Status" "passing" checks}} @warning={{filter-by "Status" "warning" checks}} @critical={{filter-by "Status" "critical" checks}} />
               {{/with}}
             </td>
             <td>
               {{#with (filter-by 'ServiceID' '' item.Checks) as |checks|}}
-                {{healthcheck-info
-                  passing=(filter-by 'Status' 'passing' checks) warning=(filter-by 'Status' 'warning' checks) critical=(filter-by 'Status' 'critical' checks)
-                }}
+                <HealthcheckInfo @passing={{filter-by "Status" "passing" checks}} @warning={{filter-by "Status" "warning" checks}} @critical={{filter-by "Status" "critical" checks}} />
               {{/with}}
             </td>
-          {{/block-slot}}
+          </BlockSlot>
       {{/tabular-collection}}
-    {{/block-slot}}
-    {{#block-slot name='empty'}}
+    </BlockSlot>
+    <BlockSlot @name="empty">
       <p>
         There are no services.
       </p>
-    {{/block-slot}}
-  {{/changeable-set}}
+    </BlockSlot>
+  </ChangeableSet>

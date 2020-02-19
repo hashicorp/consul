@@ -1,33 +1,33 @@
 {{#modal-dialog data-test-role-form onclose=(action (mut state) 'role') name="new-role-toggle"}}
-  {{#block-slot name='header'}}
+  <BlockSlot @name="header">
 {{#if (eq state 'role')}}
     <h2>New Role</h2>
 {{else}}
     <h2>New Policy</h2>
 {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='body'}}
+  </BlockSlot>
+  <BlockSlot @name="body">
 
   <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
-    {{#role-form form=form dc=dc nspace=nspace}}
-      {{#block-slot name='policy'}}
+    <RoleForm @form={{form}} @dc={{dc}} @nspace={{nspace}}>
+      <BlockSlot @name="policy">
 
-        {{#policy-selector source=source dc=dc nspace=nspace items=item.Policies}}
-          {{#block-slot name='trigger'}}
+        <PolicySelector @source={{source}} @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}}>
+          <BlockSlot @name="trigger">
             <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
               <span>Create new policy</span>
             </label>
-          {{/block-slot}}
-        {{/policy-selector}}
+          </BlockSlot>
+        </PolicySelector>
 
-      {{/block-slot}}
-    {{/role-form}}
+      </BlockSlot>
+    </RoleForm>
 
     <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
     {{policy-form data-test-policy-form name="role[policy]" form=policyForm dc=dc}}
 
-  {{/block-slot}}
-  {{#block-slot name='actions' as |close|}}
+  </BlockSlot>
+  <BlockSlot @name="actions" as |close|>
 
 {{#if (eq state 'role')}}
     <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
@@ -47,46 +47,46 @@
     <button type="reset" disabled={{if policy.isSaving 'disabled'}} {{action (mut state) 'role'}}>Cancel</button>
 {{/if}}
 
-  {{/block-slot}}
+  </BlockSlot>
 {{/modal-dialog}}
 
-{{#child-selector repo=repo dc=dc nspace=nspace type="role" placeholder="Search for role" items=items}}
-  {{#block-slot name='label'}}
+<ChildSelector @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
+  <BlockSlot @name="label">
     Apply an existing role
-  {{/block-slot}}
-  {{#block-slot name='create'}}
+  </BlockSlot>
+  <BlockSlot @name="create">
     <label class="type-dialog" for="new-role-toggle">
       <span>Create new role</span>
     </label>
 
-  {{/block-slot}}
-  {{#block-slot name='option' as |option|}}
+  </BlockSlot>
+  <BlockSlot @name="option" as |option|>
     {{option.Name}}
-  {{/block-slot}}
-  {{#block-slot name='set'}}
+  </BlockSlot>
+  <BlockSlot @name="set">
     {{#tabular-collection
         data-test-roles
         rows=5
         items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
     }}
-      {{#block-slot name='header'}}
+      <BlockSlot @name="header">
         <th>Name</th>
         <th>Description</th>
-      {{/block-slot}}
-      {{#block-slot name='row'}}
+      </BlockSlot>
+      <BlockSlot @name="row">
         <td>
           <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
         </td>
         <td>
           {{item.Description}}
         </td>
-      {{/block-slot}}
-      {{#block-slot name='actions' as |index change checked|}}
-        {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
-          {{#block-slot name='trigger'}}
+      </BlockSlot>
+      <BlockSlot @name="actions" as |index change checked|>
+        <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+          <BlockSlot @name="trigger">
             More
-          {{/block-slot}}
-          {{#block-slot name='menu' as |confirm send keypressClick|}}
+          </BlockSlot>
+          <BlockSlot @name="menu" as |confirm send keypressClick|>
               <li role="none">
                 <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
               </li>
@@ -113,9 +113,9 @@
                   </div>
                 </div>
               </li>
-          {{/block-slot}}
-        {{/popover-menu}}
-      {{/block-slot}}
+          </BlockSlot>
+        </PopoverMenu>
+      </BlockSlot>
     {{/tabular-collection}}
-  {{/block-slot}}
-{{/child-selector}}
+  </BlockSlot>
+</ChildSelector>
