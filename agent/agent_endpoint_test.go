@@ -36,7 +36,6 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -6136,13 +6135,6 @@ func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert, ca *struc
 	// Verify the private key matches. tls.LoadX509Keypair does this for us!
 	_, err = tls.X509KeyPair([]byte(issued.CertPEM), []byte(issued.PrivateKeyPEM))
 	require.NoError(t, err)
-}
-
-func makeTelemetryDefaults(targetID string) lib.TelemetryConfig {
-	return lib.TelemetryConfig{
-		FilterDefault: true,
-		MetricsPrefix: "consul.proxy." + targetID,
-	}
 }
 
 func TestAgentConnectAuthorize_badBody(t *testing.T) {
