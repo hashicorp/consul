@@ -136,18 +136,19 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 			return nil, err
 		}
 		clusters = append(clusters, cluster)
-	}
 
-	// generate the service subset clusters
-	for svc, resolver := range cfgSnap.MeshGateway.ServiceResolvers {
-		for subsetName, _ := range resolver.Subsets {
-			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		// if there is a service-resolver for this service then also setup subset clusters for it
+		if resolver, ok := cfgSnap.MeshGateway.ServiceResolvers[svc]; ok {
+			// generate 1 cluster for each service subset
+			for subsetName, _ := range resolver.Subsets {
+				clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
-			cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
-			if err != nil {
-				return nil, err
+				cluster, err := s.makeMeshGatewayCluster(clusterName, cfgSnap)
+				if err != nil {
+					return nil, err
+				}
+				clusters = append(clusters, cluster)
 			}
-			clusters = append(clusters, cluster)
 		}
 	}
 
