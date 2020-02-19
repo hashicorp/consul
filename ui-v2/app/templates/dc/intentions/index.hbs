@@ -1,37 +1,33 @@
 {{title 'Intentions'}}
-{{#app-view class="intention list"}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class="intention list">
+    <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/intentions/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
             Intentions <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
-    {{/block-slot}}
-    {{#block-slot name='actions'}}
+    </BlockSlot>
+    <BlockSlot @name="actions">
         <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
-    {{/block-slot}}
-    {{#block-slot name='toolbar'}}
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-        {{intention-filter searchable=searchable filters=actionFilters search=filters.s type=filters.action onchange=(action 'filter')}}
+        <IntentionFilter @searchable={{searchable}} @filters={{actionFilters}} @search={{filters.s}} @type={{filters.action}} @onchange={{action "filter"}} />
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{#changeable-set dispatcher=searchable}}
-          {{#block-slot name='set' as |filtered|}}
-            {{#tabular-collection
-                route='dc.intentions.edit'
-                key='SourceName'
-                items=filtered as |item index|
-            }}
-                {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+        <ChangeableSet @dispatcher={{searchable}}>
+          <BlockSlot @name="set" as |filtered|>
+            <TabularCollection @route="dc.intentions.edit" @key="SourceName" @items={{filtered}} as |item index|>
+                <BlockSlot @name="header">
                     <th>Source</th>
                     <th>&nbsp;</th>
                     <th>Destination</th>
                     <th>Precedence</th>
-                {{/block-slot}}
-                {{#block-slot name='row'}}
+                </BlockSlot>
+                <BlockSlot @name="row">
                     <td class="source" data-test-intention="{{item.ID}}">
                       <a href={{href-to 'dc.intentions.edit' item.ID}} data-test-intention-source="{{item.SourceName}}">
                         {{#if (eq item.SourceName '*') }}
@@ -60,13 +56,13 @@
                     <td class="precedence">
                         {{item.Precedence}}
                     </td>
-                {{/block-slot}}
-                {{#block-slot name='actions' as |index change checked|}}
-                  {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
-                    {{#block-slot name='trigger'}}
+                </BlockSlot>
+                <BlockSlot @name="actions" as |index change checked|>
+                  <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+                    <BlockSlot @name="trigger">
                       More
-                    {{/block-slot}}
-                    {{#block-slot name='menu' as |confirm send keypressClick|}}
+                    </BlockSlot>
+                    <BlockSlot @name="menu" as |confirm send keypressClick|>
                         <li role="none">
                           <a role="menuitem" tabindex="-1" href={{href-to 'dc.intentions.edit' item.ID}}>Edit</a>
                         </li>
@@ -93,16 +89,16 @@
                             </div>
                           </div>
                         </li>
-                    {{/block-slot}}
-                  {{/popover-menu}}
-                {{/block-slot}}
-            {{/tabular-collection}}
-          {{/block-slot}}
-          {{#block-slot name='empty'}}
+                    </BlockSlot>
+                  </PopoverMenu>
+                </BlockSlot>
+            </TabularCollection>
+          </BlockSlot>
+          <BlockSlot @name="empty">
             <p>
               There are no intentions.
             </p>
-          {{/block-slot}}
-        {{/changeable-set}}
-    {{/block-slot}}
-{{/app-view}}
+          </BlockSlot>
+        </ChangeableSet>
+    </BlockSlot>
+</AppView>

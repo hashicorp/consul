@@ -21,6 +21,6 @@
   {{#yield-slot name='policy' params=(block-params item)}}
     {{yield}}
   {{else}}
-    {{policy-selector dc=dc nspace=nspace items=item.Policies}}
+    <PolicySelector @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}} />
   {{/yield-slot}}
 </fieldset>

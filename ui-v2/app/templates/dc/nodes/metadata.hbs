@@ -4,11 +4,11 @@
         data-test-metadata
         items=meta as |item index|
     }}
-        {{#block-slot name='header'}}
+        <BlockSlot @name="header">
             <th>Key</th>
             <th>Value</th>
-        {{/block-slot}}
-        {{#block-slot name='row'}}
+        </BlockSlot>
+        <BlockSlot @name="row">
             <td>
               <span>
                 {{object-at 0 item}}
@@ -17,7 +17,7 @@
             <td>
               <span>{{object-at 1 item}}</span>
             </td>
-        {{/block-slot}}
+        </BlockSlot>
     {{/tabular-collection}}
   {{/with}}
 {{else}}

@@ -5,43 +5,25 @@
         <h2>Source</h2>
         <label data-test-source-element class="type-text{{if item.error.SourceName ' has-error'}}">
           <span>Source Service</span>
-          {{#power-select-with-create
-            options=services
-            searchField='Name'
-            selected=SourceName
-            searchPlaceholder='Type service name'
-            buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
-            showCreateWhen=(action "isUnique")
-            oncreate=(action 'change' 'SourceName')
-            onchange=(action 'change' 'SourceName') as |service|
-          }}
+          <PowerSelectWithCreate @options={{services}} @searchField="Name" @selected={{SourceName}} @searchPlaceholder="Type service name" @buildSuggestion={{action "createNewLabel" "Use a future Consul Service called '{{term}}'"}} @showCreateWhen={{action "isUnique"}} @oncreate={{action "change" "SourceName"}} @onchange={{action "change" "SourceName"}} as |service|>
             {{#if (eq service.Name '*') }}
               * (All Services)
             {{else}}
               {{service.Name}}
             {{/if}}
-          {{/power-select-with-create}}
+          </PowerSelectWithCreate>
           <em>Search for an existing service, write in a future one, or write in any Service URI.</em>
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-source-nspace class="type-text{{if item.error.SourceNS ' has-error'}}">
           <span>Source Namespace</span>
-          {{#power-select-with-create
-            options=nspaces
-            searchField='Name'
-            selected=SourceNS
-            searchPlaceholder='Type namespace name'
-            buildSuggestion=(action 'createNewLabel' "Use a future Consul Namespace called '{{term}}'")
-            showCreateWhen=(action "isUnique")
-            oncreate=(action 'change' 'SourceNS')
-            onchange=(action 'change' 'SourceNS') as |nspace|
-          }}
+          <PowerSelectWithCreate @options={{nspaces}} @searchField="Name" @selected={{SourceNS}} @searchPlaceholder="Type namespace name" @buildSuggestion={{action "createNewLabel" "Use a future Consul Namespace called '{{term}}'"}} @showCreateWhen={{action "isUnique"}} @oncreate={{action "change" "SourceNS"}} @onchange={{action "change" "SourceNS"}} as |nspace|>
             {{#if (eq nspace.Name '*') }}
               * (All Namespaces)
             {{else}}
               {{nspace.Name}}
             {{/if}}
-          {{/power-select-with-create}}
+          </PowerSelectWithCreate>
           <em>Search for an existing namespace, write in a future one.</em>
         </label>
 {{/if}}
@@ -50,43 +32,25 @@
         <h2>Destination</h2>
         <label data-test-destination-element class="type-text{{if item.error.DestinationName ' has-error'}}">
           <span>Destination Service</span>
-          {{#power-select-with-create
-            options=services
-            searchField='Name'
-            selected=DestinationName
-            searchPlaceholder='Type service name'
-            buildSuggestion=(action 'createNewLabel' "Use a future Consul Service called '{{term}}'")
-            showCreateWhen=(action "isUnique")
-            oncreate=(action 'change' 'DestinationName')
-            onchange=(action 'change' 'DestinationName') as |service|
-          }}
+          <PowerSelectWithCreate @options={{services}} @searchField="Name" @selected={{DestinationName}} @searchPlaceholder="Type service name" @buildSuggestion={{action "createNewLabel" "Use a future Consul Service called '{{term}}'"}} @showCreateWhen={{action "isUnique"}} @oncreate={{action "change" "DestinationName"}} @onchange={{action "change" "DestinationName"}} as |service|>
             {{#if (eq service.Name '*') }}
               * (All Services)
             {{else}}
               {{service.Name}}
             {{/if}}
-          {{/power-select-with-create}}
+          </PowerSelectWithCreate>
           <em>Search for an existing service or write in a future one.</em>
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-destination-nspace class="type-text{{if item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
-          {{#power-select-with-create
-            options=nspaces
-            searchField='Name'
-            selected=DestinationNS
-            searchPlaceholder='Type namespace name'
-            buildSuggestion=(action 'createNewLabel' "Use a future Consul Namespace called '{{term}}'")
-            showCreateWhen=(action "isUnique")
-            oncreate=(action 'change' 'DestinationNS')
-            onchange=(action 'change' 'DestinationNS') as |nspace|
-          }}
+          <PowerSelectWithCreate @options={{nspaces}} @searchField="Name" @selected={{DestinationNS}} @searchPlaceholder="Type namespace name" @buildSuggestion={{action "createNewLabel" "Use a future Consul Namespace called '{{term}}'"}} @showCreateWhen={{action "isUnique"}} @oncreate={{action "change" "DestinationNS"}} @onchange={{action "change" "DestinationNS"}} as |nspace|>
             {{#if (eq nspace.Name '*') }}
               * (All Namespaces)
             {{else}}
               {{nspace.Name}}
             {{/if}}
-          {{/power-select-with-create}}
+          </PowerSelectWithCreate>
           <em>For the destination, you may choose any namespace for which you have access.</em>
         </label>
 {{/if}}
@@ -113,14 +77,14 @@
 {{/if}}
     <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and item.ID (not-eq item.ID 'anonymous')) }}
-    {{#confirmation-dialog message='Are you sure you want to delete this Intention?'}}
-      {{#block-slot name='action' as |confirm|}}
+    <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
+      <BlockSlot @name="action" as |confirm|>
         <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
-      {{/block-slot}}
-      {{#block-slot name='dialog' as |execute cancel message|}}
-        {{delete-confirmation message=message execute=execute cancel=cancel}}
-      {{/block-slot}}
-    {{/confirmation-dialog}}
+      </BlockSlot>
+      <BlockSlot @name="dialog" as |execute cancel message|>
+        <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+      </BlockSlot>
+    </ConfirmationDialog>
 {{/if}}
   </div>
 </form>
