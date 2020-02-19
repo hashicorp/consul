@@ -394,7 +394,7 @@ func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
 			lr:   io.LimitReader(conn, int64(prefixLen)),
 		}
 
-		if err := transport.IngestPacket(lc, conn.RemoteAddr(), time.Now()); err != nil {
+		if err := transport.IngestPacket(lc, conn.RemoteAddr(), time.Now(), false); err != nil {
 			return err
 		}
 	}
@@ -424,8 +424,9 @@ type limitedConn struct {
 	lr io.Reader
 }
 
-func (c *limitedConn) Read(b []byte) (n int, err error) { return c.lr.Read(b) }
-func (c *limitedConn) Close() error                     { return nil /* ignore */ }
+func (c *limitedConn) Read(b []byte) (n int, err error) {
+	return c.lr.Read(b)
+}
 
 // canRetry returns true if the given situation is safe for a retry.
 func canRetry(args interface{}, err error) bool {

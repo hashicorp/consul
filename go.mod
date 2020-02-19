@@ -53,11 +53,11 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
-	github.com/hashicorp/memberlist v0.1.7-0.20200203201656-7dbad1a981ff
+	github.com/hashicorp/memberlist v0.1.8-0.20200219174324-08d95c10ff1e
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v1.1.2
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/serf v0.8.6-0.20200203201721-3146d2ae8160
+	github.com/hashicorp/serf v0.8.6-0.20200219174429-bbc65f3b2bb0
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6
