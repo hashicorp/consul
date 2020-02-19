@@ -16,7 +16,6 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
-		c.DisableFederationStateDatacenterNameValidation = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -27,7 +26,6 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.DisableFederationStateDatacenterNameValidation = true
 	})
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
@@ -91,7 +89,6 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
-		c.DisableFederationStateDatacenterNameValidation = true
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
@@ -106,7 +103,6 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.DisableFederationStateDatacenterNameValidation = true
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"

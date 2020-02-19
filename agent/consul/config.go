@@ -458,11 +458,6 @@ type Config struct {
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
 
-	// DisableFederationStateDatacenterNameValidation solely exists for use in
-	// unit tests to allow federation states to be persisted that are not
-	// currently on the WAN.
-	DisableFederationStateDatacenterNameValidation bool
-
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration

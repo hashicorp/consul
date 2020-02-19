@@ -42,11 +42,6 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 
 	switch args.Op {
 	case structs.FederationStateUpsert:
-		if !c.srv.router.HasDatacenter(args.State.Datacenter) &&
-			!c.srv.config.DisableFederationStateDatacenterNameValidation {
-			return fmt.Errorf("cannot upsert federation state for datacenter that does not exist: %s", args.State.Datacenter)
-		}
-
 		if args.State.UpdatedAt.IsZero() {
 			args.State.UpdatedAt = time.Now().UTC()
 		}
