@@ -840,3 +840,8 @@ func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
 	c.autoEncrypt.cert = cert
 	require.False(t, c.AutoEncryptCertExpired())
 }
+
+func TestConfig_tlsVersions(t *testing.T) {
+	require.Equal(t, "tls10, tls11, tls12, tls13", tlsVersions())
+	require.Equal(t, tlsVersions(), TLSVersions)
+}

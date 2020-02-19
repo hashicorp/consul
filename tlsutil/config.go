@@ -131,7 +131,7 @@ func tlsVersions() string {
 			versions = append(versions, v)
 		}
 	}
-	return strings.Join(versions, ",")
+	return strings.Join(versions, ", ")
 }
 
 // KeyPair is used to open and parse a certificate and key file
