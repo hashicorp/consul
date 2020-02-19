@@ -188,6 +188,21 @@ func TestDNS_Over_TCP(t *testing.T) {
 	}
 }
 
+func TestDNS_EmptyAltDomain(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, t.Name(), "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("consul.service.", dns.TypeA)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, a.DNSAddr())
+	require.NoError(t, err)
+	require.Empty(t, in.Answer)
+}
+
 func TestDNS_NodeLookup(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, t.Name(), "")
