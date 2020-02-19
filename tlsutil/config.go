@@ -33,8 +33,8 @@ var TLSLookup = map[string]uint16{
 	"tls13": tls.VersionTLS13,
 }
 
-// TLSVersions has all the keys from the map above, make sure to keep both in sync
-var TLSVersions = "tls10, tls11, tls12, tls13"
+// TLSVersions has all the keys from the map above.
+var TLSVersions = tlsVersions()
 
 // Config used to create tls.Config
 type Config struct {
@@ -122,6 +122,16 @@ type Config struct {
 	// AutoEncryptTLS opts the agent into provisioning agent
 	// TLS certificates.
 	AutoEncryptTLS bool
+}
+
+func tlsVersions() string {
+	versions := []string{}
+	for v := range TLSLookup {
+		if v != "" {
+			versions = append(versions, v)
+		}
+	}
+	return strings.Join(versions, ",")
 }
 
 // KeyPair is used to open and parse a certificate and key file
