@@ -13,10 +13,18 @@ type FederationStateReplicator struct {
 	srv *Server
 }
 
-func (r *FederationStateReplicator) SingularNoun() string { return "federation state" }
-func (r *FederationStateReplicator) PluralNoun() string   { return "federation states" }
-func (r *FederationStateReplicator) MetricName() string   { return "federation-state" }
+var _ IndexReplicatorDelegate = (*FederationStateReplicator)(nil)
 
+// SingularNoun implements IndexReplicatorDelegate.
+func (r *FederationStateReplicator) SingularNoun() string { return "federation state" }
+
+// PluralNoun implements IndexReplicatorDelegate.
+func (r *FederationStateReplicator) PluralNoun() string { return "federation states" }
+
+// MetricName implements IndexReplicatorDelegate.
+func (r *FederationStateReplicator) MetricName() string { return "federation-state" }
+
+// FetchRemote implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
 	req := structs.DCSpecificRequest{
 		Datacenter: r.srv.config.PrimaryDatacenter,
@@ -37,6 +45,7 @@ func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, in
 	return len(response.States), states, response.QueryMeta.Index, nil
 }
 
+// FetchLocal implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchLocal() (int, interface{}, error) {
 	_, local, err := r.srv.fsm.State().FederationStateList(nil)
 	if err != nil {
@@ -46,6 +55,7 @@ func (r *FederationStateReplicator) FetchLocal() (int, interface{}, error) {
 	return len(local), local, nil
 }
 
+// DiffRemoteAndLocalState implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) DiffRemoteAndLocalState(localRaw interface{}, remoteRaw interface{}, lastRemoteIndex uint64) (*IndexReplicatorDiff, error) {
 	local, ok := localRaw.([]*structs.FederationState)
 	if !ok {
@@ -108,6 +118,7 @@ func federationStateSort(states []*structs.FederationState) {
 	})
 }
 
+// PerformDeletions implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deletionsRaw interface{}) (exit bool, err error) {
 	deletions, ok := deletionsRaw.([]*structs.FederationState)
 	if !ok {
@@ -145,6 +156,7 @@ func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deleti
 	return false, nil
 }
 
+// PerformUpdates implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesRaw interface{}) (exit bool, err error) {
 	updates, ok := updatesRaw.([]*structs.FederationState)
 	if !ok {
