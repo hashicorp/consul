@@ -2929,11 +2929,7 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			    enable_mesh_gateway_wan_federation = true
 			  }
 			`},
-			patch: func(rt *RuntimeConfig) {
-				rt.DataDir = dataDir
-				rt.ConnectEnabled = false
-				rt.ConnectMeshGatewayWANFederationEnabled = false
-			},
+			err: "'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'",
 		},
 		{
 			desc: "connect.enable_mesh_gateway_wan_federation cannot use -join-wan",

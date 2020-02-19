@@ -618,7 +618,10 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	connectEnabled := b.boolVal(c.Connect.Enabled)
 	connectCAProvider := b.stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
-	connectMeshGatewayWANFederationEnabled := connectEnabled && b.boolVal(c.Connect.MeshGatewayWANFederationEnabled)
+	connectMeshGatewayWANFederationEnabled := b.boolVal(c.Connect.MeshGatewayWANFederationEnabled)
+	if connectMeshGatewayWANFederationEnabled && !connectEnabled {
+		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
+	}
 	if connectCAConfig != nil {
 		lib.TranslateKeys(connectCAConfig, map[string]string{
 			// Consul CA config
