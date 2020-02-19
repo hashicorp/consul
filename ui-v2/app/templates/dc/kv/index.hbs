@@ -1,9 +1,9 @@
 {{title 'Key/Value'}}
-{{#app-view class="kv list" loading=isLoading}}
-  {{#block-slot name='notification' as |status type|}}
+<AppView @class="kv list" @loading={{isLoading}}>
+  <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/kv/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='breadcrumbs'}}
+  </BlockSlot>
+  <BlockSlot @name="breadcrumbs">
     <ol>
 {{#if (not-eq parent.Key '/') }}
       <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
@@ -12,8 +12,8 @@
       <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
 {{/each}}
     </ol>
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
       <h1>
         {{#if (eq parent.Key '/')}}
           Key / Value
@@ -22,41 +22,39 @@
         {{/if}}
       </h1>
       <label for="toolbar-toggle"></label>
-  {{/block-slot}}
-  {{#block-slot name='toolbar'}}
+  </BlockSlot>
+  <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
-      {{freetext-filter searchable=searchable value=s placeholder="Search by name"}}
+      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search by name" />
     </form>
 {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
+  </BlockSlot>
+  <BlockSlot @name="actions">
 {{#if (not-eq parent.Key '/') }}
       <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
 {{else}}
       <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
 {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='content'}}
-    {{#changeable-set dispatcher=searchable}}
-      {{#block-slot name='set' as |filtered|}}
-        {{#tabular-collection
-            items=(sort-by 'isFolder:desc' 'Key:asc' filtered) as |item index|
-        }}
-          {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
+    <ChangeableSet @dispatcher={{searchable}}>
+      <BlockSlot @name="set" as |filtered|>
+        <TabularCollection @items={{sort-by "isFolder:desc" "Key:asc" filtered}} as |item index|>
+          <BlockSlot @name="header">
             <th>Name</th>
-          {{/block-slot}}
-          {{#block-slot name='row'}}
+          </BlockSlot>
+          <BlockSlot @name="row">
             <td data-test-kv={{item.Key}} class={{if item.isFolder 'folder' 'file' }}>
                 <a href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{right-trim (left-trim item.Key parent.Key) '/'}}</a>
             </td>
-          {{/block-slot}}
-          {{#block-slot name='actions' as |index change checked|}}
-            {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
-              {{#block-slot name='trigger'}}
+          </BlockSlot>
+          <BlockSlot @name="actions" as |index change checked|>
+            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+              <BlockSlot @name="trigger">
                 More
-              {{/block-slot}}
-              {{#block-slot name='menu' as |confirm send keypressClick|}}
+              </BlockSlot>
+              <BlockSlot @name="menu" as |confirm send keypressClick|>
                   <li role="none">
                     <a data-test-edit role="menuitem" tabindex="-1" href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
                   </li>
@@ -83,16 +81,16 @@
                       </div>
                     </div>
                   </li>
-              {{/block-slot}}
-            {{/popover-menu}}
-          {{/block-slot}}
-        {{/tabular-collection}}
-      {{/block-slot}}
-      {{#block-slot name='empty'}}
+              </BlockSlot>
+            </PopoverMenu>
+          </BlockSlot>
+        </TabularCollection>
+      </BlockSlot>
+      <BlockSlot @name="empty">
         <p>
           There are no Key / Value pairs.
         </p>
-      {{/block-slot}}
-    {{/changeable-set}}
-  {{/block-slot}}
-{{/app-view}}
+      </BlockSlot>
+    </ChangeableSet>
+  </BlockSlot>
+</AppView>

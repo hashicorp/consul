@@ -7,22 +7,22 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
-{{#app-view class=(concat 'token ' (if (or isAuthorized isEnabled) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class={{concat "token " (if (or isAuthorized isEnabled) "edit" "list")}} @loading={{isLoading}} @authorized={{isAuthorized}} @enabled={{isEnabled}}>
+    <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/acls/tokens/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='disabled'}}
+    </BlockSlot>
+    <BlockSlot @name="disabled">
       {{partial 'dc/acls/disabled'}}
-    {{/block-slot}}
-    {{#block-slot name='authorization'}}
+    </BlockSlot>
+    <BlockSlot @name="authorization">
       {{partial 'dc/acls/authorization'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls.tokens'}}>All Tokens</a></li>
         </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
 {{#if isAuthorized }}
   {{#if create }}
@@ -34,29 +34,29 @@
             Access Controls
 {{/if}}
         </h1>
-    {{/block-slot}}
-    {{#block-slot name='actions'}}
+    </BlockSlot>
+    <BlockSlot @name="actions">
 {{#if (not create)}}
   {{#if (not-eq item.AccessorID token.AccessorID)}}
-      {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
-        {{#block-slot name='action' as |confirm|}}
+      <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
+        <BlockSlot @name="action" as |confirm|>
             <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
-        {{/block-slot}}
-        {{#block-slot name='dialog' as |execute cancel message|}}
+        </BlockSlot>
+        <BlockSlot @name="dialog" as |execute cancel message|>
           <p>
               {{message}}
           </p>
           <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
           <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-        {{/block-slot}}
-      {{/confirmation-dialog}}
+        </BlockSlot>
+      </ConfirmationDialog>
   {{/if}}
   {{#if (not (token/is-legacy item))}}
       <button data-test-clone type="button" {{ action "clone" item }}>Duplicate</button>
   {{/if}}
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
+    </BlockSlot>
+    <BlockSlot @name="content">
         {{#if (token/is-legacy item)}}
             <p class="notice info"><strong>Update.</strong> We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
         {{/if}}
@@ -65,11 +65,11 @@
           <dl>
             <dt>AccessorID</dt>
             <dd>
-              {{copy-button-feedback title="Copy AccessorID to the clipboard" copy=item.AccessorID name="AccessorID"}} {{item.AccessorID}}
+              <CopyButtonFeedback @title="Copy AccessorID to the clipboard" @copy={{item.AccessorID}} @name="AccessorID" /> {{item.AccessorID}}
             </dd>
             <dt>Token</dt>
             <dd>
-              {{copy-button-feedback title="Copy SecretID to the clipboard" copy=item.SecretID name="Token"}} {{#secret-button}}{{item.SecretID}}{{/secret-button}}
+              <CopyButtonFeedback @title="Copy SecretID to the clipboard" @copy={{item.SecretID}} @name="Token" /> <SecretButton>{{item.SecretID}}</SecretButton>
             </dd>
 {{#if (and (not (token/is-legacy item)) (not create))}}
             <dt>Scope</dt>
@@ -81,5 +81,5 @@
       </div>
 {{/if}}
         {{ partial 'dc/acls/tokens/form'}}
-    {{/block-slot}}
-{{/app-view}}
+    </BlockSlot>
+</AppView>

@@ -18,7 +18,7 @@
             <label class="type-text{{if item.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
-                {{code-editor value=(atob item.Value) onkeyup=(action 'change' 'value')}}
+                <CodeEditor @value={{atob item.Value}} @onkeyup={{action "change" "value"}} />
 {{else}}
                 <textarea autofocus={{not create}} name="value" oninput={{action 'change'}}>{{atob item.Value}}</textarea>
 {{/if}}
@@ -33,14 +33,14 @@
 {{ else }}
     <button type="submit" {{ action "update" item parent}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
     <button type="reset" {{ action "cancel" item parent}}>Cancel changes</button>
-    {{#confirmation-dialog message='Are you sure you want to delete this key?'}}
-        {{#block-slot name='action' as |confirm|}}
+    <ConfirmationDialog @message="Are you sure you want to delete this key?">
+        <BlockSlot @name="action" as |confirm|>
             <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
-        {{/block-slot}}
-        {{#block-slot name='dialog' as |execute cancel message|}}
-          {{delete-confirmation message=message execute=execute cancel=cancel}}
-        {{/block-slot}}
-    {{/confirmation-dialog}}
+        </BlockSlot>
+        <BlockSlot @name="dialog" as |execute cancel message|>
+          <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+        </BlockSlot>
+    </ConfirmationDialog>
 {{/if}}
 </form>
 
