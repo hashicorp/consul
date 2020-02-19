@@ -17,6 +17,10 @@ import (
 	bexpr "github.com/hashicorp/go-bexpr"
 )
 
+const (
+	UnnamedSubset = ""
+)
+
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
 func (s *Server) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	if cfgSnap == nil {
@@ -149,6 +153,23 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 	return resources, nil
 }
 
+func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, endpoints structs.CheckServiceNodes) (structs.CheckServiceNodes, error) {
+	// locally execute the subsets filter
+	if subset.Filter != "" {
+		filter, err := bexpr.CreateFilter(subset.Filter, nil, endpoints)
+		if err != nil {
+			return nil, err
+		}
+
+		raw, err := filter.Execute(endpoints)
+		if err != nil {
+			return nil, err
+		}
+		return raw.(structs.CheckServiceNodes), nil
+	}
+	return endpoints, nil
+}
+
 func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
 
@@ -167,65 +188,41 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// Generate the endpoints for each service and its subsets
 	for svc, endpoints := range cfgSnap.MeshGateway.ServiceGroups {
-		defaultSubsetEndpoints := endpoints
-		defaultSubsetOnlyPassing := false
-		clusterName := connect.ServiceSNI(svc.ID, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterEndpoints := make(map[string]loadAssignmentEndpointGroup)
+		clusterEndpoints[UnnamedSubset] = loadAssignmentEndpointGroup{Endpoints: endpoints, OnlyPassing: false}
 
-		// Generate endpoints for each subset cluster. We do this before generating the endpoints for the default/unnamed
-		// subset so that we can take into account the DefaultSubset on the service resolver which may prevent the default/unnamed
-		// cluster from creating endpoints for all service instances.
+		// Collect all of the loadAssignmentEndpointGroups for the various subsets. We do this before generating
+		// the endpoints for the default/unnamed subset so that we can take into account the DefaultSubset on the
+		// service-resolver which may prevent the default/unnamed cluster from creating endpoints for all service
+		// instances.
 		if resolver, hasResolver := cfgSnap.MeshGateway.ServiceResolvers[svc]; hasResolver {
 			for subsetName, subset := range resolver.Subsets {
-				subsetEndpoints := endpoints
-
-				// locally execute the subsets filter
-				if subset.Filter != "" {
-					filter, err := bexpr.CreateFilter(subset.Filter, nil, endpoints)
-					if err != nil {
-						return nil, err
-					}
-
-					raw, err := filter.Execute(endpoints)
-					if err != nil {
-						return nil, err
-					}
-					subsetEndpoints = raw.(structs.CheckServiceNodes)
+				subsetEndpoints, err := s.filterSubsetEndpoints(&subset, endpoints)
+				if err != nil {
+					return nil, err
 				}
+				group := loadAssignmentEndpointGroup{Endpoints: subsetEndpoints, OnlyPassing: subset.OnlyPassing}
+				clusterEndpoints[subsetName] = group
 
-				subsetClusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-				la := makeLoadAssignment(
-					subsetClusterName,
-					[]loadAssignmentEndpointGroup{
-						{
-							Endpoints:   subsetEndpoints,
-							OnlyPassing: subset.OnlyPassing,
-						},
-					},
-					cfgSnap.Datacenter,
-				)
-				resources = append(resources, la)
-
-				// if this is the resolvers default subset then override
-				// how the default/unnamed clusters endpoints will be configured
+				// if this subset is the default then override the unnamed subset with this configuration
 				if subsetName == resolver.DefaultSubset {
-					defaultSubsetEndpoints = subsetEndpoints
-					defaultSubsetOnlyPassing = subset.OnlyPassing
+					clusterEndpoints[UnnamedSubset] = group
 				}
 			}
 		}
 
-		// create the load assignment for the default
-		la := makeLoadAssignment(
-			clusterName,
-			[]loadAssignmentEndpointGroup{
-				{
-					Endpoints:   defaultSubsetEndpoints,
-					OnlyPassing: defaultSubsetOnlyPassing,
+		// now generate the load assignment for all subsets
+		for subsetName, group := range clusterEndpoints {
+			clusterName := connect.ServiceSNI(svc.ID, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			la := makeLoadAssignment(
+				clusterName,
+				[]loadAssignmentEndpointGroup{
+					group,
 				},
-			},
-			cfgSnap.Datacenter,
-		)
-		resources = append(resources, la)
+				cfgSnap.Datacenter,
+			)
+			resources = append(resources, la)
+		}
 	}
 
 	return resources, nil
