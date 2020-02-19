@@ -3156,11 +3156,11 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
+		testAgent_RegisterService_TranslateKeys(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = true")
+		testAgent_RegisterService_TranslateKeys(t, "enable_central_service_config = true")
 	})
 }
 
@@ -3329,6 +3329,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					"some":                "meta",
 					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated",
 				},
+				TaggedAddresses:            map[string]structs.ServiceAddress{},
 				Port:                       8001,
 				EnableTagOverride:          true,
 				Weights:                    &structs.Weights{Passing: 1, Warning: 1},
