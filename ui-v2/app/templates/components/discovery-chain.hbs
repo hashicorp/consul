@@ -28,7 +28,7 @@
     </header>
     <div role="group">
       {{#each routes as |item|}}
-        {{route-card item=item onclick=(action 'click')}}
+        <RouteCard @item={{item}} @onclick={{action "click"}} />
       {{/each}}
     </div>
   </div>
@@ -43,7 +43,7 @@
     </header>
     <div role="group">
       {{#each (sort-by 'Name' splitters) as |item|}}
-        {{splitter-card item=item onclick=(action 'click')}}
+        <SplitterCard @item={{item}} @onclick={{action "click"}} />
       {{/each}}
     </div>
   </div>
@@ -58,7 +58,7 @@
     </header>
     <div role="group">
       {{#each (sort-by 'Name' resolvers) as |item|}}
-        {{resolver-card item=item onclick=(action 'click')}}
+        <ResolverCard @item={{item}} @onclick={{action "click"}} />
       {{/each}}
     </div>
   </div>

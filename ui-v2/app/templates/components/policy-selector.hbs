@@ -1,9 +1,9 @@
-{{#child-selector repo=repo dc=dc nspace=nspace type="policy" placeholder="Search for policy" items=items}}
+<ChildSelector @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="policy" @placeholder="Search for policy" @items={{items}}>
   {{yield}}
-  {{#block-slot name='label'}}
+  <BlockSlot @name="label">
     Apply an existing policy
-  {{/block-slot}}
-  {{#block-slot name='create'}}
+  </BlockSlot>
+  <BlockSlot @name="create">
     {{#yield-slot name='trigger'}}
       {{yield}}
     {{else}}
@@ -13,13 +13,13 @@
       {{!TODO: potentially call trigger something else}}
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
       {{#modal-dialog data-test-policy-form onopen=(action 'open') name="new-policy-toggle"}}
-        {{#block-slot name='header'}}
+        <BlockSlot @name="header">
           <h2>New Policy</h2>
-        {{/block-slot}}
-        {{#block-slot name='body'}}
-          {{policy-form form=form dc=dc allowServiceIdentity=allowServiceIdentity}}
-        {{/block-slot}}
-        {{#block-slot name='actions' as |close|}}
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <PolicyForm @form={{form}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
+        </BlockSlot>
+        <BlockSlot @name="actions" as |close|>
           <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
             {{#if item.isSaving }}
               <div class="progress indeterminate"></div>
@@ -27,24 +27,24 @@
             <span>Create and apply</span>
           </button>
           <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
-        {{/block-slot}}
+        </BlockSlot>
       {{/modal-dialog}}
     {{/yield-slot}}
-  {{/block-slot}}
-  {{#block-slot name='option' as |option|}}
+  </BlockSlot>
+  <BlockSlot @name="option" as |option|>
     {{option.Name}}
-  {{/block-slot}}
-  {{#block-slot name='set'}}
+  </BlockSlot>
+  <BlockSlot @name="set">
     {{#tabular-details
         data-test-policies
         onchange=(action 'loadItem')
         items=(sort-by 'CreateTime:desc' 'Name:asc' items) as |item index|
     }}
-      {{#block-slot name='header'}}
+      <BlockSlot @name="header">
         <th>Name</th>
         <th>Datacenters</th>
-      {{/block-slot}}
-      {{#block-slot name='row'}}
+      </BlockSlot>
+      <BlockSlot @name="row">
         <td class={{policy/typeof item}}>
 {{#if item.ID }}
           <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
@@ -55,35 +55,35 @@
         <td>
           {{if (not item.isSaving) (join ', ' (policy/datacenters item)) 'Saving...'}}
         </td>
-      {{/block-slot}}
-      {{#block-slot name='details'}}
+      </BlockSlot>
+      <BlockSlot @name="details">
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
             {{#if (eq item.template '')}}
-              {{code-editor syntax='hcl' readonly=true value=item.Rules}}
+              <CodeEditor @syntax="hcl" @readonly={{true}} @value={{item.Rules}} />
             {{else}}
-              {{#code-editor syntax='hcl' readonly=true}}
+              <CodeEditor @syntax="hcl" @readonly={{true}}>
                 {{~component 'service-identity' name=item.Name~}}
-              {{/code-editor}}
+              </CodeEditor>
             {{/if}}
           </label>
           <div>
-            {{#confirmation-dialog message='Are you sure you want to remove this policy from this token?'}}
-              {{#block-slot name='action' as |confirm|}}
+            <ConfirmationDialog @message="Are you sure you want to remove this policy from this token?">
+              <BlockSlot @name="action" as |confirm|>
                 <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item items}}>Remove</button>
-              {{/block-slot}}
-              {{#block-slot name='dialog' as |execute cancel message|}}
+              </BlockSlot>
+              <BlockSlot @name="dialog" as |execute cancel message|>
                 <p>
                   {{message}}
                 </p>
 
                 <button type="button" class="type-delete" {{action execute}}>Confirm remove</button>
                 <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-              {{/block-slot}}
-            {{/confirmation-dialog}}
+              </BlockSlot>
+            </ConfirmationDialog>
           </div>
-      {{/block-slot}}
+      </BlockSlot>
     {{/tabular-details}}
 
-  {{/block-slot}}
-{{/child-selector}}
+  </BlockSlot>
+</ChildSelector>

@@ -1,13 +1,13 @@
-{{head-layout}}
+<HeadLayout />
 {{title 'Consul' separator=' - '}}
 {{#if (not loading)}}
   {{outlet}}
 {{else}}
-  {{#hashicorp-consul id="wrapper" permissions=permissions dcs=dcs dc=dc nspaces=nspaces nspace=nspace}}
-    {{#app-view class="loading show"}}
-      {{#block-slot name='content'}}
+  <HashicorpConsul @id="wrapper" @permissions={{permissions}} @dcs={{dcs}} @dc={{dc}} @nspaces={{nspaces}} @nspace={{nspace}}>
+    <AppView @class="loading show">
+      <BlockSlot @name="content">
         {{partial 'consul-loading'}}
-      {{/block-slot}}
-    {{/app-view}}
-  {{/hashicorp-consul}}
+      </BlockSlot>
+    </AppView>
+  </HashicorpConsul>
 {{/if}}
