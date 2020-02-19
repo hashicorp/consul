@@ -4,15 +4,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -34,7 +36,7 @@ var TLSLookup = map[string]uint16{
 }
 
 // TLSVersions has all the keys from the map above.
-var TLSVersions = tlsVersions()
+var TLSVersions = strings.Join(tlsVersions(), ", ")
 
 // Config used to create tls.Config
 type Config struct {
@@ -124,14 +126,15 @@ type Config struct {
 	AutoEncryptTLS bool
 }
 
-func tlsVersions() string {
+func tlsVersions() []string {
 	versions := []string{}
 	for v := range TLSLookup {
 		if v != "" {
 			versions = append(versions, v)
 		}
 	}
-	return strings.Join(versions, ", ")
+	sort.Strings(versions)
+	return versions
 }
 
 // KeyPair is used to open and parse a certificate and key file
