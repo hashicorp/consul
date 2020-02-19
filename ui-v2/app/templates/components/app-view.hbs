@@ -2,38 +2,38 @@
 {{#if (not loading)}}
 <header>
 {{#each flashMessages.queue as |flash|}}
-    {{#flash-message flash=flash as |component flash|}}
+    <FlashMessage @flash={{flash}} as |component flash|>
         {{! flashes automatically ucfirst the type }}
 
         <p data-notification class="{{lowercase component.flashType}} notification-{{lowercase flash.action}}">
           <strong>
             {{component.flashType}}!
           </strong>
-          {{#yield-slot name='notification' params=(block-params (lowercase component.flashType) (lowercase flash.action) flash.item )}}{{yield}}{{/yield-slot}}
+          <YieldSlot @name="notification" @params={{block-params (lowercase component.flashType) (lowercase flash.action) flash.item}}>{{yield}}</YieldSlot>
         </p>
-    {{/flash-message}}
+    </FlashMessage>
 {{/each}}
     <div>
         <div class="actions">
   {{#if authorized}}
-            {{#yield-slot name='actions'}}{{yield}}{{/yield-slot}}
+            <YieldSlot @name="actions">{{yield}}</YieldSlot>
   {{/if}}
         </div>
 
         <div>
   {{#if authorized}}
             <nav aria-label="Breadcrumb">
-                {{#yield-slot name='breadcrumbs'}}{{yield}}{{/yield-slot}}
+                <YieldSlot @name="breadcrumbs">{{yield}}</YieldSlot>
             </nav>
   {{/if}}
-            {{#yield-slot name='header'}}{{yield}}{{/yield-slot}}
+            <YieldSlot @name="header">{{yield}}</YieldSlot>
         </div>
     </div>
   {{#if authorized}}
-    {{#yield-slot name='toolbar'}}
+    <YieldSlot @name="toolbar">
       <input type="checkbox" id="toolbar-toggle" />
       {{yield}}
-    {{/yield-slot}}
+    </YieldSlot>
   {{/if}}
 </header>
 {{/if}}
@@ -42,11 +42,11 @@
     {{partial 'consul-loading'}}
 {{else}}
     {{#if (not enabled) }}
-      {{#yield-slot name='disabled'}}{{yield}}{{/yield-slot}}
+      <YieldSlot @name="disabled">{{yield}}</YieldSlot>
     {{else if (not authorized)}}
-      {{#yield-slot name='authorization'}}{{yield}}{{/yield-slot}}
+      <YieldSlot @name="authorization">{{yield}}</YieldSlot>
     {{else}}
-      {{#yield-slot name='content'}}{{yield}}{{/yield-slot}}
+      <YieldSlot @name="content">{{yield}}</YieldSlot>
     {{/if}}
 {{/if}}
 </div>

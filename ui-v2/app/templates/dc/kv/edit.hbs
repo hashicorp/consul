@@ -3,11 +3,11 @@
 {{else}}
   {{title 'Edit Key/Value'}}
 {{/if}}
-{{#app-view class="kv edit" loading=isLoading}}
-  {{#block-slot name='notification' as |status type|}}
+<AppView @class="kv edit" @loading={{isLoading}}>
+  <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/kv/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='breadcrumbs'}}
+  </BlockSlot>
+  <BlockSlot @name="breadcrumbs">
     <ol>
         <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
 {{#if (not-eq parent.Key '/')}}
@@ -16,8 +16,8 @@
   {{/each}}
 {{/if}}
     </ol>
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
       <h1>
 {{#if item.Key}}
         {{left-trim item.Key parent.Key}}
@@ -25,8 +25,8 @@
         New Key / Value
 {{/if}}
       </h1>
-  {{/block-slot}}
-  {{#block-slot name='content'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
     {{#if session}}
       <p class="notice warning">
         <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
@@ -64,19 +64,19 @@
           </dd>
 {{/if}}
         </dl>
-        {{#confirmation-dialog message='Are you sure you want to invalidate this session?'}}
-          {{#block-slot name='action' as |confirm|}}
+        <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
+          <BlockSlot @name="action" as |confirm|>
             <button type="button" data-test-delete class="type-delete" {{action confirm "invalidateSession" session}}>Invalidate Session</button>
-          {{/block-slot}}
-          {{#block-slot name='dialog' as |execute cancel message|}}
+          </BlockSlot>
+          <BlockSlot @name="dialog" as |execute cancel message|>
             <p>
               {{message}}
             </p>
             <button type="button" class="type-delete" {{action execute}}>Confirm Invalidation</button>
             <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-          {{/block-slot}}
-        {{/confirmation-dialog}}
+          </BlockSlot>
+        </ConfirmationDialog>
       </div>
     {{/if}}
-  {{/block-slot}}
-{{/app-view}}
+  </BlockSlot>
+</AppView>

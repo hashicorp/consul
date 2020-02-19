@@ -1,13 +1,13 @@
-{{#app-view class="acl edit" loading=isLoading}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class="acl edit" @loading={{isLoading}}>
+    <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/acls/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls'}}>All Tokens</a></li>
         </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
 {{#if item.Name }}
             {{item.Name}}
@@ -15,42 +15,42 @@
             New token
 {{/if}}
         </h1>
-    {{/block-slot}}
-    {{#block-slot name='actions'}}
+    </BlockSlot>
+    <BlockSlot @name="actions">
 {{#if (not create) }}
-        {{#feedback-dialog type='inline'}}
-            {{#block-slot name='action' as |success error|}}
-                {{#copy-button success=(action success) error=(action error) clipboardText=item.ID title='copy token ID to clipboard'}}
+        <FeedbackDialog @type="inline">
+            <BlockSlot @name="action" as |success error|>
+                <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.ID}} @title="copy token ID to clipboard">
                     Copy token ID
-                {{/copy-button}}
-            {{/block-slot}}
-            {{#block-slot name='success' as |transition|}}
+                </CopyButton>
+            </BlockSlot>
+            <BlockSlot @name="success" as |transition|>
                 <p class={{transition}}>
                     Copied token ID!
                 </p>
-            {{/block-slot}}
-            {{#block-slot name='error' as |transition|}}
+            </BlockSlot>
+            <BlockSlot @name="error" as |transition|>
                 <p class={{transition}}>
                     Sorry, something went wrong!
                 </p>
-            {{/block-slot}}
-        {{/feedback-dialog}}
+            </BlockSlot>
+        </FeedbackDialog>
         <button type="button" {{ action "clone" item }}>Clone token</button>
-        {{#confirmation-dialog message='Are you sure you want to use this ACL token?'}}
-            {{#block-slot name='action' as |confirm|}}
+        <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
+            <BlockSlot @name="action" as |confirm|>
                 <button data-test-use type="button" {{ action confirm 'use' item }}>Use token</button>
-            {{/block-slot}}
-            {{#block-slot name='dialog' as |execute cancel message|}}
+            </BlockSlot>
+            <BlockSlot @name="dialog" as |execute cancel message|>
                 <p>
                     {{message}}
                 </p>
                 <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
                 <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-            {{/block-slot}}
-        {{/confirmation-dialog}}
+            </BlockSlot>
+        </ConfirmationDialog>
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
+    </BlockSlot>
+    <BlockSlot @name="content">
         {{ partial 'dc/acls/form'}}
-    {{/block-slot}}
-{{/app-view}}
+    </BlockSlot>
+</AppView>

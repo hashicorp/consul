@@ -1,5 +1,5 @@
 {{#if (gt item.ServiceChecks.length 0) }}
-  {{healthcheck-list items=item.ServiceChecks exposed=proxy.ServiceProxy.Expose.Checks}}
+  <HealthcheckList @items={{item.ServiceChecks}} @exposed={{proxy.ServiceProxy.Expose.Checks}} />
 {{else}}
   <p>
     This instance has no service health checks.

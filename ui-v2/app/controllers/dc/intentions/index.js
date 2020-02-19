@@ -13,7 +13,7 @@ const createCounter = function(prop) {
 const countAction = createCounter('Action');
 export default Controller.extend(WithSearching, WithFiltering, WithEventSource, {
   queryParams: {
-    action: {
+    currentFilter: {
       as: 'action',
     },
     s: {
@@ -44,7 +44,7 @@ export default Controller.extend(WithSearching, WithFiltering, WithEventSource, 
       };
     });
   }),
-  filter: function(item, { s = '', action = '' }) {
-    return action === '' || get(item, 'Action') === action;
+  filter: function(item, { s = '', currentFilter = '' }) {
+    return currentFilter === '' || get(item, 'Action') === currentFilter;
   },
 });
