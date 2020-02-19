@@ -6,14 +6,14 @@ for dc in primary secondary; do
     mkdir -p "workdir/${dc}/tls"
 done
 
-readonly container="consul-envoy-integ-tls-init--${CASE_NAME}"
+container="consul-envoy-integ-tls-init--${CASE_NAME}"
 
-readonly scriptlet="
+scriptlet="
 mkdir /out ;
 cd /out ;
 consul tls ca create ;
-consul tls cert create -dc=primary -server -additional-dnsname='pri.server.primary.consul' ;
-consul tls cert create -dc=secondary -server -additional-dnsname='sec.server.secondary.consul'
+consul tls cert create -dc=primary -server -node=pri ;
+consul tls cert create -dc=secondary -server -node=sec
 "
 
 docker rm -f "$container" &>/dev/null || true
