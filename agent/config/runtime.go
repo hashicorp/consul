@@ -936,7 +936,7 @@ type RuntimeConfig struct {
 	// details.
 	//
 	// hcl: primary_gateways = []string
-	// flag: -primary-gateways string -primary-gateways string
+	// flag: -primary-gateway string -primary-gateway string
 	PrimaryGateways []string
 
 	// PrimaryGatewaysInterval specifies the amount of time to wait in between discovery

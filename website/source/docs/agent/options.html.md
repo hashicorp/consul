@@ -435,7 +435,7 @@ The options below are all specified on the command-line.
   however agents will automatically use protocol >2 when speaking to compatible agents. This should be set only when
   [upgrading](/docs/upgrading.html). You can view the protocol versions supported by Consul by running `consul -v`.
 
-* <a name="_primary_gateways"></a><a href="#_primary_gateways">`-primary-gateways`</a> - Similar
+* <a name="_primary_gateway"></a><a href="#_primary_gateway">`-primary-gateway`</a> - Similar
   to [`retry-join-wan`](#_retry_join_wan) but allows retrying discovery of fallback addresses
   for the mesh gateways in the primary datacenter if the first attempt fails.
   This is useful for cases where we know the address will become available eventually.
@@ -444,7 +444,7 @@ The options below are all specified on the command-line.
   This was added in Consul 1.7.x **TODO(rb)**.
 
 * <a name="_primary_gateways_interval"></a><a href="#_primary_gateways_interval">`-primary-gateways-interval`</a> - Time
-  to wait between [`-primary-gateways`](#_primary_gateways) discovery attempts.
+  to wait between [`-primary-gateway`](#_primary_gateway) discovery attempts.
   Defaults to 30s.
   This was added in Consul 1.7.x **TODO(rb)**.
 
@@ -1609,7 +1609,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   Consul 0.8 and later, this also enables agent-level enforcement of ACLs.
 
 * <a name="primary_gateways"></a><a href="#primary_gateways">`primary_gateways`</a> Equivalent to the
-  [`-primary-gateways` command-line flag](#_primary_gateways). Takes a list
+  [`-primary-gateway` command-line flag](#_primary_gateway). Takes a list
   of addresses to use as the mesh gateways for the primary datacenter when authoritative
   replicated catalog data is not present. Discovery happens every [`primary_gateways_interval`](#_primary_gateways_interval) until at least one
   primary mesh gateway is discovered.

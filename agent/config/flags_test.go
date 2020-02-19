@@ -85,7 +85,7 @@ func TestParseFlags(t *testing.T) {
 			flags: Flags{Config: Config{Bootstrap: pBool(true)}, Args: []string{"true"}},
 		},
 		{
-			args: []string{`-primary-gateways`, `foo.local`, `-primary-gateways`, `bar.local`},
+			args: []string{`-primary-gateway`, `foo.local`, `-primary-gateway`, `bar.local`},
 			flags: Flags{Config: Config{PrimaryGateways: []string{
 				"foo.local", "bar.local",
 			}}},

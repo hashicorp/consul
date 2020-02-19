@@ -622,12 +622,12 @@ func TestConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "-primary-gateways",
+			desc: "-primary-gateway",
 			args: []string{
 				`-server`,
 				`-datacenter=dc2`,
-				`-primary-gateways=a`,
-				`-primary-gateways=b`,
+				`-primary-gateway=a`,
+				`-primary-gateway=b`,
 				`-data-dir=` + dataDir,
 			},
 			json: []string{`{ "primary_datacenter": "dc1" }`},

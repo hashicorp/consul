@@ -97,7 +97,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.RPCProtocol, "protocol", "Sets the protocol version. Defaults to latest.")
 	add(&f.Config.RaftProtocol, "raft-protocol", "Sets the Raft protocol version. Defaults to latest.")
 	add(&f.Config.DNSRecursors, "recursor", "Address of an upstream DNS server. Can be specified multiple times.")
-	add(&f.Config.PrimaryGateways, "primary-gateways", "Address of a mesh gateway in the primary datacenter to use to bootstrap WAN federation at start time with retries enabled. Can be specified multiple times.")
+	add(&f.Config.PrimaryGateways, "primary-gateway", "Address of a mesh gateway in the primary datacenter to use to bootstrap WAN federation at start time with retries enabled. Can be specified multiple times.")
 	add(&f.Config.PrimaryGatewaysInterval, "primary-gateways-interval", "Time to wait between discovery attempts for mesh gateways in the primary datacenter.")
 	add(&f.Config.RejoinAfterLeave, "rejoin", "Ignores a previous leave and attempts to rejoin the cluster.")
 	add(&f.Config.RetryJoinIntervalLAN, "retry-interval", "Time to wait between join attempts.")
