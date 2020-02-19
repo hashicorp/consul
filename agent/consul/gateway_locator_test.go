@@ -110,16 +110,8 @@ func (d *testServerDelegate) blockingQuery(
 	minQueryIndex := queryOpts.GetMinQueryIndex()
 
 	d.Calls = append(d.Calls, minQueryIndex)
-	// if minQueryIndex == 0 {
-	// 	goto RUN_QUERY
-	// }
-
-	// RUN_QUERY:
 
 	var ws memdb.WatchSet
-	// if minQueryIndex > 0 {
-	// 	ws = memdb.NewWatchSet()
-	// }
 
 	err := fn(ws, d.State)
 	if err == nil && queryMeta.GetIndex() < 1 {
