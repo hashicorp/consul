@@ -15,7 +15,6 @@ import (
 // datacenters.
 type FederationState struct {
 	srv *Server
-	// TODO(rb): does this need a Logger?
 }
 
 func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *bool) error {
