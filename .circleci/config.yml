@@ -11,7 +11,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v2-{{ checksum "ui-v2/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -472,7 +472,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
+          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
   # run ember frontend tests
@@ -491,7 +491,7 @@ jobs:
           at: ui-v2
       - run:
           working_directory: ui-v2
-          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
+          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
           path: ui-v2/test-results
   # run ember frontend unit tests to produce coverage report
