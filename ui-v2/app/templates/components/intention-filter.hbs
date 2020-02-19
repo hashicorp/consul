@@ -1,4 +1,4 @@
 {{!<form>}}
     <FreetextFilter @searchable={{searchable}} @value={{search}} @placeholder="Search by Source or Destination" />
-    <RadioGroup @keyboardAccess={{true}} @name="action" @value={{action}} @items={{filters}} @onchange={{action onchange}} />
+    <RadioGroup @keyboardAccess={{true}} @name="currentFilter" @value={{selected}} @items={{filters}} @onchange={{action onchange}} />
 {{!</form>}}

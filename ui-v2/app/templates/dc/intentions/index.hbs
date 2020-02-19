@@ -14,7 +14,7 @@
     </BlockSlot>
     <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-        <IntentionFilter @searchable={{searchable}} @filters={{actionFilters}} @search={{filters.s}} @type={{filters.action}} @onchange={{action "filter"}} />
+        <IntentionFilter @searchable={{searchable}} @selected={{currentFilter}} @filters={{actionFilters}} @search={{filters.s}} @type={{filters.action}} @onchange={{action "filter"}} />
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
