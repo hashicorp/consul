@@ -190,7 +190,13 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	d.mux = dns.NewServeMux()
 	d.mux.HandleFunc("arpa.", d.handlePtr)
 	d.mux.HandleFunc(d.domain, d.handleQuery)
-	if d.altDomain != "" {
+	// this is not an empty string check because NewDNSServer will have
+	// converted the configured alt domain into an FQDN which will ensure that
+	// the value ends with a ".". Therefore "." is the empty string equivalent
+	// for originally having no alternate domain set. If there is a reason
+	// why consul should be configured to handle the root zone I have yet
+	// to think of it.
+	if d.altDomain != "." {
 		d.mux.HandleFunc(d.altDomain, d.handleQuery)
 	}
 	d.toggleRecursorHandlerFromConfig(cfg)
