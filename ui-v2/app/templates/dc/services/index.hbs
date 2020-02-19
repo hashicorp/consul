@@ -1,35 +1,30 @@
 {{title 'Services'}}
-{{#app-view class="service list"}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class="service list">
+    <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/services/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
             Services <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
-    {{/block-slot}}
-    {{#block-slot name='toolbar'}}
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-      {{phrase-editor
-        placeholder='service:name tag:name status:critical search-term'
-        value=(slice 0 terms.length terms)
-        onchange=(action (mut terms) value='target.value')
-        searchable=searchable
-      }}
+      <PhraseEditor @placeholder="service:name tag:name status:critical search-term" @value={{slice 0 terms.length terms}} @onchange={{action (mut terms) value='target.value'}} @searchable={{searchable}} />
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{#changeable-set dispatcher=searchable}}
-          {{#block-slot name='set' as |filtered|}}
-            {{consul-service-list routeName="dc.services.show" items=filtered}}
-          {{/block-slot}}
-          {{#block-slot name='empty'}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+        <ChangeableSet @dispatcher={{searchable}}>
+          <BlockSlot @name="set" as |filtered|>
+            <ConsulServiceList @routeName="dc.services.show" @items={{filtered}} />
+          </BlockSlot>
+          <BlockSlot @name="empty">
             <p>
               There are no services.
             </p>
-          {{/block-slot}}
-        {{/changeable-set}}
-    {{/block-slot}}
-{{/app-view}}
+          </BlockSlot>
+        </ChangeableSet>
+    </BlockSlot>
+</AppView>
 
