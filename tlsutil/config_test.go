@@ -389,6 +389,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true}, // 20
 		{Config{CAFile: "bogus"}, true, true},                     // 21
 		{Config{CAPath: "bogus"}, true, true},                     // 22
+		{Config{TLSMinVersion: "tls13"}, false, false},            // 23
 	}
 
 	c := Configurator{autoEncrypt: &autoEncrypt{}, manual: &manual{}}
@@ -590,7 +591,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, c.commonTLSConfig(false).MinVersion, TLSLookup["tls10"])
 
-	tlsVersions := []string{"tls10", "tls11", "tls12"}
+	tlsVersions := []string{"tls10", "tls11", "tls12", "tls13"}
 	for _, version := range tlsVersions {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,

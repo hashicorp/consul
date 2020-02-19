@@ -30,7 +30,11 @@ var TLSLookup = map[string]uint16{
 	"tls10": tls.VersionTLS10,
 	"tls11": tls.VersionTLS11,
 	"tls12": tls.VersionTLS12,
+	"tls13": tls.VersionTLS13,
 }
+
+// TLSVersions has all the keys from the map above, make sure to keep both in sync
+var TLSVersions = "tls10, tls11, tls12, tls13"
 
 // Config used to create tls.Config
 type Config struct {
@@ -323,7 +327,7 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
-			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", config.TLSMinVersion)
+			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, TLSVersions)
 		}
 	}
 
