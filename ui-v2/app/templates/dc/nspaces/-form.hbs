@@ -23,14 +23,14 @@
     <p>
       By adding roles to this namespaces, you will apply them to all tokens created within this namespace.
     </p>
-    {{role-selector dc=dc nspace='default' items=item.ACLs.RoleDefaults}}
+    <RoleSelector @dc={{dc}} @nspace="default" @items={{item.ACLs.RoleDefaults}} />
   </fieldset>
   <fieldset id="policies">
     <h2>Policies</h2>
     <p>
       By adding policies to this namespaces, you will apply them to all tokens created within this namespace.
     </p>
-    {{policy-selector dc=dc nspace='default' allowServiceIdentity=false items=item.ACLs.PolicyDefaults}}
+    <PolicySelector @dc={{dc}} @nspace="default" @allowServiceIdentity={{false}} @items={{item.ACLs.PolicyDefaults}} />
   </fieldset>
 {{/if}}
   <div>
@@ -41,14 +41,14 @@
 {{/if}}
       <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and (not create) (not-eq item.Name 'default')) }}
-      {{#confirmation-dialog message='Are you sure you want to delete this Namespace?'}}
-          {{#block-slot name='action' as |confirm|}}
+      <ConfirmationDialog @message="Are you sure you want to delete this Namespace?">
+          <BlockSlot @name="action" as |confirm|>
               <button data-test-delete type="button" class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>
-          {{/block-slot}}
-          {{#block-slot name='dialog' as |execute cancel message|}}
-            {{delete-confirmation message=message execute=execute cancel=cancel}}
-          {{/block-slot}}
-      {{/confirmation-dialog}}
+          </BlockSlot>
+          <BlockSlot @name="dialog" as |execute cancel message|>
+            <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+          </BlockSlot>
+      </ConfirmationDialog>
 {{/if}}
   </div>
 </form>

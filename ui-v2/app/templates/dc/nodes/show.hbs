@@ -1,52 +1,41 @@
 {{title item.Node}}
-{{#app-view class="node show"}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class="node show">
+    <BlockSlot @name="notification" as |status type|>
       {{!TODO: Move sessions to its own folder within nodes }}
       {{partial 'dc/nodes/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
         <ol>
             <li><a data-test-back href={{href-to 'dc.nodes'}}>All Nodes</a></li>
         </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
           {{ item.Node }}
         </h1>
         <label for="toolbar-toggle"></label>
-        {{tab-nav
-            items=(compact
-              (array
-                             'Health Checks'
-                             'Services'
-    (if tomography.distances 'Round Trip Time' '')
-                             'Lock Sessions'
-                             'Meta Data'
-              )
-            )
-            selected=selectedTab
-        }}
-    {{/block-slot}}
-    {{#block-slot name='actions'}}
-      {{#feedback-dialog type='inline'}}
-          {{#block-slot name='action' as |success error|}}
-              {{#copy-button success=(action success) error=(action error) clipboardText=item.Address title='copy IP address to clipboard'}}
+        <TabNav @items={{compact (array "Health Checks" "Services" (if tomography.distances "Round Trip Time" "") "Lock Sessions" "Meta Data")}} @selected={{selectedTab}} />
+    </BlockSlot>
+    <BlockSlot @name="actions">
+      <FeedbackDialog @type="inline">
+          <BlockSlot @name="action" as |success error|>
+              <CopyButton @success={{action success}} @error={{action error}} @clipboardText={{item.Address}} @title="copy IP address to clipboard">
                   {{item.Address}}
-              {{/copy-button}}
-          {{/block-slot}}
-          {{#block-slot name='success' as |transition|}}
+              </CopyButton>
+          </BlockSlot>
+          <BlockSlot @name="success" as |transition|>
               <p class={{transition}}>
                   Copied IP Address!
               </p>
-          {{/block-slot}}
-          {{#block-slot name='error' as |transition|}}
+          </BlockSlot>
+          <BlockSlot @name="error" as |transition|>
               <p class={{transition}}>
                   Sorry, something went wrong!
               </p>
-          {{/block-slot}}
-      {{/feedback-dialog}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
+          </BlockSlot>
+      </FeedbackDialog>
+    </BlockSlot>
+    <BlockSlot @name="content">
         {{#each
             (compact
                 (array
@@ -58,9 +47,9 @@
                 )
             ) as |panel|
         }}
-            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+            <TabSection @id={{panel.id}} @selected={{eq (if selectedTab selectedTab "") panel.id}} @onchange={{action "change"}}>
                 {{partial panel.partial}}
-            {{/tab-section}}
+            </TabSection>
         {{/each}}
-    {{/block-slot}}
-{{/app-view}}
+    </BlockSlot>
+</AppView>

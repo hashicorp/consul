@@ -3,44 +3,42 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
-{{#app-view class=(concat 'role ' (if (not isAuthorized) 'edit' 'list')) loading=isLoading authorized=isAuthorized enabled=isEnabled}}
-  {{#block-slot name='notification' as |status type|}}
+<AppView @class={{concat "role " (if (not isAuthorized) "edit" "list")}} @loading={{isLoading}} @authorized={{isAuthorized}} @enabled={{isEnabled}}>
+  <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/acls/roles/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
     <h1>
       Access Controls
     </h1>
     {{#if isAuthorized }}
       {{partial 'dc/acls/nav'}}
     {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='disabled'}}
+  </BlockSlot>
+  <BlockSlot @name="disabled">
     {{partial 'dc/acls/disabled'}}
-  {{/block-slot}}
-  {{#block-slot name='authorization'}}
+  </BlockSlot>
+  <BlockSlot @name="authorization">
     {{partial 'dc/acls/authorization'}}
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
+  </BlockSlot>
+  <BlockSlot @name="actions">
     <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
-  {{/block-slot}}
-  {{#block-slot name='content'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
 {{#if (gt items.length 0) }}
     <form class="filter-bar">
-      {{freetext-filter searchable=searchable value=s placeholder="Search"}}
+      <FreetextFilter @searchable={{searchable}} @value={{s}} @placeholder="Search" />
     </form>
 {{/if}}
-    {{#changeable-set dispatcher=searchable}}
-      {{#block-slot name='set' as |filtered|}}
-        {{#tabular-collection
-            items=(sort-by 'CreateIndex:desc' 'Name:asc' filtered) as |item index|
-        }}
-            {{#block-slot name='header'}}
+    <ChangeableSet @dispatcher={{searchable}}>
+      <BlockSlot @name="set" as |filtered|>
+        <TabularCollection @items={{sort-by "CreateIndex:desc" "Name:asc" filtered}} as |item index|>
+            <BlockSlot @name="header">
               <th>Name</th>
               <th>Description</th>
               <th>Policies</th>
-            {{/block-slot}}
-            {{#block-slot name='row'}}
+            </BlockSlot>
+            <BlockSlot @name="row">
               <td data-test-role="{{item.Name}}">
                 <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
               </td>
@@ -52,13 +50,13 @@
                   <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
                 {{/each}}
               </td>
-            {{/block-slot}}
-            {{#block-slot name='actions' as |index change checked|}}
-              {{#popover-menu expanded=(if (eq checked index) true false) onchange=(action change index) keyboardAccess=false}}
-                {{#block-slot name='trigger'}}
+            </BlockSlot>
+            <BlockSlot @name="actions" as |index change checked|>
+              <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+                <BlockSlot @name="trigger">
                   More
-                {{/block-slot}}
-                {{#block-slot name='menu' as |confirm send keypressClick|}}
+                </BlockSlot>
+                <BlockSlot @name="menu" as |confirm send keypressClick|>
                     <li role="none">
                       <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
                     </li>
@@ -85,16 +83,16 @@
                         </div>
                       </div>
                     </li>
-                {{/block-slot}}
-              {{/popover-menu}}
-            {{/block-slot}}
-        {{/tabular-collection}}
-      {{/block-slot}}
-      {{#block-slot name='empty'}}
+                </BlockSlot>
+              </PopoverMenu>
+            </BlockSlot>
+        </TabularCollection>
+      </BlockSlot>
+      <BlockSlot @name="empty">
         <p>
           There are no Roles.
         </p>
-      {{/block-slot}}
-    {{/changeable-set}}
-  {{/block-slot}}
-{{/app-view}}
+      </BlockSlot>
+    </ChangeableSet>
+  </BlockSlot>
+</AppView>

@@ -1,9 +1,9 @@
 {{yield}}
 {{#if (eq state 'success') }}
-    {{#yield-slot name='success' params=(block-params transition)}}{{yield}}{{/yield-slot}}
+    <YieldSlot @name="success" @params={{block-params transition}}>{{yield}}</YieldSlot>
 {{else if (eq state 'error') }}
-    {{#yield-slot name='error' params=(block-params transition)}}{{yield}}{{/yield-slot}}
+    <YieldSlot @name="error" @params={{block-params transition}}>{{yield}}</YieldSlot>
 {{/if}}
 {{#if (or permanent (eq state 'ready')) }}
-    {{#yield-slot name='action' params=(block-params success error)}}{{yield}}{{message}}{{/yield-slot}}
+    <YieldSlot @name="action" @params={{block-params success error}}>{{yield}}{{message}}</YieldSlot>
 {{/if}}
