@@ -35,14 +35,14 @@
     <label class="type-text" data-test-rules>
         <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template '') }}
-        {{code-editor syntax='hcl' class=(if item.error.Rules 'error') name=(concat name '[Rules]') value=item.Rules onkeyup=(action 'change' (concat name '[Rules]'))}}
+        <CodeEditor @syntax="hcl" @class={{if item.error.Rules "error"}} @name={{concat name "[Rules]"}} @value={{item.Rules}} @onkeyup={{action "change" (concat name "[Rules]")}} />
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>
         {{/if}}
 {{else}}
-        {{#code-editor readonly=true name=(concat name '[Rules]') syntax='hcl' oninput=(action 'change' (concat name '[Rules]'))}}
+        <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
           {{~component 'service-identity' name=item.Name~}}
-        {{/code-editor}}
+        </CodeEditor>
 {{/if}}
     </label>
     <div class="type-toggle">

@@ -1,16 +1,16 @@
 {{title item.ID}}
-{{#app-view class="instance show"}}
-    {{#block-slot name='notification' as |status type|}}
+<AppView @class="instance show">
+    <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/services/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
         <ol>
             <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
             <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
             <li><strong>Instance</strong></li>
         </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
       <h1>
         {{ item.ID }}
 {{#let (service/external-source item) as |externalSource| }}
@@ -60,31 +60,9 @@
       </dl>
   {{/if}}
 {{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{tab-nav
-            items=(compact
-              (array
-                'Service Checks'
-                'Node Checks'
-(if
-  (eq item.Kind 'connect-proxy')
-                'Upstreams' ''
-)
-(if
-  (and (eq item.Kind 'connect-proxy') (gt item.Proxy.Expose.Paths.length 0))
-                'Exposed Paths' ''
-)
-(if
-  (eq item.Kind 'mesh-gateway')
-                'Addresses' ''
-)
-                'Tags'
-                'Meta Data'
-              )
-            )
-            selected=selectedTab
-        }}
+    </BlockSlot>
+    <BlockSlot @name="content">
+        <TabNav @items={{compact (array "Service Checks" "Node Checks" (if (eq item.Kind "connect-proxy") "Upstreams" "") (if (and (eq item.Kind "connect-proxy") (gt item.Proxy.Expose.Paths.length 0)) "Exposed Paths" "") (if (eq item.Kind "mesh-gateway") "Addresses" "") "Tags" "Meta Data")}} @selected={{selectedTab}} />
         {{#each
             (compact
                 (array
@@ -107,9 +85,9 @@
                 )
             ) as |panel|
         }}
-            {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action "change")}}
+            <TabSection @id={{panel.id}} @selected={{eq (if selectedTab selectedTab "") panel.id}} @onchange={{action "change"}}>
                 {{partial panel.partial}}
-            {{/tab-section}}
+            </TabSection>
         {{/each}}
-    {{/block-slot}}
-{{/app-view}}
+    </BlockSlot>
+</AppView>

@@ -3,13 +3,13 @@
     data-test-upstreams
     items=item.Proxy.Upstreams as |item index|
 }}
-    {{#block-slot name='header'}}
+    <BlockSlot @name="header">
       <th>Upstream</th>
       <th>Datacenter</th>
       <th>Type</th>
       <th>Local Bind Address</th>
-    {{/block-slot}}
-    {{#block-slot name='row'}}
+    </BlockSlot>
+    <BlockSlot @name="row">
       <td>
         <a data-test-destination-name>
           {{item.DestinationName}}
@@ -30,7 +30,7 @@
       <td data-test-local-bind-address>
         {{item.LocalBindAddress}}:{{item.LocalBindPort}}
       </td>
-    {{/block-slot}}
+    </BlockSlot>
 {{/tabular-collection}}
 {{else}}
   <p>

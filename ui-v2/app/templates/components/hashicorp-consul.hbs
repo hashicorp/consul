@@ -16,18 +16,18 @@
     {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
                         <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
     {{ else }}
-                        {{#popover-menu position='left'}}
-                          {{#block-slot name='trigger'}}
+                        <PopoverMenu @position="left">
+                          <BlockSlot @name="trigger">
                             {{nspace.Name}}
-                          {{/block-slot}}
+                          </BlockSlot>
                         {{#if (is-href 'dc.nspaces')}}
-                          {{#block-slot name='header'}}
+                          <BlockSlot @name="header">
                             <p>
 					                    Namespaces themselves are not namespaced, so switching will not change the current view.
                             </p>
-                          {{/block-slot}}
+                          </BlockSlot>
                         {{/if}}
-                          {{#block-slot name='menu'}}
+                          <BlockSlot @name="menu">
                             <li role="separator">
                               Namespaces
                             </li>
@@ -42,8 +42,8 @@
                                 <a tabindex="-1" role="menuitem" href={{href-to 'dc.nspaces' dc.Name}}>Manage namespaces</a>
                               </li>
                     {{/if}}
-                          {{/block-slot}}
-                        {{/popover-menu}}
+                          </BlockSlot>
+                        </PopoverMenu>
     {{/if}}
                     </li>
   {{/if}}
@@ -51,11 +51,11 @@
   {{#if (or (not dcs) (eq dcs.length 1)) }}
                         <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
   {{ else }}
-                        {{#popover-menu position='left'}}
-                          {{#block-slot name='trigger'}}
+                        <PopoverMenu @position="left">
+                          <BlockSlot @name="trigger">
                             {{dc.Name}}
-                          {{/block-slot}}
-                          {{#block-slot name='menu'}}
+                          </BlockSlot>
+                          <BlockSlot @name="menu">
                             <li role="separator">
                               Datacenters
                             </li>
@@ -64,8 +64,8 @@
                                 <a tabindex="-1" role="menuitem" href={{href-mut (hash dc=item.Name)}}>{{item.Name}}</a>
                               </li>
                             {{/each}}
-                          {{/block-slot}}
-                        {{/popover-menu}}
+                          </BlockSlot>
+                        </PopoverMenu>
 
   {{/if}}
                     </li>
@@ -90,11 +90,11 @@
             <nav>
                 <ul>
                     <li data-test-main-nav-docs>
-                      {{#popover-menu position='right'}}
-                        {{#block-slot name='trigger'}}
+                      <PopoverMenu @position="right">
+                        <BlockSlot @name="trigger">
                           Help
-                        {{/block-slot}}
-                        {{#block-slot name='menu'}}
+                        </BlockSlot>
+                        <BlockSlot @name="menu">
                           <li role="none" class="docs-link">
                             <a tabindex="-1" role="menuitem" href={{env 'CONSUL_DOCS_URL'}} rel="noopener noreferrer" target="_blank">Documentation</a>
                           </li>
@@ -105,8 +105,8 @@
                           <li role="none" class="feedback-link">
                             <a tabindex="-1" role="menuitem" href={{env 'CONSUL_REPO_ISSUES_URL'}} target="_blank" rel="noopener noreferrer">Provide Feedback</a>
                           </li>
-                        {{/block-slot}}
-                      {{/popover-menu}}
+                        </BlockSlot>
+                      </PopoverMenu>
                     </li>
                     <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
                         <a href={{href-to 'settings'}}>Settings</a>
@@ -124,4 +124,4 @@
         <a data-test-footer-docs href="{{env 'CONSUL_DOCS_URL'}}" rel="help noopener noreferrer" target="_blank">Documentation</a>
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </footer>
-    {{modal-layer}}
+    <ModalLayer />

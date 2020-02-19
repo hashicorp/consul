@@ -1,14 +1,14 @@
 {{title item.Service.Service}}
-{{#app-view class="service show"}}
-  {{#block-slot name='notification' as |status type|}}
+<AppView @class="service show">
+  <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/services/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='breadcrumbs'}}
+  </BlockSlot>
+  <BlockSlot @name="breadcrumbs">
     <ol>
         <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
     </ol>
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
     <h1>
       {{item.Service.Service}}
 {{#let (service/external-source item.Service) as |externalSource| }}
@@ -23,23 +23,14 @@
 {{/if}}
     </h1>
     <label for="toolbar-toggle"></label>
-    {{tab-nav
-      items=(compact
-        (array
-                        'Instances'
-(if (not-eq chain null) 'Routing' '')
-                        'Tags'
-        )
-      )
-      selected=selectedTab
-    }}
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
+    <TabNav @items={{compact (array "Instances" (if (not-eq chain ) "Routing" "") "Tags")}} @selected={{selectedTab}} />
+  </BlockSlot>
+  <BlockSlot @name="actions">
     {{#if urls.service}}
       {{#templated-anchor data-test-dashboard-anchor href=urls.service vars=(hash Datacenter=dc Service=(hash Name=item.Service.Service)) rel="external"}}Open Dashboard{{/templated-anchor}}
     {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='content'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
     {{#each
       (compact
         (array
@@ -49,9 +40,9 @@
         )
       ) as |panel|
     }}
-        {{#tab-section id=panel.id selected=(eq (if selectedTab selectedTab '') panel.id) onchange=(action 'change')}}
+        <TabSection @id={{panel.id}} @selected={{eq (if selectedTab selectedTab "") panel.id}} @onchange={{action "change"}}>
           {{partial panel.partial}}
-        {{/tab-section}}
+        </TabSection>
     {{/each}}
-  {{/block-slot}}
-{{/app-view}}
+  </BlockSlot>
+</AppView>

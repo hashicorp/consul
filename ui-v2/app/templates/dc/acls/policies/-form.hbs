@@ -1,10 +1,10 @@
 <form>
-  {{#policy-form form=form item=item}}
+  <PolicyForm @form={{form}} @item={{item}}>
     {{!don't show template selection here, i.e. Service Identity}}
-    {{block-slot name='template'}}
-  {{/policy-form}}
+    <BlockSlot @name="template" />
+  </PolicyForm>
 {{#if (not create) }}
-  {{token-list caption="Applied to the following tokens:" items=items}}
+  <TokenList @caption="Applied to the following tokens:" @items={{items}} />
 {{/if}}
     <div>
 {{#if create }}
@@ -15,35 +15,35 @@
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (not create) }}
-        {{#confirmation-dialog message='Are you sure you want to delete this Policy?'}}
-            {{#block-slot name='action' as |confirm|}}
+        <ConfirmationDialog @message="Are you sure you want to delete this Policy?">
+            <BlockSlot @name="action" as |confirm|>
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
-            {{/block-slot}}
-            {{#block-slot name='dialog' as |execute cancel message|}}
+            </BlockSlot>
+            <BlockSlot @name="dialog" as |execute cancel message|>
     {{#if (gt items.length 0)}}
               {{#modal-dialog data-test-delete-modal onclose=(action cancel)}}
-                  {{#block-slot name='header'}}
+                  <BlockSlot @name="header">
                       <h2>Policy in Use</h2>
-                  {{/block-slot}}
-                  {{#block-slot name='body'}}
+                  </BlockSlot>
+                  <BlockSlot @name="body">
                     <p>
                       This Policy is currently in use. If you choose to delete this Policy, it will be removed from the following <strong>{{items.length}} Tokens</strong>:
                     </p>
-                    {{token-list items=items target='_blank'}}
+                    <TokenList @items={{items}} @target="_blank" />
                     <p>
                       This action cannot be undone. {{message}}
                     </p>
-                  {{/block-slot}}
-                  {{#block-slot name='actions' as |close|}}
+                  </BlockSlot>
+                  <BlockSlot @name="actions" as |close|>
                     <button type="button" class="type-delete" {{action execute}}>Yes, Delete</button>
                     <button type="button" class="type-cancel" {{action close}}>Cancel</button>
-                  {{/block-slot}}
+                  </BlockSlot>
                 {{/modal-dialog}}
     {{else}}
-                {{delete-confirmation message=message execute=execute cancel=cancel}}
+                <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
     {{/if}}
-            {{/block-slot}}
-        {{/confirmation-dialog}}
+            </BlockSlot>
+        </ConfirmationDialog>
 {{/if}}
     </div>
 </form>
