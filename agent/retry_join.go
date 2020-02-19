@@ -89,9 +89,14 @@ func (a *Agent) refreshPrimaryGatewayFallbackAddresses() {
 		addrs:       a.config.PrimaryGateways,
 		maxAttempts: 0,
 		interval:    a.config.PrimaryGatewaysInterval,
-		join:        a.RefreshPrimaryGatewayFallbackAddresses,
-		logger:      a.logger,
-		stopCh:      a.PrimaryMeshGatewayAddressesReadyCh(),
+		join: func(addrs []string) (int, error) {
+			if err := a.RefreshPrimaryGatewayFallbackAddresses(addrs); err != nil {
+				return 0, err
+			}
+			return len(addrs), nil
+		},
+		logger: a.logger,
+		stopCh: a.PrimaryMeshGatewayAddressesReadyCh(),
 	}
 	if err := r.retryJoin(); err != nil {
 		a.retryJoinCh <- err

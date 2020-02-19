@@ -93,21 +93,16 @@ func (g *GatewayLocator) listGateways(primary bool) []string {
 
 // RefreshPrimaryGatewayFallbackAddresses is used to update the list of current
 // fallback addresses for locating mesh gateways in the primary datacenter.
-func (g *GatewayLocator) RefreshPrimaryGatewayFallbackAddresses(addrs []string) (int, error) {
+func (g *GatewayLocator) RefreshPrimaryGatewayFallbackAddresses(addrs []string) {
 	sort.Strings(addrs)
 
 	g.primaryMeshGatewayDiscoveredAddressesLock.Lock()
 	defer g.primaryMeshGatewayDiscoveredAddressesLock.Unlock()
 
-	if lib.StringSliceEqual(addrs, g.primaryMeshGatewayDiscoveredAddresses) {
-		return 0, nil
+	if !lib.StringSliceEqual(addrs, g.primaryMeshGatewayDiscoveredAddresses) {
+		g.primaryMeshGatewayDiscoveredAddresses = addrs
+		g.logger.Info("updated fallback list of primary mesh gateways", "mesh_gateways", addrs)
 	}
-
-	g.primaryMeshGatewayDiscoveredAddresses = addrs
-
-	g.logger.Info("updated fallback list of primary mesh gateways", "mesh_gateways", addrs)
-
-	return len(addrs), nil
 }
 
 // PrimaryGatewayFallbackAddresses returns the current set of discovered

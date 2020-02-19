@@ -1079,11 +1079,10 @@ func (s *Server) PickRandomMeshGatewaySuitableForDialing(dc string) string {
 
 // RefreshPrimaryGatewayFallbackAddresses is used to update the list of current
 // fallback addresses for locating mesh gateways in the primary datacenter.
-func (s *Server) RefreshPrimaryGatewayFallbackAddresses(addrs []string) (int, error) {
-	if s.gatewayLocator == nil {
-		return 0, nil
+func (s *Server) RefreshPrimaryGatewayFallbackAddresses(addrs []string) {
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.RefreshPrimaryGatewayFallbackAddresses(addrs)
 	}
-	return s.gatewayLocator.RefreshPrimaryGatewayFallbackAddresses(addrs)
 }
 
 // PrimaryGatewayFallbackAddresses returns the current set of discovered

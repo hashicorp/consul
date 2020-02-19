@@ -1923,11 +1923,12 @@ func (a *Agent) PickRandomMeshGatewaySuitableForDialing(dc string) string {
 
 // RefreshPrimaryGatewayFallbackAddresses is used to update the list of current
 // fallback addresses for locating mesh gateways in the primary datacenter.
-func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) (int, error) {
+func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 	if srv, ok := a.delegate.(*consul.Server); ok {
-		return srv.RefreshPrimaryGatewayFallbackAddresses(addrs)
+		srv.RefreshPrimaryGatewayFallbackAddresses(addrs)
+		return nil
 	}
-	return 0, fmt.Errorf("Must be a server to track mesh gateways in the primary datacenter")
+	return fmt.Errorf("Must be a server to track mesh gateways in the primary datacenter")
 }
 
 // ForceLeave is used to remove a failed node from the cluster

@@ -653,13 +653,11 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 
 	// Seed the secondaries with the address of the primary and wait for that to
 	// be in their locators.
-	_, err := s2.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
-	require.NoError(t, err)
+	s2.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
 	retry.Run(t, func(r *retry.R) {
 		require.NotEmpty(r, s2.gatewayLocator.PickGateway("dc1"))
 	})
-	_, err = s3.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
-	require.NoError(t, err)
+	s3.RefreshPrimaryGatewayFallbackAddresses([]string{gwAddr})
 	retry.Run(t, func(r *retry.R) {
 		require.NotEmpty(r, s3.gatewayLocator.PickGateway("dc1"))
 	})
@@ -669,7 +667,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	// delay gateway registration in the secondary until after one directional
 	// join. So this way we explicitly join secondary-to-primary as a standalone
 	// operation and follow it up later with a full join.
-	_, err = s2.JoinWAN([]string{joinAddrWAN(s1)})
+	_, err := s2.JoinWAN([]string{joinAddrWAN(s1)})
 	require.NoError(t, err)
 	retry.Run(t, func(r *retry.R) {
 		if got, want := len(s2.WANMembers()), 2; got != want {
