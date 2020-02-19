@@ -2,7 +2,7 @@
 
 IMPROVEMENTS:
 
-* build: Switched to compile with Go 1.13.7 [GH-7262]
+* build: Switched to compile with Go 1.13.7 [[GH-7262](https://github.com/hashicorp/consul/issues/7262)]
 
 BUGFIXES:
 
