@@ -18,7 +18,21 @@ import (
 // GatewayLocator assists in selecting an appropriate mesh gateway when wan
 // federation via mesh gateways is enabled.
 //
-// NOTE: this is ONLY for RPC and gossip so we only need to track local/primary
+// This is exclusively used by the consul server itself when it needs to tunnel
+// RPC or gossip through a mesh gateway to reach its ultimate destination.
+//
+// During secondary datacenter bootstrapping there is a phase where it is
+// impossible for mesh gateways in the secondary datacenter to register
+// themselves into the catalog to be discovered by the servers, so the servers
+// maintain references for the mesh gateways in the primary in addition to its
+// own local mesh gateways.
+//
+// After initial datacenter federation the primary mesh gateways are only used
+// in extreme fallback situations (basically re-bootstrapping).
+//
+// For all other operations a consul server will ALWAYS contact a local mesh
+// gateway to ultimately forward the request through a remote mesh gateway to
+// reach its destination.
 type GatewayLocator struct {
 	logger            hclog.Logger
 	srv               serverDelegate
