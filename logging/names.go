@@ -20,6 +20,7 @@ const (
 	Envoy           string = "envoy"
 	FederationState string = "federation_state"
 	FSM             string = "fsm"
+	GatewayLocator  string = "gateway_locator"
 	HTTP            string = "http"
 	Intentions      string = "intentions"
 	Internal        string = "internal"

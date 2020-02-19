@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -79,19 +80,18 @@ func (g *GatewayLocator) listGateways(primary bool) []string {
 // RefreshPrimaryGatewayFallbackAddresses is used to update the list of current
 // fallback addresses for locating mesh gateways in the primary datacenter.
 func (g *GatewayLocator) RefreshPrimaryGatewayFallbackAddresses(addrs []string) (int, error) {
-	s := g // TODO
 	sort.Strings(addrs)
 
-	s.primaryMeshGatewayDiscoveredAddressesLock.Lock()
-	defer s.primaryMeshGatewayDiscoveredAddressesLock.Unlock()
+	g.primaryMeshGatewayDiscoveredAddressesLock.Lock()
+	defer g.primaryMeshGatewayDiscoveredAddressesLock.Unlock()
 
-	if lib.StringSliceEqual(addrs, s.primaryMeshGatewayDiscoveredAddresses) {
+	if lib.StringSliceEqual(addrs, g.primaryMeshGatewayDiscoveredAddresses) {
 		return 0, nil
 	}
 
-	s.primaryMeshGatewayDiscoveredAddresses = addrs
+	g.primaryMeshGatewayDiscoveredAddresses = addrs
 
-	s.logger.Info("updated fallback list of primary mesh gateways", "mesh_gateways", addrs)
+	g.logger.Info("updated fallback list of primary mesh gateways", "mesh_gateways", addrs)
 
 	return len(addrs), nil
 }
@@ -99,12 +99,11 @@ func (g *GatewayLocator) RefreshPrimaryGatewayFallbackAddresses(addrs []string) 
 // PrimaryGatewayFallbackAddresses returns the current set of discovered
 // fallback addresses for the mesh gateways in the primary datacenter.
 func (g *GatewayLocator) PrimaryGatewayFallbackAddresses() []string {
-	s := g // TODO
-	s.primaryMeshGatewayDiscoveredAddressesLock.Lock()
-	defer s.primaryMeshGatewayDiscoveredAddressesLock.Unlock()
+	g.primaryMeshGatewayDiscoveredAddressesLock.Lock()
+	defer g.primaryMeshGatewayDiscoveredAddressesLock.Unlock()
 
-	out := make([]string, len(s.primaryMeshGatewayDiscoveredAddresses))
-	copy(out, s.primaryMeshGatewayDiscoveredAddresses)
+	out := make([]string, len(g.primaryMeshGatewayDiscoveredAddresses))
+	copy(out, g.primaryMeshGatewayDiscoveredAddresses)
 	return out
 }
 
@@ -132,7 +131,7 @@ func NewGatewayLocator(
 	primaryDatacenter string,
 ) *GatewayLocator {
 	return &GatewayLocator{
-		logger:                 logger.Named("gateway_locator"), // TODO(rb): logging.GatewayLocator?
+		logger:                 logger.Named(logging.GatewayLocator),
 		srv:                    srv,
 		datacenter:             datacenter,
 		primaryDatacenter:      primaryDatacenter,
