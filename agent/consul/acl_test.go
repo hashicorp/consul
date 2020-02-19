@@ -2904,8 +2904,6 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 		return dup.(map[string]structs.CheckServiceNodes)
 	}
 
-	// TODO(rb): switch all newACLFilter calls to use a test logger that uses (*testing.T).Logf
-
 	// Try permissive filtering.
 	{
 		dcNodes := fill(t)
