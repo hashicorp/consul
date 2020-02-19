@@ -4,15 +4,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 // DCWrapper is a function that is used to wrap a non-TLS connection
@@ -30,7 +32,11 @@ var TLSLookup = map[string]uint16{
 	"tls10": tls.VersionTLS10,
 	"tls11": tls.VersionTLS11,
 	"tls12": tls.VersionTLS12,
+	"tls13": tls.VersionTLS13,
 }
+
+// TLSVersions has all the keys from the map above.
+var TLSVersions = strings.Join(tlsVersions(), ", ")
 
 // Config used to create tls.Config
 type Config struct {
@@ -118,6 +124,17 @@ type Config struct {
 	// AutoEncryptTLS opts the agent into provisioning agent
 	// TLS certificates.
 	AutoEncryptTLS bool
+}
+
+func tlsVersions() []string {
+	versions := []string{}
+	for v := range TLSLookup {
+		if v != "" {
+			versions = append(versions, v)
+		}
+	}
+	sort.Strings(versions)
+	return versions
 }
 
 // KeyPair is used to open and parse a certificate and key file
@@ -323,7 +340,7 @@ func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certi
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
-			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [tls10,tls11,tls12]", config.TLSMinVersion)
+			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, TLSVersions)
 		}
 	}
 

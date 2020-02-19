@@ -360,9 +360,6 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{}, false, false},                                              // 1
 		{Config{TLSMinVersion: "tls9"}, true, false},                          // 1
 		{Config{TLSMinVersion: ""}, false, false},                             // 2
-		{Config{TLSMinVersion: "tls10"}, false, false},                        // 3
-		{Config{TLSMinVersion: "tls11"}, false, false},                        // 4
-		{Config{TLSMinVersion: "tls12"}, false, false},                        // 5
 		{Config{VerifyOutgoing: true, CAFile: "", CAPath: ""}, true, false},   // 6
 		{Config{VerifyOutgoing: false, CAFile: "", CAPath: ""}, false, false}, // 7
 		{Config{VerifyOutgoing: false, CAFile: cafile, CAPath: ""},
@@ -389,6 +386,9 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		{Config{CertFile: "bogus", KeyFile: "bogus"}, true, true}, // 20
 		{Config{CAFile: "bogus"}, true, true},                     // 21
 		{Config{CAPath: "bogus"}, true, true},                     // 22
+	}
+	for _, v := range tlsVersions() {
+		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
 	}
 
 	c := Configurator{autoEncrypt: &autoEncrypt{}, manual: &manual{}}
@@ -590,8 +590,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, c.commonTLSConfig(false).MinVersion, TLSLookup["tls10"])
 
-	tlsVersions := []string{"tls10", "tls11", "tls12"}
-	for _, version := range tlsVersions {
+	for _, version := range tlsVersions() {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
 			TLSLookup[version])
@@ -838,4 +837,9 @@ func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
 	require.NoError(t, err)
 	c.autoEncrypt.cert = cert
 	require.False(t, c.AutoEncryptCertExpired())
+}
+
+func TestConfig_tlsVersions(t *testing.T) {
+	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
+	require.Equal(t, strings.Join(tlsVersions(), ", "), TLSVersions)
 }

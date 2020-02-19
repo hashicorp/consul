@@ -1423,7 +1423,8 @@ type RuntimeConfig struct {
 	TLSCipherSuites []uint16
 
 	// TLSMinVersion is used to set the minimum TLS version used for TLS
-	// connections. Should be either "tls10", "tls11", or "tls12".
+	// connections. Should be either "tls10", "tls11", "tls12" or "tls13".
+	// Defaults to tls12.
 	//
 	// hcl: tls_min_version = string
 	TLSMinVersion string
